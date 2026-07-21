@@ -100,7 +100,7 @@ Route `/home/:id/pool` — NET-NEW fourth `GardenTab` on the existing garden det
 - Cycle variants: **no open Season + open Campaigns** leaves the Campaign list and scoped work fully active while the Season slot says “No open Season”; **one Season + zero Campaigns** omits the empty Campaign list after a quiet “No open Campaigns” line; history stays separate from current scope.
 - Protocol-pool commitments shown in a garden context add, for eligible stewards only, a provider-context choice ("take this up as myself" / "take this up for this garden"). The request stores `ClaimType` plus `gardenContext`; acceptance derives `providerGarden`. It does not create token custody or a member-delivery fallback. Full protocol-pool claim journey: W25.
 - **No "My commitments" strip on this tab** (trimmed 2026-07-18 for client minimalism): the WalletDrawer Commitments tab (W5) is the single cross-garden "mine" surface. The `(Mine)` filter chip stays for in-garden browsing.
-- Membership-wait variant (decision #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
+- Membership-wait variant (register #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
 - Tap card ▸ W2. Offer/Request CTAs ▸ W3 with direction preset.
 
 Approval-gated request variants reuse the same card/detail grammar and survive refresh:
@@ -161,8 +161,8 @@ Route `/home/:id/pool/:commitmentId`.
 - W2a attach sheet (`{DialogShell}` + `{FileUploadField}`): photo / link / note → one `evidence` job per submit; works fully offline.
 - Fulfilled state: hero moment fires once (§5.10), reward row flips to "reward released" when `RewardPaid` lands.
 - Disputed state: banner "under review by stewards", CTAs frozen.
-- Expired state (decision #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
-- Owner withdraw (decision #34b): while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`). Drawing: prototypes.md MF-2a. Steward cancel placement remains open.
+- Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
+- Owner withdraw (register #34b): while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`). Drawing: prototypes.md MF-2a. Steward cancel placement remains open.
 - Hi-fi guidance (audit 2026-07-18): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure (accordion / carousel / sheet) so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind a single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
 
 ### W3 — Offer / request creation flow (uiux-spec §5.4)
@@ -236,7 +236,7 @@ DomainImpact — the approved work IS the evidence   SupportService / OperatorCa
 └──────────────────────────────────────────────┘   └──────────────────────────────┘
 ```
 
-- The two paths compose, they don't compete: DomainImpact reaches this sheet only after every per-action approved-work count is met (the approved-work chips carry that proof into the confirmation moment); no-work-requirement kinds reach it on evidence alone, and here the confirmation IS the review (decision #10/#20).
+- The two paths compose, they don't compete: DomainImpact reaches this sheet only after every per-action approved-work count is met (the approved-work chips carry that proof into the confirmation moment); no-work-requirement kinds reach it on evidence alone, and here the confirmation IS the review (register #10/register #20).
 - For a Request, the helper instead reads “claimant provides · request creator confirms.” Named groups never include the accepted provider; an acceptance that would make `N` unreachable fails before any units commit.
 - Optimistic tick on the meter; if this was the Nth confirmation, Fulfilled hero fires on **sync completion**, not enqueue.
 
@@ -325,10 +325,10 @@ Decline never says the commitment “returns” to browse; it was already availa
 
 Layout decisions (audit 2026-07-18): the pool card gains an **above-the-fold summary row** (counts + jump links) so the most actionable queues are visible without scrolling a flat list; **history is not a sub-view** — composted cycles and settled records appear under the `(Past)` segmented chip in place (Garden `OverviewTab` chip precedent), and the old "History:" console row is retired; commitment rows open in the **left inspector** (`{AdminDialog}` via the Garden sheet descriptor) like every other garden workspace detail — the right sheet remains account chrome only.
 
-Adopted 2026-07-11 (decision #34; lo-fi drawings in `prototypes.md` pending a redraw pass here):
-- **Pool-card lifecycle actions** (#34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
-- **Lapsed this cycle** (#34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
-- **Waiting to join** (decision #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome.
+Adopted 2026-07-11 (register #34; lo-fi drawings in `prototypes.md` pending a redraw pass here):
+- **Pool-card lifecycle actions** (register #34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
+- **Lapsed this cycle** (register #34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
+- **Waiting to join** (register #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome.
 
 ### W8 — Steward seeding console (uiux-spec §6.3)
 
@@ -584,14 +584,14 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Gate status row (decision #34f): the settlement card adds a read-only line — `member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setMemberDeliveryEnabled`); this row only makes the gate legible.
+- Gate status row (register #34f): the settlement card adds a read-only line — `member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setMemberDeliveryEnabled`); this row only makes the gate legible.
 
 ### W22 — Batch execution and oracle console (Operations workspace + per-garden)
 
 `{AdminDialog}` opened from W21 and from the NEW deployer-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18.
 
 ```text
-┌── Execute batch #12 — Rocinha ───────────────────────────┐
+┌── Execute batch #12 — Rocinha ───────────────────────────────────┐
 │ 2 of max 24 immutable members · 35 G$ · Safe 0x9a…4f     │
 │ ≡ Maria — 20 G$ → 0x12…9a                                │
 │ ≡ João — 15 G$ → 0x77…3c                                 │
@@ -609,7 +609,7 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 └──────────────────────────────────────────────────────────┘
 ```
 
-- Role guard (decision #34e): pilot operators hold the executor role (never a Safe owner, never a recovery owner). An account without the role sees "this account doesn't hold the executor role" on Mark executing / Report — a visible guard state, never a silent failure. No role-split UI.
+- Role guard (register #34e): pilot operators hold the executor role (never a Safe owner, never a recovery owner). An account without the role sees "this account doesn't hold the executor role" on Mark executing / Report — a visible guard state, never a silent failure. No role-split UI.
 
 ### W23 — WalletDrawer: G$ section + member send (delta to W5)
 
@@ -666,7 +666,7 @@ New admin workspace tab gated exactly like Actions (`showOperations: isDeployer`
 ```
 
 - The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module no longer records an upstream hop (corrections-log §9). Every downstream figure distinguishes Reported from oracle-Verified.
-- Executor-role guard (decision #34e) applies to every execute/report control here, same as W22.
+- Executor-role guard (register #34e) applies to every execute/report control here, same as W22.
 
 ### W25 — Protocol-pool claim flow (client PWA)
 
@@ -744,4 +744,4 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 | settlement-spec §7 batch execution console | W22 |
 | settlement-spec §7 wallet G$ + member send | W23 |
 | settlement-spec §5 AA-gate failure | W23 gate-failed variant |
-| 2026-07-11 review adoptions (plan.todo.md #34–#35) | variant notes on W1/W2/W7/W21/W22 here; lo-fi drawings in `prototypes.md` MF-1/2a/3/4/5 |
+| 2026-07-11 review adoptions (plan.todo.md register #34–register #35) | variant notes on W1/W2/W7/W21/W22 here; lo-fi drawings in `prototypes.md` MF-1/2a/3/4/5 |

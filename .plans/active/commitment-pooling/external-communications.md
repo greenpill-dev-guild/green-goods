@@ -2,7 +2,7 @@
 
 **Feature Slug**: commitment-pooling
 **Stage**: active
-**Updated**: 2026-07-19 (fund topology corrected; three-surface boundary defined; fourth-garden slot reopened per Decision Log #29; GIP-26 provenance restored)
+**Updated**: 2026-07-20 (four native phases separated from operational checkpoints; testimony September-only; external verification gate made explicit)
 **Canonical synthesis**: “Commitment Pooling × Green Goods — Grassroots Economics Learnings, and the Full Flywheel We're Building.” This plan defines derivative materials and rollout; it does not replace or compress the synthesis into a new source of truth.
 **Settlement authority**: `settlement-spec.md` owns settlement and verification claims (oracle predicate, funding routes, Safe topology, AA gate). The canonical synthesis is the long-form rationale and is silent on the verification axis by design; derivatives cite the spec for settlement facts, not the synthesis.
 
@@ -26,7 +26,7 @@ Green Goods already provides garden identity, permissions, passkey-backed access
 
 Commitment and proof control remain on Arbitrum. Commitments are module-native records rather than EAS state machines. Optional domains use arrays; DomainImpact commitments pair each positional domain with a registered, domain-matching action UID, and UID 0 remains valid.
 
-When a Fulfilled commitment has a G$ reward, the planned SettlementModule records control state on Arbitrum while canonical G$ remains on Celo. The House of Alignment stream lands directly in the Green Goods protocol Safe on Celo. Green Goods models only the ProtocolToGarden downstream funding route. A reported transaction becomes oracle-verified only through the mandatory Chainlink Functions callback; there is no manual verification path. If the Celo account-abstraction/paymaster gate fails, protocol and garden funding may continue, but automated member delivery remains blocked and no garden-held member-claim path is introduced.
+When a Fulfilled commitment has a G$ reward, the planned SettlementModule records control state on Arbitrum while canonical G$ remains on Celo. Green Goods designates its protocol Safe on Celo as the direct House of Alignment receiving account, but public copy must call that a planned topology until partner evidence confirms the mechanism and receiving address. Green Goods models only the ProtocolToGarden downstream funding route. A reported transaction becomes oracle-verified only through the mandatory Chainlink Functions callback; there is no manual verification path. If the Celo account-abstraction/paymaster gate fails, protocol and garden funding may continue, but automated member delivery remains blocked and no garden-held member-claim path is introduced.
 
 Grassroots Economics provides important design learnings. Green Goods uses the paper and public documentation as a clean-room reference and builds its own architecture.
 
@@ -79,18 +79,20 @@ Visual assets for the brief, this plan, and the synthesis are indexed in `visual
 
 ## Go-to-community sequence
 
-| Linear checkpoint | Planned engagement | Exit evidence |
+| Type and date | Planned engagement | Exit evidence |
 |---|---|---|
 | Through 2026-07-16 | Operator outreach begins; facilitation-kit review | Outreach started; unanswered questions logged |
 | 2026-07-16 to 2026-07-30 | Co-design sessions and mandate confirmation (COM-3 kickoff package due 2026-07-30 with COM-7) | Contacts, session slots, consent path; corrected mandates, language findings, join-request decision evidence |
-| 2026-07-31 dry-run checkpoint | Share “what we heard / what changes” back to gardens | Readiness matrix with explicit gaps; no inflated launch claim |
-| 2026-08-31 release checkpoint | Steward walkthrough and one bounded end-to-end proof where every external gate passes | Tested runbook, architecture evidence, and oracle-verified Celo settlement proof where relevant |
-| 2026-09-30 Community checkpoint | Independent-PWA and gathering usability sessions | Observed task completion, recovery-path evidence, and qualitative understanding |
-| 2026-12-31 hardening review | Publish pilot learnings and decisions | Evidence-backed promote/defer decisions for hardening |
+| Native phase — Scope and Design · 2026-07-20 | Freeze a coherent source set | Specs, prototype, acceptance, and source mirrors agree or name explicit blockers |
+| Operational checkpoint — July dry run · 2026-07-31 | Share “what we heard / what changes” back to gardens | Readiness matrix with explicit gaps; no inflated launch claim |
+| Native phase — Build · 2026-07-31 | Complete implementation and QA proof | Lane GREEN; no live claim and no broadcast |
+| Native phase — Release · 2026-08-12 | Steward walkthrough and one bounded end-to-end production proof after every relevant gate passes | Artifact-by-artifact authorization, post-deploy checks, and Oracle-verified settlement proof where relevant; the date waives no gate |
+| Operational checkpoint — Community and evidence · 2026-09-30 | Independent-PWA and gathering usability sessions; September-only testimony; settlement evidence delivery | Observed task completion, recovery-path evidence, qualitative understanding, and source-backed aggregate evidence |
+| Native phase — Follow On / Hardening · 2026-12-31 | Publish pilot learnings and decisions | Evidence-backed promote/defer decisions only; no implementation authority |
 
 ## Marketing and distribution plan
 
-This is a trust-building rollout, not a feature-launch countdown.
+This is a trust-building rollout organized around explicit evidence gates, not launch-pressure messaging.
 
 - **Owned**: Green Goods docs, garden pages, short captioned walkthrough, steward office hours, release notes.
 - **Partner**: participating gardens, Greenpill chapters, House of Alignment, GoodDollar, and methodology collaborators after factual review.
@@ -131,14 +133,15 @@ Also report:
 - Say “informed by Grassroots Economics” and “clean-room implementation,” not “Sarafu integration” or “copy.”
 - Say “G$ remains and settles on Celo”; never imply G$ bridges to Arbitrum.
 - State that GoodDollar also operates beyond this settlement context only when the statement is sourced and relevant; Green Goods’ selected settlement venue remains Celo.
-- Say House of Alignment funds stream directly to the Green Goods protocol Safe on Celo. Green Goods models only ProtocolToGarden onward; do not describe an unconfirmed automatic allocation. When provenance is stated, state **both halves together**: Green Goods is one of four inaugural House of Alignment members (with Gardens, ReFi DAO, Textile); [GIP-26](https://discourse.gooddollar.org/t/gip-26-begin-distributions-to-house-of-alignment/8890) — which would have re-routed reserve distributions to a House of Alignment pool — **failed its community vote**; and the **Good Labs Foundation funds the initial season directly** at roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30. Never state the failed vote without the foundation funding, or the pilot reads as dead; never state the funding without the failed vote, or the mechanism reads as protocol-level when it is not.
-- Describe borrow-and-repay only as design-only (`../../backlog/commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and not part of the August release. Do not present it as available or scheduled.
+- Say the House of Alignment direct-to-protocol-Safe route is **Green Goods' designated topology, pending receiving-address and mechanism evidence**. Green Goods models only ProtocolToGarden onward; do not describe an unconfirmed automatic allocation. When provenance is stated, distinguish proposal from confirmed pilot: [GIP-26](https://discourse.gooddollar.org/t/gip-26-begin-distributions-to-house-of-alignment/8890) proposed the four inaugural members, roughly $800/month in G$, a Flow Splitter, and a 2026-09-30 evaluation, then failed its community vote; the [June 23 GoodDAO update](https://discourse.gooddollar.org/t/gooddao-2-0-gooddollar-governance-re-vision-update/9016) confirms a Foundation-funded experiment with the same four members but leaves the mechanism open. Do not carry the proposal's amount, Flow Splitter, start date, exact evaluation obligation, or receiving route forward as confirmed pilot facts without partner evidence.
+- Describe borrow-and-repay only as design-only (`../../backlog/commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and not part of the initial pooling release. Do not present it as available or scheduled.
 - Source external evidence claims only from the canonical synthesis Sources section (re-verified 2026-07-05). Never reintroduce “Ruddick 2021” as the RCT attribution, “300,000 transactions”, the WFP 95%/90% food figures, or the unsourceable ~284 pools / ~5,591 swaps / ~$320,692 Celo figures.
+- Before distribution, re-verify every GoodDollar, House of Alignment, canonical-token, market, partner, and funding claim against a current primary source. Record the URL and verification date; unavailable or contradictory evidence blocks distribution rather than being carried forward from an older synthesis.
 - Distinguish Queued/Executing, Reported/checking, receipt-invalid Failed, infrastructure retry, and Oracle-verified. Only the configured Chainlink Functions callback may produce Oracle-verified settlement.
-- **Keep two things apart: settlement *capability* and distribution *scaling*.** Every focus garden is settlement-capable in August (one Celo Safe per garden, deployed on demand) — capability is not gated on a spend sink, and August settlement is never described as limited to a single garden. But *scaling the G$ distribution into* a garden does follow sink readiness: the GoodDollar-facing plan commits to standing up at least one real way to spend G$ in a garden before widening the flow into it, with season one as a deliberate test at a few committed gardens rather than a broad rollout. Say "settlement-capable," never "will settle," while the 2026-07-29 settlement gates remain open. Tech and Sun Hub is the planned first execution and onboarding evidence orders the rest.
+- **Keep two things apart: settlement *capability* and distribution *scaling*.** The design supports a Celo Safe per focus garden on demand, but no garden is described as live-settling before value-tier release evidence and authorization. Capability is not gated on a spend sink. *Scaling the G$ distribution into* a garden does follow sink readiness: the GoodDollar-facing plan commits to standing up at least one real way to spend G$ in a garden before widening the flow into it, with season one as a deliberate test at a few committed gardens rather than a broad rollout. Say "planned settlement capability," never "will settle," while gates remain open. Tech and Sun Hub is the planned first bounded execution and onboarding evidence orders the rest.
 - If the Celo AA/paymaster gate fails, say “member delivery is blocked”; do not imply garden custody, a member claim, or successful delivery.
 - Funding in Need context supports the garden; it is not per-Need escrow and does not direct yield.
 - Need kinds are Request, Offer, and Initiative. Moderation is none, acknowledged, merged, hidden, or declined; progress is open, committed, in-progress, or addressed. Do not collapse the two axes into a single ranked score.
 - Domains are optional arrays. DomainImpact action UIDs are positional arrays, and UID 0 is valid.
 - Do not rank communities, gardens, Needs, or people.
-- **The fourth pilot garden slot is open — never name one.** No garden has been selected for it; candidates are under consideration and at least one is of uncertain status. Describe it as an open slot with its selection criteria, never as a named or pending participant. The three named gardens cover all four action domains, so the four-domain claim needs no fourth name. (Decision Log #29 supersedes #25 and #27.)
+- **The fourth pilot garden slot is open — never name one.** No garden has been selected for it; candidates are under consideration and at least one is of uncertain status. Describe it as an open slot with its selection criteria, never as a named or pending participant. The three named gardens cover all four action domains, so the four-domain claim needs no fourth name. (Decision Log #29 supersedes Decision Log #25 and Decision Log #27.)

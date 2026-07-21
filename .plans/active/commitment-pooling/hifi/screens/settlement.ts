@@ -15,24 +15,22 @@ import type { HifiDef } from "./index";
 // W12 — Community workspace, Pools mode (uiux-spec §6.8, rescoped 2026-07-18)
 // ---------------------------------------------------------------------------
 
-const W12_STATES = [["protocol", "Protocol pool"], ["gardens", "Gardens"]] as const;
+const W12_STATES = [["protocol", "Protocol pool"], ["current-garden", "This garden"]] as const;
 type W12State = (typeof W12_STATES)[number][0];
 
 function w12(state: W12State): string {
-  const toggle = `<span class="wstabs"><button type="button" class="wstab${state === "protocol" ? " on" : ""}">Protocol pool</button><button type="button" class="wstab${state === "gardens" ? " on" : ""}">Gardens</button></span>`;
+  const toggle = `<span class="wstabs"><button type="button" class="wstab${state === "protocol" ? " on" : ""}">Protocol pool</button><button type="button" class="wstab${state === "current-garden" ? " on" : ""}">This garden</button></span>`;
   const inner =
-    state === "gardens"
+    state === "current-garden"
       ? acard(
-          "Gardens — alphabetical, never ranked",
-          `<div class="arow"><div class="grow"><b>Awka Hub</b> <span class="t-meta">Season: In progress · 2 campaigns</span></div><span class="t-meta num">kept 8/9 · exposure 14</span></div>
-<div class="arow"><div class="grow"><b>Muizenberg</b> <span class="t-meta">Season: Open</span></div><span class="t-meta num">kept 5/6 · exposure 9</span></div>
-<div class="arow"><div class="grow"><b>Rocinha</b> <span class="t-meta">Season: Open · 2 campaigns</span></div><span class="t-meta num">kept 7/9 · exposure 18</span></div>
-${hot("w12.no-ranking", banner("One row per garden, sorted alphabetically. No rank column, ever.", "stone"))}`,
+          "Rocinha pool",
+          `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">Open · 2 campaigns</span></div><span class="t-meta num">kept 7/9 · exposure 18</span></div>
+${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in deployer-gated Operations.", "stone"))}`,
         )
       : `${acard(
           "Funding view",
           `<div class="arow"><div class="grow">20 DAI · protocol treasury → Field survey <span class="t-meta">co-funded with Awka Hub</span></div>${chip("Reference", "plain")}</div>`,
-          hot("w12.queue-funding", `<span class="ax">${chip("proposed", "queued")}${btn("Queue funding…", { kind: "sec", sm: true })}</span>`),
+          chip("read only here", "plain"),
         )}
 ${acard(
           "Claims across gardens — steward-reviewed",
@@ -42,15 +40,14 @@ ${acard(
           "Confirmations queue",
           `<div class="arow">${hot("w12.confirm-row", `<div class="grow"><b>Field survey</b> — 1 of 2 confirmed</div>`)}${icon("arrow-right-s-line", "s")}</div>`,
         )}`;
-  const body = `${adminBar("community")}${vhead("Community · Pools", "root garden + gardens overview", toggle)}<div class="canvasbody">${inner}</div>`;
+  const body = `${adminBar("community")}${vhead("Community · Pools", "Protocol pool + Rocinha", toggle)}<div class="canvasbody">${inner}</div>`;
   return deskWin("admin.greengoods.app/dashboard/community/pools", body);
 }
 
 const W12_HOTS: HifiDef["hots"] = {
   "w12.accept": { l: "Accept a garden claim", info: "Protocol steward accepts stored terms; providerGarden derives (CS:733). Walked in SB-13." },
   "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
-  "w12.queue-funding": { l: "Queue funding (proposed)", info: "queueFunding — ProtocolToGarden, the only modeled route; the control itself is MF-11, still proposed (SS:174,536)." },
-  "w12.no-ranking": { l: "No-ranking invariant", info: "Cross-garden rows sort alphabetically; no rank column ever (UX:314)." },
+  "w12.no-ranking": { l: "Garden scope boundary", info: "No other-garden rows or batch/oracle controls render here; all-garden operations live in W24 (UX:314)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -85,7 +82,7 @@ function w21(state: W21State): string {
       break;
     case "gate-status":
       inner = acard(
-        "Member delivery gate — read-only status (#34f)",
+        "Member delivery gate — read-only status (register #34f)",
         `${kv("Member delivery", "enabled")}${kv("Changed by", "0x9a…4f (owner)")}${kv("Date", "Jul 30")}${kv("Evidence", "round-trip check ↗")}
 ${banner("The flip itself is owner-only ops — this row keeps the gate legible to every steward.", "stone")}`,
       );
@@ -114,7 +111,7 @@ ${w21Rows(false)}`,
 
 const W21_HOTS: HifiDef["hots"] = {
   "w21.setup": { l: "Set up settlement account", to: "screen:W21", info: "registerSettlementAccount — Celo 42220, 2-of-3 recovery, no owner/executor overlap (SS:169)." },
-  "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (#34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
+  "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
   "w21.add-batch": { l: "Add to batch", info: "Batches hold 1–24 immutable members (SS:116)." },
   "w21.requeue": { l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
   "w21.cancel-disb": { l: "Cancel disbursement", info: "Queued/Failed → Cancelled; frees the commitment for a fresh queue (SS:183)." },
@@ -169,7 +166,7 @@ ${banner("The batch stays immutable; recovery is per-member. A stale callback is
       break;
     case "role-guard":
       inner = `${head}
-${banner("You don't hold the settlement executor role for this garden. Pilot stewards hold it (#34e) — never a Safe owner, never a recovery owner. Ask the protocol team to grant it.", "amber", "shield-check-line")}
+${banner("You don't hold the settlement executor role for this garden. Pilot stewards hold it (register #34e) — never a Safe owner, never a recovery owner. Ask the protocol team to grant it.", "amber", "shield-check-line")}
 ${btn("Open in Safe app ↗", { kind: "sec", disabled: true })}${btn("Mark executing", { kind: "sec", disabled: true })}`;
       break;
     default:
@@ -184,7 +181,7 @@ ${banner("The G$ transfer itself happens in the Safe app under a Roles-scoped al
 
 const W22_HOTS: HifiDef["hots"] = {
   "w22.open-safe": { l: "Open in Safe app", info: "The value leg happens in the Safe app — Roles-scoped G$ transfer, outside Green Goods (WF settlement notes)." },
-  "w22.mark-executing": { l: "Mark executing", to: "screen:W22@executing", info: "Executor-only (SS:176). Pilot stewards hold the role (#34e); a missing role shows a visible guard state." },
+  "w22.mark-executing": { l: "Mark executing", to: "screen:W22@executing", info: "Executor-only (SS:176). Pilot stewards hold the role (register #34e); a missing role shows a visible guard state." },
   "w22.report-hash": { l: "Report tx hash", to: "screen:W22@reported", info: "Executor-only; ref mandatory and globally unused. Reported is never member-visible proof (SS:177)." },
   "w22.record-failed": { l: "Record failed", info: "Failed with reason → per-member recovery on W21 (SS:182)." },
   "w22.request-verification": { l: "Request receipt verification", to: "screen:W22@checking", info: "Pinned Chainlink Functions request; only its callback can produce Verified — no human override (SS:178-179)." },
@@ -217,7 +214,7 @@ function w24(state: W24State): string {
       inner = acard(
         "Cross-chain funds board",
         `<div class="arow">${hot("w24.inflow-row", `<div class="grow">GoodDollar pool → GG protocol Safe</div>`)}<span class="num">balance 4,120 G$</span>${chip("Celo read", "plain")}</div>
-<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">3 hops oracle-verified · 1 reported</span></div>
+${hot("w24.queue-funding", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">3 hops oracle-verified · 1 reported</span>${btn("Queue garden funding", { kind: "sec", sm: true })}</div>`)}
 <div class="arow"><div class="grow">Garden Safes → members</div><span class="t-meta num">42 oracle-verified · 2 failed</span></div>
 ${hot("w24.gardens", `<div class="arow"><div class="grow">Gardens: Awka kept 8/9 · Muizenberg kept 5/6</div>${chip("alphabetical", "plain")}</div>`)}
 ${banner("Every downstream figure distinguishes Reported from oracle-verified. Inflow is a Celo balance read — the module records no upstream hop.", "stone")}`,
@@ -241,7 +238,8 @@ ${banner("Every downstream figure distinguishes Reported from oracle-verified. I
 }
 
 const W24_HOTS: HifiDef["hots"] = {
-  "w24.execute": { l: "Execute batch", to: "screen:W22", info: "Cross-garden execution home (WF:643). Executor-role guard (#34e) applies here, same as W22." },
+  "w24.execute": { l: "Execute batch", to: "screen:W22", info: "Cross-garden execution home (WF:643). Executor-role guard (register #34e) applies here, same as W22." },
+  "w24.queue-funding": { l: "Queue garden funding", info: "Deployer-gated queueFunding derives the sole ProtocolToGarden route; no upstream HoA hop is written onchain (SS:174,536)." },
   "w24.requeue": { l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
   "w24.inflow-row": { l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   "w24.gardens": { l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },

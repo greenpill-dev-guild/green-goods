@@ -184,7 +184,7 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.scope": { l: "Scope control", info: "Filters the list; every aggregate names its scope — Season and Campaigns never blur (UX:127)." },
   "w1.filters": { l: "Filter chips", info: "Client-local filter chips (admin AdminFilterChip is admin-only)." },
   "w1.season-card": { l: "Cycle card", info: "Season vs Campaign is always named; derived InProgress/Reviewing overlays follow activity (CS:115-117). Calm dates, never timers." },
-  "w1.queued-card": { l: "Queued promise card", info: "Offline-queued job chrome; syncs when connected (UX:237). waiting_for_hat variant consumes no send attempts (#34c)." },
+  "w1.queued-card": { l: "Queued promise card", info: "Offline-queued job chrome; syncs when connected (UX:237). waiting_for_hat variant consumes no send attempts (register #34c)." },
   "w1.appbar": { l: "AppBar", info: "Unchanged three-tab AppBar; the Garden tab is the existing work-submission flow (UX:116)." },
 };
 
@@ -346,7 +346,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
-  "w2.withdraw": { l: "Withdraw (pre-acceptance)", info: "Member pre-acceptance withdraw, adopted MF-2a (#34b). Steward-cancel placement remains open (MF-2b)." },
+  "w2.withdraw": { l: "Withdraw (pre-acceptance)", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward-cancel placement remains open (MF-2b)." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody (SS:532). When a G$ disbursement exists, settlement status replaces the pending line; “Arrived” always means oracle-verified, never just reported." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },

@@ -250,7 +250,7 @@ Recovery: approvals that land before `linkWork` are recovered by bounded steward
 
 ## D3. Analog capture + lightweight evidence (review-is-confirmation)
 
-The SupportService / OperatorCaptured path: no Work/WorkApproval rails, no work requirement, counterparty confirmation IS the review (decision #20). The member stays the named promise source; the steward is metadata (`recordedBy`).
+The SupportService / OperatorCaptured path: no Work/WorkApproval rails, no work requirement, counterparty confirmation IS the review (register #20). The member stays the named promise source; the steward is metadata (`recordedBy`).
 
 **When this happens (use cases)**: an elder gardener makes a promise in conversation and the steward records it from a paper field log; a member offers childcare, meals, or transport for a community work day — help that has no Work/approval rail; a field visit is captured fully offline and the evidence photos sync hours later. In every case the member stays the named promise source (`recordedBy` marks the steward as scribe, never as owner), and because these kinds carry no work requirement, the counterparty's confirmation *is* the review — no separate approval step exists.
 
@@ -290,7 +290,7 @@ Every pool transition is on-chain (rare steward console actions). One pool per g
 stateDiagram-v2
   direction LR
   [*] --> NotReady : onGardenMinted / registerPool
-  NotReady --> Ready : markPoolReady (charter CID + current baseline assessment)
+  NotReady --> Ready : markPoolReady (charter CID + non-zero exposure cap)
   Ready --> Open : openPool
   Open --> Paused : pausePool
   Paused --> Open : resumePool
@@ -305,8 +305,8 @@ stateDiagram-v2
 
 | State | What it means | What's allowed | Who acts |
 |---|---|---|---|
-| NotReady | garden minted, pool registered, no shared ground truth yet | configuration only | steward |
-| Ready | charter + a current baseline assessment in place | seed cycles; open the pool | steward |
+| NotReady | garden minted, pool registered, onchain charter/cap predicate not yet met or app Baseline preflight still missing | configuration only | steward |
+| Ready | onchain charter + non-zero exposure cap are present; the app offered the write only after a current non-revoked Baseline preflight | seed cycles; open the pool | steward |
 | Open | promises can flow | create / claim / confirm commitments; seed and open cycles | members + steward |
 | Paused | **the emergency freeze** | nothing new — create, claim, ready-submit, and confirm are disabled; existing records stay readable | steward (resume) |
 | Closed | wind-down | no new activity; terminal cleanup of open commitments | steward |
@@ -328,8 +328,8 @@ stateDiagram-v2
   Reviewing: Reviewing (derived)
 
   [*] --> Draft
-  Draft --> Seeded : seedCycle — allocation split locked (six roles, sums to 100%)
-  Seeded --> Open : openCycle (CycleOpened carries the allocation snapshot)
+  Draft --> Seeded : seedCycle — metadata and window only
+  Seeded --> Open : openCycle(allocation) — validate, lock, emit six-role snapshot
   Open --> InProgress : first CommitmentAccepted, or startTime reached
   InProgress --> Reviewing : endTime passed, or all commitments terminal / ready
   Reviewing --> InProgress : new evidence, work link, or approval count
@@ -351,7 +351,7 @@ stateDiagram-v2
 
 **There is deliberately no loop here**: `Composted` is terminal *for a cycle*. The loop lives at the pool — a fresh `seedCycle` (Season or Campaign) on the same pool is how the next round begins, and the composted cycle's aggregates roll into pool history. (The pool machine, D4, is the one that can reopen.)
 
-**Allocation split**: the six role percentages — gardeners / treasury / steward / evaluator / community / funder, stored on-chain as basis points where 10000 bps = 100% — are locked at seeding, emitted at open, and become the cycle's impact-certificate allowlist allocation at close (contract-spec §9.4; default Model 1: 60 / 15 / 10 / 5 / 5 / 5).
+**Allocation split**: the six role percentages — gardeners / treasury / steward / evaluator / community / funder, stored on-chain as basis points where 10000 bps = 100% — are supplied atomically to `openCycle`, validated, stored as the immutable cycle snapshot, emitted in `CycleOpened`, and become the cycle's impact-certificate allowlist allocation at close (contract-spec §9.4; default Model 1: 60 / 15 / 10 / 5 / 5 / 5). `seedCycle` carries no allocation.
 
 ## D6. Commitment state machine (overview + three acts)
 
@@ -462,7 +462,7 @@ Cycle-less commitments (`cycleId == 0`) derive `Reconciled` from `PoolClosed`; c
 
 ## D7. Indexer entity delta (ERD)
 
-Six NET-NEW pooling entities, all derived exclusively from module + register events (`chainId-identifier` composite IDs). `GARDEN` is the existing entity; settlement entities are shown separately in D7b. The docs-site ERD gains this delta at ship via PRD-680.
+Eight NET-NEW pooling entities, all derived exclusively from module + register events (`chainId-identifier` composite IDs). `GARDEN` is the existing entity; settlement entities are shown separately in D7b. The docs-site ERD gains this delta at ship via PRD-680.
 
 **Units model — how pools measure things** (the legend the ERD fields hang on): every commitment declares its own measure — `unitLabel` (hours, tasks, meals, rides, plants…) and `targetUnits`, the class quota locked at creation. Pools and cycles aggregate those units without ever mixing labels arithmetically in the UI:
 
@@ -485,6 +485,7 @@ erDiagram
   COMMITMENT ||--o| COMMITMENT_CLAIM_REQUEST_INDEX : "direct handler lookup"
   COMMITMENT_CLAIM_REQUEST_INDEX ||--o{ COMMITMENT_CLAIM_REQUEST : "requestIds for direct supersession"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
+  COMMITMENT |o--o| NEED_COMMITMENT_INDEX : "non-zero needUID lineage"
 
   GARDEN {
     ID id "chainId-address"
@@ -569,6 +570,14 @@ erDiagram
     String data "reason / CID / payoutRef"
     Int timestamp ""
   }
+  NEED_COMMITMENT_INDEX {
+    ID id "chainId-needUID"
+    String needUID "non-zero Need attestation UID"
+    String commitmentEntityIds "unique composite commitment IDs"
+    String cycleEntityIds "unique composite cycle IDs"
+    String fulfilledCommitmentEntityIds "fulfilled lineage"
+    String hypercertEntityIds "certificate lineage"
+  }
 ```
 
 On acceptance, the handler loads `COMMITMENT_CLAIM_REQUEST_INDEX` by `chainId-commitmentId`, marks the accepted request `ACCEPTED`, and marks every other still-pending indexed request `SUPERSEDED`. Pre-acceptance commitment cancellation or expiry uses the same indexed IDs to supersede every pending row with its resolution code. Decline updates only the named request. No handler performs a database-wide scan, and no audit-event actor is inferred from `transaction.from`. `Garden.id` migration requires a full replay/backfill and shared-query cutover; every relationship uses `chainId-*` IDs.
@@ -577,7 +586,7 @@ Full field lists: contract-spec §8.2. The four locked aggregates stay numerator
 
 ## D7b. Settlement ERD
 
-**How to read this**: four entities, one story — a garden registers its Celo Safe once (`SETTLEMENT_ACCOUNT`), earned rewards and funding top-ups become `DISBURSEMENT` rows, executors group them into immutable `SETTLEMENT_BATCH` attempts, and every claimed Celo receipt is checked by a `VERIFICATION_REQUEST` before anything reads as verified.
+**How to read this**: four entities, one story — the singleton `SETTLEMENT_CONFIGURATION` exposes the member-delivery gate; a garden registers its Celo Safe once (`SETTLEMENT_ACCOUNT`); earned rewards and funding top-ups become `DISBURSEMENT` rows; and executors group them into immutable `SETTLEMENT_BATCH` attempts. Verification request IDs, timestamps, expiry, evidence, and failure fields live on the disbursement/batch records and events rather than in a fifth entity.
 
 Every batch is an immutable attempt with 1–24 persisted member IDs. Receipt-invalid batches remain immutable; recovery happens per member and clears the member's old `batchId`. A verification request is replay protection, not a new disbursement state.
 
@@ -587,8 +596,14 @@ erDiagram
   GARDEN ||--o{ DISBURSEMENT : "garden attribution"
   COMMITMENT |o--o| DISBURSEMENT : "one live earned-reward record"
   SETTLEMENT_BATCH ||--|{ DISBURSEMENT : "immutable 1..24 member IDs"
-  SETTLEMENT_BATCH ||--o{ VERIFICATION_REQUEST : "retry attempts"
-  DISBURSEMENT ||--o{ VERIFICATION_REQUEST : "single verification attempts"
+  SETTLEMENT_CONFIGURATION ||--o{ SETTLEMENT_ACCOUNT : "global delivery gate"
+
+  SETTLEMENT_CONFIGURATION {
+    ID id "chainId-settlement-config"
+    Int chainId "Arbitrum entity chain"
+    Boolean memberDeliveryEnabled "AA-paymaster evidence gate"
+    Int updatedAt "event timestamp"
+  }
 
   SETTLEMENT_ACCOUNT {
     ID id "chainId-garden"
@@ -630,16 +645,6 @@ erDiagram
     String reportedBy "executor who reported"
     String verifiedBy "Functions router only"
     String verificationRequestId "active oracle request"
-  }
-  VERIFICATION_REQUEST {
-    ID id "chainId-requestId"
-    Int chainId "Arbitrum entity chain"
-    Boolean isBatch "batch or single-disbursement subject"
-    BigInt subjectId "disbursementId or batchId"
-    String executionRef "the exact Celo tx being checked"
-    Int requestedAt "request timestamp; expiry snapshots the timeout"
-    Boolean active "cleared on callback, timeout, or expiry"
-    String outcome "valid, receipt-invalid, infrastructure, or stale"
   }
 ```
 
@@ -857,7 +862,7 @@ If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available 
 
 ## D13. Permission and responsibility matrix
 
-**How to read this**: one row per role, one column per capability group — ✓ means the role may act within the listed scope, — means no access, ✗ marks an enforced prohibition. "Garden steward" = holder of the garden's operator/owner Hats; the protocol pool resolves stewardship to the root garden. The red lines below the table are enforced on-chain or by deployment checks, not by convention.
+**How to read this**: one row per capability-bearing role, one column per capability group — ✓ means the role may act within the listed scope, — means no access, ✗ marks an enforced prohibition. "Garden steward" = holder of the garden's operator/owner Hats; the protocol pool resolves stewardship to the root garden. A pilot steward may also hold the scoped executor role. The enforced separations are executor versus recovery ownership and human operation versus oracle verification, not steward versus executor identity.
 
 | Role | Pool & cycle control | Create / claim promises | Evidence & work | Approve work | Confirm fulfillment | Queue & execute value | Verify receipts | Configure protocol |
 |---|---|---|---|---|---|---|---|---|
@@ -880,18 +885,19 @@ If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available 
 - No handler infers an actor from `transaction.from`.
 - No contract enumerates all cycles or claims to make a transition.
 
-**Separation of powers (why value stays safe)**:
+**Capability separation (why value stays bounded)**:
 
 ```mermaid
 flowchart LR
-  STW["Garden steward<br/>authorizes"] -->|"queue"| SM["SettlementModule<br/>records"]
-  SM -->|"scoped authorization"| EX["Executor<br/>moves G$ (bounded)"]
+  STW["Pilot steward<br/>may authorize and also execute"] -->|"queue"| SM["SettlementModule<br/>records"]
+  SM -->|"scoped authorization"| EX["Executor capability<br/>moves G$ (bounded)"]
+  STW -.->|"same pilot account allowed"| EX
   EX -->|"reports tx hash"| SM
   SM -->|"request"| OR["Oracle<br/>certifies the receipt"]
-  RO["Recovery owners<br/>rotate modules, never execute"] -.-> EX
+  RO["Recovery owners<br/>rotate modules, never execute"] -. "no overlap" .-> EX
 ```
 
-Four hands, one transfer: the steward may authorize but cannot move funds; the executor may move funds but only within Zodiac scope and cannot verify; the oracle verifies but holds no funds; recovery owners can replace a compromised executor but never execute. No single role can both authorize, move, and certify value.
+The pilot may combine steward and executor capabilities, so one person can queue and move value within the exact Zodiac selector and allowance scope. That person cannot be a recovery owner and cannot verify a receipt. The oracle verifies but holds no funds; recovery owners can rotate a compromised executor but never execute. No human capability can certify value, and no recovery owner can move it.
 
 ---
 

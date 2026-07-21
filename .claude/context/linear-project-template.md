@@ -102,6 +102,13 @@ ends when the code is proven; Release ends when someone with authority accepts t
 putting it in front of real users and real funds. Collapsing them produces a date that looks
 like a ship date but is really a code-complete date.
 
+**Narrow non-value-tier Release gate.** A dated, feature-local human decision may give a
+non-custodial, non-transferable tier a lighter Release evidence gate than a value-bearing tier.
+Its handoff still requires the full test suite, deploy dry-run, post-deploy verification, proven
+upgrade/rollback path, and separate explicit human authorization. Build remains evidence-only;
+any broadcast belongs to Release. Agents never inherit broadcast authority from this exception.
+The exception lapses immediately if custody or transferability is introduced.
+
 **Why Release usually has no date.** Its gates are externally owned — an audit you commission,
 a timelock that runs, a testnet record that accrues, a partner who confirms. In Commitment
 Pooling those are an external audit, a 48-hour mainnet timelock and a two-week testnet record.
@@ -109,10 +116,10 @@ No amount of internal planning shortens them. **Date Release when its gates star
 hope they finish** — an undated Release milestone is more honest than a guessed one, and it
 stops the schedule implying a live date the gates cannot support.
 
-**Where a dry run goes.** Into Scope and Design. It validates rather than builds, and its exit
-evidence — confirmed mandates, consent, a named list of implementation gaps — is what Build
-consumes. It is the phase teams skip and regret: it converts a design into a list of things you
-got wrong while they are still cheap to fix.
+**Where a dry run goes.** Its result feeds Scope and Design because it validates rather than
+builds, but a dated field rehearsal may remain a separately named **operational checkpoint**
+instead of being disguised as a fifth phase or native milestone. Its exit evidence — confirmed
+mandates, consent, a named list of implementation gaps — is what Build consumes.
 
 ### Issue taxonomy
 

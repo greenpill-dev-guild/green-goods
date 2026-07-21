@@ -1,70 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="roles-title roles-desc">
+  <title id="roles-title">Five Green Goods roles with each action labeled Built or Planned</title>
+  <desc id="roles-desc">Five columns show Gardener, Operator, Evaluator, Funder, and Community member. Each depicted action has its own solid Built or dashed Planned state. Community testimony is labeled Planned for September.</desc>
   <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
 
-  <!-- title -->
   <text x="500" y="90" text-anchor="middle" font-size="23" font-weight="700" fill="#2A2722">One loop, five roles</text>
-  <text x="500" y="116" text-anchor="middle" font-size="12.5" fill="#6E6857">who does what across the commitment loop</text>
+  <text x="500" y="116" text-anchor="middle" font-size="12.5" fill="#6E6857">the roles exist today; each action is labeled separately</text>
 
-  <!-- Gardener column -->
-  <g>
-    <rect x="40" y="210" width="168" height="52" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="124" y="241" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Gardener</text>
-    <text x="124" y="330" text-anchor="middle" font-size="10.5" fill="#2A2722">makes and takes up</text>
-    <text x="124" y="346" text-anchor="middle" font-size="10.5" fill="#2A2722">promises</text>
-    <text x="124" y="423" text-anchor="middle" font-size="10.5" fill="#2A2722">does the work</text>
-    <text x="124" y="500" text-anchor="middle" font-size="10.5" fill="#2A2722">captures evidence</text>
-    <text x="124" y="516" text-anchor="middle" font-size="10.5" fill="#2A2722">— even offline</text>
+  <g fill="#F1ECE2" stroke="#A19884" stroke-width="1.5">
+    <rect x="40" y="190" width="168" height="52" rx="12"/><rect x="228" y="190" width="168" height="52" rx="12"/><rect x="416" y="190" width="168" height="52" rx="12"/><rect x="604" y="190" width="168" height="52" rx="12"/><rect x="792" y="190" width="168" height="52" rx="12"/>
+  </g>
+  <g text-anchor="middle" font-size="13" font-weight="600" fill="#2A2722">
+    <text x="124" y="221">Gardener</text><text x="312" y="221">Operator</text><text x="500" y="221">Evaluator</text><text x="688" y="221">Funder</text><text x="876" y="221">Community member</text>
   </g>
 
-  <!-- Operator column -->
-  <g>
-    <rect x="228" y="210" width="168" height="52" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="312" y="241" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Operator</text>
-    <text x="312" y="330" text-anchor="middle" font-size="10.5" fill="#2A2722">seeds commitments</text>
-    <text x="312" y="346" text-anchor="middle" font-size="10.5" fill="#2A2722">from confirmed needs</text>
-    <text x="312" y="423" text-anchor="middle" font-size="10.5" fill="#2A2722">approves work</text>
-    <text x="312" y="500" text-anchor="middle" font-size="10.5" fill="#2A2722">executes settlement</text>
-    <text x="312" y="516" text-anchor="middle" font-size="10.5" fill="#2A2722">from the garden account</text>
+  <!-- Every depicted action owns its own evidence state. -->
+  <g stroke-width="2">
+    <!-- Gardener -->
+    <rect x="40" y="280" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <rect x="40" y="382" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <rect x="40" y="484" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <!-- Operator -->
+    <rect x="228" y="280" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <rect x="228" y="382" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <rect x="228" y="484" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <!-- Evaluator -->
+    <rect x="416" y="280" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <rect x="416" y="382" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <rect x="416" y="484" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <!-- Funder -->
+    <rect x="604" y="280" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <rect x="604" y="382" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <rect x="604" y="484" width="168" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57"/>
+    <!-- Community -->
+    <rect x="792" y="280" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <rect x="792" y="382" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
+    <rect x="792" y="484" width="168" height="74" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-dasharray="5 4"/>
   </g>
 
-  <!-- Evaluator column -->
-  <g>
-    <rect x="416" y="210" width="168" height="52" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="500" y="241" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Evaluator</text>
-    <text x="500" y="330" text-anchor="middle" font-size="10.5" fill="#2A2722">records baseline</text>
-    <text x="500" y="346" text-anchor="middle" font-size="10.5" fill="#2A2722">and delta</text>
-    <text x="500" y="423" text-anchor="middle" font-size="10.5" fill="#2A2722">reviews methodology</text>
-    <text x="500" y="508" text-anchor="middle" font-size="10.5" fill="#2A2722">exports CSV/JSON lineage</text>
+  <g text-anchor="middle" fill="#2A2722" font-size="10.5">
+    <text x="124" y="311"><tspan x="124">Makes and takes up</tspan><tspan x="124" dy="15">promises</tspan></text><text x="124" y="343" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+    <text x="124" y="424">Does the work</text><text x="124" y="445" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+    <text x="124" y="515"><tspan x="124">Captures evidence</tspan><tspan x="124" dy="15">even offline</tspan></text><text x="124" y="547" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+
+    <text x="312" y="311"><tspan x="312">Seeds commitments</tspan><tspan x="312" dy="15">from confirmed needs</tspan></text><text x="312" y="343" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+    <text x="312" y="424">Approves work</text><text x="312" y="445" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+    <text x="312" y="515"><tspan x="312">Executes scoped</tspan><tspan x="312" dy="15">G$ settlement</tspan></text><text x="312" y="547" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+
+    <text x="500" y="322">Records baseline</text><text x="500" y="343" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+    <text x="500" y="424">Records delta</text><text x="500" y="445" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+    <text x="500" y="515"><tspan x="500">Exports pooling</tspan><tspan x="500" dy="15">evidence lineage</tspan></text><text x="500" y="547" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+
+    <text x="688" y="322">Donates directly</text><text x="688" y="343" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+    <text x="688" y="413"><tspan x="688">Buys impact-certificate</tspan><tspan x="688" dy="15">fractions</tspan></text><text x="688" y="445" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+    <text x="688" y="515"><tspan x="688">Deposits into</tspan><tspan x="688" dy="15">supporter vaults</tspan></text><text x="688" y="547" font-size="9" font-weight="700" fill="#24422E">BUILT</text>
+
+    <text x="876" y="311"><tspan x="876">Names Requests,</tspan><tspan x="876" dy="15">Offers, Initiatives</tspan></text><text x="876" y="343" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+    <text x="876" y="413"><tspan x="876">Confirms received</tspan><tspan x="876" dy="15">help</tspan></text><text x="876" y="445" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
+    <text x="876" y="515"><tspan x="876">Gives testimony</tspan><tspan x="876" dy="15">September only</tspan></text><text x="876" y="547" font-size="9" font-weight="700" fill="#6E6857">PLANNED</text>
   </g>
 
-  <!-- Funder column -->
+  <text x="500" y="650" text-anchor="middle" font-size="12" fill="#6E6857">No one confirms their own promise. Planned actions are not presented as live.</text>
   <g>
-    <rect x="604" y="210" width="168" height="52" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="688" y="241" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Funder</text>
-    <text x="688" y="338" text-anchor="middle" font-size="10.5" fill="#2A2722">donates directly</text>
-    <text x="688" y="415" text-anchor="middle" font-size="10.5" fill="#2A2722">buys impact-certificate</text>
-    <text x="688" y="431" text-anchor="middle" font-size="10.5" fill="#2A2722">fractions</text>
-    <text x="688" y="500" text-anchor="middle" font-size="10.5" fill="#2A2722">deposits into</text>
-    <text x="688" y="516" text-anchor="middle" font-size="10.5" fill="#2A2722">supporter vaults</text>
-  </g>
-
-  <!-- Community column -->
-  <g>
-    <rect x="792" y="210" width="168" height="52" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="876" y="241" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Community member</text>
-    <text x="876" y="330" text-anchor="middle" font-size="10.5" fill="#2A2722">names Requests,</text>
-    <text x="876" y="346" text-anchor="middle" font-size="10.5" fill="#2A2722">Offers, Initiatives</text>
-    <text x="876" y="423" text-anchor="middle" font-size="10.5" fill="#2A2722">confirms received help</text>
-    <text x="876" y="508" text-anchor="middle" font-size="10.5" fill="#2A2722">gives testimony</text>
-  </g>
-
-  <!-- bottom caption -->
-  <text x="500" y="668" text-anchor="middle" font-size="12" fill="#6E6857">No one confirms their own promise — confirmation always comes from the person who received the help.</text>
-
-  <!-- legend -->
-  <g>
-    <rect x="379" y="740" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="413" y="753" font-size="12" fill="#2A2722">Built — all five roles live today</text>
+    <rect x="350" y="716" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/><text x="385" y="729" font-size="11" fill="#2A2722">Built / live today</text>
+    <rect x="520" y="716" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/><text x="555" y="729" font-size="11" fill="#2A2722">Planned / gated</text>
   </g>
 
   <text x="500" y="956" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>

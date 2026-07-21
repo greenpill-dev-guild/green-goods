@@ -28,7 +28,7 @@
 - Exact ABI/event/config signatures match across specs, generated types, handlers, and shared types.
 - Composite Garden IDs, nullable actors, claim supersession, oracle request/callback states, and member-delivery gating retain coverage.
 - QA Pass 1 defects are fixed and re-proven or explicitly accepted by the user.
-- Parent-only mode remains intact; blocked/follow-on lanes cannot dispatch.
+- Execution sub-lane mirrors replace aggregate implementation issues without duplicates; QA stays on canonical QA issues; blocked, human, and follow-on lanes carry no `agent:*` label and cannot dispatch.
 - Browser evidence remains authenticated Brave and real device where required.
 - No result collapses visible defects or external blockers into a pass.
 

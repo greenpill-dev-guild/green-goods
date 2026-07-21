@@ -2,7 +2,7 @@
 // panel, W23 wallet G$ section, W25 protocol-pool claim, WFLOW (existing work
 // flow + the MF-7 fulfills row). Same dialect and copy rules as client.ts.
 // Dissolved lo-fi variants: W23G → W23@delivery-blocked, MF8 → W25@context-chooser.
-// W6's retired home summary card lives on as the W5 header line (decision #28f).
+// W6's retired home summary card lives on as the W5 header line (Decision Log #28f).
 
 import { hot } from "../html";
 import { icon } from "../icons";
@@ -74,7 +74,7 @@ ${card(
 
 const W5_HOTS: HifiDef["hots"] = {
   "w5.seg": { l: "Wallet panels", info: "Jar · vault · pools — the pools panel is the cross-garden commitments home (UX:186)." },
-  "w5.summary": { l: "Cycle summary line", info: "W6's retired home card lives on as this header line (#28f); absolute numbers below the small-community threshold (UX:191)." },
+  "w5.summary": { l: "Cycle summary line", info: "W6's retired Home card lives on as this header line (Decision Log #28f); absolute numbers below the small-community threshold (UX:191)." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of promises waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own promises grouped by garden." },
 };
@@ -172,7 +172,7 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${btn("Cance
 const W25_HOTS: HifiDef["hots"] = {
   "w25.context": { l: "Provider context", to: "screen:W25@context-chooser", info: "Garden option renders for eligible stewards only (CS:581). The (Protocol) chip is the only new mark on the card grammar (WF:671)." },
   "w25.chooser": { l: "Context chooser", info: "Garden claim: claimant = GardenAccount, requestedBy = you. No custody, no member-delivery via garden claims (AM:38-39)." },
-  "w25.continue": { l: "Continue", to: "screen:W1@claim-pending", info: "Protocol pool defaults steward-reviewed (#19); W1's pending/declined/superseded grammar applies unchanged." },
+  "w25.continue": { l: "Continue", to: "screen:W1@claim-pending", info: "Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged." },
   "w25.ask": { l: "Ask to take this up", to: "screen:W25@pending", info: "Creates the claim request with stored terms — claimant, requestedBy, kind, gardenContext (CS:133)." },
 };
 

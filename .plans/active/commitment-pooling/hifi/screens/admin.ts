@@ -2,7 +2,7 @@
 // capture, W10 commitment dialog, W11 allocation, W13 hub confirm, W14
 // assessment additions, HUBWORK. Restrained M3 operator cockpit (.s-admin):
 // solid dense surfaces, Plus Jakarta Sans stack, quiet checkmarks, no hero
-// language. Copy: "steward" everywhere (#28c); on-chain `operator` allocation
+// language. Copy: "steward" everywhere (Decision Log #28c); on-chain `operator` allocation
 // class RENDERS as "steward" (W11 rule). Dissolved lo-fi variants: MF1 →
 // W7@ready, MF4 → W7@expiry-queue, W7X → W7@claim-outcomes, MF13 →
 // W10@attach-assessment.
@@ -120,7 +120,7 @@ ${banner("Accepting one request supersedes the other pending rows — an indexer
     return acard(
       "Lapsed this cycle",
       `<div class="arow"><div class="grow"><b>Field survey</b> ${chip("Request", "request")} ${chip("Expired", "plain", { dot: true })} <span class="t-meta num">due Jul 2 · 0 of 1 taken up</span></div>${hot("w7.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}${btn("View history", { kind: "ghost", sm: true })}</div>
-${banner("Expiry runs both paths: this queue for stewards, “offer again” for members (#34d).", "stone")}`,
+${banner("Expiry runs both paths: this queue for stewards, “offer again” for members (register #34d).", "stone")}`,
     );
   return acard(
     "Claims waiting — steward-reviewed",
@@ -139,7 +139,7 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.pause": { l: "Pause pool (reason)", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
   "w7.resume": { l: "Resume pool", info: "resumePool clears the indexed reason (CS:725)." },
   "w7.edit-charter": { l: "Edit charter", info: "setPoolCharter — one of the three readiness inputs (UX:269)." },
-  "w7.open-pool": { l: "Open pool", info: "openPool → PoolOpened. Adopted onto the status card per #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
+  "w7.open-pool": { l: "Open pool", info: "openPool → PoolOpened. Adopted onto the status card per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
   "w7.close-pool": { l: "Close pool", info: "After the last cycle composts (CS:102); then compost/reopen per §4.1." },
   "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118). Walked in SB-9." },
   "w7.cancel-cycle": { l: "Cancel a cycle (reason)", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
@@ -167,7 +167,7 @@ function w8(state: W8State): string {
   let inner: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Approved works required", input("2"))}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}`;
+      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Action requirements", `<div class="arow"><div class="grow"><b>Prune</b> <span class="t-meta">Land stewardship</span></div>${input("2")}<span class="t-meta">approved works</span></div><div class="arow"><div class="grow"><b>Plant</b> <span class="t-meta">Land stewardship</span></div>${input("1")}<span class="t-meta">approved work</span></div>${btn("Add action", { kind: "ghost", sm: true, icon: "add-line" })}`)}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}`;
       break;
     case "step3":
       inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>${btn("Add address", { kind: "ghost", sm: true, icon: "add-line" })}`)}
@@ -176,7 +176,7 @@ ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone
 ${hot("w8.reward", field("Declared reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`))}`;
       break;
     case "step4":
-      inner = `${kv("Kind", "Season promise · the pool offers")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "open")}${kv("Reward", "20 DAI · garden jar · reference only")}
+      inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward", "20 DAI · garden jar · reference only")}
 ${hot("w8.seed", btn("Seed this commitment", { kind: "pri", full: true }))}`;
       break;
     case "captured-for":
@@ -194,7 +194,7 @@ ${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title"
 }
 
 const W8_HOTS: HifiDef["hots"] = {
-  "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (decision #19)." },
+  "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
   "w8.reward": { l: "Declared reward", info: "Reference only — the module never custodies funds (WF:339 · UX:280)." },
   "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:150)." },
 };
@@ -241,7 +241,7 @@ function w10(state: W10State): string {
   let actions: string;
   switch (state) {
     case "record-payout":
-      body = `${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the reward moved outside the app — no value moves here (UX:302). August G$ rewards relabel this Queue disbursement (SS:535).", "stone")}`;
+      body = `${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the reward moved outside the app — no value moves here (UX:302). Build-phase G$ rewards relabel this Queue disbursement (SS:535).", "stone")}`;
       actions = `${btn("Cancel", { kind: "ghost" })}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
@@ -273,7 +273,7 @@ ${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session 
 
 const W10_HOTS: HifiDef["hots"] = {
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here (UX:302)." },
-  "w10.payout-confirm": { l: "Record payout (confirm)", info: "recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (#34h)." },
+  "w10.payout-confirm": { l: "Record payout (confirm)", info: "recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h)." },
   "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", info: "Overrides render visible markers in the member timeline (UX:287,301)." },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
@@ -294,27 +294,27 @@ type W11State = (typeof W11_STATES)[number][0];
 function w11(state: W11State): string {
   const bad = state === "invalid-sum";
   const rows = [
-    ["Gardeners", bad ? "6400" : "6000"], ["Treasury", "1500"], ["Steward", "1000"],
-    ["Evaluator", "500"], ["Community", "500"], ["Funder", "500"],
+    ["Gardeners", bad ? "64" : "60"], ["Treasury", "15"], ["Steward", "10"],
+    ["Evaluator", "5"], ["Community", "5"], ["Funder", "5"],
   ]
-    .map(([l, v]) => `<div class="arow"><div class="grow">${l}</div>${input(v)}<span class="t-meta">bps</span></div>`)
+    .map(([l, v]) => `<div class="arow"><div class="grow">${l}</div>${input(v)}<span class="t-meta">%</span></div>`)
     .join("");
   const sum = bad
-    ? banner("Shares must sum to exactly 10000 bps — currently 10400.", "error", "error-warning-line")
-    : `<div class="quietok">${icon("check-line")}sum: 10000 · valid</div>`;
+    ? banner("Shares must total exactly 100% — currently 104%.", "error", "error-warning-line")
+    : `<div class="quietok">${icon("check-line")}total: 100% · encoded as 10,000 bps</div>`;
   const body = `${adminBar("garden")}${vhead("Open cycle — allocation policy", "Season of First Rains")}
 <div class="canvasbody"><div class="acard" style="max-width:560px">
 ${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }])))}
 ${rows}${sum}
-${banner("A soft warning shows under 1500 treasury bps (guidance floor). The snapshot locks at open; W26's close wizard reads it back.", "stone")}
+${banner("A soft warning shows below 15% treasury (guidance floor). The complete six-field snapshot is encoded atomically for openCycle, then W26 reads it back.", "stone")}
 ${hot("w11.open-cycle", btn("Open cycle", { kind: "pri", disabled: bad }))}
 </div></div>`;
   return deskWin("admin.greengoods.app/dashboard/garden/pool/open-cycle", body);
 }
 
 const W11_HOTS: HifiDef["hots"] = {
-  "w11.presets": { l: "Allocation presets", info: "Presets prefill an editable bps editor; the on-chain `operator` class renders as “steward” (#28c)." },
-  "w11.open-cycle": { l: "Open cycle", to: "screen:W7", info: "Emits the six-class bps snapshot; sum must equal 10000 (UX:322-330)." },
+  "w11.presets": { l: "Allocation presets", info: "Presets prefill an editable percent editor; the on-chain `operator` class renders as “steward” (Decision Log #28c)." },
+  "w11.open-cycle": { l: "Open cycle", to: "screen:W7", info: "openCycle(cycleId, allocation) validates, stores, and emits the complete six-class bps snapshot; the encoded sum must equal 10,000 (UX:322-330)." },
 };
 
 // ---------------------------------------------------------------------------
