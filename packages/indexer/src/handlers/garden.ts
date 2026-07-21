@@ -1,3 +1,4 @@
+import { indexer } from "envio";
 import { GardenAccount, GardenToken } from "../../generated";
 
 import type {
@@ -21,15 +22,16 @@ import { createDefaultGarden } from "./shared";
 // ============================================================================
 
 // Register new GardenAccount contracts when gardens are minted
-GardenToken.GardenMinted.contractRegister(
-  ({
+indexer.contractRegister(
+  { contract: "GardenToken", event: "GardenMinted" },
+  async ({
     event,
     context,
   }: HandlerTypes_contractRegisterArgs<GardenToken_GardenMinted_eventArgs> & {
     context: contractRegistrations;
   }) => {
     // Register the newly created garden account contract for event listening
-    context.addGardenAccount(event.params.account);
+    context.chain.GardenAccount.add(event.params.account);
 
     context.log.info(
       `Registered new GardenAccount at ${event.params.account} (tokenId: ${event.params.tokenId})`
@@ -38,7 +40,8 @@ GardenToken.GardenMinted.contractRegister(
 );
 
 // Handler for the GardenMinted event
-GardenToken.GardenMinted.handler(
+indexer.onEvent(
+  { contract: "GardenToken", event: "GardenMinted" },
   async ({ event, context }: GardenToken_GardenMinted_handlerArgs<void>) => {
     const gardenId = event.params.account;
 
@@ -72,7 +75,8 @@ GardenToken.GardenMinted.handler(
 // ============================================================================
 
 // Handler for the NameUpdated event
-GardenAccount.NameUpdated.handler(
+indexer.onEvent(
+  { contract: "GardenAccount", event: "NameUpdated" },
   async ({ event, context }: GardenAccount_NameUpdated_handlerArgs<void>) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
@@ -92,7 +96,8 @@ GardenAccount.NameUpdated.handler(
 );
 
 // Handler for the DescriptionUpdated event
-GardenAccount.DescriptionUpdated.handler(
+indexer.onEvent(
+  { contract: "GardenAccount", event: "DescriptionUpdated" },
   async ({ event, context }: GardenAccount_DescriptionUpdated_handlerArgs<void>) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
@@ -111,7 +116,8 @@ GardenAccount.DescriptionUpdated.handler(
 );
 
 // Handler for the LocationUpdated event
-GardenAccount.LocationUpdated.handler(
+indexer.onEvent(
+  { contract: "GardenAccount", event: "LocationUpdated" },
   async ({ event, context }: GardenAccount_LocationUpdated_handlerArgs<void>) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
@@ -130,7 +136,8 @@ GardenAccount.LocationUpdated.handler(
 );
 
 // Handler for the BannerImageUpdated event
-GardenAccount.BannerImageUpdated.handler(
+indexer.onEvent(
+  { contract: "GardenAccount", event: "BannerImageUpdated" },
   async ({ event, context }: GardenAccount_BannerImageUpdated_handlerArgs<void>) => {
     const gardenId = event.srcAddress;
     let existingGarden = await context.Garden.get(gardenId);
@@ -149,7 +156,8 @@ GardenAccount.BannerImageUpdated.handler(
 );
 
 // Handler for the GAPProjectCreated event
-GardenAccount.GAPProjectCreated.handler(
+indexer.onEvent(
+  { contract: "GardenAccount", event: "GAPProjectCreated" },
   async ({ event, context }: GardenAccount_GAPProjectCreated_handlerArgs<void>) => {
     const gardenId = event.params.gardenAddress;
     const existingGarden = await context.Garden.get(gardenId);
@@ -173,7 +181,8 @@ GardenAccount.GAPProjectCreated.handler(
 );
 
 // Handler for the OpenJoiningUpdated event
-GardenAccount.OpenJoiningUpdated.handler(
+indexer.onEvent(
+  { contract: "GardenAccount", event: "OpenJoiningUpdated" },
   async ({ event, context }: GardenAccount_OpenJoiningUpdated_handlerArgs<void>) => {
     const gardenId = event.srcAddress;
     const existingGarden = await context.Garden.get(gardenId);

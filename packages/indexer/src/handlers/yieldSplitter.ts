@@ -1,3 +1,4 @@
+import { indexer } from "envio";
 import { YieldSplitter } from "../../generated";
 
 import type { HandlerTypes_handlerArgs, YieldAllocation } from "../../generated/src/Types.gen";
@@ -13,7 +14,8 @@ import {
 // YIELD SPLITTER EVENT HANDLERS
 // ============================================================================
 
-YieldSplitter.YieldSplit.handler(
+indexer.onEvent(
+  { contract: "YieldSplitter", event: "YieldSplit" },
   async ({
     event,
     context,

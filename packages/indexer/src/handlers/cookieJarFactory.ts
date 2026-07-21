@@ -1,3 +1,4 @@
+import { indexer } from "envio";
 import { CookieJarFactory } from "../../generated";
 
 import type { CampaignCookieJar, HandlerTypes_handlerArgs } from "../../generated/src/Types.gen";
@@ -217,7 +218,8 @@ function buildCampaignCookieJarCandidate(params: {
   };
 }
 
-CookieJarFactory.JarCreated.handler(
+indexer.onEvent(
+  { contract: "CookieJarFactory", event: "JarCreated" },
   async ({ event, context }: HandlerTypes_handlerArgs<JarCreatedArgs, void>) => {
     const jarAddress = normalizeAddress(event.params.jarAddress);
     const id = getCampaignCookieJarId(event.chainId, jarAddress);
@@ -235,7 +237,8 @@ CookieJarFactory.JarCreated.handler(
   }
 );
 
-CookieJarFactory.MetadataUpdated.handler(
+indexer.onEvent(
+  { contract: "CookieJarFactory", event: "MetadataUpdated" },
   async ({ event, context }: HandlerTypes_handlerArgs<MetadataUpdatedArgs, void>) => {
     const jarAddress = normalizeAddress(event.params.jarAddress);
     const id = getCampaignCookieJarId(event.chainId, jarAddress);

@@ -1,3 +1,4 @@
+import { indexer } from "envio";
 import { GreenWill } from "../../generated";
 
 import type {
@@ -26,7 +27,8 @@ function normalizeBytes32(value: string): string {
   return value.toLowerCase();
 }
 
-GreenWill.BadgeClassConfigured.handler(
+indexer.onEvent(
+  { contract: "GreenWill", event: "BadgeClassConfigured" },
   async ({ event, context }: GreenWill_BadgeClassConfigured_handlerArgs<void>) => {
     const badgeId = normalizeBytes32(event.params.badgeId);
     const definitionId = getGreenWillBadgeDefinitionId(event.chainId, badgeId);
@@ -52,7 +54,8 @@ GreenWill.BadgeClassConfigured.handler(
   }
 );
 
-GreenWill.BadgeIssued.handler(
+indexer.onEvent(
+  { contract: "GreenWill", event: "BadgeIssued" },
   async ({ event, context }: GreenWill_BadgeIssued_handlerArgs<void>) => {
     const badgeId = normalizeBytes32(event.params.badgeId);
     const owner = normalizeAddress(event.params.account);

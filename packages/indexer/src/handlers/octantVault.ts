@@ -1,3 +1,4 @@
+import { indexer } from "envio";
 import { OctantModule, OctantVault, VaultEventType } from "../../generated";
 
 import type {
@@ -33,19 +34,21 @@ import {
 // OCTANT MODULE & VAULT EVENT HANDLERS
 // ============================================================================
 
-OctantModule.VaultCreated.contractRegister(
-  ({
+indexer.contractRegister(
+  { contract: "OctantModule", event: "VaultCreated" },
+  async ({
     event,
     context,
   }: HandlerTypes_contractRegisterArgs<OctantModule_VaultCreated_eventArgs> & {
     context: contractRegistrations;
   }) => {
-    context.addOctantVault(event.params.vault);
+    context.chain.OctantVault.add(event.params.vault);
     context.log.info(`Registered new OctantVault at ${event.params.vault}`);
   }
 );
 
-OctantModule.VaultCreated.handler(
+indexer.onEvent(
+  { contract: "OctantModule", event: "VaultCreated" },
   async ({ event, context }: OctantModule_VaultCreated_handlerArgs<void>) => {
     const garden = normalizeAddress(event.params.garden);
     const asset = normalizeAddress(event.params.asset);
@@ -97,7 +100,8 @@ OctantModule.VaultCreated.handler(
   }
 );
 
-OctantModule.HarvestTriggered.handler(
+indexer.onEvent(
+  { contract: "OctantModule", event: "HarvestTriggered" },
   async ({ event, context }: OctantModule_HarvestTriggered_handlerArgs<void>) => {
     const garden = normalizeAddress(event.params.garden);
     const asset = normalizeAddress(event.params.asset);
@@ -136,7 +140,8 @@ OctantModule.HarvestTriggered.handler(
   }
 );
 
-OctantModule.EmergencyPaused.handler(
+indexer.onEvent(
+  { contract: "OctantModule", event: "EmergencyPaused" },
   async ({ event, context }: OctantModule_EmergencyPaused_handlerArgs<void>) => {
     const garden = normalizeAddress(event.params.garden);
     const asset = normalizeAddress(event.params.asset);
@@ -175,7 +180,8 @@ OctantModule.EmergencyPaused.handler(
   }
 );
 
-OctantModule.DonationAddressUpdated.handler(
+indexer.onEvent(
+  { contract: "OctantModule", event: "DonationAddressUpdated" },
   async ({ event, context }: OctantModule_DonationAddressUpdated_handlerArgs<void>) => {
     const garden = normalizeAddress(event.params.garden);
     const donationAddress = normalizeAddress(event.params.newAddress);
@@ -197,7 +203,9 @@ OctantModule.DonationAddressUpdated.handler(
   }
 );
 
-OctantVault.Deposit.handler(async ({ event, context }: OctantVault_Deposit_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "OctantVault", event: "Deposit" },
+  async ({ event, context }: OctantVault_Deposit_handlerArgs<void>) => {
   const vaultAddress = normalizeAddress(event.srcAddress);
   const vaultAddressIndexId = getVaultAddressIndexId(event.chainId, vaultAddress);
   const vaultAddressIndex = await context.VaultAddressIndex.get(vaultAddressIndexId);
@@ -254,9 +262,12 @@ OctantVault.Deposit.handler(async ({ event, context }: OctantVault_Deposit_handl
     timestamp: event.block.timestamp,
   };
   context.VaultEvent.set(vaultEvent);
-});
+}
+);
 
-OctantVault.Withdraw.handler(async ({ event, context }: OctantVault_Withdraw_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "OctantVault", event: "Withdraw" },
+  async ({ event, context }: OctantVault_Withdraw_handlerArgs<void>) => {
   const vaultAddress = normalizeAddress(event.srcAddress);
   const vaultAddressIndexId = getVaultAddressIndexId(event.chainId, vaultAddress);
   const vaultAddressIndex = await context.VaultAddressIndex.get(vaultAddressIndexId);
@@ -307,4 +318,5 @@ OctantVault.Withdraw.handler(async ({ event, context }: OctantVault_Withdraw_han
     timestamp: event.block.timestamp,
   };
   context.VaultEvent.set(vaultEvent);
-});
+}
+);

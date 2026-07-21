@@ -64,7 +64,7 @@ contracts:
     events:
       - event: JarCreated(address indexed jarAddress, address indexed creator)
       - event: MetadataUpdated(address indexed jarAddress, string metadata)
-networks:
+chains:
   - id: 42161
     start_block: 433713812
     contracts:

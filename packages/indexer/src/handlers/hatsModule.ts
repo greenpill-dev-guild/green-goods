@@ -1,3 +1,4 @@
+import { indexer } from "envio";
 import { HatsModule } from "../../generated";
 
 import type { HandlerTypes_handlerArgs } from "../../generated/src/Types.gen";
@@ -16,7 +17,8 @@ import {
 // HATS MODULE EVENT HANDLERS
 // ============================================================================
 
-HatsModule.RoleGranted.handler(
+indexer.onEvent(
+  { contract: "HatsModule", event: "RoleGranted" },
   async ({ event, context }: HandlerTypes_handlerArgs<HatsModule_RoleGranted_eventArgs, void>) => {
     const gardenId = event.params.garden;
     const account = event.params.account;
@@ -100,7 +102,8 @@ HatsModule.RoleGranted.handler(
   }
 );
 
-HatsModule.RoleRevoked.handler(
+indexer.onEvent(
+  { contract: "HatsModule", event: "RoleRevoked" },
   async ({ event, context }: HandlerTypes_handlerArgs<HatsModule_RoleRevoked_eventArgs, void>) => {
     const gardenId = event.params.garden;
     const account = event.params.account;
