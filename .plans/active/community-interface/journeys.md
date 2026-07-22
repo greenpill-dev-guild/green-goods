@@ -10,7 +10,7 @@ These journeys describe planned behavior. They are not evidence that the product
 ## Persona P1. Kwame — community member and neighbor
 
 - Uses a mid-range Android phone and intermittent data; enters through a garden QR or gathering.
-- Wants to name a Request, Offer, or Initiative in his own words and pair it with what better looks like.
+- Wants to describe a problem in his own words and pair it with what better looks like.
 - Needs clear waiting, moderation, progress, retraction, and recovery without wallet, attestation, domain, or governance language.
 - Uses the Community PWA in en, es, or pt; may rely on audio, captions, large touch targets, and a facilitator.
 - Success: “I could say what mattered, and I can see what happened next.”
@@ -56,7 +56,7 @@ These journeys describe planned behavior. They are not evidence that the product
 | Stage | Member action | System response | Human support | Failure and recovery | Acceptance evidence |
 |---|---|---|---|---|---|
 | Discover | Opens garden QR in a public browser | Read-only Needs board loads without install or account; my garden is default | Gardener explains the board in the member’s language | EAS or Envio failure is labeled partial, never empty | Browser fixture for loading/empty/partial/offline-stale |
-| Express | Chooses Request, Offer, or Initiative; records or types statement and desired outcome | Audio retained, transcript editable, local draft versioned | Facilitator can help without becoming author | Permission/transcription failure falls back to typing or audio-only | Recorder a11y test + en/es/pt flow |
+| Express | Describes the problem; records or types statement and desired outcome | Audio retained, transcript editable, local draft versioned | Facilitator can help without becoming author | Permission/transcription failure falls back to typing or audio-only | Recorder a11y test + en/es/pt flow |
 | Review | Checks horizon, media, and similar-Need suggestion | Suggestion is advisory; no domain question | Facilitator reads back the member’s words | Member can Edit, Save and leave, or Delete | Offline draft persistence test |
 | Join | Takes first write action and creates/recovers passkey | After successful auth, the product write enters `waiting_for_hat` without consuming retries; the separate join request is sent only through the selected transport once its gate is open | Operator explains controller, retention, cancellation, and wait | Canceled/unavailable passkey retains the action and browsing; failed recovery creates no duplicate account; success returns to the exact deep link. Transport remains blocked until RESR-64; no public-chain, Linear, or implicit localStorage substitute | Passkey cancel/unavailable/recovery/deep-link fixture + signed engagement-model decision due 2026-08-12 |
 | Share | Membership is observed | Queue resumes with all five retries and sends Need/Signal/Testimony | Operator can confirm Hat mint in person | Network/resolver/upload failure retains draft with Retry/Edit/Cancel | Queue state and retry-budget tests |
@@ -82,7 +82,7 @@ These journeys describe planned behavior. They are not evidence that the product
 |---|---|---|---|---|---|
 | Onboard | Confirms contact, language, consent, gathering, example Need, and commitment candidate | Readiness row separates confirmed, invited, and unavailable | RESR-62 + operator confirmation | Missing fields remain gaps; no inferred readiness | Signed readiness row |
 | Prepare | Opens admin `/community` “For the gathering” | Fresh Needs, eligible confirmations, recent changes, print view | Join queue appears only after RESR-64 gate | Partial source names EAS or Envio and keeps known data labeled | Admin source-health fixture |
-| Triage | Acknowledges, applies zero or more domains, merges, hides, declines, or reopens | NeedStatus uses typed target/rationale and deterministic winner | NeedKind remains member-authored | Rejected signature/tx failure changes nothing and offers Retry | Resolver + admin mutation tests |
+| Triage | Acknowledges, applies zero or more domains, merges, hides, declines, or reopens | NeedStatus uses typed target/rationale and deterministic winner | The member-authored problem and desired outcome remain intact | Rejected signature/tx failure changes nothing and offers Retry | Resolver + admin mutation tests |
 | Convene | Reviews Needs with community | Funding never changes order; status uses plain language | Community agrees what to seed and who can confirm | Private grievances use off-chain private capture, not public record | Gathering rehearsal |
 | Seed | Starts from selected Need | `needUID` and optional domains prefill; confirmation defaults to Request creator or accepted Offer recipient; every field requires review | Direction, pool/cycle, provider, units, action pairs, evidence, confirmation, reward, timing | Provider exclusion, invalid action/domain, or unreachable confirmer group blocks acceptance | Admin + contract integration tests |
 | Run | Operates pools/cycles and monitors evidence under `/community` | Progress derives from linked protocol events | Envio remains protocol-only | Failed/retry/dispute reasons stay visible | Indexer/shared/admin fixtures |
@@ -105,7 +105,7 @@ These journeys describe planned behavior. They are not evidence that the product
 | Stage | Funder action | System response | Guardrail | Failure and recovery | Acceptance evidence |
 |---|---|---|---|---|---|
 | Discover | Opens existing client garden/impact/funding surface | Sees Need stories under small-community thresholds | No new route assumed; no participant-level data | Empty/partial states are honest | Public route fixture |
-| Explore | Filters by garden, kind, domain, horizon, or status | Default order is recency + status | Funding is never a filter, rank, or score | Clear filters returns to full eligible set | Sorting invariant test |
+| Explore | Filters by garden, domain, progress, horizon, or status | Default order is recency + status | Funding is never a filter, rank, or score | Clear filters returns to full eligible set | Sorting invariant test |
 | Understand | Opens detail | Sees Need → promise → work → proof, garden context, cycle, and verified funded-toward line | Community narrative and protocol evidence are labeled | Retracted Need reveals only tombstone when linked | Content/role fixtures |
 | Fund | Uses existing direct donation or endowment action | Funding goes to garden; Need is context only | No per-Need escrow or allocation steering | Failed/canceled funding offers Retry funding | Existing rail integration test |
 | Attribute | Optionally signs FundingAttribution after confirmed tx | Funding remains successful even if attribution is skipped or fails | No Hat gate; no actor inference from `transaction.from` | Retry attribution never replays funding | Separate funding/attribution state test |
@@ -127,7 +127,7 @@ These journeys describe planned behavior. They are not evidence that the product
 | Phase | Member need | Visible touchpoint | Behind-the-scenes evidence | Trust risk | Recovery promise |
 |---|---|---|---|---|---|
 | Hear | Know why the garden uses this | QR, gathering explanation, public board | Confirmed operator contact and consent path | Login before value; institutional language | Browse without account or install |
-| Express | Use own words and preferred mode | Create: intent, voice/text, outcome, horizon | Versioned draft, audio evidence, no forced domain | Lost media; facilitator becomes author | Save/Edit/Delete; transcript fallback |
+| Express | Use own words and preferred mode | Create: problem, voice/text, outcome, horizon | Versioned draft, audio evidence, no forced domain | Lost media; facilitator becomes author | Save/Edit/Delete; transcript fallback |
 | Wait | Understand membership and delivery | Profile queue state | Separate join transport + `waiting_for_hat` product job | Hidden PII storage; retries consumed while waiting | Named controller/deletion after gate; zero retries consumed |
 | Be heard | See a reasoned moderation result | Need detail + author-only restricted states | Greatest `(timeCreated, uid)` NeedStatus | Hidden/declined feels like deletion | Rationale; typed merge redirect; reopen with rationale |
 | See action | Connect community words to protocol work | Promise-work-proof thread | EAS + Envio joined graph | Funding or narrative mistaken for proof | Source labels, partial states, explicit Retry |
@@ -143,7 +143,7 @@ These journeys describe planned behavior. They are not evidence that the product
 ```mermaid
 flowchart LR
   subgraph MEMBER["Member actions"]
-    M1["Open QR and browse"] --> M2["Express Need / Offer / Initiative"] --> M3["Wait for membership if needed"] --> M4["Follow promise-work-proof"] --> M5["Confirm if eligible / testify / retract"]
+    M1["Open QR and browse"] --> M2["Describe a problem and desired outcome"] --> M3["Wait for membership if needed"] --> M4["Follow promise-work-proof"] --> M5["Confirm if eligible / testify / retract"]
   end
 
   subgraph FRONT["Visible staff and product touchpoints"]
@@ -211,7 +211,7 @@ Gate semantics:
 
 Each journey remains provisional until observed with the named role. Research must answer:
 
-1. Can members distinguish Request, Offer, and Initiative without facilitation in en, es, and pt?
+1. Can members explain the difference between a Need (the problem) and a commitment direction (Request or Offer) without facilitation in en, es, and pt?
 2. Can members complete voice/text creation, recover an offline draft, understand `waiting_for_hat`, and find Cancel/Delete?
 3. Do operators understand moderation and progress as separate axes, including merge redirect, hidden/declined visibility, reopen rationale, and retraction tombstone?
 4. Can one commitment legitimately span multiple domains without losing positional action ownership or evaluation clarity?

@@ -267,7 +267,7 @@ sequenceDiagram
   participant CP as Commitment module
   participant IDX as Envio
 
-  M->>PWA: choose Request, Offer, or Initiative
+  M->>PWA: describe the problem in their own words
   M->>PWA: record or type statement and desired outcome
   PWA->>Q: persist need job and media references
   alt Community Hat observed and online

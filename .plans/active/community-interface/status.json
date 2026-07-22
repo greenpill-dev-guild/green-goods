@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-10"
+    "updated_at": "2026-07-21"
   },
   "links": {
     "brief": "brief.md",
@@ -79,7 +79,7 @@
     "EAS is never indexed by Envio: status derivation is an app-side join of easscan reads and Envio commitment entities carrying needUID.",
     "Need moderation (none/acknowledged/merged/hidden/declined) and progress (open/committed/in-progress/addressed) are separate axes; retraction leaves only a content-free lineage tombstone.",
     "The needUID commitment field was amended into the CP contract-spec on 2026-07-04, before the August build, so it ships in the initial deploy.",
-    "NeedKind is Request/Offer/Initiative. NeedStatus domains and commitment domains are optional arrays; DomainImpact commitments require 1-4 unique domain/action pairs.",
+    "A Need is a problem paired with a desired outcome and has no kind. Request/Offer is commitment direction only. NeedStatus domains and commitment domains are optional arrays; DomainImpact commitments require 1-4 unique domain/action pairs.",
     "The selected join-request architecture is a minimal encrypted garden-scoped service queue inside the existing Garden Manage Members dialog; the membership-queue slice remains manually blocked until RESR-64 accepts the proposed retention, EIP-6492/auth, encryption/key-owner, recovery, abuse, cost, and operator-handoff record.",
     "FundingAttribution displays once per verified (needUID, chainId, txHash, rail); mergedIntoNeedUID is typed separately from noteCID.",
     "packages/community is an independent PWA at community.greengoods.app and local port 3010; client and Community consume prerequisite shared runtime/auth/offline/install/update/error/shell foundations but retain separate app identities.",
@@ -333,7 +333,7 @@
     },
     {
       "date": "2026-07-09",
-      "event": "Architecture and experience review: NeedKind locked; optional multi-domain scope and typed merge/de-dup semantics added; diagrams, wireframes, target personas, journeys, service blueprint, and research/onboarding plan authored; workflow activated for plan-hub dispatch; join-request persistence intentionally remains decision-gated. Project, milestones, RESR-62/64, PRD-687/691/695/696 were applied and verified; survey and engagement-model document writes were credit-blocked in this snapshot."
+      "event": "Architecture and experience review: the historical Request/Offer/Initiative NeedKind was locked at this point; optional multi-domain scope and typed merge/de-dup semantics added; diagrams, wireframes, target personas, journeys, service blueprint, and research/onboarding plan authored; workflow activated for plan-hub dispatch; join-request persistence intentionally remains decision-gated. The NeedKind decision is superseded by the 2026-07-21 problem-first Need model. Project, milestones, RESR-62/64, PRD-687/691/695/696 were applied and verified; survey and engagement-model document writes were credit-blocked in this snapshot."
     },
     {
       "date": "2026-07-10",
@@ -350,6 +350,10 @@
     {
       "date": "2026-07-19",
       "event": "Both research instruments moved to Linear as canonical. survey-instrument.md and onboarding-call.md are now pointers carrying purpose, owning issues, the Linear link, and the routing contract for call outputs; the bodies live in Linear documents c9271149e328 and d3690de04864. Driven by the repository being public plus a mirror rule that had no automation and had already drifted. research-plan.md's direction-of-truth rule inverted to match. Prior versions remain in git history."
+    },
+    {
+      "date": "2026-07-21",
+      "event": "Product model corrected before schema registration: a Need is a problem paired with a desired outcome and has no kind. Request / Offer is commitment direction only. The Need schema, resolver contract, creation flow, filters, analytics, wireframes, journeys, prototype references, and research language were reconciled in the same pass."
     }
   ]
 }

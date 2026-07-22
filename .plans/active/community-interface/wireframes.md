@@ -2,7 +2,7 @@
 
 **Feature Slug**: `community-interface`  
 **Stage**: `active`  
-**Updated**: 2026-07-10  
+**Updated**: 2026-07-21
 **Companions**: `spec.md`, `diagrams.md`, `journeys.md`, `research-plan.md`.
 
 These frames define information hierarchy, states, and recovery. They do not define visual styling. The member frames belong to the planned independent `packages/community` PWA at `community.greengoods.app` and `http://localhost:3010`, after the shared-foundation gate. Admin frames belong under `/community`. Funder frames extend existing `packages/client` public garden, impact, and funding surfaces.
@@ -40,18 +40,18 @@ Client and Community may consume the same shared foundations, but their routes, 
 │ This season · promises and progress         │
 ├──────────────────────────────────────────────┤
 │ Needs                             [Explore] │
-│ [All] [Requests] [Offers] [Initiatives]     │
-│ [Open] [Committed] [In progress] [Addressed]│
+│ [All] [Open] [Committed] [In progress]      │
+│ [Addressed] [This month] [This season]      │
 ├──────────────────────────────────────────────┤
-│ REQUEST · THIS MONTH                         │
+│ THIS MONTH · IN PROGRESS                     │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
 │ Agro · Education · 8 neighbors agree        │
 │ Acknowledged · In progress                  │
 │                          [View] [Agree]      │
 ├──────────────────────────────────────────────┤
-│ OFFER · THIS SEASON                          │
-│ We can share tools for weekend work days    │
+│ THIS SEASON · OPEN                           │
+│ Weekend work days lack a shared tool library│
 │ No domain assigned · Open                   │
 │                          [View] [Agree]      │
 ├──────────────────────────────────────────────┤
@@ -93,24 +93,21 @@ OFFLINE-STALE              PARTIAL / RETRYABLE
 
 A failed EAS or Envio source never renders as an empty list. Focus moves to the state heading only after an explicit user action; background refresh uses the polite announcer.
 
-## W3. Create — choose intent and capture words
+## W3. Create — describe the problem and capture words
 
-**Question**: Can a member choose Request, Offer, or Initiative and use voice or text without seeing schema terms?  
+**Question**: Can a member describe the problem in their own words using voice or text, without protocol or schema language?
 **Source**: `spec.md` §§3, 5, 8.
 
 ```text
 ┌──────────────────────────────────────────────┐
 │ Create                                1 of 3 │
-│ What are you bringing to the community?     │
+│ What is your community trying to solve?     │
 ├──────────────────────────────────────────────┤
-│ ◉ I need help                               │
-│   Ask for something the community can meet. │
-│ ○ I can offer something                     │
-│   Share time, tools, space, or knowledge.   │
-│ ○ I want to organize something              │
-│   Start a shared activity or initiative.    │
-├──────────────────────────────────────────────┤
-│ Tell us in your words                        │
+│ Describe the problem in your own words.      │
+│ Requests and offers come later, when someone │
+│ makes a commitment to address this Need.     │
+│                                              │
+│ Tell us what is happening                    │
 │ [● Record]  or  [Type here…                ]│
 │ Audio is kept · transcript can be edited    │
 │ Recording 0:18              [Stop recording]│
@@ -119,7 +116,7 @@ A failed EAS or Envio source never renders as an empty list. Focus moves to the 
 └──────────────────────────────────────────────┘
 ```
 
-The visible choices map to `NeedKind.REQUEST`, `OFFER`, and `INITIATIVE`. The recorder has a visible label, elapsed time, stop control, transcript or “audio only” label, permission-denied recovery, and typing fallback. No domain question appears during member creation.
+There is no Need-kind choice. A Need captures a problem and desired outcome; Request / Offer is selected later as commitment direction. The recorder has a visible label, elapsed time, stop control, transcript or “audio only” label, permission-denied recovery, and typing fallback. No domain question appears during member creation.
 
 ## W4. Create — desired outcome, review, and queue state
 
@@ -129,7 +126,7 @@ The visible choices map to `NeedKind.REQUEST`, `OFFER`, and `INITIATIVE`. The re
 ```text
 ┌──────────────────────────────────────────────┐
 │ Review                                3 of 3 │
-│ REQUEST · THIS MONTH                         │
+│ THIS MONTH · NEED                            │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
 │ Audio 0:42 · 2 photos                        │
@@ -165,7 +162,7 @@ The similar-Need prompt is advisory and never blocks authorship.
 ```text
 ┌──────────────────────────────────────────────┐
 │ ← Elders need reliable market rides          │
-│ REQUEST · THIS MONTH                         │
+│ THIS MONTH                                   │
 │ Moderation: Acknowledged                     │
 │ Progress: In progress                        │
 │ Agro · Education · 8 neighbors agree        │
@@ -293,7 +290,7 @@ Hidden Needs have no public placeholder. Declined Needs have no public card. A r
 │ Community / For the gathering                               │
 │ [Fresh Needs] [Confirmations] [Recent changes] [Print]      │
 ├──────────────────────────────────────────────────────────────┤
-│ REQUEST · WEEK · Moderation: none · Progress: open          │
+│ WEEK · Moderation: none · Progress: open                    │
 │ Water is pooling beside the school path                     │
 │ Better: the path stays passable after rain                  │
 │ Domains [Waste ×] [＋ Add domain]                            │
@@ -302,8 +299,8 @@ Hidden Needs have no public placeholder. Declined Needs have no public card. A r
 │ Saving status…                                               │
 │ Signature rejected. Nothing changed. [Try again] [Edit]     │
 ├──────────────────────────────────────────────────────────────┤
-│ OFFER · SEASON · Acknowledged · Open                        │
-│ Tool library for weekend work days                          │
+│ SEASON · Acknowledged · Open                                │
+│ Weekend work days lack a shared tool library                │
 │ No domain assigned                     [Seed a commitment]  │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -347,7 +344,7 @@ Domains are optional arrays; DomainImpact requires one registered, domain-matchi
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │ Community / Evaluator lineage                               │
-│ Need 0x91… · Request · Acknowledged · Addressed             │
+│ Need 0x91… · Acknowledged · Addressed                       │
 ├──────────────────────────────────────────────────────────────┤
 │ Need ─ Commitment ─ Work ─ Approval ─ Assessment            │
 │                         └ Testimony ─ Cycle ─ Hypercert      │
@@ -398,10 +395,10 @@ This is a gate artifact, not a placeholder implementation. It becomes a queue fr
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │ Rocinha Garden / Community-led work                         │
-│ [Kind ▾] [Domain ▾] [Horizon ▾] [Status ▾]                 │
-│ Order: Recent activity                                      │
+│ [Garden ▾] [Domain ▾] [Progress ▾]                         │
+│ [Horizon ▾] [Status ▾]   Order: Recent activity            │
 ├──────────────────────────────────────────────────────────────┤
-│ REQUEST · In progress                                       │
+│ IN PROGRESS                                                  │
 │ Reliable market rides for elders                            │
 │ Promise: 16 rides · 6 approved · community testimony       │
 │                                               [Read story]  │

@@ -23,7 +23,7 @@ Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-
 | 6 | Voice: audio always as evidence; dictation + transcription on BOTH statement and outcome; local-first (feasibility spike), server transcribe-on-sync fallback via the agent package; never blocks submission. |
 | 7 | Discovery: global read-only browse; my garden is the scoped default; signal rights same-garden only. |
 | 8 | No claim flow in v1; the need→operator triage binding is first-class (time-sensitive triage, seed-from-signal). |
-| 9 | `NeedKind` is Request / Offer / Initiative. Domains are operator-applied, optional, and multi-valued; commitments use the same optional multi-domain shape, with action pairing required only for DomainImpact. |
+| 9 | A Need is a problem paired with a desired outcome; it has no kind. Request / Offer is commitment direction only. Domains are operator-applied, optional, and multi-valued; commitments use the same optional multi-domain shape, with action pairing required only for DomainImpact. |
 | 10 | Join-request persistence is an explicit open decision. The member experience is designed, but PRD-691's membership-queue slice waits for privacy, retention, offline/recovery, deletion, and operator-handoff evidence. |
 | 11 | `packages/community` is an independent PWA at `community.greengoods.app` / local 3010; a prerequisite shared-foundation lane extracts generic runtime/auth/offline/install/update/error/shell primitives for both client and Community without sharing routes, manifests, service-worker scope, telemetry identity, or copy. |
 | 12 | Need moderation and progress are separate axes; declined is author/operator-only, hidden is operator-only, merge redirects, acknowledgement with rationale reopens, and author retraction leaves a content-free lineage tombstone. |
@@ -62,14 +62,14 @@ Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `nee
 ### Track R: Research and operator engagement (live cycles)
 
 1. [ ] Through Product cycle end 2026-07-16: PRD-701 operator outreach is under way (contacts, consent script, facilitation kit in progress); the kickoff package and session slots land by PRD-701's due date 2026-07-30 (re-dated from 07-16 per commitment-pooling decision #24); no cohort is marked ready by invitation alone
-2. [ ] Through Research cycle end 2026-07-30: RESR-62 runs two-pass sessions, returns mandate drafts for operator confirmation, and tests NeedKind/multi-domain language; RESR-64 evaluates join-request persistence options
+2. [ ] Through Research cycle end 2026-07-30: RESR-62 runs two-pass sessions, returns mandate drafts for operator confirmation, tests problem/desired-outcome and multi-domain language, and keeps Request/Offer testing in the commitment section; RESR-64 evaluates join-request persistence options
 3. [ ] July dry-run checkpoint 2026-07-31: confirmed mandates + readiness matrix with gaps; this is a go/no-go input, not a promise of complete onboarding
 4. [ ] August/September milestones: operator implementation reviews and gathering rehearsal; post-pilot findings gate PRD-695/696
 
 ### Track S: Needs substrate (rides the August build)
 
 1. [ ] Freeze the Commitment Pooling schema-registration helper/interface; the approved append-only `schemas.json` guidance amendment and Community contracts handoff are already present
-2. [ ] PRD-687 exact schemas + resolvers + deploy target: NeedKind, moderation/reopen, typed merge, funding chain/receipt contract; remains blocked only until step 1 clears
+2. [ ] PRD-687 exact schemas + resolvers + deploy target: kind-free Need schema, moderation/reopen, typed merge, funding chain/receipt contract; remains blocked only until step 1 clears
 3. [ ] PRD-687 consolidated indexer slice: complete commitment creation fields + claim-request state; folds into the PRD-650 indexer lane without recreating closed child issues
 4. [ ] Shared-foundation prerequisite: extract generic runtime/auth/offline/install/update/error/shell primitives; migrate client and prove no behavior change
 5. [ ] PRD-687 consolidated shared slice: needs hooks, two-axis joined read, `need`/`needSignal`/`testimony`, waiting_for_hat recovery, funding verifier, voice spike
