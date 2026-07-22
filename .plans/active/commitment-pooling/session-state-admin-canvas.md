@@ -1,0 +1,17 @@
+## Session State — admin cockpit canvas rewrite
+
+- **Task**: Rewrite the admin (and lightly editorial) prototype screens to mirror the real Canvas cockpit (CanvasLayout). Owned: `hifi/screens/{admin,settlement,public}.ts` + `.s-admin`/`.s-public` CSS in `hifi/tokens.ts`.
+- **Status**: DONE. Build green (31 screens, 140 states, 148 hotspots, 0 warnings). Verified in explorer + journey player, both themes.
+- **What changed**:
+  - `.s-admin` CSS: replaced invented top tab-bar chrome with the real 2-row canvas grid (`.wsgrid[data-tone]` per-tone gradient), transparent `.appbar` (GardenChip `.gchip` + `.iconbtn`s), opaque `.routecard` (radius-xl, elevation-2), sticky big `.pghead` h1, segmented `.tabrail`, floating glass `.navdock` (5 slots incl net-new Operations, actions-tone). `.acard` → solid M3 elevated. Dialog rewritten to header/body/footer 28dp (`.adlg .dlg-head/.dlg-body/.dlg-foot`). New `.dtab` (hairline table), `.actrow`, `.flowform`. Removed dead `.adminbar/.wstab/.vhead/.canvasbody/table.atab/.afab`.
+  - `admin.ts`: new helpers `adminCanvas/pageHeader/tabRail/navDock/gardenChip/adminDialogM3/dtable`; removed `adminBar/vhead/atable/adminDialog`. All W7–HUBWORK migrated. W7 +loading/+empty; W10 +accepted/+mark-ready-override/+cancel/+not-found (MF-2b steward cancel + Send-for-confirmation/Mark-ready-override twin, UX:294); W13 +empty. Sub-tabs corrected (garden Health·Impact·Activity·Pool; hub Work·Assess·Certify·Confirm·History).
+  - `settlement.ts`: W12/W21/W22/W24/W26 migrated to the canvas; tables → `dtable`; Operations = actions tone + Operations dock slot.
+  - `public.ts`: added real SiteHeader (logo + Gardens·Impact·Fund·Actions + Install pill) to `webWin`.
+  - `icons.ts`: added `notification-line` + `settings-line` (AppBar bell/gear) — additive only.
+- **Fixes made**: (1) `#screens/#play h1` ID rule clobbered route h1 → `!important` clamp. (2) bare `table{min-width:640px}` leaked → `.dtab{min-width:0}`. (3) chip `{dot:true}` class collides with the artifact's journey-nav `.dot{width:8px}` → scoped `.hf.s-admin .ch,.hf.s-public .ch{width:auto}`.
+- **Gotchas**: HIFI_CSS is a backtick template literal — NEVER use backticks in CSS comments (breaks the build). Journey/hotspot ids must be preserved (append states, never reorder states[0]).
+- **Observation (out of scope)**: the same `.dot` chip collision affects CLIENT screens (W2 "Pending" chip squished to 16px) — pre-existing, left untouched per "do not touch client files". Client owner may want the global `.hf .ch{width:auto}`.
+- **Republished**: DONE → https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c (live render confirmed). Build 31 screens / 140 states / 153 hotspots / 0 warnings.
+- **Also wired** (advisor round 2): same-screen tab rails now navigate — W24 Queue/Oracle/Flows, W12 Protocol-pool/This-garden (5 new hotspots). Verified all 4 new W10/W13 states render (incl. not-found emptyState-in-dialog) + walked SB-12 end-to-end.
+- **Deliberately left visual** (told the user): hub cross-workspace tab links (Work→HUBWORK, Assess→W14, Confirm→W13) — they map to *different* screens, not states of one screen, and no journey walks tab navigation; the same-screen state tabs are the on-brief, zero-risk wins.
+- **Follow-ups for the user**: (1) Reference-tab status note (in the unowned build file) still says "MF-2b steward-cancel still open" — now stale since drawn. (2) Client `.dot` chip squish is pre-existing and untouched; a global `.hf .ch{width:auto}` would fix it everywhere if the client owner wants it.
