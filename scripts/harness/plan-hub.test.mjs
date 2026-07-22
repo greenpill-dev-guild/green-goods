@@ -869,6 +869,35 @@ test("execution sub-lane validation rejects parent drift and duplicate issue rel
     assert.match(result.stderr, /cannot reuse the canonical parent issue/);
   }));
 
+test("execution sub-lane validation rejects compatibility issue-list drift", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "compatibility-issue-drift", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "compatibility-issue-drift");
+    status.linear = {
+      parentIssue: "PRD-1300",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/compatibility-issue-drift",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1301", parentIssue: "PRD-1300" },
+        linear_issues: ["PRD-1300"],
+      },
+    };
+    writeStatus(root, "active", "compatibility-issue-drift", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear_issues must include linear\.issue PRD-1301/);
+  }));
+
 test("parent-only mode remains authoritative when execution sub-lanes are present", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "parent-only-execution", "--stage", "active"]).status, 0);
@@ -1089,7 +1118,8 @@ test("record-linear records repeated execution sub-lane issue ids", () =>
         branch: "codex/contracts/record-execution-linear",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
-        linear: { sync: true, issue: null, parentIssue: "PRD-1100" },
+        linear: { sync: true, issue: "PRD-1099", parentIssue: "PRD-1100" },
+        linear_issues: ["PRD-1099", "PRD-1100", "PRD-1098"],
       },
       release_ops: {
         machine_lane: null,
@@ -1100,6 +1130,7 @@ test("record-linear records repeated execution sub-lane issue ids", () =>
         depends_on: ["contracts"],
         handoff: "handoffs/codex-state-api.md",
         linear: { sync: true, issue: null, parentIssue: null },
+        linear_issues: [],
       },
     };
     writeStatus(root, "active", "record-execution-linear", status);
@@ -1118,6 +1149,8 @@ test("record-linear records repeated execution sub-lane issue ids", () =>
     const updated = readStatus(root, "active", "record-execution-linear");
     assert.equal(updated.execution_sub_lanes.contracts.linear.issue, "PRD-1101");
     assert.equal(updated.execution_sub_lanes.release_ops.linear.issue, "PRD-1102");
+    assert.deepEqual(updated.execution_sub_lanes.contracts.linear_issues, ["PRD-1101", "PRD-1100", "PRD-1098"]);
+    assert.deepEqual(updated.execution_sub_lanes.release_ops.linear_issues, ["PRD-1102"]);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 

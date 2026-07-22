@@ -1166,6 +1166,13 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
       errors.push(`execution_sub_lanes.${laneName} handoff file is missing: ${lane.handoff}`);
     }
 
+    if (
+      lane.linear_issues !== undefined &&
+      (!Array.isArray(lane.linear_issues) || lane.linear_issues.some((issue) => !hasText(issue)))
+    ) {
+      errors.push(`execution_sub_lanes.${laneName}.linear_issues must be an array of issue identifiers`);
+    }
+
     if (lane.linear === undefined || lane.linear === null) {
       continue;
     }
@@ -1192,6 +1199,15 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
     validateLinearSchedule(status, lane.linear, `execution_sub_lanes.${laneName}.linear`, errors);
     const issue = normalizedLinearIssue(lane.linear.issue);
     const parentIssue = normalizedLinearIssue(lane.linear.parentIssue);
+    if (Array.isArray(lane.linear_issues)) {
+      const compatibilityIssues = new Set(lane.linear_issues.map(normalizedLinearIssue).filter(Boolean));
+      if (issue && !compatibilityIssues.has(issue)) {
+        errors.push(`execution_sub_lanes.${laneName}.linear_issues must include linear.issue ${issue}`);
+      }
+      if (parentIssue && !compatibilityIssues.has(parentIssue)) {
+        errors.push(`execution_sub_lanes.${laneName}.linear_issues must include linear.parentIssue ${parentIssue}`);
+      }
+    }
     if (lane.linear.sync === true && parentIssue) {
       if (!canonicalParent) {
         errors.push(
@@ -2117,10 +2133,21 @@ function recordLinear(flags) {
         validationErrors = [`record-linear cannot find execution sub-lane "${laneName}".`];
         return;
       }
+      const previousIssue = normalizedLinearIssue(lane.linear?.issue);
       lane.linear = {
         ...(lane.linear && typeof lane.linear === "object" && !Array.isArray(lane.linear) ? lane.linear : {}),
         issue,
       };
+      const parentIssue = normalizedLinearIssue(lane.linear.parentIssue);
+      const retainedCompatibilityIssues = Array.isArray(lane.linear_issues)
+        ? lane.linear_issues
+            .map(normalizedLinearIssue)
+            .filter(
+              (candidate) =>
+                candidate && candidate !== previousIssue && candidate !== issue && candidate !== parentIssue,
+            )
+        : [];
+      lane.linear_issues = [...new Set([issue, parentIssue, ...retainedCompatibilityIssues].filter(Boolean))];
     }
 
     status.linear = linear;
