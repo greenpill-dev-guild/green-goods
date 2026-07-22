@@ -4,11 +4,11 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## Source order
 
-1. status.json is machine truth for owner, lane state, dependencies, and dispatchability. Read `execution_sub_lanes` before trusting a machine-lane status: a ready machine lane can contain a blocked sub-lane (`contracts` ready does not make `settlement` dispatchable) and a blocked machine lane can contain a ready sub-lane (`docs` is dispatchable while `ui` is blocked).
+1. status.json is machine truth for owner, lane state, dependencies, and dispatchability. Read `execution_sub_lanes` before trusting a machine-lane status: a ready machine lane can contain a blocked sub-lane (`contracts` ready does not make `settlement` dispatchable), and the blocked aggregate `ui` lane does not imply any sub-lane is dispatchable. Docs remains explicitly blocked through source convergence.
 2. `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `diagrams.md`, `wireframes.md`, and `acceptance-matrix.md` define active behavior and final copy/state/public-claim proof. The CreditRegister design is a separate blocked backlog hub at `.plans/backlog/commitment-credit-follow-on/`.
 3. plan.todo.md defines sequencing.
 4. A handoff narrows one lane; it never overrides a blocked status or expands scope.
-5. human-release-ops.md owns separately authorized broadcast, Garden-ID cutover, and live settlement exit evidence; implementation handoffs own only code, tests, artifacts, and dry runs.
+5. human-release-ops.md owns separately authorized broadcast, Garden-ID cutover, and live settlement exit evidence; human-settlement-evidence.md owns the September measurement-definition gate; implementation handoffs own only code, tests, artifacts, and dry runs.
 
 ## Required handoff contract
 
@@ -25,11 +25,11 @@ Every handoff records:
 
 Detailed proof is written here first and then recorded in status.json with the plan-hub record-tdd command. A handoff is not a branch-creation instruction.
 
-There are fourteen agent execution handoffs plus one human release-operations handoff. The human handoff is an authorization and evidence boundary, not a machine lane.
+There are thirteen agent handoffs plus two human handoffs. Human handoffs are authorization/evidence boundaries, not machine lanes.
 
 ## Linear boundary
 
-linear.laneSyncMode remains parent_only. PRD-650 is the single plan-hub parent mirror. PRD-686, PRD-682, and historical child IDs provide context only; these handoffs do not create or dispatch Linear children.
+linear.laneSyncMode is lane_issues (register #37, amended by register #39, 2026-07-20; supersedes register #31 and Decision Log #20). Each execution sub-lane carries a thin Linear issue: PRD-721 contracts · PRD-722 indexer · PRD-723 state/API · PRD-724 client UI · PRD-725 admin UI · PRD-726 editorial · PRD-727 docs · PRD-728 docs-guides · PRD-729 QA pass 1 · PRD-730 QA pass 2 · PRD-731 release ops · PRD-735 settlement evidence. PRD-650 is the parent of PRD-721–730 and PRD-735; PRD-731 is parentless. PRD-686 tracks settlement implementation and PRD-682 tracks Community. Linear owns status, dates, assignee, and dependencies; these handoffs own content, and a lane issue body must never restate handoff scope. Only ready agent-owned lanes receive `agent:*`; blocked, human, and follow-on records do not. Historical child IDs (PRD-671–681) remain labels, not dispatch targets. Handoffs still never create or dispatch Linear issues themselves — Afo does.
 
 ## Shared safety rules
 

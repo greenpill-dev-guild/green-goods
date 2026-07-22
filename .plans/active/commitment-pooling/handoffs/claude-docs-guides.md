@@ -7,7 +7,7 @@
 - Owner: Claude
 - Branch signal: claude/docs-guides/commitment-pooling
 - Current state: blocked
-- Linear context: PRD-650 parent-only mirror
+- Linear context: PRD-728 (docs-guides lane) under parent PRD-650
 
 ## Inputs
 

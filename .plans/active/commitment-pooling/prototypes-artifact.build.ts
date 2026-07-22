@@ -168,7 +168,13 @@ const navRef = `<div class="ng">Reference</div>` + refSecs.map(s =>
   `<a href="#${s.id}">${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</a>`
 ).join("");
 
-const statusNote = `<aside class="status"><h2>Status — hi-fi upgrade 2026-07-18 (decision #36) · decisions #34–#35 folded</h2>
+const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc.map(([g, ss]) =>
+  `<a href="#${ss[0].id}"><b>${esc(g)}</b><span>${ss.length} journeys</span></a>`
+).join("")}${refSecs.map(s =>
+  `<a href="#${s.id}"><b>${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</b></a>`
+).join("")}</nav>`;
+
+const statusNote = `<aside class="status"><h2>Status — review-and-polish pass 2026-07-21 · hi-fi register #36</h2>
 <p><strong>Hi-fi</strong>: every August screen renders at high fidelity with a per-screen state matrix — Warm Earth client PWA, restrained M3 admin, editorial public pages. Adopted micro-frames dissolved into their parent states; still-proposed ones keep the amber tag. September community frames stay lo-fi previews. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
 <p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21/W12 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
 <p><strong>Still open</strong>: steward-cancel placement (MF-2b) · Cancelled-disbursement member copy (§17.5) · queue-funding control (MF-11, drawn as proposed on W12). <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
@@ -178,7 +184,12 @@ const sections = secs.map(s => {
   const heading = m
     ? `<h2><span class="sbnum">${m[1]}</span> ${inline(m[2])}</h2>`
     : `<h2>${inline(s.title.replace(/^\d+\. /, ""))}</h2>`;
-  return `<section id="${s.id}">${heading}${s.html.join("\n")}</section>`;
+  const glance = s.html.findIndex(block => block.includes("<strong>At a glance</strong>"));
+  const fold = glance >= 0 && s.html.length - glance > 4;
+  const body = fold
+    ? `${s.html.slice(0, glance + 1).join("\n")}<details class="refmore"><summary>Open the full section</summary>${s.html.slice(glance + 1).join("\n")}</details>`
+    : s.html.join("\n");
+  return `<section id="${s.id}">${heading}${body}</section>`;
 }).join("\n");
 
 // ---------- Normalize journeys against the screen registry + validate ----------
@@ -213,13 +224,28 @@ const sbCards = sbs.map(sb =>
 const screenCards = screenCardsHtml(walkedIn);
 
 // ---------- Page ----------
-const html = `<meta charset="utf-8">
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>Commitment Pooling — Flow Prototypes</title>
 <style>
 :root{
   --canvas:#FAF8F4; --panel:#F2EFE7; --ink:#2B2924; --stone:#6B675E; --line:#E4E0D6;
   --accent:#3E7A4E; --accent-ink:#2E5C3B; --amber:#8A6D1F; --amber-bg:#F7F0DC;
   --chipw:#EDE9DD; --code:#54504A;
+  --spring-spatial-duration:300ms;--spring-spatial-easing:cubic-bezier(0.16,1,0.3,1);
+  --spring-spatial-fast-duration:200ms;--spring-spatial-fast-easing:cubic-bezier(0.34,1.56,0.64,1);
+  --spring-spatial-slow-duration:400ms;--spring-spatial-slow-easing:cubic-bezier(0.16,1,0.3,1);
+  --spring-effects-duration:250ms;--spring-effects-easing:cubic-bezier(0.2,0,0,1);
+  --spring-effects-fast-duration:150ms;--spring-effects-fast-easing:cubic-bezier(0.2,0,0,1);
+  --spring-effects-slow-duration:500ms;--spring-effects-slow-easing:cubic-bezier(0.2,0,0,1);
+  --spring-spatial:var(--spring-spatial-duration) var(--spring-spatial-easing);
+  --spring-spatial-fast:var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
+  --spring-effects:var(--spring-effects-duration) var(--spring-effects-easing);
+  --spring-effects-fast:var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
+  /* Device height budget: the framed device (phone/window) never grows past this,
+     so the flanking arrows stay on-screen and screen content scrolls inside the
+     frame instead of the page. Theme-independent; inherited by the .hf frames. */
+  --dev-cap:min(720px,calc(100vh - 200px));
+  --dev-cap:min(720px,calc(100dvh - 200px));
 }
 @media (prefers-color-scheme: dark){:root{
   --canvas:#1C1B18; --panel:#24221E; --ink:#ECE8DF; --stone:#A39E92; --line:#35332C;
@@ -243,12 +269,12 @@ body{margin:0;background:var(--canvas);color:var(--ink);
   position:sticky;top:0;background:var(--canvas);z-index:5;align-items:center;flex-wrap:wrap}
 .tabs .tt{font-weight:700;font-size:13px;margin-right:12px}
 .tab{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:8px;
-  padding:5px 14px;font:600 13px inherit;cursor:pointer}
+  padding:5px 14px;font:600 13px inherit;cursor:pointer;min-height:44px}
 .tab.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
 #tab-doc,#tab-play,#tab-screens{display:none}
 #tab-doc.on,#tab-play.on,#tab-screens.on{display:block}
 
-#play,#screens{max-width:1080px;margin:0 auto;padding:26px 20px 120px}
+#play,#screens{max-width:1080px;margin:0 auto;padding:26px 20px 44px}
 #play h1,#screens h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
 #play .sub,#screens .sub{color:var(--stone);font-size:13px;margin:0 0 18px;max-width:78ch}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:8px}
@@ -264,37 +290,48 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 #stage.on,#expstage.on{display:block}
 .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .stagebar .back{border:1px solid var(--line);background:var(--panel);color:var(--ink);
-  border-radius:8px;padding:4px 12px;cursor:pointer;font:600 12.5px inherit}
+  border-radius:8px;padding:4px 12px;cursor:pointer;font:600 12.5px inherit;min-height:44px}
 .stagebar .ti{font-weight:700;font-size:15px}
 .pill{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:1px 9px;color:var(--stone)}
 .pill.sur{border-color:var(--accent-ink);color:var(--accent-ink)}
-.pill.link{cursor:pointer;background:var(--panel)}
+.pill.link{cursor:pointer;background:var(--panel);min-height:44px}
 .device{border:1px solid var(--line);border-radius:14px;background:var(--panel);
   padding:14px 16px;overflow-x:auto;position:relative}
 .device.mf{border-color:var(--amber)}
+/* lo-fi ascii frames have no inner scroll surface — cap + scroll the panel itself */
+.device.f-ascii{max-height:var(--dev-cap);overflow:auto}
 .device .mftag{position:absolute;top:0;right:0;background:var(--amber-bg);color:var(--amber);
   font:700 10px inherit;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:0 13px 0 8px}
 .device pre.ascii{margin:0;padding:0;border:0;background:transparent;overflow:visible;
   font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
-.hspot{display:inline;font:inherit;padding:0;margin:0;border:0;background:transparent;color:inherit;
-  cursor:pointer;white-space:pre;border-radius:3px}
+.hspot{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;
+  font:inherit;padding:0 6px;margin:-13px -6px;border:0;background:transparent;color:inherit;
+  cursor:pointer;white-space:pre;border-radius:3px;vertical-align:middle}
 .hspot.primary{background:color-mix(in srgb, var(--accent) 18%, transparent);
   outline:1px dashed var(--accent);outline-offset:1px}
 @media (prefers-reduced-motion: no-preference){
-  .hspot.primary{animation:hotpulse 1.6s ease-in-out infinite}
+  .hspot.primary{animation:hotpulse calc(var(--spring-effects-slow-duration) * 3.2) var(--spring-effects-slow-easing) infinite}
   @keyframes hotpulse{0%,100%{outline-color:var(--accent)}50%{outline-color:transparent}}
 }
 .hspot.choice{background:color-mix(in srgb, var(--accent) 10%, transparent);
   outline:1px solid var(--accent-ink);outline-offset:1px}
-.hspot.quiet{border-bottom:1px dotted transparent}
-.device:hover .hspot.quiet,.hspot.quiet:focus-visible{border-bottom-color:var(--stone)}
+.hspot.quiet{border-bottom:1px dotted color-mix(in srgb,var(--accent) 55%,transparent)}
+.device:hover .hspot.quiet,.hspot.quiet:focus-visible{border-bottom-color:var(--accent-ink)}
 .hspot.nav2{background:color-mix(in srgb, var(--accent) 10%, transparent);
   outline:1px solid var(--accent-ink);outline-offset:1px}
-.hspot.info2{border-bottom:1px dotted var(--stone)}
+.hspot.info2{border-bottom:1px dotted color-mix(in srgb,var(--accent) 55%,transparent)}
+/* reveal-on-mis-click: flash every live hotspot so the real controls are obvious */
+.hspot.flash{outline:1px solid var(--accent);outline-offset:1px;border-radius:3px;
+  background:color-mix(in srgb,var(--accent) 16%,transparent)}
+@media (prefers-reduced-motion: no-preference){
+  .hspot.flash{animation:hspotflash calc(var(--spring-effects-slow-duration) * 1.25) var(--spring-effects-easing) both}
+  @keyframes hspotflash{0%,100%{outline-color:transparent;background-color:transparent}
+    45%{outline-color:var(--accent);background-color:color-mix(in srgb,var(--accent) 16%,transparent)}}
+}
 .marked{background:color-mix(in srgb, var(--amber) 22%, transparent);border-radius:3px}
 .stchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .vchip{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:99px;
-  padding:3px 12px;font:600 12px inherit;cursor:pointer}
+  padding:3px 12px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .vchip.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
 .vchip.prop{border-style:dashed;border-color:var(--amber);color:var(--amber)}
 .vchip.prop.on{background:var(--amber);border-color:var(--amber);color:var(--canvas)}
@@ -306,12 +343,12 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 #insp b{display:block;margin-bottom:2px}
 #insp .ia{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
 #insp .ia button{border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
-  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer}
+  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .insp{margin:10px 0 0}
 .insp.on{border:1px solid var(--line);border-left:3px solid var(--accent-ink);background:var(--panel);
   border-radius:8px;padding:8px 12px;font-size:12.5px}
 .insp .walkbtn{margin-left:8px;border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
-  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer}
+  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .meta{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;font-size:13px}
 .meta .row{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .stchip{font:600 11px ui-monospace,Menlo,monospace;background:var(--chipw);border:1px solid var(--line);
@@ -321,16 +358,31 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .note{font-size:12.5px;color:var(--stone);border-left:3px solid var(--line);padding-left:10px}
 .brs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .br{border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);border-radius:8px;
-  padding:3px 10px;font:600 12px inherit;cursor:pointer}
+  padding:3px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .br.info{cursor:default}
-.ctr{display:flex;align-items:center;gap:10px;margin-top:14px}
-.ctr button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;
-  padding:6px 16px;cursor:pointer;font:600 13px inherit}
-.ctr button.primary{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
-.ctr button:disabled{opacity:.4;cursor:default}
-.dots{display:flex;gap:5px;flex:1;justify-content:center;flex-wrap:wrap}
-.dot{width:8px;height:8px;border-radius:99px;background:var(--line);border:0;padding:0;cursor:pointer}
-.dot.on{background:var(--accent)}
+/* journey stage: the device is flanked by large prev/next arrows that stay in
+   view; the device caps to the viewport and scrolls its own content (Fix 1). */
+.stagerow{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 0}
+.devicewrap{flex:1 1 auto;min-width:0;min-height:0;display:flex;justify-content:center}
+.devicewrap .device{width:100%}
+.navarrow{flex:none;width:52px;height:52px;border-radius:99px;border:1px solid var(--line);
+  background:var(--panel);color:var(--accent-ink);font-size:28px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform var(--spring-spatial-fast),background var(--spring-effects-fast),color var(--spring-effects-fast),opacity var(--spring-effects-fast)}
+.navarrow:hover{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
+.navarrow:active{transform:scale(.92)}
+.navarrow:disabled{opacity:.32;cursor:default}
+.navarrow:disabled:hover{background:var(--panel);border-color:var(--line);color:var(--accent-ink)}
+.navarrow.done{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
+.dotsrow{display:flex;justify-content:center;margin-top:14px}
+.dots{display:flex;gap:0;justify-content:center;flex-wrap:wrap}
+.dot{width:44px;height:44px;border-radius:99px;background:transparent;border:0;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.dot::after{content:"";width:8px;height:8px;border-radius:99px;background:var(--line)}
+.dot.on::after{background:var(--accent)}
+@media (max-width:560px){
+  .navarrow{width:44px;height:44px;font-size:22px}
+  .stagerow{gap:3px}
+}
 .who{font-size:12px;color:var(--stone)}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 0;font-size:11.5px;color:var(--stone)}
 .legend .k{display:inline-block;width:14px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:4px}
@@ -342,24 +394,24 @@ nav.doc .brand{font-weight:700;font-size:13px;letter-spacing:.02em;margin:0 8px 
 nav.doc .brand small{display:block;font-weight:400;color:var(--stone);margin-top:2px}
 .ng{margin:14px 8px 4px;font-size:10.5px;font-weight:600;letter-spacing:.09em;
   text-transform:uppercase;color:var(--stone)}
-nav.doc a{display:block;padding:4px 8px;border-radius:6px;color:var(--stone);text-decoration:none;
+nav.doc a{display:flex;align-items:center;padding:4px 8px;border-radius:6px;color:var(--stone);text-decoration:none;min-height:44px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 nav.doc a b{color:var(--ink);font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px}
 nav.doc a:hover{background:var(--panel);color:var(--ink)}
 nav.doc a.on{background:var(--panel);color:var(--accent-ink)}
-main{flex:1;min-width:0;padding:36px 44px 120px;max-width:960px}
-main h1{font-size:23px;line-height:1.25;margin:0 0 6px;text-wrap:balance}
-main .sub{color:var(--stone);margin:0 0 22px;font-size:13.5px}
-section{margin:0 0 44px;scroll-margin-top:64px}
-h2{font-size:17.5px;margin:34px 0 12px;padding-top:18px;border-top:1px solid var(--line);text-wrap:balance}
-section:first-of-type h2{border-top:0;padding-top:0}
+#tab-doc main{flex:1;min-width:0;padding:36px 44px 120px;max-width:960px}
+#tab-doc main h1{font-size:23px;line-height:1.25;margin:0 0 6px;text-wrap:balance}
+#tab-doc main .sub{color:var(--stone);margin:0 0 22px;font-size:13.5px}
+#tab-doc section{margin:0 0 44px;scroll-margin-top:64px}
+#tab-doc h2{font-size:17.5px;margin:34px 0 12px;padding-top:18px;border-top:1px solid var(--line);text-wrap:balance}
+#tab-doc section:first-of-type h2{border-top:0;padding-top:0}
 .sbnum{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:700;
   color:var(--accent-ink);background:var(--panel);border:1px solid var(--line);
   border-radius:6px;padding:2px 7px;margin-right:6px;vertical-align:2px}
-p{margin:10px 0;max-width:74ch}
-ul{margin:8px 0;padding-left:22px;max-width:74ch}
-li{margin:4px 0}
-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;color:var(--code);
+#tab-doc main p{margin:10px 0;max-width:74ch}
+#tab-doc main ul{margin:8px 0;padding-left:22px;max-width:74ch}
+#tab-doc main li{margin:4px 0}
+#tab-doc main code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;color:var(--code);
   background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 strong{font-weight:650}
 .chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;border-radius:5px;
@@ -368,13 +420,13 @@ strong{font-weight:650}
 .chip.sb{background:var(--panel);color:var(--accent-ink);border-color:var(--accent-ink)}
 .chip.mf{background:var(--amber-bg);color:var(--amber);border-color:var(--amber)}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin:14px 0}
-table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
-th{background:var(--panel);text-align:left;font-size:11px;letter-spacing:.06em;
+.tw table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+.tw th{background:var(--panel);text-align:left;font-size:11px;letter-spacing:.06em;
   text-transform:uppercase;color:var(--stone);padding:7px 10px;border-bottom:1px solid var(--line)}
-td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;
+.tw td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;
   font-variant-numeric:tabular-nums}
-tbody tr:last-child td{border-bottom:0}
-tr.warn td{background:var(--amber-bg)}
+.tw tbody tr:last-child td{border-bottom:0}
+.tw tr.warn td{background:var(--amber-bg)}
 .framewrap{margin:14px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .framewrap.proposed{border-color:var(--amber)}
 .ptag{background:var(--amber-bg);color:var(--amber);font-size:10.5px;font-weight:700;
@@ -392,7 +444,7 @@ pre.frame{margin:0;padding:12px 14px;overflow-x:auto;
 .fa::after{content:"";position:absolute;right:-1px;top:-3px;border:3.5px solid transparent;
   border-left-color:var(--stone)}
 details.msrc{margin:-6px 0 14px}
-details.msrc summary{font-size:11.5px;color:var(--stone);cursor:pointer}
+details.msrc summary{font-size:11.5px;color:var(--stone);cursor:pointer;min-height:44px;display:flex;align-items:center}
 details.msrc pre{font:11.5px/1.4 ui-monospace,Menlo,monospace;background:var(--panel);
   border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto}
 .status{border:1px solid var(--accent);border-left-width:3px;background:var(--panel);
@@ -400,6 +452,11 @@ details.msrc pre{font:11.5px/1.4 ui-monospace,Menlo,monospace;background:var(--p
 .status h2{border:0;padding:0;margin:10px 0 4px;font-size:13px;letter-spacing:.05em;
   text-transform:uppercase;color:var(--accent-ink)}
 .status p{font-size:13px;margin:6px 0}
+.ref-toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 22px}
+.ref-toc a{display:flex;flex-direction:column;justify-content:center;min-height:52px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);text-decoration:none;color:var(--ink)}
+.ref-toc a span{font-size:11px;color:var(--stone)}
+.refmore{margin:10px 0 0}
+.refmore>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--accent-ink);font-weight:650}
 a{color:var(--accent-ink)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 @media (max-width:900px){
@@ -408,25 +465,27 @@ a{color:var(--accent-ink)}
     display:flex;flex-wrap:wrap;gap:2px;padding:12px}
   nav.doc .brand{width:100%}
   .ng{width:100%;margin:8px 4px 2px}
-  main{padding:20px 18px 80px}
-  table{min-width:560px}
+  #tab-doc main{padding:20px 18px 80px}
+  .tw table{min-width:560px}
 }
 @media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 ${HIFI_CSS}
 </style>
+</head><body>
 ${iconSprite()}
 <div class="tabs" role="tablist">
   <span class="tt">Commitment Pooling</span>
-  <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true">Walk the journeys</button>
-  <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false">Screens</button>
-  <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false">Reference</button>
+  <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Walk the journeys</button>
+  <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screens</button>
+  <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Reference</button>
 </div>
 
-<div id="tab-play" class="on">
+<div id="tab-play" class="on" role="tabpanel" aria-labelledby="tabbtn-play">
 <div id="play">
   <div id="home">
     <h1>Walk the journeys — click-through</h1>
-    <p class="sub">Pick a journey. The <b>pulsing control</b> advances the canonical path; <b>solid-outlined controls</b> are real choices at that moment; every other drawn control is tappable too — it answers with a note or takes you where its story lives. Swipe or use ←/→. Amber chips are failure/recovery branches.</p>
+    <p class="sub">Pick a journey. The <b>pulsing control</b> advances the canonical path; <b>solid-outlined controls</b> are real choices at that moment; dotted controls answer with a note or take you where their story lives. Swipe or use ←/→. Amber chips are failure/recovery branches.</p>
     <div class="legend"><span><span class="k" style="background:color-mix(in srgb,var(--accent) 18%,transparent);outline:1px dashed var(--accent)"></span>advances</span><span><span class="k" style="background:color-mix(in srgb,var(--accent) 10%,transparent);outline:1px solid var(--accent-ink)"></span>a choice</span><span><span class="k" style="border-bottom:1px dotted var(--stone)"></span>tap to inspect</span><span><span class="k" style="background:color-mix(in srgb,var(--amber) 22%,transparent)"></span>look here</span></div>
     <div class="grid" style="margin-top:14px">${sbCards}</div>
   </div>
@@ -439,9 +498,13 @@ ${iconSprite()}
       <span class="pill sur" id="st-surface"></span>
       <span class="pill" id="st-vstate" style="display:none"></span>
     </div>
-    <div class="device" id="device"></div>
+    <div class="stagerow">
+      <button class="navarrow" id="prevbtn" aria-label="Previous step">‹</button>
+      <div class="devicewrap"><div class="device" id="device"></div></div>
+      <button class="navarrow" id="nextbtn" aria-label="Next step">›</button>
+    </div>
     <p class="hint" id="hint"></p>
-    <div id="insp"></div>
+    <div id="insp" role="status" aria-live="polite"></div>
     <div class="meta">
       <div class="row"><span class="stchip" id="st-state"></span><span class="who" id="st-who"></span></div>
       <div class="row"><span class="ev" id="st-ev"></span></div>
@@ -449,16 +512,12 @@ ${iconSprite()}
       <div class="note" id="st-note" hidden></div>
       <div class="brs" id="st-brs"></div>
     </div>
-    <div class="ctr">
-      <button id="prevbtn">← Back</button>
-      <div class="dots" id="dots"></div>
-      <button class="primary" id="nextbtn">Next →</button>
-    </div>
+    <div class="dotsrow"><div class="dots" id="dots"></div></div>
   </div>
 </div>
 </div>
 
-<div id="tab-screens">
+<div id="tab-screens" role="tabpanel" aria-labelledby="tabbtn-screens" hidden>
 <div id="screens">
   <div id="exphome">
     <h1>Screens — free-roam the prototype</h1>
@@ -472,23 +531,24 @@ ${iconSprite()}
       <span class="ti" id="exp-title"></span>
       <span id="exp-walked"></span>
     </div>
-    <div class="stchips" id="expstates"></div>
+    <div class="stchips" id="expstates" aria-label="Screen states"></div>
     <div class="device" id="expdevice"></div>
-    <div id="expinsp"></div>
+    <div id="expinsp" role="status" aria-live="polite"></div>
   </div>
 </div>
 </div>
 
-<div id="tab-doc">
+<div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
 <div class="wrap">
 <nav class="doc" aria-label="Sections">
-  <div class="brand">Reference<small>prototypes.md · 2026-07-18</small></div>
+  <div class="brand">Reference<small>prototypes.md · 2026-07-21</small></div>
   ${navSb}
   ${navRef}
 </nav>
 <main>
 <h1>${esc(h1)}</h1>
 <p class="sub">Fourteen storyboards composing the locked wireframes (W1–W26 + community CI-W frames), the missing-frame index, the action inventory, and the state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
+${refToc}
 ${statusNote}
 ${front.join("\n")}
 ${sections}
@@ -499,9 +559,10 @@ ${sections}
 <script>
 var DATA = ${PLAYER_DATA};
 ${PLAYER_JS}
-</script>`;
+</script></body></html>`;
 
 writeFileSync(OUT, html);
+const byteSize = new TextEncoder().encode(html).byteLength;
 console.log(
   "screens:", SCREENS.length,
   "| states:", SCREENS.reduce((a, s) => a + s.states.length, 0),
@@ -509,6 +570,7 @@ console.log(
   "| journeys:", sbs.length,
   "| scenes:", sbs.reduce((a, b) => a + b.steps.length, 0),
   "| warnings:", warnings.length,
-  "| bytes:", html.length,
+  "| chars:", html.length,
+  "| bytes:", byteSize,
   "\n→", OUT,
 );

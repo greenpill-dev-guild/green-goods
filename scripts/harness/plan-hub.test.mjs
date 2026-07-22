@@ -403,12 +403,14 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     );
     assert.deepEqual(manifest.lanes[0].labels, [
       "activity:build",
+      "agent:claude",
       "package:client",
       "protocol:green-goods",
       "source:plans",
     ]);
     assert.deepEqual(manifest.lanes[1].labels, [
       "activity:build",
+      "agent:codex",
       "package:shared",
       "protocol:green-goods",
       "source:plans",
@@ -654,6 +656,277 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
     assert.equal(item.linear_sync_warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
   }));
 
+test("linear-sync uses execution sub-lanes without duplicating aggregate implementation lanes", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "execution-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "execution-linear");
+    status.linear = {
+      parentIssue: "PRD-1000",
+      project: "Execution Project",
+      milestones: {
+        build: "2026-07-31",
+        release: "2026-08-12",
+      },
+      operationalCheckpoints: {
+        settlement_evidence: "2026-09-30",
+      },
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+      lanes: {
+        qa_pass_1: { issue: "PRD-1003", milestone: "build" },
+        qa_pass_2: { issue: "PRD-1004", milestone: "build" },
+      },
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/execution-linear",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1001", parentIssue: "PRD-1000", milestone: "build" },
+      },
+      settlement_evidence: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Definition inputs are not locked.",
+        branch: null,
+        depends_on: ["contracts"],
+        handoff: "handoffs/codex-state-api.md",
+        linear: {
+          sync: true,
+          issue: null,
+          parentIssue: null,
+          milestone: null,
+          dueDate: "2026-09-30",
+        },
+      },
+    };
+    writeStatus(root, "active", "execution-linear", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "execution-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.deepEqual(manifest.lanes.map((lane) => lane.lane), [
+      "contracts",
+      "settlement_evidence",
+      "qa_pass_1",
+      "qa_pass_2",
+    ]);
+    assert.deepEqual(manifest.warnings, []);
+    assert.equal(manifest.lanes[0].issue, "PRD-1001");
+    assert.equal(manifest.lanes[0].parentId, "PRD-1000");
+    assert.deepEqual(manifest.lanes[0].milestone, { key: "build", targetDate: "2026-07-31" });
+    assert.equal(manifest.lanes[0].dueDate, null);
+    assert.ok(manifest.lanes[0].labels.includes("agent:codex"));
+    assert.equal(manifest.lanes[1].action, "create");
+    assert.equal(manifest.lanes[1].title, "Settlement Evidence: Execution Linear");
+    assert.equal(manifest.lanes[1].parentId, null);
+    assert.equal(manifest.lanes[1].milestone, null);
+    assert.equal(manifest.lanes[1].dueDate, "2026-09-30");
+    assert.equal(manifest.lanes[1].labels.some((label) => label.startsWith("agent:")), false);
+    assert.equal(manifest.lanes.some((lane) => lane.lane === "ui" || lane.lane === "state_api"), false);
+    assert.deepEqual(manifest.lanes[2].milestone, { key: "build", targetDate: "2026-07-31" });
+    assert.deepEqual(manifest.schedule, {
+      milestones: {
+        build: "2026-07-31",
+        release: "2026-08-12",
+      },
+      operationalCheckpoints: {
+        settlement_evidence: "2026-09-30",
+      },
+    });
+  }));
+
+test("execution and canonical lane scheduling metadata must reference valid project dates", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "bad-linear-schedule", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "bad-linear-schedule");
+    status.linear = {
+      parentIssue: "PRD-1300",
+      milestones: {
+        build: "2026-02-30",
+      },
+      operationalCheckpoints: [],
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lanes: {
+        qa_pass_1: {
+          issue: "PRD-1302",
+          milestone: "missing",
+          dueDate: "2026-13-01",
+          surprise: true,
+        },
+      },
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/bad-linear-schedule",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: {
+          sync: true,
+          issue: "PRD-1301",
+          parentIssue: "PRD-1300",
+          milestone: "release",
+          dueDate: "2026-09-31",
+        },
+      },
+    };
+    writeStatus(root, "active", "bad-linear-schedule", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear\.milestones\.build must be a YYYY-MM-DD date/);
+    assert.match(result.stderr, /linear\.operationalCheckpoints must be an object/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_1 has unsupported fields: surprise/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_1\.milestone must reference linear\.milestones\.missing/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_1\.dueDate must be a YYYY-MM-DD date or null/);
+    assert.match(
+      result.stderr,
+      /execution_sub_lanes\.contracts\.linear\.milestone must reference linear\.milestones\.release/,
+    );
+    assert.match(
+      result.stderr,
+      /execution_sub_lanes\.contracts\.linear\.dueDate must be a YYYY-MM-DD date or null/,
+    );
+  }));
+
+test("execution sub-lane validation rejects unsafe metadata and dependency drift", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "bad-execution-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "bad-execution-linear");
+    status.execution_sub_lanes = {
+      "Bad Lane": {
+        machine_lane: "mystery",
+        owner: "human",
+        status: "ready",
+        depends_on: ["missing_lane"],
+        handoff: "handoffs/missing.md",
+        linear: { sync: true, issue: null },
+      },
+    };
+    writeStatus(root, "active", "bad-execution-linear", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /invalid name/);
+    assert.match(result.stderr, /canonical machine lane/);
+    assert.match(result.stderr, /cannot be ready with a human owner/);
+    assert.match(result.stderr, /unknown lanes: missing_lane/);
+    assert.match(result.stderr, /handoff file is missing/);
+    assert.match(result.stderr, /linear\.parentIssue is required/);
+  }));
+
+test("execution sub-lane validation rejects parent drift and duplicate issue relationships", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "relationship-drift", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "relationship-drift");
+    status.linear = {
+      parentIssue: "PRD-1200",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+      lanes: {
+        qa_pass_1: { issue: "PRD-1203" },
+        qa_pass_2: { issue: "PRD-1203" },
+      },
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/relationship-drift",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1203", parentIssue: "PRD-9999" },
+      },
+      docs: {
+        machine_lane: "ui",
+        owner: "claude",
+        status: "blocked",
+        blocked_reason: "Wait for source convergence.",
+        branch: "claude/docs/relationship-drift",
+        depends_on: ["contracts"],
+        handoff: "handoffs/codex-state-api.md",
+        linear: { sync: true, issue: "PRD-1200", parentIssue: "PRD-1200" },
+      },
+    };
+    writeStatus(root, "active", "relationship-drift", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /parentIssue must match canonical parent PRD-1200 or be null/);
+    assert.match(result.stderr, /linear\.lanes\.qa_pass_2\.issue duplicates PRD-1203/);
+    assert.match(result.stderr, /duplicates PRD-1203 already used by linear\.lanes\.qa_pass_1/);
+    assert.match(result.stderr, /cannot reuse the canonical parent issue/);
+  }));
+
+test("execution sub-lane validation rejects compatibility issue-list drift", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "compatibility-issue-drift", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "compatibility-issue-drift");
+    status.linear = {
+      parentIssue: "PRD-1300",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/compatibility-issue-drift",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1301", parentIssue: "PRD-1300" },
+        linear_issues: ["PRD-1300"],
+      },
+    };
+    writeStatus(root, "active", "compatibility-issue-drift", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear_issues must include linear\.issue PRD-1301/);
+  }));
+
+test("parent-only mode remains authoritative when execution sub-lanes are present", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "parent-only-execution", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "parent-only-execution");
+    status.linear = {
+      parentIssue: "PRD-1010",
+      project: "Compatibility Project",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/parent-only-execution",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1011", parentIssue: "PRD-1010" },
+      },
+    };
+    writeStatus(root, "active", "parent-only-execution", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "parent-only-execution", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).lanes, []);
+  }));
+
 test("linear lane sync mode must be recognized", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "bad-linear-mode", "--stage", "active"]).status, 0);
@@ -823,6 +1096,61 @@ test("record-linear writes parent and lane issue ids into status.json", () =>
     assert.equal(status.linear.lanes.ui.issue, "PRD-501");
     assert.equal(status.linear.lanes.state_api.issue, "PRD-502");
     assert.equal(status.history.at(-1).status, "linear_recorded");
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("record-linear records repeated execution sub-lane issue ids", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "record-execution-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "record-execution-linear");
+    status.linear = {
+      parentIssue: "PRD-1100",
+      project: "Execution Project",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "lane_issues",
+      lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    };
+    status.execution_sub_lanes = {
+      contracts: {
+        machine_lane: "contracts",
+        owner: "codex",
+        status: "ready",
+        branch: "codex/contracts/record-execution-linear",
+        depends_on: [],
+        handoff: "handoffs/codex-contracts.md",
+        linear: { sync: true, issue: "PRD-1099", parentIssue: "PRD-1100" },
+        linear_issues: ["PRD-1099", "PRD-1100", "PRD-1098"],
+      },
+      release_ops: {
+        machine_lane: null,
+        owner: "human",
+        status: "blocked",
+        blocked_reason: "Human release gate is closed.",
+        branch: null,
+        depends_on: ["contracts"],
+        handoff: "handoffs/codex-state-api.md",
+        linear: { sync: true, issue: null, parentIssue: null },
+        linear_issues: [],
+      },
+    };
+    writeStatus(root, "active", "record-execution-linear", status);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "record-execution-linear",
+      "--execution-lane",
+      "contracts=PRD-1101",
+      "--execution-lane",
+      "release_ops=PRD-1102",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const updated = readStatus(root, "active", "record-execution-linear");
+    assert.equal(updated.execution_sub_lanes.contracts.linear.issue, "PRD-1101");
+    assert.equal(updated.execution_sub_lanes.release_ops.linear.issue, "PRD-1102");
+    assert.deepEqual(updated.execution_sub_lanes.contracts.linear_issues, ["PRD-1101", "PRD-1100", "PRD-1098"]);
+    assert.deepEqual(updated.execution_sub_lanes.release_ops.linear_issues, ["PRD-1102"]);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 

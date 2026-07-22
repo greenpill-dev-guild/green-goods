@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: codex/state-api/commitment-pooling
 - Current state: two-phase — core waits for core indexer GREEN; settlement selectors wait for settlement indexer GREEN
-- Linear context: PRD-650 parent-only mirror
+- Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 ## Inputs
 
@@ -21,12 +21,13 @@
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
-- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, domains/actions, need, reward, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
+- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
 - Direction-aware confirmation eligibility and provider exclusion.
 - Pool/cycle/commitment/dispute recovery selectors.
-- Hypercert metadata composer plus `bundleKind`, `commitmentIds`, ascending unique `needUIDs`, and allocation-preset selectors required by the indexer/admin cut-over.
+- Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and the canonical weighted approved-unit aggregate; one `requirementIndex` can credit only its matching domain/action position.
+- Hypercert metadata composer plus `bundleKind`, `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`).
 - Settlement precedence and states, including derived checking while on-chain state remains Reported, oracle-invalid failure, infrastructure retry, and member-delivery disabled.
 - Exported shared API with no client/admin hooks.
 
@@ -37,7 +38,7 @@
 - Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
-- Ready selectors expose charter, baseline, exposure-cap, evidence, Work approval, and assessment blockers without treating sentinel `None`/`UNKNOWN` values as renderable identities.
+- Ready selectors expose the onchain charter/exposure-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
 - Settlement selectors never present Reported/checking as arrived and never offer a member-delivery action while disabled.
 - Garden queries use composite IDs only.
 - New user-visible shared strings have en/es/pt messages and accessible status announcements.

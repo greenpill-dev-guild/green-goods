@@ -1,41 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 800 800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 800 800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="ge-title ge-desc">
+  <title id="ge-title">Six protocol functions adapted by Green Goods</title>
+  <desc id="ge-desc">A two-row grid presents curation, valuation, limitation, exchange, route, and repair as six distinct protocol functions.</desc>
   <rect x="0" y="0" width="800" height="800" fill="#FBF8F2"/>
 
-  <text x="400" y="46" text-anchor="middle" font-size="23" font-weight="700" fill="#2A2722">The four primitives Green Goods adapts</text>
+  <text x="400" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">Six protocol functions Green Goods adapts</text>
+  <text x="400" y="70" text-anchor="middle" font-size="17" fill="#6E6857">community judgment, bounded exchange, and explicit recovery</text>
 
   <!-- Curation -->
   <g>
-    <rect x="70" y="105" width="310" height="245" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="225" y="217" text-anchor="middle" font-size="13" font-weight="600" fill="#2A2722">Curation</text>
-    <text x="225" y="243" text-anchor="middle" font-size="10.5" fill="#6E6857">the community decides which</text>
-    <text x="225" y="259" text-anchor="middle" font-size="10.5" fill="#6E6857">commitments belong in the pool</text>
+    <rect x="55" y="120" width="210" height="205" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+    <text x="160" y="202" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Curation</text>
+    <text x="160" y="228" text-anchor="middle" font-size="16" fill="#6E6857">the community decides</text>
+    <text x="160" y="248" text-anchor="middle" font-size="16" fill="#6E6857">which commitments belong</text>
+    <text x="160" y="268" text-anchor="middle" font-size="16" fill="#6E6857">in the pool</text>
   </g>
 
   <!-- Valuation -->
   <g>
-    <rect x="420" y="105" width="310" height="245" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="575" y="217" text-anchor="middle" font-size="13" font-weight="600" fill="#2A2722">Valuation</text>
-    <text x="575" y="243" text-anchor="middle" font-size="10.5" fill="#6E6857">human judgment prices contributions</text>
-    <text x="575" y="259" text-anchor="middle" font-size="10.5" fill="#6E6857">relative to each other</text>
+    <rect x="295" y="120" width="210" height="205" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+    <text x="400" y="202" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Valuation</text>
+    <text x="400" y="228" text-anchor="middle" font-size="16" fill="#6E6857">human judgment</text>
+    <text x="400" y="248" text-anchor="middle" font-size="16" fill="#6E6857">compares contributions</text>
+    <text x="400" y="268" text-anchor="middle" font-size="16" fill="#6E6857">and outcomes</text>
   </g>
 
   <!-- Limitation -->
   <g>
-    <rect x="70" y="385" width="310" height="245" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="225" y="497" text-anchor="middle" font-size="13" font-weight="600" fill="#2A2722">Limitation</text>
-    <text x="225" y="523" text-anchor="middle" font-size="10.5" fill="#6E6857">caps keep any one member</text>
-    <text x="225" y="539" text-anchor="middle" font-size="10.5" fill="#6E6857">or asset from dominating</text>
+    <rect x="535" y="120" width="210" height="205" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+    <text x="640" y="202" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Limitation</text>
+    <text x="640" y="228" text-anchor="middle" font-size="16" fill="#6E6857">caps keep one member</text>
+    <text x="640" y="248" text-anchor="middle" font-size="16" fill="#6E6857">or asset from dominating</text>
+    <text x="640" y="268" text-anchor="middle" font-size="16" fill="#6E6857">the pool</text>
   </g>
 
   <!-- Exchange -->
   <g>
-    <rect x="420" y="385" width="310" height="245" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="575" y="497" text-anchor="middle" font-size="13" font-weight="600" fill="#2A2722">Exchange</text>
-    <text x="575" y="523" text-anchor="middle" font-size="10.5" fill="#6E6857">pooled commitments are drawn on</text>
-    <text x="575" y="539" text-anchor="middle" font-size="10.5" fill="#6E6857">and honored over time</text>
+    <rect x="55" y="365" width="210" height="205" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+    <text x="160" y="447" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Exchange</text>
+    <text x="160" y="473" text-anchor="middle" font-size="16" fill="#6E6857">pooled commitments are</text>
+    <text x="160" y="493" text-anchor="middle" font-size="16" fill="#6E6857">drawn on and honored</text>
+    <text x="160" y="513" text-anchor="middle" font-size="16" fill="#6E6857">over time</text>
   </g>
 
-  <text x="400" y="700" text-anchor="middle" font-size="10.5" fill="#8A8578">Grassroots Economics' commitment-pooling protocol (Ruddick 2023) — adapted clean-room by Green Goods.</text>
+  <!-- Route -->
+  <g>
+    <rect x="295" y="365" width="210" height="205" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+    <text x="400" y="447" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Route</text>
+    <text x="400" y="473" text-anchor="middle" font-size="16" fill="#6E6857">commitments and support</text>
+    <text x="400" y="493" text-anchor="middle" font-size="16" fill="#6E6857">follow declared</text>
+    <text x="400" y="513" text-anchor="middle" font-size="16" fill="#6E6857">community pathways</text>
+  </g>
 
-  <text x="400" y="772" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+  <!-- Repair -->
+  <g>
+    <rect x="535" y="365" width="210" height="205" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
+    <text x="640" y="447" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Repair</text>
+    <text x="640" y="473" text-anchor="middle" font-size="16" fill="#6E6857">disputes, defaults, and</text>
+    <text x="640" y="493" text-anchor="middle" font-size="16" fill="#6E6857">recovery restore</text>
+    <text x="640" y="513" text-anchor="middle" font-size="16" fill="#6E6857">bounded participation</text>
+  </g>
+
+  <text x="400" y="640" text-anchor="middle" font-size="16" fill="#6E6857"><tspan x="400">Six-function framing from the current cited protocol source</tspan><tspan x="400" dy="22">adapted clean-room by Green Goods.</tspan></text>
+
+  <text x="400" y="772" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-07)</text>
 </svg>

@@ -24,12 +24,12 @@ Roles are Hats-tree roles, not app accounts (`IHatsModule.GardenRole`: Owner, Op
 |---|---|
 | Gardener | Create own offers/requests, claim, attach work + evidence, confirm when eligible under the stored rule |
 | Operator / Owner | Everything gardeners do, plus: seed campaign commitments, analog capture on behalf of members, cycle management, claims review (approval-gated mode), dispute/override with reason, rewardPaid recording, steward fallback confirmation with reason when the operator is not the accepted provider |
-| Evaluator | Delta/re-assessment + technical assessment authorship (assessment v3, decision #7); reviews flow through existing WorkApproval rails |
+| Evaluator | Delta/re-assessment + technical assessment authorship (assessment v3, register #7); reviews flow through existing WorkApproval rails |
 | Funder | Seed/match garden campaign rewards (reward-source reference only, custody stays with pool owner); read pool story |
 | Community | View pool story, provide priority signal, confirm when named, community testimony attestation (Community Hat) when a commitment is aimed at the community |
-| Protocol team | Operator-equivalent on the root garden's protocol pool (tokenId 1, decision #8); today this maps to the admin `deployer` role gate (`packages/admin/src/routes/views.tsx:270-276`) |
+| Protocol team | Operator-equivalent on the root garden's protocol pool (tokenId 1, register #8); today this maps to the admin `deployer` role gate (`packages/admin/src/routes/views.tsx:270-276`) |
 
-Provider self-confirmation is blocked everywhere, including steward fallback. With no explicit confirmer group, an Offer defaults to its recipient and a Request defaults to its creator/requester. A named group is evaluated after excluding the accepted provider; creation/acceptance fails when its threshold would become unreachable. Confirmation is the review for SupportService/OperatorCaptured; DomainImpact keeps the full Work then WorkApproval path (decision #20).
+Provider self-confirmation is blocked everywhere, including steward fallback. With no explicit confirmer group, an Offer defaults to its recipient and a Request defaults to its creator/requester. A named group is evaluated after excluding the accepted provider; creation/acceptance fails when its threshold would become unreachable. Confirmation is the review for SupportService/OperatorCaptured; DomainImpact keeps the full Work then WorkApproval path (register #20).
 
 ## 2. The one-pool UX invariant
 
@@ -40,13 +40,13 @@ One pool UX across capability levels (UX Brief, locked). The base surface every 
 **Use**: offer, request, promise, promise kept, fulfilled, steward, season, campaign, readiness, confirmation, "take this up", "recorded on your behalf".
 **Avoid** (UX Brief): debt, owed, leaderboard, balance-shaming, market-first or swap-first framing.
 **Banned-vocab lint** (`bun run lint:vocab`, canonical list `docs/docs/reference/glossary-community.md § Banned Vocabulary`): no streak, countdown, leaderboard, FOMO anywhere; admin copy additionally bans hero language; client user copy bans dashboard/KPI/operator-cockpit words.
-Practical consequences baked into this spec: due dates render as calm dates ("runs through March 12"), never ticking timers; per-garden stats never render as ranked lists (cross-garden overview sorts alphabetically, §6.8); small-community rate suppression (§7.2); admin celebration is a quiet confirmation row, only the client PWA gets hero moments (decision #27).
+Practical consequences baked into this spec: due dates render as calm dates ("runs through March 12"), never ticking timers; per-garden stats never render as ranked lists (cross-garden overview sorts alphabetically, §6.8); small-community rate suppression (§7.2); admin celebration is a quiet confirmation row, only the client PWA gets hero moments (register #27).
 
 i18n: every new user-facing string ships as en + es + pt keys in `packages/shared/src/i18n/` (en.json verified; a 4-part locale coverage gate enforces parity). This spec proposes key families in §10 and writes no literal strings into code sections.
 
 ## 4. State-to-UI mapping tables
 
-Locked state machines from the Lifecycle doc (digest §Locked state machines). Hybrid weight per decision #6: hard states on-chain, Draft and review-soft states app/indexer-derived. "Not surfaced" is an explicit decision, not an omission.
+Locked state machines from the Lifecycle doc (digest §Locked state machines). Hybrid weight per register #6: hard states on-chain, Draft and review-soft states app/indexer-derived. "Not surfaced" is an explicit decision, not an omission.
 
 `None` / `UNKNOWN` enum sentinels are never user-visible states. They mean the record is absent, not registered yet, or an out-of-order indexer placeholder. Reads render loading/not-found/recovery chrome until a creation event replaces the sentinel; they never display a “None” chip.
 
@@ -55,7 +55,7 @@ Locked state machines from the Lifecycle doc (digest §Locked state machines). H
 | State | Client PWA | Admin | Editorial | Community |
 |---|---|---|---|---|
 | NotReady | Pool tab absent from garden detail | Garden Pool tab setup checklist requires charter CID, non-zero provider exposure cap, and one current non-revoked Baseline assessment (v2/v3, recipient = pool garden, resolver-validated Baseline kind); capability flags remain visible | Readiness copy, no stats | Readiness copy |
-| Ready | Pool tab present, readiness banner ("warming up, promises open when the first cycle is seeded"), browse/create disabled | Open-pool action on the pool status card + seed-first-cycle CTA (decision #34a) | Readiness copy | Readiness copy |
+| Ready | Pool tab present, readiness banner ("warming up, promises open when the first cycle is seeded"), browse/create disabled | Open-pool action on the pool status card + seed-first-cycle CTA (register #34a) | Readiness copy | Readiness copy |
 | Open | Full base surface live | Full console | Live pool story | Live view + signal |
 | Paused | Banner “new participation paused by stewards” with indexed reason; browse, evidence/linkage, cancellation/expiry, and dispute recovery remain available; create/claim/Ready-submit/confirm are disabled | Pause reason + resume action; safe-wind-down controls remain | Neutral quiet-period line, aggregates stay | View-only plus allowed recovery |
 | Closed | View-only history | Compost action available | Aggregate story remains | View-only |
@@ -111,11 +111,11 @@ Network/queue failure before `ClaimRequested` exists is not Declined: the optimi
 
 ## 5. Surface 1: Client PWA (full depth)
 
-### 5.1 Verified IA and placement resolution (decision #9)
+### 5.1 Verified IA and placement resolution (register #9)
 
 Verified IA: bottom `AppBar` has exactly three tabs, Home `/home`, Garden `/home/garden`, Profile `/home/profile` (`packages/client/src/components/Layout/AppBar.tsx:35-59`, routes `packages/client/src/config/pwa-routing.ts:12-16`). The AppBar "Garden" tab is the work submission flow (Intro, Media, Details, Review steps; `packages/client/src/views/Garden/index.tsx` renders the `Work` component with `WorkIntro`/`WorkMedia`/`WorkDetails`/`WorkReview`, lines 46-49). Garden browsing and per-garden life happen in the Home tab: `GardenList` on `/home` (`packages/client/src/views/Home/index.tsx:28,273`) opens the garden detail at `/home/:id` (`packages/client/src/views/Home/Garden/index.tsx`), which carries `StandardTabs` with Work / Insights / Gardeners (`packages/shared/src/hooks/garden/useGardenTabs.ts:3-7`) plus the endowment and conviction drawers (`views/Home/Garden/index.tsx:41,476-478`).
 
-Resolution: decision #9 puts pool/cycle/browse/claim/confirm "inside the Garden tab". The per-garden surface in the verified IA is the garden detail at `/home/:id`, so the pool experience lands there as a NET-NEW fourth `GardenTab` value `Pool` (extend the enum in `packages/shared/src/hooks/garden/useGardenTabs.ts:3-7`; hook stays in shared per the hook boundary). The AppBar Garden tab remains the work flow, gaining only the commitment-linkage context (§5.7). This honors the decision's intent (pool life inside the garden experience, no fourth AppBar tab) with the surface the IA actually has.
+Resolution: register #9 puts pool/cycle/browse/claim/confirm "inside the Garden tab". The per-garden surface in the verified IA is the garden detail at `/home/:id`, so the pool experience lands there as a NET-NEW fourth `GardenTab` value `Pool` (extend the enum in `packages/shared/src/hooks/garden/useGardenTabs.ts:3-7`; hook stays in shared per the hook boundary). The AppBar Garden tab remains the work flow, gaining only the commitment-linkage context (§5.7). This honors the decision's intent (pool life inside the garden experience, no fourth AppBar tab) with the surface the IA actually has.
 
 NET-NEW routes (client router): `/home/:id/pool` (tab deep link), `/home/:id/pool/:commitmentId` (commitment detail), `/home/:id/pool/new?direction=offer|request` (creation flow). AppBar hide rules extend the existing pattern (AppBar already hides on `/home/garden` and work detail, `AppBar.tsx:17-33`): hide on `/pool/new` (full-screen flow), keep visible on the pool tab and detail.
 
@@ -126,7 +126,7 @@ Content top to bottom:
 1. **Pool state banner**: renders the pool-state row from §4.1. Readiness-only vs live is stated plainly in the banner copy, not implied by chrome (open question 1, §13). Component: shared `Alert` for paused/cancelled tones; a quiet `Surface` band otherwise.
 2. **Current cycles**: the open Season, when present, renders as the primary card with its stage stepper, unit progress (`workApprovalProgress = approvedUnits/expectedUnits`), calm end date, and scoped counts. A **Campaigns** rail/list follows with zero or more concurrently open Campaign cards; each shows its own type, stage, progress, date, and counts. A scope control (`All current work` / Season name / Campaign name) filters the commitment list and always labels aggregate scope. If no Season is open but Campaigns are, the Campaigns remain fully usable; an empty Season slot explains that no Season is active rather than hiding Campaigns.
 3. **Browse: open offers and requests**: filter chips All / Offers / Requests / Matched / Mine (client-local chips; admin `AdminFilterChip` is admin-only). Cards show: type chip (DomainImpact with `DomainBadge`; SupportService plain), title, unit label + target quantity, due date, state chip (`StatusBadge`), claim CTA.
-   - Claim CTA per claim mode (decision #19): OPEN mode renders "Take this up" and enqueues immediately (optimistic Accepted). APPROVAL_GATED renders "Ask to take this up" and enqueues a claim request (optimistic "requested, waiting for steward"), then renders the exact request lifecycle in §4.4. Mode is visible on the card as helper text, not a mode toggle; members never choose the mode.
+   - Claim CTA per claim mode (register #19): OPEN mode renders "Take this up" and enqueues immediately (optimistic Accepted). APPROVAL_GATED renders "Ask to take this up" and enqueues a claim request (optimistic "requested, waiting for steward"), then renders the exact request lifecycle in §4.4. Mode is visible on the card as helper text, not a mode toggle; members never choose the mode.
    - Protocol-pool commitments surfaced in a garden context show a **provider-context** choice for eligible operators only: take this up as myself vs take this up for this garden. The claim stores `ClaimType` plus `gardenContext`; acceptance derives and stores `providerGarden`. This does not transfer token, commitment, or reward custody and is not a member-delivery fallback. The choice is instrumented (§11).
 4. ~~My commitments strip~~ — **removed 2026-07-18** (client-minimalism audit): the WalletDrawer Commitments tab (§5.8) is the single cross-garden "mine" surface; the `Mine` filter chip in the browse section covers in-garden self-filtering. No horizontal strip renders on this tab.
 
@@ -140,8 +140,8 @@ Empty pool (Open but zero commitments): planted-seed illustration slot + two pri
 - **Work linkage** (DomainImpact): linked work submissions with their `WorkDisplayStatus` chips (type `packages/shared/src/types/domain.ts:350-358`); "Submit work for this promise" CTA deep-links into the AppBar Garden tab flow with commitment context (§5.7); "Link existing work" opens a picker of the member's approved/pending works (enqueues `workLink`, §5.11).
 - **Ready submission**: SupportService, OperatorCaptured, and evidence-only SeasonCampaign details show “Send for confirmation” after at least one evidence item and any declared assessment are attached. It enqueues the `confirmation` job with `action: "submit"`. DomainImpact never shows this control; work approvals drive its Ready transition.
 - **Confirm CTA**: visible only when state is ReadyForConfirmation and the signed-in user is eligible under the stored rule: a named-group member, the Offer recipient default, the Request creator default, or an eligible steward fallback. The accepted provider is always excluded, even when that address is also a steward or named-group member. Opens the confirmation flow (§5.6).
-- **Declared reward row**: reward source (jar or treasury reference) + token + amount, and after Fulfilled a "reward released" or "reward pending" line fed by the module's rewardPaid record (decision #18). No custody or transfer controls on this surface in MVP.
-- **Withdraw (owner, pre-acceptance)**: while Offered/Requested the creator sees "Withdraw this offer/request…" with a required reason — the creator path of `cancelCommitment` (decision #34b; lo-fi drawing `prototypes.md` MF-2a). Online contract action, not a queue kind. The steward cancel path's admin placement remains open.
+- **Declared reward row**: reward source (jar or treasury reference) + token + amount, and after Fulfilled a "reward released" or "reward pending" line fed by the module's rewardPaid record (register #18). No custody or transfer controls on this surface in MVP.
+- **Withdraw (owner, pre-acceptance)**: while Offered/Requested the creator sees "Withdraw this offer/request…" with a required reason — the creator path of `cancelCommitment` (register #34b; lo-fi drawing `prototypes.md` MF-2a). Online contract action, not a queue kind. The steward cancel path's admin placement remains open.
 - Analog-captured commitments carry a "recorded by your operator on your behalf" chip; the member remains the named promise source (§13 question 2).
 
 ### 5.4 Offer/request creation flow NET-NEW (`/home/:id/pool/new`)
@@ -150,7 +150,7 @@ Full-screen flow reusing the work-flow chrome pattern (`TopNav` + `FormProgress`
 
 1. **What and cycle scope**: direction, commitment type (DomainImpact or SupportService for member creation; SeasonCampaign and OperatorCaptured are console-seeded only), claim type (Individual for member creation), claim mode from the context default, title, note, and one explicit binding: an Open Season, one Open Campaign, or cycle-less where allowed. Seeded cycles are operator-only. Entry from a scoped pool filter prefills that cycle but keeps it visible and editable; the form never guesses from “current cycle.”
 2. **How much and proof**: unit label, target quantity, `requiresAssessment`, due date or cycle deadline default. DomainImpact requires a positive approved-work count per bound action (set beside each action in step 3); SupportService may explicitly carry no work requirement and then requires evidence before Ready.
-3. **Anchors** (DomainImpact only): pick 1–4 domains and their positional actions, each row carrying a per-action required count — it reads "This promise needs: [Action] × [count]" with an add-row affordance — producing `domains[]` + `requiredActionUIDs[]` + `requiredApprovedWorkCounts[]` (amendment 2026-07-18). The flow validates equal non-zero lengths, uniqueness, registry existence, positional domain matching, and a non-zero count per bound action; action UID `0` is valid. It uses the action-selection card grammar the work flow intro already renders (`views/Garden/index.tsx:54-96`). SupportService skips action binding; its optional `domains[]` may remain empty and its proof is lightweight evidence + confirmation (decision #20).
+3. **Anchors** (DomainImpact only): pick 1–4 domains and their positional actions, each row carrying a per-action required count — it reads "This promise needs: [Action] × [count]" with an add-row affordance — producing `domains[]` + `requiredActionUIDs[]` + `requiredApprovedWorkCounts[]` (amendment 2026-07-18). The flow validates equal non-zero lengths, uniqueness, registry existence, positional domain matching, and a non-zero count per bound action; action UID `0` is valid. It uses the action-selection card grammar the work flow intro already renders (`views/Garden/index.tsx:54-96`). SupportService skips action binding; its optional `domains[]` may remain empty and its proof is lightweight evidence + confirmation (register #20).
 4. **Review and promise**: summary + "Make this offer" / "Ask for this help". Submission enqueues the `commitment` job kind (§5.11) and returns to the pool tab with the optimistic card visible.
 
 Drafts persist locally per the existing draft pattern (mirror `WorkDraftRecord` semantics, `packages/shared/src/types/job-queue.ts:194-209`); resume prompt on re-entry (client `DraftDialog` precedent, `views/Garden/index.tsx:42`).
@@ -180,7 +180,7 @@ Work submission itself reuses the existing `work` job kind unchanged (task requi
 
 **Found component**: the wallet dashboard is `packages/client/src/views/Home/WalletDrawer/index.tsx`, a `ModalDrawer` opened from the Home header icon (`views/Home/index.tsx:268,302`). It already declares a third tab `id: "pools"` labeled with the existing i18n key `app.wallet.tab.commitments`, currently rendering `ComingSoonStub` (`WalletDrawer/index.tsx:42-47,68-74`).
 
-Decision #9 said "Profile-tab wallet dashboard" with an explicit verify-in-execution clause. Execution verification: the wallet dashboard lives on the Home header, not the Profile tab (Profile is Account/Badges/Help sub-tabs, `packages/client/src/views/Profile/index.tsx:65-127`, with account panels in `views/Profile/Account.tsx`). The personal panel therefore lands in the already-reserved WalletDrawer pools tab; no Profile change ships in MVP (one panel, no duplication). Flagged as a verified deviation from the decision's wording, not its substance.
+Decision register #9 said "Profile-tab wallet dashboard" with an explicit verify-in-execution clause. Execution verification: the wallet dashboard lives on the Home header, not the Profile tab (Profile is Account/Badges/Help sub-tabs, `packages/client/src/views/Profile/index.tsx:65-127`, with account panels in `views/Profile/Account.tsx`). The personal panel therefore lands in the already-reserved WalletDrawer pools tab; no Profile change ships in MVP (one panel, no duplication). Flagged as a verified deviation from the decision's wording, not its substance.
 
 Panel content (replaces `ComingSoonStub`):
 1. **Header summary line** (absorbed §5.9's retired home card, decision 2026-07-18): "Promises kept this cycle: X of Y due" — absolute numbers, cross-garden, rendered only when a member garden has a live cycle. This tab is the **single** cross-garden promises summary in the client.
@@ -190,9 +190,9 @@ Panel content (replaces `ComingSoonStub`):
 
 ### 5.9 Home summary card — RETIRED (decision 2026-07-18)
 
-Removed by user decision during the visual-asset audit: Home stays garden-first with **no** promises card above `GardenList`. The cross-garden summary lives solely as the WalletDrawer Commitments-tab header line (§5.8 item 1). Supersedes decision #9's "at most one card" — the count is now zero; wireframes W6 carries the matching tombstone.
+Removed by user decision during the visual-asset audit: Home stays garden-first with **no** promises card above `GardenList`. The cross-garden summary lives solely as the WalletDrawer Commitments-tab header line (§5.8 item 1). Supersedes register #9's "at most one card" — the count is now zero; wireframes W6 carries the matching tombstone.
 
-### 5.10 Hero moments (client only, decision #27)
+### 5.10 Hero moments (client only, register #27)
 
 Registered against the canonical hero vocabulary (`.claude/skills/design/language.md § Hero Moments`; reference scaffold `packages/client/src/views/HeroMoments.stories.tsx`):
 
@@ -207,7 +207,7 @@ Full Warm Earth amplification per the scaffold's grammar; `prefers-reduced-motio
 
 Queue substrate (verified): IndexedDB + XState, exactly two kinds today (`work`, `approval`; `packages/shared/src/types/job-queue.ts:89-92`), `MAX_RETRIES = 5` (`packages/shared/src/modules/job-queue/index.ts:88,247-248`), kind dispatch is a branch in `processJob` (`index.ts:277-288`), executors in `modules/job-queue/job-executors.ts`. New offline kinds (`commitment`, `claim`, `evidence`, `workLink`, `confirmation`) extend `JobKindMap` and the dispatch branch; `transfer` is a shared online wallet action kind that bypasses the offline field queue. Naming follows the existing single-noun convention.
 
-Membership wait (decision #34c): all five pool job kinds run a pre-flight membership check before their first send attempt; a job whose account holds no garden hat enters `waiting_for_hat` — consuming no retries — and resumes automatically when the membership event lands (the join-request approval of decision #35 is the canonical trigger). The ≥99% offline-sync metric already excludes time in this state (`external-communications.md`).
+Membership wait (register #34c): all five pool job kinds run a pre-flight membership check before their first send attempt; a job whose account holds no garden hat enters `waiting_for_hat` — consuming no retries — and resumes automatically when the membership event lands (the join-request approval of register #35 is the canonical trigger). The ≥99% offline-sync metric excludes time in this state (`acceptance-matrix.md` §6).
 
 NET-NEW job kinds and per-action behavior:
 
@@ -239,7 +239,7 @@ View-only offline (no queueing, cached reads render with staleness note): pool/c
 | Claim request Declined | Claimant sees reason + “Ask again” when still open; only the selected request is cleared (§4.4) |
 | Claim request Superseded | “Taken up by another provider”; exit to browse, never a failed-job Retry (§4.4) |
 | Queued offline job | Queued badge on the affected card/row + `SyncStatusBar` count above the AppBar (`packages/client/src/components/Layout/AppBar.tsx:63-68`); aria-live announcement (§12) |
-| Waiting for membership | Amber queued-variant row — "waiting for your garden membership — no retries used"; resumes automatically when the hat lands (decision #34c; drawing `prototypes.md` MF-5) |
+| Waiting for membership | Amber queued-variant row — "waiting for your garden membership — no retries used"; resumes automatically when the hat lands (register #34c; drawing `prototypes.md` MF-5) |
 | Pending confirmation | Inbox row (§5.8) + detail CTA (§5.3); confirmer sees progress meter |
 | Fulfilled | Chip + hero moment once (§5.10); reward row updates |
 | Failed/retry | Failed chip after 5 attempts with retry/discard; error text via `parseContractError` + `USER_FRIENDLY_ERRORS` |
@@ -250,7 +250,7 @@ View-only offline (no queueing, cached reads render with staleness note): pool/c
 
 ## 6. Surface 2: Admin (full depth)
 
-### 6.1 Flow-to-surface map (decision #10)
+### 6.1 Flow-to-surface map (register #10)
 
 | Flow | Workspace | Surface |
 |---|---|---|
@@ -261,7 +261,7 @@ View-only offline (no queueing, cached reads render with staleness note): pool/c
 | Commitment detail, dispute/override, rewardPaid | Garden (and Community Pools mode for protocol pool) | AdminDialog detail with workspace `tone` prop |
 | Assessment v3 creation | Hub | Extend the existing flow AdminDialog at `/hub/assess/create` (`packages/admin/src/routes/views.tsx:124-135`, view `packages/admin/src/views/Hub/CreateAssessment.tsx`) |
 | Confirmation queue | Hub | NET-NEW Confirm stage on the existing stage rail (§6.9) |
-| Protocol pool console + cross-garden overview | Community workspace, NET-NEW Pools mode | Nested route `/community/pools` with the Community mode rail (§6.8) |
+| Protocol pool console + current-garden pool | Community workspace, NET-NEW Pools mode | Nested route `/community/pools` with the Community mode rail (§6.8) |
 | Cycle-open allocation policy | Garden (and Community Pools mode) | Step inside the open-cycle flow AdminDialog (§6.10) |
 
 All admin copy stays restrained (no hero language, no gallery moments); celebration is a checkmark row in the cycle report.
@@ -271,7 +271,7 @@ All admin copy stays restrained (no hero language, no gallery moments); celebrat
 Route `/garden/pool` added to the garden branch (`packages/admin/src/routes/views.tsx:168-215`) and to the Garden view's `AdminTabRail` (`packages/admin/src/views/Garden/index.tsx:81-98`). Composition: `CanvasRouteFrame` + `CanvasRouteHeader` (title "Pool", actions via `AdminViewActions`) + `CanvasRouteContent`.
 
 Sections (AdminCard blocks):
-1. **Pool status card**: pool state chip, capability flags, charter/policy CID, provider exposure cap, and latest qualifying Baseline assessment. The Ready action stays disabled until all three readiness inputs are present. Once Ready, the card's primary action is **Open pool**; **Close pool** appears after the last cycle composts, then Compost/Reopen per §4.1 (decision #34a — the card owns the pool lifecycle; the open-cycle flow adds only a "pool is Ready — open it now?" guard prompt). Pause requires a reason CID; resume clears the indexed reason. The card disables only create/claim/Ready-submit/confirm while paused and keeps safe-wind-down controls available.
+1. **Pool status card**: pool state chip, capability flags, charter/policy CID, provider exposure cap, and latest qualifying Baseline assessment. The app keeps the Ready action disabled until all three preflight inputs are present; the submitted contract write itself enforces charter plus non-zero exposure cap only. Once Ready, the card's primary action is **Open pool**; **Close pool** appears after the last cycle composts, then Compost/Reopen per §4.1 (register #34a — the card owns the pool lifecycle; the open-cycle flow adds only a "pool is Ready — open it now?" guard prompt). Pause requires a reason CID; resume clears the indexed reason. The card disables only create/claim/Ready-submit/confirm while paused and keeps safe-wind-down controls available.
 2. **Cycles console**: a dedicated Season slot shows the one open Season or an empty “No open Season” state, followed by a Campaigns list that may contain any number of concurrently open Campaigns. Every row has its own locked-state stepper (Draft, Seeded, Open, InProgress, Reviewing, Reconciled, Composted), scoped counts, and guarded actions; opening a second Season is blocked and points to the existing one, while opening another Campaign remains available. Cancelled is destructive behind a reason field, Reviewing/InProgress interchange is scoped to one row, and open-cycle runs §6.10 for the selected cycle. Reconciled/Composted/Cancelled history appears below with type and report scope preserved.
 3. **Commitments table**: `AdminSearchToolbar` + `AdminFilterChip` row (state, type, direction) + `AdminSortSelect`; rows are `AdminListItem` with `AdminBadge` state chips; row opens the commitment AdminDialog detail (state timeline, evidence, linked work, confirmer rule, reward row, dispute/override actions §6.7).
 4. **Claims queue** (visible when any approval-gated requests exist): each row shows canonical `claimant`, authenticated `requestedBy`, `claimType`, `gardenContext`, `requestedAt`, and `state`. For a Garden claim the claimant is the GardenAccount and requestedBy is its operator; for Individual they match. Accept/decline key the exact stored claimant. Accept shows derived `providerGarden` and supersedes other pending rows; decline requires a reason and affects only the selected row. History exposes reason/resolution without presenting event outcomes as queue failures.
@@ -283,8 +283,8 @@ Sections (AdminCard blocks):
 Flow AdminDialog + `ActionFlowShell` steps (stepper precedent `CreateAssessment.tsx:171-177`):
 
 1. **Type and scope**: commitment type (SeasonCampaign, SupportService, DomainImpact, OperatorCaptured), direction (offer or request the pool is seeding), cycle binding, title, note. The cycle selector groups the one open Season separately from every open Campaign, labels type on every option, and permits an explicit cycle-less choice where the contract allows it. `AdminTextField` + type cards.
-2. **Requirements**: unit label + target quantity, required approved-work count, required domains/actions where relevant, optional assessment requirement toggle, due date or cycle-deadline default. DomainImpact requires a positive approval count; SupportService, OperatorCaptured, and SeasonCampaign may explicitly choose evidence-only count 0. No assessment UID is attached at creation because `providerGarden` is not frozen until acceptance.
-3. **Confirmation rule and reward**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accepted provider before threshold validation, and the flow blocks an unreachable threshold. Claim mode toggle (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; decision #19). Declared reward: source reference, token, amount (reference only; decision #18).
+2. **Requirements**: unit label + target quantity; positional action rows `{ domain, requiredActionUID, requiredApprovedWorkCount }`; optional assessment requirement toggle; due date or cycle-deadline default. DomainImpact requires 1–4 unique registered rows, equal array lengths, and a positive count per action. SupportService, OperatorCaptured, and SeasonCampaign may explicitly choose evidence-only with empty arrays. The review step shows per-action progress from `approvedWorkCounts[]`, and aggregate units use `floor(targetUnits × Σ min(approved[i], required[i]) / Σ required[i])`. No assessment UID is attached at creation because `providerGarden` is not frozen until acceptance.
+3. **Confirmation rule and reward**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accepted provider before threshold validation, and the flow blocks an unreachable threshold. Claim mode toggle (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19). Declared reward: source reference, token, amount (reference only; register #18).
 4. **Review and seed**: summary + seed action. Console actions are online-expected but ride the same queue plumbing (§5.11 note).
 
 ### 6.4 Claims/review queue
@@ -299,20 +299,20 @@ Extends the Submit Work on-console pattern (flow AdminDialog + `ActionFlowShell`
 
 ### 6.6 Assessment v3 creation (extend, not fork)
 
-Extend `packages/admin/src/views/Hub/CreateAssessment.tsx` (steps today: DomainContextStep, StrategyKernelStep, ActionsHarvestStep, lines 15-17,44-59; orchestrated by shared `useCreateAssessmentWorkflow`, direct EAS attest, online-only, corrections-log §2). NET-NEW in step 1 (domain context): cycle selector (garden's cycles), assessment kind toggle **baseline vs re-assessment (delta)**, and, when delta, a baseline-reference picker listing the garden's prior baseline assessments for the same domain. Per garden per cycle per domain: the form validates one baseline per (garden, cycle, domain) and points duplicates at the existing record. Authorship gating per decision #7: baseline allows evaluator or operator (current resolver behavior, corrections-log §2); delta/re-assessment renders only for Evaluator-hat holders and the resolver enforces it. Remains a direct attest (no offline queue); failure surfaces inline per the existing flow.
+Extend `packages/admin/src/views/Hub/CreateAssessment.tsx` (steps today: DomainContextStep, StrategyKernelStep, ActionsHarvestStep, lines 15-17,44-59; orchestrated by shared `useCreateAssessmentWorkflow`, direct EAS attest, online-only, corrections-log §2). NET-NEW in step 1 (domain context): cycle selector (garden's cycles), assessment kind toggle **baseline vs re-assessment (delta)**, and, when delta, a baseline-reference picker listing the garden's prior baseline assessments for the same domain. Per garden per cycle per domain: the form validates one baseline per (garden, cycle, domain) and points duplicates at the existing record. Authorship gating per register #7: baseline allows evaluator or operator (current resolver behavior, corrections-log §2); delta/re-assessment renders only for Evaluator-hat holders and the resolver enforces it. Remains a direct attest (no offline queue); failure surfaces inline per the existing flow.
 
 ### 6.7 Dispute/override and rewardPaid
 
 On the commitment AdminDialog detail:
 - **Dispute**: "Raise dispute" (allowed from Accepted through Expired per §4.3) with mandatory reason; resolution actions are `RestorePrevious`, `Fulfill`, `Cancel`, or `Expire`, each with required reason. The module stores the pre-dispute state; `RestorePrevious` returns to it. An Expired commitment cannot resolve Fulfilled. All reasons render in the state timeline for members too.
 - **Override**: requirement waivers (for example waive a rejected work's replacement) carry reason and a visible "override" marker in both admin and member detail (Lifecycle rule).
-- **rewardPaid**: on Fulfilled, the declared-reward row gains "Record payout" (`AdminButton`); `AdminConfirmDialog` captures the executed rail reference (jar withdrawal or treasury tx) and records the module's rewardPaid event (decision #18). The row then shows paid status + reference. No value moves through this UI.
+- **rewardPaid**: on Fulfilled, the declared-reward row gains "Record payout" (`AdminButton`); `AdminConfirmDialog` captures the executed rail reference (jar withdrawal or treasury tx) and records the module's rewardPaid event (register #18). The row then shows paid status + reference. No value moves through this UI.
 
 ### 6.8 Community workspace: Pools mode NET-NEW
 
 Registration path (all verified anchor points):
 1. Add `"pools"` to `AdminCommunityMode` and use the existing `adminRoutes.communityMode("pools")` helper in `packages/shared/src/utils/navigation/admin-routes.ts`; do not add an `AdminWorkspaceId` or top-level root.
-2. Add `/community/pools` inside the existing Community route branch in `packages/admin/src/routes/views.tsx`, using the same Community authorization boundary. Protocol-only actions remain deployer-gated inside the mode; read-only cross-garden inspection follows Community workspace access.
+2. Add `/community/pools` inside the existing Community route branch in `packages/admin/src/routes/views.tsx`, using the same Community authorization boundary. It renders the Protocol pool plus the current garden only. Protocol-only actions remain deployer-gated inside the mode; cross-garden inspection belongs exclusively to the deployer-gated Operations workspace.
 3. Add Pools to the existing Community mode rail. The NavigationBar and command palette continue to target the canonical `/community` workspace; no fifth workspace tab or top-level command route is introduced.
 4. Pools inherits the Community workspace tone through `data-tone="community"`; dialogs pass that same tone.
 
@@ -326,7 +326,7 @@ The Hub pipeline rail is `AdminTabRail` fed by `PIPELINE_STAGE_CONFIG` with stag
 
 ### 6.10 Hypercert allocation policy at cycle open NET-NEW
 
-A step inside the open-cycle flow (§6.2 section 2): allocation-class bps editor with preset picker.
+A step inside the open-cycle flow (§6.2 section 2): allocation-class percentage editor with preset picker. The UI converts the six percentage fields to bps and submits the complete `AllocationBps` atomically in `openCycle(cycleId, allocation)`; no allocation is stored during `seedCycle`.
 
 | Preset | gardeners | treasury | operator | evaluator | community | funder |
 |---|---|---|---|---|---|---|
@@ -340,13 +340,13 @@ Presets prefill the custom editor (`AdminTextField` numeric row per class); ever
 
 A NEW deployer-gated admin workspace tab — gating pattern copied exactly from Actions: a conditional nav slot (`showOperations: isDeployer` beside `showActions` in `useEffectiveToolbarPermissions`) plus a `RequireRole ["deployer"]` route branch. Stage rail: **Queue · Oracle · Flows** (W24 draws it).
 
-- **Queue**: every queued/failed disbursement and funding hop across all gardens, with batch composition and the W22 execution console; the executor-role guard (#34e) applies to every execute/report control.
+- **Queue**: every queued/failed disbursement and funding hop across all gardens, with batch composition and the W22 execution console; the executor-role guard (register #34e) applies to every execute/report control.
 - **Oracle**: verification health — subscription/DON status, last callback, active "checking receipt" requests, stale-callback count.
 - **Flows**: the cross-chain funds board — GoodDollar pool → GG protocol Safe (a **Celo balance read**, since HoA→protocol is an upstream fact the module never records, corrections-log §9) → garden Safes → members, each downstream figure separating Reported from oracle-Verified. The cross-garden pool oversight rows (formerly §6.8's Gardens tab) live here: alphabetical, promiseKeptRate + openExposureUnits, never ranked.
 
 ---
 
-## 7. Surface 3: Editorial website (full depth, decision #21)
+## 7. Surface 3: Editorial website (full depth, register #21)
 
 ### 7.1 `/gardens/:id` GardenDialog: pool story section NET-NEW
 
@@ -362,7 +362,7 @@ The four-cell stats strip itself does not change in MVP. `/gardens` grid cards (
 
 ### 7.2 Small-community sensitivity (answers the digest's open question)
 
-Recommendation, locked for this spec: percentage rates (promiseKeptRate, cycleCompletionRate) render publicly only when the cycle has **at least 5 due commitments and at least 3 distinct promisers**. Below threshold, show absolute counts in sentence form and never a percentage; a single lapsed promise in a three-person pool must not read as a 33 percent failure on a public page. Cancelled and Disputed never appear individually anywhere public (§4.3). The threshold applies to the PWA Home summary card percentage too (§5.9); inside the garden (pool tab), members see their own full numbers.
+Recommendation, locked for this spec: percentage rates (promiseKeptRate, cycleCompletionRate) render publicly only when the cycle has **at least 5 due commitments and at least 3 distinct promisers**. Below threshold, show absolute counts in sentence form and never a percentage; a single lapsed promise in a three-person pool must not read as a 33 percent failure on a public page. Cancelled and Disputed never appear individually anywhere public (§4.3). The same threshold applies to the WalletDrawer Commitments summary (§5.8); inside the garden (pool tab), members see their own full numbers.
 
 ### 7.3 `/impact`: protocol-wide pool aggregates NET-NEW
 
@@ -381,7 +381,7 @@ The 2026-07-04 Home/Signals/problem/upvote sketch is removed from the build cont
 `packages/community` remains an independent PWA at `community.greengoods.app` and local port 3010. Before scaffolding it, the shared-foundation lane extracts generic runtime, auth/passkey, offline status, install/update, error, and shell primitives for both client and Community. The apps do not share routes, navigation items, manifests, service-worker scopes, telemetry identities, or application copy.
 
 - `spec.md` — contract, read-model, onboarding, IA, funding, and accessibility rules
-- `wireframes.md` — Request / Offer / Initiative flows and admin/funder frames
+- `wireframes.md` — problem-first Need creation, commitment Request / Offer direction, and admin/funder frames
 - `diagrams.md` — context, ERD, sequences, and the join-request decision boundary
 - `journeys.md` — personas, journeys, and service blueprint
 - `research-plan.md` — operator research, consent, cohort readiness, and Linear-aligned schedule
@@ -409,7 +409,6 @@ Every key ships en + es + pt (`packages/shared/src/i18n/en.json` + sibling local
 |---|---|
 | `app.pool.*` | PWA pool tab, creation flow, commitment detail, confirmation flow |
 | `app.wallet.commitments.*` | Wallet drawer panel (§5.8) |
-| `app.home.poolSummary.*` | Home summary card |
 | `cockpit.garden.pool.*` | Admin Garden Pool tab, seeding, capture, claims queue |
 | `cockpit.community.pools.*` | Community workspace Pools mode |
 | `cockpit.hub.confirm.*` | Hub Confirm stage |
@@ -450,9 +449,9 @@ Privacy boundary: no counterparty addresses, commitment titles, or reason texts 
 
 1. **Readiness-only vs live/onchain explicitness**: state it in banner copy at the glance layer ("warming up" vs live cycle language, §4.1/§5.2); reserve chain-explicit phrasing ("recorded on Arbitrum") for the engage layer (commitment detail timeline footer). Do not put chain vocabulary on browse cards.
 2. **Non-custodial phrasing for operator-assisted capture**: fixed pattern "Recorded by {operator} on your behalf. The promise stays yours." on both the admin capture flow header (§6.5) and the member's commitment detail chip (§5.3). The member is always the named source on the record; the recorder is metadata.
-3. **Public stats for small communities**: threshold rule in §7.2 (rates only at >= 5 due commitments and >= 3 distinct promisers; counts-only sentences below). Applies to editorial and the PWA Home card; in-garden members always see full numbers.
+3. **Public stats for small communities**: threshold rule in §7.2 (rates only at >= 5 due commitments and >= 3 distinct promisers; counts-only sentences below). Applies to editorial and the WalletDrawer Commitments summary; in-garden members always see full numbers. There is no Home card.
 4. **Which commitment types may live outside a domain action**: domains are optional arrays. SupportService, SeasonCampaign, and OperatorCaptured may remain unclassified or carry cross-domain context without action linkage. DomainImpact requires 1–4 unique domains paired positionally with registered, domain-matching action UIDs; UID `0` is valid and array presence signals linkage. The creation and seeding flows validate each pair against ActionRegistry.
-5. **Where settlement controls sit**: August G$ settlement uses `SettlementModule` state and `settlementAccounts[garden].active`, not the reserved pool `settlementEnabled` flag. Admin Garden Pool gains a Settlement account / queue section below the cycle console; PWA commitment detail's declared-reward row grows settlement-status rows; the Community workspace Pools mode becomes the protocol settlement console. Later transferable-voucher controls sit behind `settlementEnabled` when PRD-651 unblocks. There is no top-level `/pools` route (§2).
+5. **Where settlement controls sit**: G$ settlement uses `SettlementModule` state and `settlementAccounts[garden].active`, not the reserved pool `settlementEnabled` flag. Admin Garden Pool gains the current garden's Settlement account/status section; PWA commitment detail's declared-reward row grows settlement-status rows; `/community/pools` shows the Protocol pool plus the current garden only. Cross-garden queue, batch, oracle, and funding controls live in the deployer-gated Operations workspace. Later transferable-voucher controls sit behind `settlementEnabled` when PRD-651 unblocks. There is no top-level `/pools` route (§2).
 
 ---
 

@@ -2,13 +2,13 @@
 // panel, W23 wallet G$ section, W25 protocol-pool claim, WFLOW (existing work
 // flow + the MF-7 fulfills row). Same dialect and copy rules as client.ts.
 // Dissolved lo-fi variants: W23G → W23@delivery-blocked, MF8 → W25@context-chooser.
-// W6's retired home summary card lives on as the W5 header line (decision #28f).
+// W6's retired home summary card lives on as the W5 header line (Decision Log #28f).
 
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  banner, btn, card, chip, field, hdr, input, kv, listRow, meter, pagepad,
-  phoneFrame, radio, sectionTitle, seg, sheetOver, stepDots,
+  banner, btn, card, chip, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
+  phoneFrame, radio, sectionTitle, seg, sheetOver, skeleton, stepDots,
 } from "../kit";
 import type { HifiDef } from "./index";
 
@@ -18,14 +18,16 @@ import type { HifiDef } from "./index";
 
 const W5_STATES = [
   ["default", "Pools"], ["queued", "Queued rows"], ["waiting-membership", "Waiting rows"], ["empty", "Empty"],
+  ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W5State = (typeof W5_STATES)[number][0];
 
 const walletShell = (inner: string, active = 2) =>
   sheetOver(
-    `${hdr("Home")}`,
+    homeHeader(),
     "Wallet",
     `${hot("w5.seg", seg(["Jar", "Vault", "Pools"], active))}${inner}`,
+    { handle: false },
   );
 
 function w5(state: W5State): string {
@@ -52,6 +54,15 @@ ${banner("Waiting for your garden membership — it will send once you're welcom
     case "empty":
       inner = `${card(`<div class="t-title">No promises yet</div><div class="t-meta">When you offer support or take something up in a garden pool, it shows here.</div>`)}`;
       break;
+    case "loading":
+      inner = `${skeleton({ title: true, lines: 1, cls: "flat" })}${skeleton({ avatar: true, lines: 2 })}${skeleton({ avatar: true, lines: 2 })}`;
+      break;
+    case "not-found":
+      inner = emptyState("search-line", "No promises found", "We couldn't find your commitments across gardens. They may still be syncing to this device — try again in a moment.", hot("w5.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })));
+      break;
+    case "read-error":
+      inner = emptyState("wifi-off-line", "Couldn't load your promises", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })));
+      break;
     default:
       inner = `${hot("w5.summary", `<div class="t-meta num">7 of 9 promises kept this cycle across your gardens</div>`)}
 ${sectionTitle("Waiting on you")}
@@ -69,14 +80,15 @@ ${card(
         { cls: "flat" },
       )}`;
   }
-  return phoneFrame(walletShell(inner), { offline: state === "queued" });
+  return phoneFrame(walletShell(inner), { offline: state === "queued" || state === "read-error" });
 }
 
 const W5_HOTS: HifiDef["hots"] = {
   "w5.seg": { l: "Wallet panels", info: "Jar · vault · pools — the pools panel is the cross-garden commitments home (UX:186)." },
-  "w5.summary": { l: "Cycle summary line", info: "W6's retired home card lives on as this header line (#28f); absolute numbers below the small-community threshold (UX:191)." },
+  "w5.summary": { l: "Cycle summary line", info: "W6's retired Home card lives on as this header line (Decision Log #28f); absolute numbers below the small-community threshold (UX:191)." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of promises waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own promises grouped by garden." },
+  "w5.retry": { l: "Try again", info: "Read-surface recovery for the cross-garden pools panel — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -84,7 +96,7 @@ const W5_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W23_STATES = [
-  ["balance", "Support received"], ["send", "Send"], ["send-pending", "Sending"], ["delivery-blocked", "Delivery blocked"],
+  ["balance", "Support received"], ["send", "Send"], ["send-pending", "Sending"], ["send-failed", "Send failed"], ["delivery-blocked", "Delivery blocked"],
 ] as const;
 type W23State = (typeof W23_STATES)[number][0];
 
@@ -100,6 +112,12 @@ ${hot("w23.send-submit", btn("Send", { kind: "pri", full: true }))}`;
     case "send-pending":
       inner = `${listRow({ icon: "send-plane-line", primary: "20 G$ → Ana", meta: "Sending…", chipHtml: chip("Wallet pending", "queued") })}
 ${banner("Waiting for the wallet to confirm. If it fails, it retries inline — nothing is lost.", "stone")}`;
+      break;
+    case "send-failed":
+      inner = `${field("To", input("Ana · 0x71…4c2", { icon: "user-line" }))}
+${field("Amount", input("20 G$"))}
+${banner("The wallet didn't confirm this send. Your recipient and amount are still here — try again when you're ready.", "amber", "error-warning-line")}
+${hot("w23.send-retry", btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
       break;
     case "delivery-blocked":
       inner = `${card(
@@ -118,11 +136,12 @@ ${hot("w23.send", btn("Send G$", { kind: "pri", full: true, icon: "send-plane-li
   return phoneFrame(walletShellG(inner));
 }
 
-const walletShellG = (inner: string) => sheetOver(`${hdr("Home")}`, "Wallet", `${seg(["Jar", "Vault", "Pools"], 2)}${inner}`);
+const walletShellG = (inner: string) => sheetOver(homeHeader(), "Wallet", `${seg(["Jar", "Vault", "Pools"], 2)}${inner}`, { handle: false });
 
 const W23_HOTS: HifiDef["hots"] = {
   "w23.send": { l: "Send G$", to: "screen:W23@send", info: "Online-only wallet action, sponsored gas — never enters the offline queue (UX:219)." },
-  "w23.send-submit": { l: "Send", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
+  "w23.send-submit": { l: "Send", to: "screen:W23@send-pending", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
+  "w23.send-retry": { l: "Try again", to: "screen:W23@send-pending", info: "Retries the online-only wallet action with the recipient and amount retained (UX:219)." },
   "w23.arrived-row": { l: "Arrived row", info: "“Arrived” always means oracle-verified — a reported transfer alone never renders as arrived (SS:398)." },
   "w23.tech-status": { l: "Technical status", info: "AA/paymaster gate failed: member delivery + sends stay off; Safe-to-Safe garden funding continues (SS:425)." },
 };
@@ -151,9 +170,9 @@ function w25(state: W25State): string {
       sheetOver(
         behind,
         "Take this up…",
-        `${hot("w25.chooser", radio([{ label: "As myself", meta: "the promise is yours" }, { label: "For Awka Hub", meta: "you steward this garden", on: true }]))}
+        `${hot("w25.chooser", radio([{ label: "As myself", meta: "the promise is yours" }, { label: "For Awka Hub", meta: "you steward this garden", on: true }], { interactive: true, name: "commitment-context" }))}
 ${banner("Working for the garden: its account makes the promise; you remain the requester.", "stone", "group-line")}
-${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${btn("Cancel", { kind: "ghost", full: true })}`,
+${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.cancel", btn("Cancel", { kind: "ghost", full: true }))}`,
       ),
     );
   }
@@ -172,7 +191,8 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${btn("Cance
 const W25_HOTS: HifiDef["hots"] = {
   "w25.context": { l: "Provider context", to: "screen:W25@context-chooser", info: "Garden option renders for eligible stewards only (CS:581). The (Protocol) chip is the only new mark on the card grammar (WF:671)." },
   "w25.chooser": { l: "Context chooser", info: "Garden claim: claimant = GardenAccount, requestedBy = you. No custody, no member-delivery via garden claims (AM:38-39)." },
-  "w25.continue": { l: "Continue", to: "screen:W1@claim-pending", info: "Protocol pool defaults steward-reviewed (#19); W1's pending/declined/superseded grammar applies unchanged." },
+  "w25.continue": { l: "Continue", to: "screen:W1@claim-pending", info: "Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged." },
+  "w25.cancel": { l: "Cancel", to: "screen:W25", info: "Closes the provider-context sheet without creating a claim request." },
   "w25.ask": { l: "Ask to take this up", to: "screen:W25@pending", info: "Creates the claim request with stored terms — claimant, requestedBy, kind, gardenContext (CS:133)." },
 };
 
@@ -181,7 +201,7 @@ const W25_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 function wflow(): string {
-  const head = `<div class="hdr"><button type="button" class="hback" aria-label="Close">${icon("close-line", "l")}</button><h1>Submit work</h1><span class="hx">${stepDots(3, 2)}</span></div>`;
+  const head = `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>Submit work</h1><span class="hx">${stepDots(3, 2)}</span></div>`;
   return phoneFrame(
     `${head}${pagepad(
       sectionTitle("Review"),

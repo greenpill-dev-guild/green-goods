@@ -4,9 +4,9 @@
 **Stage**: `active`
 **Created**: 2026-07-04
 **Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D8–D10 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `reports/corrections-log.md`.
-**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement" (`657f7233-9ba8-4c38-a0f9-e3a4fdc48739`), re-affirmed by the Architecture 3 re-score (`8243d7ef-f880-418e-86a6-f7da75067aa9`) — **their comparative reasoning is preserved in §10**, and both are cleared for deletion; cite the IDs, since a multi-word Linear title search returns nothing even for a live document, and archived documents remain retrievable by ID; user decisions through 2026-07-10: settlement enters the **August release**, one Celo Safe per garden (1:1 mapping, deployed on demand), member receipt targets same-address smart accounts, app goes multi-chain this iteration, the House of Alignment stream lands directly in the Green Goods protocol Safe on Celo (topology corrected 2026-07-18; supersedes the 2026-07-10 two-hop topology — see corrections-log §9), Green Goods settlement uses G$ on Celo without bridging it to Arbitrum, and receipt verification is a mandatory Chainlink Functions oracle path with no manual fallback.
+**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement" (`657f7233-9ba8-4c38-a0f9-e3a4fdc48739`), re-affirmed by the Architecture 3 re-score (`8243d7ef-f880-418e-86a6-f7da75067aa9`) — **their comparative reasoning is preserved in §10**, and both are cleared for deletion; cite the IDs, since a multi-word Linear title search returns nothing even for a live document, and archived documents remain retrievable by ID; user decisions through 2026-07-20: settlement is built by the **2026-07-31 Build close** and targets the **2026-08-12 Release** only after its value-tier gate passes; one Celo Safe exists per garden (1:1 mapping, deployed on demand); member receipt targets same-address smart accounts; the app goes multi-chain this iteration; Green Goods designates its protocol Safe on Celo as the direct House of Alignment receiving account (topology corrected 2026-07-18; supersedes the 2026-07-10 two-hop topology — see corrections-log §9), while live mechanism and receiving-address evidence remain settlement unblock inputs; Green Goods settlement uses G$ on Celo without bridging it to Arbitrum; and receipt verification is a mandatory Chainlink Functions oracle path with no manual fallback. The release date waives no gate.
 
-**What stays true from the locked register**: no bridged G$, ever. No bridge custodies G$ or holds unbounded value authority. Sarafu integration stays deferred. Transferable settlement vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Base August settlement is operator-executed; bridge-executor automation is stretch only. Gardeners never sign cross-chain transactions in the field. If the Celo AA/paymaster spike fails, downstream protocol/garden funding may continue but automated member reward delivery remains blocked; there is no alternate member-claim path.
+**What stays true from the locked register**: no bridged G$, ever. No bridge custodies G$ or holds unbounded value authority. Sarafu integration stays deferred. Transferable settlement vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Build-phase settlement is operator-executed; bridge-executor automation is Follow On / Hardening only. Gardeners never sign cross-chain transactions in the field. If the Celo AA/paymaster spike fails, downstream protocol/garden funding may continue but automated member reward delivery remains blocked; there is no alternate member-claim path.
 
 ---
 
@@ -17,8 +17,8 @@ All commitment truth stays on Arbitrum. A NET-NEW **`SettlementModule`** on Arbi
 ## 2. Fund-flow topology (diagrams.md D8)
 
 ```text
-GoodDollar House of Alignment stream (Celo, G$)
-  → Green Goods protocol Safe (Celo, exists, receiving the HoA stream today)   ← settlement account of the PROTOCOL pool (root garden)
+GoodDollar House of Alignment pilot funding (Celo, G$; mechanism pending partner evidence)
+  → Green Goods protocol Safe (Celo, designated receiving account; live receipt evidence pending)   ← settlement account of the PROTOCOL pool (root garden)
     → Garden Celo Safes (NET-NEW, ONE per garden, 1:1)       ← settlement accounts of garden pools, deployed on demand
       → Members (same-address smart accounts on Celo)
 ```
@@ -411,12 +411,12 @@ Deployment artifacts are exact: `deployments/{chainId}-latest.json` gains only t
 
 ## 5. Member receipt + multi-chain app
 
-**Decision (#16)**: members receive at **same-address smart accounts on Celo** — the same passkey-owned account address they have on Arbitrum, counterfactually deployable on Celo.
+**Decision (register #16)**: members receive at **same-address smart accounts on Celo** — the same passkey-owned account address they have on Arbitrum, counterfactually deployable on Celo.
 
 - **Verification spike (first week of the August track, blocking for this leg)**: confirm our AA stack on Celo — account factory deployable at same addresses, bundler + paymaster support (Pimlico or equivalent) on 42220, passkey signature validation parity. Exit: one testnet/mainnet round-trip — receive G$ at the counterfactual address, deploy on first send, sponsored send succeeds.
 - **Failure behavior**: if the spike fails, `memberDeliveryEnabled` remains false. ProtocolToGarden settlement may continue, but commitment-reward queueing, automated member delivery, and member G$ sends remain blocked. There is no alternate member-delivery path.
 
-**Multi-chain app (decision #17)** — the Single Chain principle amends to: **primary chain (`VITE_CHAIN_ID`) + settlement chain (Celo, 42220) for value legs**. The CLAUDE.md principle edit rides the implementation PR, not this spec. August scope, all tiers:
+**Multi-chain app (register #17)** — the Single Chain principle amends to: **primary chain (`VITE_CHAIN_ID`) + settlement chain (Celo, 42220) for value legs**. The CLAUDE.md principle edit rides the implementation PR, not this spec. August scope, all tiers:
 
 | Tier | What ships | Notes |
 |---|---|---|
@@ -523,10 +523,10 @@ Exact indexer proof from the repo root: `bun run --filter @green-goods/indexer c
 
 - **W2 commitment detail (PWA)**: reward row gains settlement status — “support on its way” (Queued/Executing), “transfer reported” (Reported without active request), “checking receipt” (Reported with active request), “support arrived” + Celo ref (Verified), “still arranging support — your promise is recorded” (Failed), “this support was withdrawn before it was sent — your promise and its record stay intact” (Cancelled).
 - **W23 WalletDrawer G$ section (settlement delta to W5)**: only after the AA gate, G$ balance section (Celo) + received-support rows; send action → chain-aware transfer flow. When disabled, no balance/send affordance renders and explanatory copy points to the blocked delivery gate.
-- **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, allowance snapshot, plus a read-only member-delivery gate status row — enabled/disabled · changed by · date · evidence ref; decision #34f, the flip itself stays owner-only ops) + disbursement queue section; the batch execution and oracle console is **W22** (missing executor role renders a visible guard state, decision #34e).
+- **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, allowance snapshot, plus a read-only member-delivery gate status row — enabled/disabled · changed by · date · evidence ref; register #34f, the flip itself stays owner-only ops) + disbursement queue section; the batch execution and oracle console is **W22** (missing executor role renders a visible guard state, register #34e).
 - **W10 commitment dialog**: "Queue disbursement" replaces/precedes "Record payout" for G$-rewarded commitments; batch actions.
 - **Admin Operations tab funding view (deployer-gated)**: protocol-Safe inflow (HoA stream — Celo balance read), GG→garden funding hops, Safe balances, batch console. (The batch execution and oracle console W22 lives in this Operations workspace.)
-- Editorial/community: no change (aggregates only; settlement is not a public story in August).
+- Editorial/community: no change (aggregates only; settlement is not a public story before its separately authorized Release gate).
 
 i18n families extend `app.pool.*`, `cockpit.garden.pool.*`, `cockpit.community.pools.*` with `settlement.*` keys (en/es/pt, same gate). Banned-vocab rules apply to all new copy.
 
@@ -535,14 +535,14 @@ i18n families extend `app.pool.*`, `cockpit.garden.pool.*`, `cockpit.community.p
 SettlementModule work runs as **PR chain 2.5** — parallel with PRD-673/674 once PRD-672's interfaces freeze (the module only *reads* the pooling module):
 
 1. **Product Commitment Pooling cycle (through PRD-686 due 2026-07-29)**: freeze the reward-binding/event/entity contract; confirm G$ token, Safe operating details, Chainlink subscription/router/DON/callback gas, pinned source and secrets reference; run the AA/paymaster spike; confirm the HoA stream's receiving address is the GG protocol Safe (receiving-address evidence recorded in the settlement handoff); and record the protocol → garden authorization/runbook. If the mandatory oracle path is not proven by the due date, settlement remains blocked with no manual fallback.
-2. **August release build (target 2026-08-31)**: `Settlement.sol` + tests + deploy plumbing; the derived protocol → garden funding route; mandatory Functions request/callback; exact event config; complete Disbursement + SettlementBatch indexer entities; deterministic 2-of-3 Safe deploy/register tooling; Zodiac Roles + Allowance configuration; shared chain registry and selectors; admin execution/checking/verified states; PWA reward status and, only after the AA gate, G$ wallet.
-3. **August exit proof**: one real G$ reward derived from a Fulfilled commitment, queued on Arbitrum, executed from the registered garden Safe on Celo, reported, verified by the Functions callback against the finalized receipt, and rendered as “support arrived.” Protocol → garden funding hops are recorded separately from earned rewards; the upstream HoA stream stays in external treasury reporting.
+2. **Build phase (closes 2026-07-31)**: `Settlement.sol` + tests + deploy plumbing; the derived protocol → garden funding route; mandatory Functions request/callback; exact event config; complete Disbursement + SettlementBatch indexer entities; deterministic 2-of-3 Safe deploy/register tooling; Zodiac Roles + Allowance configuration; shared chain registry and selectors; admin execution/checking/verified states; PWA reward status and, only after the AA gate, G$ wallet. Build completion does not authorize value-tier broadcast.
+3. **Release proof (2026-08-12; separately authorized)**: one real G$ reward derived from a Fulfilled commitment, queued on Arbitrum, executed from the registered garden Safe on Celo, reported, verified by the Functions callback against the finalized receipt, and rendered as “support arrived.” Protocol → garden funding hops are recorded separately from earned rewards; the upstream HoA stream stays in external treasury reporting. Audit, 48-hour timelock, two-week testnet, Safe/Functions/AA evidence, live-value proof, and explicit human authorization remain Release-tier gates. If any gate is absent, the settlement leg stays blocked rather than treating the date as authorization.
 
-**Honest risk note**: this widens the August hard commitment by a contracts sub-lane plus indexer/shared/admin increments. The Chainlink Functions path is mandatory for any Verified state. A failed AA gate blocks commitment-reward delivery and member sends while allowing the protocol → garden funding route to continue; it never activates an alternate member-delivery path. Bridge-executor automation remains stretch work and cannot replace the oracle receipt check.
+**Honest risk note**: this widens the Build phase by a contracts sub-lane plus indexer/shared/admin increments. The Chainlink Functions path is mandatory for any Verified state. A failed AA gate blocks commitment-reward delivery and member sends while allowing the protocol → garden funding route to continue; it never activates an alternate member-delivery path. Bridge-executor automation remains Follow On / Hardening work and cannot replace the oracle receipt check.
 
 ## 9. Out of scope (base MVP; stretch called out)
 
-Bridged G$ (never). Bridge custody or unbounded value authority. Bridge-executor automation is an August stretch, else post-August, capped by Safe roles + Allowance and only if operator burden warrants it. Sarafu pool integration (a deferred future hybrid experiment, gated on a Grassroots Economics conversation + an ERC-777 audit; no dated phase is assigned to it). Transferable settlement vouchers and `settlementAdapter` activation (PRD-651, all its hard gates stand). Indexing Celo/G$ transfers. Member settlement controls in the separate September Community PWA.
+Bridged G$ (never). Bridge custody or unbounded value authority. Bridge-executor automation is Follow On / Hardening work, capped by Safe roles + Allowance and only if operator burden warrants it. Sarafu pool integration (a deferred future hybrid experiment, gated on a Grassroots Economics conversation + an ERC-777 audit; no dated phase is assigned to it). Transferable settlement vouchers and `settlementAdapter` activation (PRD-651, all its hard gates stand). Indexing Celo/G$ transfers. Member settlement controls in the separate September Community PWA.
 
 > **Borrow-and-repay touchpoint (blocked follow-on, `../../backlog/commitment-credit-follow-on/spec.md`).** A companion `CreditRegister` may disburse **G$ micro-loans** as a `SettlementModule` disbursement (the advance down-leg) and record the repayment on Arbitrum — repayment stays **record-only** (no upward disbursement, no bridge). One small seam to resolve when it lands: either add `DisbursementKind.LoanPrincipal` (§3.2) **or** let `queueDisbursement` accept a `commitmentId == 0` credit disbursement (it currently gates on a Fulfilled commitment, §3.3). Out of scope for this spec; flagged so the seam is a conscious choice, not a surprise.
 
@@ -704,7 +704,7 @@ Named sinks: garden store; seed/tool bank, equipment hire, water/solar service f
 
 ---
 
-**Build implications**
+**Settlement-evidence implications (separate blocked lane; not settlement implementation scope)**
 
 1. **A flow-type tag on settled flows.** Nothing in `settlement-spec.md` carries one. `DisbursementKind {CommitmentReward, Funding}` and `FundingRoute {None, ProtocolToGarden}` exist but tag the *purpose of an outbound disbursement*, not recirculation vs leak — neither is a substitute.
 2. **Celo-side observation, which the indexer boundary currently excludes.** `settlement-spec.md` §Indexer: "Envio indexes the Arbitrum SettlementModule, not Celo token events." Every in-pool spend, merchant payment, cash-out, DEX swap, and idle balance is a Celo G$ fact. Four of the five metrics have a numerator or denominator living entirely on Celo. Either the boundary extends to canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) transfers for registered Safes and member AA accounts, or an off-chain attested read model supplies them — the current spec produces neither.
@@ -719,12 +719,12 @@ Named sinks: garden store; seed/tool bank, equipment hire, water/solar service f
 
 The GoodDollar-facing plan commits Green Goods to reporting *"how much G$ recirculates inside a garden versus leaves it — real circulation, not just transaction volume."* That commitment had **no specced data source**: §3.2 models disbursement state only, and §6 explicitly scopes the indexer to "the Arbitrum SettlementModule, not Celo token events."
 
-The definitions above were the only written record of how those metrics are computed, and they lived in a Linear document with no spec home. They are preserved here so the document can be retired — **not** because the measurement is designed. Items 1–8 in "Build implications" are open scope, and item 8 (nobody has set the numeric thresholds) means the healthy-season test cannot currently be evaluated pass/fail at all.
+The definitions above were the only written record of how those metrics are computed, and they lived in a Linear document with no spec home. They are preserved here so the document can be retired — **not** because the measurement is designed. Items 1–8 in "Settlement-evidence implications" are open scope, and item 8 (nobody has set the numeric thresholds) means the healthy-season test cannot currently be evaluated pass/fail at all.
 
-Resolve before the August settlement build freezes, or the 2026-09-30 House of Alignment evaluation has nothing to report but volume. Tracked at `reports/corrections-log.md` §9c.
+These items belong to the human-owned, blocked `settlement_evidence` execution sub-lane and `handoffs/human-settlement-evidence.md`, due at the separately labeled 2026-09-30 operational checkpoint. They do not expand the settlement or Envio implementation boundaries. Before any agent receives that lane, a human must lock source systems, privacy rules, thresholds, and the owning package or explicitly choose a no-code operational report. Tracked at `reports/corrections-log.md` §9c.
 
 ### 11.10 One conflict carried across deliberately
 
-The source document's Recommendation 1 treats a working sink as a **proceed-gate**: *"Do not scale HoA distributions or add gardens until at least one garden has a working service sink."* The repo rule in `visual-assets.md` and `external-communications.md` says the local spend sink is *"a circulation aim / ordering criterion, never a launch gate."*
+The source document's Recommendation 1 treats a working sink as a **proceed-gate**: *"Do not scale HoA distributions or add gardens until at least one garden has a working service sink."* The repo rule in `visual-assets.md` says the local spend sink is *"a circulation aim / ordering criterion, never a launch gate."*
 
 Both are live, and they are reconcilable but not identical: settlement **capability** is not sink-gated, while scaling the G$ **distribution** into a garden does follow sink readiness — which is also what the GoodDollar-facing July plan commits to ("build the place to spend before widening the flow"). Recorded so the tension is visible rather than silently resolved in one direction.

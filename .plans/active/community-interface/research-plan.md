@@ -10,7 +10,7 @@
 Before product onboarding begins, the team needs evidence for six decisions:
 
 1. **Seeding go/no-go per garden** — an operator-corrected, explicitly confirmed mandate artifact each garden recognizes as its own plan; decides which gardens enter operator-curated seeding 2026-08-31 (published 2026-07-31 as the readiness matrix with explicit gaps).
-2. **Ship-or-revise the vocabulary** — whether needs-as-things-to-solve, the mandatory need→desired-outcome pairing, the horizon chips, and the stage-of-clarity language carry each garden's reality, and separately whether **commitment direction** (help asked for versus help given) lands where it belongs in Section 3; decides schema and creation-flow copy changes before the September community app. **Open spec question**: `NeedKind` currently carries Request/Offer/Initiative while `CommitmentDirection` carries Offer/Request, so the same vocabulary sits at two layers. The instruments now treat a need as a thing to solve and put direction on the commitment; the schema has not yet followed, and EAS registration in early August is the cheap moment to decide.
+2. **Validate the locked vocabulary in context** — a Need is a problem the community wants to address, paired with a mandatory desired outcome; **commitment direction** (help asked for versus help given) belongs in Section 3. The 2026-07-21 product decision removed `NeedKind` from the schema and creation flow before EAS registration. Sessions now test comprehension, translation, and horizon language without reopening the layer boundary unless evidence shows a serious problem.
 3. **Which commitment units seed Cycle 1** — which action-registry units fit, what garden-named work is missing from the registry, and the capacity and support bounds around them; decides the content and scale of the operator-curated seed rows.
 4. **Whether mutual credit earns a design lane** — existing member-to-member exchange patterns plus lightly captured credit terms (unit/token, borrower cap, repayment window, forgiveness policy); decides whether borrow-and-repay stays evidence-gated or advances, and what lands in `termsCID` if it does.
 5. **What anchors measurement** — what each garden already tracks, wants to track, and must report to funders (UNICEF cadence; existing MRV methodology); decides the assessment templates, metric sets, and baseline authorship that make baseline→delta credible enough to aggregate into impact certificates (absorbs canceled RESR-53).
@@ -36,7 +36,7 @@ Pass 1 is a self-serve survey; Pass 2 is an action-oriented onboarding call.
 
 **Direction of truth**: both instruments are **canonical in Linear**. The files in this folder are pointers, not copies — correct an instrument in its Linear document, and never paste a body back into this repo.
 
-Two reasons, in order. **This repository is public**, and these instruments carry cohort detail, partner context, and the support contact gardens are told to use for retraction; none of that belongs in a world-readable artifact. And the previous arrangement kept a full second copy here under a "keep the mirror in lockstep" rule that read bidirectionally, had no automation behind it, and had already drifted — both mirrors still carried a superseded issue ID days after the rename. One home removes the failure mode rather than policing it, which is what `commitment-pooling/external-communications.md` § The three surfaces already asks for: a claim has exactly one home, and the other surfaces link to it rather than restating it.
+Two reasons, in order. **This repository is public**, and these instruments carry cohort detail, partner context, and the support contact gardens are told to use for retraction; none of that belongs in a world-readable artifact. And the previous arrangement kept a full second copy here under a "keep the mirror in lockstep" rule that read bidirectionally, had no automation behind it, and had already drifted — both mirrors still carried a superseded issue ID days after the rename. One home removes the failure mode rather than policing it. The Commitment Pooling source map in `commitment-pooling/external-brief.md` now formalizes the same rule: a claim has exactly one home, and the other surfaces link to it rather than restating it.
 
 What stays in this repo is the **routing contract** — where a call's outputs get recorded, since those destinations are files here: the readiness row uses § Synthesis format below, corrections go to `corrections-log.md`, gap-log items go to architecture review. The pointer files carry that and nothing else.
 
@@ -93,7 +93,7 @@ The decision record must say why the selected option won, why the other two were
 | Linear window | Research/engagement outcome | Product consequence |
 |---|---|---|
 | Product current cycle, through 2026-07-16 | Begin operator outreach, consent script, and facilitation kit; do not claim cohort completion | Outreach underway; COM-3 kickoff package due 2026-07-30 |
-| Product Commitment Pooling cycle, 2026-07-16 to 2026-07-30; Research alignment cycle through 2026-07-30 | Run the two-pass instrument, return mandate drafts for confirmation, test `NeedKind`/domain language, and evaluate join-request options | Architecture and seed rows can be corrected before the July checkpoint |
+| Product Commitment Pooling cycle, 2026-07-16 to 2026-07-30; Research alignment cycle through 2026-07-30 | Run the two-pass instrument, return mandate drafts for confirmation, test problem/desired-outcome language, commitment direction, and domain language, and evaluate join-request options | Copy, translations, and seed rows can be corrected before the July checkpoint; the Need/commitment layer boundary is already locked |
 | July dry-run milestone, 2026-07-31 | Publish confirmed mandate artifacts and a readiness matrix with gaps; no garden marked ready without operator confirmation | Go/no-go input for August seeding, not a promise that every garden onboards |
 | August release: Cycle 1 opens **early August**; milestone closes 2026-08-31 | Pair implementation reviews with participating stewards; rehearse one end-to-end commitment and, where relevant, one G$ settlement on Celo | Release evidence and steward runbook |
 | RESR-64 decision, 2026-08-12 | Publish and link the engagement-model decision with controller/auth/retention/deletion/recovery/abuse/cost/owner evidence | Only then may the membership-queue handoff become dispatchable |
@@ -120,7 +120,7 @@ For each garden, publish an internal readiness row:
 | Field | Rule |
 |---|---|
 | Participation | confirmed / invited / unavailable; never infer readiness |
-| Need examples | Request, Offer, or Initiative in the community’s language |
+| Need examples | Problems the community wants to address, paired with desired outcomes, in the community’s language |
 | Commitment rows | confirmed vs draft clearly separated |
 | Domains | optional array; empty is valid |
 | Evidence/confirmation | named and feasible |

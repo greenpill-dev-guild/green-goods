@@ -9,11 +9,11 @@ Community members name what better looks like before any commitment exists. A **
 
 ---
 
-## 1. Canonical decisions (locked 2026-07-04 and 2026-07-09)
+## 1. Canonical decisions (locked 2026-07-04, 2026-07-09, and 2026-07-21)
 
 | # | Decision | Rationale |
 |---|---|---|
-| 1 | Vocabulary is **Need**, never "problem": tab Needs, schemas `Need`/`NeedSignal`/`NeedStatus`, field `needUID`, es *Necesidades*, pt *Necessidades*. Code and copy use the same word. | Positive-agency framing; pairs with the mandatory desired outcome; Afo call on connotation. |
+| 1 | The product noun is **Need**: a Need records a problem the community wants to address, paired with a mandatory desired outcome. Tab Needs, schemas `Need`/`NeedSignal`/`NeedStatus`, field `needUID`, es *Necesidades*, pt *Necessidades*. Plain-language prompts may say “problem” to explain the concept. | Keeps the object clear while using human language during creation. |
 | 2 | Linear home: **Community Needs & Signals** builds the needs layer; PRD-682/683 remain the September delivery records in **Commitment Pooling**, amended in place. | Keeps the August MVP project undisturbed; the needs vision has a runway past September. |
 | 3 | Spec home: this hub. The commitment-pooling hub gains only the additive `needUID` amendment + a §8 pointer. | One hub per Linear project, mirroring house convention. |
 | 4 | App IA: **Needs / Create (center, voice-first) / Profile**. Pool story folds into the Needs board header + per-need promise-work-proof threads. Solution-proposal objects dropped: solutions arrive as commitments. | Creation must feel like taking action; the detail thread is the retention mechanic. |
@@ -21,7 +21,7 @@ Community members name what better looks like before any commitment exists. A **
 | 6 | Voice: audio is always stored as evidence. Dictation with transcription on **both** the statement and desired-outcome steps; local/on-device first, server transcribe at flush as fallback (reuse agent transcription), never blocking submission. | Authorship barrier is the point; audio is the durable artifact, transcript the convenience. |
 | 7 | Discovery: **global read-only browse** of other gardens' needs for members and funders; my garden is the scoped default experience. Signal rights always same-garden (Community Hat). | Inspiration across gardens is powerful; the same-garden signal gate is the brigading guard. |
 | 8 | No claim flow in v1 (view / signal / confirm / testify). The need→operator binding is first-class instead: time-sensitive triage + seed-from-signal. Raise-hand ping parked (§16). | Matches PRD-682's locked cut; operators capture offers via analog capture. |
-| 9 | `NeedKind` is explicit: **Request / Offer / Initiative**. Need domains are operator-applied, optional, and multi-valued (`uint8[] domains`, unique, max 4); commitments use the same optional multi-domain shape, with at least one domain required only for `DomainImpact`. | Preserves the community's intent without forcing protocol taxonomy at creation; cross-domain work stays representable. |
+| 9 | A Need has no Request/Offer/Initiative kind. It is the problem to address. **Request / Offer belongs only to the linked commitment's direction**, where it determines provider and confirmer behavior. Need domains are operator-applied, optional, and multi-valued (`uint8[] domains`, unique, max 4); commitments use the same optional multi-domain shape, with at least one domain required only for `DomainImpact`. | Avoids asking members to classify a problem as a form of help and removes duplicate direction vocabulary from the Need and commitment layers. |
 | 10 | The member join experience uses a **minimal garden-scoped service queue**: a passkey-account-signed request is stored by the agent and read by an operator, who uses the existing gardener-add transaction. `join-queue-spec.md` is the canonical design. RESR-64 still gates implementation on its operating record for controller, access, retention/deletion, encryption, recovery, abuse, cost, and incident ownership. | Keeps the request off-chain and off the permission boundary while giving members and operators one recoverable handoff; the operating record prevents personal-data policy from being assumed. |
 | 11 | Community ships as an independent PWA in **`packages/community`**, hosted at **`community.greengoods.app`** and served locally on **3010**. Before that package starts, generic runtime, auth/passkey, offline status, install/update, error, and shell foundations move into `@green-goods/shared`; client and Community consume the same foundations while retaining separate routes, navigation, manifests, service-worker scopes, telemetry identities, and copy. | Community needs a focused installed experience without cloning security- and lifecycle-sensitive client machinery. |
 | 12 | Need presentation has two independent axes: operator-written moderation (`none / acknowledged / merged / hidden / declined`) and commitment-derived progress (`open / committed / in-progress / addressed`). Retraction removes the Need from boards but preserves a content-free withdrawn tombstone wherever protocol lineage already references it. | Moderation must not erase progress, and a member's revocation must not break immutable commitment/evaluator lineage. |
@@ -43,13 +43,12 @@ Every attestation sets EAS `recipient` to the garden account. The encoded `garde
 **`Need`** — attester: member smart account (the author); revocable **true** (self-retraction only).
 
 ```text
-address garden,uint8 kind,string statementCID,string desiredOutcomeCID,uint8 horizon,string mediaCID
+address garden,string statementCID,string desiredOutcomeCID,uint8 horizon,string mediaCID
 ```
 
 | Field | Type | Purpose |
 |---|---|---|
 | `garden` | `address` | Garden TBA; scopes the Community Hat check and the board. |
-| `kind` | `uint8` | `NeedKind`: 0 Request · 1 Offer · 2 Initiative. The UI asks “I need help / I can offer something / I want to organize something.” |
 | `statementCID` | `string` | IPFS: statement text + optional audio CID + transcript + `transcriptionSource` (`none\|dictation\|server`). |
 | `desiredOutcomeCID` | `string` | IPFS: mandatory desired outcome (text + optional audio + transcript). Locked framing: a need always arrives paired with what better looks like. |
 | `horizon` | `uint8` | 0 week, 1 month, 2 season, 3 years. Routes (§6), does not just describe. |
@@ -140,7 +139,7 @@ and reserves `[47]`. Before validating an acknowledgement rationale, the resolve
 
 Validation order is schema → garden/recipient → referenced Need → role → required fields → enum/relationship rules:
 
-- **NeedResolver**: recipient is initialized; encoded garden equals recipient; attester is Community; kind `0..2`; statement/outcome CIDs non-empty; horizon `0..3`. `onRevoke` returns true.
+- **NeedResolver**: recipient is initialized; encoded garden equals recipient; attester is Community; statement/outcome CIDs non-empty; horizon `0..3`. `onRevoke` returns true.
 - **NeedSignalResolver**: recipient initialized; encoded garden equals recipient; referenced UID is a non-revoked Need under `needSchemaUID` for the same recipient; attester is Community. No resolver-level duplicate storage; readers count distinct active attesters. `onRevoke` returns true.
 - **NeedStatusResolver**: referenced UID is a non-revoked same-garden Need; attester is Operator; status `1..4`; at most four unique domains, each `0..3`; merge requires a non-zero, non-self, non-revoked same-garden Need and all other statuses require a zero merge target; merge/hide/decline require `noteCID`; acknowledge after canonical `moderationHead.status` 2/3/4 also requires `noteCID`. A successful attest updates `moderationHead[needUID]` only when its `(timeCreated, uid)` tuple wins. `onRevoke` returns false.
 - **FundingAttributionResolver**: referenced UID is a non-revoked same-garden Need; `chainId != 0`, `txHash != 0`, `amount > 0`, rail `0..1`. `token == address(0)` is allowed only for rail 0 when `nativeDirectFundingAllowed[chainId] == true`; rail 1 always requires a non-zero token. No hat gate and no on-chain receipt oracle. `onRevoke` returns false; the joined reader applies §10 verification before display.
@@ -152,7 +151,6 @@ error InvalidGarden(address garden);
 error GardenMismatch(address encodedGarden, address recipient);
 error NotCommunityMember(address attester, address garden);
 error NotGardenOperator(address attester, address garden);
-error InvalidNeedKind(uint8 kind);
 error StatementRequired();
 error DesiredOutcomeRequired();
 error InvalidHorizon(uint8 horizon);
@@ -224,7 +222,7 @@ The indexer lane does not invent another Needs entity. Its exact owned addition 
 
 Three steps, mirroring the MDR draft grammar (`DraftStep` precedent `intro|media|details|review`); the interface never says attestation, wallet, or transaction.
 
-1. **Choose intent, then speak or type** — select Request / Offer / Initiative in plain language; big record button primary; live dictation where available; typing always offered; photos as in-step attachment. States: `idle`, `recording` (waveform, elapsed, stop), `transcribing` ("we're writing down what you said"), `editing` (transcript editable, audio retained), `offline-queued` ("saved, will send when you're back online").
+1. **Describe the problem in your own words** — prompt: “What is your community trying to solve?” Big record button primary; live dictation where available; typing always offered; photos as an in-step attachment. No Request/Offer/Initiative choice appears on a Need. States: `idle`, `recording` (waveform, elapsed, stop), `transcribing` ("we're writing down what you said"), `editing` (transcript editable, audio retained), `offline-queued` ("saved, will send when you're back online").
 2. **Desired outcome + horizon** — the outcome field is voice-capable too (same dictation/transcription treatment); horizon chips in plain language (this week / this month / this season / years). The horizon routes silently (§6).
 3. **Review** — your words, your desired outcome, horizon, photos; **similar-need nudge** ("is this the same as…?" — soft, never blocking; client-side match against the garden's open needs, FixMyStreet lesson).
 
@@ -254,8 +252,8 @@ Hosted at `community.greengoods.app` and locally at `http://localhost:3010`. Thr
 
 | View | Purpose | Content | Primary actions |
 |---|---|---|---|
-| Needs (landing) | My garden's needs board + pool story header | Garden header strip (pool state banner + cycle progress + aggregate stats, thresholded per uiux-spec §7.2); need cards (kind, author's words, desired outcome, horizon, optional domains, status, distinct-signal count); filters: kind, status, horizon. Never ranked by funding. | Signal; open detail; switch to Explore |
-| Explore (within Needs) | Global read-only discovery | Other gardens' needs (kind/domain/horizon/garden filters); no signal buttons ever | Browse; open read-only detail |
+| Needs (landing) | My garden's needs board + pool story header | Garden header strip (pool state banner + cycle progress + aggregate stats, thresholded per uiux-spec §7.2); need cards (author's words, desired outcome, horizon, optional domains, status, distinct-signal count); filters: progress, status, horizon. Never ranked by funding. | Signal; open detail; switch to Explore |
+| Explore (within Needs) | Global read-only discovery | Other gardens' needs (domain/progress/horizon/garden filters); no signal buttons ever | Browse; open read-only detail |
 | Need detail | The retention mechanic | Promise-work-proof thread: your words → the promise (commitment via `needUID`) → the work (MDR submissions) → the proof (assessment delta) → testimony; author's confirm CTA appears at `ReadyForConfirmation` (shared confirmation grammar); funded-toward line when attributions exist | Signal; confirm (author, when named); add testimony (any Community Hat wearer of this garden) |
 | Create (center) | §5 flow | Voice-first three steps | Record / dictate / type; submit |
 | Profile | Account + history | Passkey block; my needs; my signals; pending/waiting/failed jobs; my confirmations; my testimonies; language | Retry/edit/delete a job; sign out; manage passkey |
@@ -264,7 +262,7 @@ Confirmations inbox and testimony history live in Profile (uiux-spec §8 grammar
 
 ## 9. Admin `/community` workspace
 
-- **Need triage queue**: incoming Requests/Offers/Initiatives; week-horizon items grouped first without countdown language; **acknowledge/reopen** (NeedStatus 1 + zero or more unique domains; reopening requires a rationale), **decline** (4 + rationale), **merge** (2 + same-garden target + rationale), and **hide** (3 + rationale). Status writes are online actions with loading, rejected-signature, transaction-failed, stale-read, and retry states.
+- **Need triage queue**: incoming community problems and desired outcomes; week-horizon items grouped first without countdown language; **acknowledge/reopen** (NeedStatus 1 + zero or more unique domains; reopening requires a rationale), **decline** (4 + rationale), **merge** (2 + same-garden target + rationale), and **hide** (3 + rationale). Status writes are online actions with loading, rejected-signature, transaction-failed, stale-read, and retry states.
 - **Private-lane intake**: grievances naming individuals never touch the chain — an off-chain note channel to the operator, attested later only if generalized into a need. v1 = documented operator practice + a "capture privately" affordance that stores nothing on-chain.
 - **Need-to-commitment linking at seeding**: the PRD-683 signals panel + seed-from-need prefill sets `needUID`, copies optional domains, and applies the direction-aware confirmation default above; the operator confirms all seed fields and sees the provider-exclusion/unreachable-threshold validation before acceptance.
 - **Membership queue**: the service-backed flow in `join-queue-spec.md` appears as **Waiting to join** inside the existing Garden Manage Members dialog only after the RESR-64 operating gate. `/community` does not gain this queue. Do not implement an implicit localStorage, Linear, or public-chain queue.
@@ -290,13 +288,13 @@ These are **two separate responsive applications**, not one surface with device-
 - `bytes32 needUID` on the commitment record (0 = none), `CreateCommitmentParams`, and `CommitmentCreated` event — **amended into the August contract-spec 2026-07-04** (additive reference field beside `assessmentUID`; no state-machine change). A commitment can carry both: anchored to an assessment (baseline), motivated by a need.
 - `uint8[] domains` is optional on both the operator's latest acknowledged NeedStatus and the linked commitment. The commitment copies suggested domains only as a prefill; its final domain/action scope is explicitly confirmed at seeding. Cross-domain DomainImpact commitments pair each domain with one registered, domain-matching action UID; UID `0` remains valid because array presence, not a numeric sentinel, expresses binding.
 - Cycle Hypercert metadata and the Envio Hypercert entity persist `needUIDs` as the ascending, unique, non-zero UIDs carried by fulfilled commitments in the bundle, alongside composite `commitmentEntityIds`; `NeedCommitmentIndex.hypercertEntityIds` supplies the reverse lookup. Retraction preserves the UID but exports only the withdrawn tombstone. Community testimony is offline-queueable witness evidence and never gates payout.
-- Admin `/community` offers read-only CSV and JSON export over the same joined view. Each row/object includes `needUID`, `needKind`, `garden`, moderation, progress, retracted flag, commitment composite ID/state, Work/Approval/Assessment/Testimony UIDs, cycle/Hypercert ID, funding chain/tx/rail/verification state, and source URLs. Text/media CIDs appear only when the viewer already has access; wallet addresses, join identities, and research contacts never export. CSV uses one lineage edge per row; JSON nests edges. Partial-source exports are blocked with an explicit Retry rather than emitting incomplete evidence.
+- Admin `/community` offers read-only CSV and JSON export over the same joined view. Each row/object includes `needUID`, `garden`, moderation, progress, retracted flag, commitment composite ID/state, Work/Approval/Assessment/Testimony UIDs, cycle/Hypercert ID, funding chain/tx/rail/verification state, and source URLs. Text/media CIDs appear only when the viewer already has access; wallet addresses, join identities, and research contacts never export. CSV uses one lineage edge per row; JSON nests edges. Partial-source exports are blocked with an explicit Retry rather than emitting incomplete evidence.
 
 ## 12. Metrics and instrumentation (no leaderboards)
 
 PostHog routing: community app + funder lens → App (163591); admin triage → Admin (262122). Properties are enums/counts/booleans only — never statement text, addresses, or reporter identity.
 
-Events: `need_created {kind, horizon, domain_count: 0, has_audio, has_photos, transcription_source}` · `need_signal_created` / `need_signal_revoked` · `need_status_set {status, domain_count}` (admin) · `need_detail_viewed {is_author}` · `eligible_confirmation_completed {direction, confirmer_role}` · `testimony_attested` · `fund_from_need {rail}` · `funding_attribution_recorded {rail, verified}` · `seeded_from_need {domain_count}` (admin) · `need_merged` (admin). Offline queue health rides existing job analytics automatically. Domain values, statements, addresses, and join identities never enter analytics.
+Events: `need_created {horizon, domain_count: 0, has_audio, has_photos, transcription_source}` · `need_signal_created` / `need_signal_revoked` · `need_status_set {status, domain_count}` (admin) · `need_detail_viewed {is_author}` · `eligible_confirmation_completed {direction, confirmer_role}` · `testimony_attested` · `fund_from_need {rail}` · `funding_attribution_recorded {rail, verified}` · `seeded_from_need {domain_count}` (admin) · `need_merged` (admin). Offline queue health rides existing job analytics automatically. Domain values, statements, addresses, and join identities never enter analytics.
 
 Derived measures (TAS dogfood): needs raised/addressed per garden per cycle; time-to-acknowledge (Need → first NeedStatus); signal participation (distinct signalers ÷ Community Hat wearers); share of commitments carrying `needUID`; author return visits; eligible direction-aware confirmation participation; funding attributed per need. Benchmark: if under a threshold share of cycle-2 commitments carry a needUID, tighten the signals panel or the gathering ritual before adding machinery.
 

@@ -10,8 +10,10 @@ export const PLAYER_JS = `(function(){
   function setTab(name){
     Object.keys(tabs).forEach(function(k){
       tabs[k][0].classList.toggle("on", k === name);
+      tabs[k][0].hidden = k !== name;
       tabs[k][1].classList.toggle("on", k === name);
       tabs[k][1].setAttribute("aria-selected", String(k === name));
+      tabs[k][1].tabIndex = k === name ? 0 : -1;
     });
   }
   $("tabbtn-play").addEventListener("click", function(){ setTab("play"); });
@@ -50,9 +52,28 @@ export const PLAYER_JS = `(function(){
   }
   function paintDevice(dev, scr, st, extraMf){
     dev.className = "device hf s-" + scr.surface + " f-" + scr.frame + ((st.proposed || extraMf) ? " mf" : "");
+    dev.setAttribute("role", "group");
+    dev.setAttribute("aria-label", scr.title + (scr.states.length > 1 ? " — " + st.label : ""));
     var body = "";
     if (st.proposed || extraMf) body += '<div class="mftag">' + (scr.frame === "ascii" ? "proposed lo-fi" : "proposed") + "</div>";
     dev.innerHTML = body + st.html;
+    dev.querySelectorAll("button").forEach(function(el){ if (!el.getAttribute("type")) el.setAttribute("type", "button"); });
+    dev.querySelectorAll("[data-hot]").forEach(function(el){
+      var h = DATA.hots[el.getAttribute("data-hot")];
+      if (!el.getAttribute("aria-label") && h) el.setAttribute("aria-label", h.l);
+      var nativeSelf = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName);
+      var nativeChild = el.querySelector && el.querySelector("button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary");
+      // A hotspot container that owns a real control must not become a second,
+      // nested button. Its native descendant remains the keyboard entry point;
+      // clicks and Enter/Space still bubble to the nearest data-hot owner.
+      if (!nativeSelf && !nativeChild) {
+        el.setAttribute("role", "button");
+        el.tabIndex = 0;
+      } else if (!nativeSelf) {
+        el.removeAttribute("role");
+        el.removeAttribute("tabindex");
+      }
+    });
   }
   function eachHot(dev, hid, fn){
     dev.querySelectorAll('[data-hot="' + hid + '"]').forEach(fn);
@@ -61,6 +82,22 @@ export const PLAYER_JS = `(function(){
     (marks || []).forEach(function(mid){
       dev.querySelectorAll('[data-hot="' + mid + '"], [data-mark~="' + mid + '"]').forEach(function(el){ el.classList.add("marked"); });
     });
+  }
+  // Reveal-on-mis-click: a tap that misses every hotspot briefly flashes a ring
+  // on all live hotspots so the player sees where the real controls are. The CSS
+  // pulses under motion and falls back to a static ring under reduced-motion; the
+  // class is stripped after the flash either way.
+  var flashTimer = null;
+  function flashHots(dev){
+    if (flashTimer) { clearTimeout(flashTimer); flashTimer = null; }
+    var els = dev.querySelectorAll("[data-hot]");
+    els.forEach(function(el){ el.classList.remove("flash"); });
+    void dev.offsetWidth; // restart the animation on repeat mis-clicks
+    els.forEach(function(el){ el.classList.add("flash"); });
+    flashTimer = setTimeout(function(){
+      dev.querySelectorAll("[data-hot].flash").forEach(function(el){ el.classList.remove("flash"); });
+      flashTimer = null;
+    }, 640);
   }
   function goTarget(to){
     if (to.indexOf("screen:") === 0) { setTab("screens"); openScreen(to.slice(7), true); return; }
@@ -132,8 +169,8 @@ export const PLAYER_JS = `(function(){
       if (!el.classList.contains("primary") && !el.classList.contains("choice")) el.classList.add("quiet");
     });
     var hint = $("hint");
-    if (sc.hot) { hint.innerHTML = ""; hint.appendChild(document.createTextNode("tap: ")); var bb = document.createElement("b"); bb.textContent = sc.hot.l; hint.appendChild(bb); var kk = document.createElement("span"); kk.className = "kbd"; kk.textContent = "  (or →) · everything else on the frame is tappable too"; hint.appendChild(kk); }
-    else { hint.innerHTML = ""; hint.appendChild(document.createTextNode("system step ")); var k2 = document.createElement("span"); k2.className = "kbd"; k2.textContent = "(→ to continue) · frame controls stay tappable"; hint.appendChild(k2); }
+    if (sc.hot) { hint.innerHTML = ""; hint.appendChild(document.createTextNode("tap: ")); var bb = document.createElement("b"); bb.textContent = sc.hot.l; hint.appendChild(bb); var kk = document.createElement("span"); kk.className = "kbd"; kk.textContent = "  (or →) · outlined alternatives stay tappable"; hint.appendChild(kk); }
+    else { hint.innerHTML = ""; hint.appendChild(document.createTextNode("system step ")); var k2 = document.createElement("span"); k2.className = "kbd"; k2.textContent = "(→ to continue) · outlined controls stay tappable"; hint.appendChild(k2); }
     $("st-state").textContent = sc.st || "—";
     $("st-who").textContent = sc.who ? "acting: " + sc.who : "";
     $("st-ev").textContent = sc.ev;
@@ -142,10 +179,10 @@ export const PLAYER_JS = `(function(){
     if (sc.note) { noteEl.hidden = false; noteEl.textContent = sc.note; } else { noteEl.hidden = true; }
     var brs = $("st-brs"); brs.textContent = "";
     (sc.br || []).forEach(function(b){
-      var el = document.createElement(b.to ? "button" : "span");
-      el.className = "br" + (b.to ? "" : " info");
-      el.textContent = (b.to ? "↳ " : "ⓘ ") + b.l;
-      if (b.to) el.addEventListener("click", function(){ goTarget(b.to); });
+      var el = document.createElement("button");
+      el.className = "br";
+      el.textContent = "↳ " + b.l;
+      el.addEventListener("click", function(){ goTarget(b.to); });
       brs.appendChild(el);
     });
     var dots = $("dots"); dots.textContent = "";
@@ -153,11 +190,15 @@ export const PLAYER_JS = `(function(){
       var el = document.createElement("button");
       el.className = "dot" + (dd === curI ? " on" : "");
       el.setAttribute("aria-label", "step " + (dd + 1));
+      if (dd === curI) el.setAttribute("aria-current", "step");
       el.addEventListener("click", function(){ curI = dd; render(); });
       dots.appendChild(el);
     })(d);
     $("prevbtn").disabled = curI === 0;
-    $("nextbtn").textContent = curI === sb.steps.length - 1 ? "Done ✓" : "Next →";
+    var last = curI === sb.steps.length - 1;
+    $("nextbtn").textContent = last ? "✓" : "›";
+    $("nextbtn").setAttribute("aria-label", last ? "Finish journey" : "Next step");
+    $("nextbtn").classList.toggle("done", last);
     if (history.replaceState) history.replaceState(null, "", "#" + sb.id + "/" + curI);
   }
   function next(){
@@ -176,7 +217,7 @@ export const PLAYER_JS = `(function(){
   $("device").addEventListener("click", function(e){
     if (!curSb) return;
     var el = e.target.closest ? e.target.closest("[data-hot]") : null;
-    if (!el || !$("device").contains(el)) return;
+    if (!el || !$("device").contains(el)) { flashHots($("device")); return; }
     var hid = el.getAttribute("data-hot");
     var sc = curSb.steps[curI];
     if (sc.hot && sc.hot.h === hid) { next(); return; }
@@ -221,6 +262,7 @@ export const PLAYER_JS = `(function(){
         var c = document.createElement("button");
         c.className = "vchip" + (s2.id === st.id ? " on" : "") + (s2.proposed ? " prop" : "");
         c.textContent = s2.label;
+        c.setAttribute("aria-pressed", String(s2.id === st.id));
         c.addEventListener("click", function(){ expState = s2.id; renderExp(); });
         chips.appendChild(c);
       });
@@ -232,12 +274,13 @@ export const PLAYER_JS = `(function(){
       el.classList.add(h && h.to ? "nav2" : "info2");
     });
     $("expback").style.visibility = expStack.length ? "visible" : "hidden";
+    $("expback").disabled = !expStack.length;
     expInspectClear();
     expHash();
   }
   $("expdevice").addEventListener("click", function(e){
     var el = e.target.closest ? e.target.closest("[data-hot]") : null;
-    if (!el || !$("expdevice").contains(el)) return;
+    if (!el || !$("expdevice").contains(el)) { flashHots($("expdevice")); return; }
     var hid = el.getAttribute("data-hot");
     var h = DATA.hots[hid];
     if (!h) return;
@@ -269,6 +312,7 @@ export const PLAYER_JS = `(function(){
     if (prevId) { expCur = null; openScreen(prevId, false); }
     else expHome();
     $("expback").style.visibility = expStack.length ? "visible" : "hidden";
+    $("expback").disabled = !expStack.length;
   });
   document.querySelectorAll(".sbcard.sc").forEach(function(el){
     el.addEventListener("click", function(){ expStack = []; openScreen(el.getAttribute("data-frame"), false); });
@@ -279,6 +323,21 @@ export const PLAYER_JS = `(function(){
 
   // keyboard + swipe
   document.addEventListener("keydown", function(e){
+    var editable = e.target && e.target.closest ? e.target.closest('input,select,textarea,[contenteditable]:not([contenteditable="false"])') : null;
+    if (editable) return;
+    var hot = e.target && e.target.closest ? e.target.closest("[data-hot]") : null;
+    if (hot && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault(); hot.click(); return;
+    }
+    if (e.target && e.target.getAttribute && e.target.getAttribute("role") === "tab") {
+      var list = e.target.closest("[role=tablist]");
+      if (list && (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End")) {
+        var ts = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]:not([disabled])'));
+        var ix = ts.indexOf(e.target);
+        var nx = e.key === "Home" ? 0 : e.key === "End" ? ts.length - 1 : (ix + (e.key === "ArrowRight" ? 1 : -1) + ts.length) % ts.length;
+        ts[nx].focus(); ts[nx].click(); e.preventDefault(); return;
+      }
+    }
     if (!tabs.play[0].classList.contains("on") || !curSb) return;
     if (e.key === "ArrowRight") { next(); e.preventDefault(); }
     if (e.key === "ArrowLeft") { prev(); e.preventDefault(); }

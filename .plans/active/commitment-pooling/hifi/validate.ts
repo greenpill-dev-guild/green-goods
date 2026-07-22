@@ -6,8 +6,8 @@
 //   3. bidirectional hotspot integrity (no orphan registration, no unregistered emission)
 //   4. per-state non-empty render, no `undefined`/`[object`/`NaN` artifacts
 //   5. copy scans on rendered visible text — banned vocabulary, steward rule,
-//      admin quiet-checkmark, chain-phrasing placement (ascii states warn-only
-//      until their screens go hi-fi; September ascii stays exempt from 5)
+//      admin quiet-checkmark, chain-phrasing placement (September lo-fi stays
+//      exempt only from dialect-specific phrasing checks)
 // Hotspot `info` strings are spec commentary (may cite enum names like
 // OperatorCaptured) — they are not screen copy and are never scanned.
 
@@ -37,6 +37,42 @@ function domTokens(html: string) {
   return { hots, marks };
 }
 
+// Enabled buttons are promises of interaction. A button is valid when it owns
+// a hotspot or sits inside one; preview-only chrome must be honestly disabled.
+// This small stack parser keeps the artifact build dependency-free.
+function scanEnabledButtons(screenId: string, stateId: string, html: string) {
+  const stack: { tag: string; hot: boolean }[] = [];
+  const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+  for (const match of html.matchAll(/<(\/?)([a-z][a-z0-9-]*)([^>]*)>/gi)) {
+    const closing = match[1] === "/";
+    const tag = match[2].toLowerCase();
+    const attrs = match[3];
+    if (closing) {
+      while (stack.length) if (stack.pop()!.tag === tag) break;
+      continue;
+    }
+    const ownsHot = /\bdata-hot\s*=/.test(attrs);
+    if (tag === "button" && !/\bdisabled(?:\s|=|$)/.test(attrs) && !ownsHot && !stack.some((node) => node.hot)) {
+      const label = stripTags(match.input.slice(match.index! + match[0].length).split("</button>", 1)[0]).trim().replace(/\s+/g, " ").slice(0, 48) || "icon button";
+      err.push(`CONTROL ${screenId}@${stateId}: enabled button "${label}" lacks data-hot`);
+    }
+    if (!voidTags.has(tag) && !/\/\s*$/.test(attrs)) stack.push({ tag, hot: ownsHot });
+  }
+}
+
+function scanFormNames(screenId: string, stateId: string, html: string) {
+  for (const match of html.matchAll(/<(input|select)\b([^>]*)>/gi)) {
+    const tag = match[1].toLowerCase();
+    const attrs = match[2];
+    const id = attrs.match(/\bid="([^"]+)"/)?.[1];
+    const labelledBy = attrs.match(/\baria-labelledby="([^"]+)"/)?.[1];
+    const ariaLabel = attrs.match(/\baria-label="([^"]+)"/)?.[1];
+    const hasFor = id ? html.includes(`for="${id}"`) : false;
+    const hasLabelledBy = labelledBy ? labelledBy.split(/\s+/).every((labelId) => html.includes(`id="${labelId}"`)) : false;
+    if (!ariaLabel && !hasFor && !hasLabelledBy) err.push(`FORM ${screenId}@${stateId}: ${tag} lacks a visible programmatic label`);
+  }
+}
+
 // ---- copy scans -------------------------------------------------------------
 const BANNED_EVERYWHERE: [RegExp, string][] = [
   [/\bstreaks?\b/i, "streak"],
@@ -59,6 +95,10 @@ const ADMIN_HERO: [RegExp, string][] = [
   [/congratulations|celebrat|amazing|awesome|🎉/i, "admin hero language (quiet checkmark rule)"],
 ];
 
+function scanEverywhere(where: string, text: string, sink = err) {
+  for (const [re, name] of BANNED_EVERYWHERE) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+}
+
 function scanState(screen: Screen, stateId: string, html: string, sept: boolean) {
   const sink = screen.frame === "ascii" ? warn : err;
   const where = `${screen.id}@${stateId}`;
@@ -66,11 +106,11 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   for (const bad of ["undefined", "[object ", "NaN"]) {
     if (stripTags(html).includes(bad)) err.push(`RENDER ${where}: contains "${bad}"`);
   }
-  if (sept) return; // September lo-fi previews another spec's copy
   const text = stripTags(html);
-  for (const [re, name] of BANNED_EVERYWHERE) {
-    if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
-  }
+  // Core vocabulary is never warn-only: ASCII and September previews are still
+  // rendered copy and must use the same mutual-aid language.
+  scanEverywhere(where, text);
+  if (sept) return; // another spec owns the remaining dialect-specific copy
   if (screen.surface === "client" || screen.surface === "public") {
     for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
   }
@@ -183,10 +223,30 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
         return [mid];
       });
 
-      const br = (sc.br ?? []).map((b) => ({ l: b.l, to: validTo(b.to, where) }));
+      const br = (sc.br ?? []).flatMap((b) => {
+        const to = validTo(b.to, where);
+        if (!to) {
+          err.push(`BRANCH "${b.l}" lacks a target (${where})`);
+          return [];
+        }
+        return [{ l: b.l, to }];
+      });
       return { f: sid, v, hot, alts, marks, who: sc.who, surface: sc.surface, st: sc.st, ev: sc.ev, cite: sc.cite, note: sc.note, br, mf: sc.mf };
     }),
   }));
+
+  // Journey chrome, step annotations, branch labels, and hotspot inspector copy
+  // are all rendered UI too; scan them rather than limiting vocabulary checks
+  // to the screen-state HTML.
+  for (const sb of raw) {
+    const text = [sb.title, sb.persona, sb.scen, sb.surface, ...sb.steps.flatMap((sc) => [
+      sc.who, sc.surface, sc.st, sc.ev, sc.note, sc.hot?.l,
+      ...(sc.alts ?? []).map((a) => a.l),
+      ...(sc.br ?? []).map((b) => b.l),
+    ])].filter(Boolean).join(" ");
+    scanEverywhere(`JOURNEY ${sb.id}`, text);
+  }
+  for (const [hid, meta] of Object.entries(ctx.hots)) scanEverywhere(`HOT ${hid}`, [meta.l, meta.info].filter(Boolean).join(" "));
 
   // hotspot meta targets
   for (const [hid, meta] of Object.entries(ctx.hots)) {
@@ -202,6 +262,8 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     const sept = s.group.includes("September");
     for (const st of s.states) {
       scanState(s, st.id, st.html, sept);
+      scanEnabledButtons(s.id, st.id, st.html);
+      scanFormNames(s.id, st.id, st.html);
       const t = domTokens(st.html);
       for (const h of t.hots) {
         emitted.add(h);

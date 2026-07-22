@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: codex/indexer/commitment-pooling
 - Current state: two-phase — core pooling is blocked only on frozen pooling events; settlement indexing waits for frozen settlement events
-- Linear context: PRD-650 parent-only mirror; PRD-673 is historical context
+- Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
 
 ## Inputs
 
@@ -19,13 +19,13 @@
 
 ## Outputs
 
-- Core phase: commitment pool/cycle/commitment/request/index/event and `NeedCommitmentIndex` entities with chainId and explicit composite relationship fields. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID.
+- Core phase: commitment pool/cycle/commitment/requirement/request/index/event and `NeedCommitmentIndex` entities with chainId and explicit composite relationship fields. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
 - Settlement phase: settlement account/disbursement/batch entities plus a singleton `SettlementConfiguration` read model carrying `memberDeliveryEnabled`.
 - Exact Arbitrum/Sepolia contract blocks and idempotent create-if-not-exists handlers.
 - Commitment-keyed request index that marks accept/decline/supersede without a database-wide scan.
 - Full Garden.id migration to chainId-lowercaseAddress with replay/backfill, every foreign-key/helper/query/fixture cutover, and no mixed-ID interval.
 - Nullable generic audit actor populated only from explicit event parameters, never transaction.from.
-- Commitment read model persists provider, providerGarden composite relation, preDisputeState, and derived reward facts; Hypercert persists composite commitment relationships plus ascending unique needUIDs.
+- Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the count-weighted approved-unit aggregate emitted by the contract, and derived reward facts; Hypercert persists composite commitment relationships plus ascending unique needUIDs.
 - Generated-config preservation changes and regression fixture proving CommitmentPoolingModule, CommitmentRegister, and SettlementModule blocks survive repeated artifact updates.
 - Codegen/generated artifacts, handler tests, build proof, and query contract for shared.
 
@@ -36,7 +36,7 @@
 - Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
 - Claim acceptance consumes the stored request identity and supersedes only still-pending sibling requests through the companion index.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
-- ApprovedWorkCounted replaces the commitment cumulative value and increments pool/cycle totals only by `newlyApprovedUnits`; cumulative event values are never summed.
+- `ApprovedWorkCounted` updates exactly the matching `requirementIndex`, replaces that row's cumulative count, stores the event-emitted `approvedUnits` as the canonical aggregate, and increments pool/cycle totals only by the event-emitted `newlyApprovedUnits`; cumulative event values are never summed or re-derived. Tests may assert the weighted formula against the emitted value, but handlers never persist a separately recomputed aggregate.
 - Reported, checking, Verified, receipt-invalid Failed, infrastructure retry, and per-member batch recovery remain distinguishable.
 - The preservation fixture runs the updater twice and retains exact event signatures; unknown EAS or raw Celo token blocks still fail.
 - Envio reads only Green Goods protocol events.

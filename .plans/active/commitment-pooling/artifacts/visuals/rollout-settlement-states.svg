@@ -1,67 +1,69 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="settlement-states-title settlement-states-desc">
+  <title id="settlement-states-title">Settlement states where a report is not proof</title>
+  <desc id="settlement-states-desc">A payout moves from Queued to Executing to Reported. Chainlink Functions checks the Celo receipt and branches to Oracle-verified or Failed. Infrastructure errors remain Reported and may retry. No human verification path exists.</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#AC9F87"/>
+    <marker id="settlement-states-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
     </marker>
   </defs>
 
   <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
 
   <!-- title -->
-  <text x="500" y="100" text-anchor="middle" font-size="22" font-weight="700" fill="#2A2722">Settlement states — a report is not proof</text>
+  <text x="500" y="100" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Settlement states — a report is not proof</text>
 
   <!-- checking label + leader -->
-  <text x="640" y="300" text-anchor="middle" font-size="10.5" fill="#6E6857">Chainlink Functions request</text>
-  <text x="640" y="315" text-anchor="middle" font-size="10.5" fill="#6E6857">'checking receipt'</text>
-  <path d="M 640 322 L 640 378" fill="none" stroke="#A19884" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text x="640" y="300" text-anchor="middle" font-size="16" fill="#6E6857">Chainlink Functions request</text>
+  <text x="640" y="315" text-anchor="middle" font-size="16" fill="#6E6857">'checking receipt'</text>
+  <path d="M 640 322 L 640 378" fill="none" stroke="#988D77" stroke-width="1.5" stroke-dasharray="3 3"/>
 
   <!-- Queued -->
-  <rect x="40" y="390" width="120" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="100" y="417" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Queued</text>
+  <rect x="40" y="390" width="120" height="44" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="100" y="417" text-anchor="middle" font-size="20" font-weight="600" fill="#3B372E">Queued</text>
 
-  <path d="M 162 412 L 209 412" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path d="M 162 412 L 209 412" fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#settlement-states-arrow)"/>
 
   <!-- Executing -->
-  <rect x="215" y="390" width="130" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="280" y="417" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Executing</text>
+  <rect x="215" y="390" width="130" height="44" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="280" y="417" text-anchor="middle" font-size="20" font-weight="600" fill="#3B372E">Executing</text>
 
-  <path d="M 347 412 L 394 412" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path d="M 347 412 L 394 412" fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#settlement-states-arrow)"/>
 
   <!-- Reported -->
-  <rect x="400" y="383" width="170" height="58" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="485" y="407" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Reported</text>
-  <text x="485" y="425" text-anchor="middle" font-size="10.5" fill="#6E6857">Celo tx hash recorded</text>
+  <rect x="400" y="383" width="170" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="485" y="407" text-anchor="middle" font-size="20" font-weight="600" fill="#3B372E">Reported</text>
+  <text x="485" y="425" text-anchor="middle" font-size="16" fill="#6E6857">Celo tx hash recorded</text>
 
   <!-- checking branch arrows (derived state, dashed) -->
-  <path d="M 572 406 C 620 398 660 384 700 368" fill="none" stroke="#AC9F87" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
-  <path d="M 572 418 C 620 426 660 450 700 467" fill="none" stroke="#AC9F87" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+  <path d="M 572 406 C 620 398 660 384 700 368" fill="none" stroke="#988D77" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#settlement-states-arrow)"/>
+  <path d="M 572 418 C 620 426 660 450 700 467" fill="none" stroke="#988D77" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#settlement-states-arrow)"/>
 
   <!-- Oracle-verified -->
-  <rect x="706" y="334" width="250" height="58" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-  <text x="831" y="358" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Oracle-verified ✓</text>
-  <text x="831" y="376" text-anchor="middle" font-size="10.5" fill="#4C6B54">verifiedBy = the oracle, never a person</text>
+  <rect x="706" y="334" width="250" height="74" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+  <text x="831" y="358" text-anchor="middle" font-size="20" font-weight="600" fill="#24422E">Oracle-verified ✓</text>
+  <text x="831" y="382" text-anchor="middle" font-size="16" fill="#4C6B54"><tspan x="831">verifiedBy = the oracle</tspan><tspan x="831" dy="19">never a person</tspan></text>
 
   <!-- Failed -->
   <rect x="706" y="444" width="250" height="58" rx="12" fill="#FFFFFF" stroke="#A65D57" stroke-width="2"/>
-  <text x="831" y="468" text-anchor="middle" font-size="13" font-weight="600" fill="#8A4A44">Failed</text>
-  <text x="831" y="486" text-anchor="middle" font-size="10.5" fill="#8A4A44">receipt invalid</text>
+  <text x="831" y="468" text-anchor="middle" font-size="20" font-weight="600" fill="#8A4A44">Failed</text>
+  <text x="831" y="486" text-anchor="middle" font-size="16" fill="#8A4A44">receipt invalid</text>
 
   <!-- retry loop back to Reported -->
-  <path d="M 640 450 C 622 518 512 524 470 444" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
-  <text x="575" y="536" text-anchor="middle" font-size="10.5" fill="#6E6857">infrastructure error →</text>
-  <text x="575" y="551" text-anchor="middle" font-size="10.5" fill="#6E6857">stays Reported, retry allowed</text>
+  <path d="M 640 450 C 622 518 512 524 470 444" fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#settlement-states-arrow)"/>
+  <text x="575" y="536" text-anchor="middle" font-size="16" fill="#6E6857">infrastructure error →</text>
+  <text x="575" y="551" text-anchor="middle" font-size="16" fill="#6E6857">stays Reported, retry allowed</text>
 
   <!-- annotation -->
-  <text x="500" y="620" text-anchor="middle" font-size="12.5" font-weight="600" fill="#2A2722">There is no human verification path.</text>
+  <text x="500" y="620" text-anchor="middle" font-size="20" font-weight="600" fill="#2A2722">There is no human verification path.</text>
 
   <!-- legend -->
   <g>
-    <rect x="299" y="688" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-    <text x="333" y="701" font-size="12" fill="#2A2722">not yet proof (dashed)</text>
+    <rect x="299" y="688" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="333" y="701" font-size="17" fill="#2A2722">not yet proof (dashed)</text>
 
     <rect x="520" y="688" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="554" y="701" font-size="12" fill="#2A2722">verified (solid green)</text>
+    <text x="554" y="701" font-size="17" fill="#2A2722">Oracle-verified (solid green)</text>
   </g>
 
-  <text x="500" y="956" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+  <text x="500" y="956" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-07)</text>
 </svg>

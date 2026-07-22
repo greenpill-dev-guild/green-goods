@@ -31,7 +31,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 - `CommitmentRegister`: non-transferable ERC-1155-style unit accounting companion, functionally controlled by the module (NET-NEW `packages/contracts/src/registries/Commitment.sol`).
 - GardenToken wiring: one new module field, setter, event, gap 37 to 36, live 42161 UUPS upgrade (`packages/contracts/src/tokens/Garden.sol`).
 - WorkApprovalResolver bridge: optional non-blocking module hook on approval (`packages/contracts/src/resolvers/WorkApproval.sol`).
-- Exactly two new EAS schema registrations: assessment v3 and community testimony, each with a new resolver, registered via the standalone badge-schemas path (decision #14, #26).
+- Exactly two new EAS schema registrations: assessment v3 and community testimony, each with a new resolver, registered via the standalone badge-schemas path (register #14, register #26).
 - Deployment plumbing: `DeployHelper.sol` result fields, `DeploymentBase.sol` helpers, artifact keys, storage-layout baselines.
 - Envio indexer plan: two new contract blocks, four new entities, one handler module; all locked stats derivable from module and register events alone.
 - Hypercert cut-over: `bundleKind` discriminator, fulfilled-commitment bundling, on-chain allocation-class bps at cycle open with app-computed allowlists.
@@ -40,28 +40,28 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 
 - Celo/G$ execution inside the core pooling module or register. August G$ split-state settlement is in scope separately via `settlement-spec.md` / PRD-686; the core pooling contracts never custody G$, call Celo, or flip `settlementEnabled`.
 - Borrow-and-repay (mutual credit). A blocked follow-on companion `CreditRegister` (records-only, no-custody, interest-free) is specced separately in `../../backlog/commitment-credit-follow-on/spec.md` — additive, zero pooling-module/register changes; out of scope for this spec and not dispatchable without a new scope lock.
-- Sarafu integration or any reading of Sarafu source code (AGPL clean-room, decision #17; grounding is the Grassroots Economics paper and public docs only).
+- Sarafu integration or any reading of Sarafu source code (AGPL clean-room, register #17; grounding is the Grassroots Economics paper and public docs only).
 - Bridged G$, bridge custody/unbounded value authority, and GoodDollar rails inside the pooling module. Operator-executed G$ settlement lives in `SettlementModule`; bridge-executor automation is an August stretch owned by the settlement lane, else post-August.
 - Leaderboards, rankings, comparison views, countdown or streak mechanics of any kind.
 - A separate aggregator contract (PRD-649 locked: aggregates come from events, not an on-chain aggregator).
-- CookieJar contract changes (decision #18: rewards are declared references plus operator-executed payouts on existing rails).
+- CookieJar contract changes (register #18: rewards are declared references plus operator-executed payouts on existing rails).
 - Re-indexing EAS attestations (indexer boundary, `packages/indexer/schema.graphql:282-288`).
 
 ## 3. Canonical Implementation Decisions
 
 Settled for v1 unless explicitly revised. Numbers in parentheses reference the locked decision register in the approved session plan.
 
-1. **Commitments are NOT EAS attestations** (#14). Commitment records are module-native storage plus events, shaped by the Grassroots Economics commitment-pooling register grammar. This supersedes Document A and the original PRD-649/650 "commitment schema + FulfillmentConfirmation resolver" language. EAS registrations shrink to exactly two: assessment v3 and community testimony.
+1. **Commitments are NOT EAS attestations** (register #14). Commitment records are module-native storage plus events, shaped by the Grassroots Economics commitment-pooling register grammar. This supersedes Document A and the original PRD-649/650 "commitment schema + FulfillmentConfirmation resolver" language. EAS registrations shrink to exactly two: assessment v3 and community testimony.
 2. **Module-event-driven lifecycle because EAS is not indexed.** Envio indexes only Green Goods core contracts; EAS attestations are queried from easscan directly (`packages/indexer/schema.graphql:282-288`, `reports/corrections-log.md` §2 Envio boundary row). Every commitment state and all four locked stats must be derivable from `CommitmentPoolingModule` and `CommitmentRegister` events alone.
-3. **Hybrid state weight** (#6). Hard transitions on-chain: pool register/ready/open/pause/close/compost, cycle seed/open/close/compost/cancel, commitment create (offer/request), accept, approved-work count, ReadyForConfirmation, confirm to Fulfilled, cancel, expire, dispute raise/resolve, reward record. Draft states live in app IndexedDB; Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, and Reconciled are derived app/indexer-side from events. Full locked vocabulary is preserved across layers (section 5 table).
-4. **Two-contract shape** (#15, #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegister` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so transferable settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
-5. **EAS bridge** (#5). `WorkApprovalResolver.onAttest` calls `module.onWorkApproved(...)` in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Operator-callable `syncApprovedWork` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: claimant or operator links workUID to commitmentId before or after approval; the resolver hook only counts approvals for pre-linked workUIDs. Trust model: operator-curated linkage.
-6. **v3 authorship split** (#7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
-7. **Protocol pool = root garden pool** (#8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
-8. **Rewards are references, not custody** (#18). A commitment carries a declared reward (source address, token, amount), and acceptance stores the direction-aware provider recipient. On Fulfilled, the operator or protocol executes the payout on existing rails (jar, treasury) and records only a payout reference; `RewardPaid` derives/emits source, recipient, token, and amount from the commitment. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
-9. **Claim mode per commitment** (#19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
-10. **Lightweight evidence** (#20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and OperatorCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
-11. **Schema registration is the first PR chain of the August track** (#26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`).
+3. **Hybrid state weight** (register #6). Hard transitions on-chain: pool register/ready/open/pause/close/compost, cycle seed/open/close/compost/cancel, commitment create (offer/request), accept, approved-work count, ReadyForConfirmation, confirm to Fulfilled, cancel, expire, dispute raise/resolve, reward record. Draft states live in app IndexedDB; Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, and Reconciled are derived app/indexer-side from events. Full locked vocabulary is preserved across layers (section 5 table).
+4. **Two-contract shape** (register #15, register #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegister` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so transferable settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
+5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkApproved(...)` in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Operator-callable `syncApprovedWork` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: claimant or operator links workUID to commitmentId before or after approval; the resolver hook only counts approvals for pre-linked workUIDs. Trust model: operator-curated linkage.
+6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
+7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
+8. **Rewards are references, not custody** (register #18). A commitment carries a declared reward (source address, token, amount), and acceptance stores the direction-aware provider recipient. On Fulfilled, the operator or protocol executes the payout on existing rails (jar, treasury) and records only a payout reference; `RewardPaid` derives/emits source, recipient, token, and amount from the commitment. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
+9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
+10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and OperatorCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
+11. **Schema registration is the first PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`).
 12. **Allocation classes on-chain as bps at cycle open**. Six-role bps snapshot (gardeners, treasury, operator, evaluator, community, funder) validated to sum exactly 10000 (precedent: `InvalidSplitRatio`, `packages/contracts/src/resolvers/Yield.sol:107,373`), emitted in `CycleOpened`. Per-address allowlist expansion stays app-computed on the existing merkle pipeline (`reports/corrections-log.md` §2 Hypercert row).
 13. **Post-MVP garden-to-garden is reserved, not implemented**. `counterpartyPoolId` and `counterpartyGardenAccount` exist as reserved struct fields (always zero in MVP) so the L3 amendment is additive.
 14. **Anti-farming posture from day one**: direction-aware independent confirmation (Offer recipient; Request creator), provider self-confirmation blocked on both ordinary and steward-fallback paths (mirrors `SelfAttestation`, `packages/contracts/src/resolvers/WorkApproval.sol:153-156`), operator fallback requires a visible reason, exposure caps in the register, and disputes restore an explicitly stored prior state.
@@ -89,7 +89,7 @@ Module wiring follows the hub-and-spoke pattern: GardenToken holds the module ad
 
 ## 5. State Machines: On-Chain Functions vs Derived States
 
-Locked vocabulary from the lifecycle doc is preserved in full. "On-chain" means a named module function performs the transition and emits the listed event. "Derived" means app/indexer computes the state from the listed events; the chain never stores it. Draft states exist only as IndexedDB drafts in the app (decision #6).
+Locked vocabulary from the lifecycle doc is preserved in full. "On-chain" means a named module function performs the transition and emits the listed event. "Derived" means app/indexer computes the state from the listed events; the chain never stores it. Draft states exist only as IndexedDB drafts in the app (register #6).
 
 ### 5.1 Pool
 
@@ -112,8 +112,8 @@ On-chain enum: `CycleState { None, Seeded, Open, Reconciled, Composted, Cancelle
 | Transition | Layer | Mechanism |
 |---|---|---|
 | Draft (exists) | off-chain | Admin IndexedDB draft. No chain state, no event. |
-| Draft -> Seeded | on-chain | `seedCycle(poolId, cycleType, startTime, endTime, metadataCID, allocation)`. Event `CycleSeeded`. |
-| Seeded -> Open | on-chain | `openCycle(cycleId)`. Event `CycleOpened` carries the six allocation-class bps (sum == 10000 validated at seed). |
+| Draft -> Seeded | on-chain | `seedCycle(poolId, cycleType, startTime, endTime, metadataCID)`. Event `CycleSeeded`. No allocation is stored yet. |
+| Seeded -> Open | on-chain | `openCycle(cycleId, allocation)`. The six allocation-class bps must sum to 10000; the call stores the immutable snapshot and emits it in `CycleOpened`. |
 | Open -> InProgress | derived | Indexer/app: cycle is Open on-chain AND (first `CommitmentAccepted` with this cycleId OR block time >= startTime). |
 | InProgress -> Reviewing | derived | Indexer/app: cycle Open on-chain AND block time > endTime, OR all cycle commitments in terminal or ReadyForConfirmation states. |
 | Reviewing <-> InProgress | derived | New `EvidenceAttached` / `WorkLinked` / `ApprovedWorkCounted` on a cycle commitment while still Open on-chain flips back. |
@@ -170,7 +170,7 @@ One UUPS module that owns the whole commitment-pooling control plane: durable po
 
 - `UUPSUpgradeable + OwnableUpgradeable + ReentrancyGuardUpgradeable`, `_disableInitializers()` constructor, initializer with owner transfer: template `packages/contracts/src/modules/CookieJar.sol:17-115`.
 - `onlyGardenToken`-style authorized-caller modifier for the mint callback: `packages/contracts/src/modules/CookieJar.sol:65-68`.
-- Steward gate `_requirePoolSteward(poolId)` resolves `pools[poolId].garden` and applies `hatsModule.isOperatorOf || isOwnerOf`, falling back to module owner: copy of `_requireOperator` in `packages/contracts/src/modules/Hypercerts.sol:282-287`. For the protocol pool this resolves to root-garden Hats, so the protocol team stewards it by wearing root-garden Operator hats (decision #7).
+- Steward gate `_requirePoolSteward(poolId)` resolves `pools[poolId].garden` and applies `hatsModule.isOperatorOf || isOwnerOf`, falling back to module owner: copy of `_requireOperator` in `packages/contracts/src/modules/Hypercerts.sol:282-287`. For the protocol pool this resolves to root-garden Hats, so the protocol team stewards it by wearing root-garden Operator hats (register #7).
 - Graceful mint integration: GardenToken wraps `onGardenMinted` in try/catch (`packages/contracts/src/tokens/Garden.sol:421-430` pattern); the module itself is idempotent like `packages/contracts/src/modules/CookieJar.sol:138-141`.
 
 #### Storage layout (slot accounting)
@@ -275,7 +275,7 @@ interface ICommitmentPoolingModule {
         AllocationBps allocation;  // snapshot emitted in CycleOpened
     }
 
-    /// @notice Declared reward is a reference, never custody (decision #18).
+    /// @notice Declared reward is a reference, never custody (register #18).
     struct DeclaredReward {
         address source; // cookie jar or treasury address; informational
         address token;
@@ -368,7 +368,7 @@ interface ICommitmentPoolingModule {
         uint64 endTime,
         string metadataCID
     );
-    /// @notice Allocation-class bps ride in the open event (decision #12).
+    /// @notice Allocation-class bps ride in the open event (register #12).
     event CycleOpened(
         uint256 indexed cycleId,
         uint256 indexed poolId,
@@ -440,7 +440,7 @@ interface ICommitmentPoolingModule {
         uint256 approvedUnits,
         uint256 newlyApprovedUnits
     );
-    /// @notice Lightweight evidence (decision #20); offline-queueable write.
+    /// @notice Lightweight evidence (register #20); offline-queueable write.
     event EvidenceAttached(uint256 indexed commitmentId, string cid, address indexed attacher);
     event AssessmentAttached(uint256 indexed commitmentId, bytes32 indexed assessmentUID, address attacher);
     event CommitmentReadyForConfirmation(uint256 indexed commitmentId, bool overridden, string reason);
@@ -459,7 +459,7 @@ interface ICommitmentPoolingModule {
         CommitmentState finalState,
         string reasonCID
     );
-    /// @notice Payout executed on existing rails and recorded here (decision #18).
+    /// @notice Payout executed on existing rails and recorded here (register #18).
     event RewardPaid(
         uint256 indexed commitmentId,
         address indexed source,
@@ -547,16 +547,16 @@ interface ICommitmentPoolingModule {
     // ══════════════════════ Cycle lifecycle ══════════════════════════
 
     /// @notice Gating: pool steward. Pool must be Ready or Open to seed;
-    ///         Open to open a cycle. Allocation bps must sum to 10_000.
+    ///         Open to open a cycle. The allocation is supplied atomically at
+    ///         open and must sum to 10_000.
     function seedCycle(
         uint256 poolId,
         CycleType cycleType,
         uint64 startTime,
         uint64 endTime,
-        string calldata metadataCID,
-        AllocationBps calldata allocation
+        string calldata metadataCID
     ) external returns (uint256 cycleId);
-    function openCycle(uint256 cycleId) external;
+    function openCycle(uint256 cycleId, AllocationBps calldata allocation) external;
     function closeCycle(uint256 cycleId) external;
     function compostCycle(uint256 cycleId) external;
     function cancelCycle(uint256 cycleId, string calldata reasonCID) external;
@@ -580,7 +580,7 @@ interface ICommitmentPoolingModule {
     function setDeclaredReward(uint256 commitmentId, DeclaredReward calldata reward) external;
     function setConfirmerRule(uint256 commitmentId, address[] calldata confirmers, uint32 threshold) external;
 
-    /// @notice Claim eligibility (decision #7, #8):
+    /// @notice Claim eligibility (register #7, register #8):
     ///         Garden pools: caller must hold any role hat in the pool garden
     ///         (gardenContext must equal the pool garden).
     ///         Runtime kind must equal the immutable creation-time claimType.
@@ -604,7 +604,7 @@ interface ICommitmentPoolingModule {
     ///         is possible and emits ClaimDeclined for the audit trail.
     function declineClaim(uint256 commitmentId, address claimant, string calldata reasonCID) external;
 
-    // ─────────────── Work linkage + EAS bridge (decision #5) ─────────
+    // ─────────────── Work linkage + EAS bridge (register #5) ─────────
 
     /// @notice Link a Work attestation to a commitment before or after its
     ///         approval. Verifies via eas.getAttestation: schema == workSchemaUID,
@@ -730,8 +730,8 @@ Consolidated view of every mutating entry point across both contracts plus the t
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider exposure cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume |
-| Cycle | `seedCycle` | steward | pool Ready or Open; bps sum == 10_000; valid time window |
-| Cycle | `openCycle` | steward | pool Open; cycle Seeded; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
+| Cycle | `seedCycle` | steward | pool Ready or Open; valid time window; allocation is not accepted or stored |
+| Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation bps sum == 10_000 and become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + OperatorCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; OperatorCaptured must set `onBehalfOf`; domains unique/max 4; every action exists/matches domain; DomainImpact requires 1–4 actions with a non-zero `requiredApprovedWorkCounts[i]` per action; SupportService/OperatorCaptured/SeasonCampaign may explicitly use evidence-only (empty or all-zero counts) |
@@ -789,7 +789,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 #### Acceptance criteria
 
 - Every transition in the section 5 tables has exactly one emitting function or a documented derivation; no silent state changes.
-- `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol` covers pool/cycle invariants (including cross-pool/terminal-cycle rejection), one open Season plus concurrent Campaigns, baseline/exposure-cap readiness, mandatory pause reason, domains/actions including UID `0`, DomainImpact non-zero approval count, assessment gating on every non-override Ready path, claim-type mismatch, canonical Garden claimant versus `requestedBy`, direction-aware provider/counterparty resolution, provider exclusion, exact cancel/expiry/dispute unit effects, provider-account unit mutations, derived reward facts, provider-garden Work/assessment validation, and sync dedupe.
+- `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol` covers pool/cycle invariants (including cross-pool/terminal-cycle rejection), one open Season plus concurrent Campaigns, charter/exposure-cap onchain readiness, allocation validation and locking at `openCycle`, mandatory pause reason, domains/actions including UID `0`, DomainImpact per-action non-zero approval counts, assessment gating on every non-override Ready path, claim-type mismatch, canonical Garden claimant versus `requestedBy`, direction-aware provider/counterparty resolution, provider exclusion, exact cancel/expiry/dispute unit effects, provider-account unit mutations, derived reward facts, provider-garden Work/assessment validation, and sync dedupe. App/shared tests cover the additional current non-revoked Baseline preflight before offering `markPoolReady`.
 - Storage layout test asserts 23 named entries + 27 gap (pattern: `packages/contracts/test/StorageLayout.t.sol`), and `script/check-storage-layout.sh` gains a `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry (list at `packages/contracts/script/check-storage-layout.sh:23-33`).
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
 
@@ -797,7 +797,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 
 #### Objective
 
-A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment classes, committed/fulfilled balances per account, quotas, and exposure caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface of any kind; balances move only through module calls. This is the voucher-shaped substrate (register #15, #16) that transferable settlement vouchers later wrap 1:1 on the same poolId.
+A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment classes, committed/fulfilled balances per account, quotas, and exposure caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface of any kind; balances move only through module calls. This is the voucher-shaped substrate (register #15, register #16) that transferable settlement vouchers later wrap 1:1 on the same poolId.
 
 #### Grassroots Economics grounding (clean-room, register #17)
 
@@ -940,7 +940,7 @@ GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d
 
 Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): `gardenToken.setCommitmentPoolingModule(module)`, then `registerPool(rootGarden, Protocol)` by the module owner, then `registerPool(garden, Garden)` backfill for the 13 live gardens (steward or module owner per call).
 
-### 6.4 EAS schema work: exactly two registrations (decision #14)
+### 6.4 EAS schema work: exactly two registrations (register #14)
 
 No commitment schema exists or will exist. The two registrations are assessment v3 and community testimony. Both non-revocable, matching every existing Green Goods schema (`packages/contracts/config/schemas.json` `"revocable": false`; resolvers return false from `onRevoke`, e.g. `packages/contracts/src/resolvers/Assessment.sol:173-176`). Note the GreenWill badge schema is revocable (`packages/contracts/script/DeployBadgeSchema.s.sol:23`); ours deliberately are not.
 
@@ -1033,7 +1033,7 @@ For both implementations: constructor calls `_disableInitializers`; `initialize`
 
 1. Schema UID check (zero-bypass).
 2. Decode v3 tuple.
-3. IDENTITY by kind (decision #7): Baseline requires `accessControl.isEvaluator || accessControl.isOperator` (exact parity with today's `packages/contracts/src/resolvers/Assessment.sol:114-121`, preserving operator analog capture); Delta and Technical require `accessControl.isEvaluator` only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:25`).
+3. IDENTITY by kind (register #7): Baseline requires `accessControl.isEvaluator || accessControl.isOperator` (exact parity with today's `packages/contracts/src/resolvers/Assessment.sol:114-121`, preserving operator analog capture); Delta and Technical require `accessControl.isEvaluator` only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:25`).
 4. REQUIRED FIELDS: title, assessmentConfigCID non-empty; domain <= 3 (`Assessment.sol:124-136` parity).
 5. KIND VALIDATION: assessmentKind <= 2; Delta requires baselineUID != 0 and `_eas.getAttestation(baselineUID)` returning an attestation whose schema is the v2 or v3 UID and whose recipient equals `attestation.recipient`; Baseline/Technical require baselineUID == 0.
 6. GAP INTEGRATION: same optional KarmaGAP milestone try/catch as v2 (`Assessment.sol:138-141,150-167`), reusing `createMilestone`.
@@ -1050,7 +1050,7 @@ Storage: `karmaGAPModule`, `schemaUID`, `legacySchemaUID` (v2 UID for baseline c
 
 Storage: `schemaUID`, `commitmentModule` = 2 used slots, `uint256[48] __gap` (matches `Assessment.sol:39-44` accounting style).
 
-#### 6.4.4 Registration path (standalone, decision #26; first PR chain of the August track)
+#### 6.4.4 Registration path (standalone, register #26; first PR chain of the August track)
 
 Never use `--update-schemas`: that mode reloads the three legacy resolvers and re-registers ALL legacy schemas, overwriting every schema artifact key (`packages/contracts/script/Deploy.s.sol:122-151`, `_registerSchemas` at `packages/contracts/test/helpers/DeploymentBase.sol:955-990`). Additive registration goes through the badge-schemas standalone precedent instead:
 
@@ -1068,7 +1068,7 @@ Never use `--update-schemas`: that mode reloads the three legacy resolvers and r
 - `bun run --filter @green-goods/contracts test:match -- test/unit/AssessmentV3Resolver.t.sol` covers baseline by operator (passes), delta by operator (reverts), invalid kind/domain, forbidden/missing/foreign baselineUID, setter events, zero-bypass deployment window, initializer lock, and owner-only upgrade/configuration.
 - `bun run --filter @green-goods/contracts test:match -- test/unit/CommunityTestimonyResolver.t.sol` covers testimony by non-community, empty testimony, commitmentId pointing at another garden's pool when the module is wired, module-zero bypass, setter events, initializer lock, and owner-only upgrade/configuration.
 - Sepolia registration precedes Arbitrum (release-age gate posture of `assertSepoliaGate`, `packages/contracts/script/deploy/badge-schemas.ts:77-81`).
-- Registered before cycle 1 opens so baselines exist for seeding (decision #26).
+- Registered before cycle 1 opens so baselines exist for seeding (register #26).
 
 ### 6.5 WorkApprovalResolver bridge (upgrade)
 
@@ -1090,7 +1090,7 @@ if (schema.approved && address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (decision #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: claimant or steward calls `linkWork(commitmentId, workUID)` before or after the approval. The resolver hook matches by workUID: the module looks up `workCommitment[workUID]`; if zero it returns without effect. Approvals landing before linkage are recovered by steward-called `syncApprovedWork(commitmentId, approvalUIDs)`, which verifies each approval on EAS and dedupes via `approvalCounted`.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: claimant or steward calls `linkWork(commitmentId, workUID)` before or after the approval. The resolver hook matches by workUID: the module looks up `workCommitment[workUID]`; if zero it returns without effect. Approvals landing before linkage are recovered by steward-called `syncApprovedWork(commitmentId, approvalUIDs)`, which verifies each approval on EAS and dedupes via `approvalCounted`.
 
 Trust model: linkage is operator-curated (steward and claimant are the only linkers), the resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
@@ -1528,7 +1528,7 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
 
 Each block below is shaped as a package-level implementation surface with acceptance criteria and validation hints. Historical PRD-671..681 child issue labels roll up to the parent trackers named in `plan.todo.md`; do not create or update child Linear issues unless Afo explicitly expands the Linear footprint. Feature dependency order is contracts -> indexer/shared (coordinated after the event freeze; shared GREEN waits for generated queries) -> client/admin/docs.
 
-### `packages/contracts` PR chain 1: schemas and resolvers (FIRST, decision #26)
+### `packages/contracts` PR chain 1: schemas and resolvers (FIRST, register #26)
 
 Deliverables: `AssessmentV3Schema` + `CommunityTestimonySchema` structs in `src/Schemas.sol`; `src/resolvers/AssessmentV3.sol` + `src/resolvers/CommunityTestimony.sol`; `config/schemas.json` keys `assessmentV3` + `communityTestimony`; `script/DeployCommitmentSchemas.s.sol` + `script/deploy/commitment-schemas.ts` + deploy CLI wiring; validate-script extensions; resolver unit tests; storage-layout entries + baselines.
 
@@ -1560,32 +1560,32 @@ Acceptance: hooks exported from the barrel only; the five offline pool job kinds
 
 ### `packages/admin`
 
-Deliverables (full flows in `uiux-spec.md`; contract touchpoints listed here): steward seeding console (createCommitment with confirmer rule + declared reward + claim mode), cycle management across 5.2, claims queue (`acceptClaim`), analog capture (OperatorCaptured via `onBehalfOf`, extending the `SubmitWork` on-behalf precedent), per-cycle assessment creation against the v3 schema, allocation preset picker at cycle open, dispute handling, `RewardPaid` recording. Garden workspace + new Pools workspace per decision #10.
+Deliverables (full flows in `uiux-spec.md`; contract touchpoints listed here): steward seeding console (createCommitment with confirmer rule + declared reward + claim mode), cycle management across 5.2, claims queue (`acceptClaim`), analog capture (OperatorCaptured via `onBehalfOf`, extending the `SubmitWork` on-behalf precedent), per-cycle assessment creation against the v3 schema, allocation preset picker at cycle open, dispute handling, `RewardPaid` recording. Garden workspace + new Pools workspace per register #10.
 
 Acceptance: every module write goes through shared mutation hooks; no direct contract calls in views; admin remains restrained (no hero moments).
 
 ### `packages/client`
 
-Deliverables (full flows in `uiux-spec.md`): offer/request creation, browse/claim, work linkage through the existing MDR flow, evidence capture, counterparty confirmation, commitment + cycle views in the Garden tab; personal commitments + pending-confirmations panel on the Profile wallet surface; settlement reward status + G$ send affordance per `settlement-spec.md`; Fulfilled and cycle-close hero moments (decision #27, client only). The five August offline job kinds cover field actions where applicable; G$ send is an explicit online wallet action on Celo.
+Deliverables (full flows in `uiux-spec.md`): offer/request creation, browse/claim, work linkage through the existing MDR flow, evidence capture, counterparty confirmation, commitment + cycle views in the Garden tab; personal commitments + pending-confirmations panel on the Profile wallet surface; settlement reward status + G$ send affordance per `settlement-spec.md`; Fulfilled and cycle-close hero moments (register #27, client only). The five August offline job kinds cover field actions where applicable; G$ send is an explicit online wallet action on Celo.
 
 Acceptance: offline queue proof for each field action; mutual-aid copy only (banned-vocab lint passes).
 
 ### Editorial website (client public routes)
 
-Deliverables: `/gardens/:id` GardenDialog pool view, cycle progress, promises-kept stats; `/impact` protocol-wide pool aggregates. Read-only, aggregate-only, no new routes (decision #21).
+Deliverables: `/gardens/:id` GardenDialog pool view, cycle progress, promises-kept stats; `/impact` protocol-wide pool aggregates. Read-only, aggregate-only, no new routes (register #21).
 
 Acceptance: renders exclusively from indexer aggregates; no per-person listings; small-community sensitivity respected (readiness copy before live numbers).
 
-## 11. Launch Milestones
+## 11. Native Phases and Operational Checkpoints
 
-### Milestone 1: July dry run (no code)
+### Native phase 1: Scope and Design — closes 2026-07-22
 
-Goal: run the commitment loop socially on existing rails while the build proceeds.
-Exit criteria: methodology + scoping surveys complete (mandate artifact per garden); activations recorded; rewards flowing through existing Cookie Jar/treasury paths; zero contract dependencies.
+Goal: finish the audit reconciliation with one authoritative interface, lifecycle, dispatch, release, and evidence model.
+Exit criteria: specs, handoffs, acceptance sources, machine state, and generated planning artifacts agree or name an explicit external blocker.
 
-### Milestone 2: August release (the hard commitment)
+### Native phase 2: Build — closes 2026-07-31
 
-Goal: pools, cycles, commitments, confirmations, aggregates, commitment-bundled Hypercerts, and the first operator-executed G$ settlement leg live with proof on Arbitrum One plus the Celo value leg.
+Goal: implement and verify the scoped product lanes during the remaining July build window, then broadcast the non-value pooling/register/schema tier by July 31 only after its narrower evidence gate and explicit human authorization pass. Build completion alone is not authorization or a public-live claim.
 Exit criteria, in dependency order:
 
 1. Schemas registered on Sepolia + Arbitrum with resolvers live (PR chain 1); baselines attestable before cycle 1 opens.
@@ -1593,18 +1593,33 @@ Exit criteria, in dependency order:
 3. GardenToken + WorkApprovalResolver upgraded on 42161; protocol pool + 13 garden pools registered (PR chain 3).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, hooks, five offline queue job kinds plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
-6. First real cycle seeded and opened with an allocation preset; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; first G$ reward derived from a Fulfilled commitment, executed from the registered garden Celo Safe, reported, independently verified against the Celo receipt, and visible as “support arrived” in the PWA reward row.
+6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, reward, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
 
-### Milestone 3: September community interface
+### Native phase 3: Release — 2026-08-12
 
-Goal: `packages/community` PWA (view/signal/confirm-when-named) consuming the same shared substrate.
-Exit criteria: contract layer requires zero changes for it (view + confirm paths already exist in this spec); community testimony attestable from the new surface.
+Goal: release the user-facing pooling flow, preserve the July non-value deployment proof, and complete one bounded production proof. The fixed date does not waive the value-tier gates or human authorization in `handoffs/human-release-ops.md`.
+Exit criteria: user-facing release authorization; persisted July deployment and post-deploy evidence; first real cycle opened; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; and, only if every value-tier gate passes, one G$ reward executed from the registered garden Celo Safe, reported, independently verified against the finalized receipt, and visible as “support arrived.” A blocked settlement leg remains blocked rather than weakening Release evidence.
+
+### Native phase 4: Follow On / Hardening — 2026-09-30
+
+Goal: use pilot evidence to harden accepted paths and make explicit promote/defer decisions in parallel with the separately labeled September Community and settlement-evidence checkpoint.
+Exit criteria: evidence-backed decisions only. This date authorizes no follow-on implementation, transferable voucher, credit, bridge-executor, or custody expansion.
+
+### Operational checkpoint: July dry run — 2026-07-31
+
+Goal: run the commitment loop socially on existing rails while the Build phase completes.
+Exit criteria: methodology + scoping surveys complete (mandate artifact per garden); activations recorded; rewards flowing through existing Cookie Jar/treasury paths; zero contract dependencies.
+
+### Operational checkpoint: Community and settlement evidence — 2026-09-30
+
+Goal: deliver the independent `packages/community` PWA evidence package and the separately governed settlement-evidence packet.
+Exit criteria: Community view/signal/confirm paths work without contract changes; testimony is available only on the September Community surface; settlement data sources, privacy boundary, thresholds, and reporting proof meet the human-owned evidence definition.
 
 ## 12. Risks and Open Questions
 
 Carried verbatim from the session-plan skeleton (1-6), plus findings from this pass (7-12). Items marked DO-NOT-SILENTLY-FIX must be logged or decided, never patched in passing.
 
-1. **On-chain vs derived state weight.** The module carries more transition logic than the repo's thin-module convention (modules today mostly wire external protocols). Decision #6 accepts this deliberately; reviewers should challenge any FURTHER on-chain state before it lands, not the tabled set.
+1. **On-chain vs derived state weight.** The module carries more transition logic than the repo's thin-module convention (modules today mostly wire external protocols). Decision register #6 accepts this deliberately; reviewers should challenge any FURTHER on-chain state before it lands, not the tabled set.
 2. **EAS -> module bridge coupling.** The resolver -> module hook has GAP precedent (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`) but couples the approval path (criticality: critical) to a new module. Mitigations specced: optional address, try/catch, never-revert no-op semantics, sync fallback, mock-revert test. The bridge and trust model are named in 6.5; any change to linkage authority is a spec change.
 3. **Schema key versioning.** `assessmentV3*` keys sit beside untouched `assessment*` (v2) keys. Consumers must select by key, never by "latest". A future v4 repeats the pattern; nothing may ever rewrite an existing key (the `--update-schemas` overwrite hazard, `packages/contracts/script/Deploy.s.sol:122-151`).
 4. **Storage-layout script drift** (DO-NOT-SILENTLY-FIX). `script/check-storage-layout.sh:23-33` never gained CookieJarModule, HypercertsModule, GardensModule, OctantModule, YieldResolver, or UnifiedPowerRegistry. This spec adds ONLY its own two contracts plus touches to already-listed GardenToken/WorkApprovalResolver; the missing-module backfill is separate debt (log to the docs-freshness/debt Linear issue).
@@ -1612,11 +1627,11 @@ Carried verbatim from the session-plan skeleton (1-6), plus findings from this p
 6. **Testimony "never averaged" is off-chain law only.** The schema deliberately has no score field, but nothing on-chain stops a future consumer from scoring testimony. Enforcement lives in indexer/app review (no aggregation of testimony into numbers) and the banned-vocab/design gates. Flag any PR that counts testimony.
 7. **StorageLayout.t.sol GardenToken drift** (DO-NOT-SILENTLY-FIX beyond the touched contract). Comments and gap tests describe a 7-named/43-gap layout (`packages/contracts/test/StorageLayout.t.sol:31-35,59-69`) while the source is 13 used + 37 gap (`packages/contracts/src/tokens/Garden.sol:56-62`); the gap tests are arithmetic tautologies (`expectedNamed + expectedGap == 50`). PR chain 3 corrects the GardenToken numbers it touches and must add real slot assertions for the new field; the tautology pattern across other contracts is logged debt.
 8. **Expiry timing with cycle fallback.** `expireCommitment` with `dueDate == 0` reads the cycle's endTime; commitments that are cycle-less AND dueDate-less can never expire (only cancel). Accepted for MVP; seeding UX should require one of the two.
-9. **Protocol-pool individual claims.** ClaimType.Individual accepts any role hat in any registered garden via a caller-supplied `gardenContext`. This is broad by design (protocol commitments are curated + default ApprovalGated per decision #19); if farming appears, tighten eligibility in the module without schema impact. Sarafu-precedent reclamation posture applies (suspend via pool pause, dispute, cancel).
+9. **Protocol-pool individual claims.** ClaimType.Individual accepts any role hat in any registered garden via a caller-supplied `gardenContext`. This is broad by design (protocol commitments are curated + default ApprovalGated per register #19); if farming appears, tighten eligibility in the module without schema impact. Sarafu-precedent reclamation posture applies (suspend via pool pause, dispute, cancel).
 10. **GraphQL `PoolType` collision.** Existing enum at `packages/indexer/schema.graphql:29-32` is kept for signal pools; all new enums are `Commitment*`-namespaced. Do not "clean up" the old enum in this workstream.
 11. **Partial fulfillment is out of MVP.** Units convert all-or-nothing at Fulfilled. If gardens need partial credit mid-cycle, that is a module v1.1 (`fulfillUnits` already takes a units argument, so the register is ready).
 12. **Register upgrade authority.** The register is UUPS-owned by the multisig while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 
 ---
 
-Build order restated for the August track: contracts (schemas -> module/register -> upgrades) -> indexer -> shared -> admin + client PWA + editorial in parallel -> September community interface. The July dry run needs none of it.
+Build order restated for the July Build and August 12 Release: contracts (schemas -> module/register -> upgrades) -> indexer -> shared -> admin + client PWA + editorial in parallel -> September community interface. The July dry run needs none of it.

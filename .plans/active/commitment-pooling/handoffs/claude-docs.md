@@ -7,7 +7,7 @@
 - Owner: Claude
 - Branch signal: claude/docs/commitment-pooling
 - Current state: follow status.json; architecture/glossary work is independent of product implementation
-- Linear context: PRD-650 parent-only mirror
+- Linear context: PRD-727 (docs lane) under parent PRD-650
 
 ## Inputs
 
@@ -19,7 +19,7 @@
 
 - Architecture, glossary, data-boundary, and settlement documentation aligned to the frozen specs.
 - Explicit built, planned, reported, oracle-verified, and evidence-gated labels.
-- Links to parent-only roadmap records without dispatching historical child issues.
+- Links to the lane issue and parent roadmap records without dispatching historical child issues.
 - Updated anchors and validated docs build.
 
 ## Acceptance
