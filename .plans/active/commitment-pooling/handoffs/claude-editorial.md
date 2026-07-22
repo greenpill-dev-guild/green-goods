@@ -13,7 +13,7 @@
 
 - GREEN aggregate/query selectors with privacy thresholds
 - uiux-spec.md editorial contract and W15/W16
-- external-communications.md claims guardrails
+- the canonical [Commitment Pooling Google Doc](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit) for external language; `external-brief.md` for the repo source map
 - acceptance-matrix.md §3 public claims matrix
 - Existing public GardenDialog and /impact composition
 

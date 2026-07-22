@@ -2,7 +2,7 @@
 // real Green Goods component (noted per function). Screens compose these and
 // wrap journey-relevant controls with hot(id, …) from html.ts.
 
-import { esc } from "./html";
+import { esc, escAttr, hot } from "./html";
 import { icon } from "./icons";
 
 // ---- device chrome ----------------------------------------------------------
@@ -18,13 +18,21 @@ ${body}
 
 // Screen header — client views hand-render h1 (.title-screen grammar).
 export function hdr(title: string, opts: { back?: boolean; trailing?: string } = {}): string {
-  return `<div class="hdr">${opts.back ? `<button type="button" class="hback" aria-label="Back">${icon("arrow-left-line", "l")}</button>` : ""}<h1>${esc(title)}</h1>${opts.trailing ? `<span class="hx">${opts.trailing}</span>` : ""}</div>`;
+  return `<div class="hdr">${opts.back ? `<button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button>` : ""}<h1>${esc(title)}</h1>${opts.trailing ? `<span class="hx">${opts.trailing}</span>` : ""}</div>`;
 }
 
 // Garden detail tab row — the net-new 4th GardenTab "Pool" (uiux-spec §5.1).
-export function gardenTabs(active: "work" | "insights" | "gardeners" | "pool"): string {
+// With a hotPrefix, inactive tabs become inspectable hotspots (`${prefix}-work` …)
+// so every drawn control a user would tap is registered.
+export function gardenTabs(active: "work" | "insights" | "gardeners" | "pool", opts: { hotPrefix?: string } = {}): string {
   const tabs: [string, string][] = [["work", "Work"], ["insights", "Insights"], ["gardeners", "Gardeners"], ["pool", "Pool"]];
-  return `<div class="gtabs">${tabs.map(([id, l]) => `<button type="button" class="gtab${id === active ? " on" : ""}">${l}</button>`).join("")}</div>`;
+  return `<div class="gtabs" role="tablist" aria-label="Garden sections">${tabs
+    .map(([id, l]) => {
+      if (!opts.hotPrefix) return `<span class="gtab${id === active ? " on" : ""}"${id === active ? ' aria-current="true"' : ""}>${l}</span>`;
+      const button = `<button type="button" role="tab" aria-selected="${id === active}" class="gtab${id === active ? " on" : ""}">${l}</button>`;
+      return hot(`${opts.hotPrefix}-${id}`, button);
+    })
+    .join("")}</div>`;
 }
 
 // Bottom AppBar — packages/client/src/components/Layout/AppBar.tsx.
@@ -34,13 +42,13 @@ export function appBar(active: "home" | "garden" | "profile", opts: { badge?: nu
     ["garden", "Garden", "plant"],
     ["profile", "Profile", "user"],
   ];
-  return `<div class="abar">${tabs
+  return `<nav class="abar" aria-label="Primary">${tabs
     .map(([id, l, ic]) => {
       const on = id === active;
       const badge = id === "home" && opts.badge ? `<span class="badge num">${opts.badge}</span>` : "";
-      return `<button type="button" class="atab${on ? " on" : ""}">${badge}${icon(`${ic}-${on ? "fill" : "line"}`)}<span>${l}</span></button>`;
+      return `<span class="atab${on ? " on" : ""}"${on ? ' aria-current="page"' : ""}>${badge}${icon(`${ic}-${on ? "fill" : "line"}`)}<span>${l}</span></span>`;
     })
-    .join("")}</div>`;
+    .join("")}</nav>`;
 }
 
 // SyncStatusBar — queued/offline job strip above the AppBar.
@@ -70,15 +78,27 @@ export function chip(label: string, tone: ChipTone = "plain", opts: { dot?: bool
   return `<span class="ch${t}${opts.dot ? " dot" : ""}">${esc(label)}</span>`;
 }
 
-// Commitment lifecycle state → chip (UI states per uiux-spec §4.3).
+// StatusBadge (shared/components/StatusBadge.tsx) — icon + colour, never colour
+// alone (WCAG 1.4.1). Anatomy: rounded-full pill, 1px border, px-2 py-0.5, 11px
+// semibold, 12px icon, gap-1; tone = bg-lighter / text-dark / border-light.
+// Client-only (admin/settlement keep the flatter .ch chips).
+export type SbTone = "success" | "warning" | "error" | "info" | "neutral";
+export function statusBadge(label: string, tone: SbTone, iconName: string): string {
+  return `<span class="sbadge ${tone}">${icon(iconName, "s")}${esc(label)}</span>`;
+}
+
+// Commitment lifecycle state → StatusBadge (UI states per uiux-spec §4.3).
 export function stateChip(state: string): string {
-  const tones: Record<string, ChipTone> = {
-    Offered: "plain", Requested: "plain", Accepted: "request", Active: "request",
-    "Evidence in": "warn", "Partly approved": "warn", "Ready to confirm": "warn",
-    Fulfilled: "ok", Reconciled: "plain", Cancelled: "plain", Expired: "plain",
-    "Under review": "warn", Queued: "queued", Waiting: "queued",
+  const map: Record<string, [SbTone, string]> = {
+    Offered: ["neutral", "time-line"], Requested: ["neutral", "time-line"],
+    Accepted: ["info", "hand-heart-line"], Active: ["info", "leaf-line"],
+    "Evidence in": ["warning", "image-line"], "Partly approved": ["warning", "time-line"],
+    "Ready to confirm": ["warning", "time-line"], Fulfilled: ["success", "checkbox-circle-fill"],
+    Reconciled: ["neutral", "seedling-line"], Cancelled: ["neutral", "close-line"], Expired: ["neutral", "time-line"],
+    "Under review": ["warning", "error-warning-line"], Queued: ["neutral", "time-line"], Waiting: ["neutral", "time-line"],
   };
-  return chip(state, tones[state] ?? "plain", { dot: true });
+  const [tone, ic] = map[state] ?? ["neutral", "time-line"];
+  return statusBadge(state, tone, ic);
 }
 
 export function btn(
@@ -110,7 +130,7 @@ export function listRow(opts: { icon?: string; primary: string; meta?: string; c
 }
 
 export function seg(items: string[], activeIx: number): string {
-  return `<div class="seg">${items.map((l, i) => `<button type="button" class="sg${i === activeIx ? " on" : ""}">${esc(l)}</button>`).join("")}</div>`;
+  return `<div class="seg" role="group" aria-label="Current filter">${items.map((l, i) => `<span class="sg${i === activeIx ? " on" : ""}"${i === activeIx ? ' aria-current="true"' : ""}>${esc(l)}</span>`).join("")}</div>`;
 }
 
 export function kv(k: string, v: string): string {
@@ -123,29 +143,76 @@ export function sectionTitle(t: string, trailing = ""): string {
 
 // ---- forms (W3 / sheets) ----------------------------------------------------
 
+let fieldSeq = 0;
+let radioSeq = 0;
+
 export function field(label: string, control: string): string {
-  return `<div class="fld"><span class="fl">${esc(label)}</span>${control}</div>`;
+  const labelId = `f${++fieldSeq}`;
+  const nativeCount = control.match(/<(?:input|select)\b/g)?.length ?? 0;
+  if (control.includes('class="radio"') || nativeCount !== 1) {
+    const grouped = control.includes('class="radio"')
+      ? control
+      : control.replace(/<(input|select)\b/g, `<$1 aria-labelledby="${labelId}"`);
+    return `<fieldset class="fld"><legend class="fl" id="${labelId}">${esc(label)}</legend>${grouped}</fieldset>`;
+  }
+  const controlId = `${labelId}c`;
+  const linked = control.replace(/<(input|select)\b/, `<$1 id="${controlId}"`);
+  return `<div class="fld"><label class="fl" for="${controlId}">${esc(label)}</label>${linked}</div>`;
 }
 
-export function input(value: string, opts: { placeholder?: boolean; select?: boolean; icon?: string } = {}): string {
-  return `<div class="inp${opts.select ? " sel" : ""}">${opts.icon ? icon(opts.icon, "s") : ""}<span${opts.placeholder ? ' class="ph"' : ""}>${esc(value)}</span></div>`;
+export function input(value: string, opts: { placeholder?: boolean; select?: boolean; icon?: string; ariaLabel?: string; labelledBy?: string } = {}): string {
+  const naming = opts.labelledBy
+    ? ` aria-labelledby="${escAttr(opts.labelledBy)}"`
+    : opts.ariaLabel
+      ? ` aria-label="${escAttr(opts.ariaLabel)}"`
+      : "";
+  const control = opts.select
+    ? `<select${naming} disabled><option>${esc(value)}</option></select>`
+    : `<input type="text"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ` value="${escAttr(value)}"`} readonly>`;
+  return `<span class="inp${opts.select ? " sel" : ""}">${opts.icon ? icon(opts.icon, "s") : ""}${control}</span>`;
 }
 
-export function radio(options: { label: string; meta?: string; on?: boolean }[]): string {
+export function radio(
+  options: { label: string; meta?: string; on?: boolean }[],
+  opts: { interactive?: boolean; name?: string } = {},
+): string {
+  const name = escAttr(opts.name ?? options.map((o) => o.label).join("-").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 36));
   return `<div class="radio">${options
-    .map((o) => `<div class="ro${o.on ? " on" : ""}"><span class="rdot"></span><div><div class="rl">${esc(o.label)}</div>${o.meta ? `<div class="rm">${esc(o.meta)}</div>` : ""}</div></div>`)
+    .map((o) => {
+      const optionId = `r${++radioSeq}`;
+      const dot = opts.interactive
+        ? `<input class="rdot" id="${optionId}" type="radio" name="${name}"${o.on ? " checked" : ""}>`
+        : `<span class="rdot" aria-hidden="true"></span>`;
+      return `<label class="ro${!opts.interactive && o.on ? " on" : ""}"${opts.interactive ? ` for="${optionId}"` : ""}>${dot}<span><span class="rl">${esc(o.label)}</span>${o.meta ? `<span class="rm">${esc(o.meta)}</span>` : ""}</span></label>`;
+    })
     .join("")}</div>`;
 }
 
 export function stepDots(n: number, current: number): string {
-  return `<div class="stepdots">${Array.from({ length: n }, (_, i) => `<i class="${i < current ? "done" : i === current ? "on" : ""}"></i>`).join("")}</div>`;
+  return `<div class="stepdots" role="img" aria-label="Step ${current + 1} of ${n}">${Array.from({ length: n }, (_, i) => `<i aria-hidden="true" class="${i < current ? "done" : i === current ? "on" : ""}"></i>`).join("")}</div>`;
 }
 
 // ---- composition ------------------------------------------------------------
 
-// In-phone bottom sheet over dimmed context (DialogShell / PwaSheet grammar).
-export function sheetOver(behind: string, title: string, inner: string): string {
-  return `<div class="sheetstage"><div class="behind">${behind}</div><div class="scrimm"></div><div class="sheet"><div class="drag"></div><div class="sh-t">${esc(title)}</div>${inner}</div></div>`;
+// In-phone bottom sheet over dimmed context. Gesture sheets (PwaSheet) show the
+// tinted drag handle; tabbed drawers (ModalDrawer / WalletDrawer) pass
+// handle:false — they dismiss via chrome, not a drag pill.
+export function sheetOver(behind: string, title: string, inner: string, opts: { handle?: boolean } = {}): string {
+  const handle = opts.handle === false ? "" : `<div class="drag"></div>`;
+  return `<div class="sheetstage"><div class="behind">${behind}</div><div class="scrimm"></div><div class="sheet">${handle}<div class="sh-t">${esc(title)}</div>${inner}</div></div>`;
+}
+
+// Garden-detail header (views/Home/Garden/index.tsx): fixed image banner (h-36,
+// rounded-b-3xl) with an overlaid back control, then the garden name +
+// location/founded meta. The bottom AppBar is hidden here — this is the chrome.
+export function gardenHeader(name: string, meta: { location: string; founded: string }): string {
+  return `<div class="ghead"><div class="gbanner"><button type="button" class="gback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button></div><div class="gtitle"><h1 class="title-section">${esc(name)}</h1><div class="gmeta"><span class="gm">${icon("home-line", "s")}${esc(meta.location)}</span><span class="gsep">•</span><span class="gm">${icon("calendar-line", "s")}${esc(meta.founded)}</span></div></div></div>`;
+}
+
+// Home header (views/Home/index.tsx): h4 title + a trailing icon-button row
+// (filter / wallet / work). Distinct from garden-detail's banner header.
+export function homeHeader(): string {
+  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions"><button type="button" class="hh-ic" aria-label="Filter — preview only" disabled>${icon("search-line", "s")}</button><button type="button" class="hh-ic" aria-label="Wallet — preview only" disabled>${icon("wallet-line", "s")}</button><button type="button" class="hh-ic" aria-label="Work — preview only" disabled>${icon("plant-line", "s")}</button></div></div>`;
 }
 
 export function pagepad(...children: string[]): string {
@@ -158,4 +225,24 @@ export function disclosure(title: string, count: string, inner: string, opts: { 
 
 export function hero(title: string, msg: string, ic = "checkbox-circle-fill"): string {
   return `<div class="hero"><div class="halo">${icon(ic)}</div><div class="ht">${esc(title)}</div><div class="hm">${esc(msg)}</div></div>`;
+}
+
+// Skeleton placeholder — "loading preserves layout" (uiux-spec §12). Client-only:
+// mirrors a real card's shape (optional avatar/title) so nothing shifts on load.
+export function skeleton(opts: { title?: boolean; avatar?: boolean; lines?: number; cls?: string } = {}): string {
+  const widths = ["92%", "78%", "66%", "84%", "58%"];
+  const n = opts.lines ?? 3;
+  const head = opts.avatar
+    ? `<div class="skrow"><span class="skcircle"></span><div class="grow" style="display:flex;flex-direction:column;gap:8px"><div class="skbar t" style="width:64%"></div><div class="skbar sm" style="width:40%"></div></div></div>`
+    : opts.title
+      ? `<div class="skbar t" style="width:58%"></div>`
+      : "";
+  const bars = Array.from({ length: n }, (_, i) => `<div class="skbar${i === n - 1 ? " sm" : ""}" style="width:${widths[i % widths.length]}"></div>`).join("");
+  return `<div class="sk${opts.cls ? " " + opts.cls : ""}">${head}${bars}</div>`;
+}
+
+// Centered recovery/empty state — not-found, read-error, and empty (which must
+// "name the scope", uiux-spec §12). Caller passes pre-wrapped hotspot actions.
+export function emptyState(iconName: string, title: string, body: string, actions = ""): string {
+  return `<div class="empty"><span class="emptyIc">${icon(iconName, "l")}</span><div class="t-title">${esc(title)}</div><div class="t-meta">${esc(body)}</div>${actions ? `<div class="brow" style="justify-content:center;width:100%">${actions}</div>` : ""}</div>`;
 }

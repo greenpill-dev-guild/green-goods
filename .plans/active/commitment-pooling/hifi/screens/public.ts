@@ -6,10 +6,22 @@
 // distinct promisers, counts-only sentences below that (§7.2).
 
 import { hot } from "../html";
+import { icon } from "../icons";
 import type { HifiDef } from "./index";
 
-const webWin = (url: string, body: string) =>
-  `<div class="webwin"><div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${url}</span></div><div class="webbody">${body}</div></div>`;
+// SiteHeader (client/src/components/Navigation/SiteHeader.tsx): logo + nav
+// (Gardens · Impact · Fund · Actions) + Install CTA. Transparent over the hero
+// in the real app; these editorial sections sit below it.
+const NAV: [string, string][] = [["gardens", "Gardens"], ["impact", "Impact"], ["fund", "Fund"], ["actions", "Actions"]];
+const siteHeader = (active: string, installHot: string) =>
+  `<div class="sitehdr"><span class="brand">${icon("seedling-line", "s")}Green Goods</span><nav>${NAV.map(
+    ([id, l]) => `<a class="${id === active ? "on" : ""}">${l}</a>`,
+  ).join("")}</nav>${hot(installHot, `<button type="button" class="install">Install App</button>`)}</div>`;
+
+const webWin = (url: string, body: string, installHot: string) => {
+  const active = url.includes("/impact") ? "impact" : url.includes("/gardens") ? "gardens" : "";
+  return `<div class="webwin"><div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${url}</span></div>${siteHeader(active, installHot)}<div class="webbody">${body}</div></div>`;
+};
 
 // ---------------------------------------------------------------------------
 // W15 — garden pool story section (uiux-spec §7.1)
@@ -42,10 +54,11 @@ function w15(state: W15State): string {
 ${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">9 promises made, 7 kept so far — running through Aug 30.</p>`)}
 <p style="margin:0;max-width:52ch;color:var(--stone)">Fulfilled promises from this cycle are anchored in the certificates below.</p>`;
   }
-  return webWin("greengoods.app/gardens/rocinha", `${context}<div class="epanel">${panel}</div>${after}`);
+  return webWin("greengoods.app/gardens/rocinha", `${context}<div class="epanel">${panel}</div>${after}`, "w15.install");
 }
 
 const W15_HOTS: HifiDef["hots"] = {
+  "w15.install": { l: "Install App", info: "Opens the installed-PWA prompt from the public garden page." },
   "w15.counts": { l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers; below that, counts-only sentences (UX:350)." },
   "w15.rate": { l: "Kept rate", info: "Rendered only above the small-community threshold; cancelled and under-review promises never appear individually in public (UX:350)." },
 };
@@ -68,6 +81,7 @@ function w16(state: W16State): string {
 <h3 class="serif-h">From baseline to certificate</h3>
 ${hot("w16.pipeline", `<div class="pipe">${stages}</div>`)}
 <p style="margin:0;max-width:56ch;color:var(--stone)">Promise and Confirmation are the two new stages: work begins as a promise to someone, and the person it was made to confirms it was kept.</p>`,
+      "w16.install",
     );
   }
   return webWin(
@@ -79,10 +93,12 @@ ${hot("w16.pipeline", `<div class="pipe">${stages}</div>`)}
 <p style="margin:0;max-width:56ch">A promise is offered, taken up, worked, witnessed, and confirmed by the person it was made to.</p>
 ${hot("w16.see-gardens", `<button type="button" class="elink">See the gardens →</button>`)}
 </div>`,
+    "w16.install",
   );
 }
 
 const W16_HOTS: HifiDef["hots"] = {
+  "w16.install": { l: "Install App", info: "Opens the installed-PWA prompt from the public impact page." },
   "w16.see-gardens": { l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
   "w16.pipeline": { l: "Evidence pipeline delta", info: "PublicEvidencePipeline gains the Promise and Confirmation stages (UX:345)." },
 };

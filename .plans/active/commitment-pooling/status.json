@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-20"
+    "updated_at": "2026-07-21T08:23:14Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -23,7 +23,6 @@
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "acceptance_matrix": "acceptance-matrix.md",
-    "external_communications": "external-communications.md",
     "release_ops_handoff": "handoffs/human-release-ops.md",
     "linear_update_pack": "reports/linear/linear-update-pack.md",
     "plan": "plan.todo.md",
@@ -36,10 +35,10 @@
     "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
     "initiative": "Sustainability & Monetization + Impact Methodologies & Evaluator Flywheel",
     "milestones": {
-      "scope_and_design": "2026-07-20",
+      "scope_and_design": "2026-07-22",
       "build": "2026-07-31",
       "release": "2026-08-12",
-      "follow_on_hardening": "2026-12-31"
+      "follow_on_hardening": "2026-09-30"
     },
     "operationalCheckpoints": {
       "july_dry_run": "2026-07-31",
@@ -58,7 +57,7 @@
         "milestone": "build"
       }
     },
-    "lastSyncedAt": "2026-07-19",
+    "lastSyncedAt": "2026-07-21T02:47:35.278Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub.",
@@ -113,7 +112,10 @@
     "Canonical historical mapping (2026-07-20): PRD-701 resolves to COM-3 and RESR-62 resolves to COM-7. Preserve the old IDs only in frozen archives and dated history; active instructions use COM-3 and COM-7.",
     "Audit reconciliation (register #39, 2026-07-20): native phases are Scope and Design, Build, Release, and Follow On / Hardening; July dry run and September Community/settlement evidence are separate operational checkpoints. Execution sub-lane Linear metadata is first-class; agent labels are derived only for ready agent-owned lanes. Docs remains blocked until repository, live Linear, and canonical Google Doc sources converge.",
     "Phase-date correction (register #40, 2026-07-20): Scope and Design closes with the reconciliation on 2026-07-20, Build closes 2026-07-31, Release is 2026-08-12, and Follow On / Hardening remains 2026-12-31. The July 31 dry run and September 30 Community/settlement-evidence deliveries remain operational checkpoints, not native phases. The Release date grants no broadcast authority and waives no tier gate.",
-    "Build-to-Release broadcast correction (register #41, 2026-07-20): Build closes 2026-07-31 with implementation and readiness evidence only; nothing broadcasts during Build. The non-custodial/non-transferable pooling module, register, and schemas retain a narrower evidence gate, but every mainnet broadcast is a separately authorized Release action on or after 2026-08-12. Settlement and Safes retain the full value-tier gate.",
+    "Build-to-Release broadcast correction (register #41, 2026-07-20; SUPERSEDED IN PART 2026-07-20 by register #42 — the 'nothing broadcasts during Build' position is reversed to tiered broadcast, non-value tier in Build/July): Build closes 2026-07-31 with implementation and readiness evidence only; nothing broadcasts during Build. The non-custodial/non-transferable pooling module, register, and schemas retain a narrower evidence gate, but every mainnet broadcast is a separately authorized Release action on or after 2026-08-12. Settlement and Safes retain the full value-tier gate.",
+    "Broadcast tiering restored (register #42, 2026-07-20, supersedes register #41's 'nothing broadcasts during Build' clause; realigns with register #38 and the Linear Build/Release milestone descriptions): the non-value tier — CommitmentPoolingModule, non-transferable CommitmentRegister, and the two EAS schemas — broadcasts during Build by end of July under its narrower gate (full test suite, deploy dry-run, post-deploy verification, proven upgrade/rollback path; holds no funds). The value tier — SettlementModule and the per-garden Celo Safes — broadcasts only in Release on or after 2026-08-12 under the full value-tier gate (external audit, 48-hour timelock, two-week testnet, Safe/Functions/AA evidence, rollback rehearsal, live exit proof). No agent self-authorizes any broadcast; each remains a human-authorized action.",
+    "Scope and Design phase date moved to 2026-07-22 (register #43, 2026-07-20, supersedes the 2026-07-20 Scope-and-Design date in register #40): aligned to the RESR-57/RESR-58 Linear due dates and set directly on the Linear milestone, then mirrored into linear.milestones here. Build (2026-07-31), Release (2026-08-12), and Follow On / Hardening (2026-12-31) are unchanged.",
+    "Follow On / Hardening phase date moved to 2026-09-30 (register #44, 2026-07-21, supersedes the 2026-12-31 date in registers #40 and #43): the native phase and the separately labeled Community/settlement-evidence operational checkpoint close in parallel on September 30. This is not a sequential dependency and grants no implementation or broadcast authority.",
     "Hub/Linear reconciliation pass 2026-07-11 (pre-build deep review): hub headers and notes refreshed to the applied Linear state; RESR-53 removed from july_dry_run.linear_issues; cohort note aligned to decisions #25/#26. On Linear: PRD-651/697 obsolete 'clear it manually' sentences removed (due dates already null), and the five pre-spec-session companion documents (pool identity architecture, lifecycle/aggregator, UX brief, proof capability, settlement vouchers) rewritten in place as current-state concise mirrors stamped 'Last aligned: 2026-07-11', each live-re-read. Repo: docs-site v1-0.mdx Domain-5 commitment-pooling mentions disambiguated from the 2026 feature; artifacts/visuals/external-brief-loop.svg wired into the brief documentation set; settlement-spec section 7 wireframe pointers corrected to W21/W22/W23; codex-contracts handoff annotates its to-be-created command targets; handoffs README warns that sub-lane readiness overrides machine-lane status; claude-ui-client records the narrowed core-pool-views dispatch option."
   ],
   "lanes": {
@@ -249,7 +251,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": ["PRD-686"],
+      "linear_issues": ["PRD-686", "PRD-650"],
       "acceptance": "Pre-broadcast SettlementModule GREEN: Individual rewards use same-address AA; Garden rewards use the registered providerGarden Safe; the single derived ProtocolToGarden funding route; immutable 1-24 batches; mandatory pinned Functions v1.3 callback; memberDeliveryEnabled getter/event/index model; exact pilot 2-of-3 recovery and scoped executors. Broadcast and the live exit proof are owned by release_ops."
     },
     "indexer": {
@@ -397,7 +399,7 @@
         "dueDate": "2026-07-31"
       },
       "linear_issues": ["COM-7", "COM-3"],
-      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 \u00a7 Proto-commitment rehearsal (folded in from the retired 'July dry run \u2014 proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62)."
+      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 § Proto-commitment rehearsal (folded in from the retired 'July dry run — proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62)."
     },
     "release_ops": {
       "machine_lane": null,
@@ -405,7 +407,7 @@
       "accountable_owner": "Afolabi Aiyeloja",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Human-only Release gate. Build closes 2026-07-31 with no broadcast. The non-value pooling/register/schema tier requires full tests, dry-run, post-deploy verification readiness, upgrade/rollback proof, and separate authorization for Release on or after 2026-08-12. Settlement/value release separately requires audit, timelock, two-week testnet, Safe/Functions/AA evidence, replay rollback rehearsal, live value proof, and its own authorization.",
+      "blocked_reason": "Human-only tiered broadcast gate. The non-value pooling/register/schema tier requires full tests, dry-run, post-deploy verification, upgrade/rollback proof, and separate authorization before its Build-phase broadcast by 2026-07-31. Settlement/value release remains gated to 2026-08-12 or later and separately requires audit, timelock, two-week testnet, Safe/Functions/AA evidence, replay rollback rehearsal, live value proof, and its own authorization.",
       "branch": null,
       "depends_on": ["contracts", "settlement", "indexer"],
       "handoff": "handoffs/human-release-ops.md",
@@ -416,7 +418,7 @@
         "milestone": "release"
       },
       "linear_issues": ["PRD-731"],
-      "acceptance": "Build closes July 31 with readiness evidence and no broadcast; separately authorized Release-phase broadcasts on or after August 12 include post-deploy checks, Garden-ID replay/cutover, and one oracle-verified Celo G$ exit proof with named evidence owners."
+      "acceptance": "The non-value pooling/register/schema tier broadcasts during Build by July 31 only after its narrower evidence gate and explicit human authorization; the value settlement/Safe tier remains separately authorized on or after August 12. Every broadcast includes post-deploy checks and named evidence owners; Release adds Garden-ID replay/cutover and one oracle-verified Celo G$ exit proof when the value-tier gates pass."
     },
     "community": {
       "machine_lane": "ui",
@@ -451,12 +453,12 @@
       "handoff": "handoffs/human-settlement-evidence.md",
       "linear": {
         "sync": true,
-        "issue": null,
+        "issue": "PRD-735",
         "parentIssue": "PRD-650",
         "milestone": null,
         "dueDate": "2026-09-30"
       },
-      "linear_issues": [],
+      "linear_issues": ["PRD-735", "PRD-650"],
       "acceptance": "A human-approved measurement definition names primary data sources, allowed aggregate fields, prohibited identifiers, minimum reporting thresholds, implementation package, evidence owner, and September 30 delivery proof before any agent label or implementation dispatch."
     }
   },
@@ -576,6 +578,26 @@
     {
       "date": "2026-07-20",
       "event": "Register #41 corrected broadcast timing: Build ends July 31 with implementation and readiness evidence only; all mainnet broadcasts are separately authorized Release actions on or after August 12. The pooling/register/schema tier keeps its narrower non-value evidence gate, while settlement/Safes keep the full value-tier gate."
+    },
+    {
+      "date": "2026-07-20",
+      "event": "Register #42 restored broadcast tiering (supersedes register #41's 'nothing broadcasts during Build'): the non-value pooling/register/schema tier broadcasts during Build by end of July under its narrower gate; the value settlement/Safe tier broadcasts only in Release on or after August 12 under the full value-tier gate. Realigns with register #38 and the Linear Build/Release milestone descriptions; every broadcast stays human-authorized."
+    },
+    {
+      "date": "2026-07-20",
+      "event": "Register #43 moved the Scope and Design phase date to 2026-07-22 (from 2026-07-20 in register #40), aligned to the RESR-57/RESR-58 Linear due dates; set on the Linear milestone and mirrored into linear.milestones. Build, Release, and Follow On / Hardening dates unchanged."
+    },
+    {
+      "timestamp": "2026-07-21T02:47:35.278Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "date": "2026-07-21",
+      "event": "Register #44 moved Follow On / Hardening from 2026-12-31 to 2026-09-30. The native phase and Community/settlement-evidence operational checkpoint remain distinct, parallel closures on the same date; no implementation or broadcast authority changed."
     }
   ]
 }

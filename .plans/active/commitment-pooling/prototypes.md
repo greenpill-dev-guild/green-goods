@@ -1,11 +1,9 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
-**Feature Slug**: `commitment-pooling`
-**Stage**: `active`
-**Created**: 2026-07-11
-**Updated**: 2026-07-18 — hi-fi artifact upgrade (register #36). Full history in the Changelog below.
-**Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; build machinery in `hifi/`).
-**Companions**: `wireframes.md` (the frames these storyboards compose — frames are referenced by W-id, never re-drawn), `uiux-spec.md` (canonical flows + §4 state tables), `contract-spec.md` (§5 state machines, §6.1 permission matrix), `settlement-spec.md` (§3.2 disbursement machine, §5 member receipt, §7 surface deltas), `diagrams.md` (D2–D13 flow truth), `acceptance-matrix.md`, `.plans/active/community-interface/wireframes.md` + `spec.md` (September frames).
+- **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
+- **Updated**: 2026-07-21 — reference-tab redesign + editorial condensation for scannability (see Changelog); the hi-fi render upgrade was register #36.
+- **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
+- **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
 ## Changelog
 
@@ -14,22 +12,35 @@
 | 2026-07-11 | Created. Post-review decisions folded (register #34–register #35): MF-1/2a/3/4/5 adopted, MF-12 resolved September, join-request queue tracked (register #35). |
 | 2026-07-18 | Audit-response mechanical sync: fund topology (HoA → GG protocol Safe direct; single ProtocolToGarden route), steward vocabulary (steward = operator/owner Hats; contract type names like `OperatorCaptured` unchanged), W12/W22 relocation to the Operations workspace. ⚠️ Settlement-region `SS:`/`DG:`/`WF:` cites were re-pointed to the edited specs; **cites in untouched regions may be offset by that pass — anchor by the named function or frame, not the raw line number.** |
 | 2026-07-18 | Hi-fi artifact upgrade (register #36): the artifact now renders every August screen at high fidelity (Warm Earth client PWA, restrained M3 admin, editorial public pages) with a per-screen state matrix (116 states) and a Storybook-style state switcher. Lo-fi variant frames dissolved into parent states (W1P/W1S/W7X/W23G → claim/blocked states; MF-1/3/4/5/6/8/9/10/13 → their spec-placed parents; old deep links alias forward). September CI-W frames stay lo-fi previews. |
-**Fidelity**: the storyboards in THIS document stay fidelity-neutral walks of flows the specs already lock — they add NO design authority, and `wireframes.md` remains the lo-fi structural truth. The artifact's hi-fi renders draw their tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; artifact type renders through system font stacks (Inter / Plus Jakarta Sans / Fraunces approximations — artifacts make no external requests). Still-proposed micro-frames keep their amber `proposed` tag per state. Rendered copy is build-time linted: banned vocabulary, steward naming (Decision Log #28c), quiet-admin rule, and chain-phrasing placement all fail the build, not review.
-**Grounding rule**: every claim carries file:line. Scenario ids S1–S14 follow the RESR-58 r3 index; S1–S12 definitions are mirrored in `reports/linear/linear-apply-pack.md` §5, S13–S14 in `plan.todo.md` Decision Log #24. Garden theming follows the pilot cohort (`external-communications.md` §Pilot focus cohort; worked examples `reports/linear/linear-apply-pack.md` §5 Part B; quantities illustrative per Decision Log #24). The fourth garden slot is **open — no garden is selected and none is named** (Decision Log #29, which supersedes Decision Log #25 and Decision Log #27; see `acceptance-matrix.md` §Fourth garden).
+| 2026-07-21 | Reference-tab redesign: the sidebar now follows document order under grouped headers, a compact table of contents leads the body, and long sections collapse behind an at-a-glance line. Editorial condensation for scannability (walls → lead-in + bullets) — no spec facts or cites changed. MF-6/MF-9/MF-10/MF-11 status corrected: realized in the hi-fi artifact (W2 · W26 · W1 · W24/W12), no longer "proposed/undrawn." New companion `prototypes-coverage.md` audits every screen's built vs spec'd states. |
+
+**Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
+- Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
+- Still-proposed micro-frames keep their amber `proposed` tag per state.
+- Rendered copy is build-linted — banned vocabulary, steward naming (Decision Log #28c), quiet-admin, and chain-phrasing placement fail the build, not review.
+
+**Grounding** — every claim carries file:line. Scenario ids S1–S14 follow the RESR-58 r3 index (S1–S12 in `reports/linear/linear-apply-pack.md` §5, S13–S14 in `plan.todo.md` Decision Log #24). Garden theming follows the current pilot-cohort decisions in `plan.todo.md`; worked examples remain in the dated apply-pack §5 Part B, with illustrative quantities per Decision Log #24. **The fourth garden slot is open — no garden is selected and none is named** (Decision Log #29, superseding Decision Log #25 and Decision Log #27; `acceptance-matrix.md` §Fourth garden).
 
 ## 0. How to read
 
-**Source keys** (same-folder unless pathed): `UX` = uiux-spec.md · `WF` = wireframes.md · `CS` = contract-spec.md · `SS` = settlement-spec.md · `DG` = diagrams.md · `AM` = acceptance-matrix.md · `PT` = plan.todo.md (cite by **Decision Log #N** / **register #N** / section name — never by line, the file shifts) · `LAP` = reports/linear/linear-apply-pack.md · `CI-WF` / `CI-SPEC` = ../community-interface/wireframes.md / spec.md. `UX:128` means uiux-spec.md line 128.
+**At a glance** — the legend for these storyboards: source keys, frame-id conventions, the per-storyboard anatomy, and the copy rules every cell obeys.
 
-**Frame ids**: `W1…W23` are commitment-pooling frames (WF). September community frames are cited as `CI-W1…CI-W14` because that file independently numbers its own frames W1–W14 (CI-WF:32-443) — the prefix avoids the collision. `W2a` is the attach sheet inside W2 (WF:164).
+**Source keys** (same folder unless pathed): `UX` uiux-spec · `WF` wireframes · `CS` contract-spec · `SS` settlement-spec · `DG` diagrams · `AM` acceptance-matrix · `LAP` reports/linear/linear-apply-pack.md · `CI-WF` / `CI-SPEC` ../community-interface/wireframes.md / spec.md. `UX:128` = uiux-spec.md line 128. `PT` = plan.todo.md — cite by **Decision Log #N** / **register #N** / section name, never by line (the file shifts).
 
-**Per-storyboard anatomy**: meta line (persona per `docs/docs/builders/specs/v1-0.mdx` §3.1 archetypes + named research persona per `docs/docs/reference/design-research.md:104-164` · owning scenario(s) · surfaces · garden theme) → mermaid screen-flow graph (screens as nodes, user actions as edge labels) → numbered steps table: **Screen** (frame cite) · **User action** · **System response** (contract event / job kind) · **State** (§4 table names; on-chain vs derived per CS §5) · **If it fails** (recovery pointer). Failure rows that deserve their own walk point at a sibling storyboard instead of repeating it.
+**Frame ids** — `W1…W23` are commitment-pooling frames (WF); `W2a` is the attach sheet inside W2 (WF:164). September community frames take a `CI-` prefix (`CI-W1…CI-W14`) because that file numbers its own W1–W14 independently (CI-WF:32-443).
 
-**State-name conventions**: pool/cycle/commitment state names are the §4 table rows (UX:53-108); claim-request states per §4.4 (UX:101-108); disbursement states per SS:62. `None`/`UNKNOWN` sentinels are never user-visible (UX:51).
+**Per-storyboard anatomy** — a meta line, a flow graph, then a numbered steps table:
+- **Meta**: persona (`docs/docs/builders/specs/v1-0.mdx` §3.1 archetype + named research persona, `docs/docs/reference/design-research.md:104-164`) · owning scenario(s) · surfaces · garden theme.
+- **Flow graph**: mermaid — screens as nodes, user actions as edge labels.
+- **Steps table**: **Screen** (frame cite) · **User action** · **System response** (contract event / job kind) · **State** (§4 table names; on-chain vs derived per CS §5) · **If it fails** (recovery pointer). A failure row worth its own walk points at a sibling storyboard rather than repeating it.
 
-**Copy discipline**: all authored placeholder copy uses the mutual-aid vocabulary (UX:40-43) and the banned-vocabulary rules (`docs/docs/reference/glossary-community.md:114-121`); settlement copy never says "arrived" before Verified (SS:398, AM:20-25).
+**State names** follow the §4 tables — pool/cycle/commitment (UX:53-108), claim-request §4.4 (UX:101-108), disbursement (SS:62); `None`/`UNKNOWN` sentinels are never user-visible (UX:51).
+
+**Copy discipline** — authored placeholder copy uses the mutual-aid vocabulary (UX:40-43) and banned-vocabulary rules (`docs/docs/reference/glossary-community.md:114-121`); settlement copy never says "arrived" before Verified (SS:398, AM:20-25).
 
 ## Storyboard index
+
+**At a glance** — fourteen storyboards mapped to personas, scenarios, and surfaces, grouped member → steward → settlement → protocol.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
@@ -53,6 +64,8 @@ Grouping: member journeys SB-1–7 · steward journeys SB-8–10 · settlement S
 ---
 
 ## SB-1 — Offer → promise kept
+
+**At a glance** — Maria offers help with no reward; João takes it up, adds evidence, and confirms it was kept — the mutual-aid happy path.
 
 **Persona**: Gardener (Maria, research persona `design-research.md:104`) offers; a fellow member takes it up and, as recipient, confirms. **Scenario**: S1 (LAP:164-167). **Surfaces**: client PWA; editorial echo. **Theme**: Tech and Sun Hub design-workshop offer (LAP:122) — mutual aid, no declared reward, no domains.
 
@@ -87,6 +100,8 @@ flowchart LR
 ---
 
 ## SB-2 — Request → help arrives (evidence-only SupportService)
+
+**At a glance** — Ana asks for a ride, João provides it, and Ana (the request creator) confirms — evidence-only, no work approval and no domains.
 
 **Persona**: Gardener creates a Request; a fellow member takes it up (provider); the Request **creator** confirms. **Scenario**: S2 (LAP:169-172). **Surfaces**: client PWA. **Theme**: the W1 house example "Ride to the market on Sat" (WF:89), run open-claim; Cape Town's steward-seeded cleanup Requests are the S2 admin-side sibling (LAP:136).
 
@@ -128,6 +143,8 @@ NEW — proposed lo-fi, not a locked design (MF-6: W2 evidence-only variant, bel
 
 ## SB-3 — Steward-reviewed claim: pending, declined, ask again, accepted, superseded
 
+**At a glance** — two gardeners compete for scarce slots; a steward accepts one and the rest go Superseded — the pending / declined / ask-again / accepted / superseded panels.
+
 **Persona**: two Gardeners compete for scarce crew slots; Operator (David, `design-research.md:118`) reviews. **Scenario**: S3 (LAP:174-177). **Surfaces**: client PWA + admin. **Theme**: AgroforestDAO planting Request, 200 seedlings, steward-reviewed because crew slots are scarce (LAP:150).
 
 ```mermaid
@@ -159,6 +176,8 @@ No missing frames: the four §4.4 request panels (WF:111-125) and the two admin 
 ---
 
 ## SB-4 — Evidence, work linkage, and the assessment gate (DomainImpact)
+
+**At a glance** — a DomainImpact promise reaches Ready through the existing work-approval rails plus an attached assessment — never send-for-confirmation.
 
 **Persona**: Gardener provides; Operator approves work on existing rails; Evaluator (Dr. Chen, `design-research.md:132`) authors the assessment. **Scenario**: S4 (LAP:179-182). **Surfaces**: client PWA + admin. **Theme**: AgroforestDAO planting-education cycle pairing AGRO + EDU positionally (LAP:151).
 
@@ -206,6 +225,8 @@ NEW — proposed lo-fi, not a locked design (MF-13: attach-assessment picker, Ad
 
 ## SB-5 — "Not yet" → dispute → the four resolutions
 
+**At a glance** — a confirmer says "not yet"; a steward resolves the dispute to one of four outcomes; every reason lands in the member timeline.
+
 **Persona**: recipient/confirmer raises; Operator resolves. **Scenario**: S5 dispute half (LAP:184-187). **Surfaces**: client PWA + admin.
 
 ```mermaid
@@ -227,7 +248,11 @@ flowchart LR
 | 5b | W2 | — Fulfilled / Cancelled / Expired | terminal transition with reason; **an Expired prior state can never resolve Fulfilled** (CS:144; WF:382) | terminal | — |
 | 6 | W2 | Member re-opens detail | every reason renders in the member state timeline too (UX:300; WF:144-146) | — | — |
 
-**Adjacent gap this storyboard exposes (finding input)**: the *direct* cancel paths — creator cancel from Offered/Requested, steward cancel from Accepted (CS:745; AM:36-37) — have **no control on any frame**: W2/§5.3 draw none for members (UX:135-144), W10 draws none for stewards (WF:377-382), while §4.1 Paused explicitly promises "cancellation/expiry … remain available" (UX:60; WF:104). Until placed, §4.3 Cancelled (UX:93) is reachable only through dispute resolution. **Decided 2026-07-11 (register #34b)**: MF-2a (member pre-acceptance withdraw) is adopted into August scope; MF-2b (steward cancel placement) remains open. Proposed micro-frames:
+**Adjacent gap this storyboard exposes (finding input)** — the *direct* cancel paths have **no control on any frame**:
+- creator cancel from Offered/Requested and steward cancel from Accepted are both contract-real (CS:745; AM:36-37), yet W2/§5.3 draw none for members (UX:135-144) and W10 draws none for stewards (WF:377-382);
+- meanwhile §4.1 Paused explicitly promises "cancellation/expiry … remain available" (UX:60; WF:104), so until a control is placed, §4.3 Cancelled (UX:93) is reachable only through dispute resolution.
+
+**Decided 2026-07-11 (register #34b)**: MF-2a (member pre-acceptance withdraw) is adopted into August scope; MF-2b (steward cancel placement) remains open. Proposed micro-frames:
 
 ```text
 NEW — proposed lo-fi, not a locked design (MF-2a: W2 owner variant, before acceptance)
@@ -242,6 +267,8 @@ NEW — proposed lo-fi, not a locked design (MF-2b: W10 actions row addition)
 ---
 
 ## SB-6 — Expiry → offer again (+ admin re-seed)
+
+**At a glance** — a due date passes, committed units release exactly once, and the owner offers again — plus the admin re-seed of lapsed promises.
 
 **Persona**: Gardener owner of a lapsed promise; Operator running the expiry queue; any caller may trigger expiry. **Scenario**: S1/S5 edge — "Expiry releases committed units once; an expired commitment never becomes Fulfilled" (LAP:186). **Surfaces**: client PWA + admin.
 
@@ -282,6 +309,8 @@ NEW — proposed lo-fi, not a locked design (MF-4: W7 section, below Claims wait
 
 ## SB-7 — Offline draft → queued → synced / retry / membership wait
 
+**At a glance** — a field draft persists offline, syncs when connected, retries on failure, and waits for garden membership without burning retries.
+
 **Persona**: Gardener in the field. **Scenario**: S6 (LAP:189-192). **Surfaces**: client PWA. **Theme**: AgroforestDAO rural connectivity; this journey carries the pt-BR locale proof (LAP:153).
 
 ```mermaid
@@ -302,9 +331,13 @@ flowchart LR
 | 3 | W1 | Submit while still offline | `commitment` job queued; optimistic card with `··queued··` badge (WF:97); SyncStatusBar count above the AppBar (UX:237); aria-live polite "Saved on this device, will sync when connected" (UX:427) | Offered (optimistic) | — |
 | 4 | W1 | Connectivity returns | job executes; `CommitmentCreated`; "N promises synced" announcement (UX:427); pool queries invalidated (UX:212) | **Offered** (on-chain) | — |
 | 5 | W1 | (failure lane) 5 attempts exhaust `MAX_RETRIES` (UX:206) | Failed chip + **retry / discard**; error text via `parseContractError` + `USER_FRIENDLY_ERRORS` (UX:240) | Failed (local) | Retry re-enters step 4 |
-| 6 | — | (membership-wait lane) a brand-new member's job needs a garden hat that hasn't landed | S6: the job waits in `waiting_for_hat` **without consuming retries**, resumes after membership, "never fabricates a successful write" (LAP:191); the ≥99% sync metric explicitly excludes time in this state (external-communications.md:99) | waiting (local) | — |
+| 6 | — | (membership-wait lane) a brand-new member's job needs a garden hat that hasn't landed | S6: the job waits in `waiting_for_hat` **without consuming retries**, resumes after membership, "never fabricates a successful write" (LAP:191); the ≥99% sync metric explicitly excludes time in this state (`acceptance-matrix.md` §6) | waiting (local) | — |
 
-**Spec gap (finding input)**: `waiting_for_hat` is required by scenario S6 and the acceptance metric, and CI-W4 draws it for September community jobs (CI-WF:124-159) — but for the five pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome. No pool-surface treatment exists. S6 also names **Edit/Retry/Cancel/Delete** for queued jobs (LAP:191); §5.12 offers only retry/discard (UX:240). **Decided 2026-07-11 (register #34c)**: in scope for August — pre-flight membership check consumes no retries; the join-request approval (register #35) is the canonical resume trigger; uiux-spec §5.11/§5.12 updated. Proposed micro-frame:
+**Spec gap (finding input)** — `waiting_for_hat` is required by scenario S6 and the acceptance metric, and CI-W4 draws it for September community jobs (CI-WF:124-159):
+- but for the five pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
+- S6 also names **Edit/Retry/Cancel/Delete** for queued jobs (LAP:191), where §5.12 offers only retry/discard (UX:240).
+
+**Decided 2026-07-11 (register #34c)**: in scope for August — the pre-flight membership check consumes no retries, the join-request approval (register #35) is the canonical resume trigger, and uiux-spec §5.11/§5.12 are updated. Proposed micro-frame:
 
 ```text
 NEW — proposed lo-fi, not a locked design (MF-5: queued-row variant, W1/W5 groups)
@@ -316,6 +349,8 @@ NEW — proposed lo-fi, not a locked design (MF-5: queued-row variant, W1/W5 gro
 ---
 
 ## SB-8 — Analog capture (+ steward override + fallback confirmation)
+
+**At a glance** — a steward records a promise for a device-free member who stays its owner — with the override and fallback-confirmation beats.
 
 **Persona**: Operator (David) records for a device-free member; the member stays the promise's owner. **Scenario**: S7 (LAP:194-197). **Surfaces**: admin + client PWA. **Theme**: Cape Town beach cleanup, member without a device (LAP:138).
 
@@ -344,6 +379,8 @@ Dignity check carried by existing frames: the member is the promise's owner on e
 ---
 
 ## SB-9 — Pool readiness → cycles: seed, open, pause, close, compost
+
+**At a glance** — stand up a pool and run a season — seed → open → pause → close → compost — carrying the 5-state pool lifecycle and cycle cardinality.
 
 **Persona**: Operator standing up the pool and running a season. **Scenario**: S5 cycle half (LAP:184-187) + S13 admin side (PT:42). **Surfaces**: admin, with member echoes. **Theme**: any pilot garden's first season.
 
@@ -404,6 +441,8 @@ NEW — proposed lo-fi, not a locked design (MF-10: W1 cycle summary card, Recon
 
 ## SB-10 — Declared reward → payout recorded
 
+**At a glance** — a declared reward is seeded, the promise confirmed, and the steward records the off-rail payout — no value moves through this UI.
+
 **Persona**: Operator declares at seeding and records the payout; Gardener watches the reward row. **Scenario**: S13 — "declared reward → RewardPaid, the only July reward rail" (PT:42). **Surfaces**: admin + client PWA.
 
 ```mermaid
@@ -429,6 +468,8 @@ No custody anywhere in this storyboard: value moved on the jar/treasury rail out
 ---
 
 ## SB-11 — G$ support arrives (+ send onward; delivery blocked)
+
+**At a glance** — a member watches a G$ reward move from "on its way" to "arrived" (only Verified says arrived), then sends G$ onward.
 
 **Persona**: Gardener whose fulfilled promise carries a G$ reward. **Scenario**: S8/S9 member side (LAP:199-207). **Surfaces**: client PWA. **Theme**: Tech and Sun Hub first execution (LAP:126).
 
@@ -459,6 +500,8 @@ flowchart LR
 ---
 
 ## SB-12 — Funding routes → batch execution → receipt check (steward + executor)
+
+**At a glance** — a steward queues and batches disbursements; an executor runs the Safe leg and reports; the oracle alone produces Verified — 6 interactions across 3 surfaces.
 
 **Persona**: Operator (steward) queues and recovers; **Executor** (Zodiac Roles member — never a Safe owner, SS:47,415; a distinct persona from the steward) executes and reports. **Scenario**: S8 (LAP:199-202) + S9 routes (LAP:204-207). **Surfaces**: admin + the Safe app (external value leg). **Theme**: TAS first execution.
 
@@ -492,6 +535,8 @@ flowchart LR
 ---
 
 ## SB-13 — Cross-garden claim on the protocol pool
+
+**At a glance** — a garden steward claims a protocol-pool promise for her garden; providerGarden becomes the EAS recipient while the root pool keeps ownership.
 
 **Persona**: garden Operator (Leila, steward persona `../community-interface/journeys.md:47`) claims a protocol-pool commitment **for her garden**. **Scenario**: S14 — protocol pool + cross-garden claim (PT:42); identity formulas CS:577-589. **Surfaces**: client PWA + admin Community → Pools.
 
@@ -534,6 +579,8 @@ NEW — proposed lo-fi, not a locked design (MF-8: provider-context chooser, Dia
 
 ## SB-14 — Community Need → triage → seeded promise (September, wireframe depth)
 
+**At a glance** — September: a community member speaks a Need, a steward triages and seeds it, and the promise then lives its normal pool life.
+
 **Persona**: Community member (Kwame, `design-research.md:160`) speaks a Need; Operator triages and seeds. **Scenario**: S10 (LAP:209-212). **Surfaces**: independent Community PWA (`community.greengoods.app`) + admin `/community`. **Caveats**: September surface (PT:156-160); membership-queue slice gated on RESR-64 (CI-WF:371; AM:68); the community app adds **no claiming, work submission, wallet drawer, or settlement surface** (CI-SPEC:263; UX:374).
 
 ```mermaid
@@ -549,7 +596,7 @@ flowchart LR
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
-| 1 | CI-W3 (CI-WF:96) | Kwame picks intent — Request / Offer / Initiative — and captures his words by voice or text | Need drafted in his own words | — | — |
+| 1 | CI-W3 (CI-WF:96) | Kwame describes the problem in his own words by voice or text | Kind-free Need drafted; Request / Offer is selected only when a commitment is seeded | — | — |
 | 2 | CI-W4 (CI-WF:124) | Desired outcome + horizon; review; submit | offline-queueable Need job; may enter `waiting_for_hat` without consuming retries (CI-WF:124-159; LAP:191) | queued → posted | Board source states CI-W2 (CI-WF:69) |
 | 3 | CI-W1 (CI-WF:32) | Need appears on the my-garden board — two state axes, distinct-signal count, "Never ranked by funding" (CI-SPEC:257) | neighbors add **Signal** (community-owned event vocabulary, UX:418) | Need open | Moderation outcomes CI-W8 (CI-WF:262) |
 | 4 | CI-W9 (CI-WF:286) | Operator triage at the gathering view: acknowledge, apply domains, merge, hide, decline, or reopen (CI-SPEC:267) | separate moderation/progress axes (LAP:211) | acknowledged | Private-lane intake for grievances naming individuals stays off-chain (CI-SPEC:268) |
@@ -564,9 +611,13 @@ This storyboard stays at wireframe depth on purpose: the community frames are ca
 
 ## 15. Missing frames (MF index — candidate additions to `wireframes.md`, decided by Afo)
 
-Every micro-frame drawn above is a **proposal, not a locked design**. Two rows carry no drawing: MF-11 (the queue-funding control — placement is already fully described at SS:528, only the trigger is undrawn) and MF-12 (a September-realization decision, not a frame gap to fill in August).
+**At a glance** — the micro-frame index: which flow moments still lack a locked wireframe, which were adopted on 2026-07-11, and which the hi-fi artifact now realizes.
 
-**2026-07-11 decisions (`plan.todo.md` register #34–register #35)**: adopted — MF-1 (register #34a, pool-card lifecycle actions + open-cycle guard prompt), MF-2a (register #34b, member pre-acceptance withdraw; MF-2b steward cancel **still open**), MF-3 + MF-4 (register #34d, expiry ships August; keeper cron is a post-launch backstop), MF-5 (register #34c, `waiting_for_hat` covers pool jobs in August). Resolved — MF-12: testimony is September-realized (register #34g). Still proposed — MF-6, MF-7, MF-8, MF-9, MF-10, MF-11, MF-13. New tracked dependency — the **garden join-request queue** (register #35; canonical design → `../community-interface/join-queue-spec.md`; its observed membership outcome is MF-5's flush trigger).
+Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a locked design**. The only row that carries no drawing at all is MF-12 — a September-realization decision, not an August frame gap.
+
+**Realized in the hi-fi artifact** (rendered as real, non-proposed controls — no longer "undrawn" or amber-tagged): **MF-6** → the W2 evidence-submitted send-for-confirmation affordance · **MF-9** → W26, the cycle-close wizard that absorbs the reconciliation report · **MF-10** → the W1 cycle-summary card · **MF-11** → the W24 Operations funding control + W12 funding view. Still amber-`proposed` in the artifact: MF-7, MF-8, MF-13 (plus MF-2b, whose steward-cancel placement stays open). The MF table below keeps the original wireframe-gap authority for each moment.
+
+**2026-07-11 decisions (`plan.todo.md` register #34–register #35)**: adopted — MF-1 (register #34a, pool-card lifecycle actions + open-cycle guard prompt), MF-2a (register #34b, member pre-acceptance withdraw; MF-2b steward cancel **still open**), MF-3 + MF-4 (register #34d, expiry ships August; keeper cron is a post-launch backstop), MF-5 (register #34c, `waiting_for_hat` covers pool jobs in August). Resolved — MF-12: testimony is September-realized (register #34g). New tracked dependency — the **garden join-request queue** (register #35; canonical design → `../community-interface/join-queue-spec.md`; its observed membership outcome is MF-5's flush trigger).
 
 | MF | Moment with no existing frame | Owning SB | Why it matters | Authority for the moment |
 |---|---|---|---|---|
@@ -574,7 +625,7 @@ Every micro-frame drawn above is a **proposal, not a locked design**. Two rows c
 | MF-2 | Member withdraw (W2, pre-acceptance) + steward cancel (W10) | SB-5 | Both `cancelCommitment` paths are contract-real (CS:745; AM:36-37) and §4.1 Paused promises cancellation stays available (UX:60; WF:104) — no control exists | CS:745 |
 | MF-3 | W2 Expired band + "offer again" moment | SB-6.3 | §4.3 names the CTA (UX:94); never drawn | UX:94 |
 | MF-4 | W7 "Lapsed this cycle" expiry queue + re-seed | SB-6.4 | §4.3 admin cell "Expiry queue + re-seed" (UX:94); W7 lacks the section | UX:94 |
-| MF-5 | Waiting-for-membership queued chrome (pool jobs) | SB-7.6 | S6 + the ≥99% sync metric assume `waiting_for_hat` for pool jobs (LAP:191; external-communications.md:99); §5.11/§5.12 define no treatment | LAP:191 |
+| MF-5 | Waiting-for-membership queued chrome (pool jobs) | SB-7.6 | S6 + the ≥99% sync metric assume `waiting_for_hat` for pool jobs (LAP:191; `acceptance-matrix.md` §6); §5.11/§5.12 define no treatment | LAP:191 |
 | MF-6 | Send-for-confirmation row (W2 evidence-only variant) | SB-2.5 | Spec-placed (UX:141; admin twin UX:287), undrawn — W2 as drawn is DomainImpact | UX:141,287 |
 | MF-7 | "fulfills: {commitment}" row on the work-flow Review step | SB-4.3 | The linkage moment of the existing flow (UX:174) has no drawn delta | UX:174 |
 | MF-8 | Provider-context chooser ("as myself / for this garden") | SB-13.2 | W1:106 and UX:130 mention the choice; the deciding surface is undrawn | UX:130 |
@@ -588,9 +639,14 @@ Every micro-frame drawn above is a **proposal, not a locked design**. Two rows c
 
 ## 16. Action inventory — how many new user-facing actions does this feature add?
 
-**Sources of truth**: the permission matrix spans two files — `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186) — cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitment, claim, evidence, workLink, confirmation`; `transfer` is online-only; `work`/`approval` are untouched (CS:1536; UX:206).
+**At a glance** — August adds ~39 net-new user-facing actions (9 member · 28 operator · 2 executor), riding 5 offline-safe job kinds plus one online G$ send; counted both by user vocabulary and by contract entry point.
 
-**Counting rules**: a row counts as **net-new user-facing** when a persona triggers it from a drawn frame or an explicit spec placement (placements without a drawing are flagged `undrawn`). Human-triggered rows with no app surface at all sit in 16.2 (ops/config). Machine-triggered rows sit in 16.3 (system). One user-vocabulary action may bundle several entry points (pool lifecycle; request-verification-and-again) and one entry point may appear as several actions (`createCommitment` backs M1, O10, O11) — so totals are given **both ways**.
+**Sources of truth** — the permission matrix spans two files: `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186), cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitment, claim, evidence, workLink, confirmation`; `transfer` is online-only; `work`/`approval` are untouched (CS:1536; UX:206).
+
+**Counting rules**:
+- **Net-new user-facing** = a persona triggers it from a drawn frame or an explicit spec placement (placements without a drawing are flagged `undrawn`).
+- Human-triggered rows with **no app surface** sit in 16.2 (ops/config); **machine-triggered** rows in 16.3 (system).
+- Counts are given **both ways** — one user-vocabulary action may bundle several entry points (pool lifecycle; request-verification-and-again), and one entry point may back several actions (`createCommitment` backs M1, O10, O11).
 
 ### 16.1 Net-new user-facing actions (August surfaces)
 
@@ -700,7 +756,9 @@ Shared with stewards: O23, O24, O25. **Value-leg actions** (drawn, but not Green
 
 ## 17. Coverage appendix — every §4 state, per surface, walked or accounted for
 
-Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a copy-only cell with no interaction to walk (rendered, not storyboarded) · `explicit: not surfaced` = the spec says so on purpose · `Sept` = September community surface (view or SB-14) · `⚠` = the gap is real and carried in the findings. The Community column of the §4 tables **is** the September surface (UX §8).
+**At a glance** — every §4 state × surface, walked or accounted for; no silent cell remains, and two ⚠ gaps stay open (steward cancel · Cancelled-disbursement copy).
+
+Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a copy-only cell, rendered but not storyboarded · `explicit: not surfaced` = the spec says so on purpose · `Sept` = September community surface (view or SB-14) · `⚠` = a real gap carried in the findings. The Community column of the §4 tables **is** the September surface (UX §8).
 
 ### 17.1 Pool states (UX:55-62)
 

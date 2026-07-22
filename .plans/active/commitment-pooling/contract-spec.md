@@ -1578,14 +1578,14 @@ Acceptance: renders exclusively from indexer aggregates; no per-person listings;
 
 ## 11. Native Phases and Operational Checkpoints
 
-### Native phase 1: Scope and Design — closes 2026-07-20
+### Native phase 1: Scope and Design — closes 2026-07-22
 
 Goal: finish the audit reconciliation with one authoritative interface, lifecycle, dispatch, release, and evidence model.
 Exit criteria: specs, handoffs, acceptance sources, machine state, and generated planning artifacts agree or name an explicit external blocker.
 
 ### Native phase 2: Build — closes 2026-07-31
 
-Goal: implement and verify the scoped product lanes during the remaining July build window. Build completion is not a public-live or broadcast claim.
+Goal: implement and verify the scoped product lanes during the remaining July build window, then broadcast the non-value pooling/register/schema tier by July 31 only after its narrower evidence gate and explicit human authorization pass. Build completion alone is not authorization or a public-live claim.
 Exit criteria, in dependency order:
 
 1. Schemas registered on Sepolia + Arbitrum with resolvers live (PR chain 1); baselines attestable before cycle 1 opens.
@@ -1593,16 +1593,16 @@ Exit criteria, in dependency order:
 3. GardenToken + WorkApprovalResolver upgraded on 42161; protocol pool + 13 garden pools registered (PR chain 3).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, hooks, five offline queue job kinds plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
-6. First cycle is ready to seed and open with an allocation preset; the end-to-end commitment, confirmation, reward, and settlement paths have deployment-grade proof without claiming a production broadcast.
+6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, reward, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
 
 ### Native phase 3: Release — 2026-08-12
 
-Goal: release the authorized pooling artifacts and complete one bounded production proof. The fixed date does not waive the tier-specific gates or human authorization in `handoffs/human-release-ops.md`.
-Exit criteria: artifact-by-artifact authorization; persisted deployment and post-deploy evidence; first real cycle opened; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; and, only if every value-tier gate passes, one G$ reward executed from the registered garden Celo Safe, reported, independently verified against the finalized receipt, and visible as “support arrived.” A blocked settlement leg remains blocked rather than weakening Release evidence.
+Goal: release the user-facing pooling flow, preserve the July non-value deployment proof, and complete one bounded production proof. The fixed date does not waive the value-tier gates or human authorization in `handoffs/human-release-ops.md`.
+Exit criteria: user-facing release authorization; persisted July deployment and post-deploy evidence; first real cycle opened; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; and, only if every value-tier gate passes, one G$ reward executed from the registered garden Celo Safe, reported, independently verified against the finalized receipt, and visible as “support arrived.” A blocked settlement leg remains blocked rather than weakening Release evidence.
 
-### Native phase 4: Follow On / Hardening — 2026-12-31
+### Native phase 4: Follow On / Hardening — 2026-09-30
 
-Goal: use pilot evidence to harden accepted paths and make explicit promote/defer decisions.
+Goal: use pilot evidence to harden accepted paths and make explicit promote/defer decisions in parallel with the separately labeled September Community and settlement-evidence checkpoint.
 Exit criteria: evidence-backed decisions only. This date authorizes no follow-on implementation, transferable voucher, credit, bridge-executor, or custody expansion.
 
 ### Operational checkpoint: July dry run — 2026-07-31

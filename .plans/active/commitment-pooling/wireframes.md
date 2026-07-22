@@ -33,7 +33,7 @@ flowchart LR
 
   COM -->|"Need selected for gathering"| ADM
   ADM -->|"needUID seeds a commitment"| PWA
-  PWA -->|"work · confirmation · verified settlement"| READ
+  PWA -->|"work · confirmation · oracle-verified settlement"| READ
   READ -->|"progress on Needs"| COM
   READ -->|"queues + consoles"| ADM
   READ -->|"aggregate stories"| PUB
@@ -103,6 +103,27 @@ Route `/home/:id/pool` — NET-NEW fourth `GardenTab` on the existing garden det
 - Membership-wait variant (register #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
 - Tap card ▸ W2. Offer/Request CTAs ▸ W3 with direction preset.
 
+Cycle-banner and read-recovery states use the same W1 shell (`hifi/screens/client.ts:163-194`):
+
+```text
+SEEDED / OPENS SOON                 REVIEWING
+┌──────────────────────────────┐    ┌────────────────────────────────┐
+│ Your steward is preparing    │    │ Your stewards are reviewing   │
+│ this season's promises.      │    │ this season. Evidence and     │
+│ Browse only until it opens.  │    │ confirmations stay available. │
+└──────────────────────────────┘    └────────────────────────────────┘
+
+CYCLE CANCELLED                    READ RECOVERY
+┌──────────────────────────────┐    ┌────────────────────────────────┐
+│ This season was cancelled.   │    │ Loading: preserve shell       │
+│ Its history stays here.      │    │ Not found: No pool here yet   │
+│ 8 made · 5 kept              │    │ Read error: saved last view   │
+└──────────────────────────────┘    │                    [ Try again ]│
+                                    └────────────────────────────────┘
+```
+
+`loading`, `not-found`, and `read-error` are presentation states, never a synthetic “None” pool state. The read-error view keeps the last saved view legible and offers an explicit retry.
+
 Approval-gated request variants reuse the same card/detail grammar and survive refresh:
 
 ```text
@@ -158,12 +179,37 @@ Route `/home/:id/pool/:commitmentId`.
 └──────────────────────────────────────────────┘
 ```
 
-- W2a attach sheet (`{DialogShell}` + `{FileUploadField}`): photo / link / note → one `evidence` job per submit; works fully offline.
+- W2 opens the dedicated W2a attach sheet (`{DialogShell}` + `{FileUploadField}`) for evidence capture.
 - Fulfilled state: hero moment fires once (§5.10), reward row flips to "reward released" when `RewardPaid` lands.
 - Disputed state: banner "under review by stewards", CTAs frozen.
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Owner withdraw (register #34b): while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`). Drawing: prototypes.md MF-2a. Steward cancel placement remains open.
 - Hi-fi guidance (audit 2026-07-18): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure (accordion / carousel / sheet) so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind a single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
+- Read states match the prototype (`hifi/screens/client.ts:323-327`): **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
+
+### W2a — Evidence sheet (uiux-spec §5.5)
+
+`{DialogShell}` over W2. Photo / link / note creates one `evidence` job per submit and works fully offline. Canonical prototype states: `hifi/screens/client.ts:418-449`.
+
+```text
+COMPOSE                              QUEUED
+┌──────────────────────────────┐     ┌────────────────────────────────┐
+│ Add evidence                 │     │ Evidence queued                │
+│ ◉ Photo  ○ Link  ○ Note      │     │ ≡ North beds after   (Queued) │
+│ Saved on this device until   │     │ It will send when you're back │
+│ it sends.                    │     │ online.              [ Done ] │
+│          [ Attach evidence ] │     └────────────────────────────────┘
+└──────────────────────────────┘
+
+UPLOAD FAILED — PER-ROW RECOVERY
+┌────────────────────────────────────────────────┐
+│ One item needs another try                     │
+│ ≡ North beds after  (Couldn't send) [ Retry ] │
+│ ≡ Two beds left…     (Sent)                    │
+│ Nothing is dropped; retry only the failed row. │
+│                                       [ Done ] │
+└────────────────────────────────────────────────┘
+```
 
 ### W3 — Offer / request creation flow (uiux-spec §5.4)
 
@@ -201,6 +247,26 @@ Step 4 — Review and promise                        │ ≡ Plant  × [ 1 ]  �
 - SupportService skips step 3 entirely (evidence + confirmation is its proof).
 - Draft persists in IndexedDB (`WorkDraftRecord` semantics); re-entry offers resume via the existing `DraftDialog` pattern.
 
+### WFLOW — Existing work flow, review step (+ fulfills row)
+
+Deep-link from W2 into the existing Garden work-submission flow. Only the commitment-context row is new; the approval rails and the rest of the submission remain unchanged (`hifi/screens/client-wallet.ts:200-221`, uiux-spec §5.7).
+
+```text
+┌──────────────────────────────────────────────┐
+│ ✕  Submit work                    ● ● ●       │
+├──────────────────────────────────────────────┤
+│ Review                                       │
+│ ≡ 2 photos · pruning session                 │
+│ ≡ Fulfills: Prune the north beds             │
+│   Offer · AGRO · (Promise)                   │
+│                                              │
+│ Everything else is the existing work flow.  │
+│                              [ Submit work ] │
+└──────────────────────────────────────────────┘
+```
+
+Submitting carries `meta.commitmentId`; after sync, the work links back to W2 and advances only the matched requirement row.
+
 ### W4 — Counterparty confirmation sheet (uiux-spec §5.6)
 
 `{DialogShell}` over W2 or W5. Focus order per §12: title → summary → meter → reason → decline → confirm.
@@ -220,6 +286,27 @@ Step 4 — Review and promise                        │ ≡ Plant  × [ 1 ]  �
 │ [ Not yet — tell the stewards why ]          │  decline → reason field;
 │                                              │  routes to steward attention,
 │                                              │  never cancels the promise
+└──────────────────────────────────────────────┘
+```
+
+Confirmation outcomes and the online-only “Not yet” retry match the canonical prototype (`hifi/screens/client.ts:577-587`):
+
+```text
+FULFILLED — PENDING SYNC          FULFILLED — SYNCED
+┌────────────────────────────┐    ┌────────────────────────────┐
+│ Promise kept               │    │ Promise kept               │
+│ Confirmations 3 of 3       │    │ Confirmed — the season's   │
+│ Saved here; fulfillment    │    │ count just grew.           │
+│ appears after sync.        │    │        [ Back to the pool ]│
+│                    [ Done ]│    └────────────────────────────┘
+└────────────────────────────┘
+
+NOT YET — SEND FAILED
+┌──────────────────────────────────────────────┐
+│ Tell the stewards                            │
+│ Your note is kept. The promise stays ready   │
+│ to confirm until the online send succeeds.   │
+│                                [ Try again ] │
 └──────────────────────────────────────────────┘
 ```
 
@@ -263,9 +350,7 @@ Existing `{ModalDrawer}` from the Home header — the real drawer's three tabs a
 └──────────────────────────────────────────────┘
 ```
 
-### W6 — Home summary card — RETIRED (decision 2026-07-18)
-
-Removed by user decision during the visual-asset audit: Home stays garden-first with **no** promises card above `{GardenList}`. The cross-garden promises summary lives solely as the header line of the WalletDrawer Commitments tab (W5). uiux-spec §5.9 carries the same retirement note; the frame number is kept so older references resolve to this tombstone instead of dangling.
+W5 also carries `queued`, `waiting-membership`, `empty`, `loading`, `not-found`, and `read-error` states (`hifi/screens/client-wallet.ts:21-83`). Empty and not-found explain the absence in member language; read error preserves the saved cross-garden view and exposes `[ Try again ]`. The retired W6 home card does not remain as a standalone frame: Home stays garden-first, while W5 owns its absorbed summary line.
 
 ---
 
@@ -329,6 +414,7 @@ Adopted 2026-07-11 (register #34; lo-fi drawings in `prototypes.md` pending a re
 - **Pool-card lifecycle actions** (register #34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
 - **Lapsed this cycle** (register #34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
 - **Waiting to join** (register #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome.
+- Recovery states follow the canonical prototype (`hifi/screens/admin.ts:217-259`): **Loading** keeps the Pool card and cycle-console skeleton in place; **No commitments yet** keeps the seeding FAB and an empty-state explanation instead of showing a blank table.
 
 ### W8 — Steward seeding console (uiux-spec §6.3)
 
@@ -406,6 +492,29 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows.
 
 - Review additions (audit 2026-07-18): for steward-reviewed (approval-gated) commitments the dialog shows the pending-claims queue inline with per-row Accept / Decline (the W7 grammar), so triage never requires leaving the dialog; the requirement rows render per-action progress ("Prune 2/2 · Plant 0/1"); the reward row follows settlement-record-first precedence (settlement-spec §3.3) and shows the confirmation threshold with named-confirmer status.
 
+The latest hi-fi remediation adds this **proposed** accepted/evidence-in state and its two follow-on dialogs (`hifi/screens/admin.ts:422-438`):
+
+```text
+ACCEPTED · EVIDENCE IN — PROPOSED
+┌──────────────────────────────────────────────────────────┐
+│ Support · evidence-only · 2 items                        │
+│ Evidence is in. Send it to the recipient, or mark it     │
+│ ready with a recorded steward reason.                    │
+├──────────────────────────────────────────────────────────┤
+│ [ Cancel promise… ] [ Mark ready with override… ]        │
+│                              [ Send for confirmation ]   │
+└──────────────────────────────────────────────────────────┘
+
+MARK READY WITH OVERRIDE           STEWARD CANCEL (MF-2b)
+┌────────────────────────────┐     ┌────────────────────────────┐
+│ Reason (required)          │     │ Reason (required)          │
+│ [ field visit confirmed ]  │     │ [ agreement at gathering ]│
+│              [ Mark ready ]│     │          [ Cancel promise ]│
+└────────────────────────────┘     └────────────────────────────┘
+```
+
+**For human decision:** the hi-fi deliberately marks the accepted twin, override, and steward-cancel states as proposed. This wireframe records their current prototype placement and copy for coverage, but does not promote that placement into a locked design decision. W10's **Not found** state also stays explicit: stale or mid-sync links explain the failure and offer `[ Retry ]` plus `[ Back to pool ]`.
+
 ### W11 — Open-cycle allocation step (uiux-spec §6.10)
 
 One step inside the open-cycle flow launched from W7's cycle console.
@@ -463,6 +572,8 @@ NET-NEW stage on the existing Hub pipeline rail, route `/hub/confirm`.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
+Empty state: keep the Hub stage rail and show “No promises need confirmation” with a quiet route back to Work; never collapse the whole route into a blank canvas.
+
 ### W13b — Commitment-context chip on Hub work cards (delta to the existing work stage)
 
 Where steward approval intersects promises — the D2 touchpoint the sequence diagram annotates — without any new surface:
@@ -476,6 +587,21 @@ Where steward approval intersects promises — the D2 touchpoint the sequence di
 ```
 
 - The chip names the matched requirement's per-action progress (approved/required) and deep-links to W10. Approval itself is untouched — the existing WorkApproval flow simply becomes legible as promise progress.
+
+### HUBWORK — Existing Hub Work stage
+
+The canonical hi-fi includes the underlying approval screen as its own entry (`hifi/screens/admin.ts:612-631`). Pooling adds context to the title and promise chip; approval and rejection remain the existing Work-stage rails.
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ Hub      ◉work · assess · certify · confirm · history                  │
+├────────────────────────────────────────────────────────────────────────┤
+│ Pruning session — Prune the north beds                                │
+│ 2 photos · submitted by João · Jul 8                                  │
+│                                              [ Approve ] [ Reject ]    │
+│ Existing Work stage — approval rails untouched.                       │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
 ### W14 — Assessment v3 additions to Create Assessment (uiux-spec §6.6)
 
@@ -531,8 +657,10 @@ One NET-NEW editorial band using the page's existing kicker/heading/reveal gramm
 │ Work that starts as a promise kept           │  EditorialHeading  §01.5
 │ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
 │ │ 43 promises│ │ 11 gardens │ │ G$ support │ │  stat tiles in the §01
-│ │ fulfilled  │ │ live pools │ │ verified ✓ │ │  proof-marker grammar
-│ └────────────┘ └────────────┘ └────────────┘ │  (thresholded per §7.2)
+│ │ fulfilled  │ │ live pools │ │ oracle-    │ │  proof-marker grammar
+│ └────────────┘ └────────────┘ │ verified ✓ │ │
+│                               └────────────┘ │
+│                                              │  (thresholded per §7.2)
 │ A promise is offered, taken up, worked,      │  one lifecycle sentence in
 │ witnessed, and confirmed by the person it    │  relay vocabulary
 │ was made to.                                 │
@@ -549,7 +677,7 @@ One NET-NEW editorial band using the page's existing kicker/heading/reveal gramm
 The earlier Home / Signals / Profile and problem/upvote frames were superseded on 2026-07-04 and are removed to prevent accidental implementation. The current information architecture, flows, and low-fidelity screens are canonical in:
 
 - `.plans/active/community-interface/spec.md`
-- `.plans/active/community-interface/wireframes.md` (Needs / Create / Profile, Request / Offer / Initiative)
+- `.plans/active/community-interface/wireframes.md` (Needs / Create / Profile; problem-first Needs with Request / Offer only at commitment seeding)
 - `.plans/active/community-interface/journeys.md`
 - `.plans/active/community-interface/diagrams.md`
 
@@ -561,7 +689,7 @@ This commitment-pooling file retains only the shared commitment, confirmation, t
 
 G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 and W10 take copy/action deltas only (noted, not redrawn).
 
-**W2 delta (PWA commitment detail, reward row)** — settlement record beats pooling `rewardPaid` when a disbursement exists: “support on its way” (Queued/Executing) · “transfer reported; awaiting receipt check” (Reported without an active request) · “transfer reported; checking receipt” (Reported with an active request) · “support arrived ↗” with Celo reference (Verified) · “still arranging support — your promise is recorded” (Failed). **W10 delta (admin commitment dialog)** — for G$-rewarded commitments, “Record payout” becomes “Queue disbursement” feeding W21's queue.
+**W2 delta (PWA commitment detail, reward row)** — settlement record beats pooling `rewardPaid` when a disbursement exists: “support on its way” (Queued/Executing) · “transfer reported; awaiting receipt check” (Reported without an active request) · “transfer reported; checking receipt” (Reported with an active request) · “support arrived · oracle-verified ↗” with Celo reference · “still arranging support — your promise is recorded” (Failed). **W10 delta (admin commitment dialog)** — for G$-rewarded commitments, “Record payout” becomes “Queue disbursement” feeding W21's queue.
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
@@ -579,7 +707,7 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 │ ≡ Maria — 20 G$    (Queued)                        [ add to batch ]    │
 │ ≡ João — 15 G$     (Failed: reason ▸) [ Requeue ] [ Cancel… ]          │  reasons always visible
 │ ≡ Ana — 20 G$      (Reported · checking receipt) [ request details ]   │
-│ ≡ Kofi — 20 G$     (Verified ↗ Celo tx)                                │
+│ ≡ Kofi — 20 G$     (Oracle-verified ↗ Celo tx)                         │
 │ [ Create batch (2) ]                                                   │  ▸ W22
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -609,7 +737,7 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 └──────────────────────────────────────────────────────────┘
 ```
 
-- Role guard (register #34e): pilot operators hold the executor role (never a Safe owner, never a recovery owner). An account without the role sees "this account doesn't hold the executor role" on Mark executing / Report — a visible guard state, never a silent failure. No role-split UI.
+- Role guard (register #34e): pilot executors hold the executor role (never a Safe owner, never a recovery owner). An account without the role sees "this account doesn't hold the executor role" on Mark executing / Report — a visible guard state, never a silent failure. No role-split UI.
 
 ### W23 — WalletDrawer: G$ section + member send (delta to W5)
 
@@ -659,13 +787,13 @@ New admin workspace tab gated exactly like Actions (`showOperations: isDeployer`
 ├────────────────────────────────────────────────────────────────────────┤
 │ FLOWS — cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
-│ GG protocol Safe → garden Safes       3 hops verified · 1 reported     │
-│ garden Safes → members                42 verified · 2 failed           │
+│ GG protocol Safe → garden Safes       3 oracle-verified · 1 reported   │
+│ garden Safes → members                42 oracle-verified · 2 failed    │
 │ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │  oversight rows moved
 └────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
 ```
 
-- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module no longer records an upstream hop (corrections-log §9). Every downstream figure distinguishes Reported from oracle-Verified.
+- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module no longer records an upstream hop (corrections-log §9). Every downstream figure distinguishes Reported from oracle-verified.
 - Executor-role guard (register #34e) applies to every execute/report control here, same as W22.
 
 ### W25 — Protocol-pool claim flow (client PWA)
@@ -720,10 +848,10 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 | §5.2 pool home | W1 |
 | §5.3 commitment detail | W2 |
 | §5.4 creation flow | W3 |
-| §5.5 evidence capture | W2a (inside W2) |
+| §5.5 evidence capture | W2a |
+| §5.7 existing work submission + commitment context | WFLOW |
 | §5.6 confirmation flow | W4 |
 | §5.8 wallet panel | W5 (incl. the absorbed cross-garden summary header) |
-| §5.9 home summary | W6 — RETIRED 2026-07-18 (summary lives in W5) |
 | §5.10 hero moments | noted on W2/W4 (motion, not a screen) |
 | §6.2 garden pool tab | W7 |
 | §6.3 seeding console | W8 |
@@ -732,6 +860,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 | §6.10 allocation step | W11 |
 | §6.8 Pools view inside admin `/community` | W12 (rescoped 2026-07-18: your garden + protocol pool) |
 | §6.9 Hub confirm stage | W13 + W13b commitment-context chip |
+| Existing Hub Work approval stage | HUBWORK |
 | §6.6 assessment v3 | W14 |
 | Operations workspace (NET-NEW, deployer-gated) | W24 |
 | Protocol-pool claim journey (client) | W25 |
@@ -744,4 +873,4 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 | settlement-spec §7 batch execution console | W22 |
 | settlement-spec §7 wallet G$ + member send | W23 |
 | settlement-spec §5 AA-gate failure | W23 gate-failed variant |
-| 2026-07-11 review adoptions (plan.todo.md register #34–register #35) | variant notes on W1/W2/W7/W21/W22 here; lo-fi drawings in `prototypes.md` MF-1/2a/3/4/5 |
+| 2026-07-11 review adoptions (plan.todo.md register #34–register #35) | states folded into W1/W2/W7/W10/W21/W22; no standalone MF frames |

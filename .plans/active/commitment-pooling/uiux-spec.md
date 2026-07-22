@@ -207,7 +207,7 @@ Full Warm Earth amplification per the scaffold's grammar; `prefers-reduced-motio
 
 Queue substrate (verified): IndexedDB + XState, exactly two kinds today (`work`, `approval`; `packages/shared/src/types/job-queue.ts:89-92`), `MAX_RETRIES = 5` (`packages/shared/src/modules/job-queue/index.ts:88,247-248`), kind dispatch is a branch in `processJob` (`index.ts:277-288`), executors in `modules/job-queue/job-executors.ts`. New offline kinds (`commitment`, `claim`, `evidence`, `workLink`, `confirmation`) extend `JobKindMap` and the dispatch branch; `transfer` is a shared online wallet action kind that bypasses the offline field queue. Naming follows the existing single-noun convention.
 
-Membership wait (register #34c): all five pool job kinds run a pre-flight membership check before their first send attempt; a job whose account holds no garden hat enters `waiting_for_hat` — consuming no retries — and resumes automatically when the membership event lands (the join-request approval of register #35 is the canonical trigger). The ≥99% offline-sync metric already excludes time in this state (`external-communications.md`).
+Membership wait (register #34c): all five pool job kinds run a pre-flight membership check before their first send attempt; a job whose account holds no garden hat enters `waiting_for_hat` — consuming no retries — and resumes automatically when the membership event lands (the join-request approval of register #35 is the canonical trigger). The ≥99% offline-sync metric excludes time in this state (`acceptance-matrix.md` §6).
 
 NET-NEW job kinds and per-action behavior:
 
@@ -381,7 +381,7 @@ The 2026-07-04 Home/Signals/problem/upvote sketch is removed from the build cont
 `packages/community` remains an independent PWA at `community.greengoods.app` and local port 3010. Before scaffolding it, the shared-foundation lane extracts generic runtime, auth/passkey, offline status, install/update, error, and shell primitives for both client and Community. The apps do not share routes, navigation items, manifests, service-worker scopes, telemetry identities, or application copy.
 
 - `spec.md` — contract, read-model, onboarding, IA, funding, and accessibility rules
-- `wireframes.md` — Request / Offer / Initiative flows and admin/funder frames
+- `wireframes.md` — problem-first Need creation, commitment Request / Offer direction, and admin/funder frames
 - `diagrams.md` — context, ERD, sequences, and the join-request decision boundary
 - `journeys.md` — personas, journeys, and service blueprint
 - `research-plan.md` — operator research, consent, cohort readiness, and Linear-aligned schedule

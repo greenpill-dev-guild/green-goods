@@ -6,7 +6,7 @@
 - Machine lane: none; human-owned definition and evidence surface
 - Accountable owner: Afolabi Aiyeloja
 - Current state: blocked through the September 30 operational checkpoint
-- Linear target: create one thin Product issue under PRD-650 after a live reread; do not add an `agent:*` label
+- Linear target: reread and update the existing thin Product issue PRD-735 under PRD-650; do not create a duplicate or add an `agent:*` label
 
 ## Inputs
 

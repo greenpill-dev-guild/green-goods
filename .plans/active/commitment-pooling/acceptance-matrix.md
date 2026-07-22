@@ -45,7 +45,7 @@
 
 | Claim | Allowed wording | Forbidden wording | Authority |
 |---|---|---|---|
-| Feature availability | Built / Planned / Evidence-gated | Planned behavior described as live | `external-communications.md` |
+| Feature availability | Built / Planned / Evidence-gated | Planned behavior described as live | canonical [Commitment Pooling Google Doc](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit) |
 | Settlement proof | Reported / checking / Oracle-verified | Reported = paid/received/verified | `settlement-spec.md` §3.3 |
 | Verification actor | Chainlink Functions callback only | Human verification, operator approval as receipt proof | `settlement-spec.md` |
 | Chain placement | Proof/control on Arbitrum; canonical G$ on Celo | Bridged G$, Arbitrum G$ custody | `settlement-spec.md` |
@@ -70,3 +70,14 @@
 ## 5. August versus September gate
 
 August UI GREEN aggregates `ui_client`, `ui_admin`, `editorial`, `docs`, and `docs_guides` for the shipped August scope. The September `community` PWA records its own GREEN later and is not an August QA dependency. Membership persistence is conditional within Community and remains excluded until RESR-64; it does not block the non-membership Community core.
+
+## 6. Pilot measurement definitions
+
+| Target by 2026-09-30 | Canonical calculation |
+|---|---|
+| At least 90% passkey onboarding completion | Gardeners who complete passkey setup divided by gardeners who start their first authenticated action. |
+| At least 99% eligible offline-job sync success | Eligible queued jobs that reach confirmed submission divided by eligible jobs that begin a normal send attempt. Exclude user-cancelled jobs and all time spent in `waiting_for_hat`; a retry-recovery cut uses only jobs that entered retry as both numerator population and denominator. |
+| At least 95% steward validation without data repair | Eligible triage, seeding, and confirmation tasks completed without a corrective edit divided by all eligible observed tasks. |
+| Median field submission at or below two minutes | Median time from first input to saved or submitted state, compared with a separately measured pre-pilot baseline; no baseline value is assumed. |
+
+Every report includes numerator, denominator, sample size, observation window, excluded states, and qualitative context. Public reporting excludes wallet addresses, join-request records, and participant identifiers.

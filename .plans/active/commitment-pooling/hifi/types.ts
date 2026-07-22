@@ -46,7 +46,7 @@ export type ShippedStep = {
   ev: string;
   cite?: string;
   note?: string;
-  br?: { l: string; to?: string }[];
+  br?: { l: string; to: string }[];
   mf?: boolean;
 };
 export type ShippedSB = {

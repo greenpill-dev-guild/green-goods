@@ -62,7 +62,7 @@ W2: `┌────────────────────────
 │ ←  Prune the north beds                      │
 │ (Offer)(AGRO)(Accepted)  6 hours · due Aug 12│
 │ anyone in this garden may take this up       │
-│ (recorded by your operator on your behalf)   │
+│ (recorded by your steward on your behalf)    │
 ├──────────────────────────────────────────────┤
 │ Timeline                                     │
 │ ● Offered      — Maria · Jul 2               │
@@ -193,7 +193,7 @@ W8: `┌── Seed a commitment ── ● ● ● ○ ────────
 │ Step 4 — Review              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘`,
 W9: `┌── Record on a member's behalf ───────────────────────────┐
-│ "Recorded by {operator} on your behalf.                  │
+│ "Recorded by {steward} on your behalf.                   │
 │  The promise stays yours."                               │
 ├──────────────────────────────────────────────────────────┤
 │ Step 0 — Who and what kind                               │
@@ -219,7 +219,7 @@ W10: `┌── Prune the north beds ──────────────�
 └──────────────────────────────────────────────────────────┘`,
 W11: `┌── Open cycle: allocation policy ─────────────────────────┐
 │ preset  ◉ Garden-led (default)  ○ Balanced  ○ Custom     │
-│ gardeners [6000] treasury [1500] operator [1000]         │
+│ gardeners [6000] treasury [1500] steward [1000]          │
 │ evaluator [ 500] community [ 500] funder   [ 500]        │
 │ sum: 10000 ✓                                             │
 │ ⚠ shows if treasury < 1500 bps (guidance floor)          │
@@ -437,9 +437,9 @@ C1: `┌────────────────────────
 │ This season · promises and progress         │
 ├──────────────────────────────────────────────┤
 │ Needs                             [Explore] │
-│ [All] [Requests] [Offers] [Initiatives]     │
+│ [All] [Open] [Committed] [In progress]      │
 ├──────────────────────────────────────────────┤
-│ REQUEST · THIS MONTH                         │
+│ THIS MONTH · IN PROGRESS                     │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
 │ Agro · Education · 8 neighbors agree        │
@@ -450,12 +450,11 @@ C1: `┌────────────────────────
 └──────────────────────────────────────────────┘`,
 C3: `┌──────────────────────────────────────────────┐
 │ Create                                1 of 3 │
-│ What are you bringing to the community?     │
+│ What is your community trying to solve?     │
 ├──────────────────────────────────────────────┤
-│ ◉ I need help                               │
-│   Ask for something the community can meet. │
-│ ○ I can offer something                     │
-│ ○ I want to organize something              │
+│ Describe the problem in your own words.      │
+│ Requests and offers come later, when someone │
+│ makes a commitment to address this Need.     │
 ├──────────────────────────────────────────────┤
 │ Tell us in your words                        │
 │ [● Record]  or  [Type here…                ]│
@@ -465,7 +464,7 @@ C3: `┌────────────────────────
 └──────────────────────────────────────────────┘`,
 C4: `┌──────────────────────────────────────────────┐
 │ Review                                3 of 3 │
-│ REQUEST · THIS MONTH                         │
+│ THIS MONTH · NEED                            │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
 │ Audio 0:42 · 2 photos                        │
@@ -479,7 +478,7 @@ C4: `┌────────────────────────
 └──────────────────────────────────────────────┘`,
 C5: `┌──────────────────────────────────────────────┐
 │ ← Elders need reliable market rides          │
-│ REQUEST · THIS MONTH                         │
+│ THIS MONTH                                   │
 │ Moderation: Acknowledged                     │
 │ Progress: In progress                        │
 ├──────────────────────────────────────────────┤
@@ -503,7 +502,7 @@ C6: `┌────────────────────────
 │ Profile                                      │
 ├──────────────────────────────────────────────┤
 │ Garden membership                            │
-│ Rocinha · Waiting for operator approval     │
+│ Rocinha · Waiting for steward approval      │
 │ [How this works] [Cancel request]*           │
 ├──────────────────────────────────────────────┤
 │ Saved and sending                            │
@@ -520,14 +519,14 @@ C9: `┌────────────────────────
 │ Community / For the gathering                               │
 │ [Fresh Needs] [Confirmations] [Recent changes] [Print]      │
 ├──────────────────────────────────────────────────────────────┤
-│ REQUEST · WEEK · Moderation: none · Progress: open          │
+│ WEEK · Moderation: none · Progress: open                    │
 │ Water is pooling beside the school path                     │
 │ Better: the path stays passable after rain                  │
 │ Domains [Waste ×] [＋ Add domain]                            │
 │ [Acknowledge] [Merge…] [Decline…] [Hide…]                  │
 ├──────────────────────────────────────────────────────────────┤
-│ OFFER · SEASON · Acknowledged · Open                        │
-│ Tool library for weekend work days                          │
+│ SEASON · Acknowledged · Open                                │
+│ Weekend work days lack a shared tool library                │
 │ No domain assigned                     [Seed a commitment]  │
 └──────────────────────────────────────────────────────────────┘`,
 C10: `┌──────────────────────────────────────────────────────────────┐
@@ -627,7 +626,7 @@ W8: [
   { m: "confirmers  [ + add address ]", l: "Confirmer rule", info: "Named any-N group; the accepted provider is excluded before threshold validation (UX:280)." },
 ],
 W9: [
-  { m: "search members", l: "Pick the member", info: "The member is the social source; the operator is only the recorder (UX:437)." },
+  { m: "search members", l: "Pick the member", info: "The member is the social source; the steward is only the recorder (UX:437)." },
   { m: "◉ their offer  ○ their request  ○ confirmation", l: "Capture kind", info: "Captured confirmations always carry a reason (UX:291)." },
 ],
 W10: [
@@ -650,7 +649,7 @@ W13: [
   { m: "Maria — Prune the north beds", l: "Confirm queue row", to: "frame:W10", info: "Queue of promises where you are named or fallback-eligible (UX:318)." },
 ],
 W14: [
-  { m: "◉ Baseline   ○ Re-assessment (delta)", l: "Assessment kind", info: "Baseline: evaluator or operator. Delta: Evaluator Hat only (CS:760-761)." },
+  { m: "◉ Baseline   ○ Re-assessment (delta)", l: "Assessment kind", info: "Baseline: evaluator or steward. Delta: Evaluator Hat only (CS:760-761)." },
 ],
 W15: [
   { m: "9 promises made, 7 kept so far", l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers (UX:350)." },
@@ -669,7 +668,7 @@ W21: [
 ],
 W22: [
   { m: "[ Open in Safe app ↗ ]", l: "Open in Safe app", info: "The value leg happens in the Safe app — Roles-scoped G$ transfer, outside Green Goods (WF settlement notes)." },
-  { m: "[ Mark executing ]", l: "Mark executing", info: "Executor-only (SS:176). Pilot operators hold the role (register #34e); a missing role shows a visible guard state." },
+  { m: "[ Mark executing ]", l: "Mark executing", info: "Executor-only (SS:176). Pilot stewards hold the role (register #34e); a missing role shows a visible guard state." },
   { m: "[ Report Celo transaction hash… ]", l: "Report tx hash", info: "Executor-only; ref mandatory and globally unused. Reported is never member-visible proof (SS:177)." },
   { m: "[ Request receipt verification ]", l: "Request verification", info: "Pinned Chainlink Functions request; only its callback can produce Verified (SS:178-179)." },
   { m: "[ Request again ]", l: "Request again", info: "Infrastructure timeout: expire the stale request, then a fresh one — no state loss (SS:180)." },
@@ -754,7 +753,7 @@ C9: [
   { m: "[Seed a commitment]", l: "Seed a commitment", to: "frame:C10" },
 ],
 C10: [
-  { m: "[Review commitment]", l: "Review commitment", info: "Suggestions are not saved until the operator reviews every field; unreachable-threshold errors surface before acceptance (CI-WF:335-340)." },
+  { m: "[Review commitment]", l: "Review commitment", info: "Suggestions are not saved until the steward reviews every field; unreachable-threshold errors surface before acceptance (CI-WF:335-340)." },
   { m: "[Cancel]", l: "Cancel", to: "frame:C9" },
 ],
 };

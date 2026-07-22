@@ -5,7 +5,7 @@
 - Execution sub-lane: `release_ops`
 - Machine lane: none; human authorization surface
 - Accountable owner: Afolabi Aiyeloja (Commitment Pooling project lead and PRD-686 assignee)
-- Current state: blocked until implementation GREEN and external gates are evidenced
+- Current state: blocked per artifact tier until its implementation evidence and explicit human authorization are recorded
 - Linear context: PRD-731 (release ops; no parent, sits on the Release milestone). Settlement implementation stays PRD-686.
 
 ## Inputs
@@ -14,7 +14,7 @@
 - A named human release window, signer set, rollback owner, and explicit artifact-by-artifact authorization.
 - Garden-ID replay snapshot, switch criterion, and tested rollback package before any indexer cutover.
 
-> **Tiered Release evidence (register #41, 2026-07-20).** The audit, 48-hour timelock and two-week testnet gates apply to the **value tier only** — `SettlementModule` and per-garden Celo Safes. The pooling module, `CommitmentRegister`, and two EAS schemas use the narrower non-value-tier checklist below because the module is non-custodial and the register is non-transferable. Build closes July 31 with readiness evidence and no broadcast; either tier requires separate human authorization during the Release phase on or after August 12. This grants no agent broadcast authority and lapses immediately if custody or transferability is introduced.
+> **Tiered broadcast evidence (register #42, 2026-07-20).** The audit, 48-hour timelock and two-week testnet gates apply to the **value tier only** — `SettlementModule` and per-garden Celo Safes. The pooling module, `CommitmentRegister`, and two EAS schemas use the narrower non-value-tier checklist below because the module is non-custodial and the register is non-transferable. With explicit human authorization, that non-value tier broadcasts during Build by July 31. The value tier remains a separately authorized Release action on or after August 12. This grants no agent broadcast authority and lapses immediately if custody or transferability is introduced.
 
 ## Outputs
 
@@ -25,7 +25,7 @@
 
 ## Proof Limit
 
-- Passing the non-value-tier checklist proves only that the non-custodial/non-transferable artifacts are ready for a separately authorized Release-phase broadcast. It does not prove settlement safety, live value delivery, or authorization.
+- Passing the non-value-tier checklist proves only that the non-custodial/non-transferable artifacts are ready for a separately authorized July Build-phase broadcast. It does not prove settlement safety, live value delivery, or authorization.
 - A dry run, transaction submission, or Reported settlement is never evidence that funds arrived.
 - Only the current Chainlink Functions callback can move a settlement claim to Oracle-verified.
 - Missing external evidence leaves the corresponding tier blocked. No agent may infer authorization from tests, lane GREEN, a due date, or this handoff.
@@ -48,8 +48,8 @@ No evidence row may be silently delegated. A replacement owner must be named in 
 
 ## Phases
 
-1. **Build readiness through July 31**: review the appropriate unblock-evidence section, rollback rehearsal, persisted artifacts, and dry-run output. No artifact broadcasts during Build.
-2. **Separately authorized Release on or after August 12**: schema registrations and module/register deployment may use the narrower non-value-tier evidence gate; settlement deployment requires the value-tier gate. No agent self-authorizes a broadcast.
+1. **Separately authorized non-value broadcast by July 31**: review the non-value unblock-evidence section, rollback rehearsal, persisted artifacts, and dry-run output; record artifact-by-artifact authorization; then broadcast only the pooling module, non-transferable register, and two schemas during Build.
+2. **Separately authorized value-tier Release on or after August 12**: settlement deployment requires the full value-tier gate. Non-value authorization never authorizes settlement, and no agent self-authorizes a broadcast.
 3. **Post-broadcast checks**: non-zero artifacts, bytecode/proxy/admin checks, exact indexer config, schema UIDs, Functions health request, replay/cutover, and rollback readiness.
 4. **Exit proof**: one Fulfilled commitment produces a reward-bound queue entry; registered garden Safe executes canonical G$ on Celo; report remains Reported until the current Functions callback verifies the finalized receipt; UI shows “support arrived.”
 

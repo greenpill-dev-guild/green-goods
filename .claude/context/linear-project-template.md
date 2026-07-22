@@ -93,7 +93,7 @@ real communities**. Commitment Pooling is the reference implementation of this s
 | Phase | Exit criterion | Dated? |
 |---|---|---|
 | **1. Scope and Design** | The shape is settled and validated: synthesis, specs, wireframes, prototype, acceptance matrix — someone could build it from these documents alone. Includes any dry run that tests the model on *existing rails* before code exists. | Yes |
-| **2. Build** | Implementation GREEN across every lane, in every supported language, with QA complete. Nothing is broadcast. | Yes |
+| **2. Build** | Implementation GREEN across every lane, in every supported language, with QA complete. No broadcast by default; a dated feature-local non-value exception may authorize one under the gate below. | Yes |
 | **3. Release** | Authorized deployment plus one bounded end-to-end proof in production. | **Usually not** |
 | **4. Follow On / Hardening** | Evidence-backed promote or defer decisions only. **Authorizes no implementation.** | Yes, far out |
 
@@ -102,16 +102,19 @@ ends when the code is proven; Release ends when someone with authority accepts t
 putting it in front of real users and real funds. Collapsing them produces a date that looks
 like a ship date but is really a code-complete date.
 
-**Narrow non-value-tier Release gate.** A dated, feature-local human decision may give a
-non-custodial, non-transferable tier a lighter Release evidence gate than a value-bearing tier.
-Its handoff still requires the full test suite, deploy dry-run, post-deploy verification, proven
-upgrade/rollback path, and separate explicit human authorization. Build remains evidence-only;
-any broadcast belongs to Release. Agents never inherit broadcast authority from this exception.
-The exception lapses immediately if custody or transferability is introduced.
+**Narrow non-value-tier Build exception.** A dated, feature-local human decision may authorize a
+non-custodial, non-transferable tier to broadcast during Build under a lighter evidence gate than
+a value-bearing tier. Its handoff still requires the full test suite, deploy dry-run, post-deploy
+verification, proven upgrade/rollback path, and separate explicit human authorization. The
+exception applies only to the named artifacts and window; agents never inherit broadcast authority
+from it. It lapses immediately if custody or transferability is introduced. Commitment Pooling uses
+this exception for its pooling module, non-transferable register, and two schemas by July 31; its
+value-bearing settlement tier remains gated to Release on or after August 12.
 
-**Why Release usually has no date.** Its gates are externally owned — an audit you commission,
+**Why value-tier Release usually has no date.** Its gates are externally owned — an audit you commission,
 a timelock that runs, a testnet record that accrues, a partner who confirms. In Commitment
-Pooling those are an external audit, a 48-hour mainnet timelock and a two-week testnet record.
+Pooling those govern the August 12 settlement tier: an external audit, a 48-hour mainnet timelock
+and a two-week testnet record.
 No amount of internal planning shortens them. **Date Release when its gates start, not when you
 hope they finish** — an undated Release milestone is more honest than a guessed one, and it
 stops the schedule implying a live date the gates cannot support.

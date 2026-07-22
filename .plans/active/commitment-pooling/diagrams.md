@@ -11,7 +11,7 @@
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 20 assets, not a table of contents for this file: 15 Mermaid diagrams (D1–D13, including D1b and D7b) render below; the rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames are checked against their owning spec and route contract.
+This is the cross-hub inventory of 20 assets, not a table of contents for this file: 15 named D-diagram sections (D1–D13, including D1b and D7b) render as 18 Mermaid blocks below because D6 carries its overview plus three acts and D13 includes a capability-separation mini-diagram. The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames are checked against their owning spec and route contract.
 
 | # | Asset | Audience | Question answered | Source of truth | Current status | Correction needed | Validation method |
 |---:|---|---|---|---|---|---|---|
@@ -357,13 +357,13 @@ stateDiagram-v2
 
 On-chain enum stores `Offered / Requested / Accepted / ReadyForConfirmation / Fulfilled / Cancelled / Expired / Disputed`. `Draft` is app-only; `Active`, `EvidenceSubmitted`, `PartiallyApproved`, and `Reconciled` are derived. The single all-states diagram was accurate but hard to digest, so it is drawn as one compact overview plus three lifecycle acts — the acts zoom into the overview and never disagree with it.
 
-**D6.0 Overview — the whole life at a glance**
+#### D6.0 Overview — the whole life at a glance
 
 ```mermaid
 stateDiagram-v2
   direction LR
   state "Created (Offered / Requested)" as CRE
-  state "Accepted — delivery underway" as ACC
+  state "Accepted - delivery underway" as ACC
   state "ReadyForConfirmation" as RFC
   state "Ended (Cancelled / Expired)" as END
   [*] --> CRE : createCommitment
@@ -377,7 +377,7 @@ stateDiagram-v2
   END --> [*] : reconciled at cycle close
 ```
 
-**D6a. Act 1 — Claim & acceptance**
+#### D6a. Act 1 — Claim & acceptance
 
 ```mermaid
 stateDiagram-v2
@@ -399,7 +399,7 @@ stateDiagram-v2
 
 An approval-gated `claimCommitment` stores a PendingClaim and leaves the on-chain state untouched; `declineClaim` clears only that claimant; acceptance consumes the stored terms, derives provider and providerGarden, and commits units exactly once. Competing pending claims resolve by supersession — the full decline/accept/supersede choreography is D11.
 
-**D6b. Act 2 — Delivery & evidence** (`Accepted` → `ReadyForConfirmation`)
+#### D6b. Act 2 — Delivery & evidence (`Accepted` → `ReadyForConfirmation`)
 
 ```mermaid
 stateDiagram-v2
@@ -422,7 +422,7 @@ stateDiagram-v2
 
 While the derived overlays are showing, the on-chain state remains `Accepted` — so the cancel/expire/dispute transitions in act 3 apply to all of them. The two delivery styles by kind: **DomainImpact** runs the full Work → WorkApproval rail with per-action required counts (`requirementIndex` credits exactly one requirement per approval — amendment 2026-07-18); **SupportService / OperatorCaptured / SeasonCampaign** seeded with no work requirement go through path (b), where the counterparty's confirmation IS the review (D3).
 
-**D6c. Act 3 — Resolution** (confirmation, endings, disputes, reconciliation)
+#### D6c. Act 3 — Resolution (confirmation, endings, disputes, reconciliation)
 
 ```mermaid
 stateDiagram-v2

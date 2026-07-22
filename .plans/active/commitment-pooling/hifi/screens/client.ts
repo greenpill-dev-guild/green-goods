@@ -11,9 +11,9 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  appBar, banner, btn, card, chip, disclosure, field, gardenTabs, hdr, hero,
+  banner, btn, card, chip, disclosure, emptyState, field, gardenHeader, gardenTabs, hdr, hero,
   input, kv, listRow, meter, pagepad, phoneFrame, radio, sectionTitle, seg,
-  sheetOver, stateChip, statTiles, stepDots, syncBar, timeline,
+  sheetOver, skeleton, stateChip, statTiles, stepDots, syncBar, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
 
@@ -22,11 +22,13 @@ import type { HifiDef } from "./index";
 // ---------------------------------------------------------------------------
 
 const W1_STATES = [
-  ["open", "Open"], ["not-ready", "Not ready"], ["ready", "Ready"], ["paused", "Paused"],
-  ["closed", "Closed"], ["empty-open", "Empty pool"], ["no-season", "No season"],
+  ["open", "Open"], ["not-ready", "Not ready"], ["ready", "Ready"], ["seeded", "Seeded"],
+  ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"], ["cancelled-cycle", "Cycle cancelled"],
+  ["empty-open", "Empty pool"], ["no-season", "No season"],
   ["queued", "Queued send"], ["sync-failed", "Send failed"], ["waiting-membership", "Waiting for membership"],
   ["cycle-summary", "Season closed"], ["claim-pending", "Claim pending"], ["claim-declined", "Claim declined"],
   ["claim-superseded", "Claim superseded"], ["claim-accepted", "Claim accepted"],
+  ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W1State = (typeof W1_STATES)[number][0];
 
@@ -50,7 +52,7 @@ const offerCard = (opts: { queued?: boolean; waiting?: boolean; failed?: boolean
   const note = opts.waiting
     ? `<div class="t-meta">Waiting for your garden membership — it will send once you're welcomed in.</div>`
     : opts.failed
-      ? `<div class="t-meta">Five send attempts used. You can retry or discard.</div><div class="brow">${btn("Retry", { kind: "sec", sm: true })}${btn("Discard", { kind: "ghost", sm: true })}</div>`
+      ? `<div class="t-meta">Five send attempts used. You can retry or discard.</div><div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
       : `<div class="t-meta">Anyone in this garden may take this up.</div>`;
   const title = opts.queued || opts.waiting || opts.failed ? "Compost workshop" : "Prune the north beds";
   const meta = opts.queued || opts.waiting || opts.failed ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
@@ -81,17 +83,20 @@ const claimCard = (state: W1State) => {
 };
 
 function w1(state: W1State): string {
-  const head = hdr("Rocinha Community Garden", { back: true });
+  // Garden detail is an immersive garden route. The shipping AppBar hides for
+  // every /home/garden/** path, so this screen owns its scroll surface without
+  // reserving or drawing bottom navigation.
+  const head = gardenHeader("Rocinha Community Garden", { location: "Rocinha, Rio de Janeiro", founded: "Founded 2021" });
 
   if (state === "not-ready") {
-    const body = `${head}<div class="gtabs"><button type="button" class="gtab on">Work</button><button type="button" class="gtab">Insights</button><button type="button" class="gtab">Gardeners</button></div>${pagepad(
+    const body = `${head}<div class="gtabs" role="tablist" aria-label="Garden sections"><button type="button" class="gtab on" role="tab" aria-selected="true" disabled>Work</button><button type="button" class="gtab" role="tab" aria-selected="false" disabled>Insights</button><button type="button" class="gtab" role="tab" aria-selected="false" disabled>Gardeners</button></div>${pagepad(
       banner("This garden hasn't opened a pool yet. When its stewards set one up, a Pool tab appears here.", "stone"),
       card(`<div class="t-title">Work continues as usual</div><div class="t-meta">Submissions, approvals, and assessments are unaffected.</div>`),
-    )}<div style="flex:1"></div>${appBar("garden")}`;
+    )}<div style="flex:1"></div>`;
     return phoneFrame(body);
   }
 
-  const tabs = gardenTabs("pool");
+  const tabs = gardenTabs("pool", { hotPrefix: "w1.tab" });
   let content: string;
 
   switch (state) {
@@ -155,6 +160,39 @@ function w1(state: W1State): string {
     case "claim-accepted":
       content = pagepad(claimCard(state), hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 0)), offerCard());
       break;
+    case "seeded":
+      content = pagepad(
+        banner("Opens soon — your steward is preparing this season's promises. You can browse what's coming; offering opens when the season does.", "amber", "time-line"),
+        seasonCard({ pct: 0, stage: "Opens soon" }),
+        card(`<div class="t-title">A preview of this season</div><div class="t-meta">These promises stay read-only until the season opens.</div>`, { cls: "inset" }),
+      );
+      break;
+    case "reviewing":
+      content = pagepad(
+        banner("Your stewards are reviewing this season. You can still add evidence and confirm promises.", "stone", "eye-line"),
+        seasonCard({ stage: "Reviewing" }),
+        offerCard(),
+      );
+      break;
+    case "cancelled-cycle":
+      content = pagepad(
+        banner("This season was cancelled — “funding fell through for the rains”. Its history stays with the garden.", "stone", "information-line"),
+        statTiles([{ n: "8", label: "promises made" }, { n: "5", label: "kept" }]),
+      );
+      break;
+    case "loading":
+      content = pagepad(skeleton({ title: true, lines: 2 }), skeleton({ avatar: true, lines: 2 }), skeleton({ lines: 3 }));
+      break;
+    case "not-found":
+      content = pagepad(
+        emptyState("search-line", "No pool here yet", "We couldn't find a pool for this garden. It may still be getting set up — check back soon.", hot("w1.retry", btn("Try again", { kind: "sec", icon: "refresh-line" }))),
+      );
+      break;
+    case "read-error":
+      content = pagepad(
+        emptyState("wifi-off-line", "Couldn't load the pool", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w1.retry", btn("Try again", { kind: "pri", icon: "refresh-line" }))),
+      );
+      break;
     default: // open
       content = pagepad(
         seasonCard(),
@@ -170,7 +208,7 @@ function w1(state: W1State): string {
 
   const sync = state === "queued" ? syncBar("1 promise waiting to send") : state === "sync-failed" ? syncBar("1 item needs attention") : "";
   const offline = state === "queued" || state === "sync-failed";
-  return phoneFrame(`${head}${tabs}${content}<div style="flex:1"></div>${sync}${hot("w1.appbar", appBar("garden"))}`, { offline });
+  return phoneFrame(`${head}${tabs}${content}<div style="flex:1"></div>${sync}`, { offline });
 }
 
 const W1_HOTS: HifiDef["hots"] = {
@@ -185,7 +223,13 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.filters": { l: "Filter chips", info: "Client-local filter chips (admin AdminFilterChip is admin-only)." },
   "w1.season-card": { l: "Cycle card", info: "Season vs Campaign is always named; derived InProgress/Reviewing overlays follow activity (CS:115-117). Calm dates, never timers." },
   "w1.queued-card": { l: "Queued promise card", info: "Offline-queued job chrome; syncs when connected (UX:237). waiting_for_hat variant consumes no send attempts (register #34c)." },
-  "w1.appbar": { l: "AppBar", info: "Unchanged three-tab AppBar; the Garden tab is the existing work-submission flow (UX:116)." },
+  "w1.retry-send": { l: "Retry queued send", to: "screen:W1@queued", info: "Resets the failed job to pending and retries without dropping the local promise (UX:218)." },
+  "w1.discard-send": { l: "Discard failed send", to: "screen:W1", info: "Removes only the exhausted local job after an explicit member choice; no remote promise exists yet (UX:218)." },
+  "w1.retry": { l: "Try again", info: "Read-surface recovery — retries the read. None/UNKNOWN sentinels render loading / not-found / recovery chrome, never a “None” state chip (UX:51-52 · AM:12)." },
+  "w1.tab-work": { l: "Work tab", info: "The existing garden Work tab — submissions, approvals, assessments (UX:116). The Pool tab is the net-new 4th GardenTab." },
+  "w1.tab-insights": { l: "Insights tab", info: "The existing garden Insights tab — unchanged by pooling." },
+  "w1.tab-gardeners": { l: "Gardeners tab", info: "The existing garden Gardeners/membership tab — unchanged by pooling." },
+  "w1.tab-pool": { l: "Pool tab", info: "The active Garden detail section for offers, requests, cycles, and pool-scoped history." },
 };
 
 // ---------------------------------------------------------------------------
@@ -200,10 +244,12 @@ const W2_STATES = [
   ["support-checking", "Checking receipt"], ["support-arrived", "Support arrived"], ["support-failed", "Support delayed"],
   ["reconciled", "Reconciled"], ["cancelled", "Cancelled"], ["expired", "Expired"],
   ["disputed", "Under review"], ["captured", "Recorded for you"],
+  ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W2State = (typeof W2_STATES)[number][0];
+type W2ChipState = Exclude<W2State, "loading" | "not-found" | "read-error">;
 
-const w2StateChip: Record<W2State, string> = {
+const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
   "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", fulfilled: "Fulfilled", "reward-released": "Fulfilled",
@@ -271,8 +317,16 @@ const w2Disclosures = (opts: { evidence?: number; work?: boolean; overrideNote?:
   );
 
 function w2(state: W2State): string {
-  const chips = `<div class="cardrow">${chip("Offer", "offer")}${chip("AGRO", "domain")}${stateChip(w2StateChip[state])}</div>`;
   const head = hdr("Prune the north beds", { back: true });
+  // Read-surface recovery states short-circuit before the state chip is computed.
+  const readWrap = (inner: string) => phoneFrame(`${head}${inner}<div style="flex:1"></div>`);
+  if (state === "loading")
+    return readWrap(pagepad(skeleton({ title: true, lines: 1 }), skeleton({ avatar: true, lines: 3 }), skeleton({ lines: 2 })));
+  if (state === "not-found")
+    return readWrap(pagepad(emptyState("search-line", "Promise not found", "We couldn't find this promise. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))));
+  if (state === "read-error")
+    return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this promise", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))));
+  const chips = `<div class="cardrow">${chip("Offer", "offer")}${chip("AGRO", "domain")}${stateChip(w2StateChip[state])}</div>`;
   const meta = `<div class="hsub num">6 hours · due Aug 12 · Season of First Rains</div>`;
 
   const capturedChip =
@@ -336,7 +390,8 @@ function w2(state: W2State): string {
     showReward ? w2RewardRow(state) : "",
   );
 
-  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>${appBar("garden")}`);
+  // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
+  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`);
 }
 
 const W2_HOTS: HifiDef["hots"] = {
@@ -346,10 +401,11 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
-  "w2.withdraw": { l: "Withdraw (pre-acceptance)", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward-cancel placement remains open (MF-2b)." },
+  "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@cancelled", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody (SS:532). When a G$ disbursement exists, settlement status replaces the pending line; “Arrived” always means oracle-verified, never just reported." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },
+  "w2.retry": { l: "Try again", info: "Read-surface recovery — retries the commitment read (loading/not-found/read-error; never a “None” chip) (UX:51-52 · AM:12)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -358,7 +414,7 @@ const W2_HOTS: HifiDef["hots"] = {
 
 const w2aBehind = () => `${hdr("Prune the north beds", { back: true })}<div class="hsub num">6 hours · due Aug 12</div>`;
 
-function w2a(state: "compose" | "queued"): string {
+function w2a(state: "compose" | "queued" | "failed"): string {
   const kinds = hot(
     "w2a.kind",
     `<div class="radio">
@@ -366,17 +422,31 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
       .map(([ic, l, m], i) => `<div class="ro${i === 0 ? " on" : ""}"><span class="rdot"></span>${icon(ic as string)}<div><div class="rl">${l}</div><div class="rm">${m}</div></div></div>`)
       .join("")}</div>`,
   );
-  const inner =
-    state === "compose"
-      ? `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot("w2a.attach", btn("Attach evidence", { kind: "pri", full: true }))}`
-      : `${listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", chipHtml: chip("Queued", "queued") })}${banner("It will send when you're back online. Nothing else to do.", "stone", "wifi-off-line")}${btn("Done", { kind: "sec", full: true })}`;
-  const body = sheetOver(w2aBehind(), state === "compose" ? "Add evidence" : "Evidence queued", inner);
-  return phoneFrame(`${body}`, { offline: state === "queued" });
+  const title = state === "compose" ? "Add evidence" : state === "failed" ? "One item needs another try" : "Evidence queued";
+  let inner: string;
+  if (state === "failed") {
+    inner =
+      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · couldn't send", chipHtml: chip("Couldn't send", "err"), trailing: hot("w2a.retry-row", btn("Retry", { kind: "sec", sm: true, icon: "refresh-line" })) }) +
+      listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · sent", chipHtml: chip("Sent", "ok") }) +
+      banner("Your evidence is held on this device — nothing is dropped. Retry the one that didn't send whenever you're ready.", "stone", "wifi-off-line") +
+      hot("w2a.done", btn("Done", { kind: "ghost", full: true }));
+  } else if (state === "queued") {
+    inner =
+      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", chipHtml: chip("Queued", "queued") }) +
+      banner("It will send when you're back online. Nothing else to do.", "stone", "wifi-off-line") +
+      hot("w2a.done", btn("Done", { kind: "sec", full: true }));
+  } else {
+    inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot("w2a.attach", btn("Attach evidence", { kind: "pri", full: true }))}`;
+  }
+  const body = sheetOver(w2aBehind(), title, inner);
+  return phoneFrame(`${body}`, { offline: state === "queued" || state === "failed" });
 }
 
 const W2A_HOTS: HifiDef["hots"] = {
   "w2a.kind": { l: "Evidence kind", info: "Photo / link / note → one evidence job per submit (UX:159)." },
   "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-submitted", info: "Enqueues the evidence job → EvidenceAttached after sync (CS:739)." },
+  "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed evidence job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
+  "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the promise with the queued or sent evidence row still visible." },
 };
 
 // ---------------------------------------------------------------------------
@@ -386,11 +456,12 @@ const W2A_HOTS: HifiDef["hots"] = {
 const W3_STATES = [
   ["step-what", "1 · What"], ["step-howmuch", "2 · How much"], ["step-anchors", "3 · Anchors"],
   ["step-review", "4 · Review"], ["request-variant", "Request · review"], ["draft-resume", "Draft resume"],
+  ["validation", "Validation error"],
 ] as const;
 type W3State = (typeof W3_STATES)[number][0];
 
 const w3Head = (title: string, step: number) =>
-  `<div class="hdr"><button type="button" class="hback" aria-label="Close">${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(4, step)}</span></div>`;
+  `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(4, step)}</span></div>`;
 
 function w3(state: W3State): string {
   let body: string;
@@ -431,12 +502,26 @@ function w3(state: W3State): string {
       body = sheetOver(
         w3Head("Make an offer", 0) + pagepad(field("Direction", radio([{ label: "Offer support", on: true }, { label: "Request help" }]))),
         "Resume your draft?",
-        `${listRow({ icon: "sticky-note-line", primary: "Prune the north beds", meta: "Saved on this device · 2 hours ago" })}${hot("w3.resume", btn("Resume draft", { kind: "pri", full: true }))}${btn("Start fresh", { kind: "ghost", full: true })}`,
+        `${listRow({ icon: "sticky-note-line", primary: "Prune the north beds", meta: "Saved on this device · 2 hours ago" })}${hot("w3.resume", btn("Resume draft", { kind: "pri", full: true }))}${hot("w3.start-fresh", btn("Start fresh", { kind: "ghost", full: true }))}`,
       );
+      break;
+    case "validation":
+      body = `${w3Head("Make an offer", 2)}${pagepad(
+        banner("Add at least one action, and give each a count of 1 or more, before you continue. Your entries are kept.", "amber", "error-warning-line"),
+        sectionTitle("This promise needs", chip("2 actions")),
+        card(
+          listRow({ icon: "leaf-line", primary: "Prune × 1", meta: "AGRO · trees and beds", chipHtml: chip("OK", "ok") }) +
+            listRow({ icon: "error-warning-line", primary: "Plant × 0", meta: "needs a count of at least 1", chipHtml: chip("Fix", "err") }) +
+            hot("w3.add-action", btn("Add an action", { kind: "ghost", sm: true, icon: "add-line" })),
+          { cls: "flat" },
+        ),
+        `<div class="t-meta">Anchor this promise to the garden's actions — up to four, each with a count of 1 or more.</div>`,
+        btn("Continue", { kind: "pri", full: true, disabled: true }),
+      )}`;
       break;
     default:
       body = `${w3Head("Make an offer", 0)}${pagepad(
-        field("Direction", hot("w3.direction", radio([{ label: "Offer support", meta: "something you can give", on: true }, { label: "Request help", meta: "something you need" }]))),
+        field("Direction", hot("w3.direction", radio([{ label: "Offer support", meta: "something you can give", on: true }, { label: "Request help", meta: "something you need" }], { interactive: true, name: "commitment-direction" }))),
         field("Kind", radio([{ label: "Garden work", meta: "counts toward the garden's actions", on: true }, { label: "Support / service", meta: "rides, meals, repairs — evidence-confirmed" }])),
         field("Cycle", hot("w3.cycle", input("Season: First Rains", { select: true }))),
         field("Title", input("Prune the north beds")),
@@ -452,7 +537,9 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.cycle": { l: "Cycle scope", info: "Every promise names its cycle; Season and Campaigns never blur (UX:127)." },
   "w3.continue": { l: "Continue", info: "Four steps: what + cycle scope → how much → anchors (garden work only) → review (UX:150-153)." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212)." },
-  "w3.resume": { l: "Resume draft", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
+  "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
+  "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
+  "w3.add-action": { l: "Add an action", info: "DomainImpact requirements builder: 1–4 rows, each count ≥ 1, equal lengths, positional domain match, registry existence; a running summary chip sits in the header. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -462,6 +549,7 @@ const W3_HOTS: HifiDef["hots"] = {
 const W4_STATES = [
   ["confirm-domain", "Garden work"], ["confirm-support", "Support / service"],
   ["not-yet", "Not yet — reason"], ["provider-view", "Provider view"],
+  ["confirmed-pending", "Fulfilled — pending sync"], ["confirmed", "Fulfilled — synced"], ["not-yet-failed", "Not yet — send failed"],
 ] as const;
 type W4State = (typeof W4_STATES)[number][0];
 
@@ -485,6 +573,18 @@ function w4(state: W4State): string {
       title = "Tell the stewards";
       inner = `${field("What still needs doing?", input("The far bed is still overgrown…", { placeholder: false }))}${banner("This never cancels the promise — stewards review and every outcome shows its reason.", "stone")}${hot("w4.not-yet-send", btn("Send to the stewards", { kind: "pri", full: true }))}`;
       break;
+    case "confirmed-pending":
+      title = "Promise kept";
+      inner = `${meter(100, { left: "confirmations", right: "3 of 3" })}${listRow({ icon: "checkbox-circle-fill", primary: "You", chipHtml: chip("Confirmed", "ok") })}${banner("Saved on this device — this confirms once it syncs. The celebration waits for sync.", "stone", "wifi-off-line")}${hot("w4.pending-done", btn("Done", { kind: "sec", full: true }))}`;
+      break;
+    case "confirmed":
+      title = "Promise kept";
+      inner = `${hero("Promise kept", "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot("w4.done", btn("Back to the pool", { kind: "pri", full: true }))}`;
+      break;
+    case "not-yet-failed":
+      title = "Tell the stewards";
+      inner = `${field("What still needs doing?", input("The far bed is still overgrown…", { placeholder: false }))}${banner("Couldn't reach the stewards just now. Your note is kept and this promise stays ready to confirm — try again when you're back online.", "amber", "error-warning-line")}${hot("w4.not-yet-retry", btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
+      break;
     case "provider-view":
       inner = `${summary}${confirmMeter}${exclusion}${btn("Confirm — promise kept", { kind: "pri", full: true, disabled: true })}`;
       break;
@@ -500,6 +600,9 @@ const W4_HOTS: HifiDef["hots"] = {
   "w4.not-yet-send": { l: "Send to the stewards", to: "screen:W2@disputed", info: "Online-only raiseDispute with the reason; the promise freezes at “under review by stewards” (CS:143 · UX:426)." },
   "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; the accepted provider is excluded before threshold validation (UX:280)." },
   "w4.provider-note": { l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
+  "w4.done": { l: "Back to the pool", to: "screen:W2@fulfilled", info: "The Commitment Fulfilled hero (High) fires on sync completion, not enqueue; reduced-motion shows a static celebratory frame (UX:169,201,204)." },
+  "w4.pending-done": { l: "Done", to: "screen:W2@ready-confirmer", info: "Returns to the promise while the confirmation is still pending local sync; fulfillment is not shown early." },
+  "w4.not-yet-retry": { l: "Try again", to: "screen:W2@disputed", info: "“Not yet” is online-only — dispute creation is not an offline queue kind. Failure leaves ReadyForConfirmation and exposes inline retry; success invalidates to under review by stewards (UX:169,221)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -516,7 +619,7 @@ const mk = <T extends readonly (readonly [string, string])[]>(
 export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1), hots: W1_HOTS },
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2), hots: W2_HOTS },
-  { ...mk("W2a", "W2a · Evidence sheet", [["compose", "Compose"], ["queued", "Queued"]] as const, w2a), hots: W2A_HOTS },
+  { ...mk("W2a", "W2a · Evidence sheet", [["compose", "Compose"], ["queued", "Queued"], ["failed", "Upload failed"]] as const, w2a), hots: W2A_HOTS },
   { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3), hots: W3_HOTS },
   { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4), hots: W4_HOTS },
 ];

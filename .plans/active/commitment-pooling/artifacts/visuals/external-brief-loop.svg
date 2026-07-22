@@ -1,18 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1380" viewBox="0 0 900 690" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1380" viewBox="0 0 900 690" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="commitment-loop-title commitment-loop-desc">
+  <title id="commitment-loop-title">The seven-step commitment loop</title>
+  <desc id="commitment-loop-desc">A clockwise loop moves from naming a community problem and desired outcome to recording the baseline, making a request or offer commitment, proving work, receiving confirmation, September-only community testimony, and an impact certificate. Each step uses solid Built or dashed Planned styling.</desc>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#AC9F87"/>
+    <marker id="commitment-loop-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
     </marker>
   </defs>
 
   <rect x="0" y="0" width="900" height="690" fill="#FBF8F2"/>
 
   <!-- center title -->
-  <text x="450" y="330" text-anchor="middle" font-size="23" font-weight="700" fill="#2A2722">The commitment loop</text>
-  <text x="450" y="354" text-anchor="middle" font-size="12.5" fill="#6E6857">from a community need to a funded outcome</text>
+  <text x="450" y="330" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">The commitment loop</text>
+  <text x="450" y="354" text-anchor="middle" font-size="18" fill="#6E6857">from a community need to a funded outcome</text>
 
   <!-- arrows (clockwise arcs, r=250 around 450,340) -->
-  <g fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)">
+  <g fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#commitment-loop-arrow)">
     <path d="M 531.4 103.6 A 250 250 0 0 1 584.1 129.0"/>
     <path d="M 685.6 256.3 A 250 250 0 0 1 698.6 313.3"/>
     <path d="M 662.3 472.0 A 250 250 0 0 1 625.9 517.7"/>
@@ -24,78 +26,78 @@
 
   <!-- 1 · Name a need · Planned -->
   <g>
-    <rect x="372" y="61" width="156" height="58" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-    <circle cx="372" cy="61" r="11" fill="#A19884"/>
-    <text x="372" y="65" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">1</text>
-    <text x="450" y="86" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Name a need</text>
-    <text x="450" y="103" text-anchor="middle" font-size="10.5" fill="#6E6857">Request · Offer · Initiative</text>
+    <rect x="360" y="61" width="180" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <circle cx="360" cy="61" r="11" fill="#988D77"/>
+    <text x="360" y="65" text-anchor="middle" font-size="15" font-weight="700" fill="#2A2722">1</text>
+    <text x="450" y="86" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Name a need</text>
+    <text x="450" y="103" text-anchor="middle" font-size="12.5" fill="#6E6857">problem + desired outcome</text>
   </g>
 
   <!-- 2 · Record the baseline · Built -->
   <g>
     <rect x="568" y="155" width="156" height="58" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
     <circle cx="568" cy="155" r="11" fill="#4C7A57"/>
-    <text x="568" y="159" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">2</text>
-    <text x="646" y="180" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Record the baseline</text>
-    <text x="646" y="197" text-anchor="middle" font-size="10.5" fill="#4C6B54">the shared starting point</text>
+    <text x="568" y="159" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">2</text>
+    <text x="646" y="180" text-anchor="middle" font-size="15" font-weight="600" fill="#24422E">Record the baseline</text>
+    <text x="646" y="197" text-anchor="middle" font-size="12.5" fill="#4C6B54">the shared starting point</text>
   </g>
 
   <!-- 3 · Make a promise · Planned -->
   <g>
-    <rect x="616" y="367" width="156" height="58" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-    <circle cx="616" cy="367" r="11" fill="#A19884"/>
-    <text x="616" y="371" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">3</text>
-    <text x="694" y="392" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Make a promise</text>
-    <text x="694" y="409" text-anchor="middle" font-size="10.5" fill="#6E6857">recorded on Arbitrum</text>
+    <rect x="616" y="367" width="156" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <circle cx="616" cy="367" r="11" fill="#988D77"/>
+    <text x="616" y="371" text-anchor="middle" font-size="15" font-weight="700" fill="#2A2722">3</text>
+    <text x="694" y="392" text-anchor="middle" font-size="15" font-weight="600" fill="#3B372E">Make a commitment</text>
+    <text x="694" y="409" text-anchor="middle" font-size="12.5" fill="#6E6857">request or offer · Arbitrum</text>
   </g>
 
   <!-- 4 · Work proves it · Built -->
   <g>
     <rect x="481" y="536" width="156" height="58" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
     <circle cx="481" cy="536" r="11" fill="#4C7A57"/>
-    <text x="481" y="540" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">4</text>
-    <text x="559" y="561" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Work proves it</text>
-    <text x="559" y="578" text-anchor="middle" font-size="10.5" fill="#4C6B54">evidence + approval</text>
+    <text x="481" y="540" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">4</text>
+    <text x="559" y="561" text-anchor="middle" font-size="17" font-weight="600" fill="#24422E">Work proves it</text>
+    <text x="559" y="578" text-anchor="middle" font-size="14.5" fill="#4C6B54">evidence + approval</text>
   </g>
 
   <!-- 5 · Recipient confirms · Planned -->
   <g>
-    <rect x="263" y="536" width="156" height="58" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-    <circle cx="263" cy="536" r="11" fill="#A19884"/>
-    <text x="263" y="540" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">5</text>
-    <text x="341" y="561" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Recipient confirms</text>
-    <text x="341" y="578" text-anchor="middle" font-size="10.5" fill="#6E6857">never the provider</text>
+    <rect x="263" y="536" width="156" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <circle cx="263" cy="536" r="11" fill="#988D77"/>
+    <text x="263" y="540" text-anchor="middle" font-size="15" font-weight="700" fill="#2A2722">5</text>
+    <text x="341" y="561" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Recipient confirms</text>
+    <text x="341" y="578" text-anchor="middle" font-size="14.5" fill="#6E6857">never the provider</text>
   </g>
 
   <!-- 6 · Community learns · Planned -->
   <g>
-    <rect x="128" y="367" width="156" height="58" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-    <circle cx="128" cy="367" r="11" fill="#A19884"/>
-    <text x="128" y="371" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">6</text>
-    <text x="206" y="392" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Community learns</text>
-    <text x="206" y="409" text-anchor="middle" font-size="10.5" fill="#6E6857">testimony · optional reward</text>
+    <rect x="116" y="367" width="180" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <circle cx="116" cy="367" r="11" fill="#988D77"/>
+    <text x="116" y="371" text-anchor="middle" font-size="15" font-weight="700" fill="#2A2722">6</text>
+    <text x="206" y="392" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Community learns</text>
+    <text x="206" y="409" text-anchor="middle" font-size="14" fill="#6E6857">testimony · September only</text>
   </g>
 
   <!-- 7 · Impact certificate · marketplace Built, bundling Planned -->
   <g>
     <rect x="176" y="155" width="156" height="58" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2" stroke-dasharray="5 4"/>
     <circle cx="176" cy="155" r="11" fill="#4C7A57"/>
-    <text x="176" y="159" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">7</text>
-    <text x="254" y="180" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Impact certificate</text>
-    <text x="254" y="197" text-anchor="middle" font-size="10.5" fill="#4C6B54">Hypercert marketplace</text>
+    <text x="176" y="159" text-anchor="middle" font-size="15" font-weight="700" fill="#FFFFFF">7</text>
+    <text x="254" y="180" text-anchor="middle" font-size="17" font-weight="600" fill="#24422E">Impact certificate</text>
+    <text x="254" y="197" text-anchor="middle" font-size="14.5" fill="#4C6B54">Hypercert marketplace</text>
   </g>
 
   <!-- legend -->
   <g>
     <rect x="118" y="634" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="152" y="647" font-size="12" fill="#2A2722">Built — live today</text>
+    <text x="152" y="647" font-size="15" fill="#2A2722">Built — live today</text>
 
-    <rect x="304" y="634" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-    <text x="338" y="647" font-size="12" fill="#2A2722">Planned — August / September</text>
+    <rect x="304" y="634" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="338" y="647" font-size="15" fill="#2A2722">Planned — scheduled, not live</text>
 
     <rect x="564" y="634" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2" stroke-dasharray="5 4"/>
-    <text x="598" y="647" font-size="12" fill="#2A2722">Marketplace Built · bundling Planned</text>
+    <text x="598" y="647" font-size="15" fill="#2A2722">Marketplace Built · bundling Planned</text>
   </g>
 
-  <text x="450" y="676" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1.3 (2026-07)</text>
+  <text x="450" y="676" text-anchor="middle" font-size="14.5" fill="#6E6857">Green Goods · Commitment Pooling — v1.4 (2026-07)</text>
 </svg>

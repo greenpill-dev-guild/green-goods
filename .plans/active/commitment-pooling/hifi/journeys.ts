@@ -13,7 +13,7 @@ export type Scene = {
   marks?: string[]; // legacy match-strings or registered mark/hotspot ids
   who?: string; surface?: string;
   st?: string; ev: string; cite?: string; note?: string;
-  br?: { l: string; to?: string }[]; mf?: boolean;
+  br?: { l: string; to: string }[]; mf?: boolean;
 };
 export type SB = { id: string; n: number; title: string; persona: string; scen: string; surface: string; steps: Scene[] };
 
@@ -25,7 +25,7 @@ export const SBS: SB[] = [
   { f: "W1", hot: { h: "w1.take-up" }, alts: [{ h: "w1.ask-take-up", l: "steward-reviewed variant", to: "sb3:0" }], who: "João (recipient)", st: "Offered", ev: "claim job → CommitmentAccepted + UnitsCommitted · provider = Maria (Offer creator) · confirmer default = João", cite: "CS:133 · AM:34" },
   { f: "W2", hot: { h: "w2.add-evidence" }, who: "either party", st: "Accepted → Active", ev: "evidence job (W2a photo/note) → EvidenceAttached", cite: "CS:739" },
   { f: "W2@evidence-submitted", hot: { h: "w2.send-confirmation" }, st: "EvidenceSubmitted", ev: "confirmation{submit} → CommitmentReadyForConfirmation (evidence-only SupportService, count 0)", cite: "UX:141 · CS:138b", mf: true },
-  { f: "W4@confirm-support", hot: { h: "w4.confirm", l: "Confirm — promise kept" }, alts: [{ h: "w4.not-yet", l: "Not yet → steward review", to: "sb5:0" }], who: "João", st: "ReadyForConfirmation", ev: "ConfirmationRecorded 1 of 1 → CommitmentFulfilled + UnitsFulfilled", cite: "CS:139", note: "the sheet names the flip: Offer · provider Maria · recipient confirms — provider excluded" },
+  { f: "W4@confirm-support", hot: { h: "w4.confirm", l: "Confirm — promise kept" }, alts: [{ h: "w4.not-yet", l: "Not yet → steward review", to: "sb5:0" }], who: "João", st: "ReadyForConfirmation", ev: "ConfirmationRecorded 1 of 1 → CommitmentFulfilled + UnitsFulfilled", cite: "CS:139", note: "the sheet names the flip: Offer · provider Maria · recipient confirms — provider excluded", br: [{ l: "confirm → Fulfilled, pending sync → hero on sync", to: "screen:W4@confirmed-pending" }] },
   { f: "W2@fulfilled", hot: null, marks: ["w2.reward-row"], st: "Fulfilled", ev: "hero fires once, on sync completion (client only)", cite: "UX:197-199" },
   { f: "W15", hot: null, surface: "editorial", marks: ["w15.counts"], st: "aggregate", ev: "pool story counts tick — counts-only below the small-community threshold", cite: "UX:350" },
 ]},
@@ -33,12 +33,12 @@ export const SBS: SB[] = [
   { f: "W1", hot: { h: "w1.request" }, who: "Ana", ev: "routes to /pool/new?direction=request", cite: "WF:79" },
   { f: "W3@request-variant", hot: { h: "w3.submit", l: "Ask for this help" }, who: "Ana", st: "Draft → Requested", ev: "commitment job → CommitmentCreated · anchors step skipped (SupportService)", cite: "UX:153 · WF:199" },
   { f: "W1", hot: { h: "w1.ask-take-up", l: "I can help" }, who: "João", st: "Requested", ev: "claim → CommitmentAccepted · provider = João (claimant) · confirmer = Ana (Request creator)", cite: "UX:85 · AM:34", note: "the drawn card shows the steward-reviewed helper; this walk runs open-claim" },
-  { f: "W2", hot: { h: "w2.add-evidence" }, who: "João", st: "EvidenceSubmitted", ev: "evidence job → EvidenceAttached", cite: "UX:214" },
+  { f: "W2", hot: { h: "w2.add-evidence" }, who: "João", st: "EvidenceSubmitted", ev: "evidence job → EvidenceAttached", cite: "UX:214", br: [{ l: "upload fails → per-row retry (nothing dropped)", to: "screen:W2a@failed" }] },
   { f: "W2@evidence-submitted", hot: { h: "w2.send-confirmation" }, st: "EvidenceSubmitted", ev: "confirmation{submit} → ReadyForConfirmation (creator, counterparty, or steward may send)", cite: "CS:741", mf: true },
   { f: "W4@confirm-support", hot: { h: "w4.confirm", l: "Confirm — promise kept" }, alts: [{ h: "w4.not-yet", l: "Not yet → steward review", to: "sb5:0" }], who: "Ana (creator)", st: "ReadyForConfirmation", ev: "ConfirmationRecorded → CommitmentFulfilled", cite: "CS:139", note: "claimant provides · request creator confirms (WF:224)" },
 ]},
-{ id: "sb3", n: 3, title: "Steward-reviewed claim", persona: "Ana + João + Operator (David)", scen: "S3 · scarce crew slots", surface: "PWA + Admin", steps: [
-  { f: "W1", hot: { h: "w1.ask-take-up" }, who: "Ana", st: "request Pending", ev: "claim job → ClaimRequested — terms stored: claimant · requestedBy · kind · gardenContext · requestedAt", cite: "CS:133 · UX:99", br: [{ l: "network fails pre-event → ordinary retry, never Declined (UX:108)" }] },
+{ id: "sb3", n: 3, title: "Steward-reviewed claim", persona: "Ana + João + Steward (David)", scen: "S3 · scarce crew slots", surface: "PWA + Admin", steps: [
+  { f: "W1", hot: { h: "w1.ask-take-up" }, who: "Ana", st: "request Pending", ev: "claim job → ClaimRequested — terms stored: claimant · requestedBy · kind · gardenContext · requestedAt", cite: "CS:133 · UX:99", br: [{ l: "network fails pre-event → ordinary retry, never Declined (UX:108)", to: "screen:W1" }] },
   { f: "W1@claim-pending", hot: null, who: "Ana", st: "Pending", ev: "'Waiting for steward' — no claimant-cancel exists; the commitment stays browseable to others", cite: "WF:112 · UX:103" },
   { f: "W1", hot: { h: "w1.ask-take-up", l: "João asks too" }, who: "João", st: "Pending ×2", ev: "second request row indexed", cite: "DG:684" },
   { f: "W7", hot: { h: "w7.decline-claim", l: "Decline Ana's row (reason)" }, alts: [{ h: "w7.accept-claim", l: "or accept João now", to: "sb3:5" }], who: "David", surface: "admin", ev: "declineClaim + reason → ClaimDeclined — only Ana's row changes; João stays Pending", cite: "CS:734 · UX:105" },
@@ -47,24 +47,24 @@ export const SBS: SB[] = [
   { f: "W1@claim-superseded", hot: null, who: "Ana", st: "Superseded", ev: "'Taken up by another provider' — resolution code names the cause; never a sync failure", cite: "UX:106 · DG:706" },
   { f: "W2", hot: null, who: "João", st: "Accepted", ev: "continues to work and evidence", br: [{ l: "Continue in SB-4", to: "sb4:0" }] },
 ]},
-{ id: "sb4", n: 4, title: "Evidence, work linkage, assessment", persona: "Gardener + Evaluator (Dr. Chen) + Operator", scen: "S4 · AGRO+EDU", surface: "PWA + Admin", steps: [
+{ id: "sb4", n: 4, title: "Evidence, work linkage, assessment", persona: "Gardener + Evaluator (Dr. Chen) + Steward", scen: "S4 · AGRO+EDU", surface: "PWA + Admin", steps: [
   { f: "W2", hot: { h: "w2.submit-work" }, alts: [{ h: "w2.link-work", l: "or link existing work", to: "sb4:2" }], who: "provider", st: "Accepted", ev: "deep-links into the existing Garden-tab work flow with commitment context", cite: "UX:174" },
   { f: "WFLOW", hot: { h: "wflow.submit" }, marks: ["wflow.fulfills"], ev: "work job (existing, + meta.commitmentId) → dependent workLink after sync", cite: "UX:174,220", mf: true },
   { f: "W2@active", hot: { h: "w2.link-work", l: "Link existing work (post-hoc alt)" }, st: "Active", ev: "workLink job → WorkLinked", cite: "CS:735" },
-  { f: "HUBWORK", hot: { h: "hub.approve", l: "Approve (existing rails)" }, who: "operator", surface: "admin", st: "PartiallyApproved 1 of 2", ev: "WorkApproval attest → onWorkApproved → ApprovedWorkCounted", cite: "CS:737" },
-  { f: "HUBWORK", hot: { h: "hub.approve", l: "Approve the second work" }, who: "operator", surface: "admin", ev: "count reaches requiredApprovedWorkCount — assessment still declared", cite: "CS:138a" },
+  { f: "HUBWORK", hot: { h: "hub.approve", l: "Approve (existing rails)" }, who: "steward", surface: "admin", st: "PartiallyApproved 1 of 2", ev: "WorkApproval attest → onWorkApproved → ApprovedWorkCounted", cite: "CS:737" },
+  { f: "HUBWORK", hot: { h: "hub.approve", l: "Approve the second work" }, who: "steward", surface: "admin", ev: "count reaches requiredApprovedWorkCount — assessment still declared", cite: "CS:138a" },
   { f: "W14@delta", hot: null, who: "Dr. Chen", surface: "admin", marks: ["w14.kind"], ev: "delta assessment attested — extends Create Assessment; delta renders only for Evaluator-hat holders", cite: "WF:447-455" },
-  { f: "W10@attach-assessment", hot: { h: "w10.attach", l: "Attach assessment" }, who: "operator or evaluator", surface: "admin", ev: "attachAssessment → auto-Ready re-run → CommitmentReadyForConfirmation", cite: "CS:740 · UX:287", mf: true },
+  { f: "W10@attach-assessment", hot: { h: "w10.attach", l: "Attach assessment" }, who: "steward or evaluator", surface: "admin", ev: "attachAssessment → auto-Ready re-run → CommitmentReadyForConfirmation", cite: "CS:740 · UX:287", mf: true },
   { f: "W2@ready-confirmer", hot: null, st: "ReadyForConfirmation", ev: "confirmation proceeds as SB-1", br: [{ l: "Confirm walk", to: "sb1:6" }] },
 ]},
-{ id: "sb5", n: 5, title: "“Not yet” → steward review → resolutions", persona: "Recipient + Operator", scen: "S5", surface: "PWA + Admin", steps: [
-  { f: "W4", hot: { h: "w4.not-yet", l: "Not yet — tell the stewards why" }, who: "confirmer", st: "ReadyForConfirmation", ev: "required reason focuses → online raiseDispute → CommitmentDisputed (preDisputeState stored)", cite: "CS:143 · UX:426", br: [{ l: "tx fails → stays ReadyForConfirmation, inline retry (UX:217)" }] },
+{ id: "sb5", n: 5, title: "“Not yet” → steward review → resolutions", persona: "Recipient + Steward", scen: "S5", surface: "PWA + Admin", steps: [
+  { f: "W4", hot: { h: "w4.not-yet", l: "Not yet — tell the stewards why" }, who: "confirmer", st: "ReadyForConfirmation", ev: "required reason focuses → online raiseDispute → CommitmentDisputed (preDisputeState stored)", cite: "CS:143 · UX:426", br: [{ l: "tx fails → stays ReadyForConfirmation, inline retry (UX:217)", to: "screen:W4@not-yet-failed" }] },
   { f: "W2@disputed", hot: null, st: "Disputed", ev: "banner 'under review by stewards' — CTAs frozen; never surfaced publicly", cite: "UX:95" },
   { f: "W10@resolve-dispute", hot: { h: "w10.resolve", l: "Resolve dispute (4 outcomes + reason)" }, who: "David", surface: "admin", ev: "resolveDispute — RestorePrevious / Fulfilled / Cancelled / Expired; an Expired prior can never resolve Fulfilled", cite: "CS:144" },
   { f: "W2", hot: null, st: "restored", ev: "RestorePrevious returns the exact stored state — no unit movement", cite: "LAP:186" },
   { f: "W2", hot: null, ev: "every reason renders in the member timeline too", cite: "UX:300", note: "register #34b: member pre-acceptance withdraw adopted (MF-2a); steward cancel placement still open (MF-2b)" },
 ]},
-{ id: "sb6", n: 6, title: "Expiry → offer again", persona: "Owner + Operator + anyone", scen: "S1/S5 edge", surface: "PWA + Admin", steps: [
+{ id: "sb6", n: 6, title: "Expiry → offer again", persona: "Owner + Steward + anyone", scen: "S1/S5 edge", surface: "PWA + Admin", steps: [
   { f: "W2@expired", hot: null, st: "past due", ev: "expireCommitment is permissionless — admin sweep in August, keeper cron later (register #34d)", cite: "CS:746" },
   { f: "W2@expired", hot: { h: "w2.offer-again", l: "Offer again" }, who: "owner", st: "Expired", ev: "units released exactly once · pending claim requests → Superseded (COMMITMENT_EXPIRED)", cite: "CS:142", mf: true },
   { f: "W3@step-review", hot: { h: "w3.submit", l: "Make this offer (prefilled)" }, ev: "a fresh commitment — per-cycle renewal re-entry, not a state rewind", cite: "UX:94" },
@@ -75,19 +75,19 @@ export const SBS: SB[] = [
   { f: "W3@draft-resume", hot: null, ev: "re-entry offers resume (DraftDialog pattern)", cite: "UX:155" },
   { f: "W1@queued", hot: null, marks: ["w1.queued-card"], st: "queued (optimistic)", ev: "submit offline → queued badge + SyncStatusBar + polite announcement", cite: "UX:237,427" },
   { f: "W1", hot: null, st: "Offered (on-chain)", ev: "connectivity returns → CommitmentCreated · 'N promises synced'", cite: "UX:427" },
-  { f: "W1@sync-failed", hot: null, st: "Failed (local)", ev: "5 attempts exhausted → Failed chip · retry / discard · parseContractError", cite: "UX:240", br: [{ l: "Retry re-enters sync", to: "sb7:3" }] },
+  { f: "W1@sync-failed", hot: null, st: "Failed (local)", ev: "5 attempts exhausted → Failed chip · retry / discard · parseContractError", cite: "UX:240", br: [{ l: "Retry re-enters sync", to: "sb7:3" }, { l: "pool read fails → loading / not-found / retry", to: "screen:W1@read-error" }] },
   { f: "W1@waiting-membership", hot: null, st: "waiting_for_hat", ev: "pre-flight membership check — no retries consumed; resumes on membership (register #34c; join-request approval register #35 is the trigger)", cite: "LAP:191", mf: true },
 ]},
-{ id: "sb8", n: 8, title: "Analog capture + fallback", persona: "Operator (David) + member", scen: "S7 · device-free member", surface: "Admin + PWA", steps: [
+{ id: "sb8", n: 8, title: "Analog capture + fallback", persona: "Steward (David) + member", scen: "S7 · device-free member", surface: "Admin + PWA", steps: [
   { f: "W9", hot: { h: "w9.member", l: "pick member + capture kind" }, who: "David", surface: "admin", ev: "capturedFor set · captured confirmations always carry a reason", cite: "WF:354-357" },
-  { f: "W8@captured-for", hot: { h: "w8.seed", l: "Record it" }, surface: "admin", ev: "commitment job (OperatorCaptured, onBehalfOf) → CommitmentCreated(creator = member, recordedBy = operator)", cite: "CS:730 · DG:236" },
+  { f: "W8@captured-for", hot: { h: "w8.seed", l: "Record it" }, surface: "admin", ev: "commitment job (OperatorCaptured, onBehalfOf) → CommitmentCreated(creator = member, recordedBy = steward)", cite: "CS:730 · DG:236" },
   { f: "W2@captured", hot: null, who: "member", st: "Offered", marks: ["w2.captured-chip"], ev: "chip: 'recorded by your steward on your behalf' — the promise stays the member's", cite: "WF:138 · UX:437" },
   { f: "W2@captured", hot: { h: "w2.add-evidence", l: "member adds evidence (offline ok)" }, who: "member", ev: "evidence job → EvidenceAttached", cite: "UX:214" },
   { f: "W2@evidence-submitted", hot: { h: "w2.send-confirmation" }, ev: "confirmation{submit} → ReadyForConfirmation (count 0 path)", cite: "CS:138b", mf: true },
   { f: "W4@confirm-support", hot: { h: "w4.confirm", l: "counterparty confirms" }, alts: [{ h: "w4.not-yet", l: "Not yet → steward review", to: "sb5:0" }], st: "ReadyForConfirmation", ev: "ConfirmationRecorded → CommitmentFulfilled — provider still excluded", cite: "CS:139" },
   { f: "W10@fallback-confirm", hot: { h: "w10.fallback-confirm", l: "Confirm as fallback (reason)" }, who: "David", surface: "admin", ev: "variant: fallback with mandatory reason — provider-steward blocked (SelfConfirmation); overrides render visible markers", cite: "CS:744 · UX:287,301" },
 ]},
-{ id: "sb9", n: 9, title: "Pool readiness → cycles", persona: "Operator", scen: "S5/S13 admin side", surface: "Admin (+ member echo)", steps: [
+{ id: "sb9", n: 9, title: "Pool readiness → cycles", persona: "Steward", scen: "S5/S13 admin side", surface: "Admin (+ member echo)", steps: [
   { f: "W7@not-ready", hot: null, st: "NotReady", ev: "checklist: charter · exposure cap · qualifying Baseline", cite: "UX:57,269" },
   { f: "W7@not-ready", hot: { h: "w7.edit-charter", l: "Edit charter + set cap" }, ev: "setPoolCharter · setProviderExposureCap (required before Ready)", cite: "CS:723,751" },
   { f: "W7@ready", hot: null, st: "Ready", ev: "markPoolReady — spec-placed control (UX:269)", cite: "CS:724" },
@@ -102,7 +102,7 @@ export const SBS: SB[] = [
   { f: "W1@cycle-summary", hot: null, surface: "pwa", ev: "client cycle summary card + the medium hero, once", cite: "UX:200", mf: true },
   { f: "W7", hot: { h: "w7.cancel-cycle", l: "variant: Cancel a cycle (reason)" }, ev: "cancelCycle → quiet member banner with reason · pool coda: close → compost → reopen (register #34a)", cite: "UX:77 · CS:104" },
 ]},
-{ id: "sb10", n: 10, title: "Declared reward → payout", persona: "Operator + Gardener", scen: "S13 · July's only rail", surface: "Admin + PWA", steps: [
+{ id: "sb10", n: 10, title: "Declared reward → payout", persona: "Steward + Gardener", scen: "S13 · July's only rail", surface: "Admin + PWA", steps: [
   { f: "W8@step3", hot: { h: "w8.reward", l: "Declare reward (step 3)" }, who: "David", surface: "admin", ev: "reference only — the module never custodies funds", cite: "WF:339 · UX:280" },
   { f: "W2", hot: null, surface: "pwa", marks: ["w2.reward-row"], ev: "member reward row: '20 DAI from the garden jar · pending'", cite: "WF:159" },
   { f: "W13", hot: { h: "w13.row", l: "open the confirm row" }, who: "David", surface: "admin", st: "ReadyForConfirmation", ev: "Hub Confirm stage — where you are named or fallback-eligible", cite: "WF:433" },
@@ -117,10 +117,10 @@ export const SBS: SB[] = [
   { f: "W2@support-arrived", hot: null, st: "Verified", ev: "'support arrived ↗' + Celo ref — the oracle callback is the only producer", cite: "SS:398 · AM:22" },
   { f: "W23", hot: { h: "w23.send" }, marks: ["w23.arrived-row"], ev: "online transfer — sponsored gas, never enters the offline queue", cite: "UX:219 · SS:433" },
   { f: "W23@send", hot: { h: "w23.send-submit", l: "Send" }, ev: "wallet-pending → confirmed; failure surfaces inline with retry", cite: "UX:219" },
-  { f: "W2@support-failed", hot: null, st: "Failed (disbursement)", ev: "'still arranging support — your promise is recorded' — the commitment stays Fulfilled", cite: "SS:532 · DG:666", br: [{ l: "Operator recovery", to: "sb12:7" }] },
+  { f: "W2@support-failed", hot: null, st: "Failed (disbursement)", ev: "'still arranging support — your promise is recorded' — the commitment stays Fulfilled", cite: "SS:532 · DG:666", br: [{ l: "Steward recovery", to: "sb12:7" }] },
   { f: "W23@delivery-blocked", hot: null, st: "delivery blocked", ev: "AA gate failed → no balance or send; Safe-to-Safe garden funding continues · register #34f makes the gate legible admin-side", cite: "SS:425" },
 ]},
-{ id: "sb12", n: 12, title: "Batch execution + receipt check", persona: "Operator/Executor (one human, register #34e)", scen: "S8/S9 · first execution", surface: "Admin + Safe app", steps: [
+{ id: "sb12", n: 12, title: "Batch execution + receipt check", persona: "Steward/Executor (one human, register #34e)", scen: "S8/S9 · first execution", surface: "Admin + Safe app", steps: [
   { f: "W21@unregistered", hot: { h: "w21.setup", l: "Set up settlement account" }, ev: "registerSettlementAccount — Celo 42220 · 2-of-3 recovery · no owner/executor overlap", cite: "SS:169" },
   { f: "W24@flows", hot: { h: "w24.queue-funding", l: "Queue garden funding" }, ev: "queueFunding — ProtocolToGarden, the only modeled route; HoA → protocol Safe is upstream context", cite: "SS:174,536" },
   { f: "W10", hot: { h: "w10.record-payout", l: "Queue disbursement (August relabel)" }, ev: "queueDisbursement — gated on memberDeliveryEnabled + Fulfilled", cite: "SS:173 · WF:520" },
@@ -131,7 +131,7 @@ export const SBS: SB[] = [
   { f: "W22@outcome", hot: null, marks: ["w22.requeue-member"], ev: "oracle: Valid → BatchVerified ('support arrived') · ReceiptInvalid → Failed, per-member recovery · timeout → Request again · stale callback ignored", cite: "DG:586-644" },
   { f: "W21@failed-recovery", hot: { h: "w21.requeue", l: "Requeue a failed member" }, ev: "requeue clears the old batchId, attempts++ · or cancel with reason", cite: "SS:182-183" },
 ]},
-{ id: "sb13", n: 13, title: "Cross-garden protocol claim", persona: "Garden Operator (Leila)", scen: "S14", surface: "PWA + Admin", steps: [
+{ id: "sb13", n: 13, title: "Cross-garden protocol claim", persona: "Garden Steward (Leila)", scen: "S14", surface: "PWA + Admin", steps: [
   { f: "W1", hot: { h: "w1.ask-take-up" }, who: "Leila", ev: "protocol commitment in garden context — steward-reviewed default (register #19)", cite: "UX:129" },
   { f: "W25@context-chooser", hot: { h: "w25.continue", l: "for Awka Hub → Continue" }, ev: "Garden claim: claimant = GardenAccount · requestedBy = Leila", cite: "CS:577-589", mf: true },
   { f: "W1@claim-pending", hot: null, st: "Pending", ev: "canonical claimant + requested-by + provider context shown", cite: "UX:99" },
@@ -140,13 +140,13 @@ export const SBS: SB[] = [
   { f: "W12", hot: { h: "w12.confirm-row", l: "confirmations queue" }, ev: "protocol confirmations queue mirrors the Hub Confirm grammar", cite: "WF:417" },
   { f: "W10", hot: null, st: "Fulfilled", ev: "named confirmer (or reasoned fallback) confirms · co-funded reward references stay with the owning garden · never custody or member-delivery via garden claims", cite: "UX:313 · AM:38-39" },
 ]},
-{ id: "sb14", n: 14, title: "Need → triage → seeded promise", persona: "Community (Kwame) + Operator", scen: "S10 · September", surface: "Community PWA + Admin", steps: [
-  { f: "C3", hot: { m: "◉ I need help", l: "I need help (voice or text)" }, who: "Kwame", ev: "intent → NeedKind.REQUEST · words captured by voice or typing", cite: "CI-WF:96" },
+{ id: "sb14", n: 14, title: "Need → triage → seeded promise", persona: "Community (Kwame) + Steward", scen: "S10 · September", surface: "Community PWA + Admin", steps: [
+  { f: "C3", hot: { m: "What is your community trying to solve?", l: "Describe the problem by voice or text" }, who: "Kwame", ev: "kind-free Need · words captured by voice or typing · Request/Offer belongs to commitment seeding", cite: "CI-WF:96" },
   { f: "C4", hot: { m: "[Share with my garden]", l: "Share with my garden" }, marks: ["Waiting for garden membership. No send"], ev: "offline-queueable Need — may wait for membership without consuming sends", cite: "CI-WF:150" },
   { f: "C1", hot: { m: "[View] [Agree]", l: "neighbors View + Agree" }, ev: "board orders by recency + status, never funding", cite: "CI-SPEC:257" },
   { f: "C9", hot: { m: "[Acknowledge]", l: "Acknowledge" }, who: "David", surface: "admin", ev: "typed moderation — moderation and progress are separate axes", cite: "CI-SPEC:267" },
   { f: "C9", hot: { m: "[Seed a commitment]", l: "Seed a commitment" }, surface: "admin", ev: "opens the seed-from-Need form", cite: "CI-WF:307" },
-  { f: "C10", hot: { m: "[Review commitment]", l: "Review commitment" }, surface: "admin", ev: "needUID linked read-only · every suggested field operator-confirmed · unreachable-threshold error before acceptance", cite: "CI-WF:340" },
+  { f: "C10", hot: { m: "[Review commitment]", l: "Review commitment" }, surface: "admin", ev: "needUID linked read-only · every suggested field steward-confirmed · unreachable-threshold error before acceptance", cite: "CI-WF:340" },
   { f: "C5", hot: null, marks: ["✓ Promise: 16 market rides this season"], ev: "the thread: neighbor's words → promise → work → proof · funding supports the garden, never escrow", cite: "CI-WF:165" },
   { f: "C5", hot: { m: "[Add testimony]", l: "author confirm + testimony" }, who: "Kwame", ev: "consumes the shared confirmation/testimony primitives — September-realized (register #34g)", cite: "CI-SPEC:259", note: "membership queue slice stays gated on RESR-64" },
 ]},

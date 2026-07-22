@@ -1,67 +1,72 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="ownership-map-title ownership-map-desc">
+  <title id="ownership-map-title">Commitment Pooling documentation system</title>
+  <desc id="ownership-map-desc">Three complementary truth surfaces support one six-section external document. The repository plan hub owns execution, specification, evidence, prototype, and visual truth; Linear owns current delivery status; and the Google Doc is the single source of truth for the external narrative. No external prose is mirrored in the repository.</desc>
+  <defs>
+    <marker id="ownership-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
+    </marker>
+  </defs>
   <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
 
-  <text x="450" y="46" text-anchor="middle" font-size="22" font-weight="700" fill="#2A2722">Documentation set — every artifact has one home</text>
+  <text x="450" y="44" text-anchor="middle" font-size="29" font-weight="700" fill="#2A2722">One document, three truth surfaces</text>
+  <text x="450" y="72" text-anchor="middle" font-size="16" fill="#6E6857">each source owns one distinct kind of truth</text>
 
-  <text x="190" y="96" text-anchor="middle" font-size="10.5" fill="#8A8578">Artifacts</text>
-  <text x="720" y="96" text-anchor="middle" font-size="10.5" fill="#8A8578">Home surface</text>
-
-  <!-- connectors: artifact -> the surface that owns it -->
-  <g fill="none" stroke="#AC9F87" stroke-width="2">
-    <path d="M 300 172 C 430 172 490 209 620 209"/>
-    <path d="M 300 246 C 430 246 490 209 620 209"/>
-    <path d="M 300 320 C 430 320 490 320 620 320"/>
-    <path d="M 300 394 C 430 394 490 542 620 542"/>
-    <path d="M 300 468 C 430 468 490 542 620 542"/>
-    <path d="M 300 542 C 430 542 490 542 620 542"/>
-    <path d="M 300 616 C 430 616 490 542 620 542"/>
-    <path d="M 300 690 C 430 690 490 542 620 542"/>
-  </g>
-
-  <!-- artifact chips -->
+  <!-- truth surfaces -->
   <g>
-    <rect x="80" y="150" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="176.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">External brief</text>
+    <rect x="50" y="104" width="240" height="102" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="170" y="137" text-anchor="middle" font-size="20" font-weight="700" fill="#2A2722">Repo plan hub</text>
+    <text x="170" y="164" text-anchor="middle" font-size="15" fill="#6E6857">specs + evidence + artifacts</text>
+    <text x="170" y="186" text-anchor="middle" font-size="14" fill="#6E6857">implementers and agents</text>
 
-    <rect x="80" y="224" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="250.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Operator onboarding guide</text>
+    <rect x="330" y="104" width="240" height="102" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="450" y="137" text-anchor="middle" font-size="20" font-weight="700" fill="#2A2722">Linear</text>
+    <text x="450" y="164" text-anchor="middle" font-size="15" fill="#6E6857">current delivery status</text>
+    <text x="450" y="186" text-anchor="middle" font-size="14" fill="#6E6857">the team</text>
 
-    <rect x="80" y="298" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="324.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Use-case pack</text>
-
-    <rect x="80" y="372" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="398.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Canonical synthesis</text>
-
-    <rect x="80" y="446" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="472.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Evaluator architecture note</text>
-
-    <rect x="80" y="520" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="546.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Funder/collaborator note</text>
-
-    <rect x="80" y="594" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="620.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">FAQ &amp; glossary</text>
-
-    <rect x="80" y="668" width="220" height="44" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="190" y="694.5" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Member one-pager</text>
+    <rect x="610" y="104" width="240" height="102" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="730" y="137" text-anchor="middle" font-size="20" font-weight="700" fill="#2A2722">Google Doc</text>
+    <text x="730" y="164" text-anchor="middle" font-size="15" fill="#6E6857">external narrative</text>
+    <text x="730" y="186" text-anchor="middle" font-size="14" fill="#6E6857">partners, funders, gardens</text>
   </g>
 
-  <!-- surface chips -->
+  <g fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#ownership-arrow)">
+    <path d="M 290 155 H 322"/>
+    <path d="M 570 155 H 602"/>
+  </g>
+
+  <!-- Google Doc tab set -->
+  <rect x="50" y="246" width="800" height="486" rx="18" fill="#F1ECE2" stroke="#988D77" stroke-width="2"/>
+  <text x="450" y="282" text-anchor="middle" font-size="21" font-weight="700" fill="#2A2722">Canonical external document · sections in order</text>
+  <text x="450" y="307" text-anchor="middle" font-size="15" fill="#6E6857">all external prose is authored and maintained here</text>
+
   <g>
-    <rect x="620" y="187" width="200" height="44" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="720" y="207" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Repo plan hub</text>
-    <text x="720" y="222" text-anchor="middle" font-size="10" fill="#4C7A57">execution truth</text>
+    <rect x="76" y="336" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="96" y="369" font-size="18" font-weight="700" fill="#2A2722">00 Start Here</text>
+    <text x="96" y="397" font-size="15" fill="#6E6857">Orientation and reading guide</text>
 
-    <rect x="620" y="298" width="200" height="44" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="720" y="318" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Google Doc</text>
-    <text x="720" y="333" text-anchor="middle" font-size="10" fill="#4C7A57">external canonical</text>
+    <rect x="468" y="336" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="488" y="369" font-size="18" font-weight="700" fill="#2A2722">01 External Brief</text>
+    <text x="488" y="397" font-size="15" fill="#6E6857">Shareable project overview</text>
 
-    <rect x="620" y="520" width="200" height="44" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="720" y="540" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Linear</text>
-    <text x="720" y="555" text-anchor="middle" font-size="10" fill="#4C7A57">internal records</text>
+    <rect x="76" y="456" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="96" y="489" font-size="17" font-weight="700" fill="#2A2722">02 GE Learnings &amp; Full Flywheel</text>
+    <text x="96" y="517" font-size="15" fill="#6E6857">Background, learnings, and design choices</text>
+
+    <rect x="468" y="456" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="488" y="489" font-size="18" font-weight="700" fill="#2A2722">03 Use Cases &amp; Scenarios</text>
+    <text x="488" y="517" font-size="15" fill="#6E6857">Garden journeys and mechanism examples</text>
+
+    <rect x="76" y="576" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="96" y="609" font-size="17" font-weight="700" fill="#2A2722">04 External Doc &amp; Rollout Plan</text>
+    <text x="96" y="637" font-size="15" fill="#6E6857">Audiences, sequence, and claim rules</text>
+
+    <rect x="468" y="576" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="488" y="609" font-size="18" font-weight="700" fill="#2A2722">05 Sources &amp; Citations</text>
+    <text x="488" y="637" font-size="15" fill="#6E6857">Linked evidence and retired claims</text>
   </g>
 
-  <text x="450" y="782" text-anchor="middle" font-size="12" fill="#6E6857">A claim has exactly one home; the other two surfaces link to it rather than restating it.</text>
-  <text x="450" y="806" text-anchor="middle" font-size="12" fill="#6E6857">Corrections flow repo → Linear → Google Doc. Never hand-edit a mirror on its own.</text>
+  <text x="450" y="777" text-anchor="middle" font-size="17" font-weight="600" fill="#2A2722">Reconcile facts; do not duplicate prose</text>
+  <text x="450" y="804" text-anchor="middle" font-size="15" fill="#6E6857">Specs and evidence stay in the repo · status stays in Linear · external language stays in the Doc.</text>
 
-  <text x="450" y="868" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+  <text x="450" y="868" text-anchor="middle" font-size="15" fill="#6E6857">Green Goods · Commitment Pooling — v1.2 (2026-07)</text>
 </svg>

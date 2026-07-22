@@ -725,6 +725,6 @@ These items belong to the human-owned, blocked `settlement_evidence` execution s
 
 ### 11.10 One conflict carried across deliberately
 
-The source document's Recommendation 1 treats a working sink as a **proceed-gate**: *"Do not scale HoA distributions or add gardens until at least one garden has a working service sink."* The repo rule in `visual-assets.md` and `external-communications.md` says the local spend sink is *"a circulation aim / ordering criterion, never a launch gate."*
+The source document's Recommendation 1 treats a working sink as a **proceed-gate**: *"Do not scale HoA distributions or add gardens until at least one garden has a working service sink."* The repo rule in `visual-assets.md` says the local spend sink is *"a circulation aim / ordering criterion, never a launch gate."*
 
 Both are live, and they are reconcilable but not identical: settlement **capability** is not sink-gated, while scaling the G$ **distribution** into a garden does follow sink readiness — which is also what the GoodDollar-facing July plan commits to ("build the place to spend before widening the flow"). Recorded so the tension is visible rather than silently resolved in one direction.
