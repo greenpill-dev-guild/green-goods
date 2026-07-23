@@ -2,14 +2,16 @@
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Three audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + baseline panel + money maps (shareable narrative)
-//   2) Architecture — D1–D13 with their "How to read this" panels (Mermaid source
-//                     renders through the locked, embedded self-contained runtime)
+//   2) Architecture — D1–D14 with their "How to read this" panels (Mermaid renders
+//                     locally through the locked embedded runtime and natively on
+//                     the Claude Artifact host)
 //   3) Screens      — cross-surface flow map + canonical hi-fi screen headings
 //
 // Rebuild:  bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts
-//           (or OUT=/path/out.html bun … ; the default is Artifact body-content;
-//            DEBUG_MERMAID=1 wraps the same self-contained output in a LOCAL
-//            file:// document — never publish that debug wrapper)
+//           Always writes two explicit outputs:
+//           - LOCAL_OUT (or legacy OUT): self-contained file:// preview with Mermaid
+//           - ARTIFACT_OUT: body-content for the Claude Artifact host
+//           Never publish the local document wrapper.
 // Republish via the Claude Code Artifact tool with
 //   url: https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d
 // One-shot op per CLAUDE.md scripts policy — lives in .plans, not scripts/.
@@ -18,8 +20,11 @@ import { join } from "node:path";
 
 const DIR = import.meta.dir;
 const ROOT = join(DIR, "../../..");
-const OUT = process.env.OUT ?? "/tmp/commitment-pooling-visual-assets.html";
-const DEBUG_MERMAID = !!process.env.DEBUG_MERMAID;
+const LOCAL_OUT = process.env.LOCAL_OUT ?? process.env.OUT ?? "/tmp/commitment-pooling-visual-assets.html";
+const ARTIFACT_OUT = process.env.ARTIFACT_OUT ?? "/tmp/commitment-pooling-visual-assets.artifact-body.html";
+if (LOCAL_OUT === ARTIFACT_OUT) {
+  throw new Error("LOCAL_OUT and ARTIFACT_OUT must be different files.");
+}
 const MERMAID_DIR = join(ROOT, "node_modules/.bun/node_modules/mermaid");
 const MERMAID_RUNTIME_PATH = join(MERMAID_DIR, "dist/mermaid.min.js");
 const MERMAID_PACKAGE_PATH = join(MERMAID_DIR, "package.json");
@@ -206,6 +211,29 @@ function sectionsHtml(secs: Sec[], skipTitles: string[] = []): { nav: string; bo
 
 const diaOut = sectionsHtml(dia.secs);
 const wfOut = sectionsHtml(wf.secs);
+const requiredArchitectureSections = [
+  ["D1.", "d1-unified-system-context"],
+  ["D1b.", "d1b-contract-module-topology-and-trust-boundaries"],
+  ["D2.", "d2-offer-request-work-approval-confirmation-fulfillment"],
+  ["D3.", "d3-analog-capture-lightweight-evidence-review-is-confirmation"],
+  ["D4.", "d4-pool-state-machine"],
+  ["D5.", "d5-cycle-state-machine-types-season-campaign"],
+  ["D6.", "d6-commitment-state-machine-overview-three-acts"],
+  ["D7.", "d7-indexer-entity-delta-erd"],
+  ["D7b.", "d7b-settlement-erd"],
+  ["D7c.", "d7c-fulfilled-commitment-hypercert-cut-over-and-indexer-delta"],
+  ["D8.", "d8-g-funding-topology-safe-recovery-and-oracle-boundary"],
+  ["D9.", "d9-settlement-sequence-with-failure-retry"],
+  ["D10.", "d10-disbursement-state-machine-all-module-native-on-chain"],
+  ["D11.", "d11-approval-gated-claim-request-decline-acceptance-and-superses"],
+  ["D12.", "d12-protocol-to-garden-funding-route"],
+  ["D13.", "d13-capability-responsibility-summary"],
+  ["D13b.", "d13b-exact-sensitive-action-permission-table"],
+  ["D14.", "d14-commitment-offline-job-lifecycle"],
+];
+const diagramHowToPrefixes = [
+  "D1.", "D1b.", "D2.", "D7b.", "D7c.", "D8.", "D9.", "D11.", "D12.", "D13.", "D14.",
+];
 
 const storyBody = `
 <section id="story-loop">
@@ -295,19 +323,35 @@ const artifactContent = `
   --paper:#FBF8F2; --panel:#FFFFFF; --ink:#2A2722; --stone:#6E6857; --line:#E4DDD0;
   --moss:#4C7A57; --moss-tint:#DFEBDE; --moss-ink:#24422E; --sand:#988D77;
   --diagram-paper:#FBF8F2; --diagram-ink:#2A2722; --diagram-stone:#6E6857;
+  --diagram-fill:#EEF5E7; --diagram-border:#3E7C59; --diagram-line:#6E6857;
+  --diagram-note:#F7EBDD; --diagram-note-border:#B66A3C;
+  --diagram-planned-fill:#F4EFE6; --diagram-planned-border:#6E6857;
+  --diagram-app-fill:#F1ECE3; --diagram-app-border:#8A7F6A;
   --frame-bg:#FFFFFF;
 }
 @media (prefers-color-scheme: dark){
   :root{ color-scheme:dark; --paper:#201E1A; --panel:#2A2722; --ink:#EDE7DB; --stone:#B0A794; --line:#3D382F;
          --moss:#7FA88B; --moss-tint:#2F3A31; --moss-ink:#CBDDCF; --sand:#8A7F6A;
-         --diagram-paper:#2A2722; --diagram-ink:#EDE7DB; --diagram-stone:#B0A794; }
+         --diagram-paper:#2A2722; --diagram-ink:#EDE7DB; --diagram-stone:#B0A794;
+         --diagram-fill:#2F3A31; --diagram-border:#7FA88B; --diagram-line:#B0A794;
+         --diagram-note:#3A2D25; --diagram-note-border:#C78660;
+         --diagram-planned-fill:#332F29; --diagram-planned-border:#B0A794;
+         --diagram-app-fill:#302D28; --diagram-app-border:#8A7F6A; }
 }
 :root[data-theme="dark"]{ color-scheme:dark; --paper:#201E1A; --panel:#2A2722; --ink:#EDE7DB; --stone:#B0A794; --line:#3D382F;
          --moss:#7FA88B; --moss-tint:#2F3A31; --moss-ink:#CBDDCF; --sand:#8A7F6A;
-         --diagram-paper:#2A2722; --diagram-ink:#EDE7DB; --diagram-stone:#B0A794; }
+         --diagram-paper:#2A2722; --diagram-ink:#EDE7DB; --diagram-stone:#B0A794;
+         --diagram-fill:#2F3A31; --diagram-border:#7FA88B; --diagram-line:#B0A794;
+         --diagram-note:#3A2D25; --diagram-note-border:#C78660;
+         --diagram-planned-fill:#332F29; --diagram-planned-border:#B0A794;
+         --diagram-app-fill:#302D28; --diagram-app-border:#8A7F6A; }
 :root[data-theme="light"]{ color-scheme:light; --paper:#FBF8F2; --panel:#FFFFFF; --ink:#2A2722; --stone:#6E6857; --line:#E4DDD0;
          --moss:#4C7A57; --moss-tint:#DFEBDE; --moss-ink:#24422E; --sand:#988D77;
-         --diagram-paper:#FBF8F2; --diagram-ink:#2A2722; --diagram-stone:#6E6857; }
+         --diagram-paper:#FBF8F2; --diagram-ink:#2A2722; --diagram-stone:#6E6857;
+         --diagram-fill:#EEF5E7; --diagram-border:#3E7C59; --diagram-line:#6E6857;
+         --diagram-note:#F7EBDD; --diagram-note-border:#B66A3C;
+         --diagram-planned-fill:#F4EFE6; --diagram-planned-border:#6E6857;
+         --diagram-app-fill:#F1ECE3; --diagram-app-border:#8A7F6A; }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);
   font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
@@ -366,6 +410,34 @@ hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
 .dia .mermaid-host{width:100%;}
 .dia .mermaid-rendered{display:grid;place-items:center;width:100%;min-width:0;overflow:hidden;}
 .dia .mermaid-rendered svg{display:block;flex:none;min-width:0!important;max-width:none!important;height:auto;}
+.dia svg{background:var(--diagram-paper)!important;color:var(--diagram-ink)!important;}
+.dia svg .diagram-background{fill:var(--diagram-paper)!important;}
+.dia svg text,.dia svg text>tspan,.dia svg .nodeLabel,.dia svg .nodeLabel p,.dia svg .edgeLabel,.dia svg .edgeLabel p{
+  color:var(--diagram-ink)!important;fill:var(--diagram-ink)!important;}
+.dia svg .node rect,.dia svg .node circle,.dia svg .node ellipse,.dia svg .node polygon,.dia svg .node path,
+.dia svg .statediagram-state rect,.dia svg .stateGroup rect,.dia svg .entityBox,
+.dia svg .attributeBoxOdd,.dia svg .attributeBoxEven,.dia svg .row-rect-odd,.dia svg .row-rect-even{
+  fill:var(--diagram-fill)!important;stroke:var(--diagram-border)!important;}
+.dia svg .cluster rect,.dia svg .cluster polygon,.dia svg .stateGroup .composit,.dia svg .statediagram .outer-path{
+  fill:var(--diagram-paper)!important;stroke:var(--diagram-stone)!important;}
+.dia svg .edgeLabel rect,.dia svg .edgeLabel .labelBkg,.dia svg .relationshipLabelBox{
+  fill:var(--diagram-paper)!important;background:var(--diagram-paper)!important;}
+.dia svg .edgePath path,.dia svg path.flowchart-link,.dia svg .transition,.dia svg .relationshipLine,
+.dia svg .divider{
+  stroke:var(--diagram-line)!important;}
+.dia svg marker path,.dia svg .marker,.dia svg .arrowheadPath,.dia svg .arrowMarkerPath,
+.dia svg .state-start,.dia svg .state-end{
+  fill:var(--diagram-line)!important;stroke:var(--diagram-line)!important;}
+.dia svg .actor{fill:var(--diagram-paper)!important;stroke:var(--diagram-border)!important;}
+.dia svg .actor-line{stroke:var(--diagram-line)!important;}
+.dia svg .messageLine0,.dia svg .messageLine1,.dia svg .loopLine{stroke:var(--diagram-ink)!important;}
+.dia svg .messageText,.dia svg .labelText,.dia svg .labelText>tspan,
+.dia svg .loopText,.dia svg .loopText>tspan,.dia svg .noteText,.dia svg .noteText>tspan,
+.dia svg .sequenceNumber{fill:var(--diagram-ink)!important;}
+.dia svg .labelBox{fill:var(--diagram-fill)!important;stroke:var(--diagram-border)!important;}
+.dia svg .note{fill:var(--diagram-note)!important;stroke:var(--diagram-note-border)!important;}
+.dia svg .activation0,.dia svg .activation1,.dia svg .activation2{
+  fill:var(--diagram-fill)!important;stroke:var(--diagram-border)!important;}
 .diagram-render-error{margin:.25rem 0 .75rem;padding:.65rem .8rem;border:1px solid #B66A3C;border-radius:10px;background:#FFF7ED;color:#713D24;font-size:.86rem;}
 .dia pre.mermaid-error{display:block;white-space:pre;width:max-content;min-width:100%;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;}
 .framewrap,.tablewrap{overflow-x:auto;margin:.9rem 0;}
@@ -428,7 +500,7 @@ section{scroll-margin-top:6.5rem;}
 <header class="top">
   <div class="mast">
     <h1>Commitment Pooling — Visual Asset Gallery</h1>
-    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs · rebuilt 2026-07-21 (larger type; September 30 parallel closures; six protocol functions)</p>
+    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs · rebuilt 2026-07-22 (count-safe architecture; September 30 parallel closures; six protocol functions)</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Gallery sections">
     <button id="tab-story" role="tab" aria-selected="true" aria-controls="pane-story" tabindex="0" data-tab="story">The story</button>
@@ -483,11 +555,12 @@ section{scroll-margin-top:6.5rem;}
   var previewZoom = document.getElementById('preview-zoom');
   var previewState = { scale: 1, fitScale: 1, width: 1, height: 1, item: null, lastTrigger: null, drag: null, mode: 'fit' };
   var overviewFrame = 0;
+  var galleryThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
 
   function clamp(value, min, max){ return Math.min(max, Math.max(min, value)); }
 
   function previewSource(container){
-    return container.querySelector('svg.asset') || container.querySelector('.mermaid svg') || container.querySelector('pre.frame');
+    return container.querySelector('svg.asset') || (container.matches('.dia') ? container.querySelector('svg') : null) || container.querySelector('pre.frame');
   }
 
   function previewLabel(container){
@@ -503,12 +576,140 @@ section{scroll-margin-top:6.5rem;}
     return heading ? heading.textContent.trim() : 'Diagram preview';
   }
 
-  function uniquifyCloneIds(root){
+  function resolvedGalleryTheme(){
+    var explicit = document.documentElement.dataset.theme;
+    if (explicit === 'light' || explicit === 'dark') return explicit;
+    return galleryThemeMedia.matches ? 'dark' : 'light';
+  }
+
+  function uniqueDocumentId(base, element){
+    var candidate = base;
+    var suffix = 1;
+    while (document.getElementById(candidate) && document.getElementById(candidate) !== element) {
+      candidate = base + '-' + suffix;
+      suffix += 1;
+    }
+    return candidate;
+  }
+
+  function normalizeMermaidClass(root, fill, stroke, dash){
+    var shapes = (root.matches('rect,circle,ellipse,polygon,path') ? [root] : [])
+      .concat(Array.from(root.querySelectorAll('rect,circle,ellipse,polygon,path')));
+    shapes.forEach(function(shape){
+      shape.style.setProperty('fill', fill, 'important');
+      shape.style.setProperty('stroke', stroke, 'important');
+      shape.style.setProperty('stroke-width', '2px', 'important');
+      if (dash) shape.style.setProperty('stroke-dasharray', dash, 'important');
+      else shape.style.removeProperty('stroke-dasharray');
+    });
+    var labels = (root.matches('text,tspan,.nodeLabel,.nodeLabel p,foreignObject div,foreignObject span,foreignObject p') ? [root] : [])
+      .concat(Array.from(root.querySelectorAll('text,tspan,.nodeLabel,.nodeLabel p,foreignObject div,foreignObject span,foreignObject p')));
+    labels.forEach(function(label){
+      label.style.setProperty('color', 'var(--diagram-ink)', 'important');
+      label.style.setProperty('fill', 'var(--diagram-ink)', 'important');
+    });
+  }
+
+  function normalizeGalleryMermaidClasses(svg){
+    Array.from(svg.querySelectorAll('.built')).forEach(function(root){
+      normalizeMermaidClass(root, 'var(--diagram-fill)', 'var(--diagram-border)', '');
+    });
+    Array.from(svg.querySelectorAll('.planned')).forEach(function(root){
+      normalizeMermaidClass(root, 'var(--diagram-planned-fill)', 'var(--diagram-planned-border)', '6 4');
+    });
+    Array.from(svg.querySelectorAll('.derived')).forEach(function(root){
+      normalizeMermaidClass(root, 'var(--diagram-note)', 'var(--diagram-note-border)', '');
+    });
+    Array.from(svg.querySelectorAll('.appOnly,.apponly')).forEach(function(root){
+      normalizeMermaidClass(root, 'var(--diagram-app-fill)', 'var(--diagram-app-border)', '');
+    });
+    Array.from(svg.querySelectorAll('.onchain')).forEach(function(root){
+      normalizeMermaidClass(root, 'var(--diagram-fill)', 'var(--diagram-border)', '');
+    });
+  }
+
+  function prepareGalleryMermaidSvg(svg, container, index){
+    var theme = resolvedGalleryTheme();
+    if (svg.dataset.galleryPrepared === 'true') {
+      svg.dataset.diagramTheme = theme;
+      normalizeGalleryMermaidClasses(svg);
+      return;
+    }
+
+    uniquifyCloneIds(svg, 'cp-gallery-mermaid-' + (index + 1));
+    var label = previewLabel(container);
+    var children = Array.from(svg.children);
+    var title = children.find(function(child){ return child.tagName.toLowerCase() === 'title'; });
+    var desc = children.find(function(child){ return child.tagName.toLowerCase() === 'desc'; });
+    if (!title) {
+      title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = label;
+      svg.prepend(title);
+    } else if (!title.textContent.trim()) {
+      title.textContent = label;
+    }
+    if (!desc) {
+      desc = document.createElementNS('http://www.w3.org/2000/svg', 'desc');
+      desc.textContent = 'Rendered architecture diagram. The surrounding section explains how to read it.';
+      title.after(desc);
+    }
+    title.id = title.id || uniqueDocumentId('cp-gallery-mermaid-' + (index + 1) + '-title', title);
+    desc.id = desc.id || uniqueDocumentId('cp-gallery-mermaid-' + (index + 1) + '-desc', desc);
+
+    var viewBox = svg.viewBox && svg.viewBox.baseVal;
+    if (viewBox && viewBox.width && viewBox.height && !svg.querySelector('.diagram-background')) {
+      var background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      background.setAttribute('class', 'diagram-background');
+      background.setAttribute('x', String(viewBox.x));
+      background.setAttribute('y', String(viewBox.y));
+      background.setAttribute('width', String(viewBox.width));
+      background.setAttribute('height', String(viewBox.height));
+      background.setAttribute('fill', 'var(--diagram-paper)');
+      background.setAttribute('aria-hidden', 'true');
+      background.setAttribute('pointer-events', 'none');
+      var firstGraphic = Array.from(svg.children).find(function(child){
+        return !['title', 'desc', 'defs', 'style'].includes(child.tagName.toLowerCase());
+      });
+      svg.insertBefore(background, firstGraphic || null);
+    }
+
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-labelledby', title.id + ' ' + desc.id);
+    svg.setAttribute('focusable', 'false');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.removeAttribute('aria-label');
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    svg.style.removeProperty('max-width');
+    svg.style.backgroundColor = 'var(--diagram-paper)';
+    svg.dataset.diagramTheme = theme;
+    svg.dataset.galleryPrepared = 'true';
+    normalizeGalleryMermaidClasses(svg);
+    container.setAttribute('data-label', label);
+  }
+
+  function prepareGalleryMermaidSvgs(){
+    Array.from(document.querySelectorAll('.dia svg')).forEach(function(svg, index){
+      var container = svg.closest('.dia');
+      if (container) prepareGalleryMermaidSvg(svg, container, index);
+    });
+  }
+
+  function syncGalleryMermaidTheme(){
+    var theme = resolvedGalleryTheme();
+    Array.from(document.querySelectorAll('.dia svg[data-gallery-prepared="true"]')).forEach(function(svg){
+      svg.dataset.diagramTheme = theme;
+      normalizeGalleryMermaidClasses(svg);
+    });
+  }
+
+  function uniquifyCloneIds(root, namespace){
     var map = {};
+    var prefix = namespace || ('preview-' + Date.now());
     var nodesWithIds = (root.id ? [root] : []).concat(Array.from(root.querySelectorAll('[id]')));
     nodesWithIds.forEach(function(node, index){
       var oldId = node.id;
-      var newId = 'preview-' + Date.now() + '-' + index + '-' + oldId;
+      var newId = prefix + '-' + index + '-' + oldId;
       map[oldId] = newId;
       node.id = newId;
     });
@@ -534,10 +735,12 @@ section{scroll-margin-top:6.5rem;}
     });
   }
 
-  function sizeMermaidOverview(rendered){
-    var svg = rendered.querySelector('svg');
+  function sizeMermaidOverview(svg){
+    var rendered = svg.closest('.mermaid-rendered,.mermaid,.mermaid-host') || svg.parentElement;
     var viewBox = svg && svg.viewBox && svg.viewBox.baseVal;
-    var availableWidth = rendered.clientWidth;
+    var diagram = svg.closest('.dia');
+    var availableWidth = rendered ? rendered.clientWidth : (diagram ? diagram.clientWidth : 0);
+    if (!availableWidth && diagram) availableWidth = diagram.clientWidth;
     if (!svg || !viewBox || !viewBox.width || !viewBox.height || !availableWidth) return;
     var header = document.querySelector('header.top');
     var headerHeight = header ? header.getBoundingClientRect().height : 0;
@@ -547,14 +750,17 @@ section{scroll-margin-top:6.5rem;}
     var height = Math.max(1, viewBox.height * scale);
     svg.style.width = width + 'px';
     svg.style.height = height + 'px';
-    rendered.dataset.overviewScale = String(scale);
-    rendered.dataset.overviewWidth = String(width);
-    rendered.dataset.overviewHeight = String(height);
+    if (rendered) {
+      rendered.dataset.overviewScale = String(scale);
+      rendered.dataset.overviewWidth = String(width);
+      rendered.dataset.overviewHeight = String(height);
+    }
   }
 
   function sizeDiagramOverviews(){
     overviewFrame = 0;
-    Array.from(document.querySelectorAll('.dia .mermaid-rendered')).forEach(sizeMermaidOverview);
+    prepareGalleryMermaidSvgs();
+    Array.from(document.querySelectorAll('.dia svg')).forEach(sizeMermaidOverview);
     updateScrollableContainers();
   }
 
@@ -651,10 +857,18 @@ section{scroll-margin-top:6.5rem;}
     preview.dataset.previewKind = previewKind;
     previewCaption.textContent = previewLabel(container);
     if (!preview.open) preview.showModal();
-    requestAnimationFrame(fitPreview);
+    requestAnimationFrame(function(){
+      // Large diagrams (the architecture Mermaid set) would otherwise fit entirely,
+      // leaving the viewport without overflow — which disables drag-to-pan, since
+      // pointerdown gates on is-pannable. Open oversize diagrams at actual size so
+      // they are legible and pannable immediately.
+      var oversize = previewState.width > previewViewport.clientWidth + 2 || previewState.height > previewViewport.clientHeight + 2;
+      if (oversize) actualSizePreview(); else fitPreview();
+    });
   }
 
   function decoratePreviewables(){
+    prepareGalleryMermaidSvgs();
     Array.from(document.querySelectorAll('.svgcard,.dia,.framewrap')).forEach(function(container){
       if (container.dataset.previewReady === 'true' || !previewSource(container)) return;
       container.dataset.previewReady = 'true';
@@ -750,8 +964,9 @@ section{scroll-margin-top:6.5rem;}
 
   previewViewport.addEventListener('wheel', function(event){
     if (!preview.open) return;
-    var isDiscreteWheel = event.deltaMode !== 0 || (event.deltaX === 0 && Math.abs(event.deltaY) >= 50);
-    if (!event.ctrlKey && !isDiscreteWheel) return;
+    // Scroll — mouse wheel or trackpad two-finger — pans the viewport; only a pinch
+    // gesture (ctrl+wheel) zooms. Keeps trackpad panning predictable.
+    if (!event.ctrlKey) return;
     event.preventDefault();
     updatePreviewScale(previewState.scale * Math.exp(-event.deltaY * 0.0015), event);
   }, { passive: false });
@@ -778,7 +993,12 @@ section{scroll-margin-top:6.5rem;}
     else if (event.key === '-' || event.key === '_') { event.preventDefault(); updatePreviewScale(previewState.scale / 1.2); }
   });
 
-  new MutationObserver(function(){ decoratePreviewables(); scheduleOverviewSizing(); }).observe(document.getElementById('pane-arch'), { childList: true, subtree: true });
+  new MutationObserver(function(){ prepareGalleryMermaidSvgs(); decoratePreviewables(); scheduleOverviewSizing(); })
+    .observe(document.querySelector('.paneshost'), { childList: true, subtree: true });
+  new MutationObserver(function(){ syncGalleryMermaidTheme(); scheduleOverviewSizing(); })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (typeof galleryThemeMedia.addEventListener === 'function') galleryThemeMedia.addEventListener('change', syncGalleryMermaidTheme);
+  else if (typeof galleryThemeMedia.addListener === 'function') galleryThemeMedia.addListener(syncGalleryMermaidTheme);
   document.addEventListener('mermaid:rendered', scheduleOverviewSizing);
   document.addEventListener('mermaid:themechanged', function(){
     scheduleOverviewSizing();
@@ -1081,15 +1301,51 @@ ${mermaidRuntime}
   else window.setTimeout(preloadAlternate, 0);
 })();
 </script>`;
-const selfContainedContent = `${artifactContent}${embeddedMermaid}`;
-const html = DEBUG_MERMAID
-  ? `<!doctype html><html lang="en"><head>${artifactContent.slice(0, styleEnd)}</head><body>${artifactContent.slice(styleEnd)}${embeddedMermaid}</body></html>`
-  : selfContainedContent;
-
-writeFileSync(OUT, html);
 const mermaidCount = (artifactContent.match(/class="mermaid"/g) || []).length;
+const architectureMermaidCount = (diaOut.body.match(/class="mermaid"/g) || []).length;
+const architectureSectionCount = diaOut.body.split("<section").length - 1;
 const frameCount = (artifactContent.match(/class="frame"/g) || []).length;
-console.log(`wrote ${OUT}`);
+const artifactBody = artifactContent;
+const localDocument = `<!doctype html><html lang="en"><head>${artifactContent.slice(0, styleEnd)}</head><body>${artifactContent.slice(styleEnd)}${embeddedMermaid}</body></html>`;
+
+function assertBuild(condition: boolean, message: string): asserts condition {
+  if (!condition) throw new Error(`Gallery build invariant failed: ${message}`);
+}
+
+assertBuild(new Set(dia.secs.map((section) => section.id)).size === dia.secs.length, "Architecture section IDs must be unique");
+for (const [prefix, requiredId] of requiredArchitectureSections) {
+  const matches = dia.secs.filter((section) => section.title.startsWith(prefix));
+  assertBuild(matches.length === 1, `Architecture must contain exactly one ${prefix} section`);
+  assertBuild(matches[0].id === requiredId, `${prefix} section ID must remain ${requiredId}`);
+}
+for (const prefix of diagramHowToPrefixes) {
+  const section = dia.secs.find((candidate) => candidate.title.startsWith(prefix));
+  assertBuild(Boolean(section), `${prefix} How-to owner is missing`);
+  const html = section!.html.join("\n");
+  assertBuild(html.includes('class="howto"'), `${prefix} lost its How to read this panel`);
+  assertBuild(html.includes('class="mermaid"'), `${prefix} How to read this panel lost its diagram`);
+}
+assertBuild(architectureSectionCount === 21, "Architecture output must contain 21 sections");
+assertBuild(architectureMermaidCount === 20, "Architecture output must contain 20 Mermaid blocks");
+assertBuild(mermaidCount === 21, "Gallery output must contain 21 Mermaid blocks including the Screens flow");
+assertBuild(localDocument.startsWith("<!doctype html>"), "local output must be a complete document");
+assertBuild(localDocument.includes(`data-embedded-runtime="mermaid@${mermaidVersion}"`), "local output must embed the locked Mermaid runtime");
+assertBuild((localDocument.match(/class="mermaid"/g) || []).length === mermaidCount, "local output lost Mermaid source blocks");
+assertBuild(artifactBody.trimStart().startsWith('<meta charset="utf-8">'), "Artifact output must be body-content without an outer document");
+assertBuild(!artifactBody.includes('data-embedded-runtime="mermaid@'), "Artifact output must not embed the Mermaid runtime");
+assertBuild(
+  artifactBody.includes(".dia svg .messageLine0")
+    && artifactBody.includes("prepareGalleryMermaidSvgs")
+    && artifactBody.includes("normalizeGalleryMermaidClasses")
+    && artifactBody.includes("--diagram-planned-fill"),
+  "Artifact output must carry host-rendered Mermaid theme, status, and accessibility support",
+);
+assertBuild((artifactBody.match(/class="mermaid"/g) || []).length === mermaidCount, "Artifact output lost Mermaid source blocks");
+
+writeFileSync(LOCAL_OUT, localDocument);
+writeFileSync(ARTIFACT_OUT, artifactBody);
+console.log(`local preview: ${LOCAL_OUT} (${Buffer.byteLength(localDocument).toLocaleString()} bytes, embedded Mermaid ${mermaidVersion})`);
+console.log(`Artifact body: ${ARTIFACT_OUT} (${Buffer.byteLength(artifactBody).toLocaleString()} bytes, host-rendered Mermaid)`);
 console.log(`sections: story ${storyBody.split("<section").length - 1} · architecture ${diaOut.body.split("<section").length - 1} · screens ${wfOut.body.split("<section").length - 1}`);
-console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount} · embedded runtime: Mermaid ${mermaidVersion}`);
-console.log(`output: ${DEBUG_MERMAID ? "local debug document (do not publish)" : "self-contained Artifact body-content"}`);
+console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount}`);
+console.log("publish only the Artifact body; open the local preview directly with file://");

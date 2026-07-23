@@ -57,7 +57,7 @@ Use the exact intent below when manually uploading a PNG to Linear or the canoni
 - ✅ **`synthesis-ge-protocol` redrawn 2026-07-20.** It now renders curation, valuation, limitation, exchange, route, and repair as six equally visible functions; the former four-part quadrant is retired.
 - ✅ **`use-cases-journey-strip` added 2026-07-21.** It covers the missing Use Cases section with three garden-agnostic paths and encodes the locked Need-versus-commitment model without tying the asset to a provisional cohort.
 
-Tab **02** has **zero images today** — all four synthesis assets exist with designated placements and were never uploaded. Google Docs will not accept embedded images over MCP: drag the 2x PNGs in by hand.
+Tab **02** now has **2 of the 4** synthesis assets embedded and visibly rendered — `synthesis-ge-protocol` (under "The six protocol functions") and `synthesis-flywheel` (under "One model, one loop") — live-verified in the Google Doc on 2026-07-22 (supersedes the earlier "zero images today" note). **`synthesis-three-tiers` and `synthesis-circular-gd` are still not uploaded.** Google Docs will not accept embedded images over MCP: drag the remaining 2x PNGs in by hand.
 
 ## Truth sources
 
@@ -70,7 +70,7 @@ Audience assets simplify, never contradict, the engineering diagrams in `diagram
 ## Regeneration
 
 **After editing any asset, rebuild the gallery** so the shared link reflects it:
-`bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts` — builds the self-contained Artifact **body-content** entrypoint (three audience tabs: story; architecture D1–D13 including D1b/D7b; and 25 canonical CP frame headings: W1–W5, W2a, W7–W16, W13b, W21–W26, WFLOW, HUBWORK). W6 and the dissolved lo-fi variants are not standalone frames. The production output embeds the locked Mermaid runtime and renders each source block to an accessible Warm Earth SVG without external requests. `DEBUG_MERMAID=1` wraps that same self-contained content in a local-only document for `file://` verification; never publish the debug wrapper. Build to a temporary output first; republish only after validation.
+`bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts` — builds both gallery targets in one pass (three audience tabs: story; 18 named Architecture sections D1–D14 including D1b/D7b/D7c/D13b, rendered as 20 Architecture Mermaid blocks; and the canonical CP screen states). `/tmp/commitment-pooling-visual-assets.html` is the complete local `file://` preview with the locked Mermaid runtime embedded; open this file for validation. `/tmp/commitment-pooling-visual-assets.artifact-body.html` is the body-content entrypoint for the Claude Artifact host; publish only that file. Both targets carry the Warm Earth Mermaid theme, responsive overview treatment, and SVG accessibility contract, while the Artifact body relies on the host runtime to draw its Mermaid source. The builder hard-fails on missing/duplicate required D sections, a Mermaid-count drift, or a diagram-bearing “How to read this” section losing its diagram. `LOCAL_OUT` (or legacy `OUT`) and `ARTIFACT_OUT` may override the two paths. W6 and the dissolved lo-fi variants are not standalone frames. Republish only after validating both outputs.
 
 The per-asset SVG/PNG steps:
 
