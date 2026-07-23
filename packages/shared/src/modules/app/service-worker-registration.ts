@@ -27,16 +27,24 @@ function getVersion(value: unknown): string {
   return typeof value === "string" ? value.trim().slice(0, 48) : "";
 }
 
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+  return end === value.length ? value : value.slice(0, end);
+}
+
 function normalizeScopePath(value: string): string {
   try {
     const base =
       typeof window !== "undefined" && window.location?.origin
         ? window.location.origin
         : "https://greengoods.local";
-    const pathname = new URL(value, base).pathname.replace(/\/+$/, "");
+    const pathname = trimTrailingSlashes(new URL(value, base).pathname);
     return pathname || "/";
   } catch {
-    const pathname = value.replace(/\/+$/, "");
+    const pathname = trimTrailingSlashes(value);
     return pathname || "/";
   }
 }
