@@ -4,7 +4,7 @@ sidebar_label: Releasing
 slug: /builders/deployments/releasing
 audience: developer
 owner: docs
-last_verified: 2026-07-11
+last_verified: 2026-07-23
 feature_status: Live
 source_of_truth:
   - .github/workflows/release.yml
@@ -42,6 +42,10 @@ The [`release-prep` routine](https://github.com/greenpill-dev-guild/green-goods/
 
 - **Semver, minor per month** (`1.1.0` → `1.2.0`); patch for hotfixes (`1.2.1`); major for breaking changes. `bun run version:bump <x.y.z>` keeps all packages on one version and updates the supported release in `SECURITY.md`.
 - A release is named for the **month it ships in** — branch `release/july-2026-v1.2.0`, tag `v1.2.0`, GitHub Release **July 2026 — v1.2.0**.
+
+## GitHub Actions supply-chain policy
+
+Every external action and reusable workflow reference must use a full 40-character commit SHA. Tags such as `@v6`, branches such as `@main`, and abbreviated SHAs are rejected by the repository's Actions policy. When updating an action, review the upstream change and pin the exact commit that provides it.
 
 ## Cutting a release
 
