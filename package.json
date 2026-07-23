@@ -33,6 +33,7 @@
     "test:env-schema": "node scripts/dev/node-cli.js node --test scripts/lib/env-schema.test.mjs",
     "test:contracts-verifier": "node scripts/dev/node-cli.js node --test scripts/contracts/verify-production.test.mjs",
     "version:bump": "node scripts/ops/bump-version.mjs",
+    "version:check": "node scripts/ops/bump-version.mjs --check",
     "metrics:month": "node scripts/ops/month-metrics.mjs",
     "check:codex-guidance": "node scripts/quality/check-codex-docs.js",
     "check:browser-verification-policy": "bun scripts/check-browser-verification-policy.mjs",
