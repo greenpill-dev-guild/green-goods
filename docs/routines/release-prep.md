@@ -77,9 +77,9 @@ Run `git log origin/main..origin/develop` (the range that will ship). Group comm
 
 Produce a developer-facing draft for `vX.Y.0`, grouped by type (this approximates what `gh release create --generate-notes` will emit on tag push). Include the would-be title `"<Month Year> — vX.Y.0"`.
 
-## Phase 3 — Version-bump reminder
+## Phase 3 — Version and security-policy reminder
 
-State the command `bun run version:bump X.Y.0` (touches the seven `package.json` files) and that the tag is created on the **merged-main HEAD**, never before merge.
+State the commands `bun run version:bump X.Y.0` and `bun run version:check X.Y.0`. The bump updates the seven `package.json` files plus the supported release in `SECURITY.md`; the check must pass before tagging. The tag is created on the **merged-main HEAD**, never before merge.
 
 ## Phase 4 — Doc-freshness scan
 

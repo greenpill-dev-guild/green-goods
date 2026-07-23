@@ -63,6 +63,8 @@ scripts/
 | `check-react-patterns.js` | `bun run lint:rules`, root `bun lint` | Blocks high-confidence state/import violations; `--report` exposes noisier cleanup heuristics without flooding normal lint |
 | `check-browser-verification-policy.mjs` | `bun run check:browser-verification-policy`, `bun run agentic:check` | Verify authenticated Brave QA guidance across canonical agent docs, reject stale local isolated-browser guidance, and enforce browser-proof guard wiring |
 | `require-authenticated-browser-qa.mjs` | `bun run browser-proof:routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
+| `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR gate that derives expected path-filtered workflows from changed files and waits for every expected workflow run to register and succeed |
+| `ci-gate.test.mjs` | `.github/workflows/ci-gate.yml` | Fixture coverage for CI Gate path-to-workflow expectations |
 
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
@@ -91,7 +93,7 @@ scripts/
 | `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
 | `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
 | `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
-| `bump-version.mjs` | `bun run version:bump <x.y.z> [--dry-run]` | Surgically set the `"version"` field across root + 6 package.json files to a target semver (unified versioning for monthly releases / hotfixes); one-line diff per file |
+| `bump-version.mjs` | `bun run version:bump <x.y.z> [--dry-run]`, `bun run version:check <x.y.z>` | Keep root + 6 package versions and the supported release in `SECURITY.md` aligned; release CI uses check mode to block stale release metadata |
 | `month-metrics.mjs` | `bun run metrics:month -- --month YYYY-MM [--json]` | Manual, read-only month-in-review aggregates for reviewed PRs, E2E static skips, active plans, and alias-folded contributor counts; no schedule or CI caller |
 
 ### `agents/` — agent query surfaces

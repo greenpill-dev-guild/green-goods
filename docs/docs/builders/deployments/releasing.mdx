@@ -9,6 +9,7 @@ feature_status: Live
 source_of_truth:
   - .github/workflows/release.yml
   - .github/release.yml
+  - SECURITY.md
   - scripts/ops/bump-version.mjs
   - CLAUDE.md
   - CONTRIBUTING.md
@@ -39,14 +40,15 @@ The [`release-prep` routine](https://github.com/greenpill-dev-guild/green-goods/
 
 ## Versioning & naming
 
-- **Semver, minor per month** (`1.1.0` → `1.2.0`); patch for hotfixes (`1.2.1`); major for breaking changes. `bun run version:bump <x.y.z>` keeps all packages on one version.
+- **Semver, minor per month** (`1.1.0` → `1.2.0`); patch for hotfixes (`1.2.1`); major for breaking changes. `bun run version:bump <x.y.z>` keeps all packages on one version and updates the supported release in `SECURITY.md`.
 - A release is named for the **month it ships in** — branch `release/july-2026-v1.2.0`, tag `v1.2.0`, GitHub Release **July 2026 — v1.2.0**.
 
 ## Cutting a release
 
 ```bash
 git switch -c release/july-2026-v1.2.0 origin/develop   # cut the tested snapshot
-bun run version:bump 1.2.0                           # unify all package versions
+bun run version:bump 1.2.0                           # unify packages + SECURITY.md
+bun run version:check 1.2.0                          # fail if any release marker drifted
 # add the curated changelog entry, then run the gates:
 bun run format:check && bun run lint && bun run test && bun run build
 git commit -am "chore(release): v1.2.0 (July 2026)" && git push -u origin release/july-2026-v1.2.0
