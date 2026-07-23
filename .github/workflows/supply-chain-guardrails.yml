@@ -53,6 +53,7 @@ jobs:
         with:
           path: consumer
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Checkout guardrail source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
@@ -61,6 +62,7 @@ jobs:
           ref: 5d33cf1e11c0ed1fae08edd65a09ec390f2aca3b
           path: _guild-defaults
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Run supply-chain guardrails audit
         shell: bash
