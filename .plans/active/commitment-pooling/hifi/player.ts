@@ -20,16 +20,28 @@ export const PLAYER_JS = `(function(){
   $("tabbtn-screens").addEventListener("click", function(){ setTab("screens"); });
   $("tabbtn-doc").addEventListener("click", function(){ setTab("doc"); });
 
-  var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Public page", community: "Community PWA", safe: "Safe app (external)" };
-  var walked = {};
-  try { walked = JSON.parse(localStorage.getItem("gg-proto-walked") || "{}"); } catch (e) {}
-  function paintTicks(){
-    document.querySelectorAll(".sbcard[data-sb]").forEach(function(c){
-      var t = c.querySelector(".tick");
-      if (t) t.textContent = walked[c.getAttribute("data-sb")] ? "✓ walked" : "";
+  var selectedFlowGroup = "client", selectedScreenSurface = "client";
+  function setFlowGroup(group){
+    selectedFlowGroup = group;
+    document.querySelectorAll('.surface-tab[data-flow-group]').forEach(function(tab){
+      var on = tab.getAttribute("data-flow-group") === group;
+      tab.classList.toggle("on", on); tab.setAttribute("aria-selected", String(on)); tab.tabIndex = on ? 0 : -1;
     });
+    document.querySelectorAll('.flow-catalog[data-flow-group]').forEach(function(panel){ panel.hidden = panel.getAttribute("data-flow-group") !== group; });
   }
-  paintTicks();
+  function setScreenSurface(surface){
+    selectedScreenSurface = surface;
+    document.querySelectorAll('.surface-tab[data-screen-surface]').forEach(function(tab){
+      var on = tab.getAttribute("data-screen-surface") === surface;
+      tab.classList.toggle("on", on); tab.setAttribute("aria-selected", String(on)); tab.tabIndex = on ? 0 : -1;
+    });
+    document.querySelectorAll('.screen-catalog[data-screen-surface]').forEach(function(panel){ panel.hidden = panel.getAttribute("data-screen-surface") !== surface; });
+  }
+  document.querySelectorAll('.surface-tab[data-flow-group]').forEach(function(tab){ tab.addEventListener("click", function(){ setFlowGroup(tab.getAttribute("data-flow-group")); }); });
+  document.querySelectorAll('.surface-tab[data-screen-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setScreenSurface(tab.getAttribute("data-screen-surface")); }); });
+  setFlowGroup(selectedFlowGroup); setScreenSurface(selectedScreenSurface);
+
+  var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Public page", community: "Community PWA", safe: "Safe app (external)" };
 
   // ---- shared: screen/state lookup + alias resolution ----
   function resolveRef(ref){
@@ -59,6 +71,7 @@ export const PLAYER_JS = `(function(){
     dev.innerHTML = body + st.html;
     dev.querySelectorAll("button").forEach(function(el){ if (!el.getAttribute("type")) el.setAttribute("type", "button"); });
     dev.querySelectorAll("[data-hot]").forEach(function(el){
+      if (el.closest("[inert]")) return;
       var h = DATA.hots[el.getAttribute("data-hot")];
       if (!el.getAttribute("aria-label") && h) el.setAttribute("aria-label", h.l);
       var nativeSelf = /^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName);
@@ -75,8 +88,12 @@ export const PLAYER_JS = `(function(){
       }
     });
   }
+  function isLiveHot(el){ return !!el && !el.closest("[inert]"); }
+  function liveHots(dev){
+    return Array.prototype.filter.call(dev.querySelectorAll("[data-hot]"), isLiveHot);
+  }
   function eachHot(dev, hid, fn){
-    dev.querySelectorAll('[data-hot="' + hid + '"]').forEach(fn);
+    dev.querySelectorAll('[data-hot="' + hid + '"]').forEach(function(el){ if (isLiveHot(el)) fn(el); });
   }
   function paintMarks(dev, marks){
     (marks || []).forEach(function(mid){
@@ -90,12 +107,12 @@ export const PLAYER_JS = `(function(){
   var flashTimer = null;
   function flashHots(dev){
     if (flashTimer) { clearTimeout(flashTimer); flashTimer = null; }
-    var els = dev.querySelectorAll("[data-hot]");
+    var els = liveHots(dev);
     els.forEach(function(el){ el.classList.remove("flash"); });
     void dev.offsetWidth; // restart the animation on repeat mis-clicks
     els.forEach(function(el){ el.classList.add("flash"); });
     flashTimer = setTimeout(function(){
-      dev.querySelectorAll("[data-hot].flash").forEach(function(el){ el.classList.remove("flash"); });
+      liveHots(dev).forEach(function(el){ el.classList.remove("flash"); });
       flashTimer = null;
     }, 640);
   }
@@ -116,11 +133,11 @@ export const PLAYER_JS = `(function(){
     curSb = null;
     $("stage").classList.remove("on");
     $("home").style.display = "";
-    paintTicks();
     if (history.replaceState) history.replaceState(null, "", "#play");
   }
   function start(id, ix){
     var sb = findSb(id); if (!sb) return;
+    if (sb.reviewVisible) setFlowGroup(sb.reviewGroup);
     curSb = sb; curI = Math.min(Math.max(ix || 0, 0), sb.steps.length - 1);
     $("home").style.display = "none";
     $("stage").classList.add("on");
@@ -148,24 +165,19 @@ export const PLAYER_JS = `(function(){
     var sb = curSb; if (!sb) return;
     var sc = sb.steps[curI];
     $("insp").classList.remove("on");
-    $("st-title").textContent = "SB-" + sb.n + " · " + sb.title;
+    $("st-title").textContent = sb.title;
     $("st-persona").textContent = sb.persona;
-    $("st-scen").textContent = sb.scen;
     $("st-surface").textContent = SURFACE[sc.surface || defSurface(sb)] || sb.surface;
+    $("st-progress").textContent = "Step " + (curI + 1) + " of " + sb.steps.length;
     var device = $("device");
     var scr = screenOf(sc.f);
     var st = stateOf(scr, sc.v);
     if (!scr || !st) { device.textContent = "screen missing: " + sc.f; return; }
     paintDevice(device, scr, st, !!sc.mf);
-    var statePill = $("st-vstate");
-    if (statePill) {
-      statePill.textContent = scr.states.length > 1 ? "state: " + st.label : "";
-      statePill.style.display = scr.states.length > 1 ? "" : "none";
-    }
     if (sc.hot) eachHot(device, sc.hot.h, function(el){ el.classList.add("primary"); el.setAttribute("aria-label", sc.hot.l + " — advance"); });
     (sc.alts || []).forEach(function(a){ eachHot(device, a.h, function(el){ el.classList.add("choice"); el.setAttribute("aria-label", a.l); }); });
     paintMarks(device, sc.marks);
-    device.querySelectorAll("[data-hot]").forEach(function(el){
+    liveHots(device).forEach(function(el){
       if (!el.classList.contains("primary") && !el.classList.contains("choice")) el.classList.add("quiet");
     });
     var hint = $("hint");
@@ -197,18 +209,14 @@ export const PLAYER_JS = `(function(){
     $("prevbtn").disabled = curI === 0;
     var last = curI === sb.steps.length - 1;
     $("nextbtn").textContent = last ? "✓" : "›";
-    $("nextbtn").setAttribute("aria-label", last ? "Finish journey" : "Next step");
+    $("nextbtn").setAttribute("aria-label", last ? "Finish flow" : "Next step");
     $("nextbtn").classList.toggle("done", last);
     if (history.replaceState) history.replaceState(null, "", "#" + sb.id + "/" + curI);
   }
   function next(){
     if (!curSb) return;
     if (curI < curSb.steps.length - 1) { curI++; render(); }
-    else {
-      walked[curSb.id] = true;
-      try { localStorage.setItem("gg-proto-walked", JSON.stringify(walked)); } catch (e) {}
-      showHome();
-    }
+    else showHome();
   }
   function prev(){ if (curSb && curI > 0) { curI--; render(); } }
   $("backbtn").addEventListener("click", showHome);
@@ -217,7 +225,7 @@ export const PLAYER_JS = `(function(){
   $("device").addEventListener("click", function(e){
     if (!curSb) return;
     var el = e.target.closest ? e.target.closest("[data-hot]") : null;
-    if (!el || !$("device").contains(el)) { flashHots($("device")); return; }
+    if (!el || !$("device").contains(el) || !isLiveHot(el)) { flashHots($("device")); return; }
     var hid = el.getAttribute("data-hot");
     var sc = curSb.steps[curI];
     if (sc.hot && sc.hot.h === hid) { next(); return; }
@@ -226,7 +234,13 @@ export const PLAYER_JS = `(function(){
     if (alt) { goTarget(alt.to); return; }
     var h = DATA.hots[hid];
     inspect(h ? h.l : hid, (h && h.info) || "", h && h.to);
-  });
+  }, true);
+  // Disabled-looking preview controls do not dispatch click in every browser.
+  // Pointer-up capture preserves the same "show me the real controls" response.
+  $("device").addEventListener("pointerup", function(e){
+    if (!curSb || !(e.target.closest && e.target.closest(":disabled"))) return;
+    flashHots($("device"));
+  }, true);
 
   // ---------- screens explorer ----------
   var expCur = null, expState = "", expStack = [];
@@ -237,6 +251,7 @@ export const PLAYER_JS = `(function(){
     var r = resolveRef(ref);
     var scr = screenOf(r.id);
     if (!scr) return;
+    if (scr.reviewVisible && scr.surface !== "community") setScreenSurface(scr.surface);
     if (push && expCur) expStack.push(expCur + (expState ? "@" + expState : ""));
     expCur = r.id;
     expState = r.state || scr.states[0].id;
@@ -248,14 +263,8 @@ export const PLAYER_JS = `(function(){
     var scr = screenOf(expCur);
     var st = stateOf(scr, expState);
     expState = st.id;
-    $("exp-title").textContent = scr.title;
-    var walkedEl = $("exp-walked"); walkedEl.textContent = "";
-    (DATA.walkedIn[expCur] || []).forEach(function(w){
-      var p = document.createElement("button");
-      p.className = "pill link"; p.textContent = "walk SB-" + w.n;
-      p.addEventListener("click", function(){ setTab("play"); start(w.sb, w.ix); });
-      walkedEl.appendChild(p);
-    });
+    $("exp-key").textContent = scr.id;
+    $("exp-title").textContent = scr.title.replace(/^\\s*(?:W\\d+a?|HUBWORK|WFLOW)\\s*[·—:-]\\s*/i, "");
     var chips = $("expstates"); chips.textContent = "";
     if (scr.states.length > 1) {
       scr.states.forEach(function(s2){
@@ -269,7 +278,7 @@ export const PLAYER_JS = `(function(){
     }
     var dev = $("expdevice");
     paintDevice(dev, scr, st, false);
-    dev.querySelectorAll("[data-hot]").forEach(function(el){
+    liveHots(dev).forEach(function(el){
       var h = DATA.hots[el.getAttribute("data-hot")];
       el.classList.add(h && h.to ? "nav2" : "info2");
     });
@@ -280,13 +289,17 @@ export const PLAYER_JS = `(function(){
   }
   $("expdevice").addEventListener("click", function(e){
     var el = e.target.closest ? e.target.closest("[data-hot]") : null;
-    if (!el || !$("expdevice").contains(el)) { flashHots($("expdevice")); return; }
+    if (!el || !$("expdevice").contains(el) || !isLiveHot(el)) { flashHots($("expdevice")); return; }
     var hid = el.getAttribute("data-hot");
     var h = DATA.hots[hid];
     if (!h) return;
     if (h.to && h.to.indexOf("screen:") === 0) { expInspect(h.l, h.info || "", null); openScreen(h.to.slice(7), true); }
-    else expInspect(h.l, h.info || "", h.to);
-  });
+    else expInspect(h.l, h.info || "", null);
+  }, true);
+  $("expdevice").addEventListener("pointerup", function(e){
+    if (!(e.target.closest && e.target.closest(":disabled"))) return;
+    flashHots($("expdevice"));
+  }, true);
   function expInspect(label, info, to){
     var el = $("expinsp");
     el.className = "insp on";
@@ -294,7 +307,7 @@ export const PLAYER_JS = `(function(){
     var b = document.createElement("b"); b.textContent = label + "  "; el.appendChild(b);
     el.appendChild(document.createTextNode(info));
     if (to) {
-      var go = document.createElement("button"); go.textContent = "Walk it"; go.className = "walkbtn";
+      var go = document.createElement("button"); go.textContent = "Open flow"; go.className = "walkbtn";
       go.addEventListener("click", function(){ goTarget(to); });
       el.appendChild(go);
     }
@@ -343,14 +356,21 @@ export const PLAYER_JS = `(function(){
     if (e.key === "ArrowLeft") { prev(); e.preventDefault(); }
     if (e.key === "Escape") showHome();
   });
-  var tx = null;
-  $("stage").addEventListener("touchstart", function(e){ tx = e.changedTouches[0].clientX; }, { passive: true });
-  $("stage").addEventListener("touchend", function(e){
-    if (tx === null) return;
-    var dx = e.changedTouches[0].clientX - tx; tx = null;
+  var swipeX = null;
+  function finishSwipe(x){
+    if (swipeX === null) return;
+    var dx = x - swipeX; swipeX = null;
     if (Math.abs(dx) < 48) return;
     if (dx < 0) next(); else prev();
-  }, { passive: true });
+  }
+  if ("PointerEvent" in window) {
+    $("stage").addEventListener("pointerdown", function(e){ if (e.button === 0) swipeX = e.clientX; });
+    $("stage").addEventListener("pointerup", function(e){ finishSwipe(e.clientX); });
+    $("stage").addEventListener("pointercancel", function(){ swipeX = null; });
+  } else {
+    $("stage").addEventListener("touchstart", function(e){ swipeX = e.changedTouches[0].clientX; }, { passive: true });
+    $("stage").addEventListener("touchend", function(e){ finishSwipe(e.changedTouches[0].clientX); }, { passive: true });
+  }
 
   // hash routing
   var h = location.hash.replace("#", "");

@@ -1,7 +1,7 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
-- **Updated**: 2026-07-21 — reference-tab redesign + editorial condensation for scannability (see Changelog); the hi-fi render upgrade was register #36.
+- **Updated**: 2026-07-22 — presentation coherency, flow continuity, and fidelity closeout (see Changelog); the hi-fi render upgrade was register #36.
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
 - **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
@@ -13,6 +13,7 @@
 | 2026-07-18 | Audit-response mechanical sync: fund topology (HoA → GG protocol Safe direct; single ProtocolToGarden route), steward vocabulary (steward = operator/owner Hats; contract type names like `OperatorCaptured` unchanged), W12/W22 relocation to the Operations workspace. ⚠️ Settlement-region `SS:`/`DG:`/`WF:` cites were re-pointed to the edited specs; **cites in untouched regions may be offset by that pass — anchor by the named function or frame, not the raw line number.** |
 | 2026-07-18 | Hi-fi artifact upgrade (register #36): the artifact now renders every August screen at high fidelity (Warm Earth client PWA, restrained M3 admin, editorial public pages) with a per-screen state matrix (116 states) and a Storybook-style state switcher. Lo-fi variant frames dissolved into parent states (W1P/W1S/W7X/W23G → claim/blocked states; MF-1/3/4/5/6/8/9/10/13 → their spec-placed parents; old deep links alias forward). September CI-W frames stay lo-fi previews. |
 | 2026-07-21 | Reference-tab redesign: the sidebar now follows document order under grouped headers, a compact table of contents leads the body, and long sections collapse behind an at-a-glance line. Editorial condensation for scannability (walls → lead-in + bullets) — no spec facts or cites changed. MF-6/MF-9/MF-10/MF-11 status corrected: realized in the hi-fi artifact (W2 · W26 · W1 · W24/W12), no longer "proposed/undrawn." New companion `prototypes-coverage.md` audits every screen's built vs spec'd states. |
+| 2026-07-22 | Prototype coherency pass: presentation catalogs now separate Client PWA, Admin Console, End-to-end, and Public review surfaces; Community wireframes and source flow 14 remain validated but hidden from the catalogs. Guided flows expose consequential creation, evidence, claim-outcome, dispute, seeding, closeout, payout, wallet, and receipt-check intermediates; AppShell-backed Client frames restore the 69px AppBar and AdminDialog follows desktop-centered/mobile-bottom-sheet geometry. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
 - Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
@@ -398,8 +399,8 @@ flowchart LR
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
-| 1 | W7 | Pool card shows the NotReady checklist: charter CID, non-zero provider exposure cap, one current non-revoked Baseline (v2/v3, recipient = pool garden) (UX:57,269; WF:104 variant) | — | Pool **NotReady** (client: Pool tab absent, UX:57) | — |
-| 2 | W7 | **[ Edit charter ]** (WF:274) → charter CID; exposure cap field | `setPoolCharter` (CS:723); `setProviderExposureCap` — required before Ready (CS:751) | — | — |
+| 1 | W7 | Pool card shows the NotReady checklist: charter CID, non-zero provider open-commitment cap, one current non-revoked Baseline (v2/v3, recipient = pool garden) (UX:57,269; WF:104 variant) | — | Pool **NotReady** (client: Pool tab absent, UX:57) | — |
+| 2 | W7 | **[ Edit charter ]** (WF:274) → charter CID; concurrent commitment-count cap field | `setPoolCharter`; `setProviderOpenCommitmentCap` — required before Ready | — | — |
 | 3 | W7 | **Mark ready** — spec-placed: "The Ready action stays disabled until all three readiness inputs are present" (UX:269); not drawn on W7 | `markPoolReady` (CS:724) | Pool **Ready** — member sees "warming up" banner, browse/create disabled (UX:58) | Missing inputs keep it disabled (UX:269) |
 | 4 | — | **GAP — the drawn console cannot open the pool.** §4.1 Ready's admin cell offers only "Seed-first-cycle CTA" (UX:58); `seedCycle` accepts pool Ready-or-Open (CS:726) but `openCycle` requires **pool Open** (CS:727), and no frame or spec placement carries an `openPool` control (grep: zero hits across UX/WF). `closePool` is equally unplaced. | `openPool` / `closePool` exist on-chain only (CS:100,102) | **deadlock before the first cycle opens** | MF-1 below; top finding — **decided 2026-07-11 (register #34a)**: adopted on the pool card, plus a Ready-state guard prompt in the open-cycle flow |
 | 5 | W7 | Seed the Season: cycle flow per §6.2.2 — type, window, metadata (WF:280 `[ New Campaign ]` grammar; Season slot blocks a second open Season, WF:277-279; UX:66) | `seedCycle` carries no allocation | Cycle **Seeded** — member sees "opens soon", seeded promises browsable read-only (UX:71) | Second Season blocked with a link to the existing one (UX:66) |
@@ -521,7 +522,7 @@ flowchart LR
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W21 | **[ Set up settlement account ]** (WF:572) | `registerSettlementAccount` — Celo 42220, 2-of-3 recovery, no owner/executor overlap (SS:167; WF:572-577) | account active | — |
-| 2 | W12 | (funding beat) protocol steward queues **ProtocolToGarden** — the only modeled route; HoA → protocol Safe is upstream (SS:172; DG:832-856); placement is the Operations funding view (SS:528), control undrawn → MF-11 | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens (SS:172) | funding Queued | AA-gate failure never blocks this Safe-to-Safe route (SS:417; DG:856) |
+| 2 | W24 / W12 | (funding beat) protocol steward queues **ProtocolToGarden** — the only modeled route; HoA → protocol Safe is upstream (SS:172; DG:832-856); the real, non-proposed control is on the W24 Operations funding view, with funding context reflected on W12 (SS:528; MF-11) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens (SS:172) | funding Queued | AA-gate failure never blocks this Safe-to-Safe route (SS:417; DG:856) |
 | 3 | W10 | Per fulfilled G$ commitment: **[ Queue disbursement ]** (replaces Record payout for G$ rewards — WF:564; SS:526) | `queueDisbursement` — requires `memberDeliveryEnabled`, Fulfilled state, active provider-garden account (SS:171) | **Queued** — member reads "support on its way" (SB-11.2) | Gate off → queueing blocked (SS:170) |
 | 4 | W21 | **[ Create batch (2) ]** (WF:583) | `createBatch` — 1..24 unique ids, immutable members, one executorGarden/source/token (SS:173,114) | batch Queued | — |
 | 5 | W22 | **[ Open in Safe app ↗ ]** (WF:552) — the value leg happens in the Safe app, not in Green Goods (August posture, WF:553-554) | Roles-scoped G$ transfer from the garden Safe (DG:602-607) | — | Execution fails before report → step 8 |
@@ -631,7 +632,7 @@ Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a lo
 | MF-8 | Provider-context chooser ("as myself / for this garden") | SB-13.2 | W1:106 and UX:130 mention the choice; the deciding surface is undrawn | UX:130 |
 | MF-9 | Reconciliation report view (admin) | SB-9.11 | W7 history points "scoped report ▸" (WF:283) at nothing; §4.2 admin cell names the report (UX:75) | UX:75 |
 | MF-10 | Client Reconciled cycle summary card | SB-9.12 | §4.2 client cell + medium hero fire here (UX:75,200); no frame | UX:75 |
-| MF-11 | Queue-funding control (admin Pools funding view) | SB-12.2 | SS:528 places the funding view; the trigger for `queueFunding` (SS:172) is undrawn | SS:528 |
+| MF-11 | Queue-funding control (admin Pools funding view) | SB-12.2 | Original wireframe gap: SS:528 placed the funding view but did not draw the `queueFunding` trigger; the hi-fi artifact now realizes it as a real control on W24 with funding context on W12 | SS:528 |
 | MF-12 | Testimony CTA (client, commitment "aimed at the community") — **flag only, no drawing** | SB-14.8 | §4.3 Fulfilled Community cell names it (UX:91); every drawn testimony surface is September's (CI-W5/CI-W6). Decide: September-only (recommended — matches CI-SPEC:263) or an August client frame | UX:91; CS:762 |
 | MF-13 | Attach-assessment picker (admin commitment detail) | SB-4.8 | Behavior fully specified (UX:287), dialog never drawn | UX:287 |
 
@@ -675,7 +676,7 @@ Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a lo
 | # | Action | Entry point(s) | Surface · screen | Offline? | New / ext | Notes |
 |---|---|---|---|---|---|---|
 | O1 | Edit the pool charter | `setPoolCharter` (CS:723) | W7 pool card | online | NEW | — |
-| O2 | Set the provider exposure cap | `setProviderExposureCap` (CS:751) | W7 readiness checklist | online | NEW | required before Ready |
+| O2 | Set the provider open-commitment cap | `setProviderOpenCommitmentCap` | W7 readiness checklist | online | NEW | non-zero concurrent commitment count required before Ready |
 | O3 | Mark the pool ready | `markPoolReady` (CS:724) | W7 (`spec-placed, undrawn` — UX:269) | online | NEW | disabled until charter + cap + qualifying Baseline |
 | O4 | Pool lifecycle controls | `pausePool`/`resumePool`/`compostPool`/`reopenPool` (UX:60-62; WF:274) + `openPool`/`closePool` adopted onto the card per register #34a (MF-1) | W7 pool card | online | NEW | all 6 entry points placed as of 2026-07-11; open-cycle flow gains only a Ready-state guard prompt |
 | O5 | Seed a cycle (Season / Campaign) | `seedCycle` (CS:726) | W7 cycles console (UX:270) | online | NEW | one open Season invariant enforced in-console (WF:279) |
@@ -695,7 +696,7 @@ Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a lo
 | O19 | Record payout | `recordRewardPaid` (CS:749) | W10 + AdminConfirmDialog (UX:302) | online | NEW | July's only reward rail (PT:42) |
 | O20 | Set up the settlement account | `registerSettlementAccount` (SS:169) | W21 (WF:572) | online | NEW | steward or module owner |
 | O21 | Queue a disbursement | `queueDisbursement` (SS:171) | W10 delta "Queue disbursement" (WF:564; SS:526) | online | NEW | gated on `memberDeliveryEnabled` + Fulfilled |
-| O22 | Queue garden funding | `queueFunding` (SS:172) | admin Operations funding view (SS:528, `undrawn` → MF-11) | online | NEW | protocol steward or owner; GG→garden only |
+| O22 | Queue garden funding | `queueFunding` (SS:172) | W24 Operations funding view + W12 funding context (SS:528; MF-11, realized) | online | NEW | protocol steward or owner; GG→garden only |
 | O23 | Create a settlement batch | `createBatch` (SS:173) | W21 (WF:583) | online | NEW | **steward or executor**; 1–24 immutable members |
 | O24 | Request receipt verification / request again | `requestVerification`+`requestBatchVerification` (SS:178); timeout path via `expireVerification`+Batch (SS:180) | W22 (WF:556,560) | online | NEW | steward, executor, or owner; "checking receipt" derived |
 | O25 | Record a failed execution (reason) | `recordFailed`+Batch (SS:181) | W22 (WF:556) | online | NEW | **executor or steward** |
@@ -730,14 +731,14 @@ Shared with stewards: O23, O24, O25. **Value-leg actions** (drawn, but not Green
 
 ### 16.3 System actions surfaced only as states (never user-triggered — 6)
 
-`onGardenMinted` (GardenToken-only, CS:721) · `onWorkApproved` (WorkApprovalResolver-only, CS:737) · CommitmentRegister module-only unit calls incl. the register-side exposure-cap twin (CS:752) · Chainlink Functions router callback — the only producer of Verified / receipt-invalid Failed (SS:179) · SettlementModule `initialize` (SS:184) · indexer claim-request **supersession** (CS:141-142; DG:696-706).
+`onGardenMinted` (GardenToken-only) · `onWorkApproved` (WorkApprovalResolver-only) · CommitmentRegister module-only class-unit calls plus the register-side `setProviderOpenCommitmentCap` count-cap twin · Chainlink Functions router callback — the only producer of Verified / receipt-invalid Failed · SettlementModule `initialize` · indexer claim-request **supersession**.
 
 ### 16.4 Totals
 
 | Measure | Count |
 |---|---|
 | Net-new user-vocabulary actions, August surfaces | **39** = members 9 + operators 28 (27 admin + 1 client) + executor 2 exclusive (M9 added per register #34b) |
-| — of which flagged `spec-placed, undrawn` | 5 controls: O3, M5/MF-6, O0/MF-8, O22/MF-11, MF-13 (inside O14) — plus the register #34-adopted controls (MF-1/2a/3/4/5) whose drawings live here pending the wireframes redraw |
+| — of which flagged `spec-placed, undrawn` | 4 controls: O3, M5/MF-6, O0/MF-8, MF-13 (inside O14) — plus the register #34-adopted controls (MF-1/2a/3/4/5) whose drawings live here pending the wireframes redraw. O22/MF-11 is now realized in the hi-fi artifact. |
 | — of which contain **unplaced** entry points | none as of 2026-07-11 (register #34a placed openPool/closePool; steward cancel remains an ops-bucket row) |
 | Join-request queue (register #35; canonical design in `../community-interface/join-queue-spec.md`; operating gate remains) | +2 actions when RESR-64 clears implementation (member "ask to join" · steward "welcome / decline with reason") — counted then, not in the 39 |
 | September community-app actions | **12** = member 5 (post a Need · signal · retract · C1 confirm · C2 testimony) + operator 7 (acknowledge · decline · merge · hide · reopen · private-lane intake · seed-from-Need, CI-W9/CI-W10) — seed-from-Need extends O10 with `needUID` prefill |
@@ -756,7 +757,7 @@ Shared with stewards: O23, O24, O25. **Value-leg actions** (drawn, but not Green
 
 ## 17. Coverage appendix — every §4 state, per surface, walked or accounted for
 
-**At a glance** — every §4 state × surface, walked or accounted for; no silent cell remains, and two ⚠ gaps stay open (steward cancel · Cancelled-disbursement copy).
+**At a glance** — every §4 state × surface is walked or accounted for; no silent cell remains. Five review decisions stay open: steward cancel (MF-2b), Cancelled-disbursement copy, and the MF-7/MF-8/MF-13 placements.
 
 Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a copy-only cell, rendered but not storyboarded · `explicit: not surfaced` = the spec says so on purpose · `Sept` = September community surface (view or SB-14) · `⚠` = a real gap carried in the findings. The Community column of the §4 tables **is** the September surface (UX §8).
 
@@ -822,4 +823,4 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 | Failed | SB-11.8 ("still arranging support — your promise is recorded") | SB-12.8–9 (requeue / cancel) |
 | Cancelled | ⚠ member-facing copy unspecified — SS:532 defines five states and no Cancelled line; `cancelDisbursement` frees the commitment for a fresh queue (SS:183). Presumed fallback to the pooling reward row (DG:666 precedence) — needs one sentence in settlement-spec §7 | SB-12.8 |
 
-**Coverage verdict**: no fully silent state–surface cell remains — every cell is walked, static-by-design, or explicitly not-surfaced. After the 2026-07-11 decisions (register #34), two ⚠ cells remain: the steward cancel placement (MF-2b) and the Cancelled-disbursement member copy (§17.5); the Ready→Open path and member cancel are resolved, and testimony is September-only. The dispatch's 13 required flows map: S1→SB-1 · S2→SB-2 · S3→SB-3 · S4→SB-4 · S5→SB-5+SB-9 · expiry→SB-6 · S6→SB-7 · S7→SB-8 · seeding+cycles→SB-9 · S13→SB-10 · S8/S9 member→SB-11 · S8 operator→SB-12 · S14→SB-13 · S10→SB-14.
+**Coverage verdict**: no fully silent state–surface cell remains — every cell is walked, static-by-design, or explicitly not-surfaced. Five review decisions remain open: the steward cancel placement (MF-2b), Cancelled-disbursement member copy (§17.5), and the MF-7/MF-8/MF-13 placements. The Ready→Open path and member cancel are resolved, and testimony is September-only. The dispatch's 13 required August flows map: S1→SB-1 · S2→SB-2 · S3→SB-3 · S4→SB-4 · S5→SB-5+SB-9 · expiry→SB-6 · S6→SB-7 · S7→SB-8 · seeding+cycles→SB-9 · S13→SB-10 · S8/S9 member→SB-11 · S8 operator→SB-12 · S14→SB-13. S10→SB-14 remains September Community source material and is hidden from the presentation catalogs until high fidelity.

@@ -60,17 +60,15 @@ export const HIFI_CSS = `
 .hf .phone{width:390px;max-width:100%;background:var(--bezel);border-radius:44px;padding:12px;
   box-shadow:0 18px 48px rgba(14,18,27,.18),0 2px 8px rgba(14,18,27,.12)}
 [data-theme="dark"] .hf .phone{box-shadow:0 18px 48px rgba(0,0,0,.5)}
-/* Phone screen: capped to the viewport and scrolls its own content — matching
-   the real app where #app-scroll scrolls, not the window (Fix 1). Height is
-   fixed so the phone silhouette stays consistent across screens; the native-
-   feeling scroll hides its bar. --dev-cap is inherited from the artifact :root. */
+/* Phone screen: capped to the viewport, with fixed device chrome around an
+   AppShell-like owned scroll surface. Height stays consistent across screens;
+   --dev-cap is inherited from the artifact :root. */
 .hf .scr{background:var(--cv);border-radius:32px;display:flex;flex-direction:column;
-  height:calc(var(--dev-cap) - 50px);min-height:0;overflow-y:auto;overflow-x:hidden;
-  position:relative;font-size:15px;line-height:1.45;scrollbar-width:none}
-.hf .scr::-webkit-scrollbar{display:none}
+  height:calc(var(--dev-cap) - 50px);min-height:0;overflow:hidden;
+  position:relative;font-size:15px;line-height:1.45}
 .hf .statusbar{display:flex;justify-content:space-between;align-items:center;
   padding:14px 24px 6px;font:600 13px/1 inherit;color:var(--ink);
-  position:sticky;top:0;z-index:3;background:var(--cv)}
+  flex:none;z-index:3;background:var(--cv)}
 .hf .statusbar .sbr{display:flex;gap:5px;align-items:center}
 .hf .sb-sig{display:flex;gap:2px;align-items:flex-end}
 .hf .sb-sig i{width:3px;background:var(--ink);border-radius:1px;display:block}
@@ -80,6 +78,8 @@ export const HIFI_CSS = `
 .hf .homebar i{width:134px;height:5px;border-radius:99px;background:var(--ink);opacity:.28;display:block}
 
 /* screen body + scroll column */
+.hf .appscroll{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.hf .appscroll::-webkit-scrollbar{display:none}
 .hf .body{flex:1;display:flex;flex-direction:column;min-height:0}
 .hf .pagepad{padding:4px 16px 16px;display:flex;flex-direction:column;gap:12px}
 
@@ -102,7 +102,7 @@ export const HIFI_CSS = `
 
 /* bottom app bar (installed PWA chrome) */
 .hf .abar{flex:none;background:var(--card);border-top:1px solid var(--ln);border-radius:16px 16px 0 0;
-  display:flex;justify-content:space-evenly;align-items:center;padding:9px 0 2px;margin-top:auto}
+  display:flex;justify-content:space-evenly;align-items:center;height:69px;padding:7px 0 2px}
 .hf .abar .atab{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;
   color:var(--stone);font:500 12px inherit;cursor:pointer;padding:2px 14px;position:relative;min-height:44px}
 .hf .abar .atab.on{color:var(--gr)}
@@ -342,10 +342,10 @@ export const HIFI_CSS = `
 .hf .gmeta .gm{display:inline-flex;align-items:center;gap:5px;min-width:0}
 .hf .gmeta .gm .ic{width:15px;height:15px;color:var(--gr-ink)}
 .hf .gmeta .gsep{color:var(--ln2)}
-/* garden tabs stick flush under the status bar (42px) as the pool scrolls (sticky StandardTabs);
-   the bottom AppBar pins to the foot of the scroll so app-nav stays put (AppShell #app-scroll). */
-.hf.s-client .gtabs{position:sticky;top:42px;z-index:2;background:var(--cv);box-shadow:0 1px 3px rgba(14,18,27,.06)}
-.hf.s-client .abar{position:sticky;bottom:0;z-index:2}
+/* Garden tabs stick to the top of the owned app scroll (the status bar now sits
+   outside it), matching sticky StandardTabs without leaving a phantom gap. */
+.hf.s-client .gtabs{position:sticky;top:0;z-index:2;background:var(--cv);box-shadow:0 1px 3px rgba(14,18,27,.06)}
+.hf.s-client .abar{z-index:2}
 
 /* Home header — h4 title + trailing icon-button row */
 .hf .hhead{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 10px}
@@ -465,9 +465,11 @@ export const HIFI_CSS = `
 /* AdminTabRail — segmented card (grid), surface-quiet well, 40px tabs, active
    raised + elevation (NOT underline). Count chip greens/tints on active. */
 .hf .tabrail{display:grid;gap:6px;padding:6px;background:var(--surface-quiet);border-radius:14px}
-.hf .tabrail .trtab{height:44px;border:0;border-radius:10px;background:transparent;color:var(--stone);
+.hf .tabrail .trhit{height:44px;display:flex;align-items:center;min-width:0}
+.hf .tabrail .trtab{height:40px;border:0;border-radius:10px;background:transparent;color:var(--stone);
   font:600 13.5px inherit;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
   gap:6px;padding:0 10px;min-width:0}
+.hf .tabrail .trhit .trtab{width:100%}
 .hf .tabrail span.trtab{cursor:default}
 .hf .tabrail .trtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hf .tabrail .trtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(14,18,27,.10),0 1px 3px rgba(14,18,27,.10)}
@@ -563,7 +565,8 @@ export const HIFI_CSS = `
    (scroll) / footer (hairline-top, raised, right-aligned). Mirrors
    packages/admin/src/components/AdminDialog.tsx. */
 .hf .dlgstage{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
-.hf .dlgstage > .wsgrid{flex:1}
+.hf .dlgstage > .dlg-behind{flex:1;min-height:0;display:flex}
+.hf .dlgstage > .dlg-behind > .wsgrid{flex:1}
 .hf .dlgstage .scrimm{position:absolute;inset:0;background:rgb(0 0 0/0.32);z-index:7}
 .hf .adlg{position:absolute;left:50%;top:50%;translate:-50% -50%;z-index:8;width:min(560px,calc(100% - 40px));
   max-height:calc(100% - 40px);background:var(--card-high);border-radius:28px;overflow:hidden;
@@ -576,6 +579,10 @@ export const HIFI_CSS = `
 .hf .adlg .dlg-body{min-height:0;overflow-y:auto;padding:15px 18px;display:flex;flex-direction:column;gap:11px}
 .hf .adlg .dlg-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;
   border-top:1px solid var(--ln);background:var(--card-low)}
+@media (max-width:639px){
+  .hf .adlg{left:0;right:0;top:auto;bottom:0;translate:none;width:100%;max-height:calc(100% - 16px);
+    border-radius:28px 28px 0 0}
+}
 
 /* quiet confirmation row (admin never celebrates) */
 .hf .quietok{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--gr-ink)}

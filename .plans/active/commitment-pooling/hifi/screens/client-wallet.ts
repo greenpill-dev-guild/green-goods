@@ -7,7 +7,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  banner, btn, card, chip, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
+  appBar, banner, btn, card, chip, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
   phoneFrame, radio, sectionTitle, seg, sheetOver, skeleton, stepDots,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -80,7 +80,7 @@ ${card(
         { cls: "flat" },
       )}`;
   }
-  return phoneFrame(walletShell(inner), { offline: state === "queued" || state === "read-error" });
+  return phoneFrame(walletShell(inner), { offline: state === "queued" || state === "read-error", appBar: appBar("profile") });
 }
 
 const W5_HOTS: HifiDef["hots"] = {
@@ -133,7 +133,7 @@ ${hot("w23.send-retry", btn("Try again", { kind: "pri", full: true, icon: "refre
       )}
 ${hot("w23.send", btn("Send G$", { kind: "pri", full: true, icon: "send-plane-line" }))}`;
   }
-  return phoneFrame(walletShellG(inner));
+  return phoneFrame(walletShellG(inner), { appBar: appBar("profile") });
 }
 
 const walletShellG = (inner: string) => sheetOver(homeHeader(), "Wallet", `${seg(["Jar", "Vault", "Pools"], 2)}${inner}`, { handle: false });

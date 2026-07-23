@@ -7,11 +7,16 @@ import { icon } from "./icons";
 
 // ---- device chrome ----------------------------------------------------------
 
-// Installed-PWA viewport: bezel, status bar, body column, home indicator.
-export function phoneFrame(body: string, opts: { offline?: boolean } = {}): string {
+// Installed-PWA viewport: bezel, fixed status/home chrome, and the same owned
+// inner scroll surface as AppShell's #app-scroll. AppShell-backed frames carry
+// the shipping 69px AppBar reservation by default; callers may choose the active
+// destination or explicitly opt out for a genuinely non-AppShell surface.
+export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: string | false } = {}): string {
+  const bottomBar = opts.appBar === false ? "" : (opts.appBar ?? appBar("garden"));
   return `<div class="phone"><div class="scr">
 <div class="statusbar"><span class="num">9:41</span><span class="sbr">${opts.offline ? icon("wifi-off-line", "s") : ""}<span class="sb-sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="sb-batt"></span></span></div>
-${body}
+<div class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</div>
+${bottomBar}
 <div class="homebar"><i></i></div>
 </div></div>`;
 }

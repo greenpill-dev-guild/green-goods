@@ -62,7 +62,7 @@ ${acard(
 const W12_HOTS: HifiDef["hots"] = {
   "w12.tab-protocol": { l: "Protocol pool tab", to: "screen:W12@protocol", info: "The root protocol pool view." },
   "w12.tab-garden": { l: "This garden tab", to: "screen:W12@current-garden", info: "This garden's pool scope only." },
-  "w12.accept": { l: "Accept a garden claim", info: "Protocol steward accepts stored terms; providerGarden derives (CS:733). Walked in SB-13." },
+  "w12.accept": { l: "Accept a garden claim", to: "screen:W2", info: "Protocol steward accepts stored terms; providerGarden derives, then the accepted promise opens (CS:733)." },
   "w12.decline": { l: "Decline a garden claim", info: "Declines this garden claim with a required reason while leaving other pending requests intact (CS:734)." },
   "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
   "w12.no-ranking": { l: "Garden scope boundary", info: "No other-garden rows or batch/oracle controls render here; all-garden operations live in W24 (UX:314)." },
@@ -139,7 +139,7 @@ const W21_HOTS: HifiDef["hots"] = {
   "w21.setup": { l: "Set up settlement account", to: "screen:W21", info: "registerSettlementAccount — Celo 42220, 2-of-3 recovery, no owner/executor overlap (SS:169)." },
   "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
   "w21.add-batch": { l: "Add to batch", info: "Batches hold 1–24 immutable members (SS:116)." },
-  "w21.requeue": { l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
+  "w21.requeue": { l: "Requeue", to: "screen:W21", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
   "w21.cancel-disb": { l: "Cancel disbursement", info: "Queued/Failed → Cancelled; frees the commitment for a fresh queue (SS:183)." },
   "w21.request-details": { l: "Verification request", info: "Reported + active request = the derived “checking receipt” (DG:666)." },
   "w21.create-batch": { l: "Create batch", to: "screen:W22", info: "createBatch — 1..24 immutable members, one executorGarden/source/token (SS:175)." },
@@ -292,7 +292,7 @@ const W24_HOTS: HifiDef["hots"] = {
   "w24.tab-flows": { l: "Flows tab", to: "screen:W24@flows", info: "Cross-chain funds board (Celo reads · Reported vs oracle-verified)." },
   "w24.execute": { l: "Execute batch", to: "screen:W22", info: "Cross-garden execution home (WF:643). Executor-role guard (register #34e) applies here, same as W22." },
   "w24.execute-protocol": { l: "Execute protocol funding", info: "Runs the deployer-gated protocol-to-garden funding item with the same executor-role guard." },
-  "w24.queue-funding": { l: "Queue garden funding", info: "Deployer-gated queueFunding derives the sole ProtocolToGarden route; no upstream HoA hop is written onchain (SS:174,536)." },
+  "w24.queue-funding": { l: "Queue garden funding", to: "screen:W24@flows", info: "Deployer-gated queueFunding derives the sole ProtocolToGarden route and returns to the updated funds board; no upstream HoA hop is written onchain (SS:174,536)." },
   "w24.requeue": { l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
   "w24.inflow-row": { l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   "w24.gardens": { l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },
@@ -351,7 +351,7 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   "w26.reseed": { l: "Re-seed expired", to: "screen:W7@expiry-queue", info: "Unresolved-first: lapsed seeded promises re-enter the seeding console prefilled (UX:94)." },
   "w26.resolve": { l: "Resolve under-review", to: "screen:W10@resolve-dispute", info: "Cycle close sequences unresolved commitments before reconcile (WF:691)." },
-  "w26.mint": { l: "Mint impact certificate", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
+  "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
   "w26.compost": { l: "Reconcile + compost", to: "screen:W7@reconciled", info: "closeCycle → certificate mint → compostCycle; aggregates roll into pool history (WF:714)." },
 };
 

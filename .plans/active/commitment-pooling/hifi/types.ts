@@ -2,6 +2,7 @@
 
 export type Surface = "client" | "admin" | "public" | "community";
 export type FrameKind = "phone" | "desktop" | "browser" | "ascii";
+export type ReviewGroup = "client" | "admin" | "end-to-end";
 
 // Metadata for one registered hotspot (a tappable control on a screen).
 // `to` targets: "screen:W2" | "screen:W2@disputed" | "sb5:0".
@@ -20,6 +21,7 @@ export type Screen = {
   surface: Surface;
   frame: FrameKind;
   group: string; // Screens-tab group heading
+  reviewVisible: boolean; // shown in the presentation catalog; direct hashes stay valid either way
   states: ScreenState[];
 };
 
@@ -46,6 +48,7 @@ export type ShippedStep = {
   ev: string;
   cite?: string;
   note?: string;
+  skipTargetReason?: string; // audited exception when a canonical hotspot destination is not the next scene
   br?: { l: string; to: string }[];
   mf?: boolean;
 };
@@ -56,5 +59,7 @@ export type ShippedSB = {
   persona: string;
   scen: string;
   surface: string;
+  reviewVisible: boolean;
+  reviewGroup: ReviewGroup;
   steps: ShippedStep[];
 };

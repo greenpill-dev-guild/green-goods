@@ -736,7 +736,7 @@ C3: [
 C4: [
   { m: "[Share with my garden]", l: "Share with my garden", to: "frame:C1", info: "Offline-queueable Need; waiting_for_hat consumes no send attempts (CI-WF:153)." },
   { m: "[About membership]", l: "About membership", info: "Join submission + membership queue stay gated on RESR-64 (CI-WF:260); register #35 designs the garden-side queue." },
-  { m: "[Edit] [Cancel] [Delete]", l: "Draft controls", info: "S6 verbs: edit/retry/cancel/delete with media retained (LAP:191)." },
+  { m: "[Edit] [Cancel] [Delete]", l: "Draft controls", info: "Offline draft verbs: edit/retry/cancel/delete with media retained (LAP:191)." },
 ],
 C5: [
   { m: "[Agree]", l: "Agree", info: "NeedSignal — same-garden Community Hat members only (CI-WF:64)." },

@@ -40,28 +40,30 @@ export type Tone = "garden" | "hub" | "community" | "actions";
 export type NavId = "hub" | "garden" | "community" | "actions" | "operations";
 
 // GardenChip — the AppBar's left pill (garden selector), never a brand logo.
-export const gardenChip = (name: string, hotId: string) =>
-  `<button type="button" class="gchip" data-component="GardenChip" data-hot="${hotId}" aria-label="Select garden"><span class="leaf">${icon("seedling-line", "s")}<span class="dot"></span></span><span class="nm">${esc(name)}</span><span class="caret"></span></button>`;
+export const gardenChip = (name: string, hotId?: string) =>
+  `<button type="button" class="gchip" data-component="GardenChip"${hotId ? ` data-hot="${hotId}"` : " disabled"} aria-label="Select garden"><span class="leaf">${icon("seedling-line", "s")}<span class="dot"></span></span><span class="nm">${esc(name)}</span><span class="caret"></span></button>`;
 
 const iconBtn = (name: string, label: string) =>
   `<button type="button" class="iconbtn" aria-label="${esc(label)} — preview only" disabled>${icon(name)}</button>`;
 
 // Transparent AppBar (h-14) — GardenChip left, search/bell/settings/profile right.
-const appBar = (garden: string, hotPrefix: string) =>
-  `<header class="appbar" data-component="AppBar">${gardenChip(garden, `${hotPrefix}.garden-selector`)}<div class="appbar-actions">${iconBtn("search-line", "Search")}${iconBtn("notification-line", "Notifications")}${iconBtn("settings-line", "Settings")}${iconBtn("user-line", "Profile")}</div></header>`;
+const appBar = (garden: string, hotPrefix: string, interactive: boolean) =>
+  `<header class="appbar" data-component="AppBar">${gardenChip(garden, interactive ? `${hotPrefix}.garden-selector` : undefined)}<div class="appbar-actions">${iconBtn("search-line", "Search")}${iconBtn("notification-line", "Notifications")}${iconBtn("settings-line", "Settings")}${iconBtn("user-line", "Profile")}</div></header>`;
 
 // Floating glass workspace dock (NavigationBar) — the app's only backdrop-blur.
 // Visual chrome: the active workspace is highlighted in its tone; available
 // destinations open a representative workspace screen while current/preview-only
-// items open the inspector. Operations is the net-new deployer-gated 5th slot.
-const NAV_ITEMS: [NavId, string, string][] = [
+// items open the inspector. Operations is appended only inside its deployer-
+// gated workspace; it is not a global fifth destination for ordinary stewards.
+const CORE_NAV_ITEMS: [NavId, string, string][] = [
   ["hub", "Hub", "home-line"], ["garden", "Garden", "seedling-line"],
   ["community", "Community", "group-line"], ["actions", "Actions", "leaf-line"],
-  ["operations", "Operations", "send-plane-line"],
 ];
-const navDock = (active: NavId, hotPrefix: string) =>
-  `<nav class="navdock" aria-label="Workspaces" data-component="NavigationBar">${NAV_ITEMS.map(
-    ([id, l, ic]) => `<button type="button" class="nditem${id === active ? " on" : ""}" data-hot="${hotPrefix}.nav-${id}" aria-label="${l} workspace"${id === active ? ' aria-current="page"' : ""}><span class="ndic">${icon(ic)}</span><span>${l}</span></button>`,
+const OPERATIONS_NAV_ITEM: [NavId, string, string] = ["operations", "Operations", "send-plane-line"];
+const navItems = (active: NavId) => active === "operations" ? [...CORE_NAV_ITEMS, OPERATIONS_NAV_ITEM] : CORE_NAV_ITEMS;
+const navDock = (active: NavId, hotPrefix: string, interactive: boolean) =>
+  `<nav class="navdock" aria-label="Workspaces" data-component="NavigationBar">${navItems(active).map(
+    ([id, l, ic]) => `<button type="button" class="nditem${id === active ? " on" : ""}"${interactive ? ` data-hot="${hotPrefix}.nav-${id}"` : " disabled"} aria-label="${l} workspace"${id === active ? ' aria-current="page"' : ""}><span class="ndic">${icon(ic)}</span><span>${l}</span></button>`,
   ).join("")}</nav>`;
 
 const NAV_TARGETS: Partial<Record<NavId, string>> = {
@@ -78,7 +80,7 @@ export function adminChromeHots(hotPrefix: string, active: NavId): HifiDef["hots
       info: "Garden selection remains in the shipping AppBar; this prototype keeps Rocinha fixed while exposing the control contract.",
     },
   };
-  for (const [id, label] of NAV_ITEMS) {
+  for (const [id, label] of navItems(active)) {
     const target = NAV_TARGETS[id];
     hots[`${hotPrefix}.nav-${id}`] = id === active || !target
       ? { l: `${label} workspace`, info: `${label} is ${id === active ? "the current" : "a preview-only"} workspace in this storyboard.` }
@@ -110,7 +112,7 @@ export function tabRail(items: RailTab[], activeIx: number): string {
       const cnt = it.count != null ? `<span class="cnt">${it.count}</span>` : "";
       const content = `<span class="lbl">${esc(it.label)}</span>${cnt}`;
       return it.hot
-        ? hot(it.hot, `<button type="button" role="tab" aria-selected="${i === activeIx}" class="trtab${i === activeIx ? " on" : ""}">${content}</button>`)
+        ? hot(it.hot, `<span class="trhit"><button type="button" role="tab" aria-selected="${i === activeIx}" class="trtab${i === activeIx ? " on" : ""}">${content}</button></span>`)
         : `<span class="trtab${i === activeIx ? " on" : ""}"${interactive ? ` role="tab" aria-selected="${i === activeIx}" aria-disabled="true"` : ""}>${content}</span>`;
     })
     .join("")}</div>`;
@@ -120,12 +122,13 @@ export function tabRail(items: RailTab[], activeIx: number): string {
 // deskWin(url, …). tone drives the gradient + accents; nav highlights the dock.
 export function adminCanvas(
   tone: Tone, nav: NavId,
-  parts: { screenId: string; garden: string; header: string; tabRail?: string; body: string },
+  parts: { screenId: string; garden: string; header: string; tabRail?: string; body: string; interactiveChrome?: boolean },
 ): string {
   const hotPrefix = parts.screenId.toLowerCase();
-  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${appBar(parts.garden, hotPrefix)}<div class="mainscroll"><section class="routecard">${parts.header}${
+  const interactiveChrome = parts.interactiveChrome !== false;
+  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${appBar(parts.garden, hotPrefix, interactiveChrome)}<div class="mainscroll"><section class="routecard">${parts.header}${
     parts.tabRail ?? ""
-  }${parts.body}</section></div>${navDock(nav, hotPrefix)}</div>`;
+  }${parts.body}</section></div>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
 }
 
 // AdminDialog — own scrim + 28dp solid surface over the dimmed canvas. `behind`
@@ -134,7 +137,7 @@ export function adminDialogM3(
   behind: string, tone: Tone, opts: { title: string; body: string; actions: string; closeHot?: string },
 ): string {
   const close = `<button type="button" class="dclose" aria-label="Close">${icon("close-line", "s")}</button>`;
-  return `<div class="dlgstage">${behind}<div class="scrimm"></div><div class="adlg" data-tone="${tone}" data-component="AdminDialog"><div class="dlg-head"><span class="dt">${esc(
+  return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="admin-dialog-title"><div class="dlg-head"><span class="dt" id="admin-dialog-title">${esc(
     opts.title,
   )}</span>${opts.closeHot ? hot(opts.closeHot, close) : close}</div><div class="dlg-body">${opts.body}</div><div class="dlg-foot">${opts.actions}</div></div></div>`;
 }
@@ -172,11 +175,11 @@ const w7PoolCard = (state: W7State) => {
         : `${hot("w7.pause", btn("Pause…", { kind: "sec", sm: true }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}${hot("w7.close-pool", btn("Close pool…", { kind: "ghost", sm: true }))}`;
   const meta =
     state === "not-ready"
-      ? `${kv("Charter", "not set")}${kv("Provider exposure cap", "not set")}${kv("Qualifying baseline", "missing")}`
-      : `${kv("Charter", "agreed ✓")}${kv("Baseline", "recorded ✓")}${kv("Provider exposure cap", "24 units")}`;
+      ? `${kv("Charter", "not set")}${kv("Provider open-commitment cap", "not set")}${kv("Qualifying baseline", "missing")}`
+      : `${kv("Charter", "agreed ✓")}${kv("Baseline", "recorded ✓")}${kv("Provider open-commitment cap", "24 commitments")}`;
   const note =
     state === "not-ready"
-      ? banner("Readiness needs all three: charter, exposure cap, and a qualifying baseline assessment.", "stone")
+      ? banner("Readiness needs all three: charter, provider open-commitment cap, and a qualifying baseline assessment.", "stone")
       : state === "ready"
         ? banner("Everything is in place. Opening the pool lets members see and make promises.", "stone")
         : state === "paused"
@@ -270,14 +273,14 @@ function w7(state: W7State): string {
 }
 
 const W7_HOTS: HifiDef["hots"] = {
-  "w7.pause": { l: "Pause pool (reason)", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
-  "w7.resume": { l: "Resume pool", info: "resumePool clears the indexed reason (CS:725)." },
-  "w7.edit-charter": { l: "Edit charter", info: "setPoolCharter — one of the three readiness inputs (UX:269)." },
-  "w7.open-pool": { l: "Open pool", info: "openPool → PoolOpened. Adopted onto the status card per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
-  "w7.close-pool": { l: "Close pool", info: "After the last cycle composts (CS:102); then compost/reopen per §4.1." },
-  "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118). Walked in SB-9." },
-  "w7.cancel-cycle": { l: "Cancel a cycle (reason)", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
-  "w7.new-campaign": { l: "New campaign", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
+  "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@paused", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
+  "w7.resume": { l: "Resume pool", to: "screen:W7", info: "resumePool clears the indexed reason (CS:725)." },
+  "w7.edit-charter": { l: "Edit charter", to: "screen:W7@ready", info: "setPoolCharter — one of the three readiness inputs; the prototype returns to the resulting Ready card (UX:269)." },
+  "w7.open-pool": { l: "Open pool", to: "screen:W7", info: "openPool → PoolOpened. Adopted onto the status card per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
+  "w7.close-pool": { l: "Close pool", to: "screen:W1@closed", info: "After the last cycle composts (CS:102); then compost/reopen per §4.1." },
+  "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118)." },
+  "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W1@cancelled-cycle", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
+  "w7.new-campaign": { l: "New campaign", to: "screen:W8", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
   "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733)." },
   "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@claim-outcomes", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.reseed": { l: "Re-seed", to: "screen:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94). Adopted MF-4." },
@@ -304,13 +307,13 @@ function w8(state: W8State): string {
   let inner: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Action requirements", `<div class="arow"><div class="grow"><b>Prune</b> <span class="t-meta">Land stewardship</span></div>${input("2")}<span class="t-meta">approved works</span></div><div class="arow"><div class="grow"><b>Plant</b> <span class="t-meta">Land stewardship</span></div>${input("1")}<span class="t-meta">approved work</span></div>${hot("w8.add-action", btn("Add action", { kind: "ghost", sm: true, icon: "add-line" }))}`)}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}`;
+      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Action requirements", `<div class="arow"><div class="grow"><b>Prune</b> <span class="t-meta">Land stewardship</span></div>${input("2")}<span class="t-meta">approved works</span></div><div class="arow"><div class="grow"><b>Plant</b> <span class="t-meta">Land stewardship</span></div>${input("1")}<span class="t-meta">approved work</span></div>${hot("w8.add-action", btn("Add action", { kind: "ghost", sm: true, icon: "add-line" }))}`)}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}${hot("w8.continue-requirements", btn("Continue", { kind: "pri", full: true }))}`;
       break;
     case "step3":
       inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>${hot("w8.add-address", btn("Add address", { kind: "ghost", sm: true, icon: "add-line" }))}`)}
 ${field("Threshold", input("2 of 2", { select: true }))}
 ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}
-${hot("w8.reward", field("Declared reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`))}`;
+${hot("w8.reward", field("Declared reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`))}${hot("w8.continue-rule", btn("Continue", { kind: "pri", full: true }))}`;
       break;
     case "step4":
       inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward", "20 DAI · garden jar · reference only")}
@@ -323,7 +326,7 @@ ${hot("w8.seed", btn("Record it", { kind: "pri", full: true }))}`;
     default:
       inner = `${field("Type", radio([{ label: "Season / campaign promise", meta: "the pool offers or requests", on: true }, { label: "Support / service" }, { label: "Garden work (impact)" }, { label: "Capture for a member" }]))}
 ${field("Direction", radio([{ label: "The pool offers", on: true }, { label: "The pool requests" }]))}
-${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title", input("Market rides"))}`;
+${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title", input("Market rides"))}${hot("w8.continue-scope", btn("Continue", { kind: "pri", full: true }))}`;
   }
   const header = pageHeader({
     title: "Seed a commitment",
@@ -345,6 +348,9 @@ const W8_HOTS: HifiDef["hots"] = {
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
   "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
   "w8.reward": { l: "Declared reward", info: "Reference only — the module never custodies funds (WF:339 · UX:280)." },
+  "w8.continue-scope": { l: "Continue to requirements", to: "screen:W8@step2", info: "Type and scope → requirements." },
+  "w8.continue-requirements": { l: "Continue to rule and reward", to: "screen:W8@step3", info: "Requirements → confirmation rule and declared reward." },
+  "w8.continue-rule": { l: "Continue to review", to: "screen:W8@step4", info: "Rule and reward → final review." },
   "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:150)." },
 };
 
@@ -402,6 +408,7 @@ const w10Behind = () =>
   adminCanvas("garden", "garden", {
     screenId: "W10",
     garden: "Rocinha",
+    interactiveChrome: false,
     header: pageHeader({ title: "Garden", description: "Season of First Rains — the pool's promises." }),
     tabRail: tabRail([{ label: "Health" }, { label: "Impact" }, { label: "Activity" }, { label: "Pool" }], 3),
     body: acard(
@@ -652,7 +659,7 @@ ${banner("Existing Work stage — approval rails untouched (UX:285).", "stone")}
 }
 
 const HUBWORK_HOTS: HifiDef["hots"] = {
-  "hub.approve": { l: "Approve", info: "Existing WorkApproval rails → onWorkApproved → ApprovedWorkCounted (CS:737)." },
+  "hub.approve": { l: "Approve", to: "screen:HUBWORK", info: "Existing WorkApproval rails → onWorkApproved → ApprovedWorkCounted (CS:737)." },
   "hub.reject": { l: "Reject", info: "Existing work-rejection rail with a recorded reason; no pooling-specific behavior." },
 };
 
@@ -666,7 +673,7 @@ export const ADMIN_DEFS: HifiDef[] = [
   { screen: { id: "W9", title: "W9 · Analog capture", surface: "admin", frame: "desktop", group: "Admin console",
     states: W9_STATES.map(([id, label]) => ({ id, label, html: w9(id) })) }, hots: { ...adminChromeHots("w9", "garden"), ...W9_HOTS } },
   { screen: { id: "W10", title: "W10 · Commitment dialog (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W10_STATES.map(([id, label]) => ({ id, label, proposed: ["attach-assessment", "accepted", "mark-ready-override", "cancel"].includes(id), html: w10(id) })) }, hots: { ...adminChromeHots("w10", "garden"), ...W10_HOTS } },
+    states: W10_STATES.map(([id, label]) => ({ id, label, proposed: ["attach-assessment", "accepted", "mark-ready-override", "cancel"].includes(id), html: w10(id) })) }, hots: W10_HOTS },
   { screen: { id: "W11", title: "W11 · Open-cycle allocation", surface: "admin", frame: "desktop", group: "Admin console",
     states: W11_STATES.map(([id, label]) => ({ id, label, html: w11(id) })) }, hots: { ...adminChromeHots("w11", "garden"), ...W11_HOTS } },
   { screen: { id: "W13", title: "W13 · Hub Confirm stage", surface: "admin", frame: "desktop", group: "Admin console",

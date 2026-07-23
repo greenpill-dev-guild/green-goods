@@ -1,9 +1,9 @@
 // Builds the "Commitment Pooling — Flow Prototypes" claude.ai artifact from the
 // sibling prototypes.md + the hifi/ module set. Three tabs:
-//   1) Walk the journeys — click-through storyboards: the canonical control
+//   1) Guided flows — click-through prototypes: the canonical control
 //      advances, real decision points are on-frame choices, every other drawn
 //      control answers via the inspector or jumps elsewhere.
-//   2) Screens — free-roam: browse every screen, switch its states
+//   2) Screen library — free-roam: browse every review-visible screen, switch its states
 //      (Storybook-style), tap any control, navigate the screen graph.
 //   3) Reference — the full rendered prototypes.md document.
 //
@@ -30,7 +30,6 @@ import { HIFI_CSS } from "./hifi/tokens";
 import {
   ALIASES,
   BUILD_ERRORS,
-  GROUPS,
   HOTS,
   SCREEN_HOTS,
   SCREEN_MARKS,
@@ -174,10 +173,10 @@ const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc
   `<a href="#${s.id}"><b>${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</b></a>`
 ).join("")}</nav>`;
 
-const statusNote = `<aside class="status"><h2>Status — review-and-polish pass 2026-07-21 · hi-fi register #36</h2>
-<p><strong>Hi-fi</strong>: every August screen renders at high fidelity with a per-screen state matrix — Warm Earth client PWA, restrained M3 admin, editorial public pages. Adopted micro-frames dissolved into their parent states; still-proposed ones keep the amber tag. September community frames stay lo-fi previews. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
+const statusNote = `<aside class="status"><h2>Status — coherency pass 2026-07-22 · hi-fi register #36</h2>
+<p><strong>Presentation review</strong>: 13 guided flows and 24 high-fidelity screens are grouped by Client PWA, Admin Console, End-to-end, and Public surfaces. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into parent states; still-proposed placements keep the amber tag. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
 <p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21/W12 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
-<p><strong>Still open</strong>: steward-cancel placement (MF-2b) · Cancelled-disbursement member copy (§17.5) · queue-funding control (MF-11, drawn as proposed on W12). <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
+<p><strong>Still open</strong>: steward-cancel placement (MF-2b, drawn as proposed) · Cancelled-disbursement member copy (§17.5) · MF-7/MF-8/MF-13 placement decisions (drawn as proposed). <strong>Realized</strong>: the queue-funding control (MF-11) is a real, non-proposed control on W24 with its funding context reflected on W12. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
 
 const sections = secs.map(s => {
   const m = s.title.match(/^(SB-\d+) — (.*)$/);
@@ -210,22 +209,80 @@ if (allErrors.length > 0) {
 }
 
 const PLAYER_DATA = JSON.stringify({
-  screens: Object.fromEntries(SCREENS.map(s => [s.id, { title: s.title, surface: s.surface, frame: s.frame, group: s.group, states: s.states }])),
+  screens: Object.fromEntries(SCREENS.map(s => [s.id, { title: s.title, surface: s.surface, frame: s.frame, group: s.group, reviewVisible: s.reviewVisible, states: s.states }])),
   hots: HOTS,
   sbs,
   walkedIn,
   aliases: ALIASES,
 });
 
-const sbCards = sbs.map(sb =>
-  `<button class="sbcard" data-sb="${sb.id}"><span class="sbn">SB-${sb.n} <span class="tick"></span></span><span class="sbt">${esc(sb.title)}</span><span class="sbm">${esc(sb.persona)}</span><span class="sbm">${esc(sb.scen)} · ${esc(sb.surface)} · ${sb.steps.length} steps</span></button>`
-).join("");
+const FLOW_GROUPS = [
+  { id: "client", label: "Client PWA" },
+  { id: "admin", label: "Admin Console" },
+  { id: "end-to-end", label: "End-to-end" },
+] as const;
+const visibleSbs = sbs.filter((sb) => sb.reviewVisible);
+const visibleScreens = SCREENS.filter((screen) => screen.reviewVisible);
 
-const screenCards = screenCardsHtml(walkedIn);
+const flowCatalog = FLOW_GROUPS.map(({ id, label }, groupIx) => {
+  const cards = visibleSbs
+    .filter((sb) => sb.reviewGroup === id)
+    .map((sb) => `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbm">${esc(sb.persona)}</span><span class="surface-badge">${esc(label)}</span></button>`)
+    .join("");
+  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2><div class="grid">${cards}</div></section>`;
+}).join("");
+
+const screenCards = screenCardsHtml();
+
+const countBy = <T,>(items: T[], key: (item: T) => string) => items.reduce<Record<string, number>>((counts, item) => {
+  const value = key(item);
+  counts[value] = (counts[value] ?? 0) + 1;
+  return counts;
+}, {});
+const assertBuild = (condition: unknown, message: string) => {
+  if (!condition) throw new Error(`PRESENTATION ${message}`);
+};
+const flowCounts = countBy(visibleSbs, (sb) => sb.reviewGroup);
+const screenCounts = countBy(visibleScreens, (screen) => screen.surface);
+assertBuild(visibleSbs.length === 13, `expected 13 visible flows, found ${visibleSbs.length}`);
+assertBuild(flowCounts.client === 4 && flowCounts.admin === 4 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 4 admin / 5 end-to-end`);
+assertBuild(visibleScreens.length === 24, `expected 24 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.public === 2, `screen grouping must be 9 client / 13 admin / 2 public`);
+const presentationCatalogs = flowCatalog + screenCards;
+const presentationRuntimeCopy = [
+  presentationCatalogs,
+  ...visibleSbs.flatMap((sb) => [
+    sb.title,
+    sb.persona,
+    sb.surface,
+    ...sb.steps.flatMap((step) => [
+      step.hot?.l,
+      ...(step.alts ?? []).map((alt) => alt.l),
+      step.who,
+      step.surface,
+      step.st,
+      step.ev,
+      step.note,
+      ...(step.br ?? []).map((branch) => branch.l),
+    ]),
+  ]),
+  ...Object.values(HOTS).flatMap((hotspot) => [hotspot.l, hotspot.info]),
+  ...visibleScreens.flatMap((screen) => [screen.title, ...screen.states.flatMap((state) => [state.label, state.html])]),
+].filter(Boolean).join(" ");
+assertBuild(!presentationCatalogs.includes('data-sb="sb14"'), "Journey 14 leaked into Guided flows");
+assertBuild(!/data-frame="C\d+"/.test(presentationCatalogs), "Community cards leaked into Screen library");
+for (const [label, pattern] of [
+  ["SB code", /\bSB-\d+\b/],
+  ["scenario code", /\bS\d+(?:\/S\d+)?\b/],
+  ["walked status", /\bwalked\b/i],
+  ["not-walked status", /\bnot[- ]walked\b/i],
+  ["journey backlink", /\bwalk\s+SB-/i],
+] as const) assertBuild(!pattern.test(presentationRuntimeCopy), `${label} leaked into presentation UI copy`);
 
 // ---------- Page ----------
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>Commitment Pooling — Flow Prototypes</title>
+<script>(function(){try{var q=new URLSearchParams(location.search);var t=q.get("theme"),m=q.get("motion");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;if(m==="reduce")document.documentElement.dataset.motion=m}catch(e){}})();</script>
 <style>
 :root{
   --canvas:#FAF8F4; --panel:#F2EFE7; --ink:#2B2924; --stone:#6B675E; --line:#E4E0D6;
@@ -277,6 +334,11 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 #play,#screens{max-width:1080px;margin:0 auto;padding:26px 20px 44px}
 #play h1,#screens h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
 #play .sub,#screens .sub{color:var(--stone);font-size:13px;margin:0 0 18px;max-width:78ch}
+.surface-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px;padding:4px;width:max-content;max-width:100%;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.surface-tab{border:0;background:transparent;color:var(--stone);border-radius:8px;padding:7px 13px;font:650 12.5px inherit;cursor:pointer;min-height:44px}
+.surface-tab.on{background:var(--canvas);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 12%,transparent)}
+.catalog-panel[hidden]{display:none}
+.catalog-panel h2{margin:0 0 9px;font-size:15px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-bottom:8px}
 .ng2{margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--stone)}
 .sbcard{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;
@@ -286,6 +348,8 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .tick{color:var(--accent-ink);font-weight:700}
 .sbt{font-weight:650;font-size:14px}
 .sbm{font-size:11.5px;color:var(--stone)}
+.surface-badge{width:max-content;margin-top:4px;border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:650;color:var(--accent-ink)}
+.screenkey{font:700 10.5px ui-monospace,Menlo,monospace;color:var(--accent-ink);letter-spacing:.04em}
 #stage,#expstage{display:none}
 #stage.on,#expstage.on{display:block}
 .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
@@ -350,6 +414,9 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .insp .walkbtn{margin-left:8px;border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
   border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .meta{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.impl-notes{margin:10px 0 0;border-top:1px solid var(--line);font-size:13px}
+.impl-notes>summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:var(--stone);font-weight:650}
+.impl-notes .meta{margin:0 0 6px;padding:0 2px}
 .meta .row{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .stchip{font:600 11px ui-monospace,Menlo,monospace;background:var(--chipw);border:1px solid var(--line);
   border-radius:5px;padding:1px 7px;white-space:nowrap}
@@ -470,33 +537,40 @@ a{color:var(--accent-ink)}
 }
 @media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 ${HIFI_CSS}
 </style>
 </head><body>
 ${iconSprite()}
 <div class="tabs" role="tablist">
   <span class="tt">Commitment Pooling</span>
-  <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Walk the journeys</button>
-  <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screens</button>
-  <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Reference</button>
+  <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Guided flows</button>
+  <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screen library</button>
+  <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Implementation reference</button>
 </div>
 
 <div id="tab-play" class="on" role="tabpanel" aria-labelledby="tabbtn-play">
 <div id="play">
   <div id="home">
-    <h1>Walk the journeys — click-through</h1>
-    <p class="sub">Pick a journey. The <b>pulsing control</b> advances the canonical path; <b>solid-outlined controls</b> are real choices at that moment; dotted controls answer with a note or take you where their story lives. Swipe or use ←/→. Amber chips are failure/recovery branches.</p>
+    <h1>Guided flows</h1>
+    <p class="sub">Choose a surface, then open a flow. The pulsing control advances; outlined controls branch; dotted controls explain themselves. Swipe or use ←/→.</p>
     <div class="legend"><span><span class="k" style="background:color-mix(in srgb,var(--accent) 18%,transparent);outline:1px dashed var(--accent)"></span>advances</span><span><span class="k" style="background:color-mix(in srgb,var(--accent) 10%,transparent);outline:1px solid var(--accent-ink)"></span>a choice</span><span><span class="k" style="border-bottom:1px dotted var(--stone)"></span>tap to inspect</span><span><span class="k" style="background:color-mix(in srgb,var(--amber) 22%,transparent)"></span>look here</span></div>
-    <div class="grid" style="margin-top:14px">${sbCards}</div>
+    <div class="surface-tabs" role="tablist" aria-label="Guided-flow surface">
+      <button class="surface-tab on" id="flow-tab-client" role="tab" aria-selected="true" aria-controls="flow-panel-client" data-flow-group="client">Client PWA</button>
+      <button class="surface-tab" id="flow-tab-admin" role="tab" aria-selected="false" aria-controls="flow-panel-admin" tabindex="-1" data-flow-group="admin">Admin Console</button>
+      <button class="surface-tab" id="flow-tab-end-to-end" role="tab" aria-selected="false" aria-controls="flow-panel-end-to-end" tabindex="-1" data-flow-group="end-to-end">End-to-end</button>
+    </div>
+    ${flowCatalog}
   </div>
   <div id="stage" role="region" aria-live="polite">
     <div class="stagebar">
-      <button class="back" id="backbtn">← All journeys</button>
+      <button class="back" id="backbtn">← All flows</button>
       <span class="ti" id="st-title"></span>
       <span class="pill" id="st-persona"></span>
-      <span class="pill" id="st-scen"></span>
       <span class="pill sur" id="st-surface"></span>
-      <span class="pill" id="st-vstate" style="display:none"></span>
+      <span class="pill" id="st-progress"></span>
     </div>
     <div class="stagerow">
       <button class="navarrow" id="prevbtn" aria-label="Previous step">‹</button>
@@ -505,13 +579,16 @@ ${iconSprite()}
     </div>
     <p class="hint" id="hint"></p>
     <div id="insp" role="status" aria-live="polite"></div>
-    <div class="meta">
-      <div class="row"><span class="stchip" id="st-state"></span><span class="who" id="st-who"></span></div>
-      <div class="row"><span class="ev" id="st-ev"></span></div>
-      <div class="row"><span class="cite" id="st-cite"></span></div>
-      <div class="note" id="st-note" hidden></div>
-      <div class="brs" id="st-brs"></div>
-    </div>
+    <details class="impl-notes" id="st-details">
+      <summary>Implementation notes</summary>
+      <div class="meta">
+        <div class="row"><span class="stchip" id="st-state"></span><span class="who" id="st-who"></span></div>
+        <div class="row"><span class="ev" id="st-ev"></span></div>
+        <div class="row"><span class="cite" id="st-cite"></span></div>
+        <div class="note" id="st-note" hidden></div>
+        <div class="brs" id="st-brs"></div>
+      </div>
+    </details>
     <div class="dotsrow"><div class="dots" id="dots"></div></div>
   </div>
 </div>
@@ -520,16 +597,21 @@ ${iconSprite()}
 <div id="tab-screens" role="tabpanel" aria-labelledby="tabbtn-screens" hidden>
 <div id="screens">
   <div id="exphome">
-    <h1>Screens — free-roam the prototype</h1>
-    <p class="sub">Every screen, every drawn control live. Outlined controls navigate between screens; dotted ones explain themselves. Screens with more than one state show a state switcher — that's the per-screen state matrix. Each screen lists the journeys that walk it.</p>
+    <h1>Screen library</h1>
+    <p class="sub">Choose a surface and open a screen. Use the state switcher for loading, recovery, validation, and alternate states; outlined controls navigate and dotted controls explain themselves.</p>
+    <div class="surface-tabs" role="tablist" aria-label="Screen-library surface">
+      <button class="surface-tab on" id="screen-tab-client" role="tab" aria-selected="true" aria-controls="screen-panel-client" data-screen-surface="client">Client PWA</button>
+      <button class="surface-tab" id="screen-tab-admin" role="tab" aria-selected="false" aria-controls="screen-panel-admin" tabindex="-1" data-screen-surface="admin">Admin Console</button>
+      <button class="surface-tab" id="screen-tab-public" role="tab" aria-selected="false" aria-controls="screen-panel-public" tabindex="-1" data-screen-surface="public">Public</button>
+    </div>
     ${screenCards}
   </div>
   <div id="expstage">
     <div class="stagebar">
-      <button class="back" id="expall">▦ All screens</button>
+      <button class="back" id="expall">▦ Screen library</button>
       <button class="back" id="expback">← Back</button>
+      <span class="screenkey" id="exp-key"></span>
       <span class="ti" id="exp-title"></span>
-      <span id="exp-walked"></span>
     </div>
     <div class="stchips" id="expstates" aria-label="Screen states"></div>
     <div class="device" id="expdevice"></div>
@@ -541,7 +623,7 @@ ${iconSprite()}
 <div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
 <div class="wrap">
 <nav class="doc" aria-label="Sections">
-  <div class="brand">Reference<small>prototypes.md · 2026-07-21</small></div>
+  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-22</small></div>
   ${navSb}
   ${navRef}
 </nav>

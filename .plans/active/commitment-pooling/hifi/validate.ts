@@ -192,6 +192,8 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     persona: sb.persona,
     scen: sb.scen,
     surface: sb.surface,
+    reviewVisible: sb.reviewVisible,
+    reviewGroup: sb.reviewGroup,
     steps: sb.steps.map((sc, ix): ShippedStep => {
       const where = `${sb.id}:${ix}`;
       const r = resolveScreen(sc.f, where);
@@ -231,7 +233,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
         }
         return [{ l: b.l, to }];
       });
-      return { f: sid, v, hot, alts, marks, who: sc.who, surface: sc.surface, st: sc.st, ev: sc.ev, cite: sc.cite, note: sc.note, br, mf: sc.mf };
+      return { f: sid, v, hot, alts, marks, who: sc.who, surface: sc.surface, st: sc.st, ev: sc.ev, cite: sc.cite, note: sc.note, skipTargetReason: sc.skipTargetReason, br, mf: sc.mf };
     }),
   }));
 
@@ -252,6 +254,28 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   for (const [hid, meta] of Object.entries(ctx.hots)) {
     const fixed = validTo(meta.to, `hot ${hid}`);
     if (fixed) meta.to = fixed;
+  }
+
+  // A primary journey hotspot with a screen destination must show that state
+  // immediately next. This prevents the player from concealing consequential
+  // UI just because it can intercept the click. Deliberate exceptions require
+  // a specific, reviewable reason on the source scene.
+  for (const sb of sbs) {
+    const rawSb = raw.find((candidate) => candidate.id === sb.id)!;
+    for (let ix = 0; ix < sb.steps.length; ix++) {
+      const step = sb.steps[ix];
+      if (!step.hot) continue;
+      const target = ctx.hots[step.hot.h]?.to;
+      if (!target?.startsWith("screen:")) continue;
+      const next = sb.steps[ix + 1];
+      const targetRef = target.slice(7);
+      const actualRef = next
+        ? `${next.f}${next.v !== byId.get(next.f)?.states[0].id ? "@" + next.v : ""}`
+        : "<journey end>";
+      if (actualRef === targetRef) continue;
+      const reason = rawSb.steps[ix].skipTargetReason?.trim();
+      if (!reason) err.push(`DESTINATION ${sb.id}:${ix} ${step.hot.h} → ${targetRef}, next is ${actualRef}; add the destination scene or skipTargetReason`);
+    }
   }
   // alias targets
   for (const [from, to] of Object.entries(ctx.aliases)) resolveScreen(to, `alias ${from}`);

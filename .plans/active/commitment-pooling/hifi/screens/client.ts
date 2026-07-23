@@ -212,11 +212,11 @@ function w1(state: W1State): string {
 }
 
 const W1_HOTS: HifiDef["hots"] = {
-  "w1.offer": { l: "Offer support", to: "screen:W3", info: "Starts the creation flow with direction = offer (UX:120). Walked in SB-1." },
-  "w1.request": { l: "Request help", to: "screen:W3@request-variant", info: "Creation flow with direction = request. Walked in SB-2." },
-  "w1.take-up": { l: "Take this up (open claim)", to: "screen:W2", info: "Open mode: claim job → optimistic Accepted (UX:129). Walked in SB-1." },
-  "w1.ask-take-up": { l: "Ask to take this up (steward-reviewed)", to: "screen:W1@claim-pending", info: "Approval-gated: creates a claim request with stored terms; the commitment stays available to others (UX:99). Walked in SB-3." },
-  "w1.ask-again": { l: "Ask again", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105)." },
+  "w1.offer": { l: "Offer support", to: "screen:W3", info: "Starts the creation flow with direction = offer (UX:120)." },
+  "w1.request": { l: "Request help", to: "screen:W3@request-variant", info: "Creation flow with direction = request (UX:153)." },
+  "w1.take-up": { l: "Take this up (open claim)", to: "screen:W2", info: "Open mode: claim job → optimistic Accepted (UX:129)." },
+  "w1.ask-take-up": { l: "Ask to take this up (steward-reviewed)", to: "screen:W1@claim-pending", info: "Approval-gated: creates a claim request with stored terms; the commitment stays available to others (UX:99)." },
+  "w1.ask-again": { l: "Ask again", to: "screen:W1@claim-pending", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105)." },
   "w1.back-browse": { l: "Back to browsing", to: "screen:W1", info: "Declined/superseded exits return to browse." },
   "w1.open-commitment": { l: "Open the promise", to: "screen:W2", info: "Acceptance names the counterparty / provider garden (UX:104)." },
   "w1.scope": { l: "Scope control", info: "Filters the list; every aggregate names its scope — Season and Campaigns never blur (UX:127)." },
@@ -397,7 +397,7 @@ function w2(state: W2State): string {
 const W2_HOTS: HifiDef["hots"] = {
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
   "w2.submit-work": { l: "Submit work for this promise", to: "screen:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
-  "w2.link-work": { l: "Link existing work", info: "Picker of your approved/pending works → workLink job (UX:140)." },
+  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker of your approved/pending works → workLink job (UX:140). The prototype resumes at the linked work's existing approval surface." },
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
@@ -473,7 +473,7 @@ function w3(state: W3State): string {
         field("How many", input("6")),
         field("Due", ""),
         radio([{ label: "Runs with the season", meta: "through Aug 30", on: true }, { label: "Pick a date", meta: "calm dates — no timers" }]),
-        hot("w3.continue", btn("Continue", { kind: "pri", full: true })),
+        hot("w3.continue-howmuch", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
     case "step-anchors":
@@ -481,7 +481,7 @@ function w3(state: W3State): string {
         sectionTitle("What kind of garden work?"),
         `<div class="t-meta">Garden-work offers anchor to the garden's actions so approvals know what to look for.</div>`,
         radio([{ label: "Prune", meta: "AGRO · trees and beds", on: true }, { label: "Plant", meta: "AGRO · seedlings and starts" }]),
-        hot("w3.continue", btn("Continue", { kind: "pri", full: true })),
+        hot("w3.continue-anchors", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
     case "step-review":
@@ -526,7 +526,7 @@ function w3(state: W3State): string {
         field("Cycle", hot("w3.cycle", input("Season: First Rains", { select: true }))),
         field("Title", input("Prune the north beds")),
         field("Note", input("optional", { placeholder: true })),
-        hot("w3.continue", btn("Continue", { kind: "pri", full: true })),
+        hot("w3.continue-what", btn("Continue", { kind: "pri", full: true })),
       )}`;
   }
   return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "draft-resume" });
@@ -535,7 +535,9 @@ function w3(state: W3State): string {
 const W3_HOTS: HifiDef["hots"] = {
   "w3.direction": { l: "Direction", info: "Offer vs request — season/campaign seeding and on-behalf capture are console-seeded only, never here (UX:150)." },
   "w3.cycle": { l: "Cycle scope", info: "Every promise names its cycle; Season and Campaigns never blur (UX:127)." },
-  "w3.continue": { l: "Continue", info: "Four steps: what + cycle scope → how much → anchors (garden work only) → review (UX:150-153)." },
+  "w3.continue-what": { l: "Continue to amount", to: "screen:W3@step-howmuch", info: "What + cycle scope → amount (UX:150-153)." },
+  "w3.continue-howmuch": { l: "Continue to anchors", to: "screen:W3@step-anchors", info: "Amount → action anchors for garden work (UX:150-153)." },
+  "w3.continue-anchors": { l: "Continue to review", to: "screen:W3@step-review", info: "Action anchors → review (UX:150-153)." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212)." },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },

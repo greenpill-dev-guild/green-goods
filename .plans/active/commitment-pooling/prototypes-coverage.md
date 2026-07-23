@@ -1,14 +1,22 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-07-21. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, and invalid navigation targets.
+Updated 2026-07-22. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, and invalid navigation targets.
 
 ## Build snapshot
 
-- 31 registered screens
-- 141 rendered states
-- 163 registered hotspots
-- 14 journeys / 104 scenes
+- 31 registered screens / 141 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 134 states: 9 Client PWA, 13 Admin Console, 2 Public
+- 246 registered hotspots
+- 14 validated source flows / 155 scenes; 13 presentation-visible flows: 4 Client PWA, 4 Admin Console, 5 End-to-end
 - 0 build warnings
+
+Community `C*` wireframes and source flow 14 remain registered, validated, and directly addressable, but are hidden from the presentation catalogs until their high-fidelity pass.
+
+## Presentation coverage classification
+
+- `W2a` is guided-flow-covered: evidence composition is shown before evidence-submitted outcomes.
+- `W5` and `W16` are intentionally Screen-library-only because they are exhaustive drawer/editorial state references rather than consequential flow transitions.
+- Guided flows own the primary transitions and consequential intermediate states; Screen library owns exhaustive loading, empty, validation, recovery, and alternate states.
 
 ## Cross-cutting recovery coverage
 
@@ -62,8 +70,16 @@ Updated 2026-07-21. This is the human-readable screen-by-state audit for the sel
 
 ## Compatibility aliases
 
-Legacy deep links remain registered in `hifi/screens/index.ts`, including `W6` → `W5`, `W23G` → `W23@delivery-blocked`, and `MF8` → `W25@context-chooser`. Journey hashes use `#sbN/ix`; explorer hashes use `#screens/SCREEN@state`.
+Legacy deep links remain registered in `hifi/screens/index.ts`, including `W6` → `W5`, `W23G` → `W23@delivery-blocked`, and `MF8` → `W25@context-chooser`. Guided-flow hashes use `#sbN/ix`; Screen-library hashes use `#screens/SCREEN@state`, including the hidden Community source material.
 
 ## Open product decisions
 
-The proposed visual placement of steward cancellation and the final member-facing copy for cancelled disbursements remain product/design decisions tracked in `prototypes.md` §17. They are represented for review, not silently treated as locked shipping behavior.
+Five decisions remain open and are represented consistently here and in the artifact's Implementation reference:
+
+- MF-2b — final steward-cancel placement.
+- Cancelled-disbursement — final member-facing copy in `prototypes.md` §17.5.
+- MF-7 — final placement of the “fulfills this promise” row in the work-flow Review step.
+- MF-8 — final placement of the personal/garden provider-context chooser.
+- MF-13 — final placement of the attach-assessment picker.
+
+These placements are drawn for review, not silently treated as locked shipping behavior.

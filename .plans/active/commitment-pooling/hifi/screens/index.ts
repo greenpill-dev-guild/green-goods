@@ -73,7 +73,7 @@ export const BUILD_ERRORS: string[] = [];
 // Hi-fi screen modules export HifiDef arrays; imports land here as batches
 // ship (B1: CLIENT_DEFS, B3: ADMIN_DEFS, B5: PUBLIC_DEFS).
 export type HifiDef = {
-  screen: Screen;
+  screen: Omit<Screen, "reviewVisible">;
   hots: Record<string, { l: string; to?: string; info?: string }>;
 };
 const REG: HifiDef[] = [
@@ -91,7 +91,7 @@ for (const g of GROUP_DEFS) {
     if (RETIRED.has(id)) continue;
     const hifi = hifiById.get(id);
     if (hifi) {
-      SCREENS.push({ ...hifi.screen, group: g.name, surface: g.surface });
+      SCREENS.push({ ...hifi.screen, group: g.name, surface: g.surface, reviewVisible: g.surface !== "community" });
       SCREEN_HOTS[id] = new Set(Object.keys(hifi.hots));
       SCREEN_MARKS[id] = new Set();
       for (const [hid, meta] of Object.entries(hifi.hots)) {
@@ -114,6 +114,7 @@ for (const g of GROUP_DEFS) {
       surface: g.surface,
       frame: "ascii",
       group: g.name,
+      reviewVisible: g.surface !== "community",
       states: [{ id: "default", label: "lo-fi", proposed, html: renderAscii(text, d) }],
     });
     TABLES.hotByString[id] = d.hotByString;
@@ -137,23 +138,32 @@ export const GROUPS: [string, string[]][] = GROUP_DEFS.map((g) => [
   g.ids.filter((id) => !RETIRED.has(id) && SCREENS.some((s) => s.id === id)),
 ]);
 
+export const REVIEW_GROUPS: { name: string; surface: Exclude<Surface, "community">; ids: string[] }[] = GROUP_DEFS
+  .filter((g): g is { name: string; surface: Exclude<Surface, "community">; ids: string[] } => g.surface !== "community")
+  .map((g) => ({
+    ...g,
+    ids: g.ids.filter((id) => !RETIRED.has(id) && SCREENS.some((s) => s.id === id && s.reviewVisible)),
+  }));
+
 export function screenById(id: string): Screen | undefined {
   return SCREENS.find((s) => s.id === id);
 }
 
-// Static Screens-tab cards (group grid) built from the registry.
-export function screenCardsHtml(walkedIn: Record<string, { n: number }[]>): string {
-  return GROUPS.map(
-    ([g, ids]) =>
-      `<div class="ng2">${esc(g)}</div><div class="grid">` +
+const friendlyTitle = (screen: Screen) => screen.title.replace(/^\s*(?:W\d+a?|HUBWORK|WFLOW)\s*[·—:-]\s*/i, "");
+
+// Static Screen-library cards. Community remains in the registry and direct
+// hash graph, but is deliberately absent from this presentation catalog.
+export function screenCardsHtml(): string {
+  return REVIEW_GROUPS.map(
+    ({ name, surface, ids }, groupIx) =>
+      `<section class="catalog-panel screen-catalog" id="screen-panel-${surface}" role="tabpanel" aria-labelledby="screen-tab-${surface}" data-screen-surface="${surface}"${groupIx ? " hidden" : ""}><h2>${esc(name)}</h2><div class="grid">` +
       ids
         .map((id) => {
           const s = screenById(id)!;
-          const walked = (walkedIn[id] ?? []).map((w) => "SB-" + w.n).join(" · ") || "not walked in a journey";
-          const states = s.states.length > 1 ? ` · ${s.states.length} states` : "";
-          return `<button class="sbcard sc" data-frame="${id}"><span class="sbt">${esc(s.title)}</span><span class="sbm">${esc(walked)}${states}</span></button>`;
+          const states = `${s.states.length} ${s.states.length === 1 ? "state" : "states"}`;
+          return `<button class="sbcard sc" data-frame="${id}"><span class="screenkey">${esc(id)}</span><span class="sbt">${esc(friendlyTitle(s))}</span><span class="sbm">${states}</span></button>`;
         })
         .join("") +
-      `</div>`,
+      `</div></section>`,
   ).join("");
 }
