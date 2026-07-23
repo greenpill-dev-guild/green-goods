@@ -831,6 +831,39 @@ function executionSubLanesForLinear(status) {
   return Object.entries(subLanes).filter(([, lane]) => lane?.linear?.sync === true);
 }
 
+// Resolve a lane's depends_on (execution sub-lane names, or the qa_pass_* canonical
+// lane names) to the Linear issue identifiers that should be set as `blockedBy`
+// relations. Machine-lane aggregate names (e.g. "ui") are intentionally NOT expanded
+// here: they map to several sub-lanes and would over-constrain the QA gate, so
+// qa_pass_1's leaf blockers stay a curated manual set. Emitted in the sync manifest as
+// `blockedByIssues` so an applier keeps the live Linear dependency graph in step with
+// status.json depends_on as lanes are added or re-pointed.
+function resolveBlockedByIssues(status, dependsOn) {
+  if (!Array.isArray(dependsOn) || dependsOn.length === 0) {
+    return [];
+  }
+  const subLanes =
+    status.execution_sub_lanes &&
+    typeof status.execution_sub_lanes === "object" &&
+    !Array.isArray(status.execution_sub_lanes)
+      ? status.execution_sub_lanes
+      : {};
+  const canonicalLanes =
+    status.linear?.lanes && typeof status.linear.lanes === "object" ? status.linear.lanes : {};
+  const issues = [];
+  const seen = new Set();
+  for (const dependency of dependsOn) {
+    const issue =
+      normalizedLinearIssue(subLanes[dependency]?.linear?.issue) ||
+      normalizedLinearIssue(canonicalLanes[dependency]?.issue);
+    if (issue && !seen.has(issue)) {
+      seen.add(issue);
+      issues.push(issue);
+    }
+  }
+  return issues;
+}
+
 function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team, priority) {
   const linear = lane.linear;
   const issue = normalizedLinearIssue(linear.issue);
@@ -852,6 +885,7 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     branch: lane.branch || null,
     handoff: lane.handoff,
     dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
+    blockedByIssues: resolveBlockedByIssues(status, lane.depends_on),
     ...buildLinearSchedule(status, linear),
   };
 }
@@ -945,6 +979,7 @@ function buildLinearSyncManifest(status) {
           branch: lane.branch || null,
           handoff: lane.handoff,
           dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
+          blockedByIssues: resolveBlockedByIssues(normalized, lane.depends_on),
           ...buildLinearSchedule(normalized, linear?.lanes?.[laneName]),
         };
       });
