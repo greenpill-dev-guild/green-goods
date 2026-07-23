@@ -1,7 +1,7 @@
 # Commitment Pooling — Cross-Surface Acceptance Matrix
 
 **Status**: canonical execution companion  
-**Updated**: 2026-07-20
+**Updated**: 2026-07-22
 **Sources**: `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `wireframes.md`  
 **Purpose**: one exact target for the handoffs' copy/state matrix, public claim/copy matrix, and final QA acceptance matrix. Specs win if this summary drifts.
 
@@ -10,13 +10,13 @@
 | Condition | Client PWA | Admin | Editorial / docs | Required exit |
 |---|---|---|---|---|
 | `None` / `UNKNOWN` sentinel | Loading, not-found, or retry; never a state chip | Recovery row; never a selectable state | No claim | Creation event or explicit not-found |
-| Pool NotReady | Pool absent | Checklist: charter, non-zero exposure cap, qualifying Baseline assessment | Planned/readiness only | App enables `markPoolReady` only after all three; the contract enforces charter + non-zero cap, while current non-revoked Baseline remains an app/shared/admin preflight |
+| Pool NotReady | Pool absent | Checklist: charter, non-zero provider open-commitment cap, qualifying Baseline assessment | Planned/readiness only | App enables `markPoolReady` only after all three; the contract enforces charter + non-zero count cap, while current non-revoked Baseline remains an app/shared/admin preflight |
 | Pool Paused | “New participation paused” + reason; browse/evidence/recovery stay available | Reason + resume; create/claim/Ready-submit/confirm disabled; safe wind-down enabled | Neutral quiet-period copy | Resume event clears reason |
 | Claim Pending | Canonical claimant + “requested by” actor + provider context | Same stored row; accept/decline key canonical claimant | Counts only | Accept, decline, supersede, cancel, or expire |
 | Claim Declined | Reason + fresh-request CTA | Selected row only | Not public | New request, never retry old row |
 | Claim Superseded | Taken/no-longer-available copy; no retry | Indexed terminal row | Not public | Browse exit |
-| Evidence-only Accepted | Evidence + declared assessment requirements | Attach assessment; submit Ready; override separate | Active aggregate only | Evidence, assessment when declared, submit Ready |
-| DomainImpact Accepted | Per-action Work/approval progress; no manual Ready-submit | Positional requirement rows; override separate | Active aggregate only | Every `approvedWorkCounts[i] >= requiredApprovedWorkCounts[i]` + assessment when declared |
+| Evidence-only Accepted | Evidence + declared assessment requirements | Attach assessment; submit Ready; override separate | Active counts only | Evidence, assessment when declared, submit Ready |
+| DomainImpact Accepted | Per-action Work/approval progress; no manual Ready-submit | Positional requirement rows; override separate | Active counts only | Every `approvedWorkCounts[i] >= requiredApprovedWorkCounts[i]` + assessment when declared |
 | Reported settlement | “Transfer reported” | Reporter/ref + request action | Reported, never received | Active Functions request or retry |
 | Reported + active request | “Checking receipt” | Request/expiry state | Checking, never received | Callback, expiry, or retry |
 | Verified settlement | “Support arrived” | Oracle evidence + Celo ref | Oracle-verified | Current Functions callback only |
@@ -39,7 +39,10 @@
 | Garden G$ beneficiary | registered `providerGarden` Celo Safe | Never send to Arbitrum GardenAccount |
 | DomainImpact requirement shape | positional `domains[]`, `requiredActionUIDs[]`, `requiredApprovedWorkCounts[]`; equal lengths, 1–4 entries, each required count non-zero | Admin creation, shared types, contract tests, and indexed read model preserve array positions |
 | Work approval credit | `requirementIndex` selects exactly one requirement; validated Work domain/action must match that indexed pair | One approval increments exactly `approvedWorkCounts[requirementIndex]`; no scalar or aggregate-only shortcut |
-| DomainImpact progress | `approvedUnits = floor(targetUnits * Σ_i min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ_i requiredApprovedWorkCounts[i])` | Client/admin/indexer show per-action counts and this count-weighted approved-unit aggregate; DomainImpact creation rejects a zero denominator |
+| DomainImpact progress | `approvedUnits = floor(targetUnits * Σ_i min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ_i requiredApprovedWorkCounts[i])` | Client/admin/indexer show per-action counts and this per-commitment approved-unit value; DomainImpact creation rejects a zero denominator; pool/cycle totals never mix labels |
+| Provider concurrency cap | acceptance increments one slot regardless of `targetUnits`; fulfillment/cancellation/expiry release one; dispute preserves the pre-dispute slot state | `hours` × 100 and `meals` × 1 each consume one slot; no transition double-counts |
+| Exact-label unit summaries | ID uses chain + POOL/CYCLE scope + scope ID + hash of exact stored UTF-8 label bytes | Two `hours` commitments share a row; `Hours` is a distinct row; event replay changes neither row |
+| Cross-commitment rate | `promiseKeptRate = commitmentsFulfilled / commitmentsDue` | Sole aggregate percentage; active progress uses state counts and exact-label groups |
 
 ## 3. Public claim and copy matrix
 

@@ -19,12 +19,13 @@
 
 ## Outputs
 
-- Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/aggregates, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
+- Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
 - Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/oracle operations live only in the deployer-gated Operations workspace.
 - Immutable 1-24 member batch view, per-member retry/cancel, reported/checking/oracle result states, Safe setup/status, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
-- Core seeding emits the full creation payload, enforces cycle/pool and DomainImpact positional array shape, shows the app-preflight Baseline alongside the onchain charter/exposure-cap blockers, supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready submission/authorized override.
-- DomainImpact creation uses 1–4 ordered domain/action requirement rows, encodes equal-length `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]`, and renders `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` plus the canonical weighted approved-unit aggregate.
+- Core seeding emits the full creation payload, enforces cycle/pool and DomainImpact positional array shape, shows the app-preflight Baseline alongside the onchain charter/provider-open-commitment-cap blockers, supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready submission/authorized override.
+- DomainImpact creation uses 1–4 ordered domain/action requirement rows, encodes equal-length `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]`, and renders `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` plus canonical per-commitment `approvedUnits`.
+- Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
 - Cycle seeding carries no allocation. The open-cycle step accepts percentages, converts all six fields to basis points, requires an exact 10,000 total, and submits the complete allocation atomically through `openCycle(cycleId, allocation)`.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
 
@@ -33,8 +34,8 @@
 - All writes use shared mutation hooks; no view calls contracts directly.
 - `/community/pools` follows CanvasRouteFrame/CanvasRouteHeader and restrained command-surface grammar, and never exposes another garden's pool.
 - Request rows expose indexed canonical claimant, authenticated `requestedBy`, `claimType`, `gardenContext`, requestedAt/state/reason/resolution fields and the accepted result exposes derived `providerGarden`. Decline changes only that row; acceptance consumes the matching contract-stored terms and supersedes every other pending indexed row; claimant re-request and direction-aware confirmation are visible.
-- Pool pause requires a reason and disables only new commitments, claims, Ready submissions, and confirmations; evidence/linkage and safe recovery remain available. Register exposure caps are steward-gated and class quotas are not editable.
-- Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every aggregate/report names its cycle scope.
+- Pool pause requires a reason and disables only new commitments, claims, Ready submissions, and confirmations; evidence/linkage and safe recovery remain available. Provider open-commitment caps are steward-gated and class quotas are not editable.
+- Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
 - A rejected batch cannot be edited or requeued wholesale; only failed members can be requeued/canceled.
 - Reporting never marks settlement Verified. Oracle request, checking, infrastructure retry, invalid receipt, and stale-result behavior are legible.
 - Safe view shows 2-of-3 recovery and separates owners from scoped executors.

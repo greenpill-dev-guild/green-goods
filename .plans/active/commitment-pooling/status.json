@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-21T08:23:14Z"
+    "updated_at": "2026-07-22T00:00:00Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -116,6 +116,7 @@
     "Broadcast tiering restored (register #42, 2026-07-20, supersedes register #41's 'nothing broadcasts during Build' clause; realigns with register #38 and the Linear Build/Release milestone descriptions): the non-value tier — CommitmentPoolingModule, non-transferable CommitmentRegister, and the two EAS schemas — broadcasts during Build by end of July under its narrower gate (full test suite, deploy dry-run, post-deploy verification, proven upgrade/rollback path; holds no funds). The value tier — SettlementModule and the per-garden Celo Safes — broadcasts only in Release on or after 2026-08-12 under the full value-tier gate (external audit, 48-hour timelock, two-week testnet, Safe/Functions/AA evidence, rollback rehearsal, live exit proof). No agent self-authorizes any broadcast; each remains a human-authorized action.",
     "Scope and Design phase date moved to 2026-07-22 (register #43, 2026-07-20, supersedes the 2026-07-20 Scope-and-Design date in register #40): aligned to the RESR-57/RESR-58 Linear due dates and set directly on the Linear milestone, then mirrored into linear.milestones here. Build (2026-07-31), Release (2026-08-12), and Follow On / Hardening (2026-12-31) are unchanged.",
     "Follow On / Hardening phase date moved to 2026-09-30 (register #44, 2026-07-21, supersedes the 2026-12-31 date in registers #40 and #43): the native phase and the separately labeled Community/settlement-evidence operational checkpoint close in parallel on September 30. This is not a sequential dependency and grants no implementation or broadcast authority.",
+    "Count-safe accounting correction (register #45, 2026-07-22): cross-commitment arithmetic uses state counts, promiseKeptRate is the only cross-commitment percentage, exact UTF-8 unit labels own separate indexed summaries, and provider limiting is a concurrent open-commitment count. The NET-NEW APIs are renamed directly with no aliases or migration. Architecture now includes D7c, D13b, and D14 and is validated as 18 named D sections / 20 Architecture Mermaid blocks.",
     "Hub/Linear reconciliation pass 2026-07-11 (pre-build deep review): hub headers and notes refreshed to the applied Linear state; RESR-53 removed from july_dry_run.linear_issues; cohort note aligned to decisions #25/#26. On Linear: PRD-651/697 obsolete 'clear it manually' sentences removed (due dates already null), and the five pre-spec-session companion documents (pool identity architecture, lifecycle/aggregator, UX brief, proof capability, settlement vouchers) rewritten in place as current-state concise mirrors stamped 'Last aligned: 2026-07-11', each live-re-read. Repo: docs-site v1-0.mdx Domain-5 commitment-pooling mentions disambiguated from the 2026 feature; artifacts/visuals/external-brief-loop.svg wired into the brief documentation set; settlement-spec section 7 wireframe pointers corrected to W21/W22/W23; codex-contracts handoff annotates its to-be-created command targets; handoffs README warns that sub-lane readiness overrides machine-lane status; claude-ui-client records the narrowed core-pool-views dispatch option."
   ],
   "lanes": {
@@ -233,7 +234,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-721", "PRD-650"],
-      "acceptance": "Canonical claimant/requestedBy identity and immutable claim type; cycle/pool/accepting checks; allocation omitted from seedCycle and atomically validated/stored/emitted by openCycle; onchain charter/exposure-cap readiness with Baseline kept as app preflight; positional DomainImpact requirements and requirementIndex accounting; exact pause/cancel/link permissions; pre-dispute restoration; bounded Season/Campaign checks; exact unit accounting; append-only standalone schema registration; exact ABI/events/errors/storage; upgrade safety; isolated dry-run artifact path."
+      "acceptance": "Canonical claimant/requestedBy identity and immutable claim type; cycle/pool/accepting checks; allocation omitted from seedCycle and atomically validated/stored/emitted by openCycle; onchain charter/provider-open-commitment-cap readiness with Baseline kept as app preflight; one count slot acquired on acceptance and released once on fulfillment/accepted cancellation/accepted expiry with disputes preserving slot state; positional DomainImpact requirements and requirementIndex accounting; exact pause/cancel/link permissions; pre-dispute restoration; bounded Season/Campaign checks; per-commitment unit accounting; count-cap ABI/events/errors/views with no aliases; append-only standalone schema registration; exact storage and upgrade safety; isolated dry-run artifact path."
     },
     "settlement": {
       "machine_lane": "contracts",
@@ -271,7 +272,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-722", "PRD-650"],
-      "acceptance": "Two-phase core/full event/entity coverage; claimant plus requestedBy, positional DomainImpact requirements, requirementIndex, per-action approvedWorkCounts, weighted approved-unit progress, pause reason, immutable CycleOpened allocation, SettlementConfiguration.memberDeliveryEnabled, and Hypercert relationship outputs; Envio updater and boundary allowlist preserve the new blocks; Garden.id full replay rehearsal to chainId-address with named snapshot/switch/rollback evidence; nullable explicit-event-only audit actor; chain-composite relationships; create-if-absent/idempotent handlers; entity/query freeze for shared; codegen, setup-generated, build, and indexed event-sequence proof."
+      "acceptance": "Two-phase core/full event/entity coverage; claimant plus requestedBy, positional DomainImpact requirements, requirementIndex, per-action approvedWorkCounts and per-commitment approvedUnits; exact-label POOL/CYCLE CommitmentUnitSummary rows; count-only CommitmentProviderExposure; no mixed-label pool/cycle unit fields; promiseKeptRate as the sole cross-commitment percentage; pause reason; immutable CycleOpened allocation; SettlementConfiguration.memberDeliveryEnabled; fulfilled-commitment Hypercert lineage with legacy bundle readability; Envio updater/boundary preservation; Garden.id replay rehearsal; nullable explicit-event-only audit actor; chain-composite relationships; create-if-absent/idempotent replay; entity/query freeze; codegen, setup-generated, build, and indexed event-sequence proof."
     },
     "state_api": {
       "machine_lane": "state_api",
@@ -290,7 +291,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-723", "PRD-650"],
-      "acceptance": "Two-phase core/full shared types, query keys, hooks, missing-evidence/readiness outputs, canonical claimant/requestedBy identity, positional DomainImpact requirement arrays and weighted approved-unit progress, five complete-ABI offline job payloads, online accept/decline/assessment/Ready/override mutations, positive-only confirmation plus online raiseDispute, immutable open-cycle allocation selectors, AA-gated online wallet transfer, Reported/checking/Verified settlement selectors, memberDeliveryEnabled read model, composite-ID queries, and mutation invalidation flow."
+      "acceptance": "Two-phase core/full shared types, query keys, hooks, missing-evidence/readiness outputs, canonical claimant/requestedBy identity, positional DomainImpact requirement arrays and per-commitment approvedUnits, state-count and exact-label unit-summary selectors with case-sensitive labels, promiseKeptRate as the sole cross-commitment percentage, five complete-ABI offline job payloads with membership waiting that consumes no retry, online accept/decline/assessment/Ready/override mutations, positive-only confirmation plus online raiseDispute, immutable open-cycle allocation selectors, AA-gated online wallet transfer, Reported/checking/Verified settlement selectors, memberDeliveryEnabled read model, composite-ID queries, and mutation invalidation flow."
     },
     "ui_client": {
       "machine_lane": "ui",
@@ -309,7 +310,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-724", "PRD-650"],
-      "acceptance": "Garden pool routes, direction-aware eligible confirmation, Not yet -> online raiseDispute, equal positional domains[]/requiredActionUIDs[]/requiredApprovedWorkCounts[] creation arrays, requirementIndex-bound per-action progress, canonical state/API weighted approvedUnits, offline recovery states, and Reported/checking/Verified reward rows with member delivery hidden when disabled."
+      "acceptance": "Garden pool routes, direction-aware eligible confirmation, Not yet -> online raiseDispute, equal positional domains[]/requiredActionUIDs[]/requiredApprovedWorkCounts[] creation arrays, requirementIndex-bound per-action progress and per-commitment approvedUnits, state counts plus exact-label unit groups with promiseKeptRate as the only cross-commitment percentage, offline membership waiting/recovery states, and Reported/checking/Verified reward rows with member delivery hidden when disabled."
     },
     "ui_admin": {
       "machine_lane": "ui",
@@ -328,7 +329,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-725", "PRD-650", "PRD-682"],
-      "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, deployer-gated Operations cross-garden mode, positional DomainImpact creation/progress, percent-to-bps allocation encoded atomically at open, stored claim acceptance/decline/supersession, dispute restoration, immutable-batch per-member reconciliation, and Functions request/checking/failure/retry controls."
+      "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, deployer-gated Operations cross-garden mode, positional DomainImpact creation/per-commitment progress, provider open-commitment cap readiness, state-count and exact-label unit summaries with no mixed-label arithmetic, percent-to-bps allocation encoded atomically at open, stored claim acceptance/decline/supersession, dispute restoration, immutable-batch per-member reconciliation, and Functions request/checking/failure/retry controls."
     },
     "editorial": {
       "machine_lane": "ui",
@@ -346,7 +347,8 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": ["PRD-726", "PRD-650"]
+      "linear_issues": ["PRD-726", "PRD-650"],
+      "acceptance": "Public garden pool story and /impact promise aggregates render only indexer-backed aggregates and approved EAS/shared joined reads; no per-person lists, wallet addresses, rankings, funding-ordering, or unsupported percentage claims; Reported settlement never reads as arrived and oracle-verified stays distinct from community narrative and evaluator conclusions; pre-launch surfaces use planned/readiness language rather than live counts; en/es/pt copy with accessible public-browser proof across readiness, live, reported, oracle-verified, empty, and error states; targeted client tests, client build, and lint:vocab pass."
     },
     "docs": {
       "machine_lane": "ui",
@@ -382,7 +384,8 @@
         "milestone": "release"
       },
       "linear_issues": ["PRD-728", "PRD-650"],
-      "blocked_reason": "Screenshot-dependent operator/gardener guides wait for shipped client/admin settlement surfaces."
+      "blocked_reason": "Screenshot-dependent operator/gardener guides wait for shipped client/admin settlement surfaces.",
+      "acceptance": "Operator seeding/claims/settlement and gardener promise/evidence/confirmation/reward guides built only from shipped authenticated surfaces (no lo-fi frame presented as product); steps match current accessible names and route placement including admin /community; Reported/checking never reads as arrived; recovery instructions carry no manual-verification or garden-custody path; en/es/pt screenshot labels match shipped translations; authenticated Brave capture, alt-text/caption review, step replay, and docs:audit + build:docs + lint:vocab all pass; TDD is not applicable (screenshot-dependent), and any unavailable authenticated surface is named and never converted to GREEN."
     },
     "july_dry_run": {
       "machine_lane": null,
@@ -455,7 +458,7 @@
         "sync": true,
         "issue": "PRD-735",
         "parentIssue": "PRD-650",
-        "milestone": null,
+        "milestone": "follow_on_hardening",
         "dueDate": "2026-09-30"
       },
       "linear_issues": ["PRD-735", "PRD-650"],

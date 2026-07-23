@@ -614,7 +614,7 @@ Doc `657f7233` scored Architecture 2 the winner on **8 of 10** criteria. ⚠️ 
 
 ## 11. Circulation measurement (extracted 2026-07-18)
 
-Source: Linear doc `6c7a2e4e-c96a-4b8a-985d-3b9ac262087a`, "Circular G$ Economies Inside Green Goods Garden Commitment Pools" (2026-07-02). Metrics attach to the existing indexed stats `promiseKeptRate`, `fulfilledUnits`, `openExposureUnits`, `cycleCompletionRate`.
+Source: Linear doc `6c7a2e4e-c96a-4b8a-985d-3b9ac262087a`, "Circular G$ Economies Inside Green Goods Garden Commitment Pools" (2026-07-02). Metrics attach to the count-safe indexed stats `promiseKeptRate` and `openCommitmentCount`; operational unit totals are available only through exact-label `CommitmentUnitSummary` rows and never combine unlike labels.
 
 ### Metric definitions
 

@@ -26,8 +26,9 @@
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
 - Direction-aware confirmation eligibility and provider exclusion.
 - Pool/cycle/commitment/dispute recovery selectors.
-- Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and the canonical weighted approved-unit aggregate; one `requirementIndex` can credit only its matching domain/action position.
-- Hypercert metadata composer plus `bundleKind`, `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`).
+- Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and canonical per-commitment `approvedUnits`; one `requirementIndex` can credit only its matching domain/action position.
+- Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
+- Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles require fulfilled lineage.
 - Settlement precedence and states, including derived checking while on-chain state remains Reported, oracle-invalid failure, infrastructure retry, and member-delivery disabled.
 - Exported shared API with no client/admin hooks.
 
@@ -38,7 +39,8 @@
 - Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
-- Ready selectors expose the onchain charter/exposure-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
+- Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
+- Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never present Reported/checking as arrived and never offer a member-delivery action while disabled.
 - Garden queries use composite IDs only.
 - New user-visible shared strings have en/es/pt messages and accessible status announcements.

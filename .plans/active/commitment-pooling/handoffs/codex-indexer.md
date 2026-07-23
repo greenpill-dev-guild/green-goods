@@ -19,13 +19,15 @@
 
 ## Outputs
 
-- Core phase: commitment pool/cycle/commitment/requirement/request/index/event and `NeedCommitmentIndex` entities with chainId and explicit composite relationship fields. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- Core phase: the ten pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, and `CommitmentProviderExposure` — with chainId and explicit composite relationship fields. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
 - Settlement phase: settlement account/disbursement/batch entities plus a singleton `SettlementConfiguration` read model carrying `memberDeliveryEnabled`.
 - Exact Arbitrum/Sepolia contract blocks and idempotent create-if-not-exists handlers.
 - Commitment-keyed request index that marks accept/decline/supersede without a database-wide scan.
 - Full Garden.id migration to chainId-lowercaseAddress with replay/backfill, every foreign-key/helper/query/fixture cutover, and no mixed-ID interval.
 - Nullable generic audit actor populated only from explicit event parameters, never transaction.from.
-- Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the count-weighted approved-unit aggregate emitted by the contract, and derived reward facts; Hypercert persists composite commitment relationships plus ascending unique needUIDs.
+- Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and derived reward facts. Hypercert persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs, and legacy Work-bundle readability.
+- `CommitmentUnitSummary` is keyed by `chainId-scope-scopeId-unitLabelHash`, where the hash is computed from exact stored UTF-8 label bytes. POOL and CYCLE rows keep expected, approved, fulfilled, and open units only for that exact hash; `hours` and `Hours` never merge.
+- `CommitmentProviderExposure` is keyed by chain, pool, and provider and stores only the current open commitment count.
 - Generated-config preservation changes and regression fixture proving CommitmentPoolingModule, CommitmentRegister, and SettlementModule blocks survive repeated artifact updates.
 - Codegen/generated artifacts, handler tests, build proof, and query contract for shared.
 
@@ -36,7 +38,9 @@
 - Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
 - Claim acceptance consumes the stored request identity and supersedes only still-pending sibling requests through the companion index.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
-- `ApprovedWorkCounted` updates exactly the matching `requirementIndex`, replaces that row's cumulative count, stores the event-emitted `approvedUnits` as the canonical aggregate, and increments pool/cycle totals only by the event-emitted `newlyApprovedUnits`; cumulative event values are never summed or re-derived. Tests may assert the weighted formula against the emitted value, but handlers never persist a separately recomputed aggregate.
+- `ApprovedWorkCounted` updates exactly the matching `requirementIndex`, replaces that row's cumulative count, stores event-emitted per-commitment `approvedUnits`, and increments only the matching exact-label pool/cycle summary by `newlyApprovedUnits`. `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values are never summed or re-derived.
+- `CommitmentAccepted` increments provider exposure once; fulfillment, cancellation, and expiry decrement it exactly once when the commitment held a slot. Dispute entry/restoration does not change the count. Replaying any event leaves summaries and exposure unchanged.
+- Pool/cycle entities retain state counts and expose no raw-unit aggregate fields; no handler or query adds unlike label hashes.
 - Reported, checking, Verified, receipt-invalid Failed, infrastructure retry, and per-member batch recovery remain distinguishable.
 - The preservation fixture runs the updater twice and retains exact event signatures; unknown EAS or raw Celo token blocks still fail.
 - Envio reads only Green Goods protocol events.
