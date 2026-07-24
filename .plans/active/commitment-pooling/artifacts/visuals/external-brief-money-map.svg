@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2200" height="2200" viewBox="0 0 1100 1100" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="money-map-title money-map-desc">
   <title id="money-map-title">Where value lives and how movement is proven</title>
-  <desc id="money-map-desc">A stacked map separates Arbitrum proof and coordination from Celo G dollar movement. Arbitrum records commitments, reported transactions, and oracle-verified receipts. Celo holds the House of Alignment stream, protocol treasury, garden accounts, and gated member delivery. G dollars never bridge to Arbitrum.</desc>
+  <desc id="money-map-desc">A stacked map separates Arbitrum command and acknowledgment state from Celo G dollar movement. Arbitrum records commitments and CCIP settlement attempts; Celo executes bounded protocol routes and returns authenticated acknowledgments. Celo holds the House of Alignment stream, protocol treasury, garden accounts, and gated member delivery. G dollars never bridge to Arbitrum.</desc>
   <defs>
     <marker id="money-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -17,25 +17,25 @@
   <!-- Arbitrum proof panel -->
   <rect x="55" y="135" width="990" height="350" rx="18" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
   <text x="90" y="180" font-size="27" font-weight="700" fill="#2A2722">Arbitrum — proof &amp; coordination</text>
-  <text x="90" y="211" font-size="18" fill="#6E6857">A report is a claim. Only the finalized-receipt check turns it into proof.</text>
+  <text x="90" y="211" font-size="18" fill="#6E6857">A Celo execution is not confirmed until its authenticated acknowledgment returns.</text>
 
   <g fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#money-arrow)">
     <path d="M 350 329 L 407 329"/>
     <path d="M 670 329 L 727 329"/>
   </g>
-  <text x="700" y="277" text-anchor="middle" font-size="17" fill="#6E6857">Chainlink Functions checks the finalized Celo receipt</text>
+  <text x="700" y="277" text-anchor="middle" font-size="17" fill="#6E6857">Chainlink CCIP carries a data-only command and acknowledgment</text>
 
   <rect x="90" y="285" width="260" height="90" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5" stroke-dasharray="7 5"/>
   <text x="220" y="311" text-anchor="middle" font-size="21" font-weight="700" fill="#3B372E"><tspan x="220">Commitments +</tspan><tspan x="220" dy="25">register</tspan></text>
   <text x="220" y="362" text-anchor="middle" font-size="17" fill="#6E6857">planned · August</text>
 
   <rect x="410" y="285" width="260" height="90" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5" stroke-dasharray="7 5"/>
-  <text x="540" y="321" text-anchor="middle" font-size="23" font-weight="700" fill="#3B372E">Reported</text>
-  <text x="540" y="351" text-anchor="middle" font-size="18" fill="#6E6857">Celo tx recorded · not proof</text>
+  <text x="540" y="321" text-anchor="middle" font-size="23" font-weight="700" fill="#3B372E">Dispatched</text>
+  <text x="540" y="351" text-anchor="middle" font-size="18" fill="#6E6857">command sent · not confirmed</text>
 
-  <rect x="730" y="285" width="280" height="90" rx="14" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2.5"/>
-  <text x="870" y="321" text-anchor="middle" font-size="23" font-weight="700" fill="#24422E">Oracle-verified ✓</text>
-  <text x="870" y="351" text-anchor="middle" font-size="18" fill="#4C6B54">no human override</text>
+  <rect x="730" y="285" width="280" height="90" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="870" y="321" text-anchor="middle" font-size="23" font-weight="700" fill="#24422E">Confirmed ✓</text>
+  <text x="870" y="344" text-anchor="middle" font-size="16" fill="#4C6B54"><tspan x="870">authenticated Celo</tspan><tspan x="870" dy="19">acknowledgment</tspan></text>
 
   <text x="550" y="437" text-anchor="middle" font-size="19" font-weight="600" fill="#2A2722">Arbitrum stores evidence state; it never holds or bridges G$.</text>
 
@@ -51,22 +51,23 @@
   <!-- Celo value panel -->
   <rect x="55" y="565" width="990" height="365" rx="18" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
   <text x="90" y="610" font-size="27" font-weight="700" fill="#2A2722">Celo — where G$ lives and moves</text>
-  <text x="90" y="641" font-size="18" fill="#6E6857">The upstream stream lands in the protocol treasury, then follows one funding route.</text>
+  <text x="90" y="641" font-size="17" fill="#6E6857">Designated topology only — partner mechanism and live-receipt evidence remain pending.</text>
 
+  <path d="M 295 754 L 322 754" fill="none" stroke="#988D77" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#money-arrow-muted)"/>
   <g fill="none" stroke="#988D77" stroke-width="3" marker-end="url(#money-arrow)">
-    <path d="M 295 754 L 322 754"/>
     <path d="M 535 754 L 562 754"/>
   </g>
   <path d="M 775 754 L 802 754" fill="none" stroke="#988D77" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#money-arrow-muted)"/>
 
-  <rect x="85" y="700" width="210" height="108" rx="14" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2.5"/>
-  <text x="190" y="738" text-anchor="middle" font-size="21" font-weight="700" fill="#24422E">House of Alignment</text>
-  <text x="190" y="765" text-anchor="middle" font-size="18" fill="#4C6B54">upstream stream</text>
-  <text x="190" y="790" text-anchor="middle" font-size="16" fill="#4C6B54">not a GG action</text>
+  <rect x="85" y="700" width="210" height="108" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="190" y="738" text-anchor="middle" font-size="21" font-weight="700" fill="#3B372E">House of Alignment</text>
+  <text x="190" y="765" text-anchor="middle" font-size="18" fill="#6E6857">designated upstream</text>
+  <text x="190" y="790" text-anchor="middle" font-size="16" fill="#6E6857">evidence pending</text>
 
   <rect x="325" y="700" width="210" height="108" rx="14" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2.5"/>
   <text x="430" y="738" text-anchor="middle" font-size="21" font-weight="700" fill="#24422E">GG protocol</text>
   <text x="430" y="765" text-anchor="middle" font-size="21" font-weight="700" fill="#24422E">treasury</text>
+  <text x="430" y="790" text-anchor="middle" font-size="16" fill="#4C6B54">existing Safe only</text>
 
   <rect x="565" y="700" width="210" height="108" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5" stroke-dasharray="7 5"/>
   <text x="670" y="750" text-anchor="middle" font-size="22" font-weight="700" fill="#3B372E">Garden accounts</text>
@@ -80,7 +81,7 @@
 
   <g>
     <rect x="300" y="975" width="28" height="20" rx="5" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-    <text x="341" y="992" font-size="18" fill="#2A2722">Built / Oracle-verified</text>
+    <text x="341" y="992" font-size="18" fill="#2A2722">Built / live</text>
     <rect x="565" y="975" width="28" height="20" rx="5" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="6 4"/>
     <text x="606" y="992" font-size="18" fill="#2A2722">Planned / gated</text>
   </g>

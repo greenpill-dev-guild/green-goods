@@ -1,7 +1,7 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
-- **Updated**: 2026-07-22 — presentation coherency, flow continuity, and fidelity closeout (see Changelog); the hi-fi render upgrade was register #36.
+- **Updated**: 2026-07-23 — CCIP, readiness, and placement closure (see Changelog); the hi-fi render upgrade was register #36.
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
 - **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
@@ -14,10 +14,11 @@
 | 2026-07-18 | Hi-fi artifact upgrade (register #36): the artifact now renders every August screen at high fidelity (Warm Earth client PWA, restrained M3 admin, editorial public pages) with a per-screen state matrix (116 states) and a Storybook-style state switcher. Lo-fi variant frames dissolved into parent states (W1P/W1S/W7X/W23G → claim/blocked states; MF-1/3/4/5/6/8/9/10/13 → their spec-placed parents; old deep links alias forward). September CI-W frames stay lo-fi previews. |
 | 2026-07-21 | Reference-tab redesign: the sidebar now follows document order under grouped headers, a compact table of contents leads the body, and long sections collapse behind an at-a-glance line. Editorial condensation for scannability (walls → lead-in + bullets) — no spec facts or cites changed. MF-6/MF-9/MF-10/MF-11 status corrected: realized in the hi-fi artifact (W2 · W26 · W1 · W24/W12), no longer "proposed/undrawn." New companion `prototypes-coverage.md` audits every screen's built vs spec'd states. |
 | 2026-07-22 | Prototype coherency pass: presentation catalogs now separate Client PWA, Admin Console, End-to-end, and Public review surfaces; Community wireframes and source flow 14 remain validated but hidden from the catalogs. Guided flows expose consequential creation, evidence, claim-outcome, dispute, seeding, closeout, payout, wallet, and receipt-check intermediates; AppShell-backed Client frames restore the 69px AppBar and AdminDialog follows desktop-centered/mobile-bottom-sheet geometry. |
+| 2026-07-23 | Placement closure (register #51): W10 steward cancellation, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, and all previously adopted MF aliases are realized without amber proposal tags. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
 - Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
-- Still-proposed micro-frames keep their amber `proposed` tag per state.
+- Every August micro-frame is now either realized in its locked parent state or explicitly resolved outside August; no amber placement proposal remains.
 - Rendered copy is build-linted — banned vocabulary, steward naming (Decision Log #28c), quiet-admin, and chain-phrasing placement fail the build, not review.
 
 **Grounding** — every claim carries file:line. Scenario ids S1–S14 follow the RESR-58 r3 index (S1–S12 in `reports/linear/linear-apply-pack.md` §5, S13–S14 in `plan.todo.md` Decision Log #24). Garden theming follows the current pilot-cohort decisions in `plan.todo.md`; worked examples remain in the dated apply-pack §5 Part B, with illustrative quantities per Decision Log #24. **The fourth garden slot is open — no garden is selected and none is named** (Decision Log #29, superseding Decision Log #25 and Decision Log #27; `acceptance-matrix.md` §Fourth garden).
@@ -37,7 +38,7 @@
 
 **State names** follow the §4 tables — pool/cycle/commitment (UX:53-108), claim-request §4.4 (UX:101-108), disbursement (SS:62); `None`/`UNKNOWN` sentinels are never user-visible (UX:51).
 
-**Copy discipline** — authored placeholder copy uses the mutual-aid vocabulary (UX:40-43) and banned-vocabulary rules (`docs/docs/reference/glossary-community.md:114-121`); settlement copy never says "arrived" before Verified (SS:398, AM:20-25).
+**Copy discipline** — authored placeholder copy uses the mutual-aid vocabulary (UX:40-43) and banned-vocabulary rules (`docs/docs/reference/glossary-community.md:114-121`); settlement copy never says "arrived" before Confirmed (SS:398, AM:20-25).
 
 ## Storyboard index
 
@@ -56,7 +57,7 @@
 | SB-9 | Pool readiness → cycles: seed, open, pause, close, compost | Operator | S5/S13 admin side | Admin (+ member echo) |
 | SB-10 | Declared reward → payout recorded | Operator + Gardener | S13 | Admin + Client PWA |
 | SB-11 | G$ support arrives (+ send onward; delivery blocked) | Gardener | S8/S9 member side | Client PWA |
-| SB-12 | Funding routes → batch execution → receipt check | Steward + Executor | S8/S9 steward side | Admin (+ Safe app) |
+| SB-12 | Funding routes → CCIP dispatch → authenticated acknowledgment | Garden Steward + automated protocol executor | S8/S9 steward side | Admin |
 | SB-13 | Cross-garden claim on the protocol pool | Garden Operator (Leila) | S14 | Client PWA + Admin |
 | SB-14 | Community Need → triage → seeded promise (September) | Community (Kwame) + Operator | S10 | Community PWA + Admin |
 
@@ -126,10 +127,10 @@ flowchart LR
 | 6 | W4 | Ana's sheet reads **"claimant provides · request creator confirms"** (WF:224); João is excluded | — | — | Ana picks Not yet → SB-5 |
 | 7 | W4 | Ana **[ Confirm — promise kept ]** | `ConfirmationRecorded` → `CommitmentFulfilled` (CS:139) | **Fulfilled** | — |
 
-The send-for-confirmation control is **spec-placed but undrawn**: UX:141 defines it on evidence-only detail, UX:287 gives the admin twin, and W2 as drawn is a DomainImpact commitment with no such row. Proposed micro-frame (MF-6):
+The send-for-confirmation control is now realized as the non-proposed `W2@evidence-submitted` state in the hi-fi artifact. UX:141 defines it on evidence-only detail, UX:287 gives the admin twin, and the ordinary W2 frame remains DomainImpact. The original MF-6 source sketch is preserved below:
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-6: W2 evidence-only variant, below the Evidence list)
+REALIZED — source sketch for W2@evidence-submitted (MF-6, below the Evidence list)
 ┌──────────────────────────────────────────────┐
 │ Evidence attached: 1 · no work required      │  evidence-only helper line
 │ [ Send for confirmation ]                    │  → confirmation{submit} job
@@ -204,16 +205,16 @@ flowchart LR
 | 8 | admin commitment detail (MF-13) | Operator or evaluator picks **Attach assessment** — picker lists only non-revoked v2/v3 attestations whose recipient equals the stored `providerGarden` (UX:287; CS:740) | `attachAssessment`; module re-runs the auto-Ready check (CS:740) | **ReadyForConfirmation** via CS:138 path a | Wrong-recipient attestations never appear (UX:287) |
 | 9 | W2 | Confirmation proceeds as SB-1 steps 8–10 | — | → Fulfilled | Not yet → SB-5 |
 
-DomainImpact **never** shows Send-for-confirmation (UX:141; CS:138b rejects it) — work approvals drive Ready. Micro-frames this storyboard needs:
+DomainImpact **never** shows Send-for-confirmation (UX:141; CS:138b rejects it) — work approvals drive Ready. Register #51 locks MF-7 at `WFLOW@review` and MF-13 at `W10@attach-assessment`:
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-7: work-flow Review step, one added row)
+REALIZED — source sketch for WFLOW@review (MF-7, one added row)
 │ fulfills: Plant 200 seedlings  (Offer · AGRO) │  read-only row when commitment
 │                                               │  context is set (UX:174)
 ```
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-13: attach-assessment picker, AdminDialog)
+REALIZED — source sketch for W10@attach-assessment (MF-13, AdminDialog)
 ┌── Attach assessment ─────────────────────────┐
 │ provider garden: AgroforestDAO               │
 │ ◉ Baseline — AGRO — Jul 2   (v3)             │  only non-revoked v2/v3 with
@@ -249,18 +250,16 @@ flowchart LR
 | 5b | W2 | — Fulfilled / Cancelled / Expired | terminal transition with reason; **an Expired prior state can never resolve Fulfilled** (CS:144; WF:382) | terminal | — |
 | 6 | W2 | Member re-opens detail | every reason renders in the member state timeline too (UX:300; WF:144-146) | — | — |
 
-**Adjacent gap this storyboard exposes (finding input)** — the *direct* cancel paths have **no control on any frame**:
-- creator cancel from Offered/Requested and steward cancel from Accepted are both contract-real (CS:745; AM:36-37), yet W2/§5.3 draw none for members (UX:135-144) and W10 draws none for stewards (WF:377-382);
-- meanwhile §4.1 Paused explicitly promises "cancellation/expiry … remain available" (UX:60; WF:104), so until a control is placed, §4.3 Cancelled (UX:93) is reachable only through dispute resolution.
+**Direct-cancel coverage** — creator cancel from Offered/Requested and steward cancel from Accepted are both contract-real (CS:745; AM:36-37). The member path is realized on the W2 owner variant; register #51 locks the steward path at `W10@cancel`, so §4.1's promise that cancellation remains available while Paused is actionable on both surfaces.
 
-**Decided 2026-07-11 (register #34b)**: MF-2a (member pre-acceptance withdraw) is adopted into August scope; MF-2b (steward cancel placement) remains open. Proposed micro-frames:
+**Decided 2026-07-11 and closed 2026-07-23 (register #34b + register #51)**: MF-2a (member pre-acceptance withdraw) and MF-2b (steward cancel in W10) are both adopted into August scope. Source sketches:
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-2a: W2 owner variant, before acceptance)
+REALIZED — source sketch for W2 owner variant (MF-2a, before acceptance)
 │ [ Withdraw this offer… ]                     │  creator only, Offered/Requested;
 │  asks for a reason · leaves history intact   │  cancelCommitment (CS:745)
 
-NEW — proposed lo-fi, not a locked design (MF-2b: W10 actions row addition)
+REALIZED — source sketch for W10@cancel (MF-2b)
 │ [ Cancel commitment… ]  reason required      │  steward; Offered/Requested/Accepted
 │  never from ready-for-confirmation (CS:745)  │
 ```
@@ -289,17 +288,17 @@ flowchart LR
 | 3 | W2 | **[ Offer again ]** (§4.3: "Chip + 'offer again' CTA for owner (per-cycle renewal, deep-dive L1)" UX:94) | re-enters W3 with prior fields prefilled; a **fresh** commitment (create re-entry, not a state rewind) | new Draft → Offered | — |
 | 4 | W7 | Operator reviews lapsed seeded promises — §4.3 admin cell "Expiry queue + re-seed" (UX:94) | re-seed opens W8 with the lapsed terms | — | — |
 
-Neither expiry moment is drawn today. **Decided 2026-07-11 (register #34d)**: both MF-3 and MF-4 ship in August; the permissionless keeper cron is a post-launch ops backstop (zero migration — CS:746 is already permissionless), not pre-08-31 build. Proposed micro-frames:
+Both expiry moments are now realized in the hi-fi artifact as `W2@expired` and `W7@expiry-queue`. **Decided 2026-07-11 (register #34d)**: both MF-3 and MF-4 ship in August; the permissionless keeper cron is a post-launch ops backstop (zero migration — CS:746 is already permissionless), not pre-08-31 build. Their source sketches:
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-3: W2 expired band, replaces the confirm block)
+REALIZED — source sketch for W2@expired (MF-3, replaces the confirm block)
 ┌──────────────────────────────────────────────┐
 │ (Expired)  This promise ran through Aug 12.  │  calm date phrasing, no timer
 │ The season moved on — you can offer it again.│
 │ [ Offer again ]                              │  → W3 prefilled (UX:94)
 └──────────────────────────────────────────────┘
 
-NEW — proposed lo-fi, not a locked design (MF-4: W7 section, below Claims waiting)
+REALIZED — source sketch for W7@expiry-queue (MF-4, below Claims waiting)
 ┌─ Lapsed this cycle ────────────────────────────────────────────────────┐
 │ ≡ Field survey  (Request)(Expired)  due Jul 2 · 0 of 1 taken up        │
 │                                  [ Re-seed… ]  [ View history ]        │  → W8 prefilled
@@ -338,10 +337,10 @@ flowchart LR
 - but for the five pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
 - S6 also names **Edit/Retry/Cancel/Delete** for queued jobs (LAP:191), where §5.12 offers only retry/discard (UX:240).
 
-**Decided 2026-07-11 (register #34c)**: in scope for August — the pre-flight membership check consumes no retries, the join-request approval (register #35) is the canonical resume trigger, and uiux-spec §5.11/§5.12 are updated. Proposed micro-frame:
+**Decided 2026-07-11 (register #34c)**: in scope for August — the pre-flight membership check consumes no retries, the join-request approval (register #35) is the canonical resume trigger, and uiux-spec §5.11/§5.12 are updated. Realized source sketch:
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-5: queued-row variant, W1/W5 groups)
+REALIZED — source sketch for waiting-membership queue states (MF-5, W1/W5 groups)
 │ ≡ ··waiting·· Compost workshop   (Offered)   │  amber queued chrome variant
 │   waiting for your garden membership —       │  no retries used (S6, LAP:191)
 │   will send once you're welcomed in          │
@@ -387,35 +386,36 @@ Dignity check carried by existing frames: the member is the promise's owner on e
 
 ```mermaid
 flowchart LR
-  A["W7 NotReady checklist"] -->|"charter + cap + baseline"| B["W7 Ready card"]
-  B -->|"open pool GAP MF-1"| C["W7 Open card"]
-  C -->|"seed cycle"| D["W8-style seed flow"]
-  D -->|"open cycle + allocation"| E["W11 allocation step"]
-  E -->|"CycleOpened"| F["W1 member Season card"]
-  F -->|"pause + resume"| G["W7 paused band"]
-  G -->|"close cycle"| H["W7 Reconciled report"]
-  H -->|"compost"| I["W7 history + next season"]
+  A["W7 NotReady checklist"] -->|"complete charter + cap + baseline"| B["W7 checks complete"]
+  B -->|"markPoolReady"| C["W7 Ready card"]
+  C -->|"openPool"| D["W7 Open card"]
+  D -->|"seed cycle"| E["W8-style seed flow"]
+  E -->|"open cycle + allocation"| F["W11 allocation step"]
+  F -->|"CycleOpened"| G["W1 member Season card"]
+  G -->|"pause + resume"| H["W7 paused band"]
+  H -->|"close cycle"| I["W7 Reconciled report"]
+  I -->|"compost"| J["W7 history + next season"]
 ```
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W7 | Pool card shows the NotReady checklist: charter CID, non-zero provider open-commitment cap, one current non-revoked Baseline (v2/v3, recipient = pool garden) (UX:57,269; WF:104 variant) | — | Pool **NotReady** (client: Pool tab absent, UX:57) | — |
-| 2 | W7 | **[ Edit charter ]** (WF:274) → charter CID; concurrent commitment-count cap field | `setPoolCharter`; `setProviderOpenCommitmentCap` — required before Ready | — | — |
-| 3 | W7 | **Mark ready** — spec-placed: "The Ready action stays disabled until all three readiness inputs are present" (UX:269); not drawn on W7 | `markPoolReady` (CS:724) | Pool **Ready** — member sees "warming up" banner, browse/create disabled (UX:58) | Missing inputs keep it disabled (UX:269) |
-| 4 | — | **GAP — the drawn console cannot open the pool.** §4.1 Ready's admin cell offers only "Seed-first-cycle CTA" (UX:58); `seedCycle` accepts pool Ready-or-Open (CS:726) but `openCycle` requires **pool Open** (CS:727), and no frame or spec placement carries an `openPool` control (grep: zero hits across UX/WF). `closePool` is equally unplaced. | `openPool` / `closePool` exist on-chain only (CS:100,102) | **deadlock before the first cycle opens** | MF-1 below; top finding — **decided 2026-07-11 (register #34a)**: adopted on the pool card, plus a Ready-state guard prompt in the open-cycle flow |
+| 2 | W7 | **[ Edit readiness ]** → charter CID; concurrent commitment-count cap field; qualifying Baseline preflight | `setPoolCharter`; `setProviderOpenCommitmentCap` — required before Ready | Pool remains **NotReady** until the explicit write | — |
+| 3 | W7@preflight-complete | Steward taps **Mark pool ready** after charter + non-zero provider open-commitment cap + qualifying Baseline all pass; the control is realized in W7 and disabled before this state (UX:269) | `markPoolReady` (CS:724) | Pool **Ready** — member sees "warming up" banner, browse/create disabled (UX:58) | Contract rechecks charter + cap; app/shared/admin rechecks the Baseline preflight |
+| 4 | W7@ready | Steward taps **Open pool** on the adopted pool-card action (MF-1/register #34a) | `openPool` (CS:100) | Pool **Open**; cycle opening is no longer deadlocked | `openCycle` remains blocked until the pool is Open |
 | 5 | W7 | Seed the Season: cycle flow per §6.2.2 — type, window, metadata (WF:280 `[ New Campaign ]` grammar; Season slot blocks a second open Season, WF:277-279; UX:66) | `seedCycle` carries no allocation | Cycle **Seeded** — member sees "opens soon", seeded promises browsable read-only (UX:71) | Second Season blocked with a link to the existing one (UX:66) |
 | 6 | W11 | Open-cycle flow's allocation step: preset → editable percentages, encoded as six bps fields whose total must equal 10,000; soft warning below 15% treasury (WF:390-398; UX:322-330) | `openCycle(cycleId, allocation)` validates, stores, and emits the six-class snapshot | Cycle **Open** | Encoded sum ≠ 10,000 blocks (WF:395) |
 | 7 | W1 | (member echo) Season card live: stepper, progress, calm date (WF:66-70) | derived InProgress/Reviewing overlay per activity (CS:115-117) | Open → InProgress | — |
 | 8 | W7 | Mid-season **[ Pause… ]** with reason (WF:274) | `pausePool(reasonCID)` (CS:725,101) | Pool **Paused** — member banner "new participation paused by stewards" + reason; create/claim/Ready-submit/confirm disabled; evidence, linkage, cancellation/expiry, dispute recovery stay available (UX:60; WF:104) | Resume clears the indexed reason (CS:725) |
 | 9 | W7 | **Resume** | `resumePool` | Pool Open | — |
 | 10 | W7 | Season end: **close cycle** (the reconcile act) | `closeCycle` → `CycleClosed` (CS:118); Fulfilled/Cancelled/Expired commitments derive Reconciled (CS:140,145) | Cycle **Reconciled** | — |
-| 11 | W7 | Read the reconciliation report (§4.2 admin cell UX:75; W7 history row's "scoped report ▸" WF:283 — view undrawn, MF-9) | — | — | — |
-| 12 | W1 | (member echo) cycle summary card + the medium cycle-close hero, once (UX:75,200) — card undrawn, MF-10 | — | Reconciled | reduced-motion → static (UX:430) |
+| 11 | W26 | Read the realized reconciliation report in the cycle-close wizard (MF-9; UX:75) | report resolves outstanding commitments and carries the scoped allocation snapshot | Reviewing → Reconciled | — |
+| 12 | W1@cycle-summary | (member echo) realized cycle summary card + the medium cycle-close hero, once (MF-10; UX:75,200) | — | Reconciled | reduced-motion → static (UX:430) |
 | 13 | W7 | **[ Compost ]** | `compostCycle` → `CycleComposted` (CS:119) | Cycle **Composted** — member: history + "ready for the next season" (UX:62,76) | — |
 | 14 | W7 | (variants) **Cancel…** a cycle with reason (WF:279-282) → §4.2 Cancelled quiet banner w/ reason for members (UX:77); pool coda: close → compost → **Reopen** (UX:61-62; `reopenPool` CS:104) — closePool adopted with MF-1 (register #34a) | `cancelCycle` (CS:729); `compostPool`/`reopenPool` (CS:725) | Cancelled / Closed / Composted | — |
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-1: W7 pool status card action row)
+REALIZED — source sketch for W7 pool status card action row (MF-1)
 ┌─ Pool ─────────────────────────────────────────────────────────────┐
 │ (Ready) charter ✓ baseline ✓ cap 24                                │
 │ [ Open pool ]                    [ Edit charter ] [ Pause… ]       │  openPool (CS:100)
@@ -423,14 +423,14 @@ NEW — proposed lo-fi, not a locked design (MF-1: W7 pool status card action ro
 │ [ Close pool… ]  after the last cycle composts                     │  closePool (CS:102)
 └────────────────────────────────────────────────────────────────────┘
 
-NEW — proposed lo-fi, not a locked design (MF-9: reconciliation report, AdminDialog)
+REALIZED — source sketch for W26 reconciliation report (MF-9, AdminDialog)
 ┌── Season of First Rains — report ────────────────────────────────┐
 │ 14 promises · 11 kept · 2 expired · 1 cancelled                  │  scoped counts
 │ units: 61 of 74 promised                                         │  (UX:75)
 │ [ Compost this season ]                    [ Export… flagged ]   │
 └──────────────────────────────────────────────────────────────────┘
 
-NEW — proposed lo-fi, not a locked design (MF-10: W1 cycle summary card, Reconciled)
+REALIZED — source sketch for W1@cycle-summary (MF-10, Reconciled)
 ┌──────────────────────────────────────────────┐
 │ Season of First Rains — season closed        │
 │ 11 of 14 promises kept · 61 units            │  quiet stats; medium hero fires
@@ -444,7 +444,7 @@ NEW — proposed lo-fi, not a locked design (MF-10: W1 cycle summary card, Recon
 
 **At a glance** — a declared reward is seeded, the promise confirmed, and the steward records the off-rail payout — no value moves through this UI.
 
-**Persona**: Operator declares at seeding and records the payout; Gardener watches the reward row. **Scenario**: S13 — "declared reward → RewardPaid, the only July reward rail" (PT:42). **Surfaces**: admin + client PWA.
+**Persona**: Operator declares the `ArbitrumExternal` rail at seeding and records the payout; Gardener watches the reward row. **Scenario**: S13 — "declared reward → RewardPaid, the only July reward rail" (PT:42). **Surfaces**: admin + client PWA.
 
 ```mermaid
 flowchart LR
@@ -457,81 +457,85 @@ flowchart LR
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
-| 1 | W8 | Seeding step 3: declared reward — source (garden jar / treasury reference), token, amount (WF:339) | stored as reference only; module never custodies funds (UX:280; PT register #6, PT:22) | — | — |
+| 1 | W8 | Seeding step 3: select `ArbitrumExternal`, then declare source (garden jar / treasury reference), token, and amount (WF:339) | stored as reference only; module never custodies funds; the mutually exclusive `CeloSettlement` rail cannot use `recordRewardPaid` | — | — |
 | 2 | W2 | Member sees "Reward: 20 DAI from the garden jar · pending" (WF:159) | reward row per UX:143 | Offered → … | — |
 | 3 | W13 | The commitment reaches ReadyForConfirmation with the steward named in the stored rule: Hub **Confirm** stage row "▓▓▓░░ 2 of 3" (WF:433-439; UX:318) | stage count = queue length (UX:318) | ReadyForConfirmation | Not yet → SB-5 |
 | 4 | W13 → W10 | Operator opens the row and confirms (ordinary named-confirmer path, not fallback) | `confirmFulfillment` — provider still excluded (CS:743) | **Fulfilled** | Fallback-with-reason variant → SB-8 step 8 |
-| 5 | W10 | **[ Record payout ]** on the declared-reward row (WF:377); `AdminConfirmDialog` captures the executed rail reference — jar withdrawal or treasury tx (UX:302) | `recordRewardPaid` → `RewardPaid(source, recipient, token, amount, payoutRef, recordedBy)` (CS:749; DG event list) | rewardPaid = true | State must be Fulfilled; single record per commitment (CS:749) |
+| 5 | W10 | **[ Record payout ]** on the `ArbitrumExternal` row (WF:377); `AdminConfirmDialog` captures the executed rail reference — jar withdrawal or treasury tx (UX:302) | `recordRewardPaid` → `RewardPaid(source, recipient, token, amount, payoutRef, recordedBy)` (CS:749; DG event list) | rewardPaid = true | State must be Fulfilled; single record per commitment; any other rail reverts (CS:749) |
 | 6 | W2 | Member's reward row flips to "reward released" (UX:143; WF:165) | quiet admin confirmation row only — celebration is client-side and already fired at Fulfilled (UX:202, register #27 PT:73) | — | — |
 
-No custody anywhere in this storyboard: value moved on the jar/treasury rail outside this UI; the module records that it happened (UX:302 "No value moves through this UI"). August G$ rewards replace step 5 with **[ Queue disbursement ]** → SB-12 (WF:564; SS:526). **Dry-run note (register #34h)**: the 07-31 rehearsal runs this rail with a real minimal Cookie Jar withdrawal — prerequisites: a configured jar (max/interval per corrections-log H7), the payout executor wearing the Gardener Hat, and the payoutRef captured via `recordRewardPaid` so S13 is exercised end to end.
+No custody anywhere in this storyboard: value moved on the jar/treasury rail outside this UI; the module records that it happened (UX:302 "No value moves through this UI"). A commitment declared as `CeloSettlement` replaces step 5 with **[ Queue disbursement ]** → SB-12 (WF:564; SS:526); it never gains `rewardPaid`. **Dry-run note (register #34h)**: the 07-31 rehearsal runs the external rail with a real minimal Cookie Jar withdrawal — prerequisites: a configured jar (max/interval per corrections-log H7), the payout executor wearing the Gardener Hat, and the payoutRef captured via `recordRewardPaid` so S13 is exercised end to end.
 
 ---
 
 ## SB-11 — G$ support arrives (+ send onward; delivery blocked)
 
-**At a glance** — a member watches a G$ reward move from "on its way" to "arrived" (only Verified says arrived), then sends G$ onward.
+**At a glance** — a member watches a G$ reward move from "queued" to "on its way" to "arrived" (only Confirmed says arrived), with delayed delivery and authenticated failure kept distinct, then sends G$ onward.
 
 **Persona**: Gardener whose fulfilled promise carries a G$ reward. **Scenario**: S8/S9 member side (LAP:199-207). **Surfaces**: client PWA. **Theme**: Tech and Sun Hub first execution (LAP:126).
 
 ```mermaid
 flowchart LR
-  A["W2 support on its way"] -->|"executor reports"| B["W2 transfer reported"]
-  B -->|"verification requested"| C["W2 checking receipt"]
-  C -->|"oracle verifies"| D["W2 support arrived"]
+  Q["W2 support is queued"] -->|"command dispatched"| A["W2 support on its way"]
+  A -->|"CCIP command delivered"| B["W2 executing on Celo"]
+  A -->|"service window elapsed"| H["W2 delivery delayed"]
+  B -->|"execution stored"| C["W2 confirming arrival"]
+  C -->|"authenticated acknowledgment"| D["W2 support arrived"]
   D -->|"wallet"| E["W23 G$ section"]
   E -->|"Send G$"| F["W23 send sheet"]
-  C -->|"receipt invalid"| G["W2 still arranging support"]
+  B -->|"authenticated failure"| G["W2 still arranging support"]
 ```
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W2 | Member opens the fulfilled promise | settlement record beats pooling `rewardPaid` when a disbursement exists (WF:520; DG:666) | — | — |
-| 2 | W2 | reads **"support on its way"** | disbursement Queued/Executing (SS:532) | Queued/Executing | — |
-| 3 | W2 | reads **"transfer reported; awaiting receipt check"** | Reported without an active request (SS:532); "Reported is NOT member-visible proof" (SS:177) | Reported | — |
-| 4 | W2 | reads **"transfer reported; checking receipt"** | Reported with an active Functions request (SS:532; derived, DG:666) | Reported + active request | Infra timeout → back to step 3 copy after request clears (SS:180) |
-| 5 | W2 | reads **"support arrived ↗"** with the Celo reference | **only Verified** — the Chainlink Functions callback is the sole producer (SS:532,398; AM:22) | **Verified** | — |
-| 6 | W23 | Wallet drawer G$ section: balance + "+20 G$ — Prune the north beds (arrived ↗)" (WF:569-572) | Celo balance read; rows from `queryKeys.settlement.*` (UX:219) | — | — |
-| 7 | W23 | **[ Send G$ ]** → sheet: to, amount, "Sent from your account on Celo. No gas needed." (WF:573-579) | online `transfer` — never enters the offline queue, no MAX_RETRIES replay (UX:219; SS:433); sponsored gas, members hold no CELO (WF:578) | wallet-pending → confirmed | Wallet rejection/tx failure inline with retry CTA (UX:219) |
-| 8 | W2 | (failure lane) reads **"still arranging support — your promise is recorded"** | disbursement Failed; commitment state untouched — Fulfilled is permanent (SS:532; DG:666) | Failed (disbursement only) | Operator requeues/cancels → SB-12 steps 8–9 |
-| 9 | W23 | (blocked lane) AA gate failed: the whole G$ section is replaced by the gate-failed frame — "Planned · not available yet … member delivery and Send G$ stay unavailable." (WF:632-641) | `memberDeliveryEnabled` stays false; Safe-to-Safe garden funding may continue (SS:417; PT:32) | delivery blocked | No alternate member-delivery path ships (SS:417; DG:856) |
+| 2 | W2 | reads **"support is queued"** | settlement exists but no command has been dispatched | Queued | — |
+| 3 | W2 | reads **"support on its way"** | settlement command was dispatched (SS:641) | Dispatched | — |
+| 4 | W2 | reads **"support on its way — delivery delayed"** | a dispatched command has not produced an authenticated result; timeout is not payment failure | Dispatched + derived delay | Retry the same command after checking CCIP Explorer; never create a duplicate payment |
+| 5 | W2 | reads **"confirming arrival"** | the Celo executor stored success but the authenticated acknowledgment is still pending | Executed / acknowledgment pending | Acknowledgment delay keeps the same execution key and exposes acknowledgment-only retry |
+| 6 | W2 | reads **"support arrived ↗"** with the Celo reference | **only Confirmed** — an authenticated Celo executor CCIP acknowledgment is the sole producer | **Confirmed** | — |
+| 7 | W23 | Wallet drawer G$ section: balance + "+20 G$ — Prune the north beds (arrived ↗)" (WF:569-572) | Celo balance read; rows from `queryKeys.settlement.*` (UX:219) | — | — |
+| 8 | W23 | **[ Send G$ ]** → sheet: to, amount, "Sent from your account on Celo. No gas needed." (WF:573-579) | online `transfer` — never enters the offline queue, no MAX_RETRIES replay (UX:219; SS:433); sponsored gas, members hold no CELO (WF:578) | wallet-pending → confirmed | Wallet rejection/tx failure inline with retry CTA (UX:219) |
+| 9 | W2 | (failure lane) reads **"still arranging support — your promise is recorded"** | disbursement Failed; commitment state untouched — Fulfilled is permanent | Failed (disbursement only) | Steward requeues after authenticated failure → SB-12 |
+| 10 | W23 | (blocked lane) AA gate failed: the whole G$ section is replaced by the gate-failed frame — "Planned · not available yet … member delivery and Send G$ stay unavailable." (WF:632-641) | `memberDeliveryEnabled` stays false; Safe-to-Safe garden funding may continue (SS:417; PT:32) | delivery blocked | No alternate member-delivery path ships (SS:417; DG:856) |
 
-**Honesty check (passes)**: every copy stage matches AM:20-25 — Reported never renders as received, "support arrived" is Verified-only, and the blocked state names what still works (garden funding) without implying custody elsewhere. **register #34f** makes the gate legible steward-side too: W21/W12 gain a read-only gate-status row (enabled/disabled · changed by · date · evidence ref), so "delivery blocked" is diagnosable without reading chain state.
+**Honesty check (passes)**: every copy stage matches AM:20-25 — destination execution without its authenticated acknowledgment never renders as received, "support arrived" is Confirmed-only, and the blocked state names what still works (garden funding) without implying custody elsewhere. **register #34f** makes the gate legible steward-side too: W21/W12 gain a read-only gate-status row (enabled/disabled · changed by · date · evidence ref), so "delivery blocked" is diagnosable without reading chain state.
 
 ---
 
-## SB-12 — Funding routes → batch execution → receipt check (steward + executor)
+## SB-12 — Funding routes → CCIP dispatch → authenticated acknowledgment
 
-**At a glance** — a steward queues and batches disbursements; an executor runs the Safe leg and reports; the oracle alone produces Verified — 6 interactions across 3 surfaces.
+**At a glance** — a steward queues, batches, and dispatches immutable settlement facts; the Celo executor authenticates the command, executes bounded G$ through Zodiac Roles, stores the outcome, and acknowledges it through CCIP. Human recovery is limited to transport retry, authenticated-failure requeue, or terminal cancellation from Queued/Failed; Dispatched can never be cancelled on delay alone.
 
-**Persona**: Operator (steward) queues and recovers; **Executor** (Zodiac Roles member — never a Safe owner, SS:47,415; a distinct persona from the steward) executes and reports. **Scenario**: S8 (LAP:199-202) + S9 routes (LAP:204-207). **Surfaces**: admin + the Safe app (external value leg). **Theme**: TAS first execution.
+**Persona**: Operator (steward) queues, dispatches, and recovers. The **protocol executor** is the authenticated Celo contract — a scoped Zodiac Roles member, never a Safe owner, and not a human-facing persona (SS:47,415). **Scenario**: S8 (LAP:199-202) + S9 routes (LAP:204-207). **Surface**: admin. **Theme**: TAS first execution.
 
 ```mermaid
 flowchart LR
-  A["W21 settlement card"] -->|"Set up settlement account"| B["W21 registered"]
-  B -->|"Queue disbursement via W10"| C["W21 queue rows"]
-  C -->|"Create batch"| D["W22 batch console"]
-  D -->|"Open in Safe app"| E["Safe app value leg"]
-  E -->|"Mark executing + report hash"| F["W22 Reported"]
-  F -->|"Request receipt verification"| G["W22 checking receipt"]
-  G -->|"oracle Valid"| H["W22 Verified"]
-  G -->|"receipt invalid"| I["W22 per-member recovery"]
-  G -->|"infra timeout"| J["W22 Request again"]
+  A["W21 settlement card"] -->|"Review registration requirements"| B["Release deploys/verifies Safe + Roles"]
+  B -->|"Register existing route"| C["W21 registered"]
+  C -->|"Queue disbursement via W10"| D["W21 queue rows"]
+  D -->|"Create batch"| E["W22 batch console"]
+  E -->|"Dispatch immutable command"| F["CCIP command in flight"]
+  F -->|"Authenticated command"| G["Celo bounded G$ execution"]
+  G -->|"Store outcome first"| H["W22 acknowledgment pending"]
+  H -->|"Authenticated success acknowledgment"| I["W22 Confirmed"]
+  H -->|"Authenticated failure acknowledgment"| J["W22 per-member recovery"]
+  F -->|"Delivery delayed"| K["W22 Explorer/manual-execution guidance + retry same key"]
 ```
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
-| 1 | W21 | **[ Set up settlement account ]** (WF:572) | `registerSettlementAccount` — Celo 42220, 2-of-3 recovery, no owner/executor overlap (SS:167; WF:572-577) | account active | — |
+| 1 | W21 | **[ Review registration requirements ]** | Read-only checklist explains that production governance separately deploys and verifies the 2-of-3 Safe/Roles route; only then may `registerSettlementAccount` bind the already-deployed Celo account | account stays unregistered until Release artifact exists | Missing Safe/Roles artifact keeps registration unavailable |
 | 2 | W24 / W12 | (funding beat) protocol steward queues **ProtocolToGarden** — the only modeled route; HoA → protocol Safe is upstream (SS:172; DG:832-856); the real, non-proposed control is on the W24 Operations funding view, with funding context reflected on W12 (SS:528; MF-11) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens (SS:172) | funding Queued | AA-gate failure never blocks this Safe-to-Safe route (SS:417; DG:856) |
-| 3 | W10 | Per fulfilled G$ commitment: **[ Queue disbursement ]** (replaces Record payout for G$ rewards — WF:564; SS:526) | `queueDisbursement` — requires `memberDeliveryEnabled`, Fulfilled state, active provider-garden account (SS:171) | **Queued** — member reads "support on its way" (SB-11.2) | Gate off → queueing blocked (SS:170) |
-| 4 | W21 | **[ Create batch (2) ]** (WF:583) | `createBatch` — 1..24 unique ids, immutable members, one executorGarden/source/token (SS:173,114) | batch Queued | — |
-| 5 | W22 | **[ Open in Safe app ↗ ]** (WF:552) — the value leg happens in the Safe app, not in Green Goods (August posture, WF:553-554) | Roles-scoped G$ transfer from the garden Safe (DG:602-607) | — | Execution fails before report → step 8 |
-| 6 | W22 | Executor: **[ Mark executing ]** then **[ Report Celo transaction hash… ]** (WF:554-555) | `markBatchExecuting` (executor-only, SS:176); `reportBatchExecution` — ref mandatory, globally unused, `reportedBy` persisted (executor-only, SS:177) | Executing → **Reported** | **Decided (register #34e)**: pilot operators hold the executor role (never a Safe/recovery owner); a missing role renders a visible guard state (SS:176-177) |
-| 7 | W22 | **[ Request receipt verification ]** (WF:556) | `requestVerification` — steward, executor, or owner (SS:178); stores requestId; state stays Reported; UI derives "checking receipt" (WF:558-559) | Reported + active request | — |
-| 8 | W22 | (oracle outcomes — no human path to Verified, SS:15) | **Valid** → `BatchVerified`, verifiedBy = router (DG:625-627) · **ReceiptInvalid** → batch + members **Failed**; batch stays immutable; per-member **[ Requeue ]** (clears old batchId, attempts++) or **[ Cancel with reason… ]** (WF:561-563; SS:181-183,394) · **Infra timeout** → still Reported; **[ Request again ]** issues a fresh request — after `expireVerification` clears the stale one (WF:560; SS:180) · **Stale callback** → ignored, no state change (DG:640-643) | Verified / Failed / Reported | Member-facing copy for each per SB-11 |
-| 9 | W22 | (manual failure) **[ Record failed — reason… ]** before any report (WF:556) | `recordFailed` (executor or steward, SS:181) | **Failed** | Requeue/cancel as step 8 |
+| 3 | W10 | Per fulfilled commitment declared as `CeloSettlement`: **[ Queue disbursement ]**; `Record payout` is unavailable (WF:564; SS:526) | `queueDisbursement` requires `memberDeliveryEnabled`, Fulfilled state, canonical G$, and an active owning-pool source account; Individual derives the provider AA recipient, Garden derives the active `providerGarden` Safe recipient (SS:171) | **Queued** — member reads "support is queued" | Any rail/account/gate mismatch blocks queueing |
+| 4 | W21 | **[ Create batch (2) ]** (WF:583) | `createBatch` — 1..configured limit unique ids, immutable members, one executorGarden/source/token; configured limit is measured and cannot exceed hard ceiling 24 | batch Queued | Batching remains unavailable while configured limit is zero. |
+| 5 | W22 | Steward **[ Dispatch command ]** | `dispatchDisbursement` / `dispatchBatch` sends the immutable data-only payload; source facts, recipient, token, amount, and steward scope derive from canonical pooling/funding state | Queued → **Dispatched** | Fee shortage or transport delay is operational, not payment failure; retry preserves the attempt and execution key. |
+| 6 | W22 | (system) authenticated Celo executor receives the command | validates router, selector, sender, version, zero token amounts, account, G$, caps, and Zodiac role; writes the bounded outcome before attempting the acknowledgment | Dispatched → Celo executed / acknowledgment pending | Duplicate or out-of-order commands cannot execute G$ twice. |
+| 7 | W22 | Stored Garden Steward, module owner, or configured dispatcher **[ Retry command ]** after delivery delay; any destination relayer may **[ Retry acknowledgment ]** after stored execution | command retry changes only the CCIP message ID; acknowledgment retry reads the stored outcome and cannot call the Safe route again | Dispatched / executed + acknowledgment pending | Native ETH and CELO reserves are monitored independently. |
+| 8 | W22 | (system) authenticated acknowledgment arrives | Success → **Confirmed**; bounded execution failure → **Failed**; duplicate or stale acknowledgments are ignored | Confirmed / Failed | A new source attempt is permitted only after authenticated failure; the steward requeues the failed member, never the immutable batch. |
+| 9 | W21 / W22 | Steward **[ Cancel ]** from Queued, or **[ Requeue ] / [ Close delivery ]** after authenticated failure | Queued cancel records pre-send origin; Failed close preserves the failed attempt/code and creates no new key; requeue increments the attempt and creates a new key only on its next dispatch | Cancelled / Failed → Queued | A timeout or missing acknowledgment never authorizes cancel, close, or requeue. |
 
-**Steward-burden note (finding input)**: one reward reaching a member's wallet crosses, at minimum: queue (W10) → batch (W21) → Safe app round trip → mark executing → report hash → request verification → oracle callback (W22) — **6 steward/executor interactions across 3 surfaces plus an external app**, before any failure lane. Against a 2–4 hrs/week volunteer budget this is the heaviest weekly task in the platform; the storyboard exists so the dry run rehearses it honestly.
+**Steward-burden note (finding input)**: the normal path is queue (W10) → optional batch (W21) → dispatch (W22). CCIP delivery, bounded Celo execution, outcome storage, and acknowledgment are automated. Retry controls appear only for operational recovery, and a new logical attempt is impossible until an authenticated failure. The dry run must measure whether these two or three steward interactions fit the 2–4 hrs/week volunteer budget.
 
 ---
 
@@ -554,7 +558,7 @@ flowchart LR
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W1 | A protocol-pool commitment surfaces in Leila's garden context; card defaults to **steward-reviewed** claim mode (register #19, UX:129; PT:65) | — | Offered/Requested | — |
-| 2 | (chooser) | Eligible stewards only: **"take this up as myself"** vs **"take this up for this garden"** (W1 note WF:106; UX:130) — mentioned, never drawn → MF-8 | Individual: `claimant = requestedBy = caller` · Garden: `claimant = gardenContext` (the GardenAccount), `requestedBy = the authenticated steward` (CS:577-589; AM:32-33) | — | Kind must equal stored `claimType` — mismatch is a contract error, not eligibility copy (AM:31) |
+| 2 | W25@context-chooser | Eligible stewards choose **"take this up as myself"** vs **"take this up for this garden"** (W1 note WF:106; UX:130). Register #51 locks MF-8 as the pre-claim sheet opened from the protocol-pool card. | Individual: `claimant = requestedBy = caller` · Garden: `claimant = gardenContext` (the GardenAccount), `requestedBy = the authenticated steward` (CS:577-589; AM:32-33) | — | Kind must equal stored `claimType` — mismatch is a contract error, not eligibility copy (AM:31) |
 | 3 | W1 | Pending panel shows canonical claimant + requested-by + provider context (UX:99,103) | `ClaimRequested` | Pending | SB-3 recovery lanes |
 | 4 | W12 | Protocol steward reviews **Claims across gardens** — claimant-kind column names "Awka Hub (garden claim)" (WF:415; UX:313) | root-garden Hats stewardship (CS:58) | — | — |
 | 5 | W12 → W7 grammar | **[ Accept ]** consumes the stored terms; derived `providerGarden` shown (WF:313; CS:733) | `CommitmentAccepted(provider, providerGarden)`; other pending rows Superseded (DG:696-702) | **Accepted** | Decline-with-reason per SB-3.5 |
@@ -565,7 +569,7 @@ flowchart LR
 Guard rails carried by existing copy: the garden claim "does not create token custody or a member-delivery fallback" (WF:106); a Garden-claim G$ beneficiary is the registered `providerGarden` Celo Safe, never the Arbitrum GardenAccount (AM:38-39).
 
 ```text
-NEW — proposed lo-fi, not a locked design (MF-8: provider-context chooser, DialogShell over W1)
+REALIZED — source sketch for W25@context-chooser (MF-8, DialogShell over the protocol-pool card)
 ┌──────────────────────────────────────────────┐
 │ Take this up…                                │
 │ ◉ as myself                                  │  Individual claim (CS:585)
@@ -612,42 +616,42 @@ This storyboard stays at wireframe depth on purpose: the community frames are ca
 
 ## 15. Missing frames (MF index — candidate additions to `wireframes.md`, decided by Afo)
 
-**At a glance** — the micro-frame index: which flow moments still lack a locked wireframe, which were adopted on 2026-07-11, and which the hi-fi artifact now realizes.
+**At a glance** — the historical wireframe-gap ledger: every August flow moment is now realized in its locked parent state, while MF-12 is resolved outside the August surface.
 
-Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a locked design**. The only row that carries no drawing at all is MF-12 — a September-realization decision, not an August frame gap.
+The table preserves the source gap that created each MF identifier; it is not a claim that the current artifact is undrawn. Register #51 closes the last four placement decisions and removes the final amber proposal tags. MF-12 remains September-only.
 
-**Realized in the hi-fi artifact** (rendered as real, non-proposed controls — no longer "undrawn" or amber-tagged): **MF-6** → the W2 evidence-submitted send-for-confirmation affordance · **MF-9** → W26, the cycle-close wizard that absorbs the reconciliation report · **MF-10** → the W1 cycle-summary card · **MF-11** → the W24 Operations funding control + W12 funding view. Still amber-`proposed` in the artifact: MF-7, MF-8, MF-13 (plus MF-2b, whose steward-cancel placement stays open). The MF table below keeps the original wireframe-gap authority for each moment.
+**Realized in the hi-fi artifact** (normal locked states): MF-1 · MF-2a · MF-2b · MF-3 · MF-4 · MF-5 · MF-6 · MF-7 · MF-8 · MF-9 · MF-10 · MF-11 · MF-13, plus the W7 `preflight-complete` Mark-ready state that closes O3. MF-12 is September-only.
 
-**2026-07-11 decisions (`plan.todo.md` register #34–register #35)**: adopted — MF-1 (register #34a, pool-card lifecycle actions + open-cycle guard prompt), MF-2a (register #34b, member pre-acceptance withdraw; MF-2b steward cancel **still open**), MF-3 + MF-4 (register #34d, expiry ships August; keeper cron is a post-launch backstop), MF-5 (register #34c, `waiting_for_hat` covers pool jobs in August). Resolved — MF-12: testimony is September-realized (register #34g). New tracked dependency — the **garden join-request queue** (register #35; canonical design → `../community-interface/join-queue-spec.md`; its observed membership outcome is MF-5's flush trigger).
+**2026-07-11 decisions (`plan.todo.md` register #34–register #35), completed by register #51**: adopted — MF-1 (pool-card lifecycle actions + open-cycle guard prompt), MF-2a (member pre-acceptance withdraw), MF-2b (W10 steward cancel), MF-3 + MF-4 (expiry ships August; keeper cron is a post-launch backstop), MF-5 (`waiting_for_hat` covers pool jobs), MF-7 (Work Review commitment row), MF-8 (pre-claim provider-context chooser), and MF-13 (W10 assessment picker). Resolved — MF-12: testimony is September-realized. The **garden join-request queue** remains a separately gated dependency owned by `../community-interface/join-queue-spec.md`; its observed membership outcome is MF-5's flush trigger.
 
-| MF | Moment with no existing frame | Owning SB | Why it matters | Authority for the moment |
+| MF | Originating wireframe gap | Owning SB | Current artifact status / rationale | Authority for the moment |
 |---|---|---|---|---|
-| MF-1 | `openPool` / `closePool` controls on the W7 pool card | SB-9.4 | **Drawn console deadlocks**: Ready→Open has no control, and `openCycle` requires pool Open (CS:727); `closePool` equally unplaced | CS:100,102; UX:58 offers only seed-first-cycle |
-| MF-2 | Member withdraw (W2, pre-acceptance) + steward cancel (W10) | SB-5 | Both `cancelCommitment` paths are contract-real (CS:745; AM:36-37) and §4.1 Paused promises cancellation stays available (UX:60; WF:104) — no control exists | CS:745 |
-| MF-3 | W2 Expired band + "offer again" moment | SB-6.3 | §4.3 names the CTA (UX:94); never drawn | UX:94 |
-| MF-4 | W7 "Lapsed this cycle" expiry queue + re-seed | SB-6.4 | §4.3 admin cell "Expiry queue + re-seed" (UX:94); W7 lacks the section | UX:94 |
-| MF-5 | Waiting-for-membership queued chrome (pool jobs) | SB-7.6 | S6 + the ≥99% sync metric assume `waiting_for_hat` for pool jobs (LAP:191; `acceptance-matrix.md` §6); §5.11/§5.12 define no treatment | LAP:191 |
-| MF-6 | Send-for-confirmation row (W2 evidence-only variant) | SB-2.5 | Spec-placed (UX:141; admin twin UX:287), undrawn — W2 as drawn is DomainImpact | UX:141,287 |
-| MF-7 | "fulfills: {commitment}" row on the work-flow Review step | SB-4.3 | The linkage moment of the existing flow (UX:174) has no drawn delta | UX:174 |
-| MF-8 | Provider-context chooser ("as myself / for this garden") | SB-13.2 | W1:106 and UX:130 mention the choice; the deciding surface is undrawn | UX:130 |
-| MF-9 | Reconciliation report view (admin) | SB-9.11 | W7 history points "scoped report ▸" (WF:283) at nothing; §4.2 admin cell names the report (UX:75) | UX:75 |
-| MF-10 | Client Reconciled cycle summary card | SB-9.12 | §4.2 client cell + medium hero fire here (UX:75,200); no frame | UX:75 |
-| MF-11 | Queue-funding control (admin Pools funding view) | SB-12.2 | Original wireframe gap: SS:528 placed the funding view but did not draw the `queueFunding` trigger; the hi-fi artifact now realizes it as a real control on W24 with funding context on W12 | SS:528 |
-| MF-12 | Testimony CTA (client, commitment "aimed at the community") — **flag only, no drawing** | SB-14.8 | §4.3 Fulfilled Community cell names it (UX:91); every drawn testimony surface is September's (CI-W5/CI-W6). Decide: September-only (recommended — matches CI-SPEC:263) or an August client frame | UX:91; CS:762 |
-| MF-13 | Attach-assessment picker (admin commitment detail) | SB-4.8 | Behavior fully specified (UX:287), dialog never drawn | UX:287 |
+| MF-1 | `openPool` / `closePool` controls on the W7 pool card | SB-9.4 | Realized on W7; the Ready→Open deadlock is closed and close remains lifecycle-gated | CS:100,102; UX:58 |
+| MF-2 | Member withdraw (W2, pre-acceptance) + steward cancel (W10) | SB-5 | Both paths realized; steward placement locked at `W10@cancel` by register #51 | CS:745 |
+| MF-3 | W2 Expired band + "offer again" moment | SB-6.3 | Realized at `W2@expired` | UX:94 |
+| MF-4 | W7 "Lapsed this cycle" expiry queue + re-seed | SB-6.4 | Realized at `W7@expiry-queue` | UX:94 |
+| MF-5 | Waiting-for-membership queued chrome (pool jobs) | SB-7.6 | Realized at `W1@waiting-membership` | LAP:191 |
+| MF-6 | Send-for-confirmation row (W2 evidence-only variant) | SB-2.5 | Realized at `W2@evidence-submitted`; DomainImpact remains excluded | UX:141,287 |
+| MF-7 | "fulfills: {commitment}" row on the work-flow Review step | SB-4.3 | Realized and locked at `WFLOW@review` by register #51 | UX:174 |
+| MF-8 | Provider-context chooser ("as myself / for this garden") | SB-13.2 | Realized and locked at `W25@context-chooser` by register #51 | UX:130 |
+| MF-9 | Reconciliation report view (admin) | SB-9.11 | Realized in the W26 cycle-close wizard | UX:75 |
+| MF-10 | Client Reconciled cycle summary card | SB-9.12 | Realized at `W1@cycle-summary` | UX:75 |
+| MF-11 | Queue-funding control (admin Pools funding view) | SB-12.2 | Realized on W24 with funding context on W12 | SS:528 |
+| MF-12 | Testimony CTA (client, commitment "aimed at the community") | SB-14.8 | Resolved as September-only in Community source material; no August frame | UX:91; CS:762 |
+| MF-13 | Attach-assessment picker (admin commitment detail) | SB-4.8 | Realized and locked at `W10@attach-assessment` by register #51 | UX:287 |
 
 ---
 
 ## 16. Action inventory — how many new user-facing actions does this feature add?
 
-**At a glance** — August adds ~39 net-new user-facing actions (9 member · 28 operator · 2 executor), riding 5 offline-safe job kinds plus one online G$ send; counted both by user vocabulary and by contract entry point.
+**At a glance** — August adds ~37 net-new user-facing actions (9 member · 28 operator), riding 5 offline-safe job kinds plus one online G$ send; the Celo settlement executor is automated and adds no human-facing action.
 
 **Sources of truth** — the permission matrix spans two files: `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186), cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitment, claim, evidence, workLink, confirmation`; `transfer` is online-only; `work`/`approval` are untouched (CS:1536; UX:206).
 
 **Counting rules**:
-- **Net-new user-facing** = a persona triggers it from a drawn frame or an explicit spec placement (placements without a drawing are flagged `undrawn`).
+- **Net-new user-facing** = a persona triggers it from a realized frame or an explicit locked spec placement.
 - Human-triggered rows with **no app surface** sit in 16.2 (ops/config); **machine-triggered** rows in 16.3 (system).
-- Counts are given **both ways** — one user-vocabulary action may bundle several entry points (pool lifecycle; request-verification-and-again), and one entry point may back several actions (`createCommitment` backs M1, O10, O11).
+- Counts are given **both ways** — one user-vocabulary action may bundle several entry points (pool lifecycle; command-and-ack retry), and one entry point may back several actions (`createCommitment` backs M1, O10, O11).
 
 ### 16.1 Net-new user-facing actions (August surfaces)
 
@@ -659,17 +663,17 @@ Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a lo
 | M2 | Take this up / ask to take this up | `claimCommitment` (CS:732) | W1 card + §4.4 panels (WF:111-127) | offline `claim` (UX:213) | NEW | open vs steward-reviewed is card helper text, never a member toggle (UX:129); "ask again" = fresh request (UX:105) |
 | M3 | Add evidence (photo / link / note) | `attachEvidence` (CS:739) | W2 → W2a | offline `evidence` (UX:214) | NEW | steward also authorized on-chain, no admin control drawn (W10 read-only) |
 | M4 | Link existing work to a promise | `linkWork` (CS:735) | W2 picker | offline `workLink` (UX:215) | NEW | deep-linked NEW work rides the existing `work` job (extension row E1 below) |
-| M5 | Send for confirmation | `submitForConfirmation` (CS:741) | W2 evidence-only variant (UX:141, `undrawn` → MF-6); admin twin UX:287 | offline `confirmation{submit}` (UX:216) | NEW | evidence-only kinds; DomainImpact rejected on-chain (CS:138b) |
+| M5 | Send for confirmation | `submitForConfirmation` (CS:741) | `W2@evidence-submitted` (MF-6 realized); admin twin UX:287 | offline `confirmation{submit}` (UX:216) | NEW | evidence-only kinds; DomainImpact rejected on-chain (CS:138b) |
 | M6 | Confirm — promise kept | `confirmFulfillment` (CS:743) | W4 sheet · W5 inbox · admin W13 stage · W12 protocol queue | offline `confirmation{confirm}` (UX:216) | NEW | provider always excluded (`SelfConfirmation`); once per confirmer |
 | M7 | Not yet — ask the stewards to look | `raiseDispute` (CS:747) | W4 decline branch | **online** (UX:217) | NEW | member entry exists only at ReadyForConfirmation via W4; contract also allows creator/counterparty from Accepted/Expired — unsurfaced |
 | M8 | Send G$ onward | Celo wallet transfer (value leg — not a module entry point) | W23 send sheet | **online** `transfer`, AA-gated (UX:219; SS:433) | NEW | sponsored gas; absent entirely while `memberDeliveryEnabled` is false |
-| M9 | Withdraw my offer / request (pre-acceptance) | `cancelCommitment` creator path (CS:745) | W2 owner variant (MF-2a; adopted register #34b) | **online** contract action | NEW | reason required; Offered/Requested only; steward path (MF-2b) still unplaced |
+| M9 | Withdraw my offer / request (pre-acceptance) | `cancelCommitment` creator path (CS:745) | W2 owner variant (MF-2a; adopted register #34b) | **online** contract action | NEW | reason required; Offered/Requested only; steward path is separately realized in W10 (MF-2b/register #51) |
 
 **Operators — client PWA (1)**
 
 | # | Action | Entry point(s) | Surface · screen | Offline? | New / ext | Notes |
 |---|---|---|---|---|---|---|
-| O0 | Take this up **for this garden** (provider context) | `claimCommitment` ClaimType.Garden (CS:732,577-589) | W1 protocol card + chooser (`undrawn` → MF-8) | offline `claim` | NEW | eligible stewards only; claimant = GardenAccount, requestedBy = steward |
+| O0 | Take this up **for this garden** (provider context) | `claimCommitment` ClaimType.Garden (CS:732,577-589) | W1 protocol card + `W25@context-chooser` (MF-8/register #51) | offline `claim` | NEW | eligible stewards only; claimant = GardenAccount, requestedBy = steward |
 
 **Operators / stewards — admin (27)**
 
@@ -677,7 +681,7 @@ Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a lo
 |---|---|---|---|---|---|---|
 | O1 | Edit the pool charter | `setPoolCharter` (CS:723) | W7 pool card | online | NEW | — |
 | O2 | Set the provider open-commitment cap | `setProviderOpenCommitmentCap` | W7 readiness checklist | online | NEW | non-zero concurrent commitment count required before Ready |
-| O3 | Mark the pool ready | `markPoolReady` (CS:724) | W7 (`spec-placed, undrawn` — UX:269) | online | NEW | disabled until charter + cap + qualifying Baseline |
+| O3 | Mark the pool ready | `markPoolReady` (CS:724) | `W7@preflight-complete` (realized) | online | NEW | disabled until charter + cap + qualifying Baseline; Ready remains distinct from Open |
 | O4 | Pool lifecycle controls | `pausePool`/`resumePool`/`compostPool`/`reopenPool` (UX:60-62; WF:274) + `openPool`/`closePool` adopted onto the card per register #34a (MF-1) | W7 pool card | online | NEW | all 6 entry points placed as of 2026-07-11; open-cycle flow gains only a Ready-state guard prompt |
 | O5 | Seed a cycle (Season / Campaign) | `seedCycle` (CS:726) | W7 cycles console (UX:270) | online | NEW | one open Season invariant enforced in-console (WF:279) |
 | O6 | Open a cycle (with allocation policy) | `openCycle(cycleId, allocation)` (CS:727) | W11 step in the open-cycle flow | online | NEW | percent inputs encode an exact 10,000 bps total; six-class snapshot stored and emitted (UX:322-330) |
@@ -688,29 +692,22 @@ Every micro-frame drawn above is a **candidate for `wireframes.md`, not yet a lo
 | O11 | Record on a member's behalf (analog capture) | `createCommitment` OperatorCaptured + `onBehalfOf` (CS:730) | W9 flow | online-expected | NEW | member stays the promise source (UX:437) |
 | O12 | Accept a claim | `acceptClaim` (CS:733) | W7 claims queue | online (UX:218) | NEW | consumes stored terms only |
 | O13 | Decline a claim (reason) | `declineClaim` (CS:734) | W7 claims queue | online | NEW | clears exactly one request |
-| O14 | Attach an assessment | `attachAssessment` (CS:740) | admin detail picker (UX:287, `undrawn` → MF-13) | online | NEW | **shared with Evaluator** — the only evaluator-facing pooling entry point |
+| O14 | Attach an assessment | `attachAssessment` (CS:740) | `W10@attach-assessment` (MF-13/register #51) | online | NEW | **shared with Evaluator** — the only evaluator-facing pooling entry point |
 | O15 | Mark ready with override (reason) | `markReadyForConfirmation` (CS:742) | admin detail (UX:287) | online | NEW | override marker visible to members (UX:301) |
 | O16 | Confirm as fallback (reason) | `confirmFulfillmentAsFallback` (CS:744) | W10 | online (UX:216 note) | NEW | provider-steward blocked on-chain |
 | O17 | Raise a dispute (steward) | `raiseDispute` (CS:747) | W10 | online | NEW | same entry point as M7, different surface + vocabulary |
 | O18 | Resolve a dispute (4 outcomes, reason) | `resolveDispute` (CS:748) | W10 (WF:381-382) | online | NEW | Expired can never resolve Fulfilled (CS:144) |
-| O19 | Record payout | `recordRewardPaid` (CS:749) | W10 + AdminConfirmDialog (UX:302) | online | NEW | July's only reward rail (PT:42) |
+| O19 | Record external payout | `recordRewardPaid` (CS:749) | W10 + AdminConfirmDialog (UX:302) | online | NEW | `ArbitrumExternal` only; `CeloSettlement` reverts |
 | O20 | Set up the settlement account | `registerSettlementAccount` (SS:169) | W21 (WF:572) | online | NEW | steward or module owner |
-| O21 | Queue a disbursement | `queueDisbursement` (SS:171) | W10 delta "Queue disbursement" (WF:564; SS:526) | online | NEW | gated on `memberDeliveryEnabled` + Fulfilled |
+| O21 | Queue a disbursement | `queueDisbursement` (SS:171) | W10@queue-settlement (WF:564; SS:526) | online | NEW | `CeloSettlement` only; gated on member delivery + Fulfilled + active source/beneficiary routes |
 | O22 | Queue garden funding | `queueFunding` (SS:172) | W24 Operations funding view + W12 funding context (SS:528; MF-11, realized) | online | NEW | protocol steward or owner; GG→garden only |
-| O23 | Create a settlement batch | `createBatch` (SS:173) | W21 (WF:583) | online | NEW | **steward or executor**; 1–24 immutable members |
-| O24 | Request receipt verification / request again | `requestVerification`+`requestBatchVerification` (SS:178); timeout path via `expireVerification`+Batch (SS:180) | W22 (WF:556,560) | online | NEW | steward, executor, or owner; "checking receipt" derived |
-| O25 | Record a failed execution (reason) | `recordFailed`+Batch (SS:181) | W22 (WF:556) | online | NEW | **executor or steward** |
+| O23 | Create a settlement batch | `createBatch` (SS:235) | W21 (WF:583) | online | NEW | resolved settlement steward only; 1–configured-limit immutable members; hard ceiling 24 |
+| O24 | Retry command / acknowledgment | `retryCommand` / `retryBatchCommand` / `retryAcknowledgment` | W22 | online | NEW | source retry preserves attempt + execution key; a stored acknowledgment retry cannot move G$ |
+| O25 | Dispatch a settlement command | `dispatchDisbursement` / `dispatchBatch` | W22 | online | NEW | immutable source facts only; no arbitrary target, token, amount, or calldata |
 | O26 | Requeue a failed member | `requeue` (SS:182) | W21/W22 (WF:536,562) | online | NEW | clears old batchId; attempts++ |
-| O27 | Cancel a disbursement (reason) | `cancelDisbursement` (SS:183) | W21/W22 (WF:536,562) | online | NEW | frees the commitment for a fresh queue |
+| O27 | Cancel a disbursement or queued batch (reason) | `cancelDisbursement` / `cancelBatch` (SS §3.2) | W21/W22 (WF §W21–W22) | online | NEW | individual cancellation is only for unbatched Queued or Failed items; a Queued batch cancels atomically in full, with no partial-member path |
 
-**Executor — admin (2 exclusive; a distinct persona: Zodiac Roles member, never a Safe owner — SS:47,415)**
-
-| # | Action | Entry point(s) | Surface · screen | Offline? | New / ext | Notes |
-|---|---|---|---|---|---|---|
-| X1 | Mark executing | `markDisbursementExecuting`/`markBatchExecuting` (SS:176) | W22 | online | NEW | executor-only — a steward without the role cannot |
-| X2 | Report the Celo transaction hash | `reportExecution`/`reportBatchExecution` (SS:177) | W22 | online | NEW | executor-only; Reported is never member-visible proof |
-
-Shared with stewards: O23, O24, O25. **Value-leg actions** (drawn, but not Green Goods entry points): M8 send G$ (W23) and "Open in Safe app ↗" batch execution (W22, WF:552).
+**Protocol executor — no human-facing actions.** `CeloSettlementExecutor` is the authenticated Celo contract and scoped Zodiac Roles member, never a Safe owner. CCIP command receipt, bounded G$ execution, outcome storage, and acknowledgment dispatch are system actions. M8 Send G$ (W23) remains the only member value-leg action.
 
 **Community — September-realized (2)** — the §4 "Community" column is the September surface (UX §8)
 
@@ -719,47 +716,47 @@ Shared with stewards: O23, O24, O25. **Value-leg actions** (drawn, but not Green
 | C1 | Confirm when named (Need author) | `confirmFulfillment` (CS:743) | CI-W5/CI-W6 (CI-SPEC:259) | offline `confirmation` | NEW (Sept surface) | consumes the shared primitive |
 | C2 | Add testimony | Community-testimony EAS attest, Community Hat only (CS:762) | CI-W5 plus the CI-W6→CI-W5 compatibility alias; no August client CTA or frame (UX:91 → MF-12) | offline-capable (DG:111-113, community job) | NEW (Sept) | first real attestation gate for the Community Hat |
 
-**Permissionless (1, trigger unplaced)**: P1 — expire a lapsed commitment, `expireCommitment` (CS:746), callable by anyone once past due; **no surface draws a trigger** (SB-6.1) — in practice a keeper/cron/admin sweep. Counted apart from the 38 below.
+**Permissionless (1, intentionally ops-triggered)**: P1 — expire a lapsed commitment, `expireCommitment` (CS:746), callable by anyone once past due. Register #34d intentionally assigns the trigger to the post-launch keeper/admin sweep rather than an August member action. Counted apart from the 37 below.
 
 **Evaluator**: 0 exclusive actions — attach-assessment is shared (O14), and assessment v3 authorship (baseline evaluator-or-steward, delta evaluator-only — CS:760-761) is an **extension** of the existing Create Assessment flow (W14). **Funder**: 0 actions — the declared-reward reference is realized through operator seeding (UX:28); funder discovery stays on existing public surfaces (PT:158).
 
 **Extensions of existing flows (not counted as new actions)**: E1 work submission with commitment context (`work` job + `meta.commitmentId`, UX:174,220) · E2 assessment v3 fields on Create Assessment (W14; UX:295) · E3 CreateHypercert bundle-source toggle at cut-over (UX:330) · E4 offer-again / ask-again re-entries (UX:94,105) · E5 admin expiry-queue re-seed into W8 (UX:94).
 
-### 16.2 Human-triggered, no app surface (ops / config / recovery — 15 rows, ~22 functions)
+### 16.2 Human-triggered, no app surface (ops / config / recovery)
 
-`registerPool` (deploy-time + backfill, CS:722,934,1115) · `setDeclaredReward`/`setConfirmerRule` standalone pre-acceptance edits (CS:731 — W8 step 3 sets these as creation params; no edit control exists) · `unlinkWork` (CS:736) · `syncApprovedWork` recovery (CS:738; DG:221) · `cancelCommitment` steward path only (CS:745 — the member creator path is placed per register #34b/M9; steward placement MF-2b still open) · module admin setters ×8 incl. module pause (CS:750) · register `setModule` (CS:753) · UUPS upgrades ×3 (CS:754) · `setFundingConfiguration` (SS:166) · `updateSettlementRecovery`/`setAccountActive` (SS:167) · `addExecutor`/`removeExecutor` (SS:168 — executor roster is ops tooling) · `setFunctionsConfig` (SS:169) · **`setMemberDeliveryEnabled` (SS:170 — the AA gate itself: owner-only, no surface; W23 renders only its OFF state)** · settlement admin setters ×3 (SS:183) · standalone `expireVerification` (SS:178, when not folded into O24).
+`registerPool` (deploy-time + backfill, CS:722,934,1115) · `setDeclaredReward`/`setConfirmerRule` standalone pre-acceptance edits (CS:731 — W8 step 3 sets these as creation params; no edit control exists) · `unlinkWork` (CS:736) · `syncApprovedWork` recovery (CS:738; DG:221) · module admin setters ×8 incl. module pause (CS:750) · register `setModule` (CS:753) · UUPS upgrades ×3 (CS:754) · settlement router/peer rotation, caps, fee-reserve, garden-route, dispatcher, and pause governance (SS:166-183) · **`setMemberDeliveryEnabled` (SS:170 — the AA gate itself: owner-only, no surface; W23 renders only its OFF state)**.
 
 ### 16.3 System actions surfaced only as states (never user-triggered — 6)
 
-`onGardenMinted` (GardenToken-only) · `onWorkApproved` (WorkApprovalResolver-only) · CommitmentRegister module-only class-unit calls plus the register-side `setProviderOpenCommitmentCap` count-cap twin · Chainlink Functions router callback — the only producer of Verified / receipt-invalid Failed · SettlementModule `initialize` · indexer claim-request **supersession**.
+`onGardenMinted` (GardenToken-only) · `onWorkApproved` (WorkApprovalResolver-only) · CommitmentRegister module-only class-unit calls plus the register-side `setProviderOpenCommitmentCap` count-cap twin · authenticated Celo executor success/failure acknowledgment for the current execution key and attempt — the only producer of Confirmed / execution-failure Failed · SettlementModule `initialize` · indexer claim-request **supersession**.
 
 ### 16.4 Totals
 
 | Measure | Count |
 |---|---|
-| Net-new user-vocabulary actions, August surfaces | **39** = members 9 + operators 28 (27 admin + 1 client) + executor 2 exclusive (M9 added per register #34b) |
-| — of which flagged `spec-placed, undrawn` | 4 controls: O3, M5/MF-6, O0/MF-8, MF-13 (inside O14) — plus the register #34-adopted controls (MF-1/2a/3/4/5) whose drawings live here pending the wireframes redraw. O22/MF-11 is now realized in the hi-fi artifact. |
-| — of which contain **unplaced** entry points | none as of 2026-07-11 (register #34a placed openPool/closePool; steward cancel remains an ops-bucket row) |
+| Net-new user-vocabulary actions, August surfaces | **37** = members 9 + operators 28 (27 admin + 1 client); the protocol executor is automated |
+| — of which await a final placement lock | **0** — register #51 locks MF-2b/MF-7/MF-8/MF-13 where drawn. |
+| — of which are visually silent | none; every August user-facing entry point is realized in a locked state or intentionally assigned to ops/config. |
 | Join-request queue (register #35; canonical design in `../community-interface/join-queue-spec.md`; operating gate remains) | +2 actions when RESR-64 clears implementation (member "ask to join" · steward "welcome / decline with reason") — counted then, not in the 39 |
 | September community-app actions | **12** = member 5 (post a Need · signal · retract · C1 confirm · C2 testimony) + operator 7 (acknowledge · decline · merge · hide · reopen · private-lane intake · seed-from-Need, CI-W9/CI-W10) — seed-from-Need extends O10 with `needUID` prefill |
-| Permissionless | 1 (P1 expire — trigger unplaced) |
-| Distinct user-triggered contract entry points, August | **43 solid** (28 pooling incl. openPool/closePool per register #34a + 14 settlement + 1 EAS assessment-v3) — up to 45 with the 2 expire-verification twins; +1 EAS testimony in September |
-| Ops/config functions with no app surface | ~22 (16.2) |
+| Permissionless | 1 (P1 expire — intentionally assigned to the post-launch keeper/admin sweep by register #34d) |
+| Distinct user-triggered contract entry points, August | Re-baseline from the frozen pooling + CCIP settlement ABIs before UI implementation; retired verification/reporting entry points are excluded |
+| Ops/config functions with no app surface | Re-baseline from the frozen deployment/governance interfaces before implementation (16.2) |
 | System-only rows | 6 (16.3) |
 | New routes | client 3 (`/home/:id/pool`, `…/pool/:commitmentId`, `…/pool/new`) + admin 5 (`/garden/pool`, `…/seed`, `…/capture`, `/community/pools`, `/hub/confirm`) (UX:120,252-259) |
 | New in-place screen locations (no new route) | client 3 (Pool GardenTab · WalletDrawer pools panel, including the W6→W5 compatibility target · W23 G$ section) · admin 4 (W21 settlement section · W10 reward/dispute delta · W13 stage · W14 fields) · editorial 2 sections (W15, W16) |
 | New offline job kinds | 5 (`commitment, claim, evidence, workLink, confirmation`) + 1 online-only `transfer` (CS:1536) |
 | New i18n key families | 8 (UX:393-402) + `settlement.*` extensions (SS:539); every key en + es + pt |
 
-**Platform delta (one line for the external brief's operator note)**: August adds one new place on each existing surface — a Pool tab in the garden app, a Pool tab, Confirm stage, and Pools mode in the steward console, a promises section on public garden pages — and about 39 new things a person can do there: 9 for members, from making an offer to withdrawing one or sending G$ onward; 28 for stewards seeding promises, reviewing claims, running seasons, and recording or settling rewards; 2 for the settlement executor; all riding 5 new offline-safe job kinds plus one online G$ send, shipped in English, Spanish, and Portuguese.
+**Platform delta (one line for the external brief's operator note)**: August adds one new place on each existing surface — a Pool tab in the garden app, a Pool tab, Confirm stage, and Pools mode in the steward console, a promises section on public garden pages — and about 37 new things a person can do there: 9 for members, from making an offer to withdrawing one or sending G$ onward, and 28 for stewards seeding promises, reviewing claims, running seasons, and recording or settling rewards. The Celo executor is automated; these actions ride 5 new offline-safe job kinds plus one online G$ send, shipped in English, Spanish, and Portuguese.
 
 ---
 
 ## 17. Coverage appendix — every §4 state, per surface, walked or accounted for
 
-**At a glance** — every §4 state × surface is walked or accounted for; no silent cell remains. Five review decisions stay open: steward cancel (MF-2b), Cancelled-disbursement copy, and the MF-7/MF-8/MF-13 placements.
+**At a glance** — every §4 state × surface is walked or accounted for; no silent cell and no open placement decision remains. Both settlement cancellation origins and their member copy are locked.
 
-Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a copy-only cell, rendered but not storyboarded · `explicit: not surfaced` = the spec says so on purpose · `Sept` = September community surface (view or SB-14) · `⚠` = a real gap carried in the findings. The Community column of the §4 tables **is** the September surface (UX §8).
+Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a copy-only cell, rendered but not storyboarded · `explicit: not surfaced` = the spec says so on purpose · `Sept` = September community surface (view or SB-14). The Community column of the §4 tables **is** the September surface (UX §8).
 
 ### 17.1 Pool states (UX:55-62)
 
@@ -799,7 +796,7 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 | ReadyForConfirmation | SB-1.7 · SB-2.5 | SB-10.3 (W13) · SB-13.7 (W12) | explicit: not distinct | Sept: confirm CTA (SB-14.8) |
 | Fulfilled | SB-1.9–10 | SB-10.5 | SB-1.11 (counts + rate per §7.2) | Sept: testimony CTA (SB-14.8; resolved register #34g — September-realized) |
 | Reconciled | SB-9.10 (derived at cycle close) | SB-9.11 | static: aggregates | Sept view |
-| Cancelled | member withdraw adopted (register #34b, MF-2a) + dispute path SB-5.5b; rendering per UX:93 | ⚠ steward control still unplaced (MF-2b); list w/ reason renders | explicit: aggregate counters only, never a public list (UX:93) | explicit: not listed |
+| Cancelled | member withdraw adopted (register #34b, MF-2a) + dispute path SB-5.5b; rendering per UX:93 | steward control locked at `W10@cancel` (register #51/MF-2b); list w/ reason renders | explicit: aggregate counters only, never a public list (UX:93) | explicit: not listed |
 | Expired | SB-6.2–3 (MF-3) | SB-6.4 (MF-4) | explicit: aggregate only (UX:94) | explicit: not listed |
 | Disputed | SB-5.1–2 | SB-5.4 | explicit: never surfaced individually (UX:95) | Sept frozen view |
 
@@ -814,13 +811,15 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 
 ### 17.5 Disbursement states (SS:62; SS:532 copy)
 
-| State | Member (client) | Operator/executor (admin) |
+| State | Member (client) | Steward / Operations (admin) |
 |---|---|---|
-| Queued / Executing | SB-11.2 ("support on its way") | SB-12.3–6 |
-| Reported (no request) | SB-11.3 ("transfer reported; awaiting receipt check") | SB-12.6 |
-| Reported + active request | SB-11.4 ("checking receipt") | SB-12.7 |
-| Verified | SB-11.5 ("support arrived ↗") | SB-12.8 |
-| Failed | SB-11.8 ("still arranging support — your promise is recorded") | SB-12.8–9 (requeue / cancel) |
-| Cancelled | ⚠ member-facing copy unspecified — SS:532 defines five states and no Cancelled line; `cancelDisbursement` frees the commitment for a fresh queue (SS:183). Presumed fallback to the pooling reward row (DG:666 precedence) — needs one sentence in settlement-spec §7 | SB-12.8 |
+| Queued | W2 `support-queued` ("support is queued") | W22 `ready` |
+| Dispatched | W2 `support-en-route` ("support on its way") | W22 `dispatched` |
+| Celo executed / acknowledgment pending (derived) | W2 `support-executed` / `support-confirming` | W22 `executed` / `acknowledgment-pending` |
+| Confirmed | W2 `support-arrived` ("support arrived ↗") | W22 `outcome` |
+| Failed (authenticated acknowledgment only) | W2 `support-failed` ("still arranging support — your promise is recorded") | W22 `outcome` (per-member requeue) |
+| Delayed (derived, state remains Dispatched) | W2 `support-delayed` ("support on its way — delivery delayed") | W22 `delivery-delayed` |
+| Cancelled from Queued | W2 `support-cancelled-queued` — "this support was withdrawn before it was sent — your promise and its record stay intact" | W21 queued recovery |
+| Cancelled from Failed | W2 `support-cancelled-failed` — "this support was closed after delivery could not complete — your promise and its record stay intact" | W21 failed recovery |
 
-**Coverage verdict**: no fully silent state–surface cell remains — every cell is walked, static-by-design, or explicitly not-surfaced. Five review decisions remain open: the steward cancel placement (MF-2b), Cancelled-disbursement member copy (§17.5), and the MF-7/MF-8/MF-13 placements. The Ready→Open path and member cancel are resolved, and testimony is September-only. The dispatch's 13 required August flows map: S1→SB-1 · S2→SB-2 · S3→SB-3 · S4→SB-4 · S5→SB-5+SB-9 · expiry→SB-6 · S6→SB-7 · S7→SB-8 · seeding+cycles→SB-9 · S13→SB-10 · S8/S9 member→SB-11 · S8 operator→SB-12 · S14→SB-13. S10→SB-14 remains September Community source material and is hidden from the presentation catalogs until high fidelity.
+**Coverage verdict**: no fully silent settlement state–surface cell or unlocked August placement remains. Both cancellation origins have locked member copy and admin recovery placement; MF-2b/MF-7/MF-8/MF-13 are locked by register #51; Ready→Open and member cancel are resolved; testimony is September-only. The dispatch's 13 required August flows map: S1→SB-1 · S2→SB-2 · S3→SB-3 · S4→SB-4 · S5→SB-5+SB-9 · expiry→SB-6 · S6→SB-7 · S7→SB-8 · seeding+cycles→SB-9 · S13→SB-10 · S8/S9 member→SB-11 · S8 operator→SB-12 · S14→SB-13. S10→SB-14 remains September Community source material and is hidden from the presentation catalogs until high fidelity.

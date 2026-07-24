@@ -222,7 +222,7 @@ const requiredArchitectureSections = [
   ["D7.", "d7-indexer-entity-delta-erd"],
   ["D7b.", "d7b-settlement-erd"],
   ["D7c.", "d7c-fulfilled-commitment-hypercert-cut-over-and-indexer-delta"],
-  ["D8.", "d8-g-funding-topology-safe-recovery-and-oracle-boundary"],
+  ["D8.", "d8-g-funding-topology-safe-recovery-and-ccip-boundary"],
   ["D9.", "d9-settlement-sequence-with-failure-retry"],
   ["D10.", "d10-disbursement-state-machine-all-module-native-on-chain"],
   ["D11.", "d11-approval-gated-claim-request-decline-acceptance-and-superses"],
@@ -253,12 +253,12 @@ const storyBody = `
 </section>
 <section id="story-money">
   <h2>Where value lives, and how we know it moved</h2>
-  <p class="lede">Proof and coordination stay on Arbitrum; G$ lives and moves only on Celo. The designated Green Goods topology receives Foundation-funded House of Alignment pilot funds directly in the protocol Safe once partner mechanism and address evidence clear; from there, one derived funding route reaches garden accounts. No report counts as received until the oracle checks the finalized receipt.</p>
+  <p class="lede">Proof and coordination stay on Arbitrum; G$ lives and moves only on Celo. The designated Green Goods topology receives Foundation-funded House of Alignment pilot funds directly in the protocol Safe once partner mechanism and address evidence clear; from there, one derived funding route reaches garden accounts. A settlement counts as received only after the authenticated Celo executor acknowledgment returns through CCIP.</p>
   ${respSvg(moneySvg, "Arbitrum proof and Celo value map")}
 </section>
 <section id="story-settlement">
   <h2>How a payout becomes provable</h2>
-  <p class="lede">Queued through to Oracle-verified — or Failed. There is no human path anywhere on this diagram: only the Chainlink Functions callback can produce an Oracle-verified state, and a Celo transaction report on its own is not proof.</p>
+  <p class="lede">Queued through Dispatched and Celo execution to Confirmed — or authenticated Failed. Cancellation is allowed only before dispatch or after that authenticated failure; delay never unlocks it. There is no human verification path: only the Celo executor acknowledgment through CCIP finalizes the source state.</p>
   ${respSvg(statesSvg, "Settlement evidence states")}
 </section>
 <section id="story-funding">

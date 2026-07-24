@@ -240,8 +240,10 @@ const W2_STATES = [
   ["accepted", "Accepted"], ["offered", "Offered (yours)"], ["requested", "Requested (yours)"],
   ["active", "Active"], ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
-  ["support-en-route", "Support on its way"], ["support-reported", "Transfer reported"],
-  ["support-checking", "Checking receipt"], ["support-arrived", "Support arrived"], ["support-failed", "Support delayed"],
+  ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
+  ["support-executed", "Celo executed"], ["support-confirming", "Confirming arrival"],
+  ["support-arrived", "Support arrived"], ["support-failed", "Support failed"],
+  ["support-cancelled-queued", "Support withdrawn"], ["support-cancelled-failed", "Support closed after failed delivery"],
   ["reconciled", "Reconciled"], ["cancelled", "Cancelled"], ["expired", "Expired"],
   ["disputed", "Under review"], ["captured", "Recorded for you"],
   ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
@@ -253,33 +255,45 @@ const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
   "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", fulfilled: "Fulfilled", "reward-released": "Fulfilled",
-  "support-en-route": "Fulfilled", "support-reported": "Fulfilled", "support-checking": "Fulfilled",
-  "support-arrived": "Fulfilled", "support-failed": "Fulfilled", reconciled: "Reconciled",
+  "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
+  "support-executed": "Fulfilled", "support-confirming": "Fulfilled", "support-arrived": "Fulfilled",
+  "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
+  reconciled: "Reconciled",
   cancelled: "Cancelled", expired: "Expired", disputed: "Under review", captured: "Accepted",
 };
 
 function w2RewardRow(state: W2State): string {
+  const settlementReward = state.startsWith("support-");
+  const rewardMeta = settlementReward ? "20 G$ from the garden's Celo account" : "20 DAI from the garden jar";
   const line = (label: string, v: string, tone?: "ok" | "warn") =>
     hot(
       "w2.reward-row",
       card(
-        `<div class="cardrow"><div class="grow"><div class="t-title" style="font-size:14.5px">Reward</div><div class="t-meta num">20 DAI from the garden jar</div></div>${chip(v, tone ?? "plain", { dot: true })}</div><div class="t-meta">${label}</div>`,
+        `<div class="cardrow"><div class="grow"><div class="t-title" style="font-size:14.5px">Reward</div><div class="t-meta num">${rewardMeta}</div></div>${chip(v, tone ?? "plain", { dot: true })}</div><div class="t-meta">${label}</div>`,
         { cls: "flat" },
       ),
     );
   switch (state) {
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
+    case "support-queued":
+      return line("Support is queued (G$).", "Queued");
     case "support-en-route":
       return line("Support on its way (G$).", "On its way");
-    case "support-reported":
-      return line("Transfer reported — awaiting the receipt check.", "Reported");
-    case "support-checking":
-      return line("Transfer reported — checking the receipt now.", "Checking receipt");
+    case "support-delayed":
+      return line("Support on its way — delivery delayed. Your promise remains recorded.", "Delayed", "warn");
+    case "support-executed":
+      return line("Celo execution recorded — confirming arrival.", "Executed");
+    case "support-confirming":
+      return line("Execution stored — authenticated acknowledgment pending.", "Confirming");
     case "support-arrived":
       return line("Support arrived ↗ — reference in Details.", "Arrived", "ok");
     case "support-failed":
       return line("Still arranging support — your promise is recorded and stays kept.", "Arranging", "warn");
+    case "support-cancelled-queued":
+      return line("This support was withdrawn before it was sent — your promise and its record stay intact.", "Withdrawn", "warn");
+    case "support-cancelled-failed":
+      return line("This support was closed after delivery could not complete — your promise and its record stay intact.", "Closed", "warn");
     default:
       return line("Reference only — no value is held by the app.", "Pending");
   }
@@ -402,7 +416,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
   "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@cancelled", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action." },
-  "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody (SS:532). When a G$ disbursement exists, settlement status replaces the pending line; “Arrived” always means oracle-verified, never just reported." },
+  "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },
   "w2.retry": { l: "Try again", info: "Read-surface recovery — retries the commitment read (loading/not-found/read-error; never a “None” chip) (UX:51-52 · AM:12)." },

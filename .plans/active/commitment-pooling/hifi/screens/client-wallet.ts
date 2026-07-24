@@ -127,7 +127,7 @@ ${hot("w23.send-retry", btn("Try again", { kind: "pri", full: true, icon: "refre
     default:
       inner = `${card(
         `<div class="cardrow"><div class="grow"><div class="t-title">Support received</div><div class="t-meta">G$ · Celo</div></div><div class="t-title num">128 G$</div></div>` +
-          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+20 G$ — Prune the north beds", meta: "Arrived · oracle-verified ↗", chipHtml: chip("Arrived", "ok") })) +
+          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+20 G$ — Prune the north beds", meta: "Arrived · CCIP-confirmed ↗", chipHtml: chip("Arrived", "ok") })) +
           listRow({ icon: "time-line", primary: "+15 G$ — Market rides", meta: "On its way" }),
         { cls: "flat" },
       )}
@@ -142,7 +142,7 @@ const W23_HOTS: HifiDef["hots"] = {
   "w23.send": { l: "Send G$", to: "screen:W23@send", info: "Online-only wallet action, sponsored gas — never enters the offline queue (UX:219)." },
   "w23.send-submit": { l: "Send", to: "screen:W23@send-pending", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
   "w23.send-retry": { l: "Try again", to: "screen:W23@send-pending", info: "Retries the online-only wallet action with the recipient and amount retained (UX:219)." },
-  "w23.arrived-row": { l: "Arrived row", info: "“Arrived” always means oracle-verified — a reported transfer alone never renders as arrived (SS:398)." },
+  "w23.arrived-row": { l: "Arrived row", info: "“Arrived” means an authenticated CCIP success acknowledgment — dispatched or Celo-executed/ack-pending never render as arrived." },
   "w23.tech-status": { l: "Technical status", info: "AA/paymaster gate failed: member delivery + sends stay off; Safe-to-Safe garden funding continues (SS:425)." },
 };
 
@@ -231,17 +231,17 @@ export const WALLET_DEFS: HifiDef[] = [
   },
   {
     screen: { id: "W23", title: "W23 · Wallet G$ + send", surface: "client", frame: "phone", group: "Client PWA",
-      states: W23_STATES.map(([id, label]) => ({ id, label, proposed: id === "delivery-blocked", html: w23(id) })) },
+      states: W23_STATES.map(([id, label]) => ({ id, label, html: w23(id) })) },
     hots: W23_HOTS,
   },
   {
     screen: { id: "W25", title: "W25 · Protocol-pool claim", surface: "client", frame: "phone", group: "Client PWA",
-      states: W25_STATES.map(([id, label]) => ({ id, label, proposed: id === "context-chooser", html: w25(id) })) },
+      states: W25_STATES.map(([id, label]) => ({ id, label, html: w25(id) })) },
     hots: W25_HOTS,
   },
   {
     screen: { id: "WFLOW", title: "Existing work flow (+ fulfills row)", surface: "client", frame: "phone", group: "Client PWA",
-      states: [{ id: "review", label: "Review (+ fulfills)", proposed: true, html: wflow() }] },
+      states: [{ id: "review", label: "Review (+ fulfills)", html: wflow() }] },
     hots: WFLOW_HOTS,
   },
 ];

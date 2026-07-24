@@ -39,5 +39,5 @@ linear.laneSyncMode is lane_issues (register #37, amended by register #39, 2026-
 - Every user-facing string lands in en, es, and pt.
 - Envio indexes Green Goods protocol events only, never EAS or raw Celo token transfers.
 - Visible UI requires authenticated Brave proof; member PWA flows also require a real-device pass.
-- Settlement verification is Functions-only. A reported transaction is not verified until the configured oracle callback succeeds.
+- Settlement confirmation is acknowledgment-only. Dispatched or Celo-executed/acknowledgment-pending is not arrived; only an authenticated success acknowledgment for the subject's current execution key and attempt produces Confirmed.
 - No bridged G$, garden-held member-claim path, transferable voucher activation, credit scoring, or leaderboard behavior.

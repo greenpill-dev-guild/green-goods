@@ -33,7 +33,7 @@ flowchart LR
 
   COM -->|"Need selected for gathering"| ADM
   ADM -->|"needUID seeds a commitment"| PWA
-  PWA -->|"work · confirmation · oracle-verified settlement"| READ
+  PWA -->|"work · confirmation · CCIP-confirmed settlement"| READ
   READ -->|"progress on Needs"| COM
   READ -->|"queues + consoles"| ADM
   READ -->|"aggregate stories"| PUB
@@ -183,7 +183,7 @@ Route `/home/:id/pool/:commitmentId`.
 - Fulfilled state: hero moment fires once (§5.10), reward row flips to "reward released" when `RewardPaid` lands.
 - Disputed state: banner "under review by stewards", CTAs frozen.
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
-- Owner withdraw (register #34b): while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`). Drawing: prototypes.md MF-2a. Steward cancel placement remains open.
+- Cancellation placement: while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`, register #34b/MF-2a). The Accepted steward path is locked at W10 `[ Cancel promise… ]` with its own required-reason dialog (register #51/MF-2b).
 - Hi-fi guidance (audit 2026-07-18): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure (accordion / carousel / sheet) so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind a single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
 - Read states match the prototype (`hifi/screens/client.ts:323-327`): **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
 
@@ -247,7 +247,7 @@ Step 4 — Review and promise                        │ ≡ Plant  × [ 1 ]  �
 - SupportService skips step 3 entirely (evidence + confirmation is its proof).
 - Draft persists in IndexedDB (`WorkDraftRecord` semantics); re-entry offers resume via the existing `DraftDialog` pattern.
 
-### WFLOW — Existing work flow, review step (+ fulfills row)
+### WFLOW — Existing work flow, review step (+ locked fulfills row)
 
 Deep-link from W2 into the existing Garden work-submission flow. Only the commitment-context row is new; the approval rails and the rest of the submission remain unchanged (`hifi/screens/client-wallet.ts:200-221`, uiux-spec §5.7).
 
@@ -410,7 +410,18 @@ Decline never says the commitment “returns” to browse; it was already availa
 
 Layout decisions (audit 2026-07-18): the pool card gains an **above-the-fold summary row** (counts + jump links) so the most actionable queues are visible without scrolling a flat list; **history is not a sub-view** — composted cycles and settled records appear under the `(Past)` segmented chip in place (Garden `OverviewTab` chip precedent), and the old "History:" console row is retired; commitment rows open in the **left inspector** (`{AdminDialog}` via the Garden sheet descriptor) like every other garden workspace detail — the right sheet remains account chrome only.
 
-Adopted 2026-07-11 (register #34; lo-fi drawings in `prototypes.md` pending a redraw pass here):
+The readiness write is a distinct, visible W7 state transition:
+
+```text
+NOT READY — inputs missing       CHECKS COMPLETE — pool still NotReady       READY — onchain
+charter ✕ · cap ✕ · baseline ✕  charter ✓ · cap ✓ · baseline ✓             charter ✓ · cap ✓ · baseline ✓
+[ Edit readiness ]               [ Mark pool ready ] [ Edit readiness ]      [ Open pool ] [ Edit charter ]
+                                 markPoolReady → PoolReady                    openPool → PoolOpened
+```
+
+The app enables **Mark pool ready** only after all three checks pass. The contract enforces the charter plus non-zero provider open-commitment cap; the current non-revoked qualifying Baseline remains the shared/admin preflight. A successful `markPoolReady` produces the separate Ready card; it never silently opens participation.
+
+Adopted 2026-07-11 (register #34; the lifecycle/readiness states above and the hi-fi artifact supersede the original lo-fi gap drawings in `prototypes.md`):
 - **Pool-card lifecycle actions** (register #34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
 - **Lapsed this cycle** (register #34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
 - **Waiting to join** (register #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome.
@@ -443,9 +454,11 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ Accepted provider is excluded at claim acceptance.       │
 │ Claim acceptance fails if N then becomes unreachable.    │
 │ claim mode  ◉ open   ○ steward-reviewed                  │  prefilled by context (§19)
-│ reward      source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
+│ reward rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
+│ external    source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
 ├──────────────────────────────────────────────────────────┤
-│ Step 4 — Review              [ Seed this commitment ]    │
+│ Step 4 — Review · rail: ArbitrumExternal                 │
+│                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -481,6 +494,7 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows.
 │ Provider: Maria (cannot confirm)                          │
 │ Eligible: João ✓ · Ana ○ · you ○   (1 of 2 required)     │  {AdminLinearProgress}
 ├──────────────────────────────────────────────────────────┤
+│ Rail: ArbitrumExternal                                   │
 │ Reward: 20 DAI · garden jar · unpaid   [ Record payout ] │  → {AdminConfirmDialog}
 │                                                          │    captures rail reference
 │ [ Confirm as fallback… ]  [ Raise dispute… ]             │  reason required; fallback
@@ -490,12 +504,24 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows.
 └──────────────────────────────────────────────────────────┘
 ```
 
-- Review additions (audit 2026-07-18): for steward-reviewed (approval-gated) commitments the dialog shows the pending-claims queue inline with per-row Accept / Decline (the W7 grammar), so triage never requires leaving the dialog; the requirement rows render per-action progress ("Prune 2/2 · Plant 0/1"); the reward row follows settlement-record-first precedence (settlement-spec §3.3) and shows the confirmation threshold with named-confirmer status.
-
-The latest hi-fi remediation adds this **proposed** accepted/evidence-in state and its two follow-on dialogs (`hifi/screens/admin.ts:422-438`):
+- `CeloSettlement` replaces the external row with the rail-specific queue confirmation below. It cannot expose `Record payout`.
 
 ```text
-ACCEPTED · EVIDENCE IN — PROPOSED
+┌── Queue Celo settlement ─────────────────────────────────┐
+│ Rail: CeloSettlement · reward: 500 G$                    │
+│ Payer: Rocinha owning-pool Safe · Celo                   │
+│ Recipient: Maria · same-address AA                       │
+│ Route/version/gas snapshot when queued                   │
+│                                  [ Queue disbursement ]  │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Review additions (audit 2026-07-18): for steward-reviewed (approval-gated) commitments the dialog shows the pending-claims queue inline with per-row Accept / Decline (the W7 grammar), so triage never requires leaving the dialog; the requirement rows render per-action progress ("Prune 2/2 · Plant 0/1"); Celo rows follow settlement-record-first precedence (settlement-spec §3.3), and the dialog shows the confirmation threshold with named-confirmer status.
+
+Register #51 locks this accepted/evidence-in state and its two follow-on dialogs (`hifi/screens/admin.ts` W10 state registry):
+
+```text
+ACCEPTED · EVIDENCE IN — LOCKED
 ┌──────────────────────────────────────────────────────────┐
 │ Support · evidence-only · 2 items                        │
 │ Evidence is in. Send it to the recipient, or mark it     │
@@ -513,7 +539,7 @@ MARK READY WITH OVERRIDE           STEWARD CANCEL (MF-2b)
 └────────────────────────────┘     └────────────────────────────┘
 ```
 
-**For human decision:** the hi-fi deliberately marks the accepted twin, override, and steward-cancel states as proposed. This wireframe records their current prototype placement and copy for coverage, but does not promote that placement into a locked design decision. W10's **Not found** state also stays explicit: stale or mid-sync links explain the failure and offer `[ Retry ]` plus `[ Back to pool ]`.
+**Placement closure (register #51):** the Accepted twin, override, and steward-cancel states are locked at W10 and render without proposal tags. W10's **Not found** state also stays explicit: stale or mid-sync links explain the failure and offer `[ Retry ]` plus `[ Back to pool ]`.
 
 ### W11 — Open-cycle allocation step (uiux-spec §6.10)
 
@@ -657,8 +683,8 @@ One NET-NEW editorial band using the page's existing kicker/heading/reveal gramm
 │ Work that starts as a promise kept           │  EditorialHeading  §01.5
 │ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
 │ │ 43 promises│ │ 11 gardens │ │ G$ support │ │  stat tiles in the §01
-│ │ fulfilled  │ │ live pools │ │ oracle-    │ │  proof-marker grammar
-│ └────────────┘ └────────────┘ │ verified ✓ │ │
+│ │ fulfilled  │ │ live pools │ │ CCIP-      │ │  proof-marker grammar
+│ └────────────┘ └────────────┘ │ confirmed ✓│ │
 │                               └────────────┘ │
 │                                              │  (thresholded per §7.2)
 │ A promise is offered, taken up, worked,      │  one lifecycle sentence in
@@ -668,7 +694,7 @@ One NET-NEW editorial band using the page's existing kicker/heading/reveal gramm
 └──────────────────────────────────────────────┘  table on this page, ever
 ```
 
-- **§02 pipeline delta**: `PublicEvidencePipeline` gains the promise stages — Assessment → **Promise** → Work → **Confirmation** → Impact Certificate — so "The cycle" tells the whole story the band introduces. G$ tiles render only oracle-verified totals.
+- **§02 pipeline delta**: `PublicEvidencePipeline` gains the promise stages — Assessment → **Promise** → Work → **Confirmation** → Impact Certificate — so "The cycle" tells the whole story the band introduces. G$ tiles render only CCIP-confirmed totals.
 
 ---
 
@@ -687,9 +713,9 @@ This commitment-pooling file retains only the shared commitment, confirmation, t
 
 ## 6. Settlement deltas (August, settlement-spec §7)
 
-G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 and W10 take copy/action deltas only (noted, not redrawn).
+G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific queue state drawn above.
 
-**W2 delta (PWA commitment detail, reward row)** — settlement record beats pooling `rewardPaid` when a disbursement exists: “support on its way” (Queued/Executing) · “transfer reported; awaiting receipt check” (Reported without an active request) · “transfer reported; checking receipt” (Reported with an active request) · “support arrived · oracle-verified ↗” with Celo reference · “still arranging support — your promise is recorded” (Failed). **W10 delta (admin commitment dialog)** — for G$-rewarded commitments, “Record payout” becomes “Queue disbursement” feeding W21's queue.
+**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders “support is queued” (Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` exposes Queue disbursement only after the canonical pooling and settlement interfaces are both GREEN; `ArbitrumExternal` alone exposes Record payout.
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
@@ -697,47 +723,47 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 
 ```text
 ┌─ Settlement (Celo) ────────────────────────────────────────────────────┐
-│ no settlement account yet   [ Set up settlement account ]              │  admin trigger → deterministic
-│                                                                        │  Safe deploy + register (script
-│  — once registered —                                                   │  path exists for batch rollout)
+│ no settlement account yet   [ Review registration requirements ]       │  read-only prerequisites;
+│                                                                        │  Release deploys/verifies Safe
+│  — once governance has deployed + verified the route —                 │  then steward registers existing
 │ Safe celo:0x9a…4f (active) · balance 1,240 G$ · allowance 500 G$/wk    │
 │ recovery: 2-of-3 · scoped executors: 2 · no owner/executor overlap     │
-│ Functions: subscription funded · DON healthy · last callback 4m ago    │
+│ CCIP: Arbitrum/Celo peers configured · native fee reserves monitored    │
 │ Disbursements                                                          │
-│ ≡ Maria — 20 G$    (Queued)                        [ add to batch ]    │
-│ ≡ João — 15 G$     (Failed: reason ▸) [ Requeue ] [ Cancel… ]          │  reasons always visible
-│ ≡ Ana — 20 G$      (Reported · checking receipt) [ request details ]   │
-│ ≡ Kofi — 20 G$     (Oracle-verified ↗ Celo tx)                         │
-│ [ Create batch (2) ]                                                   │  ▸ W22
+│ ≡ settlement 104 / attempt 0   (Queued)             [ dispatch ]       │
+│ ≡ settlement 103 / attempt 1   (Failed: route rejected) [retry][close]│
+│ ≡ settlement 102 / attempt 0   (confirming arrival) [ retry ack ]      │
+│ ≡ settlement 101 / attempt 0   (Confirmed ↗)                           │
+│ Commitment queues, batches, and account registration await gates      │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 - Gate status row (register #34f): the settlement card adds a read-only line — `member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setMemberDeliveryEnabled`); this row only makes the gate legible.
 
-### W22 — Batch execution and oracle console (Operations workspace + per-garden)
+### W22 — Command/ack operations console (Operations workspace + per-garden)
 
 `{AdminDialog}` opened from W21 and from the NEW deployer-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18.
 
 ```text
-┌── Execute batch #12 — Rocinha ───────────────────────────────────┐
-│ 2 of max 24 immutable members · 35 G$ · Safe 0x9a…4f     │
-│ ≡ Maria — 20 G$ → 0x12…9a                                │
-│ ≡ João — 15 G$ → 0x77…3c                                 │
-│ [ Open in Safe app ↗ ]                                   │  August: signing happens in the
-│ [ Mark executing ]                                       │  Safe app; in-app Safe SDK is
-│ then [ Report Celo transaction hash… ]                   │  stores Reported + reportedBy;
-│      [ Request receipt verification ]                    │  stores requestId; still Reported
-│ or   [ Record failed — reason… ]                         │
+┌── Settlement 104 / attempt 0 — Rocinha ────────────────────────┐
+│ command tuple from canonical pooling facts · no G$ in CCIP      │
+│ payer: owning-pool Safe · route peer/version/gas snapshot locked │
+│ [ Dispatch using monitored native ETH reserve ]                  │
+│ command 0xab…11 ↗ CCIP Explorer · source status Dispatched        │
+│ destination tx 0xce…42 ↗ Celoscan · result Succeeded              │
+│ acknowledgment 0xac…09 ↗ CCIP Explorer · pending                  │
+│ [ Retry acknowledgment ] (permissionless; does not move G$)      │
 ├──────────────────────────────────────────────────────────┤
-│ Reported · checking finalized Celo receipt               │
-│ request 0x71…c2 · Chainlink Functions                    │
-│ Infrastructure timeout: [ Request again ]                │  new request ID; no state loss
-│ Receipt invalid: batch stays immutable; for each member  │
-│                   [ Requeue ] [ Cancel with reason… ]     │  requeue clears old batchId
+│ Delay is derived after the service window; no mutation.   │
+│ [ CCIP manual-execution guidance ] [ Retry same command ] │
+│ Failure acknowledgment: source adapter may create attempt 1│
+│ Pre-dispatch only: [ Cancel whole queued batch… ]          │
+│ No member-level cancellation while this batch is Queued.   │
 └──────────────────────────────────────────────────────────┘
 ```
 
-- Role guard (register #34e): pilot executors hold the executor role (never a Safe owner, never a recovery owner). An account without the role sees "this account doesn't hold the executor role" on Mark executing / Report — a visible guard state, never a silent failure. No role-split UI.
+- Route gate: before any value execution is enabled, the release checklist must prove the executor is a scoped Zodiac Roles member, never a Safe owner, with canonical-G$ selectors and caps only. Manual execution appears as external CCIP guidance only when Explorer marks a message eligible; it never changes Green Goods state or confirms arrival.
+- Cancellation gate: an unbatched Queued disbursement may be cancelled from W21. W22 represents an immutable batch, so it exposes only reasoned whole-batch cancellation while Queued; member-level recovery appears only after an authenticated Failed result.
 
 ### W23 — WalletDrawer: G$ section + member send (delta to W5)
 
@@ -770,31 +796,31 @@ Gate-failed variant (same frame, no substitute custody flow):
 
 ### W24 — Operations workspace (NET-NEW, deployer-gated)
 
-New admin workspace tab gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · Oracle · Flows**. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused.
+New admin workspace tab gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · CCIP · Flows**. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Operations        ◉ queue (4) · oracle · flows                         │  deployer-gated tab
+│ Operations        ◉ queue (4) · CCIP · flows                           │  deployer-gated tab
 ├────────────────────────────────────────────────────────────────────────┤
 │ QUEUE — all gardens                                                    │
-│ ≡ Rocinha  batch #12 · 2 members · 35 G$    (Queued)    [ Execute ▸ ]  │  ▸ W22
-│ ≡ Awka     Maria — 20 G$                    (Failed ▸)  [ Requeue ]    │
-│ ≡ protocol funding → Muizenberg · 200 G$    (Queued)    [ Execute ▸ ]  │  queueFunding rows too
+│ ≡ Rocinha settlement 104 / attempt 0 (Queued) [ Dispatch ▸ ]           │  ▸ W22
+│ ≡ Awka settlement 103 / attempt 1 (Failed ▸) [ source follow-up ]      │
+│ Funding/commitment rows wait for canonical contract/indexer GREEN      │
 ├────────────────────────────────────────────────────────────────────────┤
-│ ORACLE — verification health                                           │
-│ subscription funded ✓ · DON ok ✓ · last callback 4m · 0 stale ignored  │
-│ ≡ batch #11 · Reported · checking receipt · request 0x71…c2        ▸   │
+│ CCIP — command/ack health                                              │
+│ native ETH reserve ✓ · native CELO reserve ✓ · peers configured ✓      │
+│ ≡ settlement 102 · executed on Celo · acknowledgment pending        ▸  │
 ├────────────────────────────────────────────────────────────────────────┤
 │ FLOWS — cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
-│ GG protocol Safe → garden Safes       3 oracle-verified · 1 reported   │
-│ garden Safes → members                42 oracle-verified · 2 failed    │
+│ GG protocol Safe → garden Safes       planned ProtocolToGarden route    │
+│ garden Safes → members                planned commitment rewards         │
 │ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │  oversight rows moved
 └────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
 ```
 
-- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module no longer records an upstream hop (corrections-log §9). Every downstream figure distinguishes Reported from oracle-verified.
-- Executor-role guard (register #34e) applies to every execute/report control here, same as W22.
+- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module does not record an upstream hop. The planned read model distinguishes queued, dispatched, Celo-executed/ack-pending, confirmed, failed, and delayed.
+- The production route authority gate applies to every value-execution control here, as described in W22.
 
 ### W25 — Protocol-pool claim flow (client PWA)
 

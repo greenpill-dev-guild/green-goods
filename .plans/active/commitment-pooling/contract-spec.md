@@ -43,7 +43,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 - Celo/G$ execution inside the core pooling module or register. August G$ split-state settlement is in scope separately via `settlement-spec.md` / PRD-686; the core pooling contracts never custody G$, call Celo, or flip `settlementEnabled`.
 - Borrow-and-repay (mutual credit). A blocked follow-on companion `CreditRegister` (records-only, no-custody, interest-free) is specced separately in `../../backlog/commitment-credit-follow-on/spec.md` — additive, zero pooling-module/register changes; out of scope for this spec and not dispatchable without a new scope lock.
 - Sarafu integration or any reading of Sarafu source code (AGPL clean-room, register #17; grounding is the Grassroots Economics paper and public docs only).
-- Bridged G$, bridge custody/unbounded value authority, and GoodDollar rails inside the pooling module. Operator-executed G$ settlement lives in `SettlementModule`; bridge-executor automation is an August stretch owned by the settlement lane, else post-August.
+- Bridged G$, bridge custody/unbounded value authority, and GoodDollar rails inside the pooling module. Message-only CCIP settlement lives in the separate `SettlementModule` / `CeloSettlementExecutor` contract pair frozen by `settlement-spec.md`; no operator report or arbitrary bridge executor confirms value.
 - Leaderboards, rankings, comparison views, countdown or streak mechanics of any kind.
 - A separate aggregator contract (PRD-649 locked: aggregates come from events, not an on-chain aggregator).
 - CookieJar contract changes (register #18: rewards are declared references plus operator-executed payouts on existing rails).
@@ -60,7 +60,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkApproved(...)` in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Operator-callable `syncApprovedWork` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: claimant or operator links workUID to commitmentId before or after approval; the resolver hook only counts approvals for pre-linked workUIDs. Trust model: operator-curated linkage.
 6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
 7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
-8. **Rewards are references, not custody** (register #18). A commitment carries a declared reward (source address, token, amount), and acceptance stores the direction-aware provider recipient. On Fulfilled, the operator or protocol executes the payout on existing rails (jar, treasury) and records only a payout reference; `RewardPaid` derives/emits source, recipient, token, and amount from the commitment. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
+8. **Rewards are references, not custody** (register #18; settlement rail clarified 2026-07-23). A commitment carries an explicit reward rail plus source, token, and amount. `ArbitrumExternal` uses the existing operator-recorded jar/treasury path and stores the direction-aware provider as its recorded recipient. `CeloSettlement` is ineligible for `recordRewardPaid` and is consumed only by the separate SettlementModule, which derives the owning-pool Safe payer and Individual-AA or Garden-Safe beneficiary. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
 9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
 10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and OperatorCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
 11. **Schema registration is the first PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`).
@@ -245,6 +245,8 @@ interface ICommitmentPoolingModule {
 
     enum DisputeResolution { RestorePrevious, Fulfilled, Cancelled, Expired }
 
+    enum RewardRail { None, ArbitrumExternal, CeloSettlement }
+
     /// @notice Allocation-class snapshot for Hypercert cut-over. Must sum to
     ///         exactly 10_000 bps (Yield.sol InvalidSplitRatio precedent).
     struct AllocationBps {
@@ -279,7 +281,8 @@ interface ICommitmentPoolingModule {
 
     /// @notice Declared reward is a reference, never custody (register #18).
     struct DeclaredReward {
-        address source; // cookie jar or treasury address; informational
+        RewardRail rail;
+        address source; // exact economic payer on the declared rail; never caller-overridden at payout
         address token;
         uint256 amount; // 0 = no declared reward
     }
@@ -405,7 +408,13 @@ interface ICommitmentPoolingModule {
         string metadataCID,
         bytes32 needUID              // 0 = none; non-indexed (3-indexed budget spent); Envio reads params regardless (amendment 2026-07-04)
     );
-    event RewardDeclared(uint256 indexed commitmentId, address source, address token, uint256 amount);
+    event RewardDeclared(
+        uint256 indexed commitmentId,
+        RewardRail rail,
+        address source,
+        address token,
+        uint256 amount
+    );
     event ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold);
     event ClaimRequested(
         uint256 indexed commitmentId,
@@ -512,6 +521,8 @@ interface ICommitmentPoolingModule {
     error NotDue(uint256 commitmentId);
     error RewardAlreadyRecorded(uint256 commitmentId);
     error RewardNotDeclared(uint256 commitmentId);
+    error RewardRailMismatch(uint256 commitmentId, RewardRail expected, RewardRail actual);
+    error InvalidRewardConfiguration();
     error ReasonRequired();
     error InvalidDomains();
     error DuplicateDomain(uint8 domain);
@@ -738,7 +749,7 @@ Consolidated view of every mutating entry point across both contracts plus the t
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + OperatorCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; OperatorCaptured must set `onBehalfOf`; domains unique/max 4; every action exists/matches domain; DomainImpact requires 1–4 actions with a non-zero `requiredApprovedWorkCounts[i]` per action; SupportService/OperatorCaptured/SeasonCampaign may explicitly use evidence-only (empty or all-zero counts) |
-| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only |
+| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token, while non-zero amount requires a non-None rail and non-zero source/token |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; claimant != creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext and re-validates eligibility |
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
@@ -756,7 +767,7 @@ Consolidated view of every mutating entry point across both contracts plus the t
 | Exit | `expireCommitment` | anyone (permissionless) | past dueDate, or cycle endTime when dueDate == 0 |
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
 | Dispute | `resolveDispute` | steward | RestorePrevious or terminal resolution; Expired cannot become Fulfilled; allowed while module paused |
-| Reward | `recordRewardPaid` | steward | state Fulfilled; single record per commitment in MVP |
+| Reward | `recordRewardPaid` | steward | state Fulfilled; `reward.rail == ArbitrumExternal`; single record per commitment in MVP. `CeloSettlement` reverts and is owned exclusively by SettlementModule |
 | Module admin | `setGardenToken` / `setHatsModule` / `setActionRegistry` / `setCommitmentRegister` / `setWorkApprovalResolver` / `setEAS` / `setSchemaUIDs` / `setPaused` | module owner | zero addresses rejected except documented pre-wiring module links |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); provider open-commitment-cap guard (§6.2) |
@@ -775,12 +786,12 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 #### Behavior notes an implementer must not miss
 
 - **Confirmer rule storage**: `confirmers` persists in `commitmentConfirmers`; empty means Offer counterparty or Request creator, threshold 1. At acceptance, a named group is de-duplicated and the resolved provider is excluded. The module persists and emits the resolved group; acceptance reverts `InvalidConfirmerRule` when the threshold exceeds remaining eligible addresses. The named group is data, not a hat.
-- **Provider identity (one formula everywhere)**: acceptance stores `provider = direction == Offer ? creator : counterparty`. For an Individual claim, DomainImpact Work attester must equal this stored provider. For a Garden claim, Work attester must be a gardener/operator of `providerGarden`. The same stored `provider` is the `CommitmentRegister` account, reward recipient, open-commitment-count subject, and self-confirmation exclusion. `counterparty` remains the accepted recipient for an Offer and accepted provider for a Request; no lane may substitute claimant or `msg.sender` for the stored provider.
+- **Provider identity (one formula everywhere)**: acceptance stores `provider = direction == Offer ? creator : counterparty`. For an Individual claim, DomainImpact Work attester must equal this stored provider. For a Garden claim, Work attester must be a gardener/operator of `providerGarden`. The same stored `provider` is the `CommitmentRegister` account, open-commitment-count subject, self-confirmation exclusion, and recipient recorded by the existing Arbitrum-rail `recordRewardPaid` path. Celo G$ settlement is deliberately different: Individual rewards target the provider's same-address Celo AA, while Garden rewards target the registered `providerGarden` Celo Safe; both source from the owning pool `commitment.garden` Safe. `counterparty` remains the accepted recipient for an Offer and accepted provider for a Request; no lane may substitute claimant or `msg.sender` for the stored provider.
 - **Self-checks**: `claimCommitment` reverts `SelfCounterparty` when claimant == creator. `confirmFulfillment` reverts `SelfConfirmation` when msg.sender equals the stored provider, mirroring `packages/contracts/src/resolvers/WorkApproval.sol:153-156`.
 - **Register coupling**: `createCommitment` registers the class with immutable quota `targetUnits`. A pool steward configures the non-zero per-pool provider open-commitment cap through the module forwarder before `markPoolReady`; the register itself remains module-only. Acceptance calls `commitUnits(commitmentId, commitment.provider, targetUnits)`, which increments that provider's open commitment count by exactly one regardless of `targetUnits`. Cancel/expiry release only from Accepted/ReadyForConfirmation (or a Disputed record whose prior state held units), always against `commitment.provider`, and decrement the count once; Offered/Requested never release. Fulfillment converts only still-committed units for `commitment.provider` and decrements the count once. Raising or restoring a dispute preserves whether the pre-dispute state held the slot; no dispute path double-increments or double-decrements. Every path changes the register at most once.
 - **Canonical claim identity + traceability**: creation-time `claimType` is immutable eligibility; `claimCommitment` reverts `ClaimTypeMismatch` when runtime `kind` differs. Individual: `claimant = requestedBy = msg.sender`. Garden: `claimant = gardenContext`, `requestedBy = msg.sender`, after operator/owner authorization. The module stores `{claimant, requestedBy, kind, gardenContext, requestedAt, active}` keyed by `(commitmentId, canonical claimant)` and rejects an active duplicate. `acceptClaim`/`declineClaim` consume that key. Envio marks accepted and sibling requests without an arbitrary scan.
 - **Provider anchor**: acceptance stores `providerGarden` (Offer: pool garden; Request: accepted claimant's validated gardenContext) and emits both `provider` and `providerGarden` in `CommitmentAccepted`. DomainImpact Work must use a required action and the provider-authorship rule above; Work and assessment EAS recipients equal `providerGarden`, including protocol-pool commitments that remain owned by the root pool.
-- **Reward binding**: `recordRewardPaid` accepts only `commitmentId` and `payoutRef`. It requires Fulfilled, `rewardPaid == false`, and a declared non-zero source/token/amount, then emits the stored source, stored provider recipient, stored token/amount, payout ref, and `recordedBy = msg.sender`. The caller never supplies an earned-reward route or value.
+- **Reward binding**: `RewardRail.None` is valid only with zero source/token/amount; a non-zero reward requires either `ArbitrumExternal` or `CeloSettlement` plus non-zero source/token/amount. `recordRewardPaid` is the existing Arbitrum-rail record only. It accepts only `commitmentId` and `payoutRef`, requires Fulfilled, `reward.rail == ArbitrumExternal`, `rewardPaid == false`, and a declared non-zero source/token/amount, then emits the stored source, stored provider recipient, stored token/amount, payout ref, and `recordedBy = msg.sender`. The caller never supplies an earned-reward route or value. `CeloSettlement` reverts from this function; it never sets `rewardPaid`. `SettlementModule` requires that exact rail, token equal to canonical Celo G$, and source equal to the owning pool's registered Celo Safe, then derives the Individual-AA or Garden-Safe beneficiary under `settlement-spec.md`. The explicit rail makes recording both payout paths for one commitment impossible.
 - **Mandatory reasons**: `declineClaim`, steward cancellation, `markReadyForConfirmation`, fallback confirmation, `raiseDispute`, and every `resolveDispute` call reject an empty reason/CID with `ReasonRequired`. This error is the only empty-reason error; handlers preserve the emitted reason exactly.
 - **Domain/action scope**: `domains.length <= 4`; each entry uses the existing 0–3 enum and is unique. `requiredActionUIDs` is empty or has the same length as `domains`; `requiredApprovedWorkCounts` is empty or has the same length as `requiredActionUIDs` (amendment 2026-07-18). `DomainImpact` requires matching non-empty arrays. For every supplied action UID, including UID `0`, `actionRegistry.actionToOwner(uid) != address(0)` and `uint8(actionRegistry.getAction(uid).domain) == domains[i]`; array length, not a zero sentinel, distinguishes unbound commitments. SupportService, SeasonCampaign, and OperatorCaptured may remain unclassified (`[]`) or carry optional multi-domain tags without action UIDs; if they do carry action UIDs, the same existence/domain checks apply.
 - **approvedUnits math**: computed on-chain as `targetUnits * Σ min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ requiredApprovedWorkCounts` (integer floor; approvals beyond one requirement's quota never add units) and emitted in `ApprovedWorkCounted` so the indexer never re-derives fractional units. A single requirement degenerates to the previous `targetUnits * approvedWorkCount / requiredApprovedWorkCount` formula (amendment 2026-07-18).
@@ -1177,7 +1188,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CycleComposted(uint256 indexed cycleId, uint256 indexed poolId)
       - event: CycleCancelled(uint256 indexed cycleId, uint256 indexed poolId, string reasonCID)
       - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8[] domains, uint256[] requiredActionUIDs, uint32[] requiredApprovedWorkCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID)
-      - event: RewardDeclared(uint256 indexed commitmentId, address source, address token, uint256 amount)
+      - event: RewardDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
       - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold)
       - event: ClaimRequested(uint256 indexed commitmentId, address indexed claimant, address indexed requestedBy, uint8 kind, address gardenContext, uint64 requestedAt)
       - event: ClaimDeclined(uint256 indexed commitmentId, address indexed claimant, string reasonCID)
@@ -1225,6 +1236,7 @@ enum CommitmentKind { UNKNOWN DOMAIN_IMPACT SUPPORT_SERVICE SEASON_CAMPAIGN OPER
 enum CommitmentOnchainState { UNKNOWN OFFERED REQUESTED ACCEPTED READY_FOR_CONFIRMATION FULFILLED CANCELLED EXPIRED DISPUTED }
 enum CommitmentClaimType { UNKNOWN GARDEN INDIVIDUAL }
 enum CommitmentClaimMode { UNKNOWN OPEN APPROVAL_GATED }
+enum CommitmentRewardRail { UNKNOWN NONE ARBITRUM_EXTERNAL CELO_SETTLEMENT }
 enum CommitmentClaimRequestState { PENDING ACCEPTED DECLINED SUPERSEDED }
 enum CommitmentUnitScope { POOL CYCLE }
 enum CommitmentEventType {
@@ -1378,8 +1390,9 @@ type Commitment {
   workUIDs: [String!]!
   evidenceCIDs: [String!]!
   dueDate: BigInt!
+  rewardRail: CommitmentRewardRail!
   rewardSource: String
-  rewardRecipient: String
+  rewardRecipient: String # ArbitrumExternal RewardPaid recipient only; Celo beneficiary is on Disbursement
   rewardToken: String
   rewardAmount: BigInt
   rewardPaid: Boolean!
@@ -1629,12 +1642,12 @@ Exit criteria, in dependency order:
 ### Native phase 3: Release — 2026-08-12
 
 Goal: release the user-facing pooling flow, preserve the July non-value deployment proof, and complete one bounded production proof. The fixed date does not waive the value-tier gates or human authorization in `handoffs/human-release-ops.md`.
-Exit criteria: user-facing release authorization; persisted July deployment and post-deploy evidence; first real cycle opened; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; and, only if every value-tier gate passes, one G$ reward executed from the registered garden Celo Safe, reported, independently verified against the finalized receipt, and visible as “support arrived.” A blocked settlement leg remains blocked rather than weakening Release evidence.
+Exit criteria: user-facing release authorization; persisted July deployment and post-deploy evidence; first real cycle opened; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; and, only if every value-tier gate passes, one G$ reward executed from the owning pool's registered Celo Safe, acknowledged through authenticated Celo → Arbitrum CCIP, indexed as `Confirmed`, and visible as “support arrived.” A dispatch, Celo execution, timeout, or operator report without that acknowledgment is not confirmation. A blocked settlement leg remains blocked rather than weakening Release evidence.
 
 ### Native phase 4: Follow On / Hardening — 2026-09-30
 
 Goal: use pilot evidence to harden accepted paths and make explicit promote/defer decisions in parallel with the separately labeled September Community and settlement-evidence checkpoint.
-Exit criteria: evidence-backed decisions only. This date authorizes no follow-on implementation, transferable voucher, credit, bridge-executor, or custody expansion.
+Exit criteria: evidence-backed decisions only. This date authorizes no follow-on implementation, transferable voucher, credit, arbitrary bridge executor, or custody expansion.
 
 ### Operational checkpoint: July dry run — 2026-07-31
 

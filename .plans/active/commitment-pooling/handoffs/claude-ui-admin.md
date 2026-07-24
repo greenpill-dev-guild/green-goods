@@ -13,21 +13,29 @@
 
 - GREEN shared hooks/selectors and indexer query contract
 - Corrected admin contract: CanvasLayout, /hub reference, and /community route
-- uiux-spec.md, admin frames, settlement batch/oracle state contract
+- uiux-spec.md, admin frames, settlement batch/CCIP command-ack state contract
 - acceptance-matrix.md for exact role/permission, copy/state, payout, and final-proof contracts
 - Existing Admin wrappers, Storybook-backed shared primitives, and authenticated Brave access
 
 ## Outputs
 
 - Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
-- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/oracle operations live only in the deployer-gated Operations workspace.
-- Immutable 1-24 member batch view, per-member retry/cancel, reported/checking/oracle result states, Safe setup/status, and disabled-member-delivery disclosure.
+- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/CCIP operations live only in the deployer-gated Operations workspace.
+- Immutable batch-membership view with the measured configured 0–24 limit and hard ceiling of 24, whole-batch cancellation while Queued, per-member retry/cancel only after authenticated failure, command/execution/acknowledgment states, native ETH/CELO fee floors and low-balance state, active/previous peer expiry, Safe/Roles/cap health, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
-- Core seeding emits the full creation payload, enforces cycle/pool and DomainImpact positional array shape, shows the app-preflight Baseline alongside the onchain charter/provider-open-commitment-cap blockers, supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready submission/authorized override.
+- Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
+  reward fields, `ArbitrumExternal` explains the later record-only payout action, and
+  `CeloSettlement` requires the owning-pool Safe/canonical-G$ readiness without exposing
+  `recordRewardPaid`. It also enforces cycle/pool and DomainImpact positional array shape, shows
+  the app-preflight Baseline alongside the onchain charter/provider-open-commitment-cap blockers,
+  supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready
+  submission/authorized override.
 - DomainImpact creation uses 1–4 ordered domain/action requirement rows, encodes equal-length `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]`, and renders `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` plus canonical per-commitment `approvedUnits`.
 - Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
 - Cycle seeding carries no allocation. The open-cycle step accepts percentages, converts all six fields to basis points, requires an exact 10,000 total, and submits the complete allocation atomically through `openCycle(cycleId, allocation)`.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
+- `W10@accepted` uses one locked action row: “Send for confirmation” is available only when required evidence is complete; “Cancel promise” opens the reason-required `W10@cancel` steward dialog; “Mark ready” opens the authorized reason-required `W10@mark-ready-override` flow and is visually distinct from ordinary evidence completion. The row never implies that acceptance alone made the commitment Ready.
+- `W10@attach-assessment` is the only assessment-attachment placement. It filters to eligible Assessment v3 records for the commitment’s accepted `providerGarden`, records the selected assessment before Ready submission, and exposes an empty/ineligible state instead of attaching an unrelated garden’s assessment.
 
 ## Acceptance
 
@@ -35,16 +43,19 @@
 - `/community/pools` follows CanvasRouteFrame/CanvasRouteHeader and restrained command-surface grammar, and never exposes another garden's pool.
 - Request rows expose indexed canonical claimant, authenticated `requestedBy`, `claimType`, `gardenContext`, requestedAt/state/reason/resolution fields and the accepted result exposes derived `providerGarden`. Decline changes only that row; acceptance consumes the matching contract-stored terms and supersedes every other pending indexed row; claimant re-request and direction-aware confirmation are visible.
 - Pool pause requires a reason and disables only new commitments, claims, Ready submissions, and confirmations; evidence/linkage and safe recovery remain available. Provider open-commitment caps are steward-gated and class quotas are not editable.
+- In `W10@accepted`, steward cancellation and the authorized Ready override both require a captured reason; confirmation remains unavailable until the normal evidence gate or the explicit override has produced Ready. The three actions retain separate permissions, labels, and audit outcomes.
+- `W10@attach-assessment` accepts only the eligible Assessment v3 set scoped to the accepted `providerGarden`; no assessment from another provider or garden can be selected, and a required-but-empty set blocks normal Ready submission with a recovery explanation.
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
-- A rejected batch cannot be edited or requeued wholesale; only failed members can be requeued/canceled.
-- Reporting never marks settlement Verified. Oracle request, checking, infrastructure retry, invalid receipt, and stale-result behavior are legible.
+- A Queued batch exposes one blast-radius-confirmed whole-batch cancel action and never a per-member cancel. A rejected batch cannot be edited or requeued wholesale; only Failed members can be requeued or terminally cancelled. The UI preserves the failed attempt/failure code and distinguishes that closeout from an atomic Queued pre-send batch withdrawal or an unbatched Queued cancellation.
+- Dispatch or Celo execution never marks settlement Confirmed. Same-key command retry, stored acknowledgment retry, authenticated failure/new-attempt, derived delivery delay, CCIP manual-execution guidance, command/destination/acknowledgment IDs with Explorer links, and ignored stale/duplicate acknowledgment behavior are legible.
 - Safe view shows 2-of-3 recovery and separates owners from scoped executors.
-- Loading, empty, offline, waiting, declined, failed, retry, reported, checking, and Verified states have accessible recovery.
+- Account setup never claims to deploy a Safe: it explains the Release-gated Safe/Roles prerequisites and registers only an already-deployed, live-verified route.
+- Loading, empty, offline, waiting, declined, failed, retry, queued, dispatched, executed/acknowledgment-pending, delayed, and Confirmed states have accessible recovery.
 - Authenticated Brave verifies operator-critical desktop and mobile composition.
 
 ## RED / GREEN
 
-- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, oracle states, and Safe role separation.
+- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-member control, CCIP command/ack states, fee health, and Safe role separation.
 - GREEN: the same tests pass; admin build passes; authenticated Brave proves the live operator flow.
 
 ## Exact Bun commands
@@ -53,7 +64,7 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 
 - bun run --filter @green-goods/admin test -- src/__tests__/views/CommunityPools.test.tsx
 - bun run --filter @green-goods/admin test -- src/__tests__/routing/community-pools-route.test.tsx
-- bun run --filter @green-goods/admin test -- src/__tests__/settlement-oracle-flow.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/settlement-ccip-flow.test.tsx
 - bun run --filter @green-goods/admin build
 - bun run lint:vocab
 - bun run agentic:check
@@ -63,11 +74,11 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 
 ## Out of scope
 
-- A top-level Pools route, legacy DashboardLayout/Sidebar/Header, direct contract/RPC writes, in-app arbitrary Safe execution, manual receipt verification, garden-held member claims, rankings, credit, or client hero moments.
+- A top-level Pools route, legacy DashboardLayout/Sidebar/Header, direct contract/RPC writes, in-app arbitrary Safe execution, manual settlement confirmation, garden-held member claims, rankings, credit, or client hero moments.
 
 ## Unblock evidence
 
-- Core admin dispatch requires core state_api GREEN. Settlement batching/oracle/Safe controls remain blocked until settlement selectors are GREEN; core GREEN is not full settlement GREEN.
+- Core admin dispatch requires core state_api GREEN. Settlement batching/CCIP/Safe controls remain blocked until settlement selectors are GREEN; core GREEN is not full settlement GREEN.
 - /community placement and corrected admin wireframes are recorded.
 - RED proof precedes implementation.
-- GREEN includes targeted tests, build, and authenticated Brave proof for seeding, claims, dispute recovery, batching, reporting, oracle checking/result, failure, and retry.
+- GREEN includes targeted tests, build, and authenticated Brave proof for seeding, claims, dispute recovery, batching, command dispatch, execution/acknowledgment status, failure, fee/delivery delay, and each distinct retry action.

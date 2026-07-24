@@ -11,7 +11,7 @@ export type HotMeta = { l: string; to?: string; info?: string };
 export type ScreenState = {
   id: string; // kebab id, e.g. "disputed"; first state in the list is the default
   label: string; // chip label in the state switcher
-  proposed?: boolean; // amber "proposed" tag (still-open MF descendants)
+  proposed?: boolean; // amber tag reserved for genuinely unlocked review states
   html: string; // pre-rendered screen body (device inner HTML)
 };
 

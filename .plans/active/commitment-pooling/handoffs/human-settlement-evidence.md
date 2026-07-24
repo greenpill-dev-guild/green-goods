@@ -10,7 +10,7 @@
 
 ## Inputs
 
-- Current settlement and Community evidence models, including Reported/checking/Oracle-verified distinctions.
+- Current settlement and Community evidence models, including Dispatched/executed-acknowledgment-pending/Confirmed distinctions.
 - The approved operating structure in `../pilot-evidence-spec.md`: same-garden cycle comparison, claim-specific source hierarchy, two-key decision gate, independent qualitative method, layered safeguarding/repair, three privacy tiers, reproducible first-cycle process, and separated approval rights.
 - Named access and evidence owners plus an exact approved source/export for each claim.
 - Green Goods' Linear privacy boundary: aggregates, error text/hashes, and counts may be recorded; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers may not.
@@ -27,8 +27,9 @@
 
 ## Proof limit
 
-- This lane does not prove that value moved merely because a settlement was reported.
-- Only the current Chainlink Functions callback can support an Oracle-verified settlement claim.
+- This lane does not prove that value arrived merely because a command was dispatched or Celo execution was indexed.
+- Only an authenticated success acknowledgment for the subject's current execution key and
+  attempt can support a Confirmed settlement claim.
 - Product telemetry and available refusal/dispute controls cannot prove that coercion, retaliation, or hidden burden was absent; those findings require the approved confidential qualitative and safeguarding process.
 - Aggregate improvement cannot support a strengthened-capacity claim while an unresolved exposure, concentration, repair, circulation-integrity, or privacy stop condition applies.
 - Missing source access, an unavailable partner confirmation, or a cohort below the approved threshold remains a blocker and is reported as unavailable evidence, never inferred success.
@@ -39,7 +40,7 @@
 - The structural decisions in `../pilot-evidence-spec.md` §1.1 remain fixed, and every operational assignment in §10.3 is dated before outcome interpretation.
 - Every distributable claim names a current primary source, observation date, evidence owner, and proof limit.
 - Any statement that pooling strengthened settlement capacity satisfies the claim gate in `../pilot-evidence-spec.md` §2; wider causal impact remains out of scope.
-- The September 30 packet distinguishes Reported from Oracle-verified settlement and distinguishes unavailable, suppressed, mixed, and zero results.
+- The September 30 packet distinguishes Dispatched, executed/acknowledgment-pending, and Confirmed settlement and distinguishes unavailable, suppressed, mixed, and zero results.
 - The packet reports coercion, exposure, concentration, repair, and privacy review outcomes without exposing participant-level source material.
 - Repository, thin Linear mirror, and canonical Google Doc agree after live rereads; an unavailable surface keeps the lane blocked.
 
@@ -63,4 +64,4 @@ the smallest exact read-only evidence-reproduction command before dispatch.
 
 ## Out of scope
 
-- Product implementation, wallet/session identifiers or confidential safeguarding material in Linear, autonomous partner outreach, a release broadcast, receipt verification by a human, causal livelihood/community-wide impact claims, participant scoring/ranking, or any claim that unavailable evidence passed.
+- Product implementation, wallet/session identifiers or confidential safeguarding material in Linear, autonomous partner outreach, a release broadcast, settlement confirmation by a human, causal livelihood/community-wide impact claims, participant scoring/ranking, or any claim that unavailable evidence passed.

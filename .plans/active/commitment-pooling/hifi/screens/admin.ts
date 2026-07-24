@@ -154,7 +154,7 @@ export const dtable = (heads: string[], rows: string[][], caption: string) =>
 // ---------------------------------------------------------------------------
 
 const W7_STATES = [
-  ["open", "Open"], ["not-ready", "Not ready — checklist"], ["ready", "Ready — open it"],
+  ["open", "Open"], ["not-ready", "Not ready — checklist"], ["preflight-complete", "Checks complete — mark ready"], ["ready", "Ready — open it"],
   ["paused", "Paused"], ["reconciled", "Reconciled"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
   ["loading", "Loading"], ["empty", "No commitments yet"],
 ] as const;
@@ -163,12 +163,15 @@ type W7State = (typeof W7_STATES)[number][0];
 const w7PoolCard = (state: W7State) => {
   const chipFor: Record<string, string> = {
     open: chip("Open", "ok", { dot: true }), "not-ready": chip("Not ready", "plain", { dot: true }),
+    "preflight-complete": chip("Checks complete", "warn", { dot: true }),
     ready: chip("Ready", "warn", { dot: true }), paused: chip("Paused", "warn", { dot: true }),
     reconciled: chip("Open", "ok", { dot: true }), "claim-outcomes": chip("Open", "ok", { dot: true }),
     "expiry-queue": chip("Open", "ok", { dot: true }),
   };
   const acts =
-    state === "ready"
+    state === "preflight-complete"
+      ? `${hot("w7.mark-ready", btn("Mark pool ready", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit readiness", { kind: "sec", sm: true }))}`
+      : state === "ready"
       ? `${hot("w7.open-pool", btn("Open pool", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
       : state === "paused"
         ? `${hot("w7.resume", btn("Resume pool", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
@@ -180,6 +183,8 @@ const w7PoolCard = (state: W7State) => {
   const note =
     state === "not-ready"
       ? banner("Readiness needs all three: charter, provider open-commitment cap, and a qualifying baseline assessment.", "stone")
+      : state === "preflight-complete"
+        ? banner("All three checks pass. Marking Ready records the onchain pool transition; it does not open member participation yet.", "stone")
       : state === "ready"
         ? banner("Everything is in place. Opening the pool lets members see and make promises.", "stone")
         : state === "paused"
@@ -236,6 +241,7 @@ ${banner("Expiry runs both paths: this queue for stewards, “offer again” for
 const W7_DESC: Record<W7State, string> = {
   open: "Season of First Rains is live — offers and requests between neighbors.",
   "not-ready": "Finish the readiness checklist before members can promise.",
+  "preflight-complete": "All readiness checks pass — mark the pool Ready onchain.",
   ready: "Everything is in place — open the pool when you're ready.",
   paused: "Paused for the season — evidence and recovery stay open.",
   reconciled: "The season is reconciled — its promises settled and composted.",
@@ -275,7 +281,8 @@ function w7(state: W7State): string {
 const W7_HOTS: HifiDef["hots"] = {
   "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@paused", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
   "w7.resume": { l: "Resume pool", to: "screen:W7", info: "resumePool clears the indexed reason (CS:725)." },
-  "w7.edit-charter": { l: "Edit charter", to: "screen:W7@ready", info: "setPoolCharter — one of the three readiness inputs; the prototype returns to the resulting Ready card (UX:269)." },
+  "w7.edit-charter": { l: "Edit readiness", to: "screen:W7@preflight-complete", info: "Completes the charter, non-zero provider open-commitment cap, and qualifying Baseline preflight; the pool remains NotReady until markPoolReady succeeds (UX:269)." },
+  "w7.mark-ready": { l: "Mark pool ready", to: "screen:W7@ready", info: "markPoolReady records NotReady → Ready after charter + non-zero cap pass onchain and the qualifying Baseline passes the app preflight (CS:724 · UX:269)." },
   "w7.open-pool": { l: "Open pool", to: "screen:W7", info: "openPool → PoolOpened. Adopted onto the status card per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
   "w7.close-pool": { l: "Close pool", to: "screen:W1@closed", info: "After the last cycle composts (CS:102); then compost/reopen per §4.1." },
   "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118)." },
@@ -313,10 +320,17 @@ function w8(state: W8State): string {
       inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>${hot("w8.add-address", btn("Add address", { kind: "ghost", sm: true, icon: "add-line" }))}`)}
 ${field("Threshold", input("2 of 2", { select: true }))}
 ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}
-${hot("w8.reward", field("Declared reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`))}${hot("w8.continue-rule", btn("Continue", { kind: "pri", full: true }))}`;
+${hot("w8.reward", field("Reward rail", radio([
+  { label: "None", meta: "no declared reward" },
+  { label: "External payout record", meta: "record a completed jar or treasury payout", on: true },
+  { label: "Celo G$ settlement", meta: "queue CCIP delivery after fulfillment" },
+], { interactive: true, name: "reward-rail" })))}
+${field("External reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`)}
+${banner("One rail only. External payout records use Record payout; Celo G$ rewards use Queue disbursement from the owning-pool Safe.", "stone")}
+${hot("w8.continue-rule", btn("Continue", { kind: "pri", full: true }))}`;
       break;
     case "step4":
-      inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward", "20 DAI · garden jar · reference only")}
+      inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "ArbitrumExternal")}${kv("Reward", "20 DAI · garden jar · reference only")}
 ${hot("w8.seed", btn("Seed this commitment", { kind: "pri", full: true }))}`;
       break;
     case "captured-for":
@@ -347,7 +361,7 @@ const W8_HOTS: HifiDef["hots"] = {
   "w8.add-action": { l: "Add action requirement", info: "Adds another approved-work requirement to the seeded promise." },
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
   "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
-  "w8.reward": { l: "Declared reward", info: "Reference only — the module never custodies funds (WF:339 · UX:280)." },
+  "w8.reward": { l: "Reward rail", info: "Exactly one rail is declared: None, ArbitrumExternal, or CeloSettlement. External rewards are references only; Celo G$ uses the settlement module." },
   "w8.continue-scope": { l: "Continue to requirements", to: "screen:W8@step2", info: "Type and scope → requirements." },
   "w8.continue-requirements": { l: "Continue to rule and reward", to: "screen:W8@step3", info: "Requirements → confirmation rule and declared reward." },
   "w8.continue-rule": { l: "Continue to review", to: "screen:W8@step4", info: "Rule and reward → final review." },
@@ -395,7 +409,8 @@ const W9_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W10_STATES = [
-  ["detail", "Detail"], ["record-payout", "Record payout"], ["fallback-confirm", "Fallback confirm"],
+  ["detail", "Detail"], ["record-payout", "Record payout"], ["queue-settlement", "Queue Celo settlement"],
+  ["fallback-confirm", "Fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
   ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel promise"], ["not-found", "Not found"],
@@ -420,6 +435,7 @@ const w10Behind = () =>
 
 const W10_TITLE: Record<W10State, string> = {
   detail: "Prune the north beds", accepted: "Prune the north beds", "record-payout": "Record payout",
+  "queue-settlement": "Queue Celo settlement",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
   "attach-assessment": "Attach assessment", "mark-ready-override": "Mark ready with override",
   cancel: "Cancel this promise", "not-found": "Promise unavailable",
@@ -432,8 +448,12 @@ function w10(state: W10State): string {
   let actions: string;
   switch (state) {
     case "record-payout":
-      body = `${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the reward moved outside the app — no value moves here (UX:302). Build-phase G$ rewards relabel this Queue disbursement (SS:535).", "stone")}`;
+      body = `${kv("Reward rail", "ArbitrumExternal")}${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the external reward moved outside the app — no value moves here. CeloSettlement rewards never use this action.", "stone")}`;
       actions = `${dismiss()}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
+      break;
+    case "queue-settlement":
+      body = `${kv("Reward rail", "CeloSettlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${banner("Queueing snapshots the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. Record payout is unavailable for this rail.", "stone")}`;
+      actions = `${dismiss()}${hot("w10.queue-settlement-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
       body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — the provider's own address is blocked on-chain, always (CS:744). The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
@@ -483,6 +503,7 @@ ${banner("Evidence is in. Send it to the recipient for confirmation — or, as a
 ${kv("Maria → João", "6 hours · due Aug 12 · open claim")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria — cannot confirm")}${kv("Eligible", "João ✓ · Ana ○ · you ○ (1 of 2 required)")}
+${kv("Reward rail", "ArbitrumExternal")}
 <div class="arow"><div class="grow">${kv("Reward", "20 DAI · garden jar · unpaid")}</div>${hot("w10.record-payout", btn("Record payout", { kind: "sec", sm: true }))}</div>`;
       actions = `${hot("w10.fallback", btn("Confirm as fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
   }
@@ -493,8 +514,9 @@ ${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session 
 }
 
 const W10_HOTS: HifiDef["hots"] = {
-  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here (UX:302)." },
-  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h)." },
+  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
+  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h)." },
+  "w10.queue-settlement-confirm": { l: "Queue disbursement", to: "screen:W21", info: "CeloSettlement only: queueDisbursement snapshots the owning-pool Safe source and canonical G$ delivery facts." },
   "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "Overrides render visible markers in the member timeline (UX:287,301)." },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
@@ -667,13 +689,13 @@ const HUBWORK_HOTS: HifiDef["hots"] = {
 
 export const ADMIN_DEFS: HifiDef[] = [
   { screen: { id: "W7", title: "W7 · Garden Pool tab (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W7_STATES.map(([id, label]) => ({ id, label, proposed: id === "ready" || id === "expiry-queue", html: w7(id) })) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
+    states: W7_STATES.map(([id, label]) => ({ id, label, html: w7(id) })) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
   { screen: { id: "W8", title: "W8 · Seeding console", surface: "admin", frame: "desktop", group: "Admin console",
     states: W8_STATES.map(([id, label]) => ({ id, label, html: w8(id) })) }, hots: { ...adminChromeHots("w8", "garden"), ...W8_HOTS } },
   { screen: { id: "W9", title: "W9 · Analog capture", surface: "admin", frame: "desktop", group: "Admin console",
     states: W9_STATES.map(([id, label]) => ({ id, label, html: w9(id) })) }, hots: { ...adminChromeHots("w9", "garden"), ...W9_HOTS } },
   { screen: { id: "W10", title: "W10 · Commitment dialog (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W10_STATES.map(([id, label]) => ({ id, label, proposed: ["attach-assessment", "accepted", "mark-ready-override", "cancel"].includes(id), html: w10(id) })) }, hots: W10_HOTS },
+    states: W10_STATES.map(([id, label]) => ({ id, label, html: w10(id) })) }, hots: W10_HOTS },
   { screen: { id: "W11", title: "W11 · Open-cycle allocation", surface: "admin", frame: "desktop", group: "Admin console",
     states: W11_STATES.map(([id, label]) => ({ id, label, html: w11(id) })) }, hots: { ...adminChromeHots("w11", "garden"), ...W11_HOTS } },
   { screen: { id: "W13", title: "W13 · Hub Confirm stage", surface: "admin", frame: "desktop", group: "Admin console",

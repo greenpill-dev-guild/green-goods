@@ -11,7 +11,7 @@
 
 ## Inputs
 
-- Frozen pooling ABI/events for the core phase; frozen Functions-only settlement ABI/events for the settlement phase
+- Frozen pooling ABI/events for the core phase; frozen CCIP command/ack and Celo executor ABI/events for the settlement phase
 - GREEN core indexer codegen/build and agreed entity/query contract; settlement entities join only for the settlement phase
 - acceptance-matrix.md for shared identity, status, copy, and final-proof contracts
 - Composite Garden-ID query cutover
@@ -21,7 +21,7 @@
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
-- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
+- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward rail/source/token/amount, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
 - Direction-aware confirmation eligibility and provider exclusion.
@@ -29,7 +29,8 @@
 - Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and canonical per-commitment `approvedUnits`; one `requirementIndex` can credit only its matching domain/action position.
 - Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
 - Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles require fulfilled lineage.
-- Settlement precedence and states, including derived checking while on-chain state remains Reported, oracle-invalid failure, infrastructure retry, and member-delivery disabled.
+- Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
+- Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
 - Exported shared API with no client/admin hooks.
 
 ## Acceptance
@@ -41,7 +42,12 @@
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
-- Settlement selectors never present Reported/checking as arrived and never offer a member-delivery action while disabled.
+- Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
+- Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
+  `RewardPaid`; `CeloSettlement` can surface only SettlementModule state; `None` has neither.
+- Acknowledgment reads preserve the exact originating command-message relationship and stored
+  return receiver/version; an older retry ID delivered out of order can join only to its own
+  execution key and never to another settlement.
 - Garden queries use composite IDs only.
 - New user-visible shared strings have en/es/pt messages and accessible status announcements.
 
@@ -63,7 +69,7 @@ The three named shared test files do not exist yet; they are intentional to-be-c
 
 ## Out of scope
 
-- Hooks in client/admin, package-level env files, contract or indexer changes, raw Celo indexing, an offline G$ transfer job, manual receipt verification, garden-custody claims, credit, rankings, and transferable vouchers.
+- Hooks in client/admin, package-level env files, contract or indexer changes, raw Celo/G$ indexing, an offline G$ transfer job, manual settlement confirmation, garden-custody claims, credit, rankings, and transferable vouchers.
 
 ## Unblock evidence
 

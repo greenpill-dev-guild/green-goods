@@ -35,7 +35,16 @@
 - The onchain Ready predicate requires a charter and non-zero register provider open-commitment cap. A current, non-revoked Baseline assessment is an app/shared/admin preflight and is never added to the contract predicate. `pausePool` requires a reason CID and blocks only the operational mutations enumerated in contract-spec §6.1.
 - `seedCycle` stores no allocation. `openCycle(cycleId, AllocationBps allocation)` validates all six fields sum to 10,000, stores the immutable cycle snapshot, and emits that snapshot in `CycleOpened`.
 - DomainImpact creation stores equal-length positional `domains`, `requiredActionUIDs`, and `requiredApprovedWorkCounts` arrays (1–4, every required count non-zero). Every Work approval carries a `requirementIndex`, validates the matching domain/action pair, and increments only `approvedWorkCounts[requirementIndex]`; Ready requires every position to meet its requirement.
-- Provider is stored once at acceptance (`Offer -> creator`, `Request -> counterparty`) and is the only unit account, open-commitment-count subject, reward recipient, and self-confirmation exclusion. Individual DomainImpact Work equals provider; Garden claims use a gardener/operator of providerGarden; UID 0 remains valid through the concrete ActionRegistry ABI.
+- Provider is stored once at acceptance (`Offer -> creator`, `Request -> counterparty`) and is the
+  only unit account, open-commitment-count subject, Arbitrum-rail `RewardPaid` recipient, and
+  self-confirmation exclusion. Individual DomainImpact Work equals provider; Garden claims use a
+  gardener/operator of `providerGarden`; UID 0 remains valid through the concrete ActionRegistry
+  ABI. Celo G$ beneficiary/source derivation belongs exclusively to `SettlementModule`:
+  Individual → provider AA, Garden → registered `providerGarden` Safe, payer → owning-pool Safe.
+- `DeclaredReward` carries `RewardRail { None, ArbitrumExternal, CeloSettlement }`. Zero reward
+  requires `None` plus zero source/token/amount; `recordRewardPaid` accepts only
+  `ArbitrumExternal`, so a Celo settlement declaration cannot also be recorded on the external
+  rail.
 - Acceptance increments `providerOpenCommitmentCount` exactly once regardless of `targetUnits`. Pre-acceptance cancel/expiry changes no balance or slot; fulfillment, accepted cancellation, and accepted expiry each release exactly one slot once. Dispute entry/restoration preserves the pre-dispute slot state and cannot double-change it.
 - Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by the accepted provider/counterparty or steward, never by an unrelated creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
 - The count-cap API is the initial interface: `ProviderOpenCommitmentCapUpdated`, `OpenCommitmentCapExceeded`, `providerOpenCommitmentCapOf`, and `openCommitmentCountOf`. No exposure-unit compatibility alias or migration machinery is permitted.

@@ -6,7 +6,7 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: claude/docs/commitment-pooling
-- Current state: follow status.json; architecture/glossary work is independent of product implementation
+- Current state: manually blocked on the Wave 2 source-convergence gate in `status.json`; architecture/glossary work is independent of product implementation once explicitly unblocked
 - Linear context: PRD-727 (docs lane) under parent PRD-650
 
 ## Inputs
@@ -18,15 +18,18 @@
 ## Outputs
 
 - Architecture, glossary, data-boundary, and settlement documentation aligned to the frozen specs.
-- Explicit built, planned, reported, oracle-verified, and evidence-gated labels.
+- Explicit built, planned, dispatched, confirming, confirmed, and evidence-gated labels.
 - Links to the lane issue and parent roadmap records without dispatching historical child issues.
 - Updated anchors and validated docs build.
 
 ## Acceptance
 
 - Commitments are module-native; EAS carries only the named schemas and Envio never indexes EAS.
-- G$ remains on Celo; only the protocol → garden route is a Green Goods action.
-- Reported is an executor assertion; only a successful Functions callback is oracle-verified.
+- G$ remains on Celo. The only modeled funding top-up is protocol → garden; commitment rewards
+  separately spend from the fulfilled commitment's owning-pool Safe to the derived member AA or
+  provider-Garden Safe recipient.
+- Dispatched and Celo-executed/acknowledgment-pending are not arrived; only an authenticated
+  success acknowledgment for the subject's current execution key and attempt is Confirmed.
 - Safe recovery owners and Roles executors are described separately.
 - AA failure is documented as blocked member delivery and never creates a garden-held member claim.
 - Unsupported outcome numbers are framed as pilot targets with source/date/measurement method.
@@ -49,7 +52,7 @@
 
 ## Out of scope
 
-- Product implementation, speculative screenshots, claiming planned behavior is live, manual receipt verification, garden-held member claims, new Linear children, or altering the canonical synthesis.
+- Product implementation, speculative screenshots, claiming planned behavior is live, manual settlement confirmation, garden-held member claims, new Linear children, or altering the canonical synthesis.
 
 ## Unblock evidence
 
