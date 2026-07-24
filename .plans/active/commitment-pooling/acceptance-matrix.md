@@ -2,7 +2,7 @@
 
 **Status**: canonical execution companion  
 **Updated**: 2026-07-22
-**Sources**: `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `wireframes.md`  
+**Sources**: `contract-spec.md`, `settlement-spec.md`, `pilot-evidence-spec.md`, `uiux-spec.md`, `wireframes.md`
 **Purpose**: one exact target for the handoffs' copy/state matrix, public claim/copy matrix, and final QA acceptance matrix. Specs win if this summary drifts.
 
 ## 1. State and copy matrix
@@ -56,6 +56,7 @@
 | Community comparison | Alphabetical/neutral aggregates with small-community suppression | Rankings, leaderboards, credit scores | `uiux-spec.md` §7.2 |
 | Funding | Supports the garden; not per-Need escrow or steering | Funding buys priority/control | Community spec |
 | Credit/vouchers | Design-only/evidence-gated follow-on | August capability or dispatchable work | `../../backlog/commitment-credit-follow-on/spec.md`, PRD-651/697 |
+| Pilot outcome | Observed change, mixed result, or strengthened settlement capacity only at the approved claim class | Settlement/transaction volume, feature use, or fulfillment alone described as causal livelihood/community impact | `pilot-evidence-spec.md` |
 
 ## 4. Final role / route / state proof
 
@@ -74,7 +75,12 @@
 
 August UI GREEN aggregates `ui_client`, `ui_admin`, `editorial`, `docs`, and `docs_guides` for the shipped August scope. The September `community` PWA records its own GREEN later and is not an August QA dependency. Membership persistence is conditional within Community and remains excluded until RESR-64; it does not block the non-membership Community core.
 
-## 6. Pilot measurement definitions
+## 6. Pilot operational measurement definitions
+
+These targets measure product and operating reliability. They do not by themselves establish that
+pooling strengthened settlement capacity. `pilot-evidence-spec.md` owns the required cohort,
+baseline, claim hierarchy, safeguard/repair review, circulation-integrity rules, privacy tiers, and
+stop conditions for that outcome claim.
 
 | Target by 2026-09-30 | Canonical calculation |
 |---|---|
@@ -83,4 +89,4 @@ August UI GREEN aggregates `ui_client`, `ui_admin`, `editorial`, `docs`, and `do
 | At least 95% steward validation without data repair | Eligible triage, seeding, and confirmation tasks completed without a corrective edit divided by all eligible observed tasks. |
 | Median field submission at or below two minutes | Median time from first input to saved or submitted state, compared with a separately measured pre-pilot baseline; no baseline value is assumed. |
 
-Every report includes numerator, denominator, sample size, observation window, excluded states, and qualitative context. Public reporting excludes wallet addresses, join-request records, and participant identifiers.
+Every report includes numerator, denominator, sample size, observation window, excluded states, and qualitative context. Public reporting excludes wallet addresses, join-request records, and participant identifiers. Unavailable, suppressed, mixed, and zero results remain distinct.

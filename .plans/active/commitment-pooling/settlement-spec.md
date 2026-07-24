@@ -616,6 +616,11 @@ Doc `657f7233` scored Architecture 2 the winner on **8 of 10** criteria. ⚠️ 
 
 Source: Linear doc `6c7a2e4e-c96a-4b8a-985d-3b9ac262087a`, "Circular G$ Economies Inside Green Goods Garden Commitment Pools" (2026-07-02). Metrics attach to the count-safe indexed stats `promiseKeptRate` and `openCommitmentCount`; operational unit totals are available only through exact-label `CommitmentUnitSummary` rows and never combine unlike labels.
 
+This section preserves circulation formulas and their settlement/read-model dependencies. It does
+not define when Green Goods may claim that pooling strengthened settlement capacity.
+`pilot-evidence-spec.md` owns that claim gate, including baselines, exposure/coercion/repair
+safeguards, falsification, privacy, and publication.
+
 ### Metric definitions
 
 Reproduced as written. The document states **no excluded states** for any metric. Windows are the doc's where stated (velocity, hoard share); the rest are inferred from its pervasive one-season framing.
@@ -707,21 +712,28 @@ Named sinks: garden store; seed/tool bank, equipment hire, water/solar service f
 **Settlement-evidence implications (separate blocked lane; not settlement implementation scope)**
 
 1. **A flow-type tag on settled flows.** Nothing in `settlement-spec.md` carries one. `DisbursementKind {CommitmentReward, Funding}` and `FundingRoute {None, ProtocolToGarden}` exist but tag the *purpose of an outbound disbursement*, not recirculation vs leak — neither is a substitute.
-2. **Celo-side observation, which the indexer boundary currently excludes.** `settlement-spec.md` §Indexer: "Envio indexes the Arbitrum SettlementModule, not Celo token events." Every in-pool spend, merchant payment, cash-out, DEX swap, and idle balance is a Celo G$ fact. Four of the five metrics have a numerator or denominator living entirely on Celo. Either the boundary extends to canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) transfers for registered Safes and member AA accounts, or an off-chain attested read model supplies them — the current spec produces neither.
+2. **Celo-side observation, which the indexer boundary currently excludes.** `settlement-spec.md` §Indexer: "Envio indexes the Arbitrum SettlementModule, not Celo token events." Every in-pool spend, merchant payment, cash-out, DEX swap, and idle balance is a Celo G$ fact. Four of the five metrics have a numerator or denominator living entirely on Celo. For the first evidence cycle, use only the exact approved Celo observation or attested read model assigned under `pilot-evidence-spec.md` §§5.2 and 10.3. If that source or its cohort denominator is unavailable, the result is **Unavailable**. This does not authorize extending Envio to raw G$ transfers, estimating the missing denominator, or adding participant-level tracking. A repeated-cycle need for a Celo read model is a separate architecture decision.
 3. **Reseed rate needs Celo-side observation and season attribution — not a new funding route.** Its numerator is "G$ returning to the next season pool." A garden carrying store revenue or retained G$ into its next season does so **inside its own persistent Celo Safe** (§2), which is already the garden pool's settlement account — the funds never travel above it, so this is independent of the open Garden→protocol question in `reports/corrections-log.md` §9b. What it does require is observing Celo-side balances and attributing them to a season cohort. Do not add an upward funding route to scope on this metric's account.
 4. **A pool-balance time series.** Velocity divides by "average pool G$ balance over the season," which needs sampled balances over time for the pool's Celo Safe. The admin Operations funding view currently plans a point-in-time Celo balance *read*, not a series.
 5. **A registry of in-pool counterparties per garden per season.** "In-pool spend" is only decidable against a known set (garden store, seed/tool bank, participating merchant, steward accounts). Without an allowlist, every transfer out of a member wallet is indistinguishable from a cash-out.
 6. **Season cohort identity carried through settlement,** so "this season's G$" is separable for the per-season cohort view.
 7. **Denominator risk from `memberDeliveryEnabled`.** Individual member delivery is gated on the Celo AA/paymaster spike; if it fails, `memberDeliveryEnabled` stays false and commitment-reward queueing plus member G$ sends are blocked while `ProtocolToGarden` continues. If member delivery is off in season one, "total G$ paid out" — the recirculation denominator — is near-empty and no circulation metric has a meaningful base.
-8. **Numeric thresholds are an open decision.** "Majority" and "minority" are not implementable gates. The numbers must be set before any healthy-season check can be automated or reported as pass/fail.
+8. **Numeric threshold values remain an operational assignment.** "Majority" and "minority" are not implementable gates. The two-key capacity-plus-safeguard model and stop-condition classes are approved in `pilot-evidence-spec.md`; each garden's meaningful-change and warning values must be dated before comparison-cycle outcomes are reviewed.
 
 ### 11.9 Why this section exists
 
 The GoodDollar-facing plan commits Green Goods to reporting *"how much G$ recirculates inside a garden versus leaves it — real circulation, not just transaction volume."* That commitment had **no specced data source**: §3.2 models disbursement state only, and §6 explicitly scopes the indexer to "the Arbitrum SettlementModule, not Celo token events."
 
-The definitions above were the only written record of how those metrics are computed, and they lived in a Linear document with no spec home. They are preserved here so the document can be retired — **not** because the measurement is designed. Items 1–8 in "Settlement-evidence implications" are open scope, and item 8 (nobody has set the numeric thresholds) means the healthy-season test cannot currently be evaluated pass/fail at all.
+The definitions above were the only written record of how those metrics are computed, and they lived in a Linear document with no spec home. They are preserved here so the document can be retired. `pilot-evidence-spec.md` now owns the approved evaluation design. Items 1–8 in "Settlement-evidence implications" are source dependencies and proof limits, not open implementation scope. Until the required source, denominator, attribution, and garden-specific threshold assignments are complete, the affected healthy-season result is **Unavailable** and cannot be evaluated as pass/fail.
 
-These items belong to the human-owned, blocked `settlement_evidence` execution sub-lane and `handoffs/human-settlement-evidence.md`, due at the separately labeled 2026-09-30 operational checkpoint. They do not expand the settlement or Envio implementation boundaries. Before any agent receives that lane, a human must lock source systems, privacy rules, thresholds, and the owning package or explicitly choose a no-code operational report. Tracked at `reports/corrections-log.md` §9c.
+These items belong to the human-owned, blocked `settlement_evidence` execution sub-lane,
+`pilot-evidence-spec.md`, and `handoffs/human-settlement-evidence.md`, due at the separately labeled
+2026-09-30 operational checkpoint. The first cycle is the reproducible human-reviewed operational
+process in `pilot-evidence-spec.md` §10.1; it does not expand settlement, Envio, or participant
+tracking. Before evidence collection or calculation is dispatched, complete the named source,
+garden, threshold, qualitative, safeguarding, privacy, reproducibility, and publication
+assignments in `pilot-evidence-spec.md` §10.3. Missing evidence remains unavailable rather than
+creating implementation authority. Tracked at `reports/corrections-log.md` §9c.
 
 ### 11.10 One conflict carried across deliberately
 

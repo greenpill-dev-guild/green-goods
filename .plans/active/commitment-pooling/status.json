@@ -450,7 +450,7 @@
       "status": "blocked",
       "manual_blocked": true,
       "ready_when_dependencies_met": false,
-      "blocked_reason": "Definition gate: lock the source systems, privacy boundary, reporting thresholds, and implementation package before assigning an agent or implementation work. Due 2026-09-30 as an operational checkpoint, not a native project phase.",
+      "blocked_reason": "Operational-assignment gate: pilot-evidence-spec.md now locks the same-garden cohort/baseline method, claim-specific source hierarchy, two-key threshold model, qualitative method, layered safeguarding/repair, privacy tiers, reproducible first-cycle process, and separated approval rights. Named source/access/evidence owners, exact garden cohorts and history sources, garden-specific primary measures and numeric thresholds, collection/storage/retention details, safeguarding response paths, reproducibility artifacts, and publication owners remain required before agent assignment or outcome interpretation. Due 2026-09-30 as an operational checkpoint, not a native project phase.",
       "branch": null,
       "depends_on": ["settlement", "community"],
       "handoff": "handoffs/human-settlement-evidence.md",
@@ -462,7 +462,7 @@
         "dueDate": "2026-09-30"
       },
       "linear_issues": ["PRD-735", "PRD-650"],
-      "acceptance": "A human-approved measurement definition names primary data sources, allowed aggregate fields, prohibited identifiers, minimum reporting thresholds, implementation package, evidence owner, and September 30 delivery proof before any agent label or implementation dispatch."
+      "acceptance": "The approved pilot-evidence-spec.md structure remains fixed; every operational assignment in section 10.3 is dated; each garden has a defensible cohort/baseline, one primary measure, declared secondary measures, denominator/window, and pre-outcome thresholds; designated sources and owners are current; safeguarding/privacy blocks are cleared; a second reviewer reproduces the aggregates; and the September internal decision record plus any separately approved partner/public output stays within its claim and privacy tier before any agent label, implementation dispatch, or strengthened-capacity claim."
     }
   },
   "follow_on": {
@@ -601,6 +601,14 @@
     {
       "date": "2026-07-21",
       "event": "Register #44 moved Follow On / Hardening from 2026-12-31 to 2026-09-30. The native phase and Community/settlement-evidence operational checkpoint remain distinct, parallel closures on the same date; no implementation or broadcast authority changed."
+    },
+    {
+      "date": "2026-07-23",
+      "event": "Register #46 approved pilot-evidence-spec.md as the normative September claim/evaluation boundary. It adds baseline and metric-registry requirements, coercion/exposure/repair safeguards, circulation integrity, falsification, privacy tiers, and evidence-packet gates without expanding product, settlement, or Envio implementation. Register #47 subsequently approved the structural choices and narrowed the remaining block to operational assignments and garden-specific values."
+    },
+    {
+      "date": "2026-07-23",
+      "event": "Register #47 approved the eight pilot-evidence structural decisions: existing-garden continue/refine purpose; within-garden cohort/baseline design; claim-specific source hierarchy; two-key capacity-plus-safeguard gate; light-touch independent qualitative method; layered safeguarding and repair; three privacy/publication tiers; and a reproducible operational first cycle with separated approval rights. PRD-735 remains human-owned and blocked only on named owners, exact source access, garden worksheets, numeric thresholds, collection/storage/retention details, response paths, reproducibility artifacts, and publication assignments."
     }
   ]
 }

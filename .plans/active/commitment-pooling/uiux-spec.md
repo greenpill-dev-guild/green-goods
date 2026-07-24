@@ -364,6 +364,11 @@ The four-cell stats strip itself does not change in MVP. `/gardens` grid cards (
 
 Recommendation, locked for this spec: `promiseKeptRate` renders publicly only when the cycle has **at least 5 due commitments and at least 3 distinct promisers**. It is the sole cross-commitment percentage. Below threshold, show absolute counts in sentence form and never a percentage; a single lapsed promise in a three-person pool must not read as a 33 percent failure on a public page. Cancelled and Disputed never appear individually anywhere public (§4.3). The same threshold applies to the WalletDrawer Commitments summary (§5.8); inside the garden (pool tab), members see their own full counts and exact-label unit groups.
 
+This is a product-display floor, not the pilot's research publication threshold or evidence that
+pooling strengthened settlement capacity. `pilot-evidence-spec.md` owns the stronger privacy,
+linkability, consent, baseline, safeguard, and outcome-claim gates. When its publication rule is
+stricter, the stricter rule controls.
+
 ### 7.3 `/impact`: protocol-wide pool aggregates NET-NEW
 
 Add one editorial band to `packages/client/src/views/Public/Impact.tsx` using its section grammar (EditorialKicker + EditorialHeading + reveal wrapper, verified at lines 290-296 and 367-380), **placed between §01 proof markers and §02 "The cycle"** (decision 2026-07-18): kicker "Promises", heading on aggregate mutual-aid framing (Document B relay vocabulary: promises offered, promises kept, gardens with live pools). Content: stat tiles in the §01 proof-marker grammar (gardens with open pools, commitments fulfilled this season, oracle-verified G$ support; protocol-wide promiseKeptRate subject to §7.2 thresholds), one line explaining the commitment lifecycle in relay terms, and a link to `/gardens`. **Pipeline delta**: §02's `PublicEvidencePipeline` gains the promise stages — Assessment → Promise → Work → Confirmation → Impact Certificate — so the cycle section tells the story the band introduces. No per-garden table on this page (that is the Operations overview's job, and public per-garden comparison drifts toward ranking).
