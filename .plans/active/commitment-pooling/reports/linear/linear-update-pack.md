@@ -6,6 +6,11 @@
 **Status**: fully applied and superseded by the 2026-07-11 live reconciliation; **do not execute or re-apply this pack**  
 **Historical apply order**: local specs/status → handoffs → visuals/public copy → projects/milestones → issues → documents → live re-read
 
+> **Settlement supersession (2026-07-23):** every Functions, receipt-report, `Reported`, and
+> `Oracle-verified` statement below is retained only as applied-history evidence. Decision Log
+> `#46` and `settlement-spec.md` now require message-only CCIP command + authenticated
+> acknowledgment. Do not re-apply this transport wording.
+
 ## Source hierarchy
 
 1. Repo plan hubs are implementation truth.

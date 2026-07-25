@@ -9,7 +9,7 @@
 
 import { esc, hot } from "../html";
 import { icon } from "../icons";
-import { banner, btn, chip, emptyState, field, input, kv, meter, radio, skeleton, stepDots } from "../kit";
+import { banner, btn, chip, disclosure, emptyState, field, input, kv, meter, radio, skeleton } from "../kit";
 import type { HifiDef } from "./index";
 
 // ---- admin chrome helpers ---------------------------------------------------
@@ -126,9 +126,9 @@ export function adminCanvas(
 ): string {
   const hotPrefix = parts.screenId.toLowerCase();
   const interactiveChrome = parts.interactiveChrome !== false;
-  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${appBar(parts.garden, hotPrefix, interactiveChrome)}<div class="mainscroll"><section class="routecard">${parts.header}${
+  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${appBar(parts.garden, hotPrefix, interactiveChrome)}<main class="mainscroll"><section class="routecard">${parts.header}${
     parts.tabRail ?? ""
-  }${parts.body}</section></div>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
+  }${parts.body}</section></main>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
 }
 
 // AdminDialog — own scrim + 28dp solid surface over the dimmed canvas. `behind`
@@ -140,6 +140,31 @@ export function adminDialogM3(
   return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="admin-dialog-title"><div class="dlg-head"><span class="dt" id="admin-dialog-title">${esc(
     opts.title,
   )}</span>${opts.closeHot ? hot(opts.closeHot, close) : close}</div><div class="dlg-body">${opts.body}</div><div class="dlg-foot">${opts.actions}</div></div></div>`;
+}
+
+// Admin action flows are hosted in a centered flow AdminDialog wrapping
+// ActionFlowShell: pinned header, desktop step rail, centred reading column,
+// pinned footer. `back` is omitted on the first step so the only way out there
+// is Cancel — matching ActionFlowShell, which drops the back-arrow on phase one.
+export type FlowStep = { title: string; desc: string };
+export function flowDialog(
+  behind: string,
+  tone: Tone,
+  opts: { context: string; title: string; steps: FlowStep[]; current: number; body: string; back?: string; cancelHot: string; next: string },
+): string {
+  const rail = `<nav class="steprail" aria-label="Steps">${opts.steps
+    .map((s, i) => {
+      const cls = i === opts.current ? " on" : i < opts.current ? " done" : "";
+      return `<div class="srow${cls}"${i === opts.current ? ' aria-current="step"' : ""}><span class="sdot">${i < opts.current ? "✓" : i + 1}</span><span><span class="st">${esc(s.title)}</span><span class="sd">${esc(s.desc)}</span></span></div>`;
+    })
+    .join("")}</nav>`;
+  const back = opts.back ? hot(opts.back, btn("Back", { kind: "ghost", icon: "arrow-left-line" })) : "<span></span>";
+  const close = hot(opts.cancelHot, `<button type="button" class="dclose" aria-label="Close">${icon("close-line", "s")}</button>`);
+  return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg flow" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="flow-dialog-title"><div class="dlg-head"><span class="eyebrow">${esc(
+    opts.context,
+  )}</span><span class="dt" id="flow-dialog-title">${esc(opts.title)}</span>${close}</div><div class="flowrow">${rail}<div class="dlg-body"><div class="flowform">${
+    opts.body
+  }</div></div></div><div class="dlg-foot">${back}<span class="fend">${hot(opts.cancelHot, btn("Cancel", { kind: "ghost" }))}${opts.next}</span></div></div></div>`;
 }
 
 // Dense data table — hairline row dividers, no cell borders, no zebra
@@ -154,8 +179,10 @@ export const dtable = (heads: string[], rows: string[][], caption: string) =>
 // ---------------------------------------------------------------------------
 
 const W7_STATES = [
-  ["open", "Open"], ["not-ready", "Not ready — checklist"], ["ready", "Ready — open it"],
-  ["paused", "Paused"], ["reconciled", "Reconciled"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
+  ["open", "Open"], ["not-ready", "Not ready — checklist"], ["preflight-complete", "Checks complete — mark ready"], ["ready", "Ready — open it"],
+  ["paused", "Paused"], ["reconciled", "Reconciled"], ["claims", "Claims waiting"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
+  ["pause-confirm", "Pause — confirm"], ["close-pool-confirm", "Close pool — confirm"],
+  ["cancel-cycle-confirm", "Cancel season — confirm"], ["decline-claim-confirm", "Decline claim — confirm"],
   ["loading", "Loading"], ["empty", "No commitments yet"],
 ] as const;
 type W7State = (typeof W7_STATES)[number][0];
@@ -163,16 +190,23 @@ type W7State = (typeof W7_STATES)[number][0];
 const w7PoolCard = (state: W7State) => {
   const chipFor: Record<string, string> = {
     open: chip("Open", "ok", { dot: true }), "not-ready": chip("Not ready", "plain", { dot: true }),
+    "preflight-complete": chip("Checks complete", "warn", { dot: true }),
     ready: chip("Ready", "warn", { dot: true }), paused: chip("Paused", "warn", { dot: true }),
     reconciled: chip("Open", "ok", { dot: true }), "claim-outcomes": chip("Open", "ok", { dot: true }),
     "expiry-queue": chip("Open", "ok", { dot: true }),
   };
   const acts =
-    state === "ready"
+    // A pool that has never opened cannot be paused or closed; the only move is
+    // finishing the readiness checklist.
+    state === "not-ready"
+      ? hot("w7.edit-charter", btn("Edit readiness", { kind: "pri" }))
+      : state === "preflight-complete"
+      ? `${hot("w7.mark-ready", btn("Mark pool ready", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit readiness", { kind: "sec", sm: true }))}`
+      : state === "ready"
       ? `${hot("w7.open-pool", btn("Open pool", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
       : state === "paused"
         ? `${hot("w7.resume", btn("Resume pool", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
-        : `${hot("w7.pause", btn("Pause…", { kind: "sec", sm: true }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}${hot("w7.close-pool", btn("Close pool…", { kind: "ghost", sm: true }))}`;
+          : hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }));
   const meta =
     state === "not-ready"
       ? `${kv("Charter", "not set")}${kv("Provider open-commitment cap", "not set")}${kv("Qualifying baseline", "missing")}`
@@ -180,14 +214,27 @@ const w7PoolCard = (state: W7State) => {
   const note =
     state === "not-ready"
       ? banner("Readiness needs all three: charter, provider open-commitment cap, and a qualifying baseline assessment.", "stone")
+      : state === "preflight-complete"
+        ? banner("All three checks pass. Marking Ready records the onchain pool transition; it does not open member participation yet.", "stone")
       : state === "ready"
         ? banner("Everything is in place. Opening the pool lets members see and make promises.", "stone")
         : state === "paused"
           ? banner("Paused with reason: “seasonal flooding, back after the rains”. Members keep evidence and recovery; create/claim/confirm wait.", "amber", "error-warning-line")
           : "";
+  // Pause and Close are rare and consequential, and were sitting at content
+  // hierarchy on every open pool. Editing the charter is the ordinary act; the
+  // other two live one disclosure away, each behind its own confirmation.
+  const lifecycle =
+    state === "open" || state === "reconciled" || state === "claim-outcomes" || state === "expiry-queue"
+      ? disclosure(
+          "More pool actions",
+          "pause · close",
+          `<div class="actrow">${hot("w7.pause", btn("Pause…", { kind: "sec", sm: true }))}${hot("w7.close-pool", btn("Close pool…", { kind: "danger", sm: true }))}</div>`,
+        )
+      : "";
   // Status chip stays in the card header; lifecycle actions get their own row
-  // beneath the meta so a busy state (Pause · Edit · Close) never crowds the head.
-  return acard("Pool", `${meta}${note}<div class="actrow">${acts}</div>`, chipFor[state]);
+  // beneath the meta so a busy state never crowds the head.
+  return acard("Pool", `${meta}${note}<div class="actrow">${acts}</div>${lifecycle}`, chipFor[state]);
 };
 
 const w7Cycles = (state: W7State) =>
@@ -197,19 +244,48 @@ const w7Cycles = (state: W7State) =>
       state === "reconciled" ? chip("Reconciled", "plain", { dot: true }) : chip("Open", "ok", { dot: true })
     }${state === "reconciled" ? hot("w7.report-row", btn("Scoped report", { kind: "sec", sm: true })) : `${hot("w7.close-season", btn("Close season…", { kind: "sec", sm: true }))}${hot("w7.cancel-cycle", btn("Cancel…", { kind: "ghost", sm: true }))}`}</div>
 ${stages(["Seeded", "Open", "In progress", "Reviewing", "Reconciled", "Composted"], state === "reconciled" ? 4 : 1)}
-<div class="arow"><div class="grow">Market rides <span class="ch">Campaign</span> <span class="t-meta num">6/16</span></div>${chip("Open", "ok", { dot: true })}</div>
+${disclosure(
+  "Campaigns",
+  "2 open",
+  `<div class="arow"><div class="grow">Market rides <span class="ch">Campaign</span> <span class="t-meta num">6/16</span></div>${chip("Open", "ok", { dot: true })}</div>
 <div class="arow"><div class="grow">Tool library <span class="ch">Campaign</span> <span class="t-meta num">8/8</span></div>${chip("Reviewing", "warn", { dot: true })}</div>`,
+)}`,
     hot("w7.new-campaign", btn("New campaign", { kind: "sec", sm: true })),
   );
 
 // Workspace queue → hairline list-rows inside the route card (not a bordered grid).
+// The Open · Confirmed · Past scoping is locked by the §6.2 layout addendum and
+// retires the separate cycle-console "History:" row.
+const w7ScopeChips = () =>
+  hot(
+    "w7.scope",
+    `<div class="scopechips" role="group" aria-label="Commitment scope">${["Open", "Confirmed", "Past"]
+      .map((l, i) => `<button type="button" class="sc-chip${i === 0 ? " on" : ""}"${i === 0 ? ' aria-current="true"' : ""}>${l}</button>`)
+      .join("")}</div>`,
+  );
+
 const w7Commitments = () =>
   acard(
     "Commitments",
-    `<div class="arow">${hot("w7.commitment-row", `<div class="grow"><b>Prune the north beds</b> ${chip("Offer", "offer")} <span class="t-meta num">Maria · 6 h</span></div>`)}${chip("Accepted", "request", { dot: true })}${icon("arrow-right-s-line", "s")}</div>
+    `${w7ScopeChips()}
+<div class="arow">${hot("w7.commitment-row", `<div class="grow"><b>Prune the north beds</b> ${chip("Offer", "offer")} <span class="t-meta num">Maria · 6 h</span></div>`)}${chip("Accepted", "request", { dot: true })}${icon("arrow-right-s-line", "s")}</div>
 <div class="arow"><div class="grow"><b>Market ride</b> ${chip("Request", "request")} <span class="t-meta num">João · 1</span></div>${chip("Ready", "warn", { dot: true })}${icon("arrow-right-s-line", "s")}</div>`,
     input("Search…", { placeholder: true, icon: "search-line", ariaLabel: "Search commitments" }),
   );
+
+// The operator's first question on this tab is triage, not lifecycle. The §6.2
+// layout addendum locks this row; without it the route opened on pool plumbing
+// with the claims queue three cards down.
+const w7Summary = () =>
+  `<div class="sumrow">${(
+    [
+      ["2", "awaiting confirmation", "w7.jump-confirm"],
+      ["2", "claims waiting", "w7.jump-claims"],
+      ["0", "failed payouts", "w7.jump-payouts"],
+    ] as const
+  )
+    .map(([n, l, h]) => hot(h, `<button type="button" class="sumcell"><span class="n num">${n}</span><span class="l">${l}</span></button>`))
+    .join("")}</div>`;
 
 const w7Claims = (state: W7State) => {
   if (state === "claim-outcomes")
@@ -224,18 +300,23 @@ ${banner("Accepting one request supersedes the other pending rows — an indexer
     return acard(
       "Lapsed this cycle",
       `<div class="arow"><div class="grow"><b>Field survey</b> ${chip("Request", "request")} ${chip("Expired", "plain", { dot: true })} <span class="t-meta num">due Jul 2 · 0 of 1 taken up</span></div>${hot("w7.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}${hot("w7.history", btn("View history", { kind: "ghost", sm: true }))}</div>
-${banner("Expiry runs both paths: this queue for stewards, “offer again” for members (register #34d).", "stone")}`,
+${banner("Expiry runs both paths: this queue for stewards, “offer again” for members.", "stone")}`,
     );
+  // Tonal, not filled: in a multi-row queue no single row's accept is the
+  // route's primary act — that is Seed, in the page header.
+  const rowActions = (acceptHot: string, declineHot: string) =>
+    `${hot(acceptHot, btn("Accept", { kind: "sec", sm: true }))}${hot(declineHot, btn("Decline…", { kind: "ghost", sm: true }))}`;
   return acard(
     "Claims waiting — steward-reviewed",
-    `<div class="arow"><div class="grow"><b>Field survey</b> · Ana · individual · Jul 9</div>${hot("w7.accept-claim", btn("Accept", { kind: "pri", sm: true }))}${hot("w7.decline-claim", btn("Decline…", { kind: "sec", sm: true }))}</div>
-<div class="arow"><div class="grow"><b>Field survey</b> · Awka Hub (garden) · asked by Leila · Jul 10</div>${hot("w7.accept-garden", btn("Accept", { kind: "pri", sm: true }))}${hot("w7.decline-garden", btn("Decline…", { kind: "sec", sm: true }))}</div>`,
+    `<div class="arow"><div class="grow"><b>Field survey</b> · Ana · individual · Jul 9</div>${rowActions("w7.accept-claim", "w7.decline-claim")}</div>
+<div class="arow"><div class="grow"><b>Field survey</b> · Awka Hub (garden) · asked by Leila · Jul 10</div>${rowActions("w7.accept-garden", "w7.decline-garden")}</div>`,
   );
 };
 
 const W7_DESC: Record<W7State, string> = {
   open: "Season of First Rains is live — offers and requests between neighbors.",
   "not-ready": "Finish the readiness checklist before members can promise.",
+  "preflight-complete": "All readiness checks pass — mark the pool Ready onchain.",
   ready: "Everything is in place — open the pool when you're ready.",
   paused: "Paused for the season — evidence and recovery stay open.",
   reconciled: "The season is reconciled — its promises settled and composted.",
@@ -243,13 +324,87 @@ const W7_DESC: Record<W7State, string> = {
   "expiry-queue": "Promises that lapsed this cycle — offer them again.",
   loading: "Loading the pool…",
   empty: "The pool is open and waiting for its first promise.",
+  "pause-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+  "close-pool-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+  "cancel-cycle-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+  "decline-claim-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+};
+
+// Dimmed pool route behind a W7 confirmation. Hotspot-free for the same reason
+// W10's is: foreign ids here would break bidirectional hotspot integrity.
+const w7Behind = () =>
+  adminCanvas("garden", "garden", {
+    screenId: "W7",
+    garden: "Rocinha",
+    interactiveChrome: false,
+    header: pageHeader({ title: "Garden", description: W7_DESC.open }),
+    tabRail: tabRail([{ label: "Health" }, { label: "Impact" }, { label: "Activity" }, { label: "Pool" }], 3),
+    body: acard(
+      "Pool",
+      `${kv("Charter", "agreed ✓")}${kv("Baseline", "recorded ✓")}${kv("Provider open-commitment cap", "24 commitments")}`,
+      chip("Open", "ok", { dot: true }),
+    ),
+  });
+
+// Every consequential pool or cycle act names its blast radius and takes the
+// reason the contract stores. Each of these was previously one click straight to
+// the outcome state — which teaches an implementer that no confirmation exists.
+const w7Confirm = (radius: string, reason: string) =>
+  `${banner(radius, "amber", "error-warning-line")}${field("Reason (required)", input(reason))}`;
+
+const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; actions: string; closeHot: string }>> = {
+  "pause-confirm": {
+    title: "Pause this pool",
+    body: w7Confirm(
+      "Pausing stops new promises, claims, and confirmations for 23 members across 7 open promises. Evidence, work linkage, and recovery stay open; resuming clears this reason.",
+      "seasonal flooding, back after the rains",
+    ),
+    actions: `${hot("w7.confirm-dismiss", btn("Keep running", { kind: "ghost" }))}${hot("w7.pause-confirm", btn("Pause pool", { kind: "pri" }))}`,
+    closeHot: "w7.confirm-dismiss",
+  },
+  "close-pool-confirm": {
+    title: "Close this pool",
+    body: w7Confirm(
+      "Closing ends participation for 23 members. Its last cycle has composted and its history stays with the garden — but members can make no further promises here.",
+      "the garden is standing the pool down for the year",
+    ),
+    actions: `${hot("w7.confirm-dismiss", btn("Keep open", { kind: "ghost" }))}${hot("w7.close-pool-confirm", btn("Close pool", { kind: "danger" }))}`,
+    closeHot: "w7.confirm-dismiss",
+  },
+  "cancel-cycle-confirm": {
+    title: "Cancel this season",
+    body: w7Confirm(
+      "Season of First Rains has 8 promises, 5 of them kept. Cancelling ends the season for everyone in it; each promise keeps its own record, and members see the reason you give here.",
+      "funding fell through for the rains",
+    ),
+    actions: `${hot("w7.confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-confirm", btn("Cancel season", { kind: "danger" }))}`,
+    closeHot: "w7.confirm-dismiss",
+  },
+  "decline-claim-confirm": {
+    title: "Decline Ana's request",
+    body: w7Confirm(
+      "Only Ana's request is declined — João's stays pending and the promise stays claimable. Ana sees your reason and may ask again.",
+      "provider context — see charter",
+    ),
+    actions: `${hot("w7.confirm-dismiss", btn("Keep pending", { kind: "ghost" }))}${hot("w7.decline-claim-confirm", btn("Decline request", { kind: "pri" }))}`,
+    closeHot: "w7.confirm-dismiss",
+  },
 };
 
 function w7(state: W7State): string {
+  const confirm = W7_CONFIRMS[state];
+  if (confirm)
+    return deskWin("admin.greengoods.app/dashboard/garden/pool", adminDialogM3(w7Behind(), "garden", confirm));
+
   // Garden workspace, net-new Pool tab (real rail: Health · Impact · Activity).
   const rail = tabRail([{ label: "Health" }, { label: "Impact" }, { label: "Activity" }, { label: "Pool" }], 3);
   // Seed lives in the header (desktop puts creation in header actions, not a FAB).
-  const seed = hot("w7.seed-fab", btn("Seed", { kind: "pri", sm: true, icon: "add-line" }));
+  // seedCycle requires the pool to be Ready or Open (CS:726), so the readiness
+  // states show the control disabled rather than offering an act that fails.
+  const seedable = state !== "not-ready" && state !== "preflight-complete";
+  const seed = seedable
+    ? hot("w7.seed-fab", btn("Seed", { kind: "pri", sm: true, icon: "add-line" }))
+    : btn("Seed", { kind: "pri", sm: true, icon: "add-line", disabled: true });
   let body: string;
   if (state === "loading") {
     body = `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}${skeleton({ lines: 2 })}`;
@@ -260,10 +415,20 @@ function w7(state: W7State): string {
       "When the pool is open, offers and requests between neighbors show up here. Seed the first promise to begin.",
       seed,
     );
+  } else if (state === "not-ready" || state === "preflight-complete" || state === "ready") {
+    // A pool that has not opened has no cycles, no accepted commitments, and no
+    // claims. Rendering those consoles here showed an open Season with Close and
+    // Cancel actions on a pool members cannot yet participate in.
+    body = w7PoolCard(state);
   } else {
-    const queues =
-      state === "claim-outcomes" || state === "expiry-queue" ? w7Claims(state) : `${w7Commitments()}${w7Claims(state)}`;
-    body = `${w7PoolCard(state)}${w7Cycles(state)}${queues}`;
+    // The default view answers "what needs me?" — summary, pool state, and the
+    // scoped commitment list. Claims are a distinct triage task with their own
+    // view, reached from the count that names them; stacking all four regions
+    // flat is what made this route open on plumbing.
+    body =
+      state === "claims" || state === "claim-outcomes" || state === "expiry-queue"
+        ? `${w7Summary()}${w7Claims(state)}`
+        : `${w7Summary()}${w7PoolCard(state)}${w7Cycles(state)}${w7Commitments()}`;
   }
   const header = pageHeader({ title: "Garden", description: W7_DESC[state], actions: seed });
   return deskWin(
@@ -273,21 +438,31 @@ function w7(state: W7State): string {
 }
 
 const W7_HOTS: HifiDef["hots"] = {
-  "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@paused", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
+  "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@pause-confirm", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
+  "w7.confirm-dismiss": { l: "Keep as it is", to: "screen:W7", info: "Closes the confirmation without applying the act." },
+  "w7.pause-confirm": { l: "Pause pool (confirm)", to: "screen:W7@paused", info: "pausePool(reason) — the stored reason renders in the member banner (UX:60 · CS:725)." },
+  "w7.close-pool-confirm": { l: "Close pool (confirm)", to: "screen:W1@closed", info: "Closes the pool after its last cycle composts (CS:102); compost/reopen follows per §4.1." },
+  "w7.cancel-cycle-confirm": { l: "Cancel season (confirm)", to: "screen:W1@cancelled-cycle", info: "cancelCycle(reason) → quiet member banner naming the reason (UX:77 · CS:104)." },
+  "w7.decline-claim-confirm": { l: "Decline request (confirm)", to: "screen:W7@claim-outcomes", info: "declineClaim(reason) clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.resume": { l: "Resume pool", to: "screen:W7", info: "resumePool clears the indexed reason (CS:725)." },
-  "w7.edit-charter": { l: "Edit charter", to: "screen:W7@ready", info: "setPoolCharter — one of the three readiness inputs; the prototype returns to the resulting Ready card (UX:269)." },
+  "w7.edit-charter": { l: "Edit readiness", to: "screen:W7@preflight-complete", info: "Completes the charter, non-zero provider open-commitment cap, and qualifying Baseline preflight; the pool remains NotReady until markPoolReady succeeds (UX:269)." },
+  "w7.mark-ready": { l: "Mark pool ready", to: "screen:W7@ready", info: "markPoolReady records NotReady → Ready after charter + non-zero cap pass onchain and the qualifying Baseline passes the app preflight (CS:724 · UX:269)." },
   "w7.open-pool": { l: "Open pool", to: "screen:W7", info: "openPool → PoolOpened. Adopted onto the status card per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
-  "w7.close-pool": { l: "Close pool", to: "screen:W1@closed", info: "After the last cycle composts (CS:102); then compost/reopen per §4.1." },
+  "w7.close-pool": { l: "Close pool", to: "screen:W7@close-pool-confirm", info: "After the last cycle composts (CS:102); then compost/reopen per §4.1." },
   "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118)." },
-  "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W1@cancelled-cycle", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
+  "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W7@cancel-cycle-confirm", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
   "w7.new-campaign": { l: "New campaign", to: "screen:W8", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
   "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733)." },
-  "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@claim-outcomes", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
+  "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@decline-claim-confirm", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.reseed": { l: "Re-seed", to: "screen:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94). Adopted MF-4." },
   "w7.history": { l: "View history", info: "Opens this expired promise's state history and recorded reason." },
   "w7.accept-garden": { l: "Accept garden claim", info: "Consumes Awka Hub's stored garden-claim terms; other pending rows become Superseded (CS:733)." },
   "w7.decline-garden": { l: "Decline garden claim", info: "Declines only Awka Hub's request with a required reason (CS:734)." },
   "w7.commitment-row": { l: "Commitment row", to: "screen:W10", info: "Opens the commitment dialog." },
+  "w7.scope": { l: "Commitment scope", info: "Open · Confirmed · Past (uiux-spec §6.2 addendum). Composted cycles and settled records surface under Past; the old cycle-console “History:” row is retired. Maps to AdminFilterChip." },
+  "w7.jump-confirm": { l: "Awaiting confirmation", info: "Scrolls to the commitments list scoped to promises waiting on a confirmation you can give." },
+  "w7.jump-claims": { l: "Claims waiting", to: "screen:W7@claims", info: "Opens the steward-reviewed claims queue — a distinct triage task with its own view." },
+  "w7.jump-payouts": { l: "Failed payouts", info: "Scrolls to declared rewards whose recorded payout failed; zero here means nothing is stuck." },
   "w7.report-row": { l: "Cycle report", to: "screen:W26@review", info: "Reconciliation report (UX:75)." },
   "w7.seed-fab": { l: "Seed a commitment", to: "screen:W8", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:150)." },
 };
@@ -297,61 +472,126 @@ const W7_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W8_STATES = [
-  ["step1", "1 · Type & scope"], ["step2", "2 · Requirements"], ["step3", "3 · Rule & reward"],
-  ["step4", "4 · Review"], ["captured-for", "Captured for a member"],
+  ["step1", "1 · Type & scope"], ["step2", "2 · Requirements"], ["step3", "3 · Who confirms"],
+  ["step4", "4 · Reward"], ["step5", "5 · Review"], ["captured-for", "Captured for a member"],
+  ["discard", "Discard changes?"],
 ] as const;
 type W8State = (typeof W8_STATES)[number][0];
 
+// Rule and reward were one step carrying four decisions — confirmers, threshold,
+// claim mode, and the reward rail with its amount. They are two concerns and
+// they split cleanly.
+const SEED_STEPS: FlowStep[] = [
+  { title: "Type & scope", desc: "what the pool promises" },
+  { title: "Requirements", desc: "units, target, and due" },
+  { title: "Who confirms", desc: "confirmers and claim mode" },
+  { title: "Reward", desc: "declared rail and amount" },
+  { title: "Review", desc: "check it, then seed" },
+];
+// W9's two steps and W8@captured-for are one capture flow, so they share a rail.
+export const CAPTURE_STEPS: FlowStep[] = [
+  { title: "Who", desc: "the member you're recording for" },
+  { title: "What kind", desc: "offer, request, or confirmation" },
+  { title: "Record", desc: "check it, then record" },
+];
+
+const SEED_URL = "admin.greengoods.app/dashboard/garden/pool/seed";
+
 function w8(state: W8State): string {
-  const stepIx = state === "step1" ? 0 : state === "step2" ? 1 : state === "step3" ? 2 : 3;
+  if (state === "discard")
+    return deskWin(
+      SEED_URL,
+      adminDialogM3(w7Behind(), "garden", {
+        title: "Discard changes?",
+        body: banner("This promise hasn't been seeded yet. Leaving now discards what you've entered.", "amber", "error-warning-line"),
+        actions: `${hot("w8.keep-editing", btn("Keep editing", { kind: "ghost" }))}${hot("w8.discard-confirm", btn("Discard", { kind: "danger" }))}`,
+        closeHot: "w8.keep-editing",
+      }),
+    );
+
+  if (state === "captured-for")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool/capture",
+      flowDialog(w7Behind(), "garden", {
+        context: "Rocinha · recording for Kwame",
+        title: "Record on a member's behalf",
+        steps: CAPTURE_STEPS,
+        current: 2,
+        body: `${banner("Recording for Kwame — recorded by the steward, the promise stays the member's.", "stone", "hand-heart-line")}${kv("Kind", "Member offer · captured")}${kv("Title", "Compost workshop")}${kv("Reason", "recorded at the field gathering")}`,
+        back: "w8.back-capture",
+        cancelHot: "w8.cancel",
+        next: hot("w8.seed", btn("Record it", { kind: "pri" })),
+      }),
+    );
+
+  const order: W8State[] = ["step1", "step2", "step3", "step4", "step5"];
+  const stepIx = order.indexOf(state);
   let inner: string;
+  let next: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Action requirements", `<div class="arow"><div class="grow"><b>Prune</b> <span class="t-meta">Land stewardship</span></div>${input("2")}<span class="t-meta">approved works</span></div><div class="arow"><div class="grow"><b>Plant</b> <span class="t-meta">Land stewardship</span></div>${input("1")}<span class="t-meta">approved work</span></div>${hot("w8.add-action", btn("Add action", { kind: "ghost", sm: true, icon: "add-line" }))}`)}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}${hot("w8.continue-requirements", btn("Continue", { kind: "pri", full: true }))}`;
+      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Action requirements", `<div class="arow"><div class="grow"><b>Prune</b> <span class="t-meta">Land stewardship</span></div>${input("2")}<span class="t-meta">approved works</span></div><div class="arow"><div class="grow"><b>Plant</b> <span class="t-meta">Land stewardship</span></div>${input("1")}<span class="t-meta">approved work</span></div>${hot("w8.add-action", btn("Add action", { kind: "ghost", sm: true, icon: "add-line" }))}`)}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}`;
+      next = hot("w8.continue-requirements", btn("Continue", { kind: "pri" }));
       break;
     case "step3":
       inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>${hot("w8.add-address", btn("Add address", { kind: "ghost", sm: true, icon: "add-line" }))}`)}
 ${field("Threshold", input("2 of 2", { select: true }))}
-${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}
-${hot("w8.reward", field("Declared reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`))}${hot("w8.continue-rule", btn("Continue", { kind: "pri", full: true }))}`;
+${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}`;
+      next = hot("w8.continue-rule", btn("Continue", { kind: "pri" }));
       break;
     case "step4":
-      inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward", "20 DAI · garden jar · reference only")}
-${hot("w8.seed", btn("Seed this commitment", { kind: "pri", full: true }))}`;
+      inner = `${hot("w8.reward", field("Reward rail", radio([
+  { label: "None", meta: "no declared reward" },
+  { label: "External payout record", meta: "record a completed jar or treasury payout", on: true },
+  { label: "Celo G$ settlement", meta: "queue delivery after fulfilment" },
+], { interactive: true, name: "reward-rail" })))}
+${field("External reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`)}
+${banner("One rail only. External payout records are recorded here after the fact; Celo G$ rewards are queued for delivery from the owning-pool account.", "stone")}`;
+      next = hot("w8.continue-reward", btn("Continue", { kind: "pri" }));
       break;
-    case "captured-for":
-      inner = `${banner("Recording for Kwame — recorded by the steward, the promise stays the member's.", "stone", "hand-heart-line")}${kv("Kind", "Member offer · captured")}${kv("Title", "Compost workshop")}${kv("Reason", "recorded at the field gathering")}
-${hot("w8.seed", btn("Record it", { kind: "pri", full: true }))}`;
+    case "step5":
+      inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
+      next = hot("w8.seed", btn("Seed this commitment", { kind: "pri" }));
       break;
     default:
       inner = `${field("Type", radio([{ label: "Season / campaign promise", meta: "the pool offers or requests", on: true }, { label: "Support / service" }, { label: "Garden work (impact)" }, { label: "Capture for a member" }]))}
 ${field("Direction", radio([{ label: "The pool offers", on: true }, { label: "The pool requests" }]))}
-${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title", input("Market rides"))}${hot("w8.continue-scope", btn("Continue", { kind: "pri", full: true }))}`;
+${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title", input("Market rides"))}`;
+      next = hot("w8.continue-scope", btn("Continue", { kind: "pri" }));
   }
-  const header = pageHeader({
-    title: "Seed a commitment",
-    eyebrow: `Step ${stepIx + 1} of 4`,
-    description:
-      state === "captured-for"
-        ? "Record a neighbor's promise on their behalf."
-        : "The only place SeasonCampaign and captured kinds are created.",
-    actions: stepDots(4, stepIx),
-  });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool/seed",
-    adminCanvas("garden", "garden", { screenId: "W8", garden: "Rocinha", header, body: `<div class="flowform">${inner}</div>` }),
+    SEED_URL,
+    flowDialog(w7Behind(), "garden", {
+      context: "Rocinha · Season of First Rains",
+      title: "Seed a commitment",
+      steps: SEED_STEPS,
+      current: stepIx,
+      body: inner,
+      back: stepIx > 0 ? `w8.back-step${stepIx}` : undefined,
+      cancelHot: "w8.cancel",
+      next,
+    }),
   );
 }
 
 const W8_HOTS: HifiDef["hots"] = {
   "w8.add-action": { l: "Add action requirement", info: "Adds another approved-work requirement to the seeded promise." },
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
-  "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
-  "w8.reward": { l: "Declared reward", info: "Reference only — the module never custodies funds (WF:339 · UX:280)." },
+  "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open." },
+  "w8.reward": { l: "Reward rail", info: "Exactly one rail is declared: none, an external payout record, or a Celo G$ settlement. External rewards are references only; G$ uses the settlement module." },
   "w8.continue-scope": { l: "Continue to requirements", to: "screen:W8@step2", info: "Type and scope → requirements." },
-  "w8.continue-requirements": { l: "Continue to rule and reward", to: "screen:W8@step3", info: "Requirements → confirmation rule and declared reward." },
-  "w8.continue-rule": { l: "Continue to review", to: "screen:W8@step4", info: "Rule and reward → final review." },
-  "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:150)." },
+  "w8.continue-requirements": { l: "Continue to the confirmation rule", to: "screen:W8@step3", info: "Requirements → who confirms and how it is claimed." },
+  "w8.continue-rule": { l: "Continue to reward", to: "screen:W8@step4", info: "Confirmation rule → the declared reward rail." },
+  "w8.continue-reward": { l: "Continue to review", to: "screen:W8@step5", info: "Reward → final review." },
+  "w8.back-step1": { l: "Back to type and scope", to: "screen:W8", info: "Steps back with everything entered so far retained." },
+  "w8.back-step2": { l: "Back to requirements", to: "screen:W8@step2", info: "Steps back with everything entered so far retained." },
+  "w8.back-step3": { l: "Back to the confirmation rule", to: "screen:W8@step3", info: "Steps back with everything entered so far retained." },
+  "w8.back-step4": { l: "Back to reward", to: "screen:W8@step4", info: "Steps back with everything entered so far retained." },
+  "w8.back-capture": { l: "Back to capture kind", to: "screen:W9@capture-kind", info: "Steps back to the capture kind without discarding the chosen member." },
+  "w8.cancel": { l: "Cancel seeding", to: "screen:W8@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard." },
+  "w8.keep-editing": { l: "Keep editing", to: "screen:W8", info: "Returns to the flow with entered values intact." },
+  "w8.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow and drops the unsaved seeded promise." },
+  "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — season/campaign and steward-captured kinds are created only here (UX:150)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -362,24 +602,29 @@ const W9_STATES = [["pick-member", "Who"], ["capture-kind", "What kind"]] as con
 type W9State = (typeof W9_STATES)[number][0];
 
 function w9(state: W9State): string {
-  const inner =
-    state === "pick-member"
-      ? `${hot("w9.member", field("Member", input("Search members…", { placeholder: true, icon: "search-line" })))}
+  const pick = state === "pick-member";
+  const inner = pick
+    ? `${hot("w9.member", field("Member", input("Search members…", { placeholder: true, icon: "search-line" })))}
 <div class="arow"><div class="grow"><b>Kwame</b> <span class="t-meta">joined May · 4 promises kept</span></div>${hot("w9.choose", btn("Choose", { kind: "sec", sm: true }))}</div>`
-      : `${hot("w9.kind", field("Capture", radio([{ label: "Their offer", on: true }, { label: "Their request" }, { label: "A confirmation", meta: "always carries a reason" }], { interactive: true, name: "capture-kind" })))}
-${hot("w9.continue", btn("Continue", { kind: "pri" }))}`;
-  const header = pageHeader({
-    title: "Record on a member's behalf",
-    description: "The member is the promise's source; you are only the recorder.",
-  });
-  const body = `<div class="flowform">${banner(
-    "“Recorded by your steward on your behalf. The promise stays yours.” — the member sees exactly this.",
-    "stone",
-    "hand-heart-line",
-  )}${inner}</div>`;
+    : hot("w9.kind", field("Capture", radio([{ label: "Their offer", on: true }, { label: "Their request" }, { label: "A confirmation", meta: "always carries a reason" }], { interactive: true, name: "capture-kind" })));
   return deskWin(
     "admin.greengoods.app/dashboard/garden/pool/capture",
-    adminCanvas("garden", "garden", { screenId: "W9", garden: "Rocinha", header, body }),
+    flowDialog(w7Behind(), "garden", {
+      context: "Rocinha · on a member's behalf",
+      title: "Record on a member's behalf",
+      steps: CAPTURE_STEPS,
+      current: pick ? 0 : 1,
+      body: `${banner(
+        "“Recorded by your steward on your behalf. The promise stays yours.” — the member sees exactly this.",
+        "stone",
+        "hand-heart-line",
+      )}${inner}`,
+      back: pick ? undefined : "w9.back",
+      cancelHot: "w9.cancel",
+      // Choosing the member is the advance on step one, so the footer's forward
+      // action stays disabled until one is picked.
+      next: pick ? btn("Continue", { kind: "pri", disabled: true }) : hot("w9.continue", btn("Continue", { kind: "pri" })),
+    }),
   );
 }
 
@@ -388,6 +633,8 @@ const W9_HOTS: HifiDef["hots"] = {
   "w9.choose": { l: "Choose Kwame", to: "screen:W9@capture-kind", info: "Selects Kwame as the member whose offer, request, or confirmation is being recorded." },
   "w9.kind": { l: "Capture kind", info: "Captured confirmations always carry a reason (UX:291)." },
   "w9.continue": { l: "Continue to captured promise", to: "screen:W8@captured-for", info: "Carries the selected member and capture kind into the seeding review." },
+  "w9.back": { l: "Back to member", to: "screen:W9", info: "Steps back to the member picker with the chosen member retained." },
+  "w9.cancel": { l: "Cancel capture", to: "screen:W8@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard." },
 };
 
 // ---------------------------------------------------------------------------
@@ -395,7 +642,9 @@ const W9_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W10_STATES = [
-  ["detail", "Detail"], ["record-payout", "Record payout"], ["fallback-confirm", "Fallback confirm"],
+  ["detail", "Detail"], ["fulfilled", "Fulfilled — reward unpaid"],
+  ["record-payout", "Record payout"], ["queue-settlement", "Queue Celo settlement"],
+  ["fallback-confirm", "Fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
   ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel promise"], ["not-found", "Not found"],
@@ -419,7 +668,9 @@ const w10Behind = () =>
   });
 
 const W10_TITLE: Record<W10State, string> = {
-  detail: "Prune the north beds", accepted: "Prune the north beds", "record-payout": "Record payout",
+  detail: "Prune the north beds", fulfilled: "Prune the north beds",
+  accepted: "Prune the north beds", "record-payout": "Record payout",
+  "queue-settlement": "Queue Celo settlement",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
   "attach-assessment": "Attach assessment", "mark-ready-override": "Mark ready with override",
   cancel: "Cancel this promise", "not-found": "Promise unavailable",
@@ -432,11 +683,15 @@ function w10(state: W10State): string {
   let actions: string;
   switch (state) {
     case "record-payout":
-      body = `${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the reward moved outside the app — no value moves here (UX:302). Build-phase G$ rewards relabel this Queue disbursement (SS:535).", "stone")}`;
+      body = `${kv("Reward rail", "External payout record")}${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the external reward moved outside the app — no value moves here. Celo G$ rewards are delivered by the settlement queue instead.", "stone")}`;
       actions = `${dismiss()}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
       break;
+    case "queue-settlement":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${banner("Queueing snapshots the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. Record payout is unavailable for this rail.", "stone")}`;
+      actions = `${dismiss()}${hot("w10.queue-settlement-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
+      break;
     case "fallback-confirm":
-      body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — the provider's own address is blocked on-chain, always (CS:744). The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
+      body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — the provider's own address is blocked, always. The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.fallback-confirm", btn("Confirm as fallback", { kind: "pri" }))}`;
       break;
     case "raise-dispute":
@@ -444,29 +699,36 @@ function w10(state: W10State): string {
       actions = `${dismiss()}${hot("w10.dispute-confirm", btn("Raise dispute", { kind: "pri" }))}`;
       break;
     case "resolve-dispute":
-      body = `${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Fulfilled" }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("An Expired prior state can never resolve to Fulfilled (CS:144). Every outcome renders its reason in the member timeline.", "stone")}`;
+      body = `${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Fulfilled" }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("An Expired prior state can never resolve to Fulfilled. Every outcome renders its reason in the member timeline.", "stone")}`;
       actions = `${dismiss()}${hot("w10.resolve", btn("Resolve", { kind: "pri" }))}`;
       break;
     case "attach-assessment":
-      body = `${field("Assessment", hot("w10.assessment-pick", radio([{ label: "Baseline — AGRO — Jul 2", meta: "v3 · provider garden", on: true }, { label: "Delta — AGRO+EDU — Jul 9", meta: "v3" }], { interactive: true, name: "assessment" })))}${banner("Only non-revoked v2/v3 assessments with recipient = provider garden appear (UX:287).", "stone")}`;
+      body = `${field("Assessment", hot("w10.assessment-pick", radio([{ label: "Baseline — AGRO — Jul 2", meta: "v3 · provider garden", on: true }, { label: "Delta — AGRO+EDU — Jul 9", meta: "v3" }], { interactive: true, name: "assessment" })))}${banner("Only current assessments recorded for the provider garden appear here.", "stone")}`;
       actions = `${dismiss()}${hot("w10.attach", btn("Attach", { kind: "pri" }))}`;
       break;
     case "accepted":
       // Evidence-only, pre-ready: the Send-for-confirmation / Mark-ready-override
       // twin (UX:294) plus the steward cancel (MF-2b).
+      // Footer is dismissive + confirming only (M3 basic dialog). The two
+      // alternatives sit in the body beside the consequence that distinguishes
+      // them: an irreversible cancel must never occupy the left footer slot,
+      // which means "close this dialog" in every other W10 state — and the
+      // sentence that separates the three used to sit below the fold.
       body = `${cmChips(chip("Offer", "offer"), chip("Accepted", "request", { dot: true }), chip("Evidence in", "warn", { dot: true }))}
+${banner("Evidence is in. Send it to the recipient, who confirms the promise was kept.", "stone")}
 ${kv("Maria → João", "6 hours · due Aug 12")}
-${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 2)}
+${stages(["Offered", "Accepted", "Evidence in", "Ready", "Fulfilled"], 2)}
 ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, note")}${kv("Provider", "Maria — cannot confirm")}
-${banner("Evidence is in. Send it to the recipient for confirmation — or, as a steward, mark it ready with a recorded reason.", "stone")}`;
-      actions = `${hot("w10.cancel", btn("Cancel promise…", { kind: "danger" }))}${hot("w10.mark-override", btn("Mark ready with override…", { kind: "sec" }))}${hot("w10.send-confirmation", btn("Send for confirmation", { kind: "pri" }))}`;
+<div class="arow"><div class="grow"><b>Recipient can't confirm?</b> <span class="t-meta">A steward can mark it ready with a recorded reason.</span></div>${hot("w10.mark-override", btn("Mark ready…", { kind: "sec", sm: true }))}</div>
+<div class="arow"><div class="grow"><b>Called off?</b> <span class="t-meta">Cancelling releases the committed units and records why.</span></div>${hot("w10.cancel", btn("Cancel promise…", { kind: "danger", sm: true }))}</div>`;
+      actions = `${dismiss()}${hot("w10.send-confirmation", btn("Send for confirmation", { kind: "pri" }))}`;
       break;
     case "mark-ready-override":
-      body = `${field("Reason (required)", input("field-verified at the weekly gathering"))}${banner("Steward override — separate from Send for confirmation. Moves the promise to Ready without the recipient's send; the reason is stored and shows in the member timeline (UX:294).", "stone", "shield-check-line")}`;
+      body = `${field("Reason (required)", input("field-verified at the weekly gathering"))}${banner("Steward override — separate from Send for confirmation. Moves the promise to Ready without the recipient's send; the reason is stored and shows in the member timeline.", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.override-confirm", btn("Mark ready", { kind: "pri" }))}`;
       break;
     case "cancel":
-      body = `${field("Reason (required)", input("withdrawn by agreement at the gathering"))}${banner("Steward cancel — Accepted → Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone (MF-2b · CS:745).", "stone", "error-warning-line")}`;
+      body = `${field("Reason (required)", input("withdrawn by agreement at the gathering"))}${banner("Steward cancel — Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.", "stone", "error-warning-line")}`;
       actions = `${dismiss("Keep promise")}${hot("w10.cancel-confirm", btn("Cancel promise", { kind: "danger" }))}`;
       break;
     case "not-found":
@@ -478,13 +740,28 @@ ${banner("Evidence is in. Send it to the recipient for confirmation — or, as a
       );
       actions = hot("w10.back-pool", btn("Back to pool", { kind: "ghost" }));
       break;
+    case "fulfilled":
+      // Recording a payout is a Fulfilled-only act (uiux-spec §6.7). Giving it
+      // its own state keeps it off the Ready detail and makes sb10's declared
+      // "Fulfilled" step show a screen that agrees with the caption.
+      body = `${cmChips(chip("Offer", "offer"), chip("Fulfilled", "ok", { dot: true }))}
+${kv("Maria → João", "6 hours · due Aug 12")}
+${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 4)}
+${kv("Confirmed", "João · Jul 12 · 2 of 2")}${kv("Provider", "Maria — cannot confirm")}
+${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid")}
+${banner("The reward moved, or will move, outside the app. Recording it here stores the rail reference only.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.record-payout", btn("Record payout", { kind: "pri" }))}`;
+      break;
     default:
       body = `${cmChips(chip("Offer", "offer"), chip("Ready", "warn", { dot: true }))}
 ${kv("Maria → João", "6 hours · due Aug 12 · open claim")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria — cannot confirm")}${kv("Eligible", "João ✓ · Ana ○ · you ○ (1 of 2 required)")}
-<div class="arow"><div class="grow">${kv("Reward", "20 DAI · garden jar · unpaid")}</div>${hot("w10.record-payout", btn("Record payout", { kind: "sec", sm: true }))}</div>`;
-      actions = `${hot("w10.fallback", btn("Confirm as fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
+${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid — recordable once confirmed")}`;
+      // An inspection state legitimately has no dominant act, but it still needs
+      // a way out that is not the X: both remaining controls open further
+      // dialogs, so neither can double as the dismiss.
+      actions = `${dismiss("Close")}${hot("w10.fallback", btn("Confirm as fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
   }
   return deskWin(
     "admin.greengoods.app/dashboard/garden/pool",
@@ -493,8 +770,9 @@ ${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session 
 }
 
 const W10_HOTS: HifiDef["hots"] = {
-  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here (UX:302)." },
-  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h)." },
+  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
+  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h)." },
+  "w10.queue-settlement-confirm": { l: "Queue disbursement", to: "screen:W21", info: "CeloSettlement only: queueDisbursement snapshots the owning-pool Safe source and canonical G$ delivery facts." },
   "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "Overrides render visible markers in the member timeline (UX:287,301)." },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
@@ -517,10 +795,33 @@ const W10_HOTS: HifiDef["hots"] = {
 // W11 — open-cycle allocation policy (uiux-spec §6.10)
 // ---------------------------------------------------------------------------
 
-const W11_STATES = [["presets", "Presets"], ["invalid-sum", "Invalid sum"]] as const;
+const W11_STATES = [["presets", "Presets"], ["invalid-sum", "Invalid sum"], ["guard", "Pool is Ready — open it?"]] as const;
 type W11State = (typeof W11_STATES)[number][0];
 
+// Allocation is a step inside the open-cycle flow (uiux-spec §6.10), and the
+// flow adds the locked "pool is Ready — open it now?" guard before it opens
+// (register #34a).
+const CYCLE_STEPS: FlowStep[] = [
+  { title: "Allocation", desc: "how each promise's units split" },
+  { title: "Open", desc: "check the pool, then open" },
+];
+
 function w11(state: W11State): string {
+  if (state === "guard")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+      flowDialog(w7Behind(), "garden", {
+        context: "Rocinha · Season of First Rains",
+        title: "Open cycle",
+        steps: CYCLE_STEPS,
+        current: 1,
+        body: `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`,
+        back: "w11.back",
+        cancelHot: "w11.cancel",
+        next: hot("w11.open-cycle", btn("Open pool and cycle", { kind: "pri" })),
+      }),
+    );
+
   const bad = state === "invalid-sum";
   const rows = [
     ["Gardeners", bad ? "64" : "60"], ["Treasury", "15"], ["Steward", "10"],
@@ -530,25 +831,33 @@ function w11(state: W11State): string {
     .join("");
   const sum = bad
     ? banner("Shares must total exactly 100% — currently 104%.", "error", "error-warning-line")
-    : `<div class="quietok">${icon("check-line")}total: 100% · encoded as 10,000 bps</div>`;
-  const header = pageHeader({
-    title: "Open cycle",
-    eyebrow: "Allocation policy",
-    description: "Season of First Rains — set how each fulfilled promise's units split across the six roles.",
-  });
-  const inner = `${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }], { interactive: true, name: "allocation-preset" })))}
+    : `<div class="quietok">${icon("check-line")}total: 100%</div>`;
+  const inner = `<div class="t-meta">Set how each fulfilled promise's units split across the six roles.</div>
+${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }], { interactive: true, name: "allocation-preset" })))}
 ${rows}${sum}
-${banner("A soft warning shows below 15% treasury (guidance floor). The complete six-field snapshot is encoded atomically for openCycle, then W26 reads it back.", "stone")}
-${hot("w11.open-cycle", btn("Open cycle", { kind: "pri", disabled: bad }))}`;
+${banner("Treasury is at the 15% guidance floor. This split is locked when the cycle opens and reads back unchanged at close.", "stone")}`;
   return deskWin(
     "admin.greengoods.app/dashboard/garden/pool/open-cycle",
-    adminCanvas("garden", "garden", { screenId: "W11", garden: "Rocinha", header, body: `<div class="flowform">${inner}</div>` }),
+    flowDialog(w7Behind(), "garden", {
+      context: "Rocinha · Season of First Rains",
+      title: "Open cycle",
+      steps: CYCLE_STEPS,
+      current: 0,
+      body: inner,
+      cancelHot: "w11.cancel",
+      next: bad
+        ? btn("Continue", { kind: "pri", disabled: true })
+        : hot("w11.continue", btn("Continue", { kind: "pri" })),
+    }),
   );
 }
 
 const W11_HOTS: HifiDef["hots"] = {
   "w11.presets": { l: "Allocation presets", info: "Presets prefill an editable percent editor; the protocol allocation class renders as “steward” (Decision Log #28c)." },
-  "w11.open-cycle": { l: "Open cycle", to: "screen:W7", info: "openCycle(cycleId, allocation) validates, stores, and emits the complete six-class bps snapshot; the encoded sum must equal 10,000 (UX:322-330)." },
+  "w11.continue": { l: "Continue to open", to: "screen:W11@guard", info: "Allocation → the open step, which carries the Ready-pool guard prompt." },
+  "w11.back": { l: "Back to allocation", to: "screen:W11", info: "Steps back to the six-role split with the entered values retained." },
+  "w11.cancel": { l: "Cancel open-cycle", to: "screen:W8@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard." },
+  "w11.open-cycle": { l: "Open pool and cycle", to: "screen:W7", info: "openCycle(cycleId, allocation) validates, stores, and emits the complete six-class snapshot; the shares must total 100% (UX:322-330). The Ready-pool guard opens the pool with the cycle (register #34a)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -581,12 +890,13 @@ function w13(state: W13State): string {
       "Pruning session",
       `<div class="arow"><div class="grow">2 photos · submitted by João</div>${hot("w13.chip", chip("Fulfills: Prune the north beds", "offer"))}</div>
 <div class="arow">${hot("w13.approve", btn("Approve", { kind: "pri", sm: true }))}${hot("w13.reject", btn("Reject", { kind: "sec", sm: true }))}</div>
-${banner("The commitment-context chip is the only Hub work-card delta (W13b).", "stone")}`,
+${banner("Work cards show which promise they fulfil; the approval rails are unchanged.", "stone")}`,
     );
   } else {
     inner = acard(
-      "Ready for confirmation — where you are named or fallback-eligible",
-      `<div class="arow"><div class="grow">${hot("w13.row", `<b>Maria — Prune the north beds</b>`)} <span class="t-meta">Rocinha</span></div>${meter(66, { right: "2 of 3" })}</div>
+      "Confirm queue",
+      `<div class="t-meta">Promises where you are named, or fallback-eligible.</div>
+<div class="arow"><div class="grow">${hot("w13.row", `<b>Maria — Prune the north beds</b>`)} <span class="t-meta">Rocinha</span></div>${meter(66, { right: "2 of 3" })}</div>
 <div class="arow"><div class="grow"><b>TAS — Field survey ride</b> <span class="t-meta">Awka</span></div>${meter(0, { right: "0 of 1" })}</div>`,
     );
   }
@@ -611,6 +921,23 @@ const W13_HOTS: HifiDef["hots"] = {
 const W14_STATES = [["baseline", "Baseline"], ["delta", "Re-assessment (delta)"]] as const;
 type W14State = (typeof W14_STATES)[number][0];
 
+const ASSESS_STEPS: FlowStep[] = [
+  { title: "Cycle & kind", desc: "what is being assessed" },
+  { title: "Evidence", desc: "photos and field notes" },
+  { title: "Scores", desc: "record, then attest" },
+];
+
+// Dimmed Hub route behind the assessment flow, hotspot-free.
+const hubBehind = () =>
+  adminCanvas("hub", "hub", {
+    screenId: "W14",
+    garden: "Rocinha",
+    interactiveChrome: false,
+    header: pageHeader({ title: "Hub", description: "Review and confirm work flowing through your gardens." }),
+    tabRail: hubRail(1),
+    body: acard("Assess", kv("Season of First Rains", "1 assessment waiting")),
+  });
+
 function w14(state: W14State): string {
   const kindRadio = hot(
     "w14.kind",
@@ -623,21 +950,28 @@ function w14(state: W14State): string {
     state === "delta"
       ? field("Baseline to compare", input("Baseline — AGRO — Jul 2", { select: true }))
       : banner("One baseline per garden/cycle/domain — a duplicate attempt points at the existing record.", "stone");
-  const header = pageHeader({
-    title: "Create assessment",
-    eyebrow: "Step 1 of 3",
-    description: "Cycle and kind — the v3 additions extend the existing assessment flow.",
-  });
-  const inner = `${field("Cycle", input("Season of First Rains", { select: true }))}${field("Assessment kind", kindRadio)}${extra}${hot("w14.continue", btn("Continue", { kind: "pri" }))}`;
+  // The existing Create Assessment flow already runs in a flow AdminDialog
+  // (uiux-spec §6.6); the v3 additions are two extra fields on its first step,
+  // not a new surface.
+  const inner = `${field("Cycle", input("Season of First Rains", { select: true }))}${field("Assessment kind", kindRadio)}${extra}`;
   return deskWin(
     "admin.greengoods.app/dashboard/hub/assess",
-    adminCanvas("hub", "hub", { screenId: "W14", garden: "Rocinha", header, body: `<div class="flowform">${inner}</div>` }),
+    flowDialog(hubBehind(), "hub", {
+      context: "Rocinha · assessment",
+      title: "Create assessment",
+      steps: ASSESS_STEPS,
+      current: 0,
+      body: inner,
+      cancelHot: "w14.cancel",
+      next: hot("w14.continue", btn("Continue", { kind: "pri" })),
+    }),
   );
 }
 
 const W14_HOTS: HifiDef["hots"] = {
   "w14.kind": { l: "Assessment kind", info: "Baseline: evaluator or steward. Delta: Evaluator Hat only (CS:760-761)." },
   "w14.continue": { l: "Continue assessment", info: "Continues into the existing assessment evidence and scoring steps." },
+  "w14.cancel": { l: "Cancel assessment", to: "screen:W8@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard." },
 };
 
 // ---------------------------------------------------------------------------
@@ -650,7 +984,7 @@ function hubwork(): string {
     "Pruning session — Prune the north beds",
     `<div class="arow"><div class="grow">2 photos · submitted by João · Jul 8</div></div>
 <div class="actrow">${hot("hub.approve", btn("Approve", { kind: "pri", sm: true }))}${hot("hub.reject", btn("Reject", { kind: "sec", sm: true }))}</div>
-${banner("Existing Work stage — approval rails untouched (UX:285).", "stone")}`,
+${banner("Existing Work stage — approval rails untouched.", "stone")}`,
   );
   return deskWin(
     "admin.greengoods.app/dashboard/hub",
@@ -667,19 +1001,19 @@ const HUBWORK_HOTS: HifiDef["hots"] = {
 
 export const ADMIN_DEFS: HifiDef[] = [
   { screen: { id: "W7", title: "W7 · Garden Pool tab (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W7_STATES.map(([id, label]) => ({ id, label, proposed: id === "ready" || id === "expiry-queue", html: w7(id) })) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
+    states: W7_STATES.map(([id, label]) => ({ id, label, html: w7(id) })) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
   { screen: { id: "W8", title: "W8 · Seeding console", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W8_STATES.map(([id, label]) => ({ id, label, html: w8(id) })) }, hots: { ...adminChromeHots("w8", "garden"), ...W8_HOTS } },
+    states: W8_STATES.map(([id, label]) => ({ id, label, html: w8(id) })) }, hots: W8_HOTS },
   { screen: { id: "W9", title: "W9 · Analog capture", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W9_STATES.map(([id, label]) => ({ id, label, html: w9(id) })) }, hots: { ...adminChromeHots("w9", "garden"), ...W9_HOTS } },
+    states: W9_STATES.map(([id, label]) => ({ id, label, html: w9(id) })) }, hots: W9_HOTS },
   { screen: { id: "W10", title: "W10 · Commitment dialog (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W10_STATES.map(([id, label]) => ({ id, label, proposed: ["attach-assessment", "accepted", "mark-ready-override", "cancel"].includes(id), html: w10(id) })) }, hots: W10_HOTS },
+    states: W10_STATES.map(([id, label]) => ({ id, label, html: w10(id) })) }, hots: W10_HOTS },
   { screen: { id: "W11", title: "W11 · Open-cycle allocation", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W11_STATES.map(([id, label]) => ({ id, label, html: w11(id) })) }, hots: { ...adminChromeHots("w11", "garden"), ...W11_HOTS } },
+    states: W11_STATES.map(([id, label]) => ({ id, label, html: w11(id) })) }, hots: W11_HOTS },
   { screen: { id: "W13", title: "W13 · Hub Confirm stage", surface: "admin", frame: "desktop", group: "Admin console",
     states: W13_STATES.map(([id, label]) => ({ id, label, html: w13(id) })) }, hots: { ...adminChromeHots("w13", "hub"), ...W13_HOTS } },
   { screen: { id: "W14", title: "W14 · Assessment v3 additions", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W14_STATES.map(([id, label]) => ({ id, label, html: w14(id) })) }, hots: { ...adminChromeHots("w14", "hub"), ...W14_HOTS } },
+    states: W14_STATES.map(([id, label]) => ({ id, label, html: w14(id) })) }, hots: W14_HOTS },
   { screen: { id: "HUBWORK", title: "Existing Hub Work stage", surface: "admin", frame: "desktop", group: "Admin console",
     states: [{ id: "approve", label: "Approve", html: hubwork() }] }, hots: { ...adminChromeHots("hubwork", "hub"), ...HUBWORK_HOTS } },
 ];

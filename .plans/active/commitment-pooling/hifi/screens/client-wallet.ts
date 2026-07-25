@@ -7,7 +7,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  appBar, banner, btn, card, chip, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
+  banner, btn, card, chip, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
   phoneFrame, radio, sectionTitle, seg, sheetOver, skeleton, stepDots,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -22,13 +22,20 @@ const W5_STATES = [
 ] as const;
 type W5State = (typeof W5_STATES)[number][0];
 
-const walletShell = (inner: string, active = 2) =>
-  sheetOver(
+// The shipping WalletDrawer is a 3-tab ModalDrawer opened from the Home header
+// — Cookies · Tokens · Commitments (views/Home/WalletDrawer/index.tsx:31-47) —
+// not a four-segment surface under Profile, and there is no Vault tab. G$ lives
+// in the existing Tokens tab. §5.8 lands the pools panel in this drawer and
+// ships no Profile change.
+const walletShell = (inner: string, active: 0 | 1 | 2, segHot?: string) => {
+  const rail = seg(["Cookies", "Tokens", "Commitments"], active);
+  return sheetOver(
     homeHeader(),
     "Wallet",
-    `${hot("w5.seg", seg(["Jar", "Vault", "Pools"], active))}${inner}`,
+    `<div class="t-meta">Your jars, tokens, and promises across gardens.</div>${segHot ? hot(segHot, rail) : rail}${inner}`,
     { handle: false },
   );
+};
 
 function w5(state: W5State): string {
   let inner: string;
@@ -80,11 +87,12 @@ ${card(
         { cls: "flat" },
       )}`;
   }
-  return phoneFrame(walletShell(inner), { offline: state === "queued" || state === "read-error", appBar: appBar("profile") });
+  // The shipping AppBar hides while any drawer is open (AppBar.tsx:33).
+  return phoneFrame(walletShell(inner, 2, "w5.seg"), { offline: state === "queued" || state === "read-error", appBar: false });
 }
 
 const W5_HOTS: HifiDef["hots"] = {
-  "w5.seg": { l: "Wallet panels", info: "Jar · vault · pools — the pools panel is the cross-garden commitments home (UX:186)." },
+  "w5.seg": { l: "Wallet tabs", info: "The shipping WalletDrawer's three tabs — Cookies · Tokens · Commitments. Commitments is the cross-garden promises home (UX:186); G$ balances stay in Tokens." },
   "w5.summary": { l: "Cycle summary line", info: "W6's retired Home card lives on as this header line (Decision Log #28f); absolute numbers below the small-community threshold (UX:191)." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of promises waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own promises grouped by garden." },
@@ -127,22 +135,22 @@ ${hot("w23.send-retry", btn("Try again", { kind: "pri", full: true, icon: "refre
     default:
       inner = `${card(
         `<div class="cardrow"><div class="grow"><div class="t-title">Support received</div><div class="t-meta">G$ · Celo</div></div><div class="t-title num">128 G$</div></div>` +
-          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+20 G$ — Prune the north beds", meta: "Arrived · oracle-verified ↗", chipHtml: chip("Arrived", "ok") })) +
+          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+20 G$ — Prune the north beds", meta: "Arrived · delivery receipt ↗", chipHtml: chip("Arrived", "ok") })) +
           listRow({ icon: "time-line", primary: "+15 G$ — Market rides", meta: "On its way" }),
         { cls: "flat" },
       )}
 ${hot("w23.send", btn("Send G$", { kind: "pri", full: true, icon: "send-plane-line" }))}`;
   }
-  return phoneFrame(walletShellG(inner), { appBar: appBar("profile") });
+  // G$ is a token balance, so it belongs to the drawer's existing Tokens tab —
+  // not a second surface claiming the Commitments panel W5 already owns.
+  return phoneFrame(walletShell(inner, 1), { appBar: false });
 }
-
-const walletShellG = (inner: string) => sheetOver(homeHeader(), "Wallet", `${seg(["Jar", "Vault", "Pools"], 2)}${inner}`, { handle: false });
 
 const W23_HOTS: HifiDef["hots"] = {
   "w23.send": { l: "Send G$", to: "screen:W23@send", info: "Online-only wallet action, sponsored gas — never enters the offline queue (UX:219)." },
   "w23.send-submit": { l: "Send", to: "screen:W23@send-pending", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
   "w23.send-retry": { l: "Try again", to: "screen:W23@send-pending", info: "Retries the online-only wallet action with the recipient and amount retained (UX:219)." },
-  "w23.arrived-row": { l: "Arrived row", info: "“Arrived” always means oracle-verified — a reported transfer alone never renders as arrived (SS:398)." },
+  "w23.arrived-row": { l: "Arrived row", info: "“Arrived” means an authenticated CCIP success acknowledgment — dispatched or Celo-executed/ack-pending never render as arrived." },
   "w23.tech-status": { l: "Technical status", info: "AA/paymaster gate failed: member delivery + sends stay off; Safe-to-Safe garden funding continues (SS:425)." },
 };
 
@@ -156,11 +164,11 @@ const W25_STATES = [
 type W25State = (typeof W25_STATES)[number][0];
 
 function w25(state: W25State): string {
+  // The provider-context choice is locked to the pre-claim sheet (register #51,
+  // MF-8). Asking it on the card too meant the same question twice — with
+  // opposite defaults — so the card carries only the claim entry point.
   const protocolCard = card(
-    `<div class="cardrow">${chip("Protocol", "ink")}${chip("Request", "request")}</div><div class="t-title">Methodology survey</div><div class="t-meta num">1 survey · stewards review who takes this up</div>${hot(
-      "w25.context",
-      radio([{ label: "As myself", on: true }, { label: "For Awka Hub", meta: "eligible stewards only" }]),
-    )}${hot("w25.ask", btn("Ask to take this up", { kind: "pri", full: true }))}`,
+    `<div class="cardrow">${chip("Protocol", "ink")}${chip("Request", "request")}</div><div class="t-title">Methodology survey</div><div class="t-meta num">1 survey · stewards review who takes this up</div>${hot("w25.ask", btn("Ask to take this up", { kind: "pri", full: true }))}`,
   );
   const head = hdr("Rocinha Community Garden", { back: true });
 
@@ -170,7 +178,7 @@ function w25(state: W25State): string {
       sheetOver(
         behind,
         "Take this up…",
-        `${hot("w25.chooser", radio([{ label: "As myself", meta: "the promise is yours" }, { label: "For Awka Hub", meta: "you steward this garden", on: true }], { interactive: true, name: "commitment-context" }))}
+        `${hot("w25.chooser", radio([{ label: "As myself", meta: "the promise is yours", on: true }, { label: "For Awka Hub", meta: "you steward this garden" }], { interactive: true, name: "commitment-context" }))}
 ${banner("Working for the garden: its account makes the promise; you remain the requester.", "stone", "group-line")}
 ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.cancel", btn("Cancel", { kind: "ghost", full: true }))}`,
       ),
@@ -189,11 +197,10 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
 }
 
 const W25_HOTS: HifiDef["hots"] = {
-  "w25.context": { l: "Provider context", to: "screen:W25@context-chooser", info: "Garden option renders for eligible stewards only (CS:581). The (Protocol) chip is the only new mark on the card grammar (WF:671)." },
   "w25.chooser": { l: "Context chooser", info: "Garden claim: claimant = GardenAccount, requestedBy = you. No custody, no member-delivery via garden claims (AM:38-39)." },
-  "w25.continue": { l: "Continue", to: "screen:W1@claim-pending", info: "Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged." },
+  "w25.continue": { l: "Continue", to: "screen:W25@pending", info: "Creates the claim request with the chosen context's stored terms — claimant, requestedBy, kind, gardenContext (CS:133). Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged." },
   "w25.cancel": { l: "Cancel", to: "screen:W25", info: "Closes the provider-context sheet without creating a claim request." },
-  "w25.ask": { l: "Ask to take this up", to: "screen:W25@pending", info: "Creates the claim request with stored terms — claimant, requestedBy, kind, gardenContext (CS:133)." },
+  "w25.ask": { l: "Ask to take this up", to: "screen:W25@context-chooser", info: "Opens the provider-context sheet before any claim request exists; the garden option renders for eligible stewards only (CS:581). The (Protocol) chip is the only new mark on the card grammar (WF:671)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -231,17 +238,17 @@ export const WALLET_DEFS: HifiDef[] = [
   },
   {
     screen: { id: "W23", title: "W23 · Wallet G$ + send", surface: "client", frame: "phone", group: "Client PWA",
-      states: W23_STATES.map(([id, label]) => ({ id, label, proposed: id === "delivery-blocked", html: w23(id) })) },
+      states: W23_STATES.map(([id, label]) => ({ id, label, html: w23(id) })) },
     hots: W23_HOTS,
   },
   {
     screen: { id: "W25", title: "W25 · Protocol-pool claim", surface: "client", frame: "phone", group: "Client PWA",
-      states: W25_STATES.map(([id, label]) => ({ id, label, proposed: id === "context-chooser", html: w25(id) })) },
+      states: W25_STATES.map(([id, label]) => ({ id, label, html: w25(id) })) },
     hots: W25_HOTS,
   },
   {
     screen: { id: "WFLOW", title: "Existing work flow (+ fulfills row)", surface: "client", frame: "phone", group: "Client PWA",
-      states: [{ id: "review", label: "Review (+ fulfills)", proposed: true, html: wflow() }] },
+      states: [{ id: "review", label: "Review (+ fulfills)", html: wflow() }] },
     hots: WFLOW_HOTS,
   },
 ];

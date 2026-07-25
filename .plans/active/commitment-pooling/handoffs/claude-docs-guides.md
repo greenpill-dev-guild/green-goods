@@ -20,15 +20,15 @@
 
 - Operator seeding/claims/settlement guide and gardener promise/evidence/confirmation/reward guide.
 - Real screenshots with alt text, captions, version/date, and surface provenance.
-- Recovery instructions for offline, declined, superseded, failed, checking, oracle-invalid, and member-delivery-disabled states.
-- Built/planned/reported/oracle-verified language.
+- Recovery instructions for offline, declined, superseded, failed, dispatched, acknowledgment-pending, delivery-delayed, and member-delivery-disabled states.
+- Built/planned/dispatched/confirming/confirmed language.
 
 ## Acceptance
 
 - Every screenshot comes from the shipped authenticated surface; no low-fi frame is presented as product.
 - Guide steps match current accessible names and route placement, including admin /community.
-- Reported/checking never reads as arrived.
-- Recovery instructions contain no manual verification or garden-custody claim path.
+- Dispatched/executed-acknowledgment-pending never reads as arrived.
+- Recovery instructions distinguish same-key command retry, stored acknowledgment retry, and a new attempt; they contain no manual confirmation or garden-custody claim path.
 - en/es/pt product labels in screenshots match the shipped translations; guide prose follows the docs localization policy.
 
 ## RED / GREEN or proof limit
@@ -45,7 +45,7 @@
 
 ## Out of scope
 
-- Speculative screenshots, product code, route changes, test-only browser profiles reported as authenticated evidence, manual receipt verification, garden-held member claims, or new Linear children.
+- Speculative screenshots, product code, route changes, test-only browser profiles reported as authenticated evidence, manual settlement confirmation, garden-held member claims, or new Linear children.
 
 ## Unblock evidence
 

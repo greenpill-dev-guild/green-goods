@@ -188,9 +188,11 @@ W8: `┌── Seed a commitment ── ● ● ● ○ ────────
 │ confirmers  [ + add address ]  ≡ Maria ✕  ≡ João ✕       │
 │ threshold   N = [ 2 ] of 2                               │
 │ claim mode  ◉ open   ○ steward-reviewed                  │
-│ reward      source [ garden jar ▾ ] token [DAI] amt [20] │
+│ rail        ○ none  ◉ external payout  ○ Celo G$         │
+│ external    source [ garden jar ▾ ] token [DAI] amt [20] │
 ├──────────────────────────────────────────────────────────┤
-│ Step 4 — Review              [ Seed this commitment ]    │
+│ Step 4 — Review · ArbitrumExternal                       │
+│                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘`,
 W9: `┌── Record on a member's behalf ───────────────────────────┐
 │ "Recorded by {steward} on your behalf.                   │
@@ -211,6 +213,7 @@ W10: `┌── Prune the north beds ──────────────�
 │ Provider: Maria (cannot confirm)                          │
 │ Eligible: João ✓ · Ana ○ · you ○   (1 of 2 required)     │
 ├──────────────────────────────────────────────────────────┤
+│ Rail: ArbitrumExternal                                   │
 │ Reward: 20 DAI · garden jar · unpaid   [ Record payout ] │
 │ [ Confirm as fallback… ]  [ Raise dispute… ]             │
 │ Provider address can never use fallback confirmation.    │
@@ -275,34 +278,34 @@ W16: `├───────────────────────�
 │ [ See the gardens ▸ ]                        │
 └──────────────────────────────────────────────┘`,
 W21: `┌─ Settlement (Celo) ────────────────────────────────────────────────────┐
-│ no settlement account yet   [ Set up settlement account ]              │
+│ no settlement account yet   [ Review registration requirements ]       │
 │                                                                        │
 │  — once registered —                                                   │
 │ Safe celo:0x9a…4f (active) · balance 1,240 G$ · allowance 500 G$/wk    │
 │ member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗    │
-│ Functions: subscription funded · DON healthy · last callback 4m ago    │
+│ CCIP: peers configured · native reserves funded · last ack 4m ago      │
 │ Disbursements                                                          │
-│ ≡ Maria — 20 G$    (Queued)                        [ add to batch ]    │
-│ ≡ João — 15 G$     (Failed: reason ▸) [ Requeue ] [ Cancel… ]          │
-│ ≡ Ana — 20 G$      (Reported · checking receipt) [ request details ]   │
-│ ≡ Kofi — 20 G$     (Verified ↗ Celo tx)                                │
+│ ≡ settlement 104 / attempt 0   (Queued)             [ dispatch ]       │
+│ ≡ settlement 103 / attempt 1   (Failed: route rejected) [retry][close] │
+│ ≡ settlement 102 / attempt 0   (confirming arrival) [ retry ack ]      │
+│ ≡ settlement 101 / attempt 0   (Confirmed ↗ Celo tx)                   │
 │ [ Create batch (2) ]                                                   │
 └────────────────────────────────────────────────────────────────────────┘`,
-W22: `┌── Execute batch #12 — Rocinha ────────────────────────────────────┐
-│ 2 of max 24 immutable members · 35 G$ · Safe 0x9a…4f     │
+	W22: `┌── Settlement 104 / attempt 0 — Rocinha ───────────────────────────┐
+│ 2 of configured 8 · hard ceiling 24 · 35 G$ · no G$ in CCIP │
+│ payer Rocinha pool Safe · Celo peer/version/gas snapshot     │
 │ ≡ Maria — 20 G$ → 0x12…9a                                │
 │ ≡ João — 15 G$ → 0x77…3c                                 │
-│ [ Open in Safe app ↗ ]                                   │
-│ [ Mark executing ]                                       │
-│ then [ Report Celo transaction hash… ]                   │
-│      [ Request receipt verification ]                    │
-│ or   [ Record failed — reason… ]                         │
+│ [ Dispatch command ]                                     │
+│ command 0xab…11 ↗ CCIP Explorer · Dispatched             │
+│ destination 0xce…42 ↗ Celoscan · outcome stored          │
+│ acknowledgment 0xac…09 ↗ CCIP Explorer · pending         │
 ├──────────────────────────────────────────────────────────┤
-│ Reported · checking finalized Celo receipt               │
-│ request 0x71…c2 · Chainlink Functions                    │
-│ Infrastructure timeout: [ Request again ]                │
-│ Receipt invalid: batch stays immutable; for each member  │
-│                   [ Requeue ] [ Cancel with reason… ]     │
+│ delivery delay is derived, never manually marked         │
+│ [ Manual-execution guidance ] [ Retry same command ]     │
+│ [ Retry acknowledgment ] — never moves G$ twice          │
+│ authenticated failure: [ Requeue member ]                │
+│ queued only: [ Cancel whole batch ] · no partial member  │
 └──────────────────────────────────────────────────────────┘`,
 W23: `├──────────────────────────────────────────────┤
 │ Support received (G$ · Celo)          128 G$ │
@@ -324,21 +327,21 @@ W23G: `┌─ G$ member delivery ───────────────�
 │ [ View technical status ]                    │
 └──────────────────────────────────────────────┘`,
 W24: `┌────────────────────────────────────────────────────────────────────────┐
-│ Operations        ◉ queue (4) · oracle · flows                         │
+│ Operations        ◉ queue (4) · CCIP · flows                           │
 ├────────────────────────────────────────────────────────────────────────┤
 │ QUEUE — all gardens                                                    │
 │ ≡ Rocinha  batch #12 · 2 members · 35 G$             (Queued)    [ Execute ▸ ]  │
 │ ≡ Awka     Maria — 20 G$                    (Failed ▸)  [ Requeue ]    │
 │ ≡ protocol funding → Muizenberg · 200 G$    (Queued)    [ Execute ▸ ]  │
 ├────────────────────────────────────────────────────────────────────────┤
-│ ORACLE — verification health                                           │
-│ subscription funded ✓ · DON ok ✓ · last callback 4m · 0 stale ignored  │
-│ ≡ batch #11 · Reported · checking receipt · request 0x71…c2                 ▸   │
+│ CCIP — command / execution / acknowledgment health                     │
+│ Arbitrum reserve ✓ · Celo reserve ✓ · peers ✓ · 0 deferrals           │
+│ ≡ settlement 102 · execution stored · acknowledgment pending              ▸   │
 ├────────────────────────────────────────────────────────────────────────┤
 │ FLOWS — cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
-│ GG protocol Safe → garden Safes       3 hops verified · 1 reported     │
-│ garden Safes → members                42 verified · 2 failed           │
+│ GG protocol Safe → garden Safes       3 confirmed · 1 dispatched       │
+│ garden Safes → members                42 confirmed · 2 failed          │
 │ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │
 └────────────────────────────────────────────────────────────────────────┘`,
 W25: `┌──────────────────────────────────────────────┐
@@ -551,10 +554,10 @@ export const FT: Record<string, string> = {
   W6: "W6 · retired → W5 compatibility alias", W7: "W7 · Garden Pool tab (admin)", W7X: "W7 · claim outcomes", W8: "W8 · Seeding console",
   W9: "W9 · Analog capture", W10: "W10 · Commitment dialog (admin)", W11: "W11 · Open-cycle allocation", W12: "W12 · Community → Pools",
   W13: "W13 · Hub Confirm stage", W14: "W14 · Assessment v3 additions", W15: "W15 · Garden pool story (public)", W16: "W16 · /impact promises (public)",
-  W21: "W21 · Settlement section (admin)", W22: "W22 · Batch + oracle console", W23: "W23 · Wallet G$ + send", W23G: "W23 · delivery blocked",
-  MF1: "MF-1 · Pool lifecycle actions (proposed)", MF3: "MF-3 · Expired band (proposed)", MF4: "MF-4 · Expiry queue (proposed)",
-  MF5: "MF-5 · Membership-wait chrome (proposed)", MF6: "MF-6 · Send for confirmation (proposed)", MF8: "MF-8 · Provider-context chooser (proposed)",
-  MF9: "MF-9 · Reconciliation report (proposed)", MF10: "MF-10 · Cycle summary card (proposed)", MF13: "MF-13 · Attach-assessment picker (proposed)",
+  W21: "W21 · Settlement section (admin)", W22: "W22 · CCIP command/ack console", W23: "W23 · Wallet G$ + send", W23G: "W23 · delivery blocked",
+  MF1: "MF-1 · Pool lifecycle actions (realized)", MF3: "MF-3 · Expired band (realized)", MF4: "MF-4 · Expiry queue (realized)",
+  MF5: "MF-5 · Membership-wait chrome (realized)", MF6: "MF-6 · Send for confirmation (realized)", MF8: "MF-8 · Provider-context chooser (realized)",
+  MF9: "MF-9 · Reconciliation report (realized)", MF10: "MF-10 · Cycle summary card (realized)", MF13: "MF-13 · Attach-assessment picker (realized)",
   W24: "W24 · Operations workspace (admin)", W25: "W25 · Protocol-pool claim (client)", W26: "W26 · Cycle-close wizard (admin)",
   WFLOW: "Existing work flow (+ fulfills row)", HUBWORK: "Existing Hub Work stage",
   C1: "CI-W1 · Needs board (Sept)", C3: "CI-W3 · Create — intent + words (Sept)", C4: "CI-W4 · Review + queue state (Sept)",
@@ -614,7 +617,7 @@ W7: [
   { m: "[ Accept ]", l: "Accept claim", to: "frame:W7X", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733)." },
   { m: "[ Decline… ]", l: "Decline claim (reason)", to: "frame:W7X", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   { m: "(+) seed", l: "Seed a commitment", to: "frame:W8" },
-  { m: "scoped report ▸", l: "Cycle report", to: "frame:MF9", info: "Reconciliation report — proposed frame MF-9 (UX:75)." },
+  { m: "scoped report ▸", l: "Cycle report", to: "frame:MF9", info: "Reconciliation report — realized as W26 via MF-9 (UX:75)." },
   { m: "≡ Prune the north beds", l: "Commitment row", to: "frame:W10" },
 ],
 W7X: [
@@ -624,13 +627,14 @@ W8: [
   { m: "[ Seed this commitment ]", l: "Seed this commitment", to: "frame:W7", info: "Console seeding — SeasonCampaign and OperatorCaptured exist only here (UX:150)." },
   { m: "claim mode  ◉ open   ○ steward-reviewed", l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
   { m: "confirmers  [ + add address ]", l: "Confirmer rule", info: "Named any-N group; the accepted provider is excluded before threshold validation (UX:280)." },
+  { m: "○ none  ◉ external payout  ○ Celo G$", l: "Reward rail", info: "Exactly one rail is stored. ArbitrumExternal records an outside payout; CeloSettlement queues canonical G$ from the owning-pool Safe." },
 ],
 W9: [
   { m: "search members", l: "Pick the member", info: "The member is the social source; the steward is only the recorder (UX:437)." },
   { m: "◉ their offer  ○ their request  ○ confirmation", l: "Capture kind", info: "Captured confirmations always carry a reason (UX:291)." },
 ],
 W10: [
-  { m: "[ Record payout ]", l: "Record payout", info: "AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here (UX:302). August G$ rewards relabel this Queue disbursement (SS:535)." },
+  { m: "[ Record payout ]", l: "Record payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here. CeloSettlement uses Queue disbursement instead." },
   { m: "[ Confirm as fallback… ]", l: "Confirm as fallback", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   { m: "[ Raise dispute… ]", l: "Raise dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
   { m: "Resolve dispute", l: "Resolve dispute", info: "RestorePrevious / Fulfilled / Cancelled / Expired, each with a required reason; Expired can never resolve Fulfilled (CS:144)." },
@@ -658,21 +662,23 @@ W16: [
   { m: "[ See the gardens ▸ ]", l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
 ],
 W21: [
-  { m: "[ Set up settlement account ]", l: "Set up settlement account", info: "registerSettlementAccount — Celo 42220, 2-of-3 recovery, no owner/executor overlap (SS:169)." },
+  { m: "[ Review registration requirements ]", l: "Review registration requirements", info: "Read-only prerequisite summary. Release governance deploys and verifies the 2-of-3 Safe/Roles route; registration binds only the existing account." },
   { m: "member delivery: enabled", l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
-  { m: "[ add to batch ]", l: "Add to batch", info: "Batches hold 1–24 immutable members (SS:116)." },
+  { m: "[ Create batch (2) ]", l: "Create batch", to: "frame:W22", info: "Batches hold immutable members up to the measured configured limit; the hard ceiling is 24." },
   { m: "[ Requeue ]", l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
-  { m: "[ Cancel… ]", l: "Cancel disbursement", info: "Queued/Failed → Cancelled; frees the commitment for a fresh queue (SS:183)." },
-  { m: "[ request details ]", l: "Verification request", info: "Reported + active request = the derived 'checking receipt' (DG:666)." },
-  { m: "[ Create batch (2) ]", l: "Create batch", to: "frame:W22" },
+  { m: "[close]", l: "Close failed delivery", info: "Failed → Cancelled; preserves the attempt/failure history and creates no new execution key." },
+  { m: "[ dispatch ]", l: "Dispatch command", info: "Sends the immutable data-only command through CCIP; G$ stays on Celo." },
+  { m: "[ retry ack ]", l: "Retry acknowledgment", info: "Resends only the stored Celo outcome and cannot move G$ again." },
 ],
 W22: [
-  { m: "[ Open in Safe app ↗ ]", l: "Open in Safe app", info: "The value leg happens in the Safe app — Roles-scoped G$ transfer, outside Green Goods (WF settlement notes)." },
-  { m: "[ Mark executing ]", l: "Mark executing", info: "Executor-only (SS:176). Pilot stewards hold the role (register #34e); a missing role shows a visible guard state." },
-  { m: "[ Report Celo transaction hash… ]", l: "Report tx hash", info: "Executor-only; ref mandatory and globally unused. Reported is never member-visible proof (SS:177)." },
-  { m: "[ Request receipt verification ]", l: "Request verification", info: "Pinned Chainlink Functions request; only its callback can produce Verified (SS:178-179)." },
-  { m: "[ Request again ]", l: "Request again", info: "Infrastructure timeout: expire the stale request, then a fresh one — no state loss (SS:180)." },
-  { m: "[ Cancel with reason… ]", l: "Cancel member", info: "Receipt-invalid recovery is per-member; the batch itself stays immutable (SS:394)." },
+  { m: "[ Dispatch command ]", l: "Dispatch command", info: "Sends the versioned data-only command; the router receives no token amounts." },
+  { m: "[ Cancel whole batch ]", l: "Cancel whole queued batch", info: "Requires a reason and blast-radius confirmation; atomically cancels every immutable member before dispatch. No member-level cancellation is available while Queued." },
+  { m: "command 0xab…11", l: "Command message", info: "Open in CCIP Explorer; command delivery is not confirmation." },
+  { m: "destination 0xce…42", l: "Destination transaction", info: "Celo execution evidence; the source remains Dispatched until acknowledgment." },
+  { m: "acknowledgment 0xac…09", l: "Acknowledgment message", info: "Only an authenticated success acknowledgment for the subject's current execution key and attempt can produce Confirmed." },
+  { m: "[ Manual-execution guidance ]", l: "Manual-execution guidance", info: "External CCIP recovery shown only when Explorer marks the message eligible; never a state mutation." },
+  { m: "[ Retry same command ]", l: "Retry same command", info: "Preserves the attempt, execution key, and payload; creates only a new CCIP message ID." },
+  { m: "[ Retry acknowledgment ]", l: "Retry acknowledgment", info: "Resends the stored outcome without calling the Safe route." },
 ],
 W23: [
   { m: "[ Send G$ ]", l: "Send G$", info: "Online-only wallet action, sponsored gas — never enters the offline queue (UX:219)." },

@@ -20,7 +20,7 @@
 ## Outputs
 
 - Read-only garden pool story and protocol-wide promise aggregates.
-- Clear labels separating planned, live, reported, and oracle-verified behavior.
+- Clear labels separating planned, queued, dispatched, confirming, and CCIP-confirmed behavior.
 - Privacy-thresholded counts with readiness/empty/error copy.
 - en/es/pt copy and accessible public-browser proof.
 
@@ -28,7 +28,7 @@
 
 - Public views render only indexer-backed aggregates and approved EAS/shared joined reads.
 - No per-person lists, wallet addresses, rankings, funding-ordering, or unsupported percentage claims.
-- Reported settlement never reads as arrived; oracle-verified references are distinguished from community narrative and evaluator conclusions.
+- Dispatched or Celo-executed/ack-pending settlement never reads as arrived; only a CCIP-confirmed outcome may use arrival language and it remains distinct from community narrative and evaluator conclusions.
 - Pre-launch surfaces use planned/readiness language rather than live counts.
 - Headings, links, status text, focus order, contrast, and reduced motion pass public-browser review.
 
@@ -53,4 +53,4 @@
 
 - Indexer/shared aggregate selectors and privacy thresholds are GREEN.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
-- GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, reported, oracle-verified, empty, and error states.
+- GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.

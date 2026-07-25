@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="use-cases-title use-cases-desc">
   <title id="use-cases-title">Three ways a community Need becomes action</title>
-  <desc id="use-cases-desc">Three garden-agnostic journeys show a problem and desired outcome becoming a Request or Offer commitment, followed by proof and confirmation. The mutual-aid journey moves no token, the shared-project journey uses baseline and work evidence, and the rewarded journey keeps G dollar settlement on Celo with Reported distinct from Oracle-verified.</desc>
+  <desc id="use-cases-desc">Three garden-agnostic journeys show a problem and desired outcome becoming a Request or Offer commitment, followed by proof and confirmation. The mutual-aid journey moves no token, the shared-project journey uses baseline and work evidence, and the rewarded journey keeps G dollar settlement on Celo with an authenticated acknowledgment required for confirmation.</desc>
   <defs>
     <marker id="use-cases-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -64,7 +64,7 @@
     <text x="497" y="737" text-anchor="middle" font-size="17" font-weight="700" fill="#2A2722">OFFER OR REQUEST</text><text x="497" y="760" text-anchor="middle" font-size="16" fill="#2A2722">Install a water line</text><text x="497" y="783" text-anchor="middle" font-size="16" fill="#2A2722">with declared G$ reward</text>
     <text x="497" y="809" text-anchor="middle" font-size="14" font-weight="700" fill="#6E6857">PLANNED</text>
     <rect x="665" y="705" width="260" height="124" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="6 4"/>
-    <text x="795" y="735" text-anchor="middle" font-size="16" fill="#2A2722">Work + confirmation</text><text x="795" y="759" text-anchor="middle" font-size="16" fill="#2A2722">Reported → Oracle-verified</text><text x="795" y="783" text-anchor="middle" font-size="16" fill="#2A2722">G$ remains on Celo</text>
+    <text x="795" y="735" text-anchor="middle" font-size="16" fill="#2A2722">Work + Dispatched</text><text x="795" y="759" text-anchor="middle" font-size="16" fill="#2A2722">authenticated ack → Confirmed</text><text x="795" y="783" text-anchor="middle" font-size="16" fill="#2A2722">G$ remains on Celo</text>
     <text x="795" y="809" text-anchor="middle" font-size="14" font-weight="700" fill="#6E6857">PLANNED · EVIDENCE-GATED</text>
   </g>
 

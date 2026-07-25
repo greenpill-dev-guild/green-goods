@@ -174,9 +174,9 @@ const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc
 ).join("")}</nav>`;
 
 const statusNote = `<aside class="status"><h2>Status — coherency pass 2026-07-22 · hi-fi register #36</h2>
-<p><strong>Presentation review</strong>: 13 guided flows and 24 high-fidelity screens are grouped by Client PWA, Admin Console, End-to-end, and Public surfaces. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into parent states; still-proposed placements keep the amber tag. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
+<p><strong>Presentation review</strong>: 13 guided flows and 24 high-fidelity screens are grouped by Client PWA, Admin Console, End-to-end, and Public surfaces. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
 <p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21/W12 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
-<p><strong>Still open</strong>: steward-cancel placement (MF-2b, drawn as proposed) · Cancelled-disbursement member copy (§17.5) · MF-7/MF-8/MF-13 placement decisions (drawn as proposed). <strong>Realized</strong>: the queue-funding control (MF-11) is a real, non-proposed control on W24 with its funding context reflected on W12. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
+<p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
 
 const sections = secs.map(s => {
   const m = s.title.match(/^(SB-\d+) — (.*)$/);
@@ -244,8 +244,10 @@ const assertBuild = (condition: unknown, message: string) => {
 };
 const flowCounts = countBy(visibleSbs, (sb) => sb.reviewGroup);
 const screenCounts = countBy(visibleScreens, (screen) => screen.surface);
-assertBuild(visibleSbs.length === 13, `expected 13 visible flows, found ${visibleSbs.length}`);
-assertBuild(flowCounts.client === 4 && flowCounts.admin === 4 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 4 admin / 5 end-to-end`);
+// 15 since the audit split sb9's 33-scene ribbon into readiness / pause-resume /
+// end-of-season (6 admin flows, not 4).
+assertBuild(visibleSbs.length === 15, `expected 15 visible flows, found ${visibleSbs.length}`);
+assertBuild(flowCounts.client === 4 && flowCounts.admin === 6 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 6 admin / 5 end-to-end`);
 assertBuild(visibleScreens.length === 24, `expected 24 visible screens, found ${visibleScreens.length}`);
 assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.public === 2, `screen grouping must be 9 client / 13 admin / 2 public`);
 const presentationCatalogs = flowCatalog + screenCards;
@@ -328,6 +330,13 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .tab{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:8px;
   padding:5px 14px;font:600 13px inherit;cursor:pointer;min-height:44px}
 .tab.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
+/* Chrome-level toggle. The dialect tokens already ship both theme signals
+   ([data-theme="dark"] and the prefers-color-scheme twin), so pinning the
+   attribute is all that is needed to review dark on a light machine. */
+.chromebtn{margin-left:auto;border:1px solid var(--line);background:var(--panel);color:var(--stone);
+  border-radius:8px;padding:5px 12px;font:600 12.5px inherit;cursor:pointer;min-height:44px}
+.chromebtn:hover{color:var(--ink)}
+.chromebtn[aria-pressed="true"]{border-color:var(--accent-ink);color:var(--ink)}
 #tab-doc,#tab-play,#tab-screens{display:none}
 #tab-doc.on,#tab-play.on,#tab-screens.on{display:block}
 
@@ -549,6 +558,7 @@ ${iconSprite()}
   <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Guided flows</button>
   <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screen library</button>
   <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Implementation reference</button>
+  <button class="chromebtn" id="themebtn" type="button" aria-pressed="false">Dark mode</button>
 </div>
 
 <div id="tab-play" class="on" role="tabpanel" aria-labelledby="tabbtn-play">
@@ -645,9 +655,31 @@ ${PLAYER_JS}
 
 writeFileSync(OUT, html);
 const byteSize = new TextEncoder().encode(html).byteLength;
+
+// prototypes-coverage.md transcribes this snapshot by hand and has drifted from
+// it before (W2 carried 24 states after two were added). Compare on every build
+// so the transcription cannot silently rot again.
+const totalStates = SCREENS.reduce((a, s) => a + s.states.length, 0);
+const totalScenes = sbs.reduce((a, b) => a + b.steps.length, 0);
+try {
+  const coverage = readFileSync(new URL("./prototypes-coverage.md", import.meta.url), "utf8");
+  const claimed: [string, number, number][] = [
+    ["screens", SCREENS.length, Number(coverage.match(/- (\d+) registered screens/)?.[1])],
+    ["states", totalStates, Number(coverage.match(/registered screens \/ (\d+) rendered states/)?.[1])],
+    ["hotspots", Object.keys(HOTS).length, Number(coverage.match(/- (\d+) registered hotspots/)?.[1])],
+    ["scenes", totalScenes, Number(coverage.match(/source flows \/ (\d+) scenes/)?.[1])],
+  ];
+  for (const [label, actual, stated] of claimed) {
+    if (Number.isFinite(stated) && stated !== actual)
+      console.warn(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
+  }
+} catch {
+  console.warn("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
+}
+
 console.log(
   "screens:", SCREENS.length,
-  "| states:", SCREENS.reduce((a, s) => a + s.states.length, 0),
+  "| states:", totalStates,
   "| hotspots:", Object.keys(HOTS).length,
   "| journeys:", sbs.length,
   "| scenes:", sbs.reduce((a, b) => a + b.steps.length, 0),

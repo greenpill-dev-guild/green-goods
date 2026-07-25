@@ -26,7 +26,7 @@
 ## Acceptance
 
 - Exact ABI/event/config signatures match across specs, generated types, handlers, and shared types.
-- Composite Garden IDs, nullable actors, claim supersession, oracle request/callback states, and member-delivery gating retain coverage.
+- Composite Garden IDs, nullable actors, claim supersession, command/ack message states, same-key idempotency, acknowledgment retry, and member-delivery gating retain coverage.
 - QA Pass 1 defects are fixed and re-proven or explicitly accepted by the user.
 - Execution sub-lane mirrors replace aggregate implementation issues without duplicates; QA stays on canonical QA issues; blocked, human, and follow-on lanes carry no `agent:*` label and cannot dispatch.
 - Browser evidence remains authenticated Brave and real device where required.
@@ -54,7 +54,7 @@
 
 ## Out of scope
 
-- New features, scope expansion, contract broadcasts, defect fixes inside the QA lane, isolated browser proof labeled authenticated, manual receipt verification, garden-held member claims, or branch ship/merge claims without the explicit Ship Gate.
+- New features, scope expansion, contract broadcasts, defect fixes inside the QA lane, isolated browser proof labeled authenticated, manual settlement confirmation, garden-held member claims, or branch ship/merge claims without the explicit Ship Gate.
 
 ## Unblock evidence
 

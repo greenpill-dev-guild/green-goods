@@ -15,7 +15,7 @@ export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: str
   const bottomBar = opts.appBar === false ? "" : (opts.appBar ?? appBar("garden"));
   return `<div class="phone"><div class="scr">
 <div class="statusbar"><span class="num">9:41</span><span class="sbr">${opts.offline ? icon("wifi-off-line", "s") : ""}<span class="sb-sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="sb-batt"></span></span></div>
-<div class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</div>
+<main class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</main>
 ${bottomBar}
 <div class="homebar"><i></i></div>
 </div></div>`;

@@ -14,19 +14,21 @@
 - GREEN shared hooks/selectors/jobs and composite Garden query contract
 - uiux-spec.md and client frames in wireframes.md
 - acceptance-matrix.md for exact identity, copy/state, and role proof
-- Functions-only settlement states and memberDeliveryEnabled selector
+- CCIP command/execution/acknowledgment states and memberDeliveryEnabled selector
 - Existing AppShell, Garden detail, WalletDrawer, offline indicator, wallet/passkey, and i18n patterns
 
 ## Outputs
 
 - Garden pool browse/detail/create, open and approval-gated participation, evidence/work linkage, confirmation, dispute/recovery, one-open-Season plus concurrent-Campaign views, and WalletDrawer commitment views; no CP Profile fork.
 - DomainImpact creation emits one ordered row per requirement and preserves equal positional `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]` arrays. Detail/progress views bind each row by `requirementIndex`, render its approved/required count, and use canonical per-commitment `approvedUnits` supplied by state/API rather than recomputing contract math in the client.
-- Narrowed dispatch option (status.json `ui_client.blocked_reason`): the core pool views above (W1–W5 — browse, detail, create, confirm, and WalletDrawer panel) may be dispatched by an explicit narrowed handoff once state_api is GREEN, without waiting for settlement. W6 is not active work; it is only the W6→W5 compatibility alias. The settlement slices stay with the settlement gate: W23 WalletDrawer G$ section, reward-status rows (Reported/checking/Verified/Failed) on W2, and the online `transfer` flow.
+- Narrowed dispatch option (status.json `ui_client.blocked_reason`): the core pool views above (W1–W5 — browse, detail, create, confirm, and WalletDrawer panel) may be dispatched by an explicit narrowed handoff once state_api is GREEN, without waiting for settlement. W6 is not active work; it is only the W6→W5 compatibility alias. The settlement slices stay with the settlement gate: W23 WalletDrawer G$ section, distinct reward-status rows (Queued, Dispatched, derived delayed, executed/acknowledgment-pending, Confirmed, authenticated Failed, Cancelled-from-Queued, and Cancelled-from-Failed) on W2, and the online `transfer` flow.
 - Claim-request Pending/Accepted/Declined/Superseded states with indexed canonical `claimant`, authenticated `requestedBy`, `claimType`, `gardenContext`, request time/state/reason/resolution, derived accepted `providerGarden`, and a fresh re-request path after decline.
+- The locked `W25@context-chooser` pre-claim chooser opens from a protocol-pool claim action before submission: Personal submits the connected member as both `claimant` and `requestedBy`; Garden is visible only to eligible Garden Stewards, binds the selected GardenAccount as `claimant`, the authenticated steward as `requestedBy`, and the selected garden as `gardenContext`. The chooser never rewrites a stored claim type after submission.
+- Commitment deep links open `WFLOW@review`, the existing Work Review state with a read-only “Fulfills” row. The row carries the canonical `meta.commitmentId`, shows the linked commitment context without making it editable, and preserves the dependent work link used by evidence/approval review.
 - Pool readiness checklist exposes charter, qualifying baseline, and provider open-commitment cap; Paused exposes its reason while leaving only the contract-authorized recovery actions available.
 - Pool and cycle summaries show state counts and exact-label unit groups; `promiseKeptRate` is the only cross-commitment percentage. `hours` and `Hours` remain visibly separate, and active progress never adds unlike units.
 - Direction-aware confirmation UI: Offer recipient; Request creator; provider never shown as eligible.
-- G$ reward status and online send flow gated by verified receipt and member delivery readiness.
+- G$ reward status and online send flow gated by authenticated acknowledgment and member delivery readiness.
 - Accessible mobile/PWA states and en/es/pt copy.
 
 ## Acceptance
@@ -36,8 +38,13 @@
 - The pool renders at most one open Season plus every concurrently open Campaign; scope controls label Season/Campaign/all-current state counts and exact-label summaries, and member creation binds one explicit cycle or cycle-less context.
 - Decline changes only the selected request and leaves peers Pending; acceptance consumes stored terms and renders every other pending indexed request Superseded; a new request never mutates or retries the old record.
 - Individual request identity shows claimant=requestedBy; Garden request identity shows the GardenAccount claimant and operator requestedBy. A client can never submit a runtime claim type different from the stored type.
+- `W25@context-chooser` always resolves Personal or an eligible steward-owned Garden before the claim mutation runs; Garden is absent for ineligible members, and back/retry preserves the still-unsubmitted choice without fabricating a request record.
+- `WFLOW@review` opened from a commitment renders the locked read-only “Fulfills” row from `meta.commitmentId`; its commitment and work destinations are navigable, while the relationship itself has no edit control.
 - A G$ transfer remains an explicit online Celo action.
-- Reported renders as transfer reported/checking receipt; only Verified renders support arrived.
+- Reward presentation follows the declared rail: an external payout record never appears as a
+  Celo settlement, and a `CeloSettlement` declaration never exposes the external
+  `recordRewardPaid` path.
+- Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders “confirming arrival”; only Confirmed renders “support arrived”; authenticated failure renders “still arranging support”; Cancelled renders different locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
 - AA failure shows delivery unavailable with a calm recovery explanation; it never offers a garden-custody claim path.
 - Every flow includes loading, empty, offline, pending, declined, superseded, failed, retry, and terminal states where applicable.
 - Controls have accessible names, logical focus order, 44px targets, sufficient contrast, and reduced-motion behavior.
@@ -63,7 +70,7 @@ Both named client test files do not exist yet; they are intentional to-be-create
 
 ## Out of scope
 
-- Shared hooks in the client package, direct contract calls, package-level env files, offline G$ transfer, garden-custody member claims, manual receipt verification, bridge UI, rankings, credit scores, or admin controls.
+- Shared hooks in the client package, direct contract calls, package-level env files, offline G$ transfer, garden-custody member claims, manual settlement confirmation, CCIP token-bridge UI, rankings, credit scores, or admin controls.
 
 ## Unblock evidence
 

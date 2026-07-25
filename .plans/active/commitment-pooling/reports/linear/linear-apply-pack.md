@@ -10,6 +10,11 @@
 > scrubbed under Decision Log `#29` — no artifact names a fourth garden, and this repository is
 > public. The applied Linear state is unchanged; only the identity is withheld. It lives in
 > research-notes storage.
+>
+> **Settlement supersession (2026-07-23):** every Functions, receipt-report, `Reported`,
+> `Oracle-verified`, and operator-execution statement below is also historical. Decision Log
+> `#46` and `settlement-spec.md` replace that transport with message-only CCIP command +
+> authenticated acknowledgment. Do not apply the old settlement payloads to Linear.
 
 **Prepared**: 2026-07-10 (RESR-57 external-brief wave) · **amended 2026-07-11** (pilot-alignment wave, decision #24)
 **Why this exists**: historical audit trail for the writes applied on 2026-07-11. **Do not execute or re-apply any payload below.** Current execution truth is the repo source set plus the live Linear re-read summarized in the reconciliation addendum.
