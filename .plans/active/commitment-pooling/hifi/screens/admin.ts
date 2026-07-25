@@ -216,8 +216,6 @@ const w7PoolCard = (state: W7State) => {
     "preflight-complete": chip("Checks complete", "warn", { dot: true }),
     ready: chip("Ready", "warn", { dot: true }), paused: chip("Paused", "warn", { dot: true }),
     reconciled: chip("Open", "ok", { dot: true }), "cycle-composted": chip("Open", "ok", { dot: true }),
-    "claim-outcomes": chip("Open", "ok", { dot: true }),
-    "expiry-queue": chip("Open", "ok", { dot: true }),
   };
   const acts =
     // A pool that has never opened cannot be paused or closed; the only move is
@@ -253,8 +251,10 @@ const w7PoolCard = (state: W7State) => {
   // every open pool — it lives one disclosure away, behind its confirmation.
   // Close pool is NOT offered here: §6.2 locks it to appear only after the
   // last cycle composts, so it renders as the cycle-composted card's action.
+  // Only the states that actually render this card are listed: the claim and
+  // expiry states take the focused single-task branch and never reach here.
   const lifecycle =
-    state === "open" || state === "reconciled" || state === "cycle-composted" || state === "claim-outcomes" || state === "expiry-queue"
+    state === "open" || state === "reconciled" || state === "cycle-composted"
       ? disclosure(
           "More pool actions",
           "pause",
