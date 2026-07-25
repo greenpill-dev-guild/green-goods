@@ -192,7 +192,7 @@ const sections = secs.map(s => {
 }).join("\n");
 
 // ---------- Normalize journeys against the screen registry + validate ----------
-const { sbs, walkedIn, errors, warnings } = normalizeAndValidate(SBS, {
+const { sbs, errors, warnings } = normalizeAndValidate(SBS, {
   screens: SCREENS,
   hots: HOTS,
   tables: TABLES,
@@ -212,7 +212,6 @@ const PLAYER_DATA = JSON.stringify({
   screens: Object.fromEntries(SCREENS.map(s => [s.id, { title: s.title, surface: s.surface, frame: s.frame, group: s.group, reviewVisible: s.reviewVisible, states: s.states }])),
   hots: HOTS,
   sbs,
-  walkedIn,
   aliases: ALIASES,
 });
 
@@ -249,14 +248,13 @@ const screenCounts = countBy(visibleScreens, (screen) => screen.surface);
 assertBuild(visibleSbs.length === 15, `expected 15 visible flows, found ${visibleSbs.length}`);
 assertBuild(flowCounts.client === 4 && flowCounts.admin === 6 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 6 admin / 5 end-to-end`);
 assertBuild(visibleScreens.length === 24, `expected 24 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.public === 2, `screen grouping must be 9 client / 13 admin / 2 public`);
+assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 9 client / 13 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
   ...visibleSbs.flatMap((sb) => [
     sb.title,
     sb.persona,
-    sb.surface,
     ...sb.steps.flatMap((step) => [
       step.hot?.l,
       ...(step.alts ?? []).map((alt) => alt.l),
@@ -611,8 +609,8 @@ ${iconSprite()}
     <p class="sub">Choose a surface and open a screen. Use the state switcher for loading, recovery, validation, and alternate states; outlined controls navigate and dotted controls explain themselves.</p>
     <div class="surface-tabs" role="tablist" aria-label="Screen-library surface">
       <button class="surface-tab on" id="screen-tab-client" role="tab" aria-selected="true" aria-controls="screen-panel-client" data-screen-surface="client">Client PWA</button>
-      <button class="surface-tab" id="screen-tab-admin" role="tab" aria-selected="false" aria-controls="screen-panel-admin" tabindex="-1" data-screen-surface="admin">Admin Console</button>
-      <button class="surface-tab" id="screen-tab-public" role="tab" aria-selected="false" aria-controls="screen-panel-public" tabindex="-1" data-screen-surface="public">Public</button>
+      <button class="surface-tab" id="screen-tab-admin" role="tab" aria-selected="false" aria-controls="screen-panel-admin" tabindex="-1" data-screen-surface="admin">Admin console</button>
+      <button class="surface-tab" id="screen-tab-editorial" role="tab" aria-selected="false" aria-controls="screen-panel-editorial" tabindex="-1" data-screen-surface="editorial">Editorial website</button>
     </div>
     ${screenCards}
   </div>

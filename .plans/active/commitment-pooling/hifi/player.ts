@@ -103,7 +103,7 @@ export const PLAYER_JS = `(function(){
   document.querySelectorAll('.surface-tab[data-screen-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setScreenSurface(tab.getAttribute("data-screen-surface")); }); });
   setFlowGroup(selectedFlowGroup); setScreenSurface(selectedScreenSurface);
 
-  var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Public page", community: "Community PWA", safe: "Safe app (external)" };
+  var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Editorial website", community: "Community PWA", safe: "Safe app (external)" };
 
   // ---- shared: screen/state lookup + alias resolution ----
   function resolveRef(ref){
@@ -186,11 +186,9 @@ export const PLAYER_JS = `(function(){
   // ---------- journey player ----------
   var curSb = null, curI = 0;
   function findSb(id){ for (var k = 0; k < DATA.sbs.length; k++) if (DATA.sbs[k].id === id) return DATA.sbs[k]; return null; }
-  function defSurface(sb){
-    if (sb.surface.indexOf("Community") === 0) return "community";
-    if (sb.surface.indexOf("Admin") === 0) return "admin";
-    return "pwa";
-  }
+  // A flow's home surface is its group — no prose sniffing. Scenes that land
+  // elsewhere carry their own surface token and are marked as echoes.
+  var HOME = { client: "pwa", admin: "admin", editorial: "editorial" };
   function showHome(){
     curSb = null;
     $("stage").classList.remove("on");
@@ -229,7 +227,7 @@ export const PLAYER_JS = `(function(){
     $("insp").classList.remove("on");
     $("st-title").textContent = sb.title;
     $("st-persona").textContent = sb.persona;
-    $("st-surface").textContent = SURFACE[sc.surface || defSurface(sb)] || sb.surface;
+    $("st-surface").textContent = SURFACE[sc.surface || HOME[sb.reviewGroup]] || "";
     $("st-progress").textContent = "Step " + (curI + 1) + " of " + sb.steps.length;
     var device = $("device");
     var scr = screenOf(sc.f);

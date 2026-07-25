@@ -12,6 +12,7 @@
 // OperatorCaptured) — they are not screen copy and are never scanned.
 
 import type { SB as RawSB, Scene } from "./journeys";
+import { HOME_SURFACE, SCENE_SURFACES } from "./types";
 import type { HotRegistry, ResolveTables, Screen, ShippedSB, ShippedStep } from "./types";
 
 export type Ctx = {
@@ -105,6 +106,7 @@ const ADMIN_HERO: [RegExp, string][] = [
 const REASON_CONFIRMS = new Set([
   "pause-confirm", "cancel-cycle-confirm", "decline-claim-confirm",
   "fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
+  "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
 ]);
 
 function scanEverywhere(where: string, text: string, sink = err) {
@@ -138,7 +140,10 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   if (pct) err.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
 
   if (sept) return; // another spec owns the remaining dialect-specific copy
-  if (screen.surface === "client" || screen.surface === "public") {
+  // Member-facing surfaces (the PWA and the public website) share one ceiling:
+  // never "dispute", never "legal". Renaming the editorial surface without this
+  // line is silent — the scan would simply stop covering W15/W16.
+  if (screen.surface === "client" || screen.surface === "editorial") {
     for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
   }
   if (screen.surface === "admin") {
@@ -154,7 +159,7 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
 }
 
 // ---- normalization ----------------------------------------------------------
-export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]; walkedIn: Record<string, { sb: string; n: number; ix: number }[]>; errors: string[]; warnings: string[] } {
+export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]; errors: string[]; warnings: string[] } {
   const byId = new Map(ctx.screens.map((s) => [s.id, s]));
 
   const stateTokens = new Map<string, ReturnType<typeof domTokens>>();
@@ -211,14 +216,11 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     return { h: hid, l: h.l };
   };
 
-  const walkedIn: Record<string, { sb: string; n: number; ix: number }[]> = {};
   const sbs: ShippedSB[] = raw.map((sb) => ({
     id: sb.id,
     n: sb.n,
     title: sb.title,
     persona: sb.persona,
-    scen: sb.scen,
-    surface: sb.surface,
     reviewVisible: sb.reviewVisible,
     reviewGroup: sb.reviewGroup,
     steps: sb.steps.map((sc, ix): ShippedStep => {
@@ -227,9 +229,6 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       const sid = r?.screen.id ?? sc.f.split("@")[0];
       const v = r?.state ?? "default";
       const tokens = stateTokens.get(`${sid}@${v}`);
-
-      (walkedIn[sid] ??= []);
-      if (!walkedIn[sid].some((w) => w.sb === sb.id)) walkedIn[sid].push({ sb: sb.id, n: sb.n, ix });
 
       const hot = sc.hot ? resolveHot(sc, sc.hot, where, sid) : null;
       if (hot && tokens && !tokens.hots.has(hot.h)) err.push(`HOT ${hot.h} ∉ render ${sid}@${v} (${where})`);
@@ -304,6 +303,15 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       if (!reason) err.push(`DESTINATION ${sb.id}:${ix} ${step.hot.h} → ${targetRef}, next is ${actualRef}; add the destination scene or skipTargetReason`);
     }
   }
+  // Scene surfaces were free text, so a typo ("pwa " / "Admin") silently fell
+  // back to the flow's home and the stagebar pill quietly lied.
+  for (const sb of sbs) {
+    sb.steps.forEach((step, ix) => {
+      if (step.surface && !(SCENE_SURFACES as readonly string[]).includes(step.surface))
+        err.push(`SURFACE ${sb.id}:${ix} unknown surface token "${step.surface}"`);
+    });
+  }
+
   // alias targets
   for (const [from, to] of Object.entries(ctx.aliases)) resolveScreen(to, `alias ${from}`);
 
@@ -355,5 +363,5 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     }
   }
 
-  return { sbs, walkedIn, errors: err, warnings: warn };
+  return { sbs, errors: err, warnings: warn };
 }

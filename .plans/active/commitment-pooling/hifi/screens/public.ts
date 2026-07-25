@@ -106,8 +106,8 @@ const W16_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 export const PUBLIC_DEFS: HifiDef[] = [
-  { screen: { id: "W15", title: "W15 · Garden pool story (public)", surface: "public", frame: "browser", group: "Public pages",
+  { screen: { id: "W15", title: "W15 · Garden pool story (public)", surface: "editorial", frame: "browser", group: "Editorial website",
     states: W15_STATES.map(([id, label]) => ({ id, label, html: w15(id) })) }, hots: W15_HOTS },
-  { screen: { id: "W16", title: "W16 · /impact promises (public)", surface: "public", frame: "browser", group: "Public pages",
+  { screen: { id: "W16", title: "W16 · /impact promises (public)", surface: "editorial", frame: "browser", group: "Editorial website",
     states: W16_STATES.map(([id, label]) => ({ id, label, html: w16(id) })) }, hots: W16_HOTS },
 ];
