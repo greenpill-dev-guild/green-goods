@@ -267,6 +267,10 @@ const w7PoolCard = (state: W7State) => {
 };
 
 const w7Cycles = (state: W7State) => {
+  // While Paused, opening or seeding a cycle would revert (openCycle needs the
+  // pool Open, seedCycle Ready or Open — CS:726/727). The controls stay visible
+  // and honestly disabled; closing a cycle is wind-down and remains live.
+  const canOpenCycles = state !== "paused";
   // The Season row tracks the drawn moment: live → close/cancel; reconciled or
   // composted → scoped report only (Close pool is the pool card's act, §6.2).
   const seasonChip =
@@ -297,7 +301,11 @@ const w7Cycles = (state: W7State) => {
           "2 open · 1 seeded",
           `<div class="arow"><div class="grow">Market rides <span class="ch">Campaign</span> <span class="t-meta num">6/16</span></div>${chip("Open", "ok", { dot: true })}</div>
 <div class="arow"><div class="grow">Tool library <span class="ch">Campaign</span> <span class="t-meta num">8/8</span></div>${chip("Reviewing", "warn", { dot: true })}</div>
-<div class="arow"><div class="grow">Seedling swap <span class="ch">Campaign</span></div>${chip("Seeded", "plain", { dot: true })}${hot("w7.open-cycle-flow", btn("Open cycle", { kind: "sec", sm: true }))}</div>`,
+<div class="arow"><div class="grow">Seedling swap <span class="ch">Campaign</span></div>${chip("Seeded", "plain", { dot: true })}${
+            canOpenCycles
+              ? hot("w7.open-cycle-flow", btn("Open cycle", { kind: "sec", sm: true }))
+              : btn("Open cycle", { kind: "sec", sm: true, disabled: true })
+          }</div>`,
         );
   return acard(
     "Cycles",
@@ -306,8 +314,10 @@ ${stages(["Seeded", "Open", "In progress", "Reviewing", "Reconciled", "Composted
 ${campaigns}`,
     // Kept on the composted state too: the pool is still Open, so seeding the
     // next cycle is legal (CS:726) and is the alternative the card's banner
-    // offers beside Close.
-    hot("w7.new-campaign", btn("New campaign", { kind: "sec", sm: true })),
+    // offers beside Close. Disabled while Paused for the same reason as above.
+    canOpenCycles
+      ? hot("w7.new-campaign", btn("New campaign", { kind: "sec", sm: true }))
+      : btn("New campaign", { kind: "sec", sm: true, disabled: true }),
   );
 };
 
@@ -481,7 +491,12 @@ function w7(state: W7State): string {
   // Seed lives in the header (desktop puts creation in header actions, not a FAB).
   // seedCycle requires the pool to be Ready or Open (CS:726), so the readiness
   // states show the control disabled rather than offering an act that fails.
-  const seedable = state !== "not-ready" && state !== "preflight-complete" && state !== "pool-closed";
+  // Creation is gated by pool state, not just drawn: createCommitment/seedCycle
+  // need the pool Ready or Open (CS:726), and §4.1 disables create/claim while
+  // Paused — only safe wind-down stays. Offering an act that would revert is
+  // what the disabled Seed control exists to prevent.
+  const seedable =
+    state !== "not-ready" && state !== "preflight-complete" && state !== "pool-closed" && state !== "paused";
   const seed = seedable
     ? hot("w7.seed-fab", btn("Seed", { kind: "pri", sm: true, icon: "add-line" }))
     : btn("Seed", { kind: "pri", sm: true, icon: "add-line", disabled: true });
