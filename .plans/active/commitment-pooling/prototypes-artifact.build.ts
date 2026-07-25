@@ -33,10 +33,12 @@ import {
   HOTS,
   SCREEN_HOTS,
   SCREEN_MARKS,
+  REVIEW_GROUPS,
   SCREENS,
   screenCardsHtml,
   TABLES,
 } from "./hifi/screens/index";
+import { FLOW_GROUPS } from "./hifi/types";
 import { normalizeAndValidate } from "./hifi/validate";
 
 const SRC = `${import.meta.dir}/prototypes.md`;
@@ -215,11 +217,6 @@ const PLAYER_DATA = JSON.stringify({
   aliases: ALIASES,
 });
 
-const FLOW_GROUPS = [
-  { id: "client", label: "Client PWA" },
-  { id: "admin", label: "Admin Console" },
-  { id: "end-to-end", label: "End-to-end" },
-] as const;
 const visibleSbs = sbs.filter((sb) => sb.reviewVisible);
 const visibleScreens = SCREENS.filter((screen) => screen.reviewVisible);
 
@@ -233,6 +230,27 @@ const flowCatalog = FLOW_GROUPS.map(({ id, label }, groupIx) => {
 
 const screenCards = screenCardsHtml();
 
+// Both tablists are generated from the same arrays that generate their panels,
+// so a new group cannot appear as a tab without a panel (or vice versa) and the
+// ARIA pairing is correct by construction.
+const surfaceTabsHtml = (
+  kind: "flow" | "screen",
+  attr: string,
+  groups: readonly { id: string; label: string }[],
+  ariaLabel: string,
+) =>
+  `<div class="surface-tabs" role="tablist" aria-label="${esc(ariaLabel)}">${groups
+    .map(({ id, label }, ix) =>
+      `<button class="surface-tab${ix ? "" : " on"}" id="${kind}-tab-${id}" role="tab" aria-selected="${ix ? "false" : "true"}" aria-controls="${kind}-panel-${id}"${ix ? ' tabindex="-1"' : ""} data-${kind === "flow" ? "flow-group" : "screen-surface"}="${id}">${esc(label)}</button>`)
+    .join("")}</div>`;
+const flowTabs = surfaceTabsHtml("flow", "data-flow-group", FLOW_GROUPS, "Guided-flow surface");
+const screenTabs = surfaceTabsHtml(
+  "screen",
+  "data-screen-surface",
+  REVIEW_GROUPS.map((g) => ({ id: g.surface, label: g.name })),
+  "Screen-library surface",
+);
+
 const countBy = <T,>(items: T[], key: (item: T) => string) => items.reduce<Record<string, number>>((counts, item) => {
   const value = key(item);
   counts[value] = (counts[value] ?? 0) + 1;
@@ -243,10 +261,16 @@ const assertBuild = (condition: unknown, message: string) => {
 };
 const flowCounts = countBy(visibleSbs, (sb) => sb.reviewGroup);
 const screenCounts = countBy(visibleScreens, (screen) => screen.surface);
-// 15 since the audit split sb9's 33-scene ribbon into readiness / pause-resume /
-// end-of-season (6 admin flows, not 4).
-assertBuild(visibleSbs.length === 15, `expected 15 visible flows, found ${visibleSbs.length}`);
-assertBuild(flowCounts.client === 4 && flowCounts.admin === 6 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 6 admin / 5 end-to-end`);
+// Derived, not transcribed: a regroup used to require editing a hard-coded
+// tally here, so the tally was the thing that broke first.
+for (const { id, label } of FLOW_GROUPS)
+  assertBuild((flowCounts[id] ?? 0) > 0, `flow group "${label}" has no visible flows`);
+for (const sb of sbs)
+  assertBuild(FLOW_GROUPS.some((g) => g.id === sb.reviewGroup), `flow ${sb.id} claims unknown group "${sb.reviewGroup}"`);
+assertBuild(
+  visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
+  "no echo scenes — the cross-surface mechanic vanished",
+);
 assertBuild(visibleScreens.length === 24, `expected 24 visible screens, found ${visibleScreens.length}`);
 assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 9 client / 13 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
@@ -369,6 +393,14 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .device{border:1px solid var(--line);border-radius:14px;background:var(--panel);
   padding:14px 16px;overflow-x:auto;position:relative}
 .device.mf{border-color:var(--amber)}
+/* Echo = the same moment on another surface. Stone and dashed, never amber —
+   amber already means "proposed", and a frame can be both (sb9c). The tag sits
+   top-LEFT so it never collides with the proposed tag's top-right corner. */
+.device.echo{outline:2px dashed color-mix(in srgb,var(--stone) 45%,transparent);outline-offset:3px}
+.device .echotag{position:absolute;top:0;left:0;z-index:2;background:var(--panel);color:var(--stone);
+  font:700 10px inherit;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;
+  border-radius:13px 0 8px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pill.echo{border-style:dashed;color:var(--stone)}
 /* lo-fi ascii frames have no inner scroll surface — cap + scroll the panel itself */
 .device.f-ascii{max-height:var(--dev-cap);overflow:auto}
 .device .mftag{position:absolute;top:0;right:0;background:var(--amber-bg);color:var(--amber);
@@ -563,13 +595,8 @@ ${iconSprite()}
 <div id="play">
   <div id="home">
     <h1>Guided flows</h1>
-    <p class="sub">Choose a surface, then open a flow. The pulsing control advances; outlined controls branch; dotted controls explain themselves. Swipe or use ←/→.</p>
-    <div class="legend"><span><span class="k" style="background:color-mix(in srgb,var(--accent) 18%,transparent);outline:1px dashed var(--accent)"></span>advances</span><span><span class="k" style="background:color-mix(in srgb,var(--accent) 10%,transparent);outline:1px solid var(--accent-ink)"></span>a choice</span><span><span class="k" style="border-bottom:1px dotted var(--stone)"></span>tap to inspect</span><span><span class="k" style="background:color-mix(in srgb,var(--amber) 22%,transparent)"></span>look here</span></div>
-    <div class="surface-tabs" role="tablist" aria-label="Guided-flow surface">
-      <button class="surface-tab on" id="flow-tab-client" role="tab" aria-selected="true" aria-controls="flow-panel-client" data-flow-group="client">Client PWA</button>
-      <button class="surface-tab" id="flow-tab-admin" role="tab" aria-selected="false" aria-controls="flow-panel-admin" tabindex="-1" data-flow-group="admin">Admin Console</button>
-      <button class="surface-tab" id="flow-tab-end-to-end" role="tab" aria-selected="false" aria-controls="flow-panel-end-to-end" tabindex="-1" data-flow-group="end-to-end">End-to-end</button>
-    </div>
+    <p class="sub">Choose a surface, then open a flow. Frames marked “Meanwhile” show the same moment landing on another surface.</p>
+    ${flowTabs}
     ${flowCatalog}
   </div>
   <div id="stage" role="region" aria-live="polite">
@@ -606,12 +633,8 @@ ${iconSprite()}
 <div id="screens">
   <div id="exphome">
     <h1>Screen library</h1>
-    <p class="sub">Choose a surface and open a screen. Use the state switcher for loading, recovery, validation, and alternate states; outlined controls navigate and dotted controls explain themselves.</p>
-    <div class="surface-tabs" role="tablist" aria-label="Screen-library surface">
-      <button class="surface-tab on" id="screen-tab-client" role="tab" aria-selected="true" aria-controls="screen-panel-client" data-screen-surface="client">Client PWA</button>
-      <button class="surface-tab" id="screen-tab-admin" role="tab" aria-selected="false" aria-controls="screen-panel-admin" tabindex="-1" data-screen-surface="admin">Admin console</button>
-      <button class="surface-tab" id="screen-tab-editorial" role="tab" aria-selected="false" aria-controls="screen-panel-editorial" tabindex="-1" data-screen-surface="editorial">Editorial website</button>
-    </div>
+    <p class="sub">Choose a surface and open a screen. The state switcher covers loading, recovery, validation, and alternate states.</p>
+    ${screenTabs}
     ${screenCards}
   </div>
   <div id="expstage">

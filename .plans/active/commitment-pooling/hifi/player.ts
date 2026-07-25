@@ -227,13 +227,25 @@ export const PLAYER_JS = `(function(){
     $("insp").classList.remove("on");
     $("st-title").textContent = sb.title;
     $("st-persona").textContent = sb.persona;
-    $("st-surface").textContent = SURFACE[sc.surface || HOME[sb.reviewGroup]] || "";
+    var effSurface = sc.surface || HOME[sb.reviewGroup];
+    $("st-surface").textContent = SURFACE[effSurface] || "";
+    $("st-surface").classList.toggle("echo", !!sc.echo);
     $("st-progress").textContent = "Step " + (curI + 1) + " of " + sb.steps.length;
     var device = $("device");
     var scr = screenOf(sc.f);
     var st = stateOf(scr, sc.v);
     if (!scr || !st) { device.textContent = "screen missing: " + sc.f; return; }
     paintDevice(device, scr, st, !!sc.mf);
+    // An echo is the same moment landing on another surface. Reviewers were
+    // reading these as screens they were driving, so say so on the frame — the
+    // stagebar pill alone is chrome the eye learns to skip.
+    if (sc.echo) {
+      device.classList.add("echo");
+      var etag = document.createElement("div");
+      etag.className = "echotag";
+      etag.textContent = "Meanwhile — " + (SURFACE[effSurface] || "");
+      device.prepend(etag);
+    }
     if (sc.hot) eachHot(device, sc.hot.h, function(el){ el.classList.add("primary"); el.setAttribute("aria-label", sc.hot.l + " — advance"); });
     (sc.alts || []).forEach(function(a){ eachHot(device, a.h, function(el){ el.classList.add("choice"); el.setAttribute("aria-label", a.l); }); });
     paintMarks(device, sc.marks);
@@ -244,8 +256,8 @@ export const PLAYER_JS = `(function(){
     // The keyboard/alternatives legend earns its space once per flow; repeating
     // it on every scene turns the caption into chrome the reader learns to skip.
     var legend = curI === 0;
-    if (sc.hot) { hint.innerHTML = ""; hint.appendChild(document.createTextNode("tap: ")); var bb = document.createElement("b"); bb.textContent = sc.hot.l; hint.appendChild(bb); if (legend) { var kk = document.createElement("span"); kk.className = "kbd"; kk.textContent = "  (or →) · outlined alternatives stay tappable"; hint.appendChild(kk); } }
-    else { hint.innerHTML = ""; hint.appendChild(document.createTextNode("system step ")); if (legend) { var k2 = document.createElement("span"); k2.className = "kbd"; k2.textContent = "(→ to continue) · outlined controls stay tappable"; hint.appendChild(k2); } }
+    if (sc.hot) { hint.innerHTML = ""; hint.appendChild(document.createTextNode("tap: ")); var bb = document.createElement("b"); bb.textContent = sc.hot.l; hint.appendChild(bb); if (legend) { var kk = document.createElement("span"); kk.className = "kbd"; kk.textContent = "  (or →) · outlined controls branch · dotted controls explain themselves"; hint.appendChild(kk); } }
+    else { hint.innerHTML = ""; hint.appendChild(document.createTextNode("system step ")); if (legend) { var k2 = document.createElement("span"); k2.className = "kbd"; k2.textContent = "(→ to continue) · outlined controls branch · dotted controls explain themselves"; hint.appendChild(k2); } }
     $("st-state").textContent = sc.st || "—";
     $("st-who").textContent = sc.who ? "acting: " + sc.who : "";
     $("st-ev").textContent = sc.ev;

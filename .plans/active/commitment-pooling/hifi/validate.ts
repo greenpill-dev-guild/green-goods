@@ -259,7 +259,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
         }
         return [{ l: b.l, to }];
       });
-      return { f: sid, v, hot, alts, marks, who: sc.who, surface: sc.surface, st: sc.st, ev: sc.ev, cite: sc.cite, note: sc.note, skipTargetReason: sc.skipTargetReason, br, mf: sc.mf };
+      return { f: sid, v, hot, alts, marks, who: sc.who, surface: sc.surface, echo: sc.echo, st: sc.st, ev: sc.ev, cite: sc.cite, note: sc.note, skipTargetReason: sc.skipTargetReason, br, mf: sc.mf };
     }),
   }));
 
@@ -267,7 +267,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   // are all rendered UI too; scan them rather than limiting vocabulary checks
   // to the screen-state HTML.
   for (const sb of raw) {
-    const text = [sb.title, sb.persona, sb.scen, sb.surface, ...sb.steps.flatMap((sc) => [
+    const text = [sb.title, sb.persona, sb.scen, ...sb.steps.flatMap((sc) => [
       sc.who, sc.surface, sc.st, sc.ev, sc.note, sc.hot?.l,
       ...(sc.alts ?? []).map((a) => a.l),
       ...(sc.br ?? []).map((b) => b.l),
@@ -304,11 +304,21 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     }
   }
   // Scene surfaces were free text, so a typo ("pwa " / "Admin") silently fell
-  // back to the flow's home and the stagebar pill quietly lied.
+  // back to the flow's home and the stagebar pill quietly lied. The echo pair
+  // is checked BOTH ways: a marked echo must actually be off-home, and any
+  // off-home scene must be marked — the second direction is what retro-catches
+  // a flow that silently shows another surface without saying so.
   for (const sb of sbs) {
     sb.steps.forEach((step, ix) => {
       if (step.surface && !(SCENE_SURFACES as readonly string[]).includes(step.surface))
         err.push(`SURFACE ${sb.id}:${ix} unknown surface token "${step.surface}"`);
+      if (!sb.reviewVisible) return; // hidden previews own their own dialect
+      const home = HOME_SURFACE[sb.reviewGroup];
+      const eff = step.surface ?? home;
+      if (step.echo && eff === home)
+        err.push(`ECHO ${sb.id}:${ix} marked echo but sits on the flow's home surface (${home})`);
+      if (!step.echo && eff !== home)
+        err.push(`SURFACE ${sb.id}:${ix} off-home scene (${eff}) must be marked echo`);
     });
   }
 

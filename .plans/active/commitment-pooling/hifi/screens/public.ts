@@ -98,8 +98,8 @@ ${hot("w16.see-gardens", `<button type="button" class="elink">See the gardens �
 }
 
 const W16_HOTS: HifiDef["hots"] = {
-  "w16.install": { l: "Install App", info: "Opens the installed-PWA prompt from the public impact page." },
-  "w16.see-gardens": { l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
+  "w16.install": { l: "Install App", to: "screen:W1", info: "Opens the installed-PWA prompt from the public impact page." },
+  "w16.see-gardens": { l: "See the gardens", to: "screen:W15", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
   "w16.pipeline": { l: "Evidence pipeline delta", info: "PublicEvidencePipeline gains the Promise and Confirmation stages (UX:345)." },
 };
 
