@@ -264,6 +264,8 @@ const W2_STATES = [
   ["support-cancelled-queued", "Support withdrawn"], ["support-cancelled-failed", "Support closed after failed delivery"],
   ["reconciled", "Reconciled"], ["cancelled", "Cancelled"], ["expired", "Expired"],
   ["disputed", "Under review"], ["captured", "Recorded for you"],
+  ["withdraw-confirm", "Withdraw — confirm"], ["withdrawn", "Withdrawn (yours)"],
+  ["garden-provider", "Your garden provides"], ["garden-support-arrived", "Support reached your garden"],
   ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W2State = (typeof W2_STATES)[number][0];
@@ -278,11 +280,18 @@ const w2StateChip: Record<W2ChipState, string> = {
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
   reconciled: "Reconciled",
   cancelled: "Cancelled", expired: "Expired", disputed: "Under review", captured: "Accepted",
+  "withdraw-confirm": "Offered", withdrawn: "Withdrawn",
+  "garden-provider": "Accepted", "garden-support-arrived": "Fulfilled",
 };
 
 function w2RewardRow(state: W2State): string {
-  const settlementReward = state.startsWith("support-");
-  const rewardMeta = settlementReward ? "20 G$ from the garden's Celo account" : "20 DAI from the garden jar";
+  const gardenBeneficiary = state === "garden-provider" || state === "garden-support-arrived";
+  const settlementReward = state.startsWith("support-") || gardenBeneficiary;
+  const rewardMeta = gardenBeneficiary
+    ? "25 G$ to Awka Hub's Celo account"
+    : settlementReward
+      ? "20 G$ from the garden's Celo account"
+      : "20 DAI from the garden jar";
   const line = (label: string, v: string, tone?: "ok" | "warn") =>
     hot(
       "w2.reward-row",
@@ -292,6 +301,10 @@ function w2RewardRow(state: W2State): string {
       ),
     );
   switch (state) {
+    case "garden-provider":
+      return line("Declared support", "Support goes to the providing garden, not to an individual — it is queued once the promise is confirmed.", "warn");
+    case "garden-support-arrived":
+      return line("Support arrived", "25 G$ reached Awka Hub's Celo account ↗ — the reference is in Details.", "ok");
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
     case "support-queued":
@@ -332,13 +345,31 @@ type Moment = { label: string; meta?: string; open?: boolean; warn?: boolean; no
 // body made pre-acceptance states show an "Accepted" moment before anyone had
 // claimed, and made @cancelled promise a reason the timeline never carried.
 function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
-  if (state === "offered") return [{ label: "Offered", meta: "Maria · Jul 2 — waiting for someone to take it up", open: true }];
+  if (state === "offered" || state === "withdraw-confirm")
+    return [{ label: "Offered", meta: "Maria · Jul 2 — waiting for someone to take it up", open: true }];
   if (state === "requested") return [{ label: "Requested", meta: "Ana · Jul 2 — stewards review who takes this up", open: true }];
 
+  if (state === "garden-provider")
+    return [
+      { label: "Requested", meta: "protocol pool · Jul 2" },
+      { label: "Accepted", meta: "Awka Hub took this up · asked by you · Jul 5", open: true },
+    ];
+  if (state === "garden-support-arrived")
+    return [
+      { label: "Requested", meta: "protocol pool · Jul 2" },
+      { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
+      { label: "Evidence in", meta: "survey sheet · Jul 10" },
+      { label: "Promise kept", meta: "confirmed by the protocol stewards · Jul 12", open: true },
+    ];
   const opened: Moment[] = [
     { label: "Offered", meta: "Maria · Jul 2" },
     { label: "Accepted", meta: "João took this up · Jul 3" },
   ];
+  if (state === "withdrawn")
+    return [
+      { label: "Offered", meta: "you · Jul 2" },
+      { label: "Withdrawn", meta: "you · Jul 9", note: "“plans changed — the beds got done at the gathering”", warn: true, open: true },
+    ];
   if (state === "cancelled")
     return [...opened, { label: "Cancelled", meta: "steward · Jul 9", note: "“withdrawn by agreement at the gathering”", warn: true, open: true }];
   if (state === "expired")
@@ -359,7 +390,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
 const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: boolean } = {}) => {
   const moments = w2Moments(state, !!opts.overrideNote);
   // Nothing has been done yet on an unclaimed promise — no evidence, no work.
-  const preAcceptance = state === "offered" || state === "requested";
+  const preAcceptance = state === "offered" || state === "requested" || state === "withdraw-confirm" || state === "withdrawn";
   return (
     disclosure(
       "Timeline",
@@ -415,6 +446,21 @@ function w2(state: W2State): string {
   if (W2_SETTLED.has(state))
     band = card(`<div class="t-title">Promise kept</div><div class="t-meta">Confirmed by João · Jul 12 — the season's count already grew.</div>`);
   else switch (state) {
+    case "garden-provider":
+      band = card(
+        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The protocol stewards confirm it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "garden-support-arrived":
+      band = card(
+        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by the protocol stewards on Jul 12. The support went to the garden's own account.</div>`,
+      );
+      break;
+    case "withdrawn":
+      band = card(
+        `<div class="t-title">You withdrew this offer</div><div class="t-meta">It has left the pool. The record and the reason you gave stay in the timeline below.</div>`,
+      );
+      break;
     case "offered":
       band =
         card(`<div class="t-title">Your offer is live</div><div class="t-meta">Anyone in this garden may take this up. You can withdraw it until someone does.</div><div class="brow">${hot("w2.withdraw", btn("Withdraw this offer", { kind: "danger" }))}</div>`);
@@ -459,7 +505,7 @@ function w2(state: W2State): string {
       );
   }
 
-  const showReward = !["offered", "requested", "cancelled", "expired", "disputed", "captured"].includes(state);
+  const showReward = !["offered", "requested", "cancelled", "expired", "disputed", "captured", "withdraw-confirm", "withdrawn"].includes(state);
   // Reward/settlement status sits with the band — it is scan-layer status, not
   // deep dive. Disclosures stay last and stay present even under review: the
   // dispute banner tells the member the reason is in the timeline, so hiding
@@ -472,6 +518,20 @@ function w2(state: W2State): string {
     w2Disclosures(state, { overrideNote: state === "captured" || state === "fulfilled", work: state !== "evidence-submitted" }),
   );
 
+  // Withdrawing is the member's own irreversible act, so it confirms over the
+  // promise it affects and takes the reason the contract stores (CS:145).
+  if (state === "withdraw-confirm")
+    return phoneFrame(
+      sheetOver(
+        `${head}${meta}${content}`,
+        "Withdraw this offer?",
+        `${banner("No one has taken this up yet. Withdrawing removes it from the pool; the record and your reason stay in the timeline.", "stone")}
+${field("Reason (required)", input("plans changed — the beds got done at the gathering"))}
+${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: true }))}${hot("w2.withdraw-keep", btn("Keep it open", { kind: "ghost", full: true }))}`,
+      ),
+      { appBar: false },
+    );
+
   // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
   return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`, { appBar: false });
 }
@@ -483,7 +543,9 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
-  "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@cancelled", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action." },
+  "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
+  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145)." },
+  "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },

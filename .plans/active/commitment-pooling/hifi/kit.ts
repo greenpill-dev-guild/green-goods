@@ -100,6 +100,7 @@ export function stateChip(state: string): string {
     "Evidence in": ["warning", "image-line"], "Partly approved": ["warning", "time-line"],
     "Ready to confirm": ["warning", "time-line"], Fulfilled: ["success", "checkbox-circle-fill"],
     Reconciled: ["neutral", "seedling-line"], Cancelled: ["neutral", "close-line"], Expired: ["neutral", "time-line"],
+    Withdrawn: ["neutral", "close-line"],
     "Under review": ["warning", "error-warning-line"], Queued: ["neutral", "time-line"], Waiting: ["neutral", "time-line"],
   };
   const [tone, ic] = map[state] ?? ["neutral", "time-line"];

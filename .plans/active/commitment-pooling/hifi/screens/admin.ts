@@ -204,6 +204,7 @@ const W7_STATES = [
   ["open", "Open"], ["not-ready", "Not ready — checklist"], ["preflight-complete", "Checks complete — mark ready"], ["ready", "Ready — open it"],
   ["paused", "Paused"], ["reconciled", "Reconciled"], ["cycle-composted", "Season composted — close?"], ["pool-closed", "Pool closed"],
   ["claims", "Claims waiting"], ["claim-declined", "Declined — others pending"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
+  ["seed-cycle", "Seed a cycle"],
   ["pause-confirm", "Pause — confirm"], ["close-pool-confirm", "Close pool — confirm"],
   ["cancel-cycle-confirm", "Cancel season — confirm"], ["decline-claim-confirm", "Decline claim — confirm"],
   ["loading", "Loading"], ["empty", "No commitments yet"],
@@ -225,7 +226,7 @@ const w7PoolCard = (state: W7State) => {
       : state === "preflight-complete"
       ? `${hot("w7.mark-ready", btn("Mark pool ready", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit readiness", { kind: "sec", sm: true }))}`
       : state === "ready"
-      ? `${hot("w7.open-pool", btn("Open pool", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
+      ? `${hot("w7.seed-cycle", btn("Seed a cycle", { kind: "pri" }))}${hot("w7.open-pool", btn("Open pool", { kind: "sec", sm: true }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
       : state === "cycle-composted"
       ? `${hot("w7.close-pool", btn("Close pool…", { kind: "danger" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
       : state === "paused"
@@ -482,6 +483,23 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
 };
 
 function w7(state: W7State): string {
+  // Seeding a CYCLE is its own act — seedCycle(poolId, cycleType, startTime,
+  // endTime, metadataCID), legal while the pool is Ready or Open (CS:566/747).
+  // It used to be narrated on top of W8, which seeds COMMITMENTS, so the
+  // console taught one screen for two different contract calls.
+  if (state === "seed-cycle")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool",
+      adminDialogM3(w7Behind(), "garden", {
+        title: "Seed a cycle",
+        body: `${field("Type", radio([{ label: "Season", meta: "one open Season at a time", on: true }, { label: "Campaign", meta: "any number may run alongside" }], { interactive: true, name: "cycle-type" }))}${field("Name", input("Season of First Rains"))}${field("Runs through", input("Aug 30"))}${banner(
+          "Seeding records the cycle. Opening it — with its allocation — is the next step, and no reason is stored for either.",
+          "stone",
+        )}`,
+        actions: `${hot("w7.seed-cycle-dismiss", btn("Cancel", { kind: "ghost" }))}${hot("w7.seed-cycle-confirm", btn("Seed this cycle", { kind: "pri" }))}`,
+        closeHot: "w7.seed-cycle-dismiss",
+      }),
+    );
   const confirm = W7_CONFIRMS[state];
   if (confirm)
     return deskWin("admin.greengoods.app/dashboard/garden/pool", adminDialogM3(w7Behind(), "garden", confirm));
@@ -561,7 +579,10 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.close-pool": { l: "Close pool", to: "screen:W7@close-pool-confirm", info: "Offered only once the last cycle composts (uiux §6.2 · CS:102); closePool(poolId) takes no reason (CS:556). Compost/reopen follow per §4.1." },
   "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118)." },
   "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W7@cancel-cycle-confirm", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
-  "w7.new-campaign": { l: "New campaign", to: "screen:W8", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
+  "w7.new-campaign": { l: "New campaign", to: "screen:W7@seed-cycle", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
+  "w7.seed-cycle": { l: "Seed a cycle", to: "screen:W7@seed-cycle", info: "seedCycle(poolId, cycleType, startTime, endTime, metadataCID) — legal while the pool is Ready or Open; stores no reason (CS:566)." },
+  "w7.seed-cycle-dismiss": { l: "Cancel", to: "screen:W7@ready", info: "Closes the dialog without recording a cycle." },
+  "w7.seed-cycle-confirm": { l: "Seed this cycle", to: "screen:W1@seeded", info: "seedCycle → CycleSeeded. The member echo is the read-only “opens soon” preview; allocation and opening follow in W11." },
   "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733)." },
   "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@decline-claim-confirm", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.reseed": { l: "Re-seed", to: "screen:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94). Adopted MF-4." },
@@ -768,6 +789,8 @@ const W10_STATES = [
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
   ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel promise"], ["not-found", "Not found"],
+  ["garden-ready", "Garden-provided — ready"], ["garden-fulfilled", "Garden-provided — fulfilled"],
+  ["queue-settlement-garden", "Queue G$ to the garden"],
 ] as const;
 type W10State = (typeof W10_STATES)[number][0];
 
@@ -793,6 +816,8 @@ const W10_TITLE: Record<W10State, string> = {
   "queue-settlement": "Queue Celo settlement",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
   "attach-assessment": "Attach assessment", "mark-ready-override": "Mark ready with override",
+  "garden-ready": "Methodology survey", "garden-fulfilled": "Methodology survey",
+  "queue-settlement-garden": "Queue Celo settlement",
   cancel: "Cancel this promise", "not-found": "Promise unavailable",
 };
 
@@ -851,6 +876,32 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
       body = `${field("Reason (required)", input("withdrawn by agreement at the gathering"))}${banner("Steward cancel — Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.", "stone", "error-warning-line")}`;
       actions = `${dismiss("Keep promise")}${hot("w10.cancel-confirm", btn("Cancel promise", { kind: "danger" }))}`;
       break;
+    case "garden-ready":
+      // A garden-claimed protocol promise: the PROVIDER is a GardenAccount, so
+      // the provider-exclusion rule applies to the garden, not to a person.
+      body = `${cmChips(chip("Protocol", "ink"), chip("Request", "request"), chip("Ready", "warn", { dot: true }))}
+${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
+${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
+${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
+${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo account · unqueued")}`;
+      actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
+      break;
+    case "garden-fulfilled":
+      body = `${cmChips(chip("Protocol", "ink"), chip("Fulfilled", "ok", { dot: true }))}
+${kv("Protocol pool → Awka Hub", "1 survey")}
+${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 4)}
+${kv("Confirmed", "2 of 2 protocol stewards · Jul 12")}${kv("Provider garden", "Awka Hub — its gardeners worked and proved it")}
+${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo account · unqueued")}
+${banner("A garden-provided promise settles to the providing garden's own Celo account — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Queue disbursement…", { kind: "pri" }))}`;
+      break;
+    case "queue-settlement-garden":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${banner(
+        "Queueing snapshots the canonical G$ amount, the owning-pool source, the recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$.",
+        "stone",
+      )}`;
+      actions = `${dismiss()}${hot("w10.queue-settlement-garden-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
+      break;
     case "not-found":
       body = emptyState(
         "error-warning-line",
@@ -906,6 +957,9 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.override-confirm": { l: "Mark ready (confirm)", to: "screen:W2@ready-confirmer", info: "Records the override reason; the member timeline shows the steward marked it ready (UX:294)." },
   "w10.cancel": { l: "Cancel promise (steward)", to: "screen:W10@cancel", info: "MF-2b: steward cancel of an Accepted (or §4.1 Paused) promise — cancelCommitment (CS:745; AM:36-37)." },
   "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@cancelled", info: "Accepted → Cancelled with a recorded reason; units release; lands on the member view whose timeline carries the reason (CS:745) — the same member-echo convention as every other W10 act." },
+  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743)." },
+  "w10.queue-settlement-garden": { l: "Queue disbursement", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
+  "w10.queue-settlement-garden-confirm": { l: "Queue disbursement (confirm)", to: "screen:W21@protocol-queue", info: "queueDisbursement takes no reason. Garden claims resolve the beneficiary to the providing garden's registered Celo Safe; source is the GG protocol Safe (AM:43 · SS:516)." },
   "w10.dismiss": { l: "Close dialog", to: "screen:W10", info: "Closes without applying the pending steward action." },
   "w10.retry": { l: "Retry promise read", to: "screen:W10", info: "Retries the promise read; the sentinel state never renders as a lifecycle chip." },
   "w10.back-pool": { l: "Back to pool", to: "screen:W7", info: "Returns to the scoped garden pool after a missing record." },

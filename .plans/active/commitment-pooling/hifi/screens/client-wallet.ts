@@ -162,7 +162,7 @@ const W23_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W25_STATES = [
-  ["card", "Protocol card"], ["context-chooser", "Provider context"], ["pending", "Waiting for review"],
+  ["card", "Protocol card"], ["context-chooser", "Provider context"], ["pending", "Waiting for review"], ["accepted", "Accepted — garden provides"],
 ] as const;
 type W25State = (typeof W25_STATES)[number][0];
 
@@ -173,7 +173,7 @@ function w25(state: W25State): string {
   const protocolCard = card(
     `<div class="cardrow">${chip("Protocol", "ink")}${chip("Request", "request")}</div><div class="t-title">Methodology survey</div><div class="t-meta num">1 survey · stewards review who takes this up</div>${hot("w25.ask", btn("Ask to take this up", { kind: "pri", full: true }))}`,
   );
-  const head = hdr("Rocinha Community Garden", { back: true });
+  const head = hdr("Awka Hub", { back: true });
 
   if (state === "context-chooser") {
     const behind = `${head}${pagepad(protocolCard)}`;
@@ -198,6 +198,15 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
       { appBar: false },
     );
   }
+  if (state === "accepted")
+    return phoneFrame(
+      `${head}${pagepad(
+        card(
+          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub — your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this promise. Work and evidence from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the promise", { kind: "pri", full: true }))}</div>`,
+        ),
+      )}<div style="flex:1"></div>`,
+      { appBar: false },
+    );
   return phoneFrame(`${head}${pagepad(banner("From the protocol pool — surveys and activations any garden can take up.", "stone", "information-line"), protocolCard)}<div style="flex:1"></div>`, { appBar: false });
 }
 
@@ -205,6 +214,7 @@ const W25_HOTS: HifiDef["hots"] = {
   "w25.chooser": { l: "Context chooser", info: "Garden claim: claimant = GardenAccount, requestedBy = you. No custody, no member-delivery via garden claims (AM:38-39)." },
   "w25.continue": { l: "Continue", to: "screen:W25@pending", info: "Creates the claim request with the chosen context's stored terms — claimant, requestedBy, kind, gardenContext (CS:133). Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged." },
   "w25.cancel": { l: "Cancel", to: "screen:W25", info: "Closes the provider-context sheet without creating a claim request." },
+  "w25.open-promise": { l: "Open the promise", to: "screen:W2@garden-provider", info: "The garden-provided promise opens in the ordinary commitment detail; work and evidence rails are unchanged." },
   "w25.ask": { l: "Ask to take this up", to: "screen:W25@context-chooser", info: "Opens the provider-context sheet before any claim request exists; the garden option renders for eligible stewards only (CS:581). The (Protocol) chip is the only new mark on the card grammar (WF:671)." },
 };
 
