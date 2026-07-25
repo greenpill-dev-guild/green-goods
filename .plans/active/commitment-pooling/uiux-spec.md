@@ -489,6 +489,31 @@ hi-fi prototype cite this file by **line number** (`UX:NNN`), so inserting text
 mid-document silently shifts every citation below it — an in-place §6.3 addendum
 moved 76 of them by two lines. Append here instead; nothing cites past `UX:439`.
 
+**§5.1 AppBar on commitment detail — hidden (2026-07-25).** The commitment
+detail (`/home/:id/pool/:commitmentId`), the evidence sheet, the confirmation
+sheet, the protocol-claim card, and the work flow follow the shipping
+work-detail precedent (`AppBar.tsx:17-33`) and hide the bottom AppBar; the back
+header is their chrome. §5.1's "keep visible on the pool tab and detail" now
+binds the pool tab only — W1 still draws it. W2/W2a/W4/W25/WFLOW draw it hidden.
+
+**§5.2 scope control form (2026-07-25).** §5.2 item 2's scope control renders as
+a labelled select docked in the browse section's header, not a second chip row
+above the filter chips: two adjacent segmented rows put nine pills between the
+cycle cards and the first promise. The filter chip set (All / Offers / Requests
+/ Matched / Mine) is unchanged and remains the only chip row. W1 draws it.
+
+**§5.3 work linkage placement (2026-07-25).** Submit-work and link-work move
+from the commitment-detail action band into the "Work for this promise"
+disclosure — §5.3 lists work linkage as its own concern, and three primaries in
+one band left no act reading as the next one. Adding evidence stays the band's
+single primary. W2 draws it.
+
+**§5.6/§5.8 progressive disclosure (2026-07-25).** The confirmation sheet
+condenses already-confirmed members into one summary row below the meter, with
+the reader's own row kept distinct; the WalletDrawer's "My commitments" group
+sits behind a count-carrying disclosure while the pending-confirmations inbox
+stays open. W4/W5 draw it.
+
 **§6.3 step count — five, not four (2026-07-24).** The seeding console draws
 **five** steps: §6.3's step 3 splits into *Who confirms* (confirmers, threshold,
 claim mode) and *Reward* (declared rail and amount). One step was carrying four

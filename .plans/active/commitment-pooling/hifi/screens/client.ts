@@ -212,10 +212,12 @@ function w1(state: W1State): string {
       content = pagepad(
         seasonCard(),
         campaignsBlock(),
+        // The browse section owns its own header, and the scope control rides
+        // in it as a labelled select: two stacked segmented rows put nine pills
+        // between the cycle cards and the first promise. The filter chips are
+        // the locked chip set (§5.2) and stay a chip row.
+        sectionTitle("Open promises", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
         `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri" }))}${hot("w1.request", btn("Request help", { kind: "sec" }))}</div>`,
-        // Both controls narrow the same list, so they sit together directly
-        // above it rather than five rows apart with the CTAs wedged between.
-        hot("w1.scope", seg(["All current", "Season", "Market rides", "Tool library"], 0)),
         hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 0)),
         offerCard(),
         requestCard(),
@@ -377,7 +379,8 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       : disclosure(
           "Work for this promise",
           "1 approved",
-          listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8", chipHtml: chip("Approved", "ok") }),
+          listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8", chipHtml: chip("Approved", "ok") }) +
+            `<div class="brow">${hot("w2.submit-work", btn("Submit work", { kind: "sec" }))}${hot("w2.link-work", btn("Link existing work", { kind: "ghost" }))}</div>`,
         )) +
     hot(
       "w2.details",
@@ -452,11 +455,11 @@ function w2(state: W2State): string {
       break;
     default:
       band = card(
-        `<div class="t-title">Keep the promise moving</div><div class="t-meta">Add evidence as you go, or link the work that fulfills it.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}${hot("w2.submit-work", btn("Submit work", { kind: "sec" }))}</div>${hot("w2.link-work", btn("Link existing work", { kind: "ghost" }))}`,
+        `<div class="t-title">Keep the promise moving</div><div class="t-meta">Add evidence as you go. Work that fulfills this promise links from the work section below.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
   }
 
-  const showReward = !["offered", "requested", "cancelled", "expired", "disputed"].includes(state);
+  const showReward = !["offered", "requested", "cancelled", "expired", "disputed", "captured"].includes(state);
   // Reward/settlement status sits with the band — it is scan-layer status, not
   // deep dive. Disclosures stay last and stay present even under review: the
   // dispute banner tells the member the reason is in the timeline, so hiding
@@ -470,7 +473,7 @@ function w2(state: W2State): string {
   );
 
   // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
-  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`);
+  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`, { appBar: false });
 }
 
 const W2_HOTS: HifiDef["hots"] = {
@@ -518,7 +521,7 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
     inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot("w2a.attach", btn("Attach evidence", { kind: "pri", full: true }))}`;
   }
   const body = sheetOver(w2aBehind(), title, inner);
-  return phoneFrame(`${body}`, { offline: state === "queued" || state === "failed" });
+  return phoneFrame(`${body}`, { offline: state === "queued" || state === "failed", appBar: false });
 }
 
 const W2A_HOTS: HifiDef["hots"] = {
@@ -643,9 +646,11 @@ const w4Behind = () => `${hdr("Prune the north beds", { back: true })}<div class
 
 function w4(state: W4State): string {
   const summary = `<div class="t-meta">Offer · Maria provides · the people it was made to confirm.</div>`;
+  // Who has already confirmed is context; whose turn it is is the point. The
+  // confirmed members condense to one row so the sheet leads with the reader's
+  // own act (§5.6 keeps the self row distinct).
   const confirmMeter = hot("w4.meter", `<div>${meter(66, { left: "confirmations", right: "2 of 3" })}</div>`) +
-    listRow({ icon: "user-line", primary: "João", chipHtml: chip("Confirmed", "ok") }) +
-    listRow({ icon: "user-line", primary: "Ana", chipHtml: chip("Confirmed", "ok") }) +
+    listRow({ icon: "checkbox-circle-fill", primary: "João and Ana confirmed", meta: "Jul 11 · Jul 12" }) +
     listRow({ icon: "user-line", primary: "You", chipHtml: chip("Your turn", "warn") });
   const exclusion = hot("w4.provider-note", banner("Maria made this promise, so Maria cannot confirm it — not even a steward can confirm their own.", "stone", "shield-check-line"));
 
@@ -680,7 +685,7 @@ function w4(state: W4State): string {
     default:
       inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
   }
-  return phoneFrame(sheetOver(w4Behind(), title, inner));
+  return phoneFrame(sheetOver(w4Behind(), title, inner), { appBar: false });
 }
 
 const W4_HOTS: HifiDef["hots"] = {

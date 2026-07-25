@@ -7,7 +7,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  banner, btn, card, chip, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
+  banner, btn, card, chip, disclosure, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
   phoneFrame, radio, sectionTitle, seg, sheetOver, skeleton, stepDots,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -78,13 +78,16 @@ ${card(
           listRow({ icon: "hand-heart-line", primary: "TAS Hub — Field survey ride", meta: "Awka · confirm when kept", chevron: true }),
         { cls: "flat" },
       )}
-${sectionTitle("My commitments")}
-${card(
-        `<div class="t-meta">Rocinha Community Garden</div>` +
-          hot("w5.mine-row", listRow({ icon: "seedling-line", primary: "Ride to market", meta: "Accepted", chevron: true })) +
-          `<div class="t-meta" style="margin-top:6px">Muizenberg</div>` +
-          listRow({ icon: "seedling-line", primary: "Beach cleanup Saturday", meta: "Fulfilled", chipHtml: chip("Kept", "ok") }),
-        { cls: "flat" },
+${disclosure(
+        "My commitments",
+        "2 across 2 gardens",
+        card(
+          `<div class="t-meta">Rocinha Community Garden</div>` +
+            hot("w5.mine-row", listRow({ icon: "seedling-line", primary: "Ride to market", meta: "Accepted", chevron: true })) +
+            `<div class="t-meta" style="margin-top:6px">Muizenberg</div>` +
+            listRow({ icon: "seedling-line", primary: "Beach cleanup Saturday", meta: "Fulfilled", chipHtml: chip("Kept", "ok") }),
+          { cls: "flat" },
+        ),
       )}`;
   }
   // The shipping AppBar hides while any drawer is open (AppBar.tsx:33).
@@ -182,6 +185,7 @@ function w25(state: W25State): string {
 ${banner("Working for the garden: its account makes the promise; you remain the requester.", "stone", "group-line")}
 ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.cancel", btn("Cancel", { kind: "ghost", full: true }))}`,
       ),
+      { appBar: false },
     );
   }
   if (state === "pending") {
@@ -191,9 +195,10 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
           `<div class="cardrow">${chip("Waiting for review", "warn", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Claimant", "Awka Hub (garden)")}${kv("Asked by", "you")}<div class="t-meta">Work and evidence will anchor to your garden; the promise stays with the protocol pool.</div>`,
         ),
       )}<div style="flex:1"></div>`,
+      { appBar: false },
     );
   }
-  return phoneFrame(`${head}${pagepad(banner("From the protocol pool — surveys and activations any garden can take up.", "stone", "information-line"), protocolCard)}<div style="flex:1"></div>`);
+  return phoneFrame(`${head}${pagepad(banner("From the protocol pool — surveys and activations any garden can take up.", "stone", "information-line"), protocolCard)}<div style="flex:1"></div>`, { appBar: false });
 }
 
 const W25_HOTS: HifiDef["hots"] = {
@@ -220,6 +225,7 @@ function wflow(): string {
       `<div class="t-meta">Everything else in this flow is the existing work submission — only the fulfills row is new.</div>`,
       hot("wflow.submit", btn("Submit work", { kind: "pri", full: true })),
     )}<div style="flex:1"></div>`,
+    { appBar: false },
   );
 }
 
