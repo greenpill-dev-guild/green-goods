@@ -4,9 +4,9 @@ Updated 2026-07-23. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 31 registered screens / 165 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 158 states: 9 Client PWA (80 states), 13 Admin Console (73 states), 2 Public (5 states)
-- 270 registered hotspots
+- 31 registered screens / 169 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 162 states: 9 Client PWA (80 states), 13 Admin Console (77 states), 2 Public (5 states)
+- 277 registered hotspots
 - 16 validated source flows / 163 scenes; 15 presentation-visible flows / 154 scenes: 4 Client PWA, 6 Admin Console, 5 End-to-end
 - 0 build warnings
 
@@ -76,9 +76,9 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
 | W10 | Admin console | 12 | detail, fulfilled, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found |
-| W11 | Admin console | 4 | presets, invalid-sum, guard, discard |
+| W11 | Admin console | 7 | presets, invalid-sum, guard, campaign-allocation, campaign-open, discard, campaign-discard |
 | W12 | Admin console | 2 | protocol, current-garden |
-| W13 | Admin console | 3 | queue, context-chip, empty |
+| W13 | Admin console | 4 | queue, context-chip, assess, empty |
 | W14 | Admin console | 3 | baseline, delta, discard |
 | W21 | Admin console | 5 | queue, unregistered, failed-recovery, gate-status, close-delivery-confirm |
 | W22 | Admin console | 8 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm |

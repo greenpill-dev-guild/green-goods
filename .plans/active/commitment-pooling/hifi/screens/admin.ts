@@ -184,10 +184,14 @@ export const dtable = (heads: string[], rows: string[][], caption: string) =>
 // Dirty-flow discard guard — one per flow, so "Keep editing" returns to the
 // flow that was actually open. A single shared W8 dialog swallowed capture,
 // open-cycle, and assessment cancels into the seed flow's first step.
-const discardDialog = (behind: string, tone: Tone, keepHot: string, discardHot: string) =>
+const discardDialog = (behind: string, tone: Tone, keepHot: string, discardHot: string, what?: string) =>
   adminDialogM3(behind, tone, {
     title: "Discard changes?",
-    body: banner("Nothing has been saved yet. Leaving now discards what you've entered.", "amber", "error-warning-line"),
+    body: banner(
+      `${what ?? "Nothing here has been saved yet"}. Leaving now discards what you've entered.`,
+      "amber",
+      "error-warning-line",
+    ),
     actions: `${hot(keepHot, btn("Keep editing", { kind: "ghost" }))}${hot(discardHot, btn("Discard", { kind: "danger" }))}`,
     closeHot: keepHot,
   });
@@ -241,7 +245,7 @@ const w7PoolCard = (state: W7State) => {
       : state === "ready"
         ? banner("Everything is in place. Opening the pool lets members see and make promises.", "stone")
         : state === "cycle-composted"
-          ? banner("The season has composted. Seed the next one — or close the pool; closing ends participation and keeps the history with the garden.", "stone")
+          ? banner("Every cycle in this pool has composted. Seed the next one — or close the pool; closing ends participation and keeps the history with the garden.", "stone")
         : state === "paused"
           ? banner("Paused with reason: “seasonal flooding, back after the rains”. Members keep evidence and recovery; create/claim/confirm wait.", "amber", "error-warning-line")
           : "";
@@ -274,17 +278,35 @@ const w7Cycles = (state: W7State) => {
       ? hot("w7.report-row", btn("Scoped report", { kind: "sec", sm: true }))
       : `${hot("w7.close-season", btn("Close season…", { kind: "sec", sm: true }))}${hot("w7.cancel-cycle", btn("Cancel…", { kind: "ghost", sm: true }))}`;
   const stageIx = state === "cycle-composted" ? 5 : state === "reconciled" ? 4 : 1;
+  // The Campaigns list must agree with the Season about whether anything is
+  // still running. §6.2 offers Close pool only after the LAST cycle composts,
+  // so the composted state cannot also show open campaigns — that combination
+  // made the close confirmation's "its last cycle has composted" false on the
+  // one screen that offers the act.
+  const campaigns =
+    state === "cycle-composted"
+      ? disclosure(
+          "Campaigns",
+          "3 composted",
+          `<div class="arow"><div class="grow">Market rides <span class="ch">Campaign</span> <span class="t-meta num">14/16 kept</span></div>${chip("Composted", "plain", { dot: true })}</div>
+<div class="arow"><div class="grow">Tool library <span class="ch">Campaign</span> <span class="t-meta num">8/8 kept</span></div>${chip("Composted", "plain", { dot: true })}</div>
+<div class="arow"><div class="grow">Seedling swap <span class="ch">Campaign</span> <span class="t-meta num">5/6 kept</span></div>${chip("Composted", "plain", { dot: true })}</div>`,
+        )
+      : disclosure(
+          "Campaigns",
+          "2 open · 1 seeded",
+          `<div class="arow"><div class="grow">Market rides <span class="ch">Campaign</span> <span class="t-meta num">6/16</span></div>${chip("Open", "ok", { dot: true })}</div>
+<div class="arow"><div class="grow">Tool library <span class="ch">Campaign</span> <span class="t-meta num">8/8</span></div>${chip("Reviewing", "warn", { dot: true })}</div>
+<div class="arow"><div class="grow">Seedling swap <span class="ch">Campaign</span></div>${chip("Seeded", "plain", { dot: true })}${hot("w7.open-cycle-flow", btn("Open cycle", { kind: "sec", sm: true }))}</div>`,
+        );
   return acard(
     "Cycles",
     `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="ch">Season</span></div>${seasonChip}${seasonActs}</div>
 ${stages(["Seeded", "Open", "In progress", "Reviewing", "Reconciled", "Composted"], stageIx)}
-${disclosure(
-  "Campaigns",
-  "2 open · 1 seeded",
-  `<div class="arow"><div class="grow">Market rides <span class="ch">Campaign</span> <span class="t-meta num">6/16</span></div>${chip("Open", "ok", { dot: true })}</div>
-<div class="arow"><div class="grow">Tool library <span class="ch">Campaign</span> <span class="t-meta num">8/8</span></div>${chip("Reviewing", "warn", { dot: true })}</div>
-<div class="arow"><div class="grow">Seedling swap <span class="ch">Campaign</span></div>${chip("Seeded", "plain", { dot: true })}${hot("w7.open-cycle-flow", btn("Open cycle", { kind: "sec", sm: true }))}</div>`,
-)}`,
+${campaigns}`,
+    // Kept on the composted state too: the pool is still Open, so seeding the
+    // next cycle is legal (CS:726) and is the alternative the card's banner
+    // offers beside Close.
     hot("w7.new-campaign", btn("New campaign", { kind: "sec", sm: true })),
   );
 };
@@ -368,7 +390,7 @@ const W7_DESC: Record<W7State, string> = {
   ready: "Everything is in place — open the pool when you're ready.",
   paused: "Paused for the season — evidence and recovery stay open.",
   reconciled: "The season is reconciled — promises settled; compost comes next.",
-  "cycle-composted": "The season has composted — seed the next one, or close the pool.",
+  "cycle-composted": "Every cycle has composted — seed the next one, or close the pool.",
   "pool-closed": "The pool is closed — its history stays with the garden.",
   "claim-declined": "Ana's request is declined; João's stays pending.",
   "claim-outcomes": "How this cycle's steward-reviewed claims resolved.",
@@ -529,9 +551,13 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@decline-claim-confirm", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.reseed": { l: "Re-seed", to: "screen:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94). Adopted MF-4." },
   "w7.history": { l: "View history", info: "Opens this expired promise's state history and recorded reason." },
-  "w7.accept-ana": { l: "Accept Ana's request", info: "Accepting consumes Ana's stored terms; every other pending row becomes Superseded (CS:733). Garden-context claims live on the protocol console (W12/sb13)." },
-  "w7.decline-joao": { l: "Decline João's request (reason)", info: "Declines only João's row with a required reason (CS:734)." },
-  "w7.open-cycle-flow": { l: "Open cycle", to: "screen:W11", info: "Runs the §6.10 open-cycle flow (allocation → open) for the selected Seeded cycle; openCycle stores the six-class snapshot (CS:114)." },
+  // Info-only mirrors of the two acts this storyboard walks: accepting Ana or
+  // declining João is equally legal, but the resulting outcome set is not drawn
+  // (the outcomes state depicts João accepted / Ana superseded). Named so the
+  // control is honest about being a preview rather than silently inert.
+  "w7.accept-ana": { l: "Accept Ana's request", info: "Legal and symmetric to accepting João — consumes Ana's stored terms and supersedes every other pending row (CS:733). The mirrored outcome set is not drawn; the storyboard walks the accept-João path. Garden-context claims live on the protocol console (W12/sb13)." },
+  "w7.decline-joao": { l: "Decline João's request (reason)", info: "Legal and symmetric to declining Ana — clears only João's row with a required reason (CS:734). The mirrored outcome set is not drawn; the storyboard walks the decline-Ana path." },
+  "w7.open-cycle-flow": { l: "Open cycle", to: "screen:W11@campaign-allocation", info: "Runs the §6.10 open-cycle flow (allocation → open) for this Seeded Campaign. The pool is already Open here, so the flow uses its campaign path — no Ready-pool guard (CS:114)." },
   "w7.compost-pool": { l: "Compost pool", info: "compostPool archives the closed pool; reopenPool starts the next era (§4.1). Not drawn past this point." },
   "w7.commitment-row": { l: "Commitment row", to: "screen:W10", info: "Opens the commitment dialog." },
   "w7.scope": { l: "Commitment scope", info: "Open · Confirmed · Past (uiux-spec §6.2 addendum). Composted cycles and settled records surface under Past; the old cycle-console “History:” row is retired. Maps to AdminFilterChip." },
@@ -576,12 +602,7 @@ function w8(state: W8State): string {
   if (state === "discard")
     return deskWin(
       SEED_URL,
-      adminDialogM3(w7Behind(), "garden", {
-        title: "Discard changes?",
-        body: banner("This promise hasn't been seeded yet. Leaving now discards what you've entered.", "amber", "error-warning-line"),
-        actions: `${hot("w8.keep-editing", btn("Keep editing", { kind: "ghost" }))}${hot("w8.discard-confirm", btn("Discard", { kind: "danger" }))}`,
-        closeHot: "w8.keep-editing",
-      }),
+      discardDialog(w7Behind(), "garden", "w8.keep-editing", "w8.discard-confirm", "This promise hasn't been seeded yet"),
     );
 
   if (state === "captured-for")
@@ -682,7 +703,7 @@ function w9(state: W9State): string {
   if (state === "discard")
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/capture",
-      discardDialog(w7Behind(), "garden", "w9.keep-editing", "w9.discard-confirm"),
+      discardDialog(w7Behind(), "garden", "w9.keep-editing", "w9.discard-confirm", "This record hasn't been saved yet"),
     );
   const pick = state === "pick-member";
   const inner = pick
@@ -879,7 +900,11 @@ const W10_HOTS: HifiDef["hots"] = {
 // W11 — open-cycle allocation policy (uiux-spec §6.10)
 // ---------------------------------------------------------------------------
 
-const W11_STATES = [["presets", "Presets"], ["invalid-sum", "Invalid sum"], ["guard", "Pool is Ready — open it?"], ["discard", "Discard changes?"]] as const;
+const W11_STATES = [
+  ["presets", "Presets"], ["invalid-sum", "Invalid sum"], ["guard", "Pool is Ready — open it?"],
+  ["campaign-allocation", "Campaign · allocation"], ["campaign-open", "Campaign · open"],
+  ["discard", "Discard changes?"], ["campaign-discard", "Campaign · discard changes?"],
+] as const;
 type W11State = (typeof W11_STATES)[number][0];
 
 // Allocation is a step inside the open-cycle flow (uiux-spec §6.10), and the
@@ -890,26 +915,48 @@ const CYCLE_STEPS: FlowStep[] = [
   { title: "Open", desc: "check the pool, then open" },
 ];
 
+// Two entry contexts, because the guard prompt is only TRUE from one of them.
+// The season path runs from a Ready pool (sb9a), where opening the cycle opens
+// the pool with it. The campaign path runs from the Cycles console of a pool
+// that is ALREADY Open, so it must not claim the pool is merely Ready — and it
+// names the campaign, not the Season, in its context line.
+const w11IsCampaign = (state: W11State) => state.startsWith("campaign");
+const W11_CONTEXT = (state: W11State) =>
+  w11IsCampaign(state) ? "Rocinha · Seedling swap (Campaign)" : "Rocinha · Season of First Rains";
+
 function w11(state: W11State): string {
-  if (state === "discard")
+  if (state === "discard" || state === "campaign-discard")
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/open-cycle",
-      discardDialog(w7Behind(), "garden", "w11.keep-editing", "w11.discard-confirm"),
+      discardDialog(
+        w7Behind(),
+        "garden",
+        state === "campaign-discard" ? "w11.campaign-keep-editing" : "w11.keep-editing",
+        state === "campaign-discard" ? "w11.campaign-discard-confirm" : "w11.discard-confirm",
+        "This cycle hasn't been opened yet",
+      ),
     );
-  if (state === "guard")
+  if (state === "guard" || state === "campaign-open") {
+    const campaign = state === "campaign-open";
+    const body = campaign
+      ? `${banner("The pool is already open, so opening this campaign only starts the campaign — it runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`
+      : `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`;
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/open-cycle",
       flowDialog(w7Behind(), "garden", {
-        context: "Rocinha · Season of First Rains",
+        context: W11_CONTEXT(state),
         title: "Open cycle",
         steps: CYCLE_STEPS,
         current: 1,
-        body: `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`,
-        back: "w11.back",
-        cancelHot: "w11.cancel",
-        next: hot("w11.open-cycle", btn("Open pool and cycle", { kind: "pri" })),
+        body,
+        back: campaign ? "w11.campaign-back" : "w11.back",
+        cancelHot: campaign ? "w11.campaign-cancel" : "w11.cancel",
+        next: campaign
+          ? hot("w11.campaign-open-cycle", btn("Open campaign", { kind: "pri" }))
+          : hot("w11.open-cycle", btn("Open pool and cycle", { kind: "pri" })),
       }),
     );
+  }
 
   const bad = state === "invalid-sum";
   const rows = [
@@ -925,18 +972,21 @@ function w11(state: W11State): string {
 ${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }], { interactive: true, name: "allocation-preset" })))}
 ${rows}${sum}
 ${banner("Treasury is at the 15% guidance floor. This split is locked when the cycle opens and reads back unchanged at close.", "stone")}`;
+  const campaign = w11IsCampaign(state);
   return deskWin(
     "admin.greengoods.app/dashboard/garden/pool/open-cycle",
     flowDialog(w7Behind(), "garden", {
-      context: "Rocinha · Season of First Rains",
+      context: W11_CONTEXT(state),
       title: "Open cycle",
       steps: CYCLE_STEPS,
       current: 0,
       body: inner,
-      cancelHot: "w11.cancel",
+      cancelHot: campaign ? "w11.campaign-cancel" : "w11.cancel",
       next: bad
         ? btn("Continue", { kind: "pri", disabled: true })
-        : hot("w11.continue", btn("Continue", { kind: "pri" })),
+        : campaign
+          ? hot("w11.campaign-continue", btn("Continue", { kind: "pri" }))
+          : hot("w11.continue", btn("Continue", { kind: "pri" })),
     }),
   );
 }
@@ -949,6 +999,13 @@ const W11_HOTS: HifiDef["hots"] = {
   "w11.keep-editing": { l: "Keep editing", to: "screen:W11", info: "Returns to the allocation editor with the entered shares intact." },
   "w11.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the open-cycle flow; the cycle stays Seeded." },
   "w11.open-cycle": { l: "Open pool and cycle", to: "screen:W7", info: "openCycle(cycleId, allocation) validates, stores, and emits the complete six-class snapshot; the shares must total 100% (UX:322-330). The Ready-pool guard opens the pool with the cycle (register #34a)." },
+  // Campaign path — same flow from an already-Open pool, so no guard prompt.
+  "w11.campaign-continue": { l: "Continue to open", to: "screen:W11@campaign-open", info: "Allocation → the open step. The pool is already Open, so this step opens only the campaign." },
+  "w11.campaign-back": { l: "Back to allocation", to: "screen:W11@campaign-allocation", info: "Steps back to this campaign's six-role split with the entered values retained." },
+  "w11.campaign-cancel": { l: "Cancel open-cycle", to: "screen:W11@campaign-discard", info: "A dirty flow confirms before discarding; Keep editing returns to the campaign flow, not the Season one." },
+  "w11.campaign-keep-editing": { l: "Keep editing", to: "screen:W11@campaign-allocation", info: "Returns to the campaign allocation editor with the entered shares intact." },
+  "w11.campaign-discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow; the campaign stays Seeded." },
+  "w11.campaign-open-cycle": { l: "Open campaign", to: "screen:W7", info: "openCycle(cycleId, allocation) on a pool that is already Open — any number of Campaigns may run concurrently beside the one Season (UX:66 · CS:114)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -956,7 +1013,7 @@ const W11_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W13_STATES = [
-  ["queue", "Confirm queue"], ["context-chip", "Work card chip (W13b)"], ["empty", "Nothing to confirm"],
+  ["queue", "Confirm queue"], ["context-chip", "Work card chip (W13b)"], ["assess", "Assess stage"], ["empty", "Nothing to confirm"],
 ] as const;
 type W13State = (typeof W13_STATES)[number][0];
 
@@ -968,9 +1025,18 @@ const hubRail = (activeIx: number) =>
   );
 
 function w13(state: W13State): string {
-  const rail = hubRail(state === "context-chip" ? 0 : 3);
+  const rail = hubRail(state === "context-chip" ? 0 : state === "assess" ? 1 : 3);
   let inner: string;
-  if (state === "empty") {
+  if (state === "assess") {
+    // The Hub's Assess stage — the route the assessment flow opens over, so
+    // leaving that flow has a real place to land instead of the Confirm tab.
+    inner = acard(
+      "Assess",
+      `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">1 assessment waiting</span></div>${chip("Baseline recorded", "ok", { dot: true })}</div>
+<div class="arow"><div class="grow">Awka Hub · delta <span class="t-meta">evaluator-hat only</span></div>${chip("Waiting", "warn", { dot: true })}</div>
+<div class="actrow">${hot("w13.new-assessment", btn("Create assessment", { kind: "pri", sm: true, icon: "add-line" }))}</div>`,
+    );
+  } else if (state === "empty") {
     inner = emptyState(
       "checkbox-circle-fill",
       "Nothing waiting for confirmation",
@@ -1001,6 +1067,7 @@ ${banner("Work cards show which promise they fulfil; the approval rails are unch
 const W13_HOTS: HifiDef["hots"] = {
   "w13.row": { l: "Confirm queue row", to: "screen:W10", info: "Queue of promises where you are named or fallback-eligible (UX:318)." },
   "w13.chip": { l: "Commitment-context chip (W13b)", info: "Work cards show which promise they fulfill; approval rails untouched (UX:285)." },
+  "w13.new-assessment": { l: "Create assessment", to: "screen:W14", info: "Opens the existing Create Assessment flow, which §6.6 extends rather than forks." },
   "w13.approve": { l: "Approve work", info: "Uses the existing WorkApproval rail; the context chip only links this work back to its promise." },
   "w13.reject": { l: "Reject work", info: "Uses the existing work-rejection rail with its normal reason capture." },
 };
@@ -1036,7 +1103,7 @@ function w14(state: W14State): string {
   if (state === "discard")
     return deskWin(
       "admin.greengoods.app/dashboard/hub/assess",
-      discardDialog(hubBehind(), "hub", "w14.keep-editing", "w14.discard-confirm"),
+      discardDialog(hubBehind(), "hub", "w14.keep-editing", "w14.discard-confirm", "This assessment hasn't been recorded yet"),
     );
   const kindRadio = hot(
     "w14.kind",
@@ -1072,7 +1139,7 @@ const W14_HOTS: HifiDef["hots"] = {
   "w14.continue": { l: "Continue assessment", info: "Continues into the existing assessment evidence and scoring steps." },
   "w14.cancel": { l: "Cancel assessment", to: "screen:W14@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard, scoped to this flow." },
   "w14.keep-editing": { l: "Keep editing", to: "screen:W14", info: "Returns to the assessment flow with the entered values intact." },
-  "w14.discard-confirm": { l: "Discard", to: "screen:W13", info: "Leaves the assessment flow and returns to the Hub workspace." },
+  "w14.discard-confirm": { l: "Discard", to: "screen:W13@assess", info: "Leaves the assessment flow and returns to the Hub Assess stage the flow opened over — not the Confirm stage." },
 };
 
 // ---------------------------------------------------------------------------
