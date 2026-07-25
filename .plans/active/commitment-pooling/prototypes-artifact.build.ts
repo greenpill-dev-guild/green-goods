@@ -244,8 +244,10 @@ const assertBuild = (condition: unknown, message: string) => {
 };
 const flowCounts = countBy(visibleSbs, (sb) => sb.reviewGroup);
 const screenCounts = countBy(visibleScreens, (screen) => screen.surface);
-assertBuild(visibleSbs.length === 13, `expected 13 visible flows, found ${visibleSbs.length}`);
-assertBuild(flowCounts.client === 4 && flowCounts.admin === 4 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 4 admin / 5 end-to-end`);
+// 15 since the audit split sb9's 33-scene ribbon into readiness / pause-resume /
+// end-of-season (6 admin flows, not 4).
+assertBuild(visibleSbs.length === 15, `expected 15 visible flows, found ${visibleSbs.length}`);
+assertBuild(flowCounts.client === 4 && flowCounts.admin === 6 && flowCounts["end-to-end"] === 5, `flow grouping must be 4 client / 6 admin / 5 end-to-end`);
 assertBuild(visibleScreens.length === 24, `expected 24 visible screens, found ${visibleScreens.length}`);
 assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.public === 2, `screen grouping must be 9 client / 13 admin / 2 public`);
 const presentationCatalogs = flowCatalog + screenCards;
@@ -328,6 +330,13 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .tab{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:8px;
   padding:5px 14px;font:600 13px inherit;cursor:pointer;min-height:44px}
 .tab.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
+/* Chrome-level toggle. The dialect tokens already ship both theme signals
+   ([data-theme="dark"] and the prefers-color-scheme twin), so pinning the
+   attribute is all that is needed to review dark on a light machine. */
+.chromebtn{margin-left:auto;border:1px solid var(--line);background:var(--panel);color:var(--stone);
+  border-radius:8px;padding:5px 12px;font:600 12.5px inherit;cursor:pointer;min-height:44px}
+.chromebtn:hover{color:var(--ink)}
+.chromebtn[aria-pressed="true"]{border-color:var(--accent-ink);color:var(--ink)}
 #tab-doc,#tab-play,#tab-screens{display:none}
 #tab-doc.on,#tab-play.on,#tab-screens.on{display:block}
 
@@ -549,6 +558,7 @@ ${iconSprite()}
   <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Guided flows</button>
   <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screen library</button>
   <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Implementation reference</button>
+  <button class="chromebtn" id="themebtn" type="button" aria-pressed="false">Dark mode</button>
 </div>
 
 <div id="tab-play" class="on" role="tabpanel" aria-labelledby="tabbtn-play">
@@ -645,9 +655,31 @@ ${PLAYER_JS}
 
 writeFileSync(OUT, html);
 const byteSize = new TextEncoder().encode(html).byteLength;
+
+// prototypes-coverage.md transcribes this snapshot by hand and has drifted from
+// it before (W2 carried 24 states after two were added). Compare on every build
+// so the transcription cannot silently rot again.
+const totalStates = SCREENS.reduce((a, s) => a + s.states.length, 0);
+const totalScenes = sbs.reduce((a, b) => a + b.steps.length, 0);
+try {
+  const coverage = readFileSync(new URL("./prototypes-coverage.md", import.meta.url), "utf8");
+  const claimed: [string, number, number][] = [
+    ["screens", SCREENS.length, Number(coverage.match(/- (\d+) registered screens/)?.[1])],
+    ["states", totalStates, Number(coverage.match(/registered screens \/ (\d+) rendered states/)?.[1])],
+    ["hotspots", Object.keys(HOTS).length, Number(coverage.match(/- (\d+) registered hotspots/)?.[1])],
+    ["scenes", totalScenes, Number(coverage.match(/source flows \/ (\d+) scenes/)?.[1])],
+  ];
+  for (const [label, actual, stated] of claimed) {
+    if (Number.isFinite(stated) && stated !== actual)
+      console.warn(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
+  }
+} catch {
+  console.warn("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
+}
+
 console.log(
   "screens:", SCREENS.length,
-  "| states:", SCREENS.reduce((a, s) => a + s.states.length, 0),
+  "| states:", totalStates,
   "| hotspots:", Object.keys(HOTS).length,
   "| journeys:", sbs.length,
   "| scenes:", sbs.reduce((a, b) => a + b.steps.length, 0),

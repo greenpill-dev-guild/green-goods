@@ -110,6 +110,19 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   // Core vocabulary is never warn-only: ASCII and September previews are still
   // rendered copy and must use the same mutual-aid language.
   scanEverywhere(where, text);
+
+  // Spec citations, register numbers, and MF ids are review metadata. The
+  // artifact already has a home for them — the per-scene implementation notes
+  // below the stage — and rendering them inside a device frame at the same
+  // hierarchy as UI copy is why reviewers cannot tell design from commentary.
+  const cite = text.match(/\b(?:CS|UX|AM|SS|WF|DG|LAP|CI-WF|CI-SPEC):\s?\d+|register #\d+|\bMF-\d+\b/);
+  if (cite) err.push(`META ${where}: spec citation "${cite[0]}" rendered as product copy`);
+
+  // No synthetic cross-commitment percentage anywhere (uiux-spec §5.2/§12).
+  // promiseKeptRate is the one sanctioned rate and reads as "N of M kept".
+  const pct = text.match(/promised units|% of promised/i);
+  if (pct) err.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
+
   if (sept) return; // another spec owns the remaining dialect-specific copy
   if (screen.surface === "client" || screen.surface === "public") {
     for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
@@ -296,6 +309,26 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     }
     for (const h of ctx.screenHots[s.id] ?? []) {
       if (!s.states.some((st) => domTokens(st.html).hots.has(h))) err.push(`ORPHAN hotspot ${h}: registered on ${s.id} but emitted in no state`);
+    }
+    // A promise whose chip reads Fulfilled is done; offering evidence attach
+    // there contradicts both the chip and §5.3, which gates attach to
+    // Active / EvidenceSubmitted / PartiallyApproved.
+    for (const st of s.states) {
+      if (!domTokens(st.html).hots.has("w2.add-evidence")) continue;
+      if (/\bFulfilled\b/.test(stripTags(st.html)))
+        err.push(`STATE ${s.id}@${st.id}: evidence attach offered on a Fulfilled promise`);
+    }
+    for (const st of s.states) {
+      const text = stripTags(st.html);
+      // A confirmation exists to take the reason the contract stores. One
+      // without a required reason is a speed bump, not a confirmation.
+      if (st.id.endsWith("-confirm") && !/Reason \(required\)/.test(text))
+        err.push(`CONFIRM ${s.id}@${st.id}: confirmation without a required reason field`);
+      // Pre-acceptance states cannot carry post-acceptance history: a shared
+      // fixture body once showed "Accepted — João took this up" on an offer
+      // nobody had claimed.
+      if ((st.id === "offered" || st.id === "requested") && /\bAccepted\b/.test(text))
+        err.push(`STATE ${s.id}@${st.id}: pre-acceptance state shows an Accepted moment`);
     }
   }
 

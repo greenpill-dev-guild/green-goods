@@ -4,13 +4,22 @@ Updated 2026-07-23. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 31 registered screens / 148 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 141 states: 9 Client PWA (80 states), 13 Admin Console (56 states), 2 Public (5 states)
-- 251 registered hotspots
-- 14 validated source flows / 156 scenes; 13 presentation-visible flows / 147 scenes: 4 Client PWA, 4 Admin Console, 5 End-to-end
+- 31 registered screens / 159 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 152 states: 9 Client PWA (80 states), 13 Admin Console (67 states), 2 Public (5 states)
+- 258 registered hotspots
+- 16 validated source flows / 163 scenes; 15 presentation-visible flows / 154 scenes: 4 Client PWA, 6 Admin Console, 5 End-to-end
 - 0 build warnings
 
-Community `C*` wireframes and source flow 14 remain registered, validated, and directly addressable, but are hidden from the presentation catalogs until their high-fidelity pass.
+The build prints this snapshot on every run; when it disagrees with the numbers
+above, the build is right. The per-screen table below drifted once already (W2
+carried 24 states after two were added), so treat the build line as the source
+and this file as its transcription.
+
+Community `C*` wireframes and the September Need→triage flow remain registered, validated, and directly addressable, but are hidden from the presentation catalogs until their high-fidelity pass.
+
+`sb9` was split into `sb9a` (pool readiness → season open), `sb9b` (pause and resume),
+and `sb9c` (end a season — close, compost, or cancel). One 33-scene ribbon covering seven
+stewardship tasks left a reviewer with no chapter to orient against mid-flow.
 
 ## Presentation coverage classification
 
@@ -32,12 +41,27 @@ Community `C*` wireframes and source flow 14 remain registered, validated, and d
 | Cycle banners | `W1@reviewing`, `W1@paused`, `W1@closed`, `W1@cancelled-cycle`, `W1@cycle-summary` |
 | Steward send / override / cancel | `W10@accepted`, `W10@mark-ready-override`, `W10@cancel` |
 
+## Confirmation before consequence
+
+Every irreversible pool, cycle, and settlement act names its blast radius and
+takes the reason the contract stores before it happens. Each control whose label
+ends in `…` resolves to one of these, never straight to the outcome state:
+
+| Act | Confirmation state | Blast radius named |
+| --- | --- | --- |
+| Pause pool | `W7@pause-confirm` | 23 members · 7 open promises · what stays open |
+| Close pool | `W7@close-pool-confirm` | ends participation for 23 members |
+| Cancel season | `W7@cancel-cycle-confirm` | 8 promises, 5 kept · records survive |
+| Decline claim | `W7@decline-claim-confirm` | one request only · João stays pending |
+| Cancel batch | `W22@cancel-batch-confirm` | all 2 members atomically · no partial path |
+| Close delivery | `W21@close-delivery-confirm` | attempt + failure code survive · no new key |
+
 ## Screen registry
 
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
 | W1 | Client PWA | 21 | open, not-ready, ready, seeded, reviewing, paused, closed, cancelled-cycle, empty-open, no-season, queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
-| W2 | Client PWA | 24 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, reconciled, cancelled, expired, disputed, captured, loading, not-found, read-error |
+| W2 | Client PWA | 26 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, loading, not-found, read-error |
 | W2a | Client PWA | 3 | compose, queued, failed |
 | W3 | Client PWA | 7 | step-what, step-howmuch, step-anchors, step-review, request-variant, draft-resume, validation |
 | W4 | Client PWA | 7 | confirm-domain, confirm-support, not-yet, provider-view, confirmed-pending, confirmed, not-yet-failed |
@@ -45,16 +69,16 @@ Community `C*` wireframes and source flow 14 remain registered, validated, and d
 | W23 | Client PWA | 5 | balance, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 3 | card, context-chooser, pending |
 | WFLOW | Client PWA | 1 | review |
-| W7 | Admin console | 10 | open, not-ready, preflight-complete, ready, paused, reconciled, claim-outcomes, expiry-queue, loading, empty |
-| W8 | Admin console | 5 | step1, step2, step3, step4, captured-for |
+| W7 | Admin console | 15 | open, not-ready, preflight-complete, ready, paused, reconciled, claims, claim-outcomes, expiry-queue, pause-confirm, close-pool-confirm, cancel-cycle-confirm, decline-claim-confirm, loading, empty |
+| W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 2 | pick-member, capture-kind |
-| W10 | Admin console | 11 | detail, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found |
-| W11 | Admin console | 2 | presets, invalid-sum |
+| W10 | Admin console | 12 | detail, fulfilled, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found |
+| W11 | Admin console | 3 | presets, invalid-sum, guard |
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 3 | queue, context-chip, empty |
 | W14 | Admin console | 2 | baseline, delta |
-| W21 | Admin console | 4 | queue, unregistered, failed-recovery, gate-status |
-| W22 | Admin console | 7 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard |
+| W21 | Admin console | 5 | queue, unregistered, failed-recovery, gate-status, close-delivery-confirm |
+| W22 | Admin console | 8 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm |
 | W24 | Admin console | 3 | queue, ccip, flows |
 | W26 | Admin console | 4 | review, shares, certificate, rest |
 | HUBWORK | Admin console | 1 | approve |
