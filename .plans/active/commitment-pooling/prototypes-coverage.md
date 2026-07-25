@@ -4,9 +4,9 @@ Updated 2026-07-23. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 31 registered screens / 159 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 152 states: 9 Client PWA (80 states), 13 Admin Console (67 states), 2 Public (5 states)
-- 258 registered hotspots
+- 31 registered screens / 165 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 158 states: 9 Client PWA (80 states), 13 Admin Console (73 states), 2 Public (5 states)
+- 270 registered hotspots
 - 16 validated source flows / 163 scenes; 15 presentation-visible flows / 154 scenes: 4 Client PWA, 6 Admin Console, 5 End-to-end
 - 0 build warnings
 
@@ -43,14 +43,17 @@ stewardship tasks left a reviewer with no chapter to orient against mid-flow.
 
 ## Confirmation before consequence
 
-Every irreversible pool, cycle, and settlement act names its blast radius and
-takes the reason the contract stores before it happens. Each control whose label
-ends in `…` resolves to one of these, never straight to the outcome state:
+Every irreversible pool, cycle, and settlement act names its blast radius and —
+when the contract stores one — takes its reason before it happens. `closePool`
+takes no reason (CS:556), so its confirmation is banner-only; validate.ts's
+`REASON_CONFIRMS` enforces both directions (a reason-taking act must show the
+field, a reason-less act must not invent one). Each control whose label ends in
+`…` resolves to one of these, never straight to the outcome state:
 
 | Act | Confirmation state | Blast radius named |
 | --- | --- | --- |
 | Pause pool | `W7@pause-confirm` | 23 members · 7 open promises · what stays open |
-| Close pool | `W7@close-pool-confirm` | ends participation for 23 members |
+| Close pool | `W7@close-pool-confirm` | ends participation for 23 members · reachable only once the last cycle composts (`W7@cycle-composted`) · no stored reason |
 | Cancel season | `W7@cancel-cycle-confirm` | 8 promises, 5 kept · records survive |
 | Decline claim | `W7@decline-claim-confirm` | one request only · João stays pending |
 | Cancel batch | `W22@cancel-batch-confirm` | all 2 members atomically · no partial path |
@@ -69,14 +72,14 @@ ends in `…` resolves to one of these, never straight to the outcome state:
 | W23 | Client PWA | 5 | balance, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 3 | card, context-chooser, pending |
 | WFLOW | Client PWA | 1 | review |
-| W7 | Admin console | 15 | open, not-ready, preflight-complete, ready, paused, reconciled, claims, claim-outcomes, expiry-queue, pause-confirm, close-pool-confirm, cancel-cycle-confirm, decline-claim-confirm, loading, empty |
+| W7 | Admin console | 18 | open, not-ready, preflight-complete, ready, paused, reconciled, cycle-composted, pool-closed, claims, claim-declined, claim-outcomes, expiry-queue, pause-confirm, close-pool-confirm, cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
-| W9 | Admin console | 2 | pick-member, capture-kind |
+| W9 | Admin console | 3 | pick-member, capture-kind, discard |
 | W10 | Admin console | 12 | detail, fulfilled, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found |
-| W11 | Admin console | 3 | presets, invalid-sum, guard |
+| W11 | Admin console | 4 | presets, invalid-sum, guard, discard |
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 3 | queue, context-chip, empty |
-| W14 | Admin console | 2 | baseline, delta |
+| W14 | Admin console | 3 | baseline, delta, discard |
 | W21 | Admin console | 5 | queue, unregistered, failed-recovery, gate-status, close-delivery-confirm |
 | W22 | Admin console | 8 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm |
 | W24 | Admin console | 3 | queue, ccip, flows |

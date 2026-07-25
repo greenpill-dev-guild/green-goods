@@ -287,6 +287,8 @@ Flow AdminDialog + `ActionFlowShell` steps (stepper precedent `CreateAssessment.
 3. **Confirmation rule and reward**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accepted provider before threshold validation, and the flow blocks an unreachable threshold. Claim mode toggle (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19). The reward section first selects exactly one rail: `None`, `ArbitrumExternal`, or `CeloSettlement`. `None` requires zero source/token/amount. `ArbitrumExternal` captures the external source reference, token, and amount for later payout recording. `CeloSettlement` requires canonical G$ and previews the owning-pool Safe payer plus the Individual-AA or Garden-Safe beneficiary that settlement will derive; it never enables `Record payout`.
 4. **Review and seed**: summary + seed action. Console actions are online-expected but ride the same queue plumbing (§5.11 note).
 
+**Step addendum (audit 2026-07-24)**: the console draws this as **five** steps — step 3 splits into *Who confirms* (confirmers, threshold, claim mode) and *Reward* (declared rail and amount). One step was carrying four decisions; the split is the locked presentation. W8 draws it and sb6/sb9a/sb10 walk it.
+
 ### 6.4 Claims/review queue
 
 Covered in §6.2 section 4. Work-approval review for DomainImpact commitments stays on the existing Hub Work stage and `approval` job rails; the commitment detail simply reflects approved-work counts (gates from the Lifecycle doc: attached, approved, assessment-complete when declared, then ReadyForConfirmation; operator waivers surface as visible overrides).

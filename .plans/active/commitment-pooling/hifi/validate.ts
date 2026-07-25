@@ -95,6 +95,18 @@ const ADMIN_HERO: [RegExp, string][] = [
   [/congratulations|celebrat|amazing|awesome|🎉/i, "admin hero language (quiet checkmark rule)"],
 ];
 
+// The contract's reason-taking confirmable acts (CS:795 + pausePool CS:725,
+// cancelCycle CS:104, cancelDisbursement/cancelBatch SS:297-298). Enforced in
+// BOTH directions: a confirm for one of these must show the reason field, and a
+// confirm for anything else must NOT invent one — a required reason on
+// closePool (which takes none, CS:556) is how the artifact once taught a
+// signature that does not exist. Extend this set from the contract spec when a
+// new reason-taking confirmation is drawn.
+const REASON_CONFIRMS = new Set([
+  "pause-confirm", "cancel-cycle-confirm", "decline-claim-confirm",
+  "fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
+]);
+
 function scanEverywhere(where: string, text: string, sink = err) {
   for (const [re, name] of BANNED_EVERYWHERE) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
 }
@@ -118,7 +130,9 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   const cite = text.match(/\b(?:CS|UX|AM|SS|WF|DG|LAP|CI-WF|CI-SPEC):\s?\d+|register #\d+|\bMF-\d+\b/);
   if (cite) err.push(`META ${where}: spec citation "${cite[0]}" rendered as product copy`);
 
-  // No synthetic cross-commitment percentage anywhere (uiux-spec §5.2/§12).
+  // Tripwire for the removed synthetic cross-commitment percentage sites
+  // (uiux-spec §5.2/§12) — it guards these exact phrasings, not the invariant;
+  // a rephrased mixed-unit rate ("62% of units") still needs a reviewer's eye.
   // promiseKeptRate is the one sanctioned rate and reads as "N of M kept".
   const pct = text.match(/promised units|% of promised/i);
   if (pct) err.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
@@ -310,23 +324,32 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     for (const h of ctx.screenHots[s.id] ?? []) {
       if (!s.states.some((st) => domTokens(st.html).hots.has(h))) err.push(`ORPHAN hotspot ${h}: registered on ${s.id} but emitted in no state`);
     }
-    // A promise whose chip reads Fulfilled is done; offering evidence attach
-    // there contradicts both the chip and §5.3, which gates attach to
-    // Active / EvidenceSubmitted / PartiallyApproved.
+    // A promise whose state chip reads Fulfilled is done; offering evidence
+    // attach there contradicts both the chip and §5.3, which gates attach to
+    // Active / EvidenceSubmitted / PartiallyApproved. Scoped to the CHIP
+    // markup (kit chip(), tone ok) so a greyed future "Fulfilled" stage label
+    // on an Active timeline — legitimate UI — can never trip it.
     for (const st of s.states) {
       if (!domTokens(st.html).hots.has("w2.add-evidence")) continue;
-      if (/\bFulfilled\b/.test(stripTags(st.html)))
+      if (/class="ch ok(?: dot)?"[^>]*>Fulfilled</.test(st.html))
         err.push(`STATE ${s.id}@${st.id}: evidence attach offered on a Fulfilled promise`);
     }
     for (const st of s.states) {
       const text = stripTags(st.html);
-      // A confirmation exists to take the reason the contract stores. One
-      // without a required reason is a speed bump, not a confirmation.
-      if (st.id.endsWith("-confirm") && !/Reason \(required\)/.test(text))
-        err.push(`CONFIRM ${s.id}@${st.id}: confirmation without a required reason field`);
+      // A confirmation exists to take the reason the contract stores — and only
+      // that reason. Both directions checked against REASON_CONFIRMS above.
+      if (st.id.endsWith("-confirm")) {
+        const hasReason = /Reason \(required\)/.test(text);
+        if (REASON_CONFIRMS.has(st.id) && !hasReason)
+          err.push(`CONFIRM ${s.id}@${st.id}: confirmation without its contract-required reason field`);
+        if (!REASON_CONFIRMS.has(st.id) && hasReason)
+          err.push(`CONFIRM ${s.id}@${st.id}: reason field on an act whose contract call takes no reason`);
+      }
       // Pre-acceptance states cannot carry post-acceptance history: a shared
       // fixture body once showed "Accepted — João took this up" on an offer
-      // nobody had claimed.
+      // nobody had claimed. Deliberately a whole-text word match — the locked
+      // design keeps pre-acceptance detail to ONE timeline moment, so even a
+      // future-stage "Accepted" label is out of bounds here.
       if ((st.id === "offered" || st.id === "requested") && /\bAccepted\b/.test(text))
         err.push(`STATE ${s.id}@${st.id}: pre-acceptance state shows an Accepted moment`);
     }

@@ -60,6 +60,13 @@ export const PLAYER_JS = `(function(){
   function revealTarget(dev){
     var el = dev.querySelector("[data-hot].primary") || dev.querySelector("[data-hot].choice") || dev.querySelector(".marked");
     if (!el) return;
+    // A named control inside a collapsed disclosure is invisible, and closed
+    // <details> content reports phantom geometry — so first open every ancestor
+    // disclosure. The state repaints per scene, so this never leaks between
+    // scenes or into free explore.
+    for (var anc = el.parentElement; anc; anc = anc.parentElement) {
+      if (anc.tagName === "DETAILS" && !anc.open) anc.open = true;
+    }
     var sc = scrollerOf(el);
     if (!sc || sc.scrollHeight - sc.clientHeight < 8) return;
     var er = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();

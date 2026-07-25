@@ -603,9 +603,12 @@ export const HIFI_CSS = `
 /* Flow dialog — ActionFlowShell inside AdminDialog variant="flow" +
    ADMIN_FLOW_DIALOG_CLASS. Pinned header (context + title, right padding
    reserved for the close button), a labelled vertical step rail on desktop, a
-   centred reading column, and a pinned footer that owns Back / Cancel /
-   Continue. Drawing these flows as bare route pages is what left every admin
-   multi-step form with no way back and no way out. */
+   centred reading column, and a pinned footer matching the shipping callers:
+   ONE leading button that morphs (Cancel on step one, Back after) beside the
+   primary; the dialog X is the constant exit, and the left slot mirrors the
+   real footer's progress/status slot (empty — no in-flight state is drawn).
+   Drawing these flows as bare route pages is what left every admin multi-step
+   form with no way back and no way out. */
 .hf .adlg.flow{width:min(880px,calc(100% - 40px));height:85%;max-height:85%}
 .hf .adlg.flow .dlg-head{flex-direction:column;align-items:stretch;gap:1px;position:relative;padding-right:62px}
 .hf .adlg.flow .dlg-head .eyebrow{font:600 11px inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}

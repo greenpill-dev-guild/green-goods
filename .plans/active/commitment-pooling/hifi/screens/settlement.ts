@@ -306,7 +306,7 @@ const W22_HOTS: HifiDef["hots"] = {
   "w22.route-gate": { l: "Open route gate", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },
   "w22.cancel-dismiss": { l: "Keep batch queued", to: "screen:W22", info: "Closes the confirmation with the batch untouched." },
-  "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.2)." },
+  "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.1.3)." },
   "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
   "w22.open-command-explorer": { l: "Open command in CCIP Explorer", to: "screen:W22@delivery-delayed", info: "The command message ID opens transport status. This prototype advances to the derived delayed example." },
   "w22.manual-execution-guide": { l: "Manual-execution guidance", info: "Manual execution is an external CCIP recovery procedure and appears only when CCIP Explorer reports the message eligible; it never marks payment complete." },
@@ -451,7 +451,7 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
   "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Reconcile + compost", to: "screen:W7@reconciled", info: "closeCycle → certificate mint → compostCycle; aggregates roll into pool history (WF:714)." },
+  "w26.compost": { l: "Reconcile + compost", to: "screen:W7@cycle-composted", info: "closeCycle → certificate mint → compostCycle; aggregates roll into pool history (WF:714). Lands on the composted-season console, where §6.2 first offers Close pool." },
 };
 
 // ---------------------------------------------------------------------------
