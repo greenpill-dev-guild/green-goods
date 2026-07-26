@@ -22,7 +22,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
 - You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
-- You are doing a **full design-system alignment review** across DesignMD files, tokens, Storybook, admin, client, docs, and agentic guidance → [system-alignment-review.md](./system-alignment-review.md). Use [stack-review.md](./stack-review.md) instead when the target is only the `design/` skill stack.
+- You are doing a **design-system alignment review** — full-repo, or stack-only when the target is just the `design/` skill stack → [system-alignment-review.md](./system-alignment-review.md).
 
 ## Token version
 
@@ -50,9 +50,7 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
-| **Stack Review** | stack review, audit skill stack, meta-review, design skill stack health | [stack-review.md](./stack-review.md) |
-| **System Alignment Review** | design system alignment, design-system alignment, UI drift, Storybook alignment, admin client docs alignment, full repo design-system review | [system-alignment-review.md](./system-alignment-review.md) |
-| **Inspiration & Frameworks** | inspiration, design books, designers, studios, research | § Appendix below |
+| **System Alignment Review** | design system alignment, UI drift, Storybook alignment, full repo design-system review, stack review, meta-review of the design skill stack | [system-alignment-review.md](./system-alignment-review.md) |
 
 When invoked:
 1. Establish design paradigm and material metaphor before writing code
@@ -201,7 +199,7 @@ What kind of design work?
 │   ├── Replace solid backgrounds with materials → materials.md
 │   ├── Add depth via Z-layer model → spatial.md
 │   ├── Add progressive disclosure to dense surfaces → interaction.md
-│   └── Verify inclusive design checks → § Appendix (below)
+│   └── Verify inclusive design checks → review-checklist.md § Lens 2
 │
 ├─► Animation / spatial motion?
 │   ├── View transitions for navigation morph → ./implementation.md § View Transitions
@@ -212,7 +210,8 @@ What kind of design work?
 │   └── UIAtom composition pattern → generative-ui.md
 │
 └─► Need inspiration or direction?
-    └── § Appendix — Inspiration & Frameworks (below)
+    └── language.md § Philosophy (Sources) — the model already knows the classic
+        design canon; the skill only records what Warm Earth takes from it
 ```
 
 ---
@@ -253,66 +252,4 @@ This maps to Green Goods' offline-first architecture: the offline state (service
 
 ---
 
-## Appendix — Inspiration & Frameworks
-
-Folded into this file from the former `references.md` during the 2026-04-17 skill consolidation. This is reading-list depth — use when you need direction, not when you need tokens (see [quick-reference.md](./quick-reference.md) for that).
-
-### Books
-
-| Book | Author | Key Concept |
-|------|--------|-------------|
-| *Laws of UX* | Jon Yablonski | Psychology-backed design heuristics (Fitts's Law, Hick's Law, Miller's Law) |
-| *Refactoring UI* | Adam Wathan, Steve Schoger | Visual design for developers — spacing, hierarchy, color, typography |
-| *The Design of Everyday Things* | Don Norman | Affordances, signifiers, mapping — timeless interaction principles |
-| *Designing Interfaces* (3rd ed.) | Jenifer Tidwell et al. | Pattern library for interaction design |
-| *Designing for Spatial Computing* | O'Reilly (2025) | visionOS principles, gaze+pinch, window management |
-
-### Designers & Studios
-
-| Who | Known For | Follow For |
-|-----|-----------|------------|
-| **Rauno Freiberg** (Vercel) | Spatial web effects, liquid interfaces | Bleeding-edge CSS/motion |
-| **Paco Coursey** (Linear) | Precision minimalism, keyboard-first | Command surface craft |
-| **Lee Robinson** (Vercel) | Developer-facing design systems | Performance-aware design |
-| **Stripe Design** | Glass materials, data-dense elegance | Financial/data UI |
-| **Linear** | GPU-rendered UI, keyboard navigation | Operator tools, control panes |
-| **Apple HIG (Spatial)** | visionOS guidelines | Material system, gaze patterns |
-| **Diagram (Rive)** | Interactive motion design | Cross-platform micro-interactions |
-
-### Inspiration Sources
-
-| Source | Use For |
-|--------|---------|
-| **Godly** | High-end visual direction, animation |
-| **Refero** | Real-world UI patterns by interaction type |
-| **Mobbin** | Mobile/web app flow analysis |
-| **UXArchive** | User flow recordings |
-| **Awwwards** | Boundary-pushing sites with tech breakdowns |
-
-### Tools
-
-| Tool | Use For |
-|------|---------|
-| **Figma** (AI features) | Layout generation, design-to-code |
-| **Rive** | Interactive motion graphics, stateful animations |
-| **Spline** | 3D web experiences, spatial UI prototyping |
-| **Motion** (Framer Motion) | Production React animations, layout gestures |
-| **View Transitions API** | Native morphing navigation — see [implementation.md § View Transitions](./implementation.md) |
-
-### Research & Frameworks
-
-| Source | Authority On |
-|--------|-------------|
-| **Nielsen Norman Group** | Research-backed usability, AI UX, spatial interaction |
-| **Growth.Design** | Interactive case studies on product psychology |
-| **Baymard Institute** | E-commerce UX benchmarks |
-| **Material Design 3** | Adaptive tokens, dynamic color, motion |
-| **Material 3 Expressive** (Google I/O 2025) | Spring-based motion tokens, shape morphing, expressive color, hero moments, wavy progress |
-| **Liquid Glass** (Apple WWDC 2025) | Concentricity (3 shape types), functional glass layers, source-anchored interaction, scroll edge effects, symbol-first nav |
-| **Microsoft Inclusive Design** | [inclusive.microsoft.design](https://inclusive.microsoft.design/) — Persona Spectrum, cognitive inclusion |
-| **Rethinking Users** (Youngblood, Chesluk, Haidary) | [rethinkingusers.com](https://www.rethinkingusers.com/) — 15 user archetypes, ecosystem mapping |
-| **EPIC 2023** — Friction & Ease in Complex Systems | Ethnographic frictions, systems phenomena, user ecosystem theory |
-
----
-
-> **Note**: This skill was previously named `frontend-design`. The broader scope (ecosystem thinking, inclusive design, bot/docs tone) warranted the simpler name.
+> **Note**: This skill was previously named `frontend-design`. The broader scope (ecosystem thinking, inclusive design, bot/docs tone) warranted the simpler name. The former reading-list appendix (books, designers, inspiration sites, tools) was removed in the 2026-07 round-2 consolidation — it was generic design-industry knowledge the model already has; Warm Earth's actual sources stay recorded in [language.md § Philosophy](./language.md).

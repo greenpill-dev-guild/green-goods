@@ -279,6 +279,14 @@ Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandl
 
 ABIs are public exports of `@green-goods/shared` (source: `utils/blockchain/abis.ts`, e.g. `GardenAccountABI`, `GardenTokenABI`). Never import ABI JSON from `contracts/out/*.json`.
 
+### Feature Availability (undeployed contracts)
+
+Use `isGreenWillDeployed(chainId?)` from `@green-goods/shared` to detect when a feature contract is undeployed (zero-address) on the active chain. Render a "not available on this network" branch instead of a generic empty state — masking deployment gaps as data gaps wastes debugging cycles.
+
+### Optimistic-UI Memos over localStorage
+
+When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+
 ## Anti-Patterns
 
 ### Never Mix State Concerns

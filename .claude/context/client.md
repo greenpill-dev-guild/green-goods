@@ -233,6 +233,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 - `popover="auto"` — Dropdowns, menus
 - Radix Dialog — Forms, confirmations, multi-step flows
 
+### Presentation mode (PWA vs website)
+
+The client renders different chrome depending on whether it runs as an installed PWA or a browser tab — bottom `AppBar` + `/home` entry for PWA, hamburger `SiteHeader` + `/` entry for website. On localhost, append `?presentation=pwa|website|auto` to override auto-detection; the choice caches in **per-tab** sessionStorage so each tab keeps its mode after redirects. The dev stack opens both modes in adjacent tabs by default. Source: `packages/shared/src/utils/app/pwa.ts:getClientPresentationMode`.
+
 ## Anti-Patterns
 
 ### Never Create Hooks in Client

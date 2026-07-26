@@ -52,7 +52,7 @@ scripts/
 | Script | Caller | Purpose |
 |---|---|---|
 | `check-codex-docs.js` | `bun run check:codex-guidance` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
-| `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, cleanup readiness, and quality guardrails |
+| `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, ontology, cleanup readiness, and quality guardrails |
 | `drift-check.test.mjs` | `node --test scripts/quality/drift-check.test.mjs` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
 | `check-guidance-links.mjs` | `bun run drift:check` (guidance scope) | Guidance drift guard: relative md links resolve and `bun run` scripts named in `.claude/**`, CLAUDE.md, AGENTS.md, ONBOARDING.md exist |
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
@@ -111,6 +111,7 @@ scripts/
 |---|---|---|
 | `plan-hub.mjs` | `plan` skill | Manage `.plans/{ideas,backlog,active,archive}/` queue, lane status, TDD gates, taxonomy summaries, and root-layout validation |
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
+| `skill-trigger-eval.mjs` | `bun run eval:skills` (on-demand, not CI) | Routes the fixture queries in `scripts/data/skill-trigger-eval.json` against the live SKILL.md descriptions via a cheap `claude -p` call — catches description-routing regressions after trigger edits |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
 
 ### `postinstall/`

@@ -135,6 +135,47 @@ Resolve conflicts in this order (highest priority first):
 5. **Funder legibility** -- Impact data is export-ready and auditable
 6. **Feature breadth** -- New capabilities only after core flow is solid
 
+## Organizational Decision Heuristics
+
+When features conflict with organizational goals:
+
+1. Features advancing Capital Formation + Impact Accessibility > Governance only
+2. Features serving LATAM communities > features for enterprise polish
+3. Gardener-facing simplicity > technical correctness visible to Gardener
+4. Field-tested action schemas > theoretically complete schemas
+
+Green Goods is a 5-sided marketplace: labor, management, capital, verification, community benefit.
+
+Real communities behind the abstractions (~20 active garden communities, primarily LATAM):
+
+- TAS HUB (Awka, Nigeria): solar infrastructure and education — power outages common
+- AgroforestDAO (Minas Gerais, Brazil): scientific data partnerships — Portuguese required
+- Greenpill Kenya: education and waste programming — mobile-first, low bandwidth
+- Offline-first is not abstract — it means field workers during power outages
+
+Action schemas and work submissions:
+
+- Every action must maintain the CIDS chain: Activity → Output → Outcome → Impact
+- Removing evidence capture (photos) breaks the entire verification model
+- 8 Forms of Capital frame assessment scope (not just financial)
+- Core actions (7) available in ALL gardens; domain-specific actions are opt-in
+
+Economic context for priority decisions: target 150 Gardeners / 1,500 actions/month / 30 Hypercerts/month; monthly ops cost ~$195 (gas + IPFS + infra + monitoring); break-even TVL ~$60k minimum, ~$100-200k target.
+
+### Grant Context for Scope Decisions
+
+Each major feature set maps to a specific grant. When a feature request or bug touches one of these areas, scope the work to that grant's deliverables. Features spanning multiple grants need explicit prioritization from the team — do not assume cross-grant scope without confirmation.
+
+| Grant | Features Funded |
+|---|---|
+| **Arb in ReFi Grant** | App Home, Garden, Work, Insights, Assessments, Gardeners, Garden details |
+| **Arb New Ideas Grant** | Governance, Garden Pools (Voting), Funding, Vaults, Hypercerts, Impact |
+| **RealFi Hackathon** | Details, Gardens Filter, Work Dashboard (Recent/Pending/Completed) |
+| **VeBetter Rewards** | Wallet, Cookies (Payouts), Send |
+| **Unlock Celo Grant** | Hats (Roles), Trust Graph (Reputation) |
+| **Octant Epoch 10** | Revnet & Streams (Revenue) |
+| **Celo/Grassroots Grant** | Commitment Pools (Vouchers) |
+
 ## Feature Priority Framework
 
 ### Current Baseline (April 2026)
@@ -235,8 +276,7 @@ These are already part of the core product baseline and should be treated as liv
 - Gardener-facing UX requires blockchain vocabulary or wallet interaction
 
 ## Related Context
-- Organizational mission and values → `docs/docs/concepts/mission-and-values.mdx`
-- Impact model (CIDS) and action domains → `docs/docs/concepts/impact-model.mdx`
-- Strategic goals, metrics, economic model → `docs/docs/concepts/strategy-and-goals.mdx`
-- Real communities and localization → `docs/docs/concepts/communities.mdx`
-- Agent decision heuristics → `.claude/context/intent.md`
+- Organizational mission and values → `docs/docs/community/why-we-build.mdx`
+- Impact model (CIDS) and action domains → `docs/docs/community/how-it-works.mdx`
+- Strategic goals, metrics, economic model → `docs/docs/community/where-were-headed.mdx`
+- Real communities and localization → `docs/docs/reference/design-research.md`

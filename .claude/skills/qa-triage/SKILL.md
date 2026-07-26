@@ -1,7 +1,7 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Process a build sync QA session (the meeting formerly called product sync) and turn the meeting notes into triaged Linear records + QA-sheet rows. Use this skill whenever the user mentions a QA call, QA sync, build sync, product sync (legacy name), QA session, product review, "triage the QA bugs", "file the bugs from the call", "extract bugs from the sync notes", "update the QA sheet with bugs", processing meeting notes for bugs, or wants to file Linear issues from a recent QA meeting — even if they don't explicitly say "qa-triage". Pulls the latest Gemini notes from Drive (with ~/Downloads fallback), cross-references each item against PostHog telemetry and existing Linear/Sheet records, scope-locks the triage, then writes Linear Customer Needs/Issues with assignees and appends Defects rows to the Green Goods QA Sheet.
+description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/session, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
@@ -188,7 +188,7 @@ For each item in `extraction.md`, organized in surface buckets:
 
 ### 3a. PostHog enrichment
 
-Call `switch-project` to the matching project (App for PWA/website, Admin for admin; skip for docs/unknown), then run named questions from [`posthog-questions/SKILL.md`](../posthog-questions/SKILL.md):
+Call `switch-project` to the matching project (App for PWA/website, Admin for admin; skip for docs/unknown), then run named questions from [`posthog-questions/SKILL.md`](../../../docs/routines/posthog-questions.md):
 
 - `errors.match-bug-report` with the verbatim quote as `snippet`.
 - `errors.recurring` over 30 days — does the matched error hash cross the ≥50-session threshold?
@@ -421,7 +421,7 @@ surface the resume path.
 
 ## Privacy boundary — one explicit exception
 
-The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../posthog-questions/SKILL.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
+The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../../../docs/routines/posthog-questions.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
 
 This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
 
@@ -450,7 +450,7 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 
 - [qa-triage-pulse routine](../../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
 - [bug-intake routine](../../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
-- [`posthog-questions`](../posthog-questions/SKILL.md) — named PostHog questions this skill calls.
+- [`posthog-questions`](../../../docs/routines/posthog-questions.md) — named PostHog questions this skill calls.
 - [`debug`](../debug/SKILL.md) — User-Facing Bug Triage Protocol; the assistant borrows the "reproduce before forensics" framing for any item the user wants to investigate before filing.
 
 ## Key principles

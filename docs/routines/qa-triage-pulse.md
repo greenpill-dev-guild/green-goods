@@ -70,7 +70,7 @@ Linear's `save_customer_need` API surface accepts `body`, `customer`, `issue`, `
 
 ## PostHog enrichment
 
-Use the curated questions from [`.claude/skills/posthog-questions/SKILL.md`](../../.claude/skills/posthog-questions/SKILL.md). Same privacy boundary as `bug-intake`. Switch to the matching project per item before each query:
+Use the curated questions from [`posthog-questions.md`](./posthog-questions.md). Same privacy boundary as `bug-intake`. Switch to the matching project per item before each query:
 
 - `errors.match-bug-report` with the verbatim quote as `snippet`
 - `errors.recurring` over 30 days for the ≥50-session pattern signal
