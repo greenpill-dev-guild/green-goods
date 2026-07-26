@@ -124,7 +124,7 @@ if [ -d "generated" ]; then
     echo -e "  ${YELLOW}!${NC} Generated code exists but not compiled"
     if [ "$FIX_MODE" = true ]; then
       echo -e "  ${YELLOW}→${NC} Compiling ReScript..."
-      cd generated && corepack pnpm exec rescript 2>&1 && cd ..
+      cd generated && pnpm exec rescript 2>&1 && cd ..
       if [ -f "generated/src/Index.res.js" ]; then
         echo -e "  ${GREEN}✓${NC} ReScript compiled"
         FIXED=$((FIXED + 1))
@@ -133,7 +133,7 @@ if [ -d "generated" ]; then
         ISSUES_FOUND=$((ISSUES_FOUND + 1))
       fi
     else
-      echo "    Run: cd generated && corepack pnpm exec rescript"
+      echo "    Run: cd generated && pnpm exec rescript"
       ISSUES_FOUND=$((ISSUES_FOUND + 1))
     fi
   else
@@ -156,11 +156,11 @@ if [ -d "generated/node_modules" ]; then
     echo -e "  ${YELLOW}!${NC} Some dependencies missing"
     if [ "$FIX_MODE" = true ]; then
       echo -e "  ${YELLOW}→${NC} Installing dependencies..."
-      cd generated && corepack pnpm install 2>&1 && cd ..
+      cd generated && pnpm install 2>&1 && cd ..
       echo -e "  ${GREEN}✓${NC} Dependencies installed"
       FIXED=$((FIXED + 1))
     else
-      echo "    Run: cd generated && corepack pnpm install"
+      echo "    Run: cd generated && pnpm install"
       ISSUES_FOUND=$((ISSUES_FOUND + 1))
     fi
   fi
@@ -168,11 +168,11 @@ else
   echo -e "  ${RED}✗${NC} node_modules missing"
   if [ "$FIX_MODE" = true ]; then
     echo -e "  ${YELLOW}→${NC} Installing dependencies..."
-    cd generated && corepack pnpm install 2>&1 && cd ..
+    cd generated && pnpm install 2>&1 && cd ..
     echo -e "  ${GREEN}✓${NC} Dependencies installed"
     FIXED=$((FIXED + 1))
   else
-    echo "    Run: cd generated && corepack pnpm install"
+    echo "    Run: cd generated && pnpm install"
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
   fi
 fi

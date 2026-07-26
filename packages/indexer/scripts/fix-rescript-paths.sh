@@ -66,8 +66,8 @@ EOF
   # Try available rescript executables
   ORIGINAL_DIR="$(pwd)"
   cd "$ENVSAFE_DIR"
-  if command -v corepack > /dev/null 2>&1; then
-    corepack pnpm exec rescript build 2>&1 | grep -v "not found or built" | grep -v "^>>>>" || true
+  if command -v pnpm > /dev/null 2>&1; then
+    pnpm exec rescript build 2>&1 | grep -v "not found or built" | grep -v "^>>>>" || true
   elif command -v npx > /dev/null 2>&1; then
     npx rescript build 2>&1 | grep -v "not found or built" | grep -v "^>>>>" || true
   elif command -v rescript > /dev/null 2>&1; then
