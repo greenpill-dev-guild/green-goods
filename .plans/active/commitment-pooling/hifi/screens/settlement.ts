@@ -583,7 +583,7 @@ ${banner("Uses the garden's existing impact-certificate pipeline.", "stone")}`;
       break;
     case "rest":
       inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "seeds fresh on this pool")}
-${hot(h("compost"), btn("Compost cycle", { kind: "pri" }))}
+${hot(h("compost"), btn("Reconcile and compost cycle", { kind: "pri" }))}
 <div class="quietok">${icon("check-line")}Certificate minted · 7 promises bundled.</div>`;
       break;
     default:
@@ -594,11 +594,11 @@ ${banner("Closing runs as one sequence: settle what's unresolved, read back the 
 ${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
   }
   if (paused)
-    inner = `${banner("The pool remains paused throughout this cycle close. Only the cycle advances from Reconciled to Composted.", "amber", "error-warning-line")}${inner}`;
+    inner = `${banner("The pool remains paused throughout this cycle close. Only the cycle advances from Reviewing to Reconciled to Composted.", "amber", "error-warning-line")}${inner}`;
   const header = pageHeader({
     title: "Close cycle",
     eyebrow: `${paused ? "Pool paused · " : ""}Step ${stepIx + 1} of 4`,
-    description: "Season of First Rains — reconcile, share, certify, then rest the cycle.",
+    description: "Season of First Rains — review, share, certify, then reconcile and rest.",
     actions: stepDots(4, stepIx),
   });
   return deskWin(
@@ -616,32 +616,32 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
   "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Compost cycle", to: "screen:W7@cycle-composted", info: "The cycle was already reconciled by closeCycle before this wizard opened. This control calls compostCycle only; aggregates roll into pool history (WF:714).", calls: ["compostCycle"] },
+  "w26.compost": { l: "Reconcile and compost cycle", to: "screen:W7@cycle-composted", info: "Two ordered writes after unresolved review and certificate mint: closeCycle changes Reviewing/Open-on-chain → Reconciled, then compostCycle archives it.", calls: ["closeCycle", "compostCycle"] },
   "w26.paused-continue-shares": { l: "Continue to shares while pool paused", to: "screen:W26@paused-shares", info: "Moves through the reconciliation report without changing the Paused pool." },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },
   "w26.paused-mint": { l: "Mint impact certificate while pool paused", to: "screen:W26@paused-rest", info: "Uses the existing certificate pipeline without changing pool or cycle lifecycle state." },
-  "w26.paused-compost": { l: "Compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "compostCycle changes only Reconciled → Composted; the pool remains Paused.", calls: ["compostCycle"] },
+  "w26.paused-compost": { l: "Reconcile and compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "closeCycle then compostCycle changes only the cycle from Reviewing/Open-on-chain → Reconciled → Composted; the pool remains Paused.", calls: ["closeCycle", "compostCycle"] },
 };
 
 // ---------------------------------------------------------------------------
 
 const w21Facts = (state: W21State): StateFacts | undefined => {
-  if (state === "unregistered" || state === "register-account") return { settlement: "Unregistered" };
-  if (state === "registered") return { settlement: "Registered" };
+  if (state === "unregistered" || state === "register-account") return { settlementAccount: "Unregistered" };
+  if (state === "registered") return { settlementAccount: "Registered" };
   if (state === "failed-recovery" || state === "requeue-confirm" || state === "close-delivery-confirm")
-    return { settlement: "Failed" };
+    return { disbursement: "Failed" };
   if (["queue", "requeued", "batch-create", "batch-created", "cancel-queued-confirm", "protocol-queue"].includes(state))
-    return { settlement: "Queued" };
+    return { disbursement: "Queued" };
   if (state === "cancelled-queued" || state === "batch-cancelled" || state === "cancelled-failed")
-    return { settlement: "Cancelled" };
+    return { disbursement: "Cancelled" };
   return undefined;
 };
 
 const w22Facts = (state: W22State): StateFacts | undefined => {
   if (state === "ready" || state === "role-guard" || state === "cancel-batch-confirm")
-    return { settlement: "Queued" };
+    return { disbursement: "Queued" };
   if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command"].includes(state))
-    return { settlement: "Dispatched" };
+    return { disbursement: "Dispatched" };
   return undefined;
 };
 
@@ -663,7 +663,7 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
     states: W26_STATES.map(([id, label]) => ({
       id,
       label,
-      facts: { pool: id.startsWith("paused-") ? "Paused" : "Open", cycle: "Reconciled" } satisfies StateFacts,
+      facts: { pool: id.startsWith("paused-") ? "Paused" : "Open", cycle: "Open" } satisfies StateFacts,
       html: w26(id),
     })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },
 ];

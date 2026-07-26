@@ -6,7 +6,7 @@
 // wireframes.md:166: state + next action in the viewport; Timeline / Evidence
 // / Work behind disclosures; identifiers behind a single Details disclosure.
 // Dissolved lo-fi variants: W1P/W1S → W1@claim-*, MF3 → W2@expired, MF5 →
-// W1@waiting-membership, MF6 → W2@evidence-submitted, MF10 → W1@cycle-summary.
+// W1@waiting-membership, MF6 → W2@request-evidence-submitted, MF10 → W1@cycle-summary.
 
 import { hot } from "../html";
 import { icon } from "../icons";
@@ -1080,10 +1080,12 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
   if (state === "not-ready") return { pool: "NotReady" };
   if (state === "ready" || state === "seeded") return { pool: "Ready", cycle: state === "seeded" ? "Seeded" : undefined };
   if (state === "paused") return { pool: "Paused", cycle: "Open" };
-  if (state === "closed" || state === "cycle-summary") return { pool: "Closed", cycle: "Composted" };
+  if (state === "closed") return { pool: "Closed", cycle: "Composted" };
+  if (state === "cycle-summary") return { pool: "Open", cycle: "Composted" };
   if (state === "cancelled-cycle") return { pool: "Open", cycle: "Cancelled" };
   if (state === "paused-cancelled-cycle") return { pool: "Paused", cycle: "Cancelled" };
-  if (["open", "request-open", "request-queued", "empty-open", "no-season", "campaign-market", "campaign-tools", "queued", "support-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
+  if (state === "no-season") return { pool: "Open" };
+  if (["open", "request-open", "request-queued", "empty-open", "campaign-market", "campaign-tools", "queued", "support-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
     return { pool: "Open", cycle: "Open" };
   return undefined;
 };
@@ -1098,14 +1100,16 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
     : state === "evidence-submitted" || state === "request-evidence-submitted" || state === "support-evidence-submitted" ? "EvidenceSubmitted"
     : state === "partially-approved" ? "PartiallyApproved"
     : state === "ready-confirmer" || state === "support-ready-confirmer" ? "ReadyForConfirmation"
-    : state === "fulfilled" || state === "request-fulfilled" || state === "support-fulfilled" || W2_SETTLED.has(state) ? "Fulfilled"
+    : state === "fulfilled" || state === "request-fulfilled" || state === "support-fulfilled" || state === "garden-support-arrived" || W2_SETTLED.has(state) ? "Fulfilled"
     : state === "cancelled" || state === "withdrawn" || state === "support-cancelled" ? "Cancelled"
     : state === "expired" ? "Expired"
     : state === "disputed" || state === "request-disputed" || state === "support-disputed" ? "Disputed"
     : state === "reconciled" ? "Reconciled"
     : ["loading", "not-found", "read-error"].includes(state) ? undefined
     : "Accepted";
-  return commitment ? { pool: "Open", cycle: "Open", commitment, kind } : undefined;
+  return commitment
+    ? { pool: "Open", cycle: state === "reconciled" ? "Reconciled" : "Open", commitment, kind }
+    : undefined;
 };
 
 const w4Facts = (state: W4State): StateFacts => ({

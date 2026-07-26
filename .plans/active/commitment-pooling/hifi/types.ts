@@ -29,13 +29,19 @@ export const HOME_SURFACE: Record<ReviewGroup, SceneSurface> = {
 };
 
 export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" | "Composted";
-export type CycleLifecycle = "Draft" | "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
+// Contract-call validation records the cycle's canonical on-chain state here.
+// Draft/InProgress/Reviewing remain UI overlays, matching the ontology sidecar.
+export type CycleLifecycle = "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
 export type CommitmentLifecycle =
   | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
   | "Expired" | "Disputed" | "Reconciled";
 export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "OperatorCaptured";
-export type SettlementLifecycle = "Unregistered" | "Registered" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+export type SettlementAccountState = "Unregistered" | "Registered";
+// Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
+// never renders as product copy, but keeping it here prevents account readiness
+// or another local concept from being folded into the contract lifecycle.
+export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
 // only declare the entities that its controls act on.
@@ -44,7 +50,8 @@ export type StateFacts = {
   cycle?: CycleLifecycle;
   commitment?: CommitmentLifecycle;
   kind?: CommitmentKind;
-  settlement?: SettlementLifecycle;
+  settlementAccount?: SettlementAccountState;
+  disbursement?: DisbursementLifecycle;
 };
 
 export type ContractCall =
@@ -74,6 +81,10 @@ export type HotMeta = {
   // The control queues the named call but lands on a pre-sync state. Source
   // legality still validates; target lifecycle effects apply only after sync.
   pendingSync?: boolean;
+  // Selected final facts for a call with multiple legal outcomes. For example,
+  // RestorePrevious must name the stored pre-dispute state instead of letting
+  // the validator guess one universal resolveDispute result.
+  resultFacts?: StateFacts;
 };
 
 export type ScreenState = {

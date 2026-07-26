@@ -18,6 +18,7 @@
 | 2026-07-25 | Audit closure: ordered hotspot calls are validated against declared lifecycle facts; the DomainImpact happy path now uses work approvals + assessment rather than evidence-only submission; request fixtures stay request-shaped; W7 defaults to triage with lifecycle controls in a focused view; pool compost/reopen, settlement registration, failed-member requeue, and unbatched queued cancellation have executable outcomes; six new guided flows cover the consequential Screen-library gaps. |
 | 2026-07-25 | Review closure: lifecycle validation now covers claim, evidence, assessment, cancellation, dispute, reward, batch, dispatch, and retry calls; paused/reviewing/no-Season states retain their legal acts; O23 gains a batch review/result; requeue copy creates its key on dispatch; SB-26–31 walk the remaining participation, campaign, service, and batch-cancel paths. |
 | 2026-07-26 | Scoped review fixes: contract-call validation now preserves every untouched overlapping lifecycle fact; Paused cycle close/cancel paths retain the Paused pool through confirmation, reconciliation, compost, and member echo; SupportService creation and evidence both render their required local queue boundary; SB-32 walks the paused wind-down variants. |
+| 2026-07-26 | Ontology alignment: RestorePrevious replays the fixture's exact ReadyForConfirmation state; W26 reviews unresolved items before ordered `closeCycle` → `compostCycle`; screen facts distinguish derived/on-chain cycle moments; MF-6 points to its evidence-only request state; settlement-account readiness no longer masquerades as `DisbursementState`. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
 - Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
@@ -430,11 +431,11 @@ flowchart LR
 | 7 | W1 | (member echo) Season card live: stepper, progress, calm date (WF:66-70) | derived InProgress/Reviewing overlay per activity (CS:115-117) | Open → InProgress | — |
 | 8 | W7 | Mid-season **[ Pause… ]** with reason (WF:274) | `pausePool(reasonCID)` (CS:725,101) | Pool **Paused** — member banner "new participation paused by stewards" + reason; create/claim/Ready-submit/confirm disabled; evidence, linkage, cancellation/expiry, dispute recovery stay available (UX:60; WF:104) | Resume clears the indexed reason (CS:725) |
 | 9 | W7 | **Resume** | `resumePool` | Pool Open | — |
-| 10 | W7 | Season end: **close cycle** (the reconcile act) | `closeCycle` → `CycleClosed` (CS:118); Fulfilled/Cancelled/Expired commitments derive Reconciled (CS:140,145) | Cycle **Reconciled** | — |
-| 11 | W26 | Read the realized reconciliation report in the cycle-close wizard (MF-9; UX:75) | report resolves outstanding commitments and carries the scoped allocation snapshot | Reviewing → Reconciled | — |
-| 12 | W1@cycle-summary | (member echo) realized cycle summary card + the medium cycle-close hero, once (MF-10; UX:75,200) | — | Reconciled | reduced-motion → static (UX:430) |
-| 13 | W26 | **[ Compost cycle ]** after closeCycle already reconciled it | `compostCycle` only → `CycleComposted` | Cycle **Composted** — member history remains | — |
-| 14 | W7 | Close pool → compost pool → confirm **Reopen to Ready**; the cancel-season variant remains a separate branch from an Open cycle | `closePool` → `compostPool` → `reopenPool(poolId,false)`; or `cancelCycle(reason)` | Closed → Composted → Ready; or cycle Cancelled | Reopening preserves history and does not reopen participation |
+| 10 | W7 | Season end: **close season** opens W26 without writing lifecycle state | — | Cycle **Reviewing** overlay on Open-on-chain | Cancel-season remains a separate branch from Seeded/Open |
+| 11 | W26 | Review and resolve expired/under-review promises, then read the locked shares and mint the certificate (MF-9; UX:75) | Existing expiry/dispute and Hypercert rails; no premature `closeCycle` | Reviewing remains reversible to InProgress if new evidence arrives | — |
+| 12 | W26 | **[ Reconcile and compost cycle ]** after review and certification | ordered `closeCycle` → `compostCycle`; commitments derive Reconciled from `CycleClosed` before the cycle archives | Reviewing/Open-on-chain → **Reconciled → Composted** | If `closeCycle` fails, `compostCycle` is not attempted |
+| 13 | W1@cycle-summary | (member echo) realized cycle summary card + medium cycle-close hero, once (MF-10; UX:75,200) | — | Pool remains Open · cycle Composted | reduced-motion → static (UX:430) |
+| 14 | W7 | Close pool → compost pool → confirm **Reopen to Ready** | `closePool` → `compostPool` → `reopenPool(poolId,false)` | Closed → Composted → Ready | Reopening preserves history and does not reopen participation |
 
 ```text
 REALIZED — source sketch for W7 pool status card action row (MF-1)
@@ -449,7 +450,7 @@ REALIZED — source sketch for W26 reconciliation report (MF-9, AdminDialog)
 ┌── Season of First Rains — report ────────────────────────────────┐
 │ 14 promises · 11 kept · 2 expired · 1 cancelled                  │  scoped counts
 │ units: 61 of 74 promised                                         │  (UX:75)
-│ [ Compost this season ]                    [ Export… flagged ]   │
+│ [ Reconcile and compost season ]           [ Export… flagged ]   │
 └──────────────────────────────────────────────────────────────────┘
 
 REALIZED — source sketch for W1@cycle-summary (MF-10, Reconciled)
@@ -683,7 +684,7 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | MF-3 | W2 Expired band + "offer again" moment | SB-6.3 | Realized at `W2@expired` | UX:94 |
 | MF-4 | W7 "Lapsed this cycle" expiry queue + re-seed | SB-6.4 | Realized at `W7@expiry-queue` | UX:94 |
 | MF-5 | Waiting-for-membership queued chrome (pool jobs) | SB-7.6 | Realized at `W1@waiting-membership` | LAP:191 |
-| MF-6 | Send-for-confirmation row (W2 evidence-only variant) | SB-2.5 | Realized at `W2@evidence-submitted`; DomainImpact remains excluded | UX:141,287 |
+| MF-6 | Send-for-confirmation row (W2 evidence-only variant) | SB-2.5 | Realized at `W2@request-evidence-submitted`; DomainImpact `W2@evidence-submitted` remains excluded | UX:141,287 |
 | MF-7 | "fulfills: {commitment}" row on the work-flow Review step | SB-4.3 | Realized and locked at `WFLOW@review` by register #51 | UX:174 |
 | MF-8 | Provider-context chooser ("as myself / for this garden") | SB-13.2 | Realized and locked at `W25@context-chooser` by register #51 | UX:130 |
 | MF-9 | Reconciliation report view (admin) | SB-9.11 | Realized in the W26 cycle-close wizard | UX:75 |

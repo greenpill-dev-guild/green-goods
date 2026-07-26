@@ -31,8 +31,10 @@ const warn: string[] = [];
 
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
-type FactKey = "pool" | "cycle" | "commitment" | "settlement";
-const FACT_KEYS = ["pool", "cycle", "commitment", "kind", "settlement"] as const satisfies readonly (keyof StateFacts)[];
+type FactKey = "pool" | "cycle" | "commitment" | "settlementAccount" | "disbursement";
+const FACT_KEYS = [
+  "pool", "cycle", "commitment", "kind", "settlementAccount", "disbursement",
+] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
   allowed: readonly string[];
@@ -40,6 +42,7 @@ type CallRule = {
   effects?: Partial<Record<FactKey, string>>;
   kinds?: readonly string[];
   requires?: Partial<Record<FactKey, readonly string[]>>;
+  resultAllowed?: readonly string[];
 };
 
 // Contract-spec lifecycle gates, expressed once and applied to every emitted
@@ -59,7 +62,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   confirmFulfillmentAsFallback: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
   cancelCommitment: { key: "commitment", allowed: ["Offered", "Requested", "Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "Cancelled" },
   raiseDispute: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved", "ReadyForConfirmation", "Expired"], next: "Disputed" },
-  resolveDispute: { key: "commitment", allowed: ["Disputed"], next: "Accepted" },
+  resolveDispute: {
+    key: "commitment",
+    allowed: ["Disputed"],
+    resultAllowed: ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
+  },
   recordRewardPaid: { key: "commitment", allowed: ["Fulfilled"] },
   markPoolReady: { key: "pool", allowed: ["NotReady"], next: "Ready" },
   openPool: { key: "pool", allowed: ["Ready"], next: "Open" },
@@ -73,16 +80,16 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled" },
   compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
   cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
-  registerSettlementAccount: { key: "settlement", allowed: ["Unregistered"], next: "Registered" },
-  queueDisbursement: { key: "commitment", allowed: ["Fulfilled"], effects: { settlement: "Queued" } },
-  createBatch: { key: "settlement", allowed: ["Queued"] },
-  dispatchDisbursement: { key: "settlement", allowed: ["Queued"], next: "Dispatched" },
-  dispatchBatch: { key: "settlement", allowed: ["Queued"], next: "Dispatched" },
-  retryBatchCommand: { key: "settlement", allowed: ["Dispatched"] },
-  retryAcknowledgment: { key: "settlement", allowed: ["Dispatched"] },
-  cancelBatch: { key: "settlement", allowed: ["Queued"], next: "Cancelled" },
-  requeue: { key: "settlement", allowed: ["Failed"], next: "Queued" },
-  cancelDisbursement: { key: "settlement", allowed: ["Queued", "Failed"], next: "Cancelled" },
+  registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
+  queueDisbursement: { key: "commitment", allowed: ["Fulfilled"], effects: { disbursement: "Queued" } },
+  createBatch: { key: "disbursement", allowed: ["Queued"] },
+  dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
+  dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
+  retryBatchCommand: { key: "disbursement", allowed: ["Dispatched"] },
+  retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
+  cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },
+  requeue: { key: "disbursement", allowed: ["Failed"], next: "Queued" },
+  cancelDisbursement: { key: "disbursement", allowed: ["Queued", "Failed"], next: "Cancelled" },
 };
 
 function validateCalls(
@@ -93,11 +100,13 @@ function validateCalls(
   calls: ContractCall[],
   targetFacts?: StateFacts,
   targetIsPending = false,
+  resultFacts?: StateFacts,
 ) {
   const source: StateFacts = { ...facts };
   const current: StateFacts = { ...source };
   const touched = new Set<keyof StateFacts>();
   const changed = new Set<keyof StateFacts>();
+  const consumedResults = new Set<keyof StateFacts>();
   for (const call of calls) {
     const rule = CALL_RULES[call];
     touched.add(rule.key);
@@ -124,7 +133,22 @@ function validateCalls(
       touched.add(effectKey);
       changed.add(effectKey);
     }
+    if (rule.resultAllowed) {
+      const result = resultFacts?.[rule.key];
+      if (!result)
+        err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} must declare resultFacts.${rule.key}`);
+      else if (!rule.resultAllowed.includes(result))
+        err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} cannot produce ${rule.key} ${result} (allowed: ${rule.resultAllowed.join(", ")})`);
+      else {
+        (current as Record<string, string>)[rule.key] = result;
+        changed.add(rule.key);
+      }
+      consumedResults.add(rule.key);
+    }
   }
+  for (const resultKey of Object.keys(resultFacts ?? {}) as (keyof StateFacts)[])
+    if (!consumedResults.has(resultKey))
+      err.push(`CALL ${screen.id}@${stateId} ${hid}: resultFacts.${resultKey} does not belong to an outcome-dependent call`);
   // Compare the complete overlapping fact set, not only the entity a call
   // mutates. closeCycle/cancelCycle, for example, must preserve a Paused pool.
   // Queued targets compare against the pre-call source because the contract
@@ -461,7 +485,16 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
             const target = resolveScreen(meta.to.slice(7), `call target ${h}`);
             targetFacts = target?.screen.states.find((candidate) => candidate.id === target.state)?.facts;
           }
-          validateCalls(s, st.id, { ...st.facts, ...meta.facts }, h, meta.calls, targetFacts, !!meta.pendingSync);
+          validateCalls(
+            s,
+            st.id,
+            { ...st.facts, ...meta.facts },
+            h,
+            meta.calls,
+            targetFacts,
+            !!meta.pendingSync,
+            meta.resultFacts,
+          );
         }
       }
     }

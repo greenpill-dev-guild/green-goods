@@ -35,7 +35,7 @@ export const ALIASES: Record<string, string> = {
   W1S: "W1@claim-superseded",
   MF3: "W2@expired",
   MF5: "W1@waiting-membership",
-  MF6: "W2@evidence-submitted",
+  MF6: "W2@request-evidence-submitted",
   MF10: "W1@cycle-summary",
   W23G: "W23@delivery-blocked",
   MF8: "W25@context-chooser",
