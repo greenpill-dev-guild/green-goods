@@ -313,6 +313,8 @@ Rules:
   labeled.
 - Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
   `funding:*`, `source:*`, `agent:*`.
+- Linear *project* descriptions (not issues) follow
+  `.claude/context/linear-project-template.md`.
 
 ### Progress Updates
 

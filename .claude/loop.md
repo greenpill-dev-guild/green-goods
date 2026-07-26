@@ -21,6 +21,7 @@ Grep the `.claude/` directory (and `CLAUDE.md`/`AGENTS.md`/`ONBOARDING.md`) for 
 - Removed meta-infrastructure: `registry/skills.json`, `skills/index.md`, `check:claude-guidance`, `check-skill-frontmatter`
 - Removed agents: `cracked-coder`, `oracle`
 - Older retirements: `error-handling-patterns`, `skill-bundles.json`, `hooks.json`, `skills:sync`
+- Round-2 retirements (2026-07-25): `agent-output-gate` (hook + script), `context/docs.md`, `context/intent.md` (folded into `context/product.md`)
 
 ## 3. Build Health
 ```!

@@ -1,5 +1,6 @@
 ---
 name: clean
+user-invocable: true
 description: Scope-locked codebase cleanup with 8 focused assessment lanes — deduplication, type consolidation, dead code removal, circular dependencies, type strengthening, defensive code removal, legacy cleanup, and AI slop removal. Use when the user wants to clean up the codebase or improve code quality at scale.
 argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5] [--no-codex]"
 context: fork
@@ -8,7 +9,7 @@ effort: very-high
 
 # Clean Skill
 
-Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-only, then the human locks a numbered fix scope before any implementation begins. Unlike `/audit` and `/principles`, `/clean` may transform code, but only inside that approved scope.
+Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-only, then the human locks a numbered fix scope before any implementation begins. Unlike `/audit`, `/clean` may transform code, but only inside that approved scope.
 
 **References**: `CLAUDE.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
 

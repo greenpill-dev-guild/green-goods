@@ -171,16 +171,6 @@
             "statusMessage": "Checking resolver test coverage..."
           }
         ]
-      },
-      {
-        "matcher": "SendMessage",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/agent-output-gate.sh",
-            "statusMessage": "Validating agent output contract..."
-          }
-        ]
       }
     ],
     "SessionEnd": [
@@ -206,9 +196,6 @@
     ]
   },
   "worktree": { "baseRef": "head" },
-  "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true
-  },
   "autoUpdatesChannel": "latest",
   "teammateMode": "in-process"
 }
