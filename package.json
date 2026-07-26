@@ -42,6 +42,7 @@
     "agentic:browser-proof": "bun run browser-proof:routes",
     "agentic:verify": "bun run --filter @green-goods/shared build-storybook",
     "drift:check": "node scripts/quality/drift-check.mjs",
+    "eval:skills": "node scripts/harness/skill-trigger-eval.mjs",
     "design:generate": "node scripts/design/md-generate.mjs",
     "check:design-generated": "node scripts/design/md-generate.mjs --check",
     "check:design-tokens": "bash scripts/design/check-tokens.sh",

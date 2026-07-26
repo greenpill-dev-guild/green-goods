@@ -17,8 +17,13 @@ on:
       - ".github/workflows/**"
       - "AGENTS.md"
       - "CLAUDE.md"
+      - "ONBOARDING.md"
       - ".codex/**"
       - ".claude/**"
+      - ".plans/**"
+      - "docs/routines/**"
+      - "scripts/quality/**"
+      - "scripts/harness/**"
   push:
     branches: [main, develop]
     paths:
@@ -36,8 +41,13 @@ on:
       - ".github/workflows/**"
       - "AGENTS.md"
       - "CLAUDE.md"
+      - "ONBOARDING.md"
       - ".codex/**"
       - ".claude/**"
+      - ".plans/**"
+      - "docs/routines/**"
+      - "scripts/quality/**"
+      - "scripts/harness/**"
   workflow_dispatch:
 
 permissions:
@@ -72,3 +82,37 @@ jobs:
             --mode=ci \
             --fail-on-warning=false \
             "$GITHUB_WORKSPACE/consumer"
+
+  guidance:
+    name: Guidance integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check Codex guidance parity
+        run: node scripts/quality/check-codex-docs.js
+
+      - name: Check guidance links and retired references
+        run: node scripts/quality/check-guidance-links.mjs
+
+      - name: Validate plan hubs
+        run: node scripts/harness/plan-hub.mjs validate
+
+      - name: Run plan-hub tests
+        run: node --test scripts/harness/plan-hub.test.mjs

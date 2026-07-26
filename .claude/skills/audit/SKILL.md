@@ -15,17 +15,7 @@ Prefer `/review` or `/status` first. This skill is for broader repo-health drift
 
 **References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
-**Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Return findings in the response and let the user decide.
-
----
-
-## Scope Lock
-
-This skill is strictly read-only by default, including report generation.
-
-Audit/report work stays read-only by default. Do not create or mutate Linear records during
-analysis. After the user approves specific findings for tracking, route accepted findings into
-Linear Issues, not GitHub's issue tracker.
+**Context mode**: `context: fork` -- read-only subagent, report generation included. Never edit files during an audit; return findings in the response and let the user decide. Do not create or mutate Linear records during analysis — after the user approves specific findings for tracking, route them into Linear Issues, not GitHub's issue tracker.
 
 ## What This Skill Owns
 
@@ -68,17 +58,11 @@ These are mandatory:
 
 `/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run Parts 0-10.
 
-1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `cleanup`, `quality`; add `--json` for machine output).
+1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
 2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
 3. Stop for human scope lock before fixing anything.
 
 Routing: guidance/plans/docs drift → a scoped fix pass after the user approves findings by number (plan mode for anything large); design-system drift → `/review --scope design-system`; cleanup-shaped findings → recommend `clean --scope <scope> --dry-run` first, never full `/clean` without approval; anything that looks like a production bug, broken flow, or data/API/indexer failure → `debug`, not cleanup.
-
-## Progress Tracking (REQUIRED)
-
-Use **TodoWrite** when available, otherwise Markdown checklist. See `CLAUDE.md` Session Continuity.
-
----
 
 ## Part 0: Previous Findings Verification
 
@@ -278,45 +262,21 @@ accepted work to Linear rather than creating a generic audit folder. Report shap
 ```markdown
 # Audit Report - [Date]
 
-## Executive Summary
-- **Packages analyzed**: [list] | **Mode**: Single-agent | Team | **Baseline**: [commit range]
-- **Critical**: N | **High**: N | **Medium**: N | **Low**: N
-- **Security (contracts)**: SEC-Critical: N | SEC-High: N | SEC-Medium: N
-- **Dead code**: N unused files, N unused exports, N unused types, N unused deps
-- **Tests**: [pass counts] | **Coverage**: shared N% / client N% / admin N%
-- **Dependency health**: N vulnerabilities (H/C), N outdated (2+ major)
-
-### Highest-risk findings (risk score > 8)
-### Executive Delta (when a live comparison was requested)
-- Packages changed/unchanged, tracked findings opened/closed/net, and key changes
-
----
-
-## Previous Findings Status
-| ID | Finding | File | Status | Risk Score | Notes |
-
-## Security Findings (contracts)
-### SEC-H1. [Title]
-- File, checklist, issue, recommendation
-
-## High / Medium / Low Findings
-### H1. [Title] ([STILL OPEN | NEW])
-- **File** | **Risk score** | **Issue** | **Recommendation**
-
-## Skill & Configuration Drift
-| Reference | Location | Status |
-
-## Architectural Anti-Patterns (top 10 by risk score)
-| Anti-Pattern | Location | Lines | Coverage | Risk Score | Severity |
-
-## Dependency Health
-| Category | Count | Details |
-
-## Tracked-finding delta (when current Linear history exists)
-| Metric | Previous live state | Current |
-
-## Recommendations (Priority Order)
-1. **[Action]** -- (Severity, finding ID, risk score)
+## Executive Summary        — packages/mode/baseline, counts by severity + SEC-*,
+                              dead-code totals, tests/coverage, dependency health,
+                              highest-risk findings (score > 8), executive delta
+                              (only when a live comparison was requested)
+## Previous Findings Status — | ID | Finding | File | Status | Risk Score | Notes |
+                              (only when current tracked findings exist)
+## Security Findings        — SEC-prefixed, contracts only: file, checklist, issue,
+                              recommendation
+## High / Medium / Low      — per finding: **File** | **Risk score** | **Issue** |
+                              **Recommendation**, tagged [STILL OPEN | NEW]
+## Skill & Config Drift     — | Reference | Location | Status |
+## Anti-Patterns (top 10)   — | Anti-Pattern | Location | Lines | Coverage | Risk | Severity |
+## Dependency Health        — | Category | Count | Details |
+## Tracked-finding delta    — (only when current Linear history exists)
+## Recommendations          — priority-ordered, each citing severity + finding ID + risk score
 ```
 
 ---
@@ -401,31 +361,16 @@ When `--loop` is requested, complete the read-only audit first and present numbe
 | Flag indexer handlers as unused | Envio runtime imports -- `knip.ts` entry points |
 | Report god objects in multiple sections | Use Anti-Patterns table only; reference from findings |
 | Count generated files in unused totals | Build artifacts, not source |
-| Use grep to detect unused exports | ~80% false-positive rate |
+| Use grep to detect unused exports | High false-positive rate; use knip (Part 3) |
 | Use haiku-class models for audit | 95% false-positive rate -- use opus |
-| Include LOW-confidence findings | Self-validation gate drops them |
-| Edit files during an audit | Read-only mode |
 | State cross-package findings as confirmed | Mark "needs cross-package verification" |
 | Skip current tracked-findings check when trend was requested | A stale local report is not a substitute for live tracking |
 | Report 24+ god object rows | Keep the response to the top 10; offer accepted overflow findings for Linear |
 | Count intentional catch-with-fallback as bare catch | Classify per Part 2; only report dangerous ones |
-| Skip security skill for contracts | Part 2 requires explicit security invocation |
-| Create Linear issues without prompting | Part 9 requires user confirmation |
-| Run full analysis on unchanged packages | Part 0.5 gates analysis to changed packages |
 | Fix more than 3 findings per loop iteration | Prevents context exhaustion |
 | Fix design-level problems via `/audit --loop` | Design judgment belongs in `/review`'s coherence lens |
 
 ---
-
-## Key Principles
-
-- **Complete all files** within scope -- never skip
-- **Scope-aware** -- diff detection limits analysis to changed packages
-- **Read-only** -- don't edit during audit
-- **Evidence-based** -- every finding needs file:line and risk score
-- **Risk-weighted** -- prioritization uses impact x likelihood
-- **Prompt before issues** -- ask user before creating Linear issues
-- **Live-tracked** -- accepted findings live in current Linear issues, not local report folders
 
 ## Boundary
 

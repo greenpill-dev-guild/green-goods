@@ -1,6 +1,191 @@
 # Health Checks & Diagnostics
 
-Service worker health, storage quota monitoring, indexer sync lag detection, frontend performance diagnostics, and health check endpoints.
+Domain command reference, end-to-end pipeline trace, service worker health, storage quota monitoring, indexer sync lag detection, frontend performance diagnostics, and health check endpoints.
+
+---
+
+## Domain Command Reference
+
+Moved from the debug SKILL.md body — load on demand, not on every activation.
+
+### Offline Sync Issues
+
+- Check `useJobQueue` for stuck jobs
+- IndexedDB: Brave DevTools > Application > IndexedDB > `jobQueueDB`
+- Service Worker registration: Brave DevTools > Application > Service Workers
+- Job queue stats: `jobQueue.getStats(userAddress)` in console
+- Event bus monitoring: subscribe to `"job:failed"` events
+
+### Contract Issues
+
+```bash
+# Compile and check artifacts
+cd packages/contracts && bun build
+
+# Inspect deployment addresses
+cat deployments/11155111-latest.json | jq '.gardenToken'
+
+# Verbose test output (traces all calls) through bun wrapper
+cd packages/contracts && bun run test -- --match-test "testFailing" -vvvv
+
+# Quick production-readiness gate for contract-touching fixes
+bun run verify:contracts:fast
+
+# Decode transaction calldata
+cast decode-function "functionName(uint256)" 0xcalldata
+
+# Check on-chain state
+cast call <contract> "functionName()" --rpc-url $RPC
+```
+
+### Frontend Debugging Tools
+
+| Tool | Purpose | How to Access |
+|------|---------|---------------|
+| **React DevTools** | Component tree, props, state, re-renders | Browser extension → Components tab |
+| **React Profiler** | Render timing, commit frequency | Browser extension → Profiler tab |
+| **TanStack Query DevTools** | Query cache, stale state, refetch triggers | Auto-included in dev mode |
+| **Redux DevTools** | Zustand store inspection (with `devtools` middleware) | Browser extension |
+| **Vite Debug** | Build issues, dependency resolution | `DEBUG=vite:* bun dev` |
+| **Network tab** | GraphQL queries, IPFS uploads, RPC calls | Brave DevTools → Network |
+
+### Indexer Debugging
+
+```bash
+# View Docker container logs
+cd packages/indexer && bun run dev:docker:logs
+
+# Check Hasura GraphQL console (runs on port 8080)
+open http://localhost:8080/console
+
+# Test a GraphQL query directly
+node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ Garden { id name } }"})}).then(r=>r.text()).then(console.log)'
+
+# Restart indexer containers
+bun run dev:docker:down && bun run dev:docker
+```
+
+### Build & Type Debugging
+
+```bash
+# TypeScript errors without emitting
+cd packages/shared && npx tsc --noEmit
+
+# Check specific package types
+cd packages/client && npx tsc --noEmit
+
+# Vite build with verbose output
+cd packages/client && DEBUG=vite:* bun build
+
+# Check bundle analysis
+cd packages/client && npx vite-bundle-visualizer
+```
+
+---
+
+## End-to-End Pipeline Trace
+
+For tracing issues through the full offline → blockchain → indexer pipeline:
+
+### Work Submission Pipeline
+
+```
+IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Event → GraphQL Cache
+```
+
+### Layer 1: Client (IndexedDB → Job Queue)
+
+```bash
+# Check IndexedDB for stuck drafts
+# Brave DevTools > Application > IndexedDB > green-goods-drafts
+
+# Check job queue state
+# Console: jobQueue.getStats(userAddress)
+
+# Monitor job events
+# Console: jobQueueEventBus.subscribe("job:*", console.log)
+```
+
+| Symptom | Layer | Check |
+|---------|-------|-------|
+| Draft not saving | IndexedDB | Storage quota: `navigator.storage.estimate()` |
+| Job stuck in `pending` | Job Queue | Is the user online? Check `navigator.onLine` |
+| Job stuck in `processing` | Job Queue | Check for thrown errors in IPFS/contract call |
+| Job `failed` repeatedly | IPFS or Chain | Check `job.error` and `job.retryCount` |
+
+### Layer 2: IPFS Upload
+
+```bash
+# Check if media uploaded successfully
+# Job payload should contain a CID after upload
+
+# Verify CID is retrievable
+node -e 'fetch("https://w3s.link/ipfs/<CID>").then(r => console.log(r.status))'
+
+# Check Storacha service health
+# Look for 4xx/5xx in Network tab for storacha requests
+```
+
+### Layer 3: Blockchain Transaction
+
+```bash
+# Decode the transaction that was sent
+cast tx <txHash> --rpc-url $RPC
+
+# Check if transaction reverted and why
+cast run <txHash> --rpc-url $RPC
+
+# Verify contract state after tx
+cast call <gardenAddress> "getWork(bytes32)" <workUID> --rpc-url $RPC
+
+# Check gas estimation (may fail before tx is sent)
+cast estimate <gardenAddress> "submitWork(bytes32,string)" <args> --rpc-url $RPC
+```
+
+### Layer 4: Indexer Processing
+
+```bash
+# Check if event was emitted
+cast receipt <txHash> --rpc-url $RPC | grep -A5 "logs"
+
+# Check indexer lag — compare latest indexed block vs chain head
+INDEXED=$(node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ _metadata { lastProcessedBlock } }"})}).then(r=>r.json()).then(x=>console.log(x.data._metadata.lastProcessedBlock))')
+CHAIN_HEAD=$(cast block-number --rpc-url $RPC)
+echo "Indexer lag: $((CHAIN_HEAD - INDEXED)) blocks"
+
+# Check if entity exists in indexer
+node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ Work(where: {id: {_eq: \"<workId>\"}}) { id status } }"})}).then(r=>r.text()).then(console.log)'
+```
+
+### Layer 5: Frontend Cache
+
+```bash
+# Force refetch in TanStack Query DevTools
+# Or invalidate programmatically:
+# queryClient.invalidateQueries({ queryKey: queryKeys.work.all })
+
+# Check if the query key matches what the indexer returns
+# TanStack Query DevTools > Queries tab > check cache content
+```
+
+### Cross-Layer Diagnostic Script
+
+```bash
+# Full pipeline health check
+echo "=== Pipeline Health ==="
+
+# 1. Chain connectivity
+echo -n "Chain: "; cast block-number --rpc-url $RPC && echo "OK" || echo "UNREACHABLE"
+
+# 2. Contract deployed
+echo -n "Contract: "; cast call $GARDEN_ADDRESS "name()(string)" --rpc-url $RPC && echo "OK" || echo "MISSING"
+
+# 3. Indexer running
+echo -n "Indexer: "; node -e 'fetch("http://localhost:8080/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo "OK" || echo "DOWN"
+
+# 4. Frontend GraphQL reachable
+echo -n "GraphQL: "; node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ __typename }"})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo "OK" || echo "UNREACHABLE"
+```
 
 ---
 

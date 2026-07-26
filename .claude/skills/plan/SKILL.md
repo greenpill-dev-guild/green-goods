@@ -58,10 +58,6 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 
 `/plan` and `/plan --mode teams` are no longer advertised. If a user explicitly types one, honor it — but normal flow is passive activation from the signals above.
 
-## Progress Tracking (REQUIRED)
-
-Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
-
 ---
 
 ## Part 1: Create Plan
@@ -98,81 +94,16 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 - If TDD cannot honestly apply, set `proof_limit` with fallback validation evidence and a concrete note.
 - Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
 
-```markdown
-# [Feature Name] Plan
-
-**Linear Issue**: PRD-### (optional)
-**Linear Project**: [bounded project name] (optional)
-**Linear Source**: source:plans (only when mirrored to Linear)
-**Feature Slug**: `feature-slug`
-**Status**: ACTIVE | BLOCKED | IMPLEMENTED | SUPERSEDED
-**Supersedes**: [link to old plan if applicable]
-**Created**: YYYY-MM-DD
-**Last Updated**: YYYY-MM-DD
-
-## Decision Log
-
-| # | Decision | Rationale |
-|---|----------|-----------|
-| 1 | Choice made | Why this over alternatives |
-
-## Requirements Coverage
-
-| Requirement | Planned Step | Status |
-|-------------|--------------|--------|
-| User can X  | Step 3       | ⏳     |
-
-## CLAUDE.md Compliance
-- [ ] Hooks in shared package
-- [ ] i18n for UI strings
-- [ ] Deployment artifacts for addresses
-- [ ] Implementation Quality Contract applied; no speculative abstractions or mixed abstraction levels
-
-## Impact Analysis
-
-### Files to Modify
-- `path/to/file.ts` - Description
-
-### Files to Create
-- `path/to/new-file.ts`
-
-## Test Strategy
-- **Unit tests**: What gets tested, expected coverage delta
-- **Integration tests**: Cross-package or workflow tests needed
-- **E2E tests**: User-facing flows to verify
-
-## Implementation Steps
-
-### Step 1: [Action]
-**Files**: `path/to/file.ts`
-**Details**: Specific changes
-
-## Validation
-- [ ] TypeScript passes
-- [ ] Tests pass
-- [ ] Build succeeds
-```
+Copy-paste shapes — the plan header/body template, the `status.json` lane-state example, and
+the batch-report template — live in [templates.md](./templates.md). Load it when writing the
+plan, not before.
 
 Linear metadata is optional. Do not create or require a Linear issue for every plan. Add
 `Linear Issue`, `Linear Project`, and `Linear Source` only when the `.plans` item needs
 roadmap visibility, cross-functional coordination, stakeholder tracking, or accepted
 execution/research tracking. When a `.plans` item is mirrored to Linear, the Linear record
-must use `source:plans`.
-
-Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json`, for example:
-
-```json
-{
-  "feature": { "slug": "feature-slug", "stage": "active" },
-  "lanes": {
-    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
-    "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
-    "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
-    "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
-    "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
-  }
-}
-```
+must use `source:plans`. Machine-readable lane state belongs in
+`.plans/active/<feature-slug>/status.json`.
 
 ### Task Decomposition Rules
 
@@ -252,20 +183,7 @@ tracking.
 LOAD → EXECUTE BATCH → REPORT → PAUSE → CONTINUE/FINISH
 ```
 
-### Batch Report
-
-```markdown
-## Batch [N] Complete
-
-### Tasks Completed
-1. ✅ Step 1: [Description]
-   - Files: `path/to/file.ts`
-
-### Next Batch Preview
-- Steps 4, 5, 6
-
-**Awaiting feedback before continuing...**
-```
+Report each batch with the batch-report template in [templates.md](./templates.md).
 
 ### Safety Rules
 
@@ -303,22 +221,18 @@ in `.plans`.
 **Linear Source**: source:plans
 ```
 
-Rules:
+Rules: team routing, project attachment, label namespaces, and the privacy boundary follow
+[`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) — do not
+restate them here. Plan-specific deltas:
 
 - Use `source:plans` whenever the Linear record mirrors a `.plans` item.
-- Attach a bounded active Linear project only when the plan scope clearly matches it.
-- Do not route new work into completed/staging umbrella projects such as `Green Goods`,
-  `Coop`, `Network Website`, or `Cookie Jar`.
-- If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
-  labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
+- Linear *project* descriptions (not issues) follow
+  `.claude/context/linear-project-template.md`.
 
 ### Progress Updates
 
 Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
-the safe, stakeholder-relevant status. Do not paste private identifiers, debugging links, replay
-URLs, wallet addresses, or sensitive security detail into public Linear bodies or comments.
+the safe, stakeholder-relevant status, respecting the routing-rules privacy boundary.
 
 ### PR Linkage
 
@@ -372,18 +286,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 ### Decision Log Best Practice
 
-The numbered decision table with rationale is the most effective planning pattern in this repo. Every plan SHOULD include one:
-
-```markdown
-## Decision Log
-
-| # | Decision | Rationale |
-|---|----------|-----------|
-| 1 | Direct vault interaction | Standard ERC-4626; no proxy gas overhead |
-| 2 | Manual harvest only (Phase 1) | Simpler to build and debug |
-```
-
-This gives Claude and future contributors unambiguous constraints without reading 200 lines of prose.
+The numbered decision table with rationale is the most effective planning pattern in this repo. Every plan SHOULD include one (filled example in [templates.md](./templates.md)) — it gives Claude and future contributors unambiguous constraints without reading 200 lines of prose.
 
 ---
 
@@ -412,25 +315,13 @@ This gives Claude and future contributors unambiguous constraints without readin
 ### Planning Traps to Avoid
 
 - **Over-planning polish work** — Small UI tweaks don't need 10-step plans
-- **Planning without reading code first** — Always audit existing patterns before writing a plan
-- **Planning what you don't understand** — investigate first (describe the bug, or dispatch a research subagent)
+- **Planning without reading code first** — Always audit existing patterns before writing a plan; investigate what you don't understand (describe the bug, or dispatch a research subagent)
+- **Vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
+- **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too
 - **Stale plans** — If a plan sits untouched for 14+ days, reassess before executing
 - **Vision creep** — Keep architecture exploration separate from implementation plans; a plan with 60 decisions is a spec, not a plan
 
 ---
-
-## Anti-Patterns
-
-- **Planning without requirements** — Every plan step must trace to a requirement; if you can't articulate the requirement, you're not ready to plan
-- **Plans with vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
-- **Skipping impact analysis** — A plan without "Files to Modify" will surprise you during execution
-- **Infinite planning** — If the plan exceeds 15 steps, split into multiple plans or incremental PRs
-- **Planning alone when blocked** — If you need information to plan, ask the user directly instead of guessing
-- **Ignoring CLAUDE.md compliance** — Plans that skip the compliance checklist produce non-conforming code
-- **Plan proliferation** — Never have 2+ active plans for the same feature. When a new plan supersedes an old one, delete the old one immediately
-- **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too
-- **Write-only plans** — Plans that are never updated after creation become misleading. Update status or add divergence notes as work progresses
-- **Mixed content in `.plans/`** — Meeting notes, audit snapshots, and team prompts are not plans. Keep `.plans/` for actionable implementation specs only
 
 ## Validation Commands
 
@@ -438,15 +329,9 @@ Use `CLAUDE.md § Validation Intent Ladder` to choose the rung. The command defi
 for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
 [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
-## Key Principles
-
-- **100% requirement coverage** — Every requirement mapped
-- **Evidence before claims** — Verify before marking done
-- **Batch execution** — Pause for feedback
-- **Right-size the plan** — Match planning depth to task complexity
-
 ## Related Skills
 
+- `plan/templates.md` — Copy-paste plan/status/batch-report templates
 - `plan/brainstorm.md` — Pre-plan exploration when requirements are fuzzy
 - `plan/teams.md` — Mixed Claude+Codex agent-team orchestration
 - `debug` — Investigate root cause before planning a fix

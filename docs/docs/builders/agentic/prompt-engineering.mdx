@@ -70,7 +70,7 @@ The dispatch prompt controls:
 
 ## Skill System
 
-Skills are modular instruction sets in `.claude/skills/`. The repo keeps a deliberately lean set of 11 — workflow and integration procedures only (`review`, `ship`, `status`, `plan`, `debug`, `clean`, `audit`, `qa-triage`, `doc-feedback`, `posthog-questions`, `design`). Domain knowledge (React patterns, testing conventions, contract rules, indexer patterns) lives in `.claude/context/*.md` per-package context files and `docs/`, not in skills — one home per fact.
+Skills are modular instruction sets in `.claude/skills/`. The repo keeps a deliberately lean set of 10 — workflow and integration procedures only (`review`, `ship`, `status`, `plan`, `debug`, `clean`, `audit`, `qa-triage`, `doc-feedback`, `design`). Domain knowledge (React patterns, testing conventions, contract rules, indexer patterns, the curated PostHog question library) lives in `.claude/context/*.md` per-package context files and `docs/`, not in skills — one home per fact.
 
 Skills activate from their frontmatter descriptions: passively by intent (`plan`, `debug`, `ship`) or by slash command (`/review`, `/audit`, `/clean`, `/qa-triage`).
 
