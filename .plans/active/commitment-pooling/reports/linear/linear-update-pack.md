@@ -10,6 +10,12 @@
 > `Oracle-verified` statement below is retained only as applied-history evidence. Decision Log
 > `#46` and `settlement-spec.md` now require message-only CCIP command + authenticated
 > acknowledgment. Do not re-apply this transport wording.
+>
+> **Readiness supersession (2026-07-24/25):** registers `#54`–`#60` amend `#53`; `#60` is the current
+> correction set.
+> AssessmentV3 is only a schema name on the upgraded existing `AssessmentResolver`; current
+> settlement uses the dual-chain CCIP/direct-lane, exact-net G$, native Roles allowance, and
+> deterministic Safe gates. This archive is not a source for the next Linear sync.
 
 ## Source hierarchy
 

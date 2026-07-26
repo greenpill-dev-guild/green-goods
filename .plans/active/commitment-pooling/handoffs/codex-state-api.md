@@ -23,6 +23,14 @@
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
 - Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward rail/source/token/amount, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
+- Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
+  Kernel `0.2.4` on both testnets for same-address mechanics evidence and Kernel `0.3.1` on
+  Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
+  asserts matching EntryPoint/factory/implementation/initializer/passkey/salt; it never silently
+  falls back, infers a version from chain support, or mixes profile components.
+- `memberDeliveryEnabled` is false for every testnet-profile result. Production enablement consumes
+  only the separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or
+  provider-list presence cannot enable the production action.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
 - Direction-aware confirmation eligibility and provider exclusion.
 - Pool/cycle/commitment/dispute recovery selectors.
@@ -49,6 +57,10 @@
   return receiver/version; an older retry ID delivered out of order can join only to its own
   execution key and never to another settlement.
 - Garden queries use composite IDs only.
+- Account-profile tests prove that `421614` and `11142220` use the explicit Kernel `0.2.4`
+  test profile, `42161` and `42220` retain Kernel `0.3.1`, both members of a profile derive the
+  same counterfactual address, unsupported/mixed profiles fail closed, and testnet evidence never
+  changes `memberDeliveryEnabled`.
 - New user-visible shared strings have en/es/pt messages and accessible status announcements.
 
 ## RED / GREEN
@@ -58,18 +70,22 @@
 
 ## Exact Bun commands
 
-The three named shared test files do not exist yet; they are intentional to-be-created RED-first deliverables of this lane.
+The four named shared test files do not exist yet; they are intentional to-be-created RED-first deliverables of this lane.
 
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-pooling.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-jobs.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/settlement-selectors.test.ts
+- bun run --filter @green-goods/shared test -- src/__tests__/settlement-aa-profile.test.ts
 - bun run --filter @green-goods/shared typecheck
 - bun run --filter @green-goods/shared check:stories
 - bun run --filter @green-goods/shared check:story-quality
 
 ## Out of scope
 
-- Hooks in client/admin, package-level env files, contract or indexer changes, raw Celo/G$ indexing, an offline G$ transfer job, manual settlement confirmation, garden-custody claims, credit, rankings, and transferable vouchers.
+- Hooks in client/admin, package-level env files, contract or indexer changes, raw Celo/G$ indexing,
+  an offline G$ transfer job, live sponsored UserOperations, the Celo Mainnet canonical-G$ canary,
+  manual settlement confirmation, garden-custody claims, credit, rankings, and transferable
+  vouchers. Live AA/canary evidence is owned by release operations.
 
 ## Unblock evidence
 

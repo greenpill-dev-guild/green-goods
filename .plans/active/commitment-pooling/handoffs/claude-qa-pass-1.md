@@ -62,6 +62,10 @@ Run the targeted commands named in each GREEN handoff, then:
 ## Unblock evidence
 
 - Required August implementation handoffs are GREEN; the independent September Community handoff is not an August dependency.
-- Settlement gate record names CCIP peers/fees, GoodDollar, Safe/Zodiac bounds, AA, the no-active-Celo-testnet alternative gate, and any proof limits.
+- Settlement gate record names official direct-lane availability, CCIP peers/fees,
+  exact-net GoodDollar behavior, Safe/Zodiac bounds, AA, separate Arbitrum/Celo
+  local/fork/testnet proof, and any proof limits. Celo Sepolia executor/Safe/roles/surrogate
+  evidence is not CCIP endpoint evidence; a live endpoint claim requires a fresh official
+  lane/router and still must not be reported as a direct Arbitrum Sepolia↔Celo Sepolia lifecycle.
 - Authenticated Brave and real-device access are confirmed.
 - QA result separates passes, defects, and external blockers with route/role/state evidence.

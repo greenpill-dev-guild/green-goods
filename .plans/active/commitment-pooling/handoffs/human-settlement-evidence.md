@@ -6,7 +6,7 @@
 - Machine lane: none; human-owned definition and evidence surface
 - Accountable owner: Afolabi Aiyeloja
 - Current state: structural design approved; blocked on operational assignments through the September 30 operational checkpoint
-- Linear target: reread and update the existing thin Product issue PRD-735 under PRD-650; do not create a duplicate or add an `agent:*` label
+- Linear target: reread and update the existing thin issue COM-11 under PRD-650 (formerly Product PRD-735; moved to the Community team 2026-07-24); do not create a duplicate or add an `agent:*` label
 
 ## Inputs
 

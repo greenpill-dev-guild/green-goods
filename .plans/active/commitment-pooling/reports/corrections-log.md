@@ -96,7 +96,7 @@ Two-layer MVP (protocol pool + garden pools, August), counterpartyPoolId as post
 
 ## 9. Funding-topology correction — 2026-07-18
 
-The GoodDollar / House of Alignment G$ stream now lands directly in the Green Goods protocol Safe on Celo; the Dev Guild working-capital Safe is out of the Green Goods funding model entirely (user decision 2026-07-18, superseding the 2026-07-10 working-capital confirmation in decision #15 and the prior settlement-spec §2 topology). Canonical topology: HoA stream → GG protocol Safe → garden Celo Safes → members. Applied consequences: `FundingRoute` drops `WorkingCapitalToProtocol` — `ProtocolToGarden` is the only queued route, `queueFunding` simplifies to `(garden, amount)`, and HoA → protocol Safe is an upstream funding fact recorded in external treasury reporting (exactly the treatment HoA → working capital had before); `workingCapitalAccount` is removed from SettlementModule storage/initialize/configuration/events with a clean renumber to 19 named slots + a 31-slot gap (safe: no Settlement.sol was ever written, verified 2026-07-18); the recovery owner formerly named "Dev Guild/working-capital recovery multisig" is renamed "Dev Guild recovery multisig" (same role, same 2-of-3 structure — its concrete Celo address must be designated independently of the retired hop before the first garden Safe deploys); D1/D8/D12, both money SVGs (+ PNG re-exports), and all derivative external materials now draw HoA → protocol directly. Not a scope change: no new route, custody, or authority is introduced; the module still queues exactly one derived Safe-to-Safe funding route, and protocol-Safe inflow moves from module funding events to a Celo balance read + external treasury reporting (the admin Operations funding view compensates). Linear mirrors (PRD-686 context, applied packs, canonical synthesis derivatives) still carry the old wording — a follow-up Linear apply pass is required.
+The GoodDollar / House of Alignment G$ stream now lands directly in the Green Goods protocol Safe on Celo; the Dev Guild working-capital Safe is out of the Green Goods funding model entirely (user decision 2026-07-18, superseding the 2026-07-10 working-capital confirmation in decision #15 and the prior settlement-spec §2 topology). Canonical topology: HoA stream → GG protocol Safe → garden Celo Safes → members. Applied consequences: `FundingRoute` drops `WorkingCapitalToProtocol` — `ProtocolToGarden` is the only queued route, `queueFunding` simplifies to `(garden, amount)`, and HoA → protocol Safe is an upstream funding fact recorded in external treasury reporting (exactly the treatment HoA → working capital had before); `workingCapitalAccount` is removed from SettlementModule storage/initialize/configuration/events with a then-current renumber to 19 named slots + a 31-slot gap (**historical slot count superseded by register #53 and the frozen `settlement-spec.md` table: 18 named + 32 gap**; no Settlement.sol existed, verified 2026-07-18); the recovery owner formerly named "Dev Guild/working-capital recovery multisig" is renamed "Dev Guild recovery multisig" (same role, same 2-of-3 structure — its concrete Celo address must be designated independently of the retired hop before the first garden Safe deploys); D1/D8/D12, both money SVGs (+ PNG re-exports), and all derivative external materials now draw HoA → protocol directly. Not a scope change: no new route, custody, or authority is introduced; the module still queues exactly one derived Safe-to-Safe funding route, and protocol-Safe inflow moves from module funding events to a Celo balance read + external treasury reporting (the admin Operations funding view compensates). Linear mirrors (PRD-686 context, applied packs, canonical synthesis derivatives) still carry the old wording — a follow-up Linear apply pass is required.
 
 ## 9b. Open question extracted before archiving — 2026-07-18
 
@@ -172,3 +172,485 @@ The register's raw-unit provider limit is replaced before implementation by a co
 Envio adds `CommitmentUnitSummary` and `CommitmentProviderExposure`; replay is idempotent, exact-label summaries update only from canonical event deltas, and pool/cycle entities lose mixed-label unit aggregates. Hypercert indexing gains fulfilled-commitment/Need lineage while legacy Work bundles remain readable.
 
 Architecture is made self-contained and extended without renumbering: D7c documents the fulfilled-commitment Hypercert cut-over, D13b carries exact function-level permissions, and D14 defines the five-kind offline job lifecycle including membership waiting without retry consumption. D1/D1b, D2, D4–D9, D12, and D13 were corrected for routing, provider authorship, lifecycle recovery, historical cardinality, settlement execution, and capability-versus-permission boundaries. No product code, SVG, wireframe, artifact publication, or Linear write is part of this pass.
+
+## 12. Specification-readiness correction before implementation — 2026-07-24
+
+Register #53 records the specification-first audit response. This is a documentation and
+planning correction only. It does not authorize contract/indexer implementation, deployment,
+broadcast, Safe configuration, or Linear mutation.
+
+### 12.1 Locked repo corrections
+
+- **AssessmentV3 is a schema name, not a resolver contract name.** The existing UUPS
+  `AssessmentResolver` proxy is upgraded in place. Its current v2 `schemaUID` and behavior are
+  preserved, `assessmentV3SchemaUID` is appended, the storage gap shrinks by one slot, and both
+  schema versions dispatch through the same proxy. There is no `AssessmentV3Resolver`, no
+  `assessmentV3Resolver` deployment-artifact key, and no second Assessment proxy. V3 cannot
+  activate while the v2 UID is zero, and v2 cannot return to zero or collide after activation.
+- **Community Testimony activates fail closed.** Its NET-NEW resolver has no zero-UID wildcard.
+  Preparation one-way pins the deterministic exact UID while the module remains zero. Finalization
+  reconciles the exact EAS record and activates the verified artifact-sourced module last. Zero
+  module and module-before-UID are errors, exact UID repeats are no-ops, UID conflicts fail, and
+  out-of-order module-before-record recovery state is rejected.
+- **CCIP is the only settlement transport.** Active normative artifacts use message-only CCIP
+  command and authenticated acknowledgment flows. Chainlink Functions and an
+  `Oracle-verified` lifecycle are historical/superseded language only.
+- **Provider exposure has one counter source.** `CommitmentAccepted` may establish the
+  provider/commitment identity but never increments exposure. `UnitsCommitted` acquires the
+  single open-commitment slot. `UnitsReleased` and `UnitsFulfilled` are the only decrement
+  sources. The indexer therefore cannot double-count acceptance or terminal release.
+- **Exact-label identity is byte-exact.** The indexer key is
+  `viem.keccak256(viem.stringToBytes(unitLabel))`, with no trimming, case-folding, Unicode
+  normalization, ABI encoding, or locale transformation. A future indexer implementation adds a
+  direct pinned `viem` dependency instead of relying on a transitive package.
+- **Canonical G$ settlement is exact-net and fee-aware.** The amount in a settlement command is
+  the intended recipient delta. Zero-fee and bounded sender-pays fee modes are admissible;
+  non-zero receiver-pays fees fail closed. Both absolute and proportional fee limits plus gross
+  debit caps apply before execution. Source and recipient balance deltas are verified, the
+  source cannot be a recipient, and batch recipients must be unique. ERC777/SuperToken callbacks are contained by CEI,
+  reentrancy protection, bounded adapter subcalls, and a non-reverting negative acknowledgment.
+- **Zodiac topology uses one Roles modifier.** Allowances are native Roles conditions keyed by
+  `bytes32`; there is no separate Allowance Module. Deployment/configuration evidence records the
+  allowance key, permission configuration hash, and recovery configuration hash independently.
+- **Safe deployment is deterministic and version-frozen.** The plan freezes Safe v1.4.1 factory,
+  singleton, fallback handler, initializer construction, and a reproducible salt nonce derived
+  from source protocol chain plus garden. Existing protocol Safe state is verified, not silently
+  redeployed.
+- **Placement and development are explicitly dual-chain.** Arbitrum owns Green Goods protocol
+  state, schemas/resolvers, pooling, register, and `SettlementModule`. Celo owns only
+  `CeloSettlementExecutor` among custom Green Goods contracts; canonical G$, Safe, and Zodiac are
+  external/configured dependencies. Local/fork/testnet tooling uses separate Arbitrum and Celo
+  processes, chain IDs, artifacts, registry keys, RPCs, couriers, and post-deploy verification.
+  A Celo target must not deploy or overwrite the historical full Green Goods stack.
+- **Both net-new settlement UUPS contracts target a 50-slot feature region.**
+  The expected layouts are SettlementModule's 18 feature slots + 32-slot gap and
+  CeloSettlementExecutor's 14 feature slots + 36-slot gap. Generated compiler layout and real
+  upgrade-preservation tests set the final gaps; prose arithmetic is never proof.
+
+### 12.2 Current external support facts
+
+Evidence labels below are deliberate:
+
+| Fact | Status | Consequence |
+|---|---|---|
+| Celo Sepolia is the active Celo testnet (`11142220`) | **Externally verified** — [Celo Sepolia docs](https://docs.celo.org/tooling/testnets/celo-sepolia) | Replace the former “no active Celo testnet” premise. Alfajores is not the new default lane. |
+| CCIP publishes Arbitrum One↔Celo Mainnet in both directions at v1.5.0, while the official Arbitrum Sepolia directory does not list Celo Sepolia | **Externally verified** — [Celo mainnet directory](https://docs.chain.link/ccip/directory/mainnet/chain/celo-mainnet), [Arbitrum One directory](https://docs.chain.link/ccip/directory/mainnet/chain/ethereum-mainnet-arbitrum-1), [Arbitrum Sepolia directory](https://docs.chain.link/ccip/directory/testnet/chain/ethereum-testnet-sepolia-arbitrum-1) | Production-route support exists but must be freshly verified at every dry-run/release gate. Endpoint-specific Sepolia rehearsals are feasible; the exact live cross-testnet lifecycle is not. A two-hop Ethereum relay is not approved implicitly. |
+| Celo's current official cross-chain-messaging page lists CCIP support for Celo Mainnet, not Celo Sepolia | **Externally verified current-page scope** — [Celo cross-chain messaging](https://docs.celo.org/tooling/bridges/cross-chain-messaging) | Celo Sepolia remains useful for executor/Safe/Roles/surrogate deployment proof, but a live CCIP endpoint rehearsal is conditional on a fresh official Chainlink directory/API lane and router. Explorer activity alone is not a support contract. |
+| Safe v1.4.1 base deployments include Arbitrum Sepolia and Celo Sepolia | **Externally verified** — [Safe deployments](https://github.com/safe-global/safe-deployments) | Deterministic Safe creation can be rehearsed on both testnets using verified addresses/code hashes. |
+| The official EAS repository publishes Arbitrum Sepolia EAS `0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE` and SchemaRegistry `0x45CB6Fa0870a8Af06796Ac15915619a0f22cd475` | **Externally verified** — [EAS contracts repository](https://github.com/ethereum-attestation-service/eas-contracts) | Consume the official `421614` addresses after chain-local bytecode/code-hash proof; no test EAS deployment is required. Hats remains separate. |
+| The official Hats supported-chain page publishes Arbitrum One and Ethereum Sepolia but not Arbitrum Sepolia | **Externally verified current-page absence** — [Hats supported chains](https://docs.hatsprotocol.xyz/using-hats/hats-protocol-supported-chains) | Treat Hats on Arbitrum Sepolia as a test-dependency bootstrap or later official-support gate, not a current official deployment assumption. |
+| Zodiac Roles implements allowances natively | **Externally verified** — [Roles allowances](https://github.com/gnosisguild/zodiac-modifier-roles/blob/main/packages/docs/content/general/allowances.mdx) | Remove the nonexistent separate `AllowanceModule` topology. |
+| Zodiac SDK network metadata documents Celo mainnet but not Celo Sepolia | **Externally verified from current source** — [Zodiac SDK chains](https://github.com/gnosisguild/zodiac-modifier-roles/blob/main/packages/sdk/src/main/chains.ts) | Celo Sepolia Roles deployment/configuration needs a documented custom-chain or direct-contract path before it can be called supported. |
+| Canonical G$ is on Celo and exposes fee calculation with sender-pays/receiver-pays behavior | **Externally verified** — [GoodDollar integration guide](https://docs.gooddollar.org/for-developers/developer-guides/how-to-integrate-the-gusd-token), [GoodProtocol source](https://github.com/GoodDollar/GoodProtocol/blob/master/contracts/token/superfluid/SuperGoodDollar.sol) | Use a fee-aware test surrogate on Celo Sepolia and a Celo-mainnet fork for canonical token semantics. |
+| No official canonical G$ deployment on Celo Sepolia was found in the reviewed GoodDollar sources | **Unresolved absence, not proof of nonexistence** | Treat testnet G$ as unavailable until GoodDollar supplies an official address and code-hash source. |
+| Envio can index custom EVM networks over RPC and requires chain-aware IDs in multichain mode | **Externally verified** — [Envio supported networks](https://docs.envio.dev/docs/HyperIndex/supported-networks) | Add Celo only for Green Goods executor protocol events; never infer that raw Celo G$ transfers belong in the read model. |
+| EntryPoint/bundler/paymaster availability on Celo Sepolia | **Externally verified with an account-version constraint** — [Pimlico supported chains](https://docs.pimlico.io/guides/supported-chains) lists Celo Sepolia `11142220` with Kernel `0.2.4`, not the production Kernel `0.3.1`; it lists Kernel `0.3.1` on Celo Mainnet. [ERC-4337 v0.7 release](https://github.com/eth-infinitism/account-abstraction/releases/tag/v0.7.0) publishes EntryPoint `0x0000000071727De22E5E9d8BAf0edAc6f37da032`. | Use the explicit Kernel `0.2.4` profile on both Arbitrum Sepolia and Celo Sepolia for non-production same-address sponsored mechanics evidence. Keep Kernel `0.3.1` for Arbitrum One/Celo Mainnet; only exact mainnet derivation/code/policy/passkey proof plus a separately authorized included Celo Mainnet canonical-G$ first-use operation can enable member delivery. |
+
+### 12.3 Testnet feasibility verdict
+
+Arbitrum Sepolia plus Celo Sepolia is **partially feasible and useful**, but not an exact
+production-route rehearsal today:
+
+1. verify the official chain-local EAS/SchemaRegistry code and bootstrap only a version-pinned
+   test Hats dependency, then run deterministic protocol deployment and source-chain tests on
+   Arbitrum Sepolia;
+2. run executor, Safe base-contract, Roles, fee-surrogate, pause, and recovery tests on Celo
+   Sepolia; add an acknowledgment-endpoint CCIP test only when an official live lane/router is
+   published and verified;
+3. exercise the complete command/ack state machine locally with two isolated chains and a
+   deterministic courier;
+4. exercise canonical G$ behavior on a separate Celo mainnet fork;
+5. do not claim cross-testnet CCIP E2E until the official directory exposes the direct
+   bidirectional lane;
+6. do not claim production readiness until the currently published direct
+   Arbitrum One↔Celo route is freshly verified and its live routers/peers, Safe/Zodiac/AA
+   evidence, native-fee balances, and a human-authorized capped canary all pass.
+
+The independent local deep review and correction pass is complete once the plan validator and
+closure audit pass. Implementation remains paused pending convergence and live re-read of the
+Linear mirror and linked source document.
+
+## 13. Identifier re-home — settlement evidence PRD-735 → COM-11 — 2026-07-24
+
+The thin settlement-evidence lane issue moved from the Product team to the Community team at
+2026-07-25T00:22Z (its state history shows the same-name Todo→Todo workflow remap a team move
+produces). The identifier changed **PRD-735 → COM-11**; the title ("Settlement Evidence:
+Commitment Pooling"), parent (PRD-650), project, Follow On / Hardening milestone, and 2026-09-30
+due date are unchanged. Old PRD-735 URLs still redirect in the Linear app, but the identifier no
+longer resolves for connector lookups.
+
+Reconciled per the canonical historical mapping convention (plan.todo.md 2026-07-20 note,
+extended 2026-07-24): active references now use COM-11 in `pilot-evidence-spec.md` (header +
+§10.3), `handoffs/human-settlement-evidence.md`, `handoffs/README.md` § Linear boundary,
+`plan.todo.md` (mapping note + milestone table), and `status.json`
+(`settlement_evidence.linear`, `linear_issues`, governance note). Dated decision-register text
+(register #47/#49) and ops-log events keep PRD-735 as history. The same pass re-pointed three
+July milestone-table rows that still linked retired RESR-62 to COM-7 per the existing mapping.
+
+Still stale after this pass: the canonical Google Doc's source entry **G13** cites PRD-735.
+External prose lives only in the Google Doc, so that one-line hand edit (PRD-735 → COM-11) rides
+the next publication re-read, alongside G13's dated state claims (COM-7 is now Done, PRD-650 and
+PRD-686 now In Progress).
+
+## 14. Independent readiness-audit corrections — 2026-07-24/25
+
+The two independent audits were validated against current repo state, primary documentation, and
+a read-only Arbitrum call. The accepted corrections are normative in the owning specs:
+
+- GardenToken appends only after `openMinting`, at expected slot 213 offset 2, and retains
+  `__gap[37]`; inserting into the earlier module block is storage corruption.
+- The storage checker must fail closed, never create baselines during check mode, expose one Bun
+  wrapper, remove its stale DeploymentRegistry entry, and commit pre-change baselines before
+  resolver/token source edits.
+- The live `42161` AssessmentResolver returned a zero v2 `schemaUID`; owner pinning from the
+  verified v2 artifact precedes AssessmentV3. Arbitrum Sepolia rehearses current-v2
+  deploy/pin/state capture before the in-place upgrade. `AssessmentV3` names the additive
+  schema only; the existing `AssessmentResolver` proxy and resolver identity are upgraded in
+  place.
+- Official Arbitrum Sepolia EAS and SchemaRegistry addresses replace the unnecessary test-EAS
+  bootstrap. Hats remains a version-pinned test dependency with chain-local code-hash proof.
+- Community Testimony checks the non-zero CommitmentPoolingModule before branching on
+  `commitmentId`, so bound and unbound testimony both fail closed. The frozen Commitment shape
+  now includes both reserved counterparty fields.
+- Register unit events carry pool, cycle, and exact label so out-of-order indexing never creates
+  pool-zero or empty-label rows; cycle zero creates no cycle summary. `ModuleUpdated` creates a
+  pool-less audit event with explicit normalized old/new module addresses and no accounting
+  mutation.
+- `permissionsConfigHash` commits immutable authority/condition-tree facts only; mutable
+  transfer, batch, fee, period, spend, and allowance state remains separately evented/verified.
+- Safe/Zodiac Solidity use is limited to locally hand-declared minimal interfaces; the released
+  Safe deployment registry is pinned data, and any later JavaScript dependency remains an
+  explicit approval. Release evidence now names the fee policy and the EntryPoint
+  v0.7/bundler/paymaster owner.
+- D7b now draws all seven canonical settlement entities: SettlementConfiguration,
+  SettlementAccount, SettlementGardenRoute, Disbursement, SettlementBatch, SettlementMessage,
+  and SettlementExecution. The diagram inventory, permission labels, stale `addExecutor`
+  wording, and public-claim table columns are reconciled with the normative specs.
+- Pooling testnet blocks use `421614`; `11155111` remains unchanged legacy regression.
+  Envio v2.32.12 uses its unordered multichain mode, first-configuration-event metadata seeds,
+  and explicit Celo Sepolia RPC configuration. Exact-label hashing uses the direct repository
+  viem pin, with the install left behind the supply-chain approval gate.
+- Endpoint proof is an ephemeral Arbitrum Sepolia↔Ethereum Sepolia deployment. Celo Sepolia
+  separately proves executor/Safe/Roles/paused-surrogate behavior. The surrogate exposes
+  pause/unpause and ERC-677 callback behavior while trace proof requires the executor to call
+  only plain ERC-20 `transfer`; Alfajores may supplement token semantics but is not the current
+  deployment or CCIP lane. Exact cross-testnet CCIP remains unavailable.
+- EntryPoint v0.7 is the AA target. The Celo executor uses a dedicated deployment role and never
+  the historical full-core `deploy:celo --update-schemas` path.
+- The paired local harness extends the existing `LocalCCIPRouter` rather than creating a parallel
+  mock. Post-deploy Arbitrum Sepolia verifier targets, role-aware release gates, and selector
+  decimal-string migration are explicit implementation deliverables rather than presumed
+  existing commands.
+- The source-document and Linear observations remain point-in-time audit evidence until a later
+  authorized live convergence pass. Archived Linear packs point to register #54 but remain
+  historical; `linear.lastSyncedAt` is intentionally not advanced. No external write occurred
+  in this correction pass.
+
+## 15. Final documentation-review corrections — 2026-07-24
+
+The post-correction `$review` found five remaining documentation gaps. Register #55 closes them
+without changing product code or external systems:
+
+- `CommitmentEventType` now includes `MODULE_UPDATED`; its event row has nullable pool
+  relationships, `configurationKey = null`, and normalized old/new module addresses in the
+  generic `previousValue`/`newValue` fields. The handler contract forbids a pool-zero sentinel,
+  `transaction.from` actor inference, and any accounting mutation.
+- The indexer handoff network matrix now matches the normative specs: pooling module/register
+  and `SettlementModule` on `42161` + `421614`, `CeloSettlementExecutor` on `42220` +
+  `11142220`, and explicit `rpc_config` for Celo Sepolia. Preservation covers all four Green
+  Goods contract blocks on their applicable networks.
+- D7b now contains every canonical settlement entity and their source-account, Celo-route,
+  batch-member, message, and execution relationships rather than deferring three entities to
+  prose.
+- `SettlementConfiguration.localContract` now matches the verified-artifact seed contract.
+  This pass initially treated “remote chain identity” as only `remoteChainSelector`; §16
+  supersedes that narrow conclusion because canonical Celo entities also require the paired
+  remote EVM chain ID.
+- D9 no longer uses a Mermaid sequence-message semicolon that terminates the statement early.
+
+The correction remains documentation-only. `linear.lastSyncedAt` is intentionally unchanged;
+no Linear/source-document write, codegen, dependency install, implementation, deploy, broadcast,
+or authority mutation is part of this pass.
+
+## 16. Post-review specification corrections — 2026-07-24
+
+The next strict `$review` found five remaining gaps. Register #56 closes them without changing
+product contracts, indexer code, or external systems:
+
+- Commitment creation rejects empty exact unit labels and zero targets. The register's
+  `CommitmentClass` gains a mapped-value `AccountingState` with the only valid lifecycle
+  `Registered -> Committed -> Released|Fulfilled`. Commit, release, and fulfill accept only the
+  full non-zero quota/live balance in the expected state, so zero, partial, repeated,
+  wrong-account, reactivation, and terminal-state calls revert before count mutation. The enum
+  adds no top-level UUPS storage entry; the six named slots and 44-slot gap stay unchanged.
+- The prior “register is ready” wording for partial fulfillment is removed. Partial fulfillment
+  remains a separately specified post-MVP change that must define remaining-slot transitions,
+  events, and indexer deltas.
+- `SettlementConfiguration` and verified generated seed metadata gain `remoteEvmChainId`.
+  Celo handlers use it for route/execution source identity, Garden/account composite joins, and
+  command/ack message directions. No handler translates a CCIP selector into an EVM chain ID or
+  substitutes the local Celo event chain.
+- The standalone schema path converges on one AssessmentV3 record against the existing
+  AssessmentResolver proxy and sets that deterministic UID. Section 17 supersedes this original
+  wording with the complete first-registration/exact-existing reconciliation and partial-failure
+  recovery contract.
+- The prototype's theme toggle moves outside the tablist. Every declared tablist supports
+  ArrowLeft/ArrowRight/Home/End focus and activation. User-initiated scene, screen, and
+  primary-tab navigation now creates history entries with `pushState`; initial canonicalization
+  alone uses `replaceState`, and deduplicated `popstate`/`hashchange` handling restores
+  Back/Forward and pasted-hash navigation.
+
+The correction remains documentation/prototype-only. `linear.lastSyncedAt` is intentionally
+unchanged; no Linear/source-document write, product implementation, dependency install, codegen,
+deploy, broadcast, or authority mutation is part of this pass.
+
+## 17. Contracts/planning review corrections — 2026-07-24
+
+The contracts-and-plan review found five in-scope specification gaps. Register #57 closes them
+without changing product code or external systems:
+
+- The existing AssessmentResolver proxy upgrades only through the canonical
+  `upgrade.ts assessment-resolver` UUPS workflow. `commitment-schemas` verifies the
+  already-upgraded proxy and handles additive resolver deployment/registration only; it cannot
+  bypass the layout, transaction-plan, authorization, rollback, or post-upgrade gates.
+- AssessmentV3 and Community Testimony registration are resumable. The script derives the EAS UID
+  from exact schema bytes, resolver, and revocability, reads `getSchema(uid)`, registers only an
+  empty record, reuses only an exact record, and fails closed on mismatch. This recovers a
+  successful transaction whose local artifact merge failed without sending a duplicate
+  registration that would revert `AlreadyExists`.
+- `OpenCommitmentCapRequired(poolId)` is frozen at both the steward-facing module forwarder and
+  module-only register boundary. Authorized zero-cap calls revert before event or storage
+  mutation; an unauthorized register caller still fails `NotModule` first.
+- D9 uses the frozen `ResultStatus.Success` enum member, and the permission table describes
+  provider-slot mutations as single-shot/state-guarded with repeat calls reverting rather than
+  incorrectly calling them idempotent.
+- Pimlico's official supported-chains source explicitly lists Celo Sepolia `11142220`, correcting
+  the review's temporary “unresolved chain support” classification. Register #58 supersedes the
+  account-implementation conclusion: Celo Sepolia supports Kernel `0.2.4`, not the production
+  Kernel `0.3.1`.
+
+The prototype artifact-count change belongs to concurrent prototype work and the ARIA tab
+behavior is outside this contracts/planning review scope; neither is changed by register #57.
+`linear.lastSyncedAt` remains unchanged. No Linear/source-document write, product implementation,
+dependency installation, codegen, deploy, broadcast, or authority mutation is part of this pass.
+
+## 18. Final contracts/readiness corrections — 2026-07-25
+
+Register #58 closes the five remaining planning/tooling findings:
+
+- **AA support and workaround:** shared currently constructs Kernel `0.3.1`. Pimlico supports it
+  on Arbitrum One and Celo Mainnet, so Celo Mainnet is not blocked by this provider matrix; Celo
+  Sepolia supports Kernel `0.2.4` instead. The frozen workaround uses an explicit Kernel `0.2.4`
+  profile on both Sepolia chains for non-production same-address sponsored mechanics evidence.
+  Production remains Kernel `0.3.1` and requires exact Arbitrum One/Celo Mainnet
+  derivation/code/policy/passkey proof plus a separately human-authorized included Celo Mainnet
+  canonical-G$ first-use transfer before `memberDeliveryEnabled`.
+- **Community Testimony finalization:** `commitment-schemas` has a named
+  `--finalize-community-testimony` mode. It reads the module from the verified deployment artifact,
+  accepts no module override, verifies the deployed module and preparation-pinned deterministic
+  UID, reconciles the exact EAS record while the resolver remains inactive, activates the module
+  last, and fails closed on conflict or out-of-order state.
+- **Resolver deployment recovery:** versioned CREATE2 prediction covers both implementation and
+  proxy. A retry reuses only exact implementation bytecode, ERC-1967 implementation, initializer
+  lock, owner, EAS, and state, then reconstructs a missing local artifact without another
+  deployment transaction. Schema UID setters use zero/set, exact/skip, conflicting-nonzero/fail.
+- **Assessment upgrade transaction plan:** each chain requires an explicit `--sender` equal to the
+  live proxy `owner()`; `421614` sources it from the verified v2 bootstrap artifact and `42161`
+  pins the verified owner. The command contract orders pure simulation, transaction plan,
+  separately authorized upgrade and post-upgrade verification, chain-connected schema
+  reconciliation, module/register deployment, and artifact-sourced Community Testimony
+  finalization.
+- **Contract verification wrapper:** `scripts/contracts/verify-production.sh` invokes Solhint
+  through `bun run solhint`, preserving the repository's Bun-only contract toolchain on a clean
+  shell PATH.
+
+## 19. Community Testimony activation hardening — 2026-07-25
+
+The final review found one activation window in register #58's ordering: configuring the module
+before pinning the schema UID would make the resolver active while its schema check still accepted
+the deployment-time wildcard. This documentation correction removes that state entirely:
+
+- `CommunityTestimonyResolver` is NET-NEW and therefore has no compatibility reason for a zero-UID
+  wildcard. It always requires an exact stored schema UID.
+- `setSchemaUID` rejects zero, pins once, treats an exact repeat as a no-op without an event, and
+  reverts an explicit `SchemaUIDConflict(currentUID, requestedUID)` for a different non-zero UID.
+- `setCommitmentModule` rejects zero and rejects activation until the UID is pinned.
+- Preparation derives and pins the deterministic UID while module is zero. Finalization proves the
+  pin, registers or reconciles the exact record, and activates the verified module last.
+- Because EAS registration is permissionless, preparation accepts a pre-existing record only when
+  its UID, schema bytes, resolver, and revocability are exact. It remains inactive while module is
+  zero; a conflicting record or out-of-order state fails closed.
+- Retry handling accepts only ordered states: expected UID + empty record + zero module; expected
+  UID + exact record + zero module; or expected UID + exact record + exact verified module.
+  Module-before-UID, module-before-record, and all conflicting values fail closed.
+
+The acceptance matrix and plan freshness dates are also advanced to 2026-07-25. This remains a
+documentation-only correction: no product code, dependency installation, codegen, deployment,
+broadcast, authority mutation, Linear/source-document write, staging, commit, or push is included.
+
+`linear.lastSyncedAt` remains unchanged. No Linear/source-document write, dependency installation,
+codegen, deploy, broadcast, transaction, Safe/Zodiac authority mutation, staging, commit, push, or
+other external write is part of this correction.
+
+## 20. Recursive external-audit and local-review closure — 2026-07-25
+
+Two independent external reports were treated as evidence and rechecked against the concurrent
+worktree. Register #59 closes every confirmed local finding:
+
+- Operational pooling attestation checks require four non-zero, pairwise-distinct schema UIDs and
+  exact equality. The legacy resolver deployment-window zero bypass is not copied into
+  `CommitmentPoolingModule`.
+- The pooling module initializes paused. Its six dependency setters and four-UID setter are
+  pause-only, reject zero/collision before mutation, and emit exact old/new configuration facts.
+  Unpause revalidates the complete configuration. Register module replacement is allowed once from
+  initial zero, then requires the current pooling module paused.
+- Named confirmer input is capped at 32 before class registration, commitment storage, or event
+  emission. Tests cover the maximum, maximum-plus-one, duplicate-heavy input, provider filtering,
+  and threshold validation after filtering.
+- `SettlementModule` and `CeloSettlementExecutor` initialize paused. Source dependency changes are
+  pause-only and event-audited; source and executor unpause both fail closed on incomplete route,
+  account, cap, period, or reserve configuration as applicable.
+- Core and settlement configuration events have exact handler/entity ownership. Pool-less
+  authority events use generic key/previous/new audit fields, never pool zero or
+  `transaction.from`. Source settlement configuration persists protocol garden, canonical G$,
+  Hats, and pooling-module trust roots.
+- Community Testimony preparation now says what the permissionless registry contract permits:
+  the deterministic record may be empty or already exact, but the resolver remains inactive until
+  exact finalization and module activation.
+- Active execution references use PRD-721–728. PRD-671–681 remain historical labels only. Decision
+  register bounds and archived Linear-pack banners now extend through register #59.
+- The active docs-promotion references now use PRD-727 (with PRD-680 explicitly historical), and
+  the settlement shared-substrate owner is PRD-723 (with PRD-674 explicitly historical).
+- The prototype player no longer treats a click `MouseEvent` as a history-replacement flag,
+  hash replay returns to explorer home with `replaceState`, and main-tab arrow navigation replaces
+  the current history entry instead of creating duplicate Back/Forward stops. The executable build
+  asserts the actual 13 visible flows / 4 admin flows, compares visible counts against
+  `prototypes-coverage.md`, and requires the theme control to be the tablist's following sibling.
+- `settlement-spec.md` §11.9 now repeats the current Envio boundary: both Green Goods protocol
+  contracts are indexed, while raw G$ and arbitrary token transfers remain excluded.
+- `linear.lastSyncedAt` intentionally remains the last completed external write/re-read. This local
+  correction does not invent a sync timestamp; an authorized convergence pass must update it only
+  after Linear and the canonical source document are written and re-read.
+
+The Google Doc House-of-Alignment receipt wording and live Linear bodies remain external
+convergence work, not unresolved local specification design. Community Testimony's safer
+pin/reconcile/activate ordering explicitly supersedes earlier mirror text during that pass.
+
+The local proof gates passed on 2026-07-25: Plan Hub validated all 39 feature hubs; the prototype
+artifact built to `/tmp` with 31 screens, 148 states, 251 hotspots, 14 source journeys, 156 scenes,
+and zero warnings; all 20 Architecture Mermaid blocks parsed; `PLAYER_JS` parsed; JSON and diff
+checks passed; formatting and lint passed; and the Bun-wrapped contract verifier passed 1,533
+tests. Residual Chainlink Functions wording exists only in dated comparison prose or the two
+explicitly archived, do-not-apply Linear packs, where it is retained as historical write
+provenance under a CCIP supersession banner.
+
+No product code, dependency installation, codegen, deployment, broadcast, transaction,
+Safe/Zodiac authority mutation, Linear/source-document write, staging, commit, push, or other
+external write is part of this correction.
+
+## 21. Final interface, YAML, and generated-indexer toolchain closure — 2026-07-25
+
+Register #60 closes the three remaining review findings:
+
+- The frozen `ICommitmentPoolingModule` interface now declares
+  `paused() external view returns (bool)`, matching the selector used by
+  `CommitmentRegister.setModule` after initial wiring. The contracts handoff and acceptance matrix
+  require interface/implementation ABI proof in addition to the replacement-path behavior tests.
+- The canonical `config.yaml` additions in `contract-spec.md` and `settlement-spec.md` are valid
+  YAML. The existing Plan Hub validation command now parses every fenced YAML block below
+  `.plans`, reports the source file and line, and has a black-box malformed-fence regression test.
+- `packages/indexer/package.json` declares an integrity-pinned package-local
+  `pnpm@10.33.2` for Envio's generated ReScript workspace. Generated setup invokes it through
+  Corepack, and the Docker image uses the same exact version. The root monorepo declaration remains
+  `bun@1.3.14`; no lockfile or dependency version changes.
+
+Proof passed: 42 Plan Hub black-box tests; all 39 feature hubs; all three canonical fenced YAML
+blocks; package-local Corepack resolution to `10.33.2`; format, lint, indexer boundary, Codex-doc,
+JSON, and diff checks; and the Bun-wrapped contract verifier with 1,533 passing tests. The
+generated dependency install, codegen, and root test/build were not rerun because this correction
+does not authorize a dependency installation.
+
+No dependency installation, codegen, generated artifact, deployment, broadcast, transaction,
+Safe/Zodiac authority mutation, Linear/source-document write, staging, commit, push, or other
+external write is part of this correction.
+
+## 22. Review-convergence documentation closure — 2026-07-25
+
+This closure reconciles five downstream documentation drifts to already-frozen canonical
+requirements. It adds no architecture or product decision:
+
+- The canonical `CommitmentEvent` schema remains generic. `ModuleUpdated` sets
+  `configurationKey = null` and stores normalized old/new module addresses in
+  `previousValue`/`newValue`; the indexer handoff, acceptance matrix, and D7b ERD now use those
+  exact fields. Every module, dependency, schema, and pause authority event is explicitly
+  pool-less rather than only the register-global event.
+- Human release operations now carry the complete dependency-ordered non-value sequence:
+  existing `AssessmentResolver` proxy upgrade and AssessmentV3/Community Testimony schema
+  preparation; paused module/register deployment and schema finalization; then existing
+  `GardenToken`/`WorkApprovalResolver` proxy upgrades and reverse wiring while pooling remains
+  paused; complete readiness verification; pooling unpause; and pool backfill. Each stage has
+  separate authorization, owner/signer proof, receipt, artifact persistence, post-action
+  verification, and rollback evidence before progression.
+- `SettlementAccount.chainId` now names both configured destinations explicitly: `42220` for
+  production and `11142220` for rehearsal.
+- Decision-register navigation now includes existing register entry 60 everywhere; no new
+  decision entry is created by this consistency correction.
+- The design coverage line distinguishes the 23-asset inventory from the 20 Architecture Mermaid
+  blocks. The gallery builder's 21-block total is intentionally those 20 Architecture blocks plus
+  one Screens-flow block.
+
+Closure proof: Plan Hub validates all 39 feature hubs; the visual-assets builder enforces 21
+Architecture sections and 20 Architecture Mermaid blocks while producing the one additional
+Screens-flow block; formatting and `git diff --check` pass. No product code, dependency
+installation, codegen, deployment, broadcast, transaction, Safe/Zodiac authority mutation,
+Linear/source-document write, staging, commit, or push is part of this correction.
+
+## 23. Pooling activation-order consistency closure — 2026-07-25
+
+The final contracts/indexer planning review found one execution-order contradiction rather than a
+new architecture gap: PR chain 2 unpaused `CommitmentPoolingModule` before PR chain 3 installed the
+required GardenToken and WorkApprovalResolver reverse links.
+
+All active execution surfaces now use one sequence:
+
+1. PR chain 1 prepares the existing AssessmentResolver upgrade and additive schemas/resolver.
+2. PR chain 2 deploys/finalizes the module, register, and schemas, verifies module-side wiring, and
+   leaves pooling paused.
+3. PR chain 3 upgrades GardenToken and WorkApprovalResolver, establishes and verifies both reverse
+   links while paused, proves every chain-2/chain-3 readiness fact, unpauses pooling, then
+   registers/backfills pools and runs the operational smoke.
+4. Indexer/downstream work and any separately authorized core broadcast proceed only after that
+   complete contracts sequence.
+
+This is a consistency correction to already-locked paused-first and reverse-link invariants. It
+creates no new decision-register or Linear entry. Focused proof must cover Plan Hub validation,
+formatting, JSON, diff integrity, and the existing contract/indexer boundary checks. No product
+code, dependency installation, codegen, deployment, broadcast, transaction, authority mutation,
+Linear/source-document write, staging, commit, or push is part of this correction.
+
+## 24. Testnet component-versus-CCIP-lane closure — 2026-07-25
+
+The final recursive contracts/indexer certification found one direct contradiction across the
+canonical settlement seed, indexer handoff, acceptance matrix, status, and D7b. Those surfaces
+correctly said the official directories do not publish an Arbitrum Sepolia↔Celo Sepolia CCIP
+lane, but still required `421614` and `11142220` to seed a complete peer pair with exact remote
+selector and EVM identity. That requirement was unexecutable without invented deployment data.
+
+The active surfaces now make the boundary explicit:
+
+- `42161`↔`42220` is the only required complete production peer pair, subject to the existing
+  fresh official-directory/router/code-hash proof.
+- `421614` and `11142220` preserve independent paused component blocks and local configuration
+  facts. Their `remoteEvmChainId` is null, `peerConfigured` is false, and relationship-bearing
+  handlers fail closed unless an exact official lane/router is freshly published.
+- An explicitly labeled local/mock peer event may remain observable but is not official lane
+  evidence and cannot make the component route-ready.
+- The ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof remains runtime-only and never
+  enters canonical deployment or indexer seed artifacts.
+- D7b renders peer selector/address/EVM identity as nullable pre-lane facts, matching the
+  canonical GraphQL and replay contract.
+
+This is a consistency correction to the already-locked “do not invent an unpublished lane”
+boundary. It creates no new decision-register or Linear entry and changes no product code. No
+dependency installation, codegen, deployment, broadcast, transaction, authority mutation,
+Linear/source-document write, staging, commit, or push is part of this correction.
