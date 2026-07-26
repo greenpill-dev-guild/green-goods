@@ -26,7 +26,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { iconSprite } from "./hifi/icons";
 import { SBS } from "./hifi/journeys";
 import { PLAYER_JS } from "./hifi/player";
-import { HIFI_CSS } from "./hifi/tokens";
+import {
+  HIFI_CSS,
+  PHONE_SHELL_HEIGHT,
+  PHONE_SHELL_WIDTH,
+  PHONE_VIEWPORT_HEIGHT,
+  PHONE_VIEWPORT_WIDTH,
+} from "./hifi/tokens";
 import {
   ALIASES,
   BUILD_ERRORS,
@@ -202,7 +208,16 @@ const { sbs, errors, warnings } = normalizeAndValidate(SBS, {
   screenMarks: SCREEN_MARKS,
   aliases: ALIASES,
 });
-const allErrors = [...BUILD_ERRORS, ...errors];
+const frameContractErrors: string[] = [];
+if (!HIFI_CSS.includes(`width:${PHONE_SHELL_WIDTH}px;height:${PHONE_SHELL_HEIGHT}px`))
+  frameContractErrors.push(`FRAME CSS: phone shell must stay ${PHONE_SHELL_WIDTH}×${PHONE_SHELL_HEIGHT}`);
+if (!HIFI_CSS.includes(`width:${PHONE_VIEWPORT_WIDTH}px;height:${PHONE_VIEWPORT_HEIGHT}px`))
+  frameContractErrors.push(`FRAME CSS: phone viewport must stay ${PHONE_VIEWPORT_WIDTH}×${PHONE_VIEWPORT_HEIGHT}`);
+if (!HIFI_CSS.includes("transform:scale(var(--phone-scale))"))
+  frameContractErrors.push("FRAME CSS: phone shell must fit the review canvas with uniform scaling");
+if (!HIFI_CSS.includes(".device .phonefit,") || HIFI_CSS.includes(".device .phone,"))
+  frameContractErrors.push("FRAME CSS: entry motion must animate the fit wrapper without overriding phone scaling");
+const allErrors = [...BUILD_ERRORS, ...errors, ...frameContractErrors];
 for (const w of warnings) console.warn("WARN", w);
 if (allErrors.length > 0) {
   for (const e of allErrors) console.error(e);
@@ -322,9 +337,9 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   --spring-spatial-fast:var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
   --spring-effects:var(--spring-effects-duration) var(--spring-effects-easing);
   --spring-effects-fast:var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
-  /* Device height budget: the framed device (phone/window) never grows past this,
-     so the flanking arrows stay on-screen and screen content scrolls inside the
-     frame instead of the page. Theme-independent; inherited by the .hf frames. */
+  /* Review height budget: phone shells fit it uniformly; desktop/ascii frames
+     cap their height directly. Screen content scrolls inside the frame instead
+     of the page. Theme-independent; inherited by the .hf frames. */
   --dev-cap:min(720px,calc(100vh - 200px));
   --dev-cap:min(720px,calc(100dvh - 200px));
 }
@@ -466,8 +481,8 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .br{border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);border-radius:8px;
   padding:3px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .br.info{cursor:default}
-/* journey stage: the device is flanked by large prev/next arrows that stay in
-   view; the device caps to the viewport and scrolls its own content (Fix 1). */
+/* Journey stage: the device is flanked by large prev/next arrows that stay in
+   view. Phones scale uniformly; every frame scrolls its own content. */
 .stagerow{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 0}
 .devicewrap{flex:1 1 auto;min-width:0;min-height:0;display:flex;justify-content:center}
 .devicewrap .device{width:100%}

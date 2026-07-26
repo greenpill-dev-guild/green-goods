@@ -12,6 +12,7 @@
 // OperatorCaptured) — they are not screen copy and are never scanned.
 
 import type { SB as RawSB, Scene } from "./journeys";
+import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
 import { HOME_SURFACE, SCENE_SURFACES } from "./types";
 import type {
   ContractCall, HotRegistry, ResolveTables, Screen, ShippedSB, ShippedStep, StateFacts,
@@ -260,6 +261,13 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   if (html.length < (screen.frame === "ascii" ? 40 : 200)) err.push(`RENDER ${where}: suspiciously empty (${html.length} chars)`);
   for (const bad of ["undefined", "[object ", "NaN"]) {
     if (stripTags(html).includes(bad)) err.push(`RENDER ${where}: contains "${bad}"`);
+  }
+  if (screen.frame === "phone") {
+    const viewportContract = `class="scr" data-viewport-width="${PHONE_VIEWPORT_WIDTH}" data-viewport-height="${PHONE_VIEWPORT_HEIGHT}"`;
+    if (!html.includes('class="phonefit"'))
+      err.push(`FRAME ${where}: phone is missing its uniform-fit wrapper`);
+    if (!html.includes(viewportContract))
+      err.push(`FRAME ${where}: phone must declare a ${PHONE_VIEWPORT_WIDTH}×${PHONE_VIEWPORT_HEIGHT} logical viewport`);
   }
   const text = stripTags(html);
   // Core vocabulary is never warn-only: ASCII and September previews are still
