@@ -26,7 +26,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { iconSprite } from "./hifi/icons";
 import { SBS } from "./hifi/journeys";
 import { PLAYER_JS } from "./hifi/player";
-import { HIFI_CSS } from "./hifi/tokens";
+import {
+  HIFI_CSS,
+  PHONE_SHELL_HEIGHT,
+  PHONE_SHELL_WIDTH,
+  PHONE_VIEWPORT_HEIGHT,
+  PHONE_VIEWPORT_WIDTH,
+} from "./hifi/tokens";
 import {
   ALIASES,
   BUILD_ERRORS,
@@ -175,8 +181,8 @@ const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc
   `<a href="#${s.id}"><b>${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</b></a>`
 ).join("")}</nav>`;
 
-const statusNote = `<aside class="status"><h2>Status — coherency pass 2026-07-22 · hi-fi register #36</h2>
-<p><strong>Presentation review</strong>: 13 guided flows and 24 high-fidelity screens are grouped by Client PWA, Admin Console, End-to-end, and Public surfaces. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
+const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
+<p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
 <p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21/W12 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
 <p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
 
@@ -202,7 +208,16 @@ const { sbs, errors, warnings } = normalizeAndValidate(SBS, {
   screenMarks: SCREEN_MARKS,
   aliases: ALIASES,
 });
-const allErrors = [...BUILD_ERRORS, ...errors];
+const frameContractErrors: string[] = [];
+if (!HIFI_CSS.includes(`width:${PHONE_SHELL_WIDTH}px;height:${PHONE_SHELL_HEIGHT}px`))
+  frameContractErrors.push(`FRAME CSS: phone shell must stay ${PHONE_SHELL_WIDTH}×${PHONE_SHELL_HEIGHT}`);
+if (!HIFI_CSS.includes(`width:${PHONE_VIEWPORT_WIDTH}px;height:${PHONE_VIEWPORT_HEIGHT}px`))
+  frameContractErrors.push(`FRAME CSS: phone viewport must stay ${PHONE_VIEWPORT_WIDTH}×${PHONE_VIEWPORT_HEIGHT}`);
+if (!HIFI_CSS.includes("transform:scale(var(--phone-scale))"))
+  frameContractErrors.push("FRAME CSS: phone shell must fit the review canvas with uniform scaling");
+if (!HIFI_CSS.includes(".device .phonefit,") || HIFI_CSS.includes(".device .phone,"))
+  frameContractErrors.push("FRAME CSS: entry motion must animate the fit wrapper without overriding phone scaling");
+const allErrors = [...BUILD_ERRORS, ...errors, ...frameContractErrors];
 for (const w of warnings) console.warn("WARN", w);
 if (allErrors.length > 0) {
   for (const e of allErrors) console.error(e);
@@ -322,9 +337,9 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   --spring-spatial-fast:var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
   --spring-effects:var(--spring-effects-duration) var(--spring-effects-easing);
   --spring-effects-fast:var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
-  /* Device height budget: the framed device (phone/window) never grows past this,
-     so the flanking arrows stay on-screen and screen content scrolls inside the
-     frame instead of the page. Theme-independent; inherited by the .hf frames. */
+  /* Review height budget: phone shells fit it uniformly; desktop/ascii frames
+     cap their height directly. Screen content scrolls inside the frame instead
+     of the page. Theme-independent; inherited by the .hf frames. */
   --dev-cap:min(720px,calc(100vh - 200px));
   --dev-cap:min(720px,calc(100dvh - 200px));
 }
@@ -466,8 +481,8 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .br{border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);border-radius:8px;
   padding:3px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
 .br.info{cursor:default}
-/* journey stage: the device is flanked by large prev/next arrows that stay in
-   view; the device caps to the viewport and scrolls its own content (Fix 1). */
+/* Journey stage: the device is flanked by large prev/next arrows that stay in
+   view. Phones scale uniformly; every frame scrolls its own content. */
 .stagerow{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 0}
 .devicewrap{flex:1 1 auto;min-width:0;min-height:0;display:flex;justify-content:center}
 .devicewrap .device{width:100%}
@@ -654,13 +669,13 @@ ${iconSprite()}
 <div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
 <div class="wrap">
 <nav class="doc" aria-label="Sections">
-  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-22</small></div>
+  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-25</small></div>
   ${navSb}
   ${navRef}
 </nav>
 <main>
 <h1>${esc(h1)}</h1>
-<p class="sub">Fourteen storyboards composing the locked wireframes (W1–W26 + community CI-W frames), the missing-frame index, the action inventory, and the state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
+<p class="sub">${new Set(SBS.map((b) => b.n)).size} storyboards composing the locked wireframes (W1–W26 + community CI-W frames), the missing-frame index, the action inventory, and the state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
 ${refToc}
 ${statusNote}
 ${front.join("\n")}

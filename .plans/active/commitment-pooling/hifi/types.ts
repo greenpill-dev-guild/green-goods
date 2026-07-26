@@ -28,14 +28,72 @@ export const HOME_SURFACE: Record<ReviewGroup, SceneSurface> = {
   editorial: "editorial",
 };
 
+export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" | "Composted";
+// Contract-call validation records the cycle's canonical on-chain state here.
+// Draft/InProgress/Reviewing remain UI overlays, matching the ontology sidecar.
+export type CycleLifecycle = "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
+export type CommitmentLifecycle =
+  | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
+  | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
+  | "Expired" | "Disputed" | "Reconciled";
+export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "OperatorCaptured";
+export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
+export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
+// Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
+// never renders as product copy, but keeping it here prevents account readiness
+// or another local concept from being folded into the contract lifecycle.
+export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+
+// Explicit facts make lifecycle legality reviewable by the build. A state need
+// only declare the entities that its controls act on.
+export type StateFacts = {
+  pool?: PoolLifecycle;
+  cycle?: CycleLifecycle;
+  commitment?: CommitmentLifecycle;
+  kind?: CommitmentKind;
+  settlementAccount?: SettlementAccountState;
+  beneficiarySettlementAccount?: BeneficiarySettlementAccountState;
+  disbursement?: DisbursementLifecycle;
+};
+
+export type ContractCall =
+  | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
+  | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
+  | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment"
+  | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
+  | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
+  | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
+  | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
+  | "queueDisbursement" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryBatchCommand"
+  | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
+
 // Metadata for one registered hotspot (a tappable control on a screen).
 // `to` targets: "screen:W2" | "screen:W2@disputed" | "sb5:0".
-export type HotMeta = { l: string; to?: string; info?: string };
+// `calls` is ordered: a Ready-pool open-cycle control must declare
+// openPool → openCycle so the validator can apply the intermediate state.
+export type HotMeta = {
+  l: string;
+  to?: string;
+  info?: string;
+  calls?: ContractCall[];
+  // Page-level facts describe the containing screen. A list-row action may
+  // act on a more specific entity (for example, an Offered commitment inside
+  // an Open pool), so hotspot facts refine that source before validation.
+  facts?: StateFacts;
+  // The control queues the named call but lands on a pre-sync state. Source
+  // legality still validates; target lifecycle effects apply only after sync.
+  pendingSync?: boolean;
+  // Selected final facts for a call with multiple legal outcomes. For example,
+  // RestorePrevious must name the stored pre-dispute state instead of letting
+  // the validator guess one universal resolveDispute result.
+  resultFacts?: StateFacts;
+};
 
 export type ScreenState = {
   id: string; // kebab id, e.g. "disputed"; first state in the list is the default
   label: string; // chip label in the state switcher
   proposed?: boolean; // amber tag reserved for genuinely unlocked review states
+  facts?: StateFacts;
   html: string; // pre-rendered screen body (device inner HTML)
 };
 

@@ -44,6 +44,34 @@ export const PLAYER_JS = `(function(){
     if (mq.addEventListener) mq.addEventListener("change", syncThemeBtn);
   }
 
+  // Phone screens keep one logical 390×844 viewport. The review canvas may be
+  // shorter or narrower, so fit the complete bezel uniformly instead of
+  // changing only its height and silently moving the mobile fold.
+  function fitPhone(dev){
+    if (!dev || !dev.classList.contains("f-phone")) return;
+    var fit = dev.querySelector(".phonefit");
+    var phone = fit && fit.querySelector(".phone");
+    var scr = phone && phone.querySelector(".scr");
+    if (!fit || !phone || !scr) return;
+    var viewportWidth = +(scr.getAttribute("data-viewport-width") || 0);
+    var viewportHeight = +(scr.getAttribute("data-viewport-height") || 0);
+    var phoneStyle = getComputedStyle(phone);
+    var bezelX = parseFloat(phoneStyle.paddingLeft) + parseFloat(phoneStyle.paddingRight);
+    var bezelY = parseFloat(phoneStyle.paddingTop) + parseFloat(phoneStyle.paddingBottom);
+    var shellWidth = viewportWidth + bezelX;
+    var shellHeight = viewportHeight + bezelY;
+    var devStyle = getComputedStyle(dev);
+    var widthBudget = dev.clientWidth - parseFloat(devStyle.paddingLeft) - parseFloat(devStyle.paddingRight);
+    var browserHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    var heightBudget = Math.max(360, Math.min(720, browserHeight - 200));
+    if (!(shellWidth > 0 && shellHeight > 0 && widthBudget > 0 && heightBudget > 0)) return;
+    var scale = Math.min(1, widthBudget / shellWidth, heightBudget / shellHeight);
+    fit.style.width = (shellWidth * scale).toFixed(3) + "px";
+    fit.style.height = (shellHeight * scale).toFixed(3) + "px";
+    fit.style.setProperty("--phone-scale", scale.toFixed(6));
+    fit.setAttribute("data-phone-scale", scale.toFixed(6));
+  }
+
   // The device frames own their scroll; a screen taller than the frame can hide
   // the very control a scene names. Find the owning scroller so the player can
   // bring that control into view instead of leaving the caption pointing at
@@ -70,11 +98,17 @@ export const PLAYER_JS = `(function(){
     var sc = scrollerOf(el);
     if (!sc || sc.scrollHeight - sc.clientHeight < 8) return;
     var er = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+    var fit = dev.querySelector(".phonefit");
+    var scale = fit ? +(fit.getAttribute("data-phone-scale") || 1) : 1;
+    if (!(scale > 0)) scale = 1;
+    var elementHeight = er.height / scale;
+    var scrollerHeight = sr.height / scale;
+    var offsetTop = (er.top - sr.top) / scale;
     // Centring a control taller than the fold pushes its start off-screen, so
     // tall targets (a long radio group, an evidence list) align to their top.
-    var want = er.height >= sr.height
-      ? sc.scrollTop + (er.top - sr.top) - 8
-      : sc.scrollTop + (er.top - sr.top) - (sr.height - er.height) / 2;
+    var want = elementHeight >= scrollerHeight
+      ? sc.scrollTop + offsetTop - 8
+      : sc.scrollTop + offsetTop - (scrollerHeight - elementHeight) / 2;
     var top = Math.max(0, Math.min(want, sc.scrollHeight - sc.clientHeight));
     if (Math.abs(top - sc.scrollTop) < 2) return;
     // Assigned, not smooth-scrolled: these scrollers sit inside transformed
@@ -149,6 +183,7 @@ export const PLAYER_JS = `(function(){
         el.removeAttribute("tabindex");
       }
     });
+    fitPhone(dev);
   }
   function isLiveHot(el){ return !!el && !el.closest("[inert]"); }
   function liveHots(dev){
@@ -476,6 +511,11 @@ export const PLAYER_JS = `(function(){
   }
   applyHash();
   window.addEventListener("hashchange", applyHash);
+  window.addEventListener("resize", function(){
+    fitPhone($("device"));
+    fitPhone($("expdevice"));
+    if (curSb) revealTarget($("device"));
+  });
 
   if ("IntersectionObserver" in window) {
     var links = Array.prototype.slice.call(document.querySelectorAll("nav.doc a[href^='#']"));

@@ -7,7 +7,7 @@ import { deriveAscii, renderAscii } from "../ascii";
 import { esc } from "../html";
 import { F, FT, HOTMAP } from "../legacy";
 import { SBS } from "../journeys";
-import type { HotRegistry, ResolveTables, Screen, Surface } from "../types";
+import type { HotMeta, HotRegistry, ResolveTables, Screen, Surface } from "../types";
 import { ADMIN_DEFS } from "./admin";
 import { PUBLIC_DEFS } from "./public";
 import { SETTLEMENT_DEFS } from "./settlement";
@@ -35,7 +35,7 @@ export const ALIASES: Record<string, string> = {
   W1S: "W1@claim-superseded",
   MF3: "W2@expired",
   MF5: "W1@waiting-membership",
-  MF6: "W2@evidence-submitted",
+  MF6: "W2@request-evidence-submitted",
   MF10: "W1@cycle-summary",
   W23G: "W23@delivery-blocked",
   MF8: "W25@context-chooser",
@@ -74,7 +74,7 @@ export const BUILD_ERRORS: string[] = [];
 // ship (B1: CLIENT_DEFS, B3: ADMIN_DEFS, B5: PUBLIC_DEFS).
 export type HifiDef = {
   screen: Omit<Screen, "reviewVisible">;
-  hots: Record<string, { l: string; to?: string; info?: string }>;
+  hots: Record<string, HotMeta>;
 };
 const REG: HifiDef[] = [
   ...CLIENT_DEFS,

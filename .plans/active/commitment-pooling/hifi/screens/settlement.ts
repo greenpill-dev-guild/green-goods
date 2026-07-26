@@ -10,6 +10,7 @@ import { icon } from "../icons";
 import { banner, btn, chip, disclosure, field, input, kv, radio, stepDots } from "../kit";
 import { acard, adminCanvas, adminChromeHots, adminDialogM3, deskWin, dtable, pageHeader, stages, tabRail } from "./admin";
 import type { HifiDef } from "./index";
+import type { StateFacts } from "../types";
 
 // ---------------------------------------------------------------------------
 // W12 — Community workspace, Pools mode (uiux-spec §6.8, rescoped 2026-07-18)
@@ -33,11 +34,12 @@ function w12(state: W12State): string {
       ? acard(
           "Rocinha pool",
           `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">Open · 2 campaigns</span></div><span class="t-meta num">kept 7/9 · 18 units promised</span></div>
+<div class="actrow" style="justify-content:flex-end">${hot("w12.open-garden-pool", btn("Open garden pool", { kind: "pri", sm: true }))}</div>
 ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in deployer-gated Operations.", "stone"))}`,
         )
       : `${acard(
           "Funding view",
-          `<div class="arow"><div class="grow">20 DAI · protocol treasury → Field survey <span class="t-meta">co-funded with Awka Hub</span></div>${chip("Reference", "plain")}</div>`,
+          `<div class="arow"><div class="grow">20 DAI · protocol treasury → Methodology survey <span class="t-meta">co-funded with Awka Hub</span></div>${chip("Reference", "plain")}</div>`,
           chip("read only here", "plain"),
         )}
 ${acard(
@@ -46,7 +48,7 @@ ${acard(
         )}
 ${acard(
           "Confirmations queue",
-          `<div class="arow">${hot("w12.confirm-row", `<div class="grow"><b>Field survey</b> — 1 of 2 confirmed</div>`)}${icon("arrow-right-s-line", "s")}</div>`,
+          `<div class="arow">${hot("w12.confirm-row", `<div class="grow"><b>Methodology survey</b> — 1 of 2 confirmed</div>`)}${icon("arrow-right-s-line", "s")}</div>`,
         )}`;
   const header = pageHeader({
     title: "Community",
@@ -62,8 +64,9 @@ ${acard(
 const W12_HOTS: HifiDef["hots"] = {
   "w12.tab-protocol": { l: "Protocol pool tab", to: "screen:W12@protocol", info: "The root protocol pool view." },
   "w12.tab-garden": { l: "This garden tab", to: "screen:W12@current-garden", info: "This garden's pool scope only." },
-  "w12.accept": { l: "Accept a garden claim", to: "screen:W25@accepted", info: "Protocol steward accepts stored terms; providerGarden derives and the claimant garden sees it accepted (CS:733)." },
-  "w12.decline": { l: "Decline a garden claim", info: "Declines this garden claim with a required reason while leaving other pending requests intact (CS:734)." },
+  "w12.open-garden-pool": { l: "Open garden pool", to: "screen:W7", info: "One-tap handoff from the Community summary to the selected garden's full Pool workspace." },
+  "w12.accept": { l: "Accept a garden claim", to: "screen:W25@accepted", info: "Protocol steward accepts stored terms; providerGarden derives and the claimant garden sees it accepted (CS:733).", calls: ["acceptClaim"] },
+  "w12.decline": { l: "Decline a garden claim", info: "Declines this garden claim with a required reason while leaving other pending requests intact (CS:734).", calls: ["declineClaim"] },
   "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10@garden-ready", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
   "w12.no-ranking": { l: "Garden scope boundary", info: "No other-garden rows or command/ack controls render here; all-garden operations live in W24 (UX:314)." },
 };
@@ -74,8 +77,14 @@ const W12_HOTS: HifiDef["hots"] = {
 
 const W21_STATES = [
   ["queue", "Disbursement queue"], ["unregistered", "No account yet"],
+  ["register-account", "Register account"], ["registered", "Account registered"],
   ["failed-recovery", "Failed — recovery"], ["gate-status", "Delivery gate"],
-  ["close-delivery-confirm", "Close delivery — confirm"], ["protocol-queue", "Protocol queue — garden beneficiary"],
+  ["requeue-confirm", "Requeue — confirm"], ["requeued", "Requeued"],
+  ["batch-create", "Create batch"], ["batch-created", "Batch created"],
+  ["cancel-queued-confirm", "Cancel queued — confirm"], ["cancelled-queued", "Queued item cancelled"],
+  ["batch-cancelled", "Batch cancelled"],
+  ["close-delivery-confirm", "Close delivery — confirm"], ["cancelled-failed", "Failed item cancelled"],
+  ["protocol-queue", "Protocol queue — garden beneficiary"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -96,16 +105,64 @@ const w21Rows = () =>
 
 // Dimmed settlement route behind a confirmation, hotspot-free so foreign ids
 // cannot break bidirectional integrity on the confirm state.
-const w21Behind = () =>
+const w21Behind = (state: "failed" | "queued" | "unregistered" = "failed") =>
   adminCanvas("garden", "garden", {
     screenId: "W21",
     garden: "Rocinha",
     interactiveChrome: false,
     header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: "The garden's Celo settlement account — disbursement queue, batches, and delivery gate." }),
-    body: acard("Settlement (Celo)", `${kv("Settlement 103 / attempt 1", "Failed — route rejected")}`),
+    body: acard(
+      "Settlement (Celo)",
+      state === "unregistered"
+        ? `<div class="t-meta">No registered settlement account.</div>`
+        : state === "queued"
+          ? `${kv("Settlement 104 / attempt 0", "Queued · unbatched")}`
+          : `${kv("Settlement 103 / attempt 1", "Failed — route rejected")}`,
+    ),
   });
 
 function w21(state: W21State): string {
+  if (state === "register-account")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/settlement",
+      adminDialogM3(w21Behind("unregistered"), "garden", {
+        title: "Register settlement account",
+        body: `${banner("Register an existing, governance-deployed Celo Safe only after its route and recovery policy have been verified.", "stone")}${field("Celo Safe address", input("0x8a…2d"))}${kv("Policy", "2-of-3 recovery · scoped executor role")}`,
+        actions: `${hot("w21.register-dismiss", btn("Cancel", { kind: "ghost" }))}${hot("w21.register-confirm", btn("Register account", { kind: "pri" }))}`,
+        closeHot: "w21.register-dismiss",
+      }),
+    );
+  if (state === "requeue-confirm")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/settlement",
+      adminDialogM3(w21Behind("failed"), "garden", {
+        title: "Requeue failed delivery",
+        body: `${banner("Settlement 103 has an authenticated route rejection. Requeueing preserves attempt 1, clears its old batch, and creates queued attempt 2. Its execution key is created only when attempt 2 dispatches.", "stone")}${kv("Recipient", "João")}${kv("Amount", "15 G$")}${kv("Next state", "Queued · attempt 2")}`,
+        actions: `${hot("w21.requeue-dismiss", btn("Keep failed", { kind: "ghost" }))}${hot("w21.requeue-confirm", btn("Requeue attempt", { kind: "pri" }))}`,
+        closeHot: "w21.requeue-dismiss",
+      }),
+    );
+  if (state === "batch-create")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/settlement",
+      adminDialogM3(w21Behind("queued"), "garden", {
+        title: "Create a delivery batch",
+        body: `${banner("Only queued deliveries with the same source, route, version, and gas limit can be grouped. Membership becomes immutable when you create the batch.", "stone")}
+${kv("Settlement 104 · Maria", "20 G$ · eligible")}${kv("Settlement 99 · Leila", "10 G$ · eligible")}${kv("Batch total", "2 deliveries · 30 G$")}`,
+        actions: `${hot("w21.create-batch-dismiss", btn("Keep unbatched", { kind: "ghost" }))}${hot("w21.create-batch-confirm", btn("Create batch", { kind: "pri" }))}`,
+        closeHot: "w21.create-batch-dismiss",
+      }),
+    );
+  if (state === "cancel-queued-confirm")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/settlement",
+      adminDialogM3(w21Behind("queued"), "garden", {
+        title: "Cancel queued delivery",
+        body: `${banner("This cancels only unbatched settlement 104 before dispatch. No batch members or other queued deliveries change.", "amber", "error-warning-line")}${field("Reason (required)", input("recipient asked to use another route"))}`,
+        actions: `${hot("w21.cancel-queued-dismiss", btn("Keep queued", { kind: "ghost" }))}${hot("w21.cancel-queued-confirm", btn("Cancel delivery", { kind: "danger" }))}`,
+        closeHot: "w21.cancel-queued-dismiss",
+      }),
+    );
   if (state === "close-delivery-confirm")
     return deskWin(
       "admin.greengoods.app/dashboard/garden/settlement",
@@ -155,7 +212,43 @@ function w21(state: W21State): string {
     case "unregistered":
       inner = acard(
         "Settlement (Celo)",
-        `<div class="t-meta">No registered settlement account yet. Safe creation and the 2-of-3 recovery/Roles policy are Release-gated. After governance deploys and verifies that route, a steward can register the existing account here.</div>${hot("w21.setup", btn("Review registration requirements", { kind: "sec" }))}`,
+        `<div class="t-meta">No registered settlement account yet. Safe creation and the 2-of-3 recovery/Roles policy are Release-gated. After governance deploys and verifies that route, a steward can register the existing account here.</div>${hot("w21.setup", btn("Register existing account", { kind: "pri" }))}`,
+      );
+      break;
+    case "registered":
+      inner = acard(
+        "Settlement (Celo)",
+        `<div class="quietok">${icon("check-line")}Account registered.</div>${kv("Celo Safe", "0x8a…2d")}${kv("Recovery policy", "2 of 3")}${kv("Executor role", "scoped · verified")}<div class="actrow">${hot("w21.open-queue", btn("Open disbursement queue", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "requeued":
+      inner = acard(
+        "Settlement (Celo)",
+        `${banner("A new logical attempt is queued. The failed attempt remains in history and cannot be overwritten.", "stone")}${kv("Settlement 103 · attempt 2", "Queued · awaiting dispatch")}${kv("Execution key", "created when this attempt dispatches")}${kv("Previous", "Settlement 103 · attempt 1 · Failed")}<div class="actrow">${hot("w21.open-queue", btn("Back to queue", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "batch-created":
+      inner = acard(
+        "Settlement (Celo)",
+        `${banner("Batch #12 is queued. Its two-member snapshot is now immutable; dispatch creates the execution key.", "stone")}${kv("Members", "Maria · 20 G$ · Leila · 10 G$")}${kv("Route", "Rocinha owning-pool Safe → member accounts")}${kv("State", "Queued · batch #12")}<div class="actrow">${hot("w21.open-batch-command", btn("Open batch command", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "cancelled-queued":
+      inner = acard(
+        "Settlement (Celo)",
+        `${banner("Settlement 104 was cancelled before dispatch. No command or batch was created.", "stone")}${kv("State", "Cancelled from Queued")}${kv("Reason", "recipient asked to use another route")}${hot("w21.open-queue", btn("Back to queue", { kind: "sec", sm: true }))}`,
+      );
+      break;
+    case "batch-cancelled":
+      inner = acard(
+        "Settlement (Celo)",
+        `${banner("Batch #12 and both immutable members were cancelled before dispatch.", "stone")}${kv("State", "Cancelled from Queued")}${kv("Members", "Maria · 20 G$ · Leila · 10 G$")}${kv("Reason", "garden withdrew the request before dispatch")}${hot("w21.open-queue", btn("Back to queue", { kind: "sec", sm: true }))}`,
+      );
+      break;
+    case "cancelled-failed":
+      inner = acard(
+        "Settlement (Celo)",
+        `${banner("Settlement 103 is closed. Its failed attempt and bounded route-rejection code remain in history.", "stone")}${kv("State", "Cancelled from Failed")}${kv("Previous", "Attempt 1 · route rejected")}${kv("Reason", "recipient account cannot receive; handled off-platform")}${hot("w21.open-queue", btn("Back to queue", { kind: "sec", sm: true }))}`,
       );
       break;
     case "gate-status":
@@ -186,7 +279,7 @@ ${disclosure(
 <div class="arow">${hot("w21.gate-row", `<div class="grow">Member delivery: <b>enabled</b> <span class="t-meta">· changed by 0x9a…4f · Jul 30 · evidence ↗</span></div>`)}</div>
 <div class="arow"><div class="grow">CCIP: peers configured · command/ack fee reserves monitored</div></div>`,
         )}`,
-        hot("w21.create-batch", btn("Open command", { kind: "pri", sm: true })),
+        hot("w21.create-batch", btn("Create batch", { kind: "pri", sm: true })),
       )}`;
   }
   const header = pageHeader({
@@ -201,17 +294,27 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
-  "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "Sends the data-only command for the garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe." },
-  "w21.setup": { l: "Review registration requirements", to: "screen:W21", info: "Read-only prerequisite summary. Production governance deploys and verifies the Safe/Zodiac route separately; this surface later registers the already-deployed account." },
+  "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "dispatchDisbursement creates the immutable execution key and sends the data-only command for this garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe.", calls: ["dispatchDisbursement"] },
+  "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
+  "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
+  "w21.register-confirm": { l: "Register settlement account", to: "screen:W21@registered", info: "registerSettlementAccount stores the verified Celo Safe route for this pool.", calls: ["registerSettlementAccount"] },
+  "w21.open-queue": { l: "Open disbursement queue", to: "screen:W21", info: "Returns to the garden's settlement queue." },
   "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
   "w21.dispatch": { l: "Dispatch", to: "screen:W22", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
-  "w21.requeue": { l: "Source follow-up", to: "screen:W21", info: "A next attempt requires an authenticated failure and the future source integration." },
-  "w21.cancel-disb": { l: "Cancel unbatched queued command", info: "The planned `cancelDisbursement` path is available before dispatch only when `batchId == 0`; an immutable Queued batch is cancelled only in full." },
+  "w21.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A next attempt requires an authenticated failure and the future source integration." },
+  "w21.requeue-dismiss": { l: "Keep failed", to: "screen:W21@failed-recovery", info: "Leaves the authenticated failure available for a later source follow-up." },
+  "w21.requeue-confirm": { l: "Requeue attempt", to: "screen:W21@requeued", info: "requeue clears the old batch id and increments attempts; the new execution key is created only on the next unbatched dispatch.", calls: ["requeue"] },
+  "w21.cancel-disb": { l: "Cancel unbatched queued command", to: "screen:W21@cancel-queued-confirm", info: "The planned cancelDisbursement path is available before dispatch only when batchId == 0; an immutable Queued batch is cancelled only in full." },
+  "w21.cancel-queued-dismiss": { l: "Keep queued", to: "screen:W21", info: "Closes the confirmation without changing settlement 104." },
+  "w21.cancel-queued-confirm": { l: "Cancel queued delivery", to: "screen:W21@cancelled-queued", info: "cancelDisbursement changes only this unbatched Queued settlement and stores the reason.", calls: ["cancelDisbursement"] },
   "w21.cancel-failed": { l: "Close failed delivery", to: "screen:W21@close-delivery-confirm", info: "An authenticated Failed member may be terminally cancelled instead of requeued. The failed attempt and bounded failure code remain visible." },
   "w21.close-dismiss": { l: "Keep for retry", to: "screen:W21@failed-recovery", info: "Closes the confirmation, leaving the failed member available for a source follow-up." },
-  "w21.close-delivery-confirm": { l: "Close delivery (confirm)", to: "screen:W21", info: "Failed → Cancelled preserves the failed attempt and creates no new execution key (SS §3.1)." },
+  "w21.close-delivery-confirm": { l: "Close delivery (confirm)", to: "screen:W21@cancelled-failed", info: "Failed → Cancelled preserves the failed attempt and creates no new execution key (SS §3.1).", calls: ["cancelDisbursement"] },
   "w21.request-details": { l: "Acknowledgment details", info: "Celo execution is stored before its acknowledgement and can remain confirming while the source state is Dispatched." },
-  "w21.create-batch": { l: "Open command", to: "screen:W22", info: "The planned UI is transport-level; commitment batches depend on the canonical pooling source integration." },
+  "w21.create-batch": { l: "Create batch", to: "screen:W21@batch-create", info: "Opens the homogeneous queued-member review before createBatch makes the membership immutable." },
+  "w21.create-batch-dismiss": { l: "Keep unbatched", to: "screen:W21", info: "Closes the review without assigning a batch id." },
+  "w21.create-batch-confirm": { l: "Create batch", to: "screen:W21@batch-created", info: "createBatch stores the immutable homogeneous member snapshot while the batch remains Queued.", calls: ["createBatch"] },
+  "w21.open-batch-command": { l: "Open batch command", to: "screen:W22", info: "Opens queued batch #12 in the command/ack console." },
 };
 
 // ---------------------------------------------------------------------------
@@ -227,7 +330,7 @@ type W22State = (typeof W22_STATES)[number][0];
 
 const w22Members = dtable(
   ["Member", "Amount", "To"],
-  [["Maria", `<span class="num">20 G$</span>`, `<span class="num">0x12…9a</span>`], ["João", `<span class="num">15 G$</span>`, `<span class="num">0x77…3c</span>`]],
+  [["Maria", `<span class="num">20 G$</span>`, `<span class="num">0x12…9a</span>`], ["Leila", `<span class="num">10 G$</span>`, `<span class="num">0x77…3c</span>`]],
   "Batch #12 members",
 );
 
@@ -238,7 +341,7 @@ const w22Behind = () =>
     garden: "Rocinha",
     interactiveChrome: false,
     header: pageHeader({ title: "Settlement 104", eyebrow: "Command/ack console", description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment." }),
-    body: acard("Batch", `${kv("Batch #12", "2 immutable members · Maria 20 G$ · João 15 G$")}${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 0)}`),
+    body: acard("Batch", `${kv("Batch #12", "2 immutable members · Maria 20 G$ · Leila 10 G$")}${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 0)}`),
   });
 
 function w22(state: W22State): string {
@@ -249,7 +352,7 @@ function w22(state: W22State): string {
         title: "Cancel this batch",
         body:
           banner(
-            "Cancelling closes all 2 members of batch #12 at once — Maria (20 G$) and João (15 G$). Queued batch membership is immutable, so there is no partial cancellation and no member can be kept.",
+            "Cancelling closes all 2 members of batch #12 at once — Maria (20 G$) and Leila (10 G$). Queued batch membership is immutable, so there is no partial cancellation and no member can be kept.",
             "amber",
             "error-warning-line",
           ) + field("Reason (required)", input("garden withdrew the request before dispatch")),
@@ -356,18 +459,18 @@ ${w22Members}${routeDetails}`;
 
 const W22_HOTS: HifiDef["hots"] = {
   "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The cross-garden funds board is where a garden-beneficiary delivery is watched to arrival; it is deployer-gated." },
-  "w22.route-gate": { l: "Open route gate", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
+  "w22.route-gate": { l: "Open route gate", to: "screen:W22@role-guard", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },
   "w22.cancel-dismiss": { l: "Keep batch queued", to: "screen:W22", info: "Closes the confirmation with the batch untouched." },
-  "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.1.3)." },
-  "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
+  "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21@batch-cancelled", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.1.3).", calls: ["cancelBatch"] },
+  "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance.", calls: ["dispatchBatch"] },
   "w22.open-command-explorer": { l: "Open command in CCIP Explorer", to: "screen:W22@delivery-delayed", info: "The command message ID opens transport status. This prototype advances to the derived delayed example." },
   "w22.manual-execution-guide": { l: "Manual-execution guidance", info: "Manual execution is an external CCIP recovery procedure and appears only when CCIP Explorer reports the message eligible; it never marks payment complete." },
-  "w22.retry-command": { l: "Retry command", to: "screen:W22@executed", info: "A transport retry preserves the execution key and payload, and cannot create a second Celo execution." },
+  "w22.retry-command": { l: "Retry command", to: "screen:W22@executed", info: "A transport retry preserves the execution key and payload, and cannot create a second Celo execution.", calls: ["retryBatchCommand"] },
   "w22.open-destination-explorer": { l: "Open destination transaction", info: "The destination transaction is evidence of Celo execution, but arrival remains unconfirmed until the authenticated acknowledgment reaches Arbitrum." },
-  "w22.retry-acknowledgment": { l: "Retry acknowledgment", to: "screen:W22@acknowledgment-pending", info: "Permissionless destination retry sends the stored outcome without moving G$ again." },
-  "w22.retry-acknowledgment-again": { l: "Retry acknowledgment", info: "CELO reserve or delivery recovery may retry the stored acknowledgment independently." },
-  "w22.requeue-member": { l: "Source follow-up", info: "A new source attempt requires an authenticated failure acknowledgment and integration-owned source facts." },
+  "w22.retry-acknowledgment": { l: "Retry acknowledgment", to: "screen:W22@acknowledgment-pending", info: "Permissionless destination retry sends the stored outcome without moving G$ again.", calls: ["retryAcknowledgment"] },
+  "w22.retry-acknowledgment-again": { l: "Retry acknowledgment", info: "CELO reserve or delivery recovery may retry the stored acknowledgment independently.", calls: ["retryAcknowledgment"] },
+  "w22.requeue-member": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A new source attempt requires an authenticated failure acknowledgment and integration-owned source facts." },
 };
 
 // ---------------------------------------------------------------------------
@@ -442,7 +545,7 @@ const W24_HOTS: HifiDef["hots"] = {
   "w24.execute": { l: "Dispatch command", to: "screen:W22", info: "Cross-garden source-command home; production value authority remains externally gated." },
   "w24.execute-protocol": { l: "View protocol funding gate", info: "ProtocolToGarden requires the future source integration and approved production route." },
   "w24.queue-funding": { l: "View funding route gate", to: "screen:W24@flows", info: "No upstream HoA hop is written onchain; future ProtocolToGarden facts are source-integrated." },
-  "w24.requeue": { l: "Source follow-up", info: "A new logical attempt requires an authenticated failure and source integration ownership." },
+  "w24.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A new logical attempt requires an authenticated failure and source integration ownership." },
   "w24.inflow-row": { l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   "w24.gardens": { l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },
 };
@@ -454,26 +557,33 @@ const W24_HOTS: HifiDef["hots"] = {
 
 const W26_STATES = [
   ["review", "1 · Review"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Rest the cycle"],
+  ["paused-review", "Paused · 1 · Review"], ["paused-shares", "Paused · 2 · Shares"],
+  ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Rest the cycle"],
 ] as const;
 type W26State = (typeof W26_STATES)[number][0];
+type W26Phase = "review" | "shares" | "certificate" | "rest";
 
 function w26(state: W26State): string {
-  const stepIx = state === "review" ? 0 : state === "shares" ? 1 : state === "certificate" ? 2 : 3;
+  const paused = state.startsWith("paused-");
+  const phase = (paused ? state.slice("paused-".length) : state) as W26Phase;
+  const stepIx = phase === "review" ? 0 : phase === "shares" ? 1 : phase === "certificate" ? 2 : 3;
+  const h = (name: "continue-shares" | "continue-certificate" | "mint" | "compost") =>
+    `w26.${paused ? "paused-" : ""}${name}`;
   let inner: string;
-  switch (state) {
+  switch (phase) {
     case "shares":
       inner = `${kv("Gardeners", "60%")}${kv("Treasury", "15%")}${kv("Steward", "10%")}${kv("Evaluator", "5%")}${kv("Community", "5%")}${kv("Funder", "5%")}
 ${banner("Read-only — the six-role snapshot locked when this cycle opened.", "stone")}
-${hot("w26.continue-certificate", btn("Continue", { kind: "pri" }))}`;
+${hot(h("continue-certificate"), btn("Continue", { kind: "pri" }))}`;
       break;
     case "certificate":
       inner = `${kv("Bundle", "7 fulfilled promises + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
-${hot("w26.mint", btn("Mint impact certificate", { kind: "pri" }))}
+${hot(h("mint"), btn("Mint impact certificate", { kind: "pri" }))}
 ${banner("Uses the garden's existing impact-certificate pipeline.", "stone")}`;
       break;
     case "rest":
       inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "seeds fresh on this pool")}
-${hot("w26.compost", btn("Reconcile + compost", { kind: "pri" }))}
+${hot(h("compost"), btn("Reconcile and compost cycle", { kind: "pri" }))}
 <div class="quietok">${icon("check-line")}Certificate minted · 7 promises bundled.</div>`;
       break;
     default:
@@ -481,12 +591,14 @@ ${hot("w26.compost", btn("Reconcile + compost", { kind: "pri" }))}
 <div class="arow"><div class="grow">Unresolved first: <b>1 expired</b></div>${hot("w26.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}</div>
 <div class="arow"><div class="grow"><b>1 under steward review</b></div>${hot("w26.resolve", btn("Resolve…", { kind: "sec", sm: true }))}</div>
 ${banner("Closing runs as one sequence: settle what's unresolved, read back the shares, certify, then rest the cycle.", "stone")}
-${hot("w26.continue-shares", btn("Continue", { kind: "pri" }))}`;
+${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
   }
+  if (paused)
+    inner = `${banner("The pool remains paused throughout this cycle close. Only the cycle advances from Reviewing to Reconciled to Composted.", "amber", "error-warning-line")}${inner}`;
   const header = pageHeader({
     title: "Close cycle",
-    eyebrow: `Step ${stepIx + 1} of 4`,
-    description: "Season of First Rains — reconcile, share, certify, then rest the cycle.",
+    eyebrow: `${paused ? "Pool paused · " : ""}Step ${stepIx + 1} of 4`,
+    description: "Season of First Rains — review, share, certify, then reconcile and rest.",
     actions: stepDots(4, stepIx),
   });
   return deskWin(
@@ -504,20 +616,54 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
   "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Reconcile + compost", to: "screen:W7@cycle-composted", info: "closeCycle → certificate mint → compostCycle; aggregates roll into pool history (WF:714). Lands on the composted-season console, where §6.2 first offers Close pool." },
+  "w26.compost": { l: "Reconcile and compost cycle", to: "screen:W7@cycle-composted", info: "Two ordered writes after unresolved review and certificate mint: closeCycle changes Reviewing/Open-on-chain → Reconciled, then compostCycle archives it.", calls: ["closeCycle", "compostCycle"] },
+  "w26.paused-continue-shares": { l: "Continue to shares while pool paused", to: "screen:W26@paused-shares", info: "Moves through the reconciliation report without changing the Paused pool." },
+  "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },
+  "w26.paused-mint": { l: "Mint impact certificate while pool paused", to: "screen:W26@paused-rest", info: "Uses the existing certificate pipeline without changing pool or cycle lifecycle state." },
+  "w26.paused-compost": { l: "Reconcile and compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "closeCycle then compostCycle changes only the cycle from Reviewing/Open-on-chain → Reconciled → Composted; the pool remains Paused.", calls: ["closeCycle", "compostCycle"] },
 };
 
 // ---------------------------------------------------------------------------
 
+const w21Facts = (state: W21State): StateFacts | undefined => {
+  if (state === "unregistered" || state === "register-account") return { settlementAccount: "Unregistered" };
+  if (state === "registered") return { settlementAccount: "Registered" };
+  if (state === "failed-recovery" || state === "requeue-confirm" || state === "close-delivery-confirm")
+    return { disbursement: "Failed" };
+  if (["queue", "requeued", "batch-create", "batch-created", "cancel-queued-confirm", "protocol-queue"].includes(state))
+    return { disbursement: "Queued" };
+  if (state === "cancelled-queued" || state === "batch-cancelled" || state === "cancelled-failed")
+    return { disbursement: "Cancelled" };
+  return undefined;
+};
+
+const w22Facts = (state: W22State): StateFacts | undefined => {
+  if (state === "ready" || state === "role-guard" || state === "cancel-batch-confirm")
+    return { disbursement: "Queued" };
+  if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command"].includes(state))
+    return { disbursement: "Dispatched" };
+  return undefined;
+};
+
 export const SETTLEMENT_DEFS: HifiDef[] = [
   { screen: { id: "W12", title: "W12 · Community → Pools", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W12_STATES.map(([id, label]) => ({ id, label, html: w12(id) })) }, hots: { ...adminChromeHots("w12", "community"), ...W12_HOTS } },
+    states: W12_STATES.map(([id, label]) => ({
+      id,
+      label,
+      facts: id === "protocol" ? { commitment: "Requested", kind: "SupportService" } satisfies StateFacts : undefined,
+      html: w12(id),
+    })) }, hots: { ...adminChromeHots("w12", "community"), ...W12_HOTS } },
   { screen: { id: "W21", title: "W21 · Settlement section (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W21_STATES.map(([id, label]) => ({ id, label, html: w21(id) })) }, hots: { ...adminChromeHots("w21", "garden"), ...W21_HOTS } },
+    states: W21_STATES.map(([id, label]) => ({ id, label, facts: w21Facts(id), html: w21(id) })) }, hots: { ...adminChromeHots("w21", "garden"), ...W21_HOTS } },
   { screen: { id: "W22", title: "W22 · Command/ack console", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W22_STATES.map(([id, label]) => ({ id, label, html: w22(id) })) }, hots: { ...adminChromeHots("w22", "garden"), ...W22_HOTS } },
+    states: W22_STATES.map(([id, label]) => ({ id, label, facts: w22Facts(id), html: w22(id) })) }, hots: { ...adminChromeHots("w22", "garden"), ...W22_HOTS } },
   { screen: { id: "W24", title: "W24 · Operations workspace (admin)", surface: "admin", frame: "desktop", group: "Admin console",
     states: W24_STATES.map(([id, label]) => ({ id, label, html: w24(id) })) }, hots: { ...adminChromeHots("w24", "operations"), ...W24_HOTS } },
   { screen: { id: "W26", title: "W26 · Cycle-close wizard (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W26_STATES.map(([id, label]) => ({ id, label, html: w26(id) })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },
+    states: W26_STATES.map(([id, label]) => ({
+      id,
+      label,
+      facts: { pool: id.startsWith("paused-") ? "Paused" : "Open", cycle: "Open" } satisfies StateFacts,
+      html: w26(id),
+    })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },
 ];

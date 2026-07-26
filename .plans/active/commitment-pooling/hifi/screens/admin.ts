@@ -11,6 +11,7 @@ import { esc, hot } from "../html";
 import { icon } from "../icons";
 import { banner, btn, chip, disclosure, emptyState, field, input, kv, meter, radio, skeleton } from "../kit";
 import type { HifiDef } from "./index";
+import type { StateFacts } from "../types";
 
 // ---- admin chrome helpers ---------------------------------------------------
 
@@ -201,21 +202,29 @@ const discardDialog = (behind: string, tone: Tone, keepHot: string, discardHot: 
 // ---------------------------------------------------------------------------
 
 const W7_STATES = [
-  ["open", "Open"], ["not-ready", "Not ready — checklist"], ["preflight-complete", "Checks complete — mark ready"], ["ready", "Ready — open it"],
-  ["paused", "Paused"], ["reconciled", "Reconciled"], ["cycle-composted", "Season composted — close?"], ["pool-closed", "Pool closed"],
+  ["open", "Open"], ["open-no-cycle", "Open — no active cycle"],
+  ["not-ready", "Not ready — checklist"], ["preflight-complete", "Checks complete — mark ready"], ["ready", "Ready — open it"],
+  ["paused", "Paused"], ["paused-cycle-composted", "Paused · season composted"],
+  ["reconciled", "Reconciled"], ["cycle-composted", "Season composted — close?"], ["pool-closed", "Pool closed"],
+  ["compost-pool-confirm", "Compost pool — confirm"], ["pool-composted", "Pool composted"],
+  ["reopen-confirm", "Reopen pool — confirm"], ["manage", "Manage pool and cycles"],
   ["claims", "Claims waiting"], ["claim-declined", "Declined — others pending"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
   ["seed-cycle", "Seed a cycle"],
   ["pause-confirm", "Pause — confirm"], ["close-pool-confirm", "Close pool — confirm"],
-  ["cancel-cycle-confirm", "Cancel season — confirm"], ["decline-claim-confirm", "Decline claim — confirm"],
+  ["paused-close-pool-confirm", "Close paused pool — confirm"],
+  ["cancel-cycle-confirm", "Cancel season — confirm"], ["paused-cancel-cycle-confirm", "Cancel paused season — confirm"],
+  ["decline-claim-confirm", "Decline claim — confirm"],
   ["loading", "Loading"], ["empty", "No commitments yet"],
 ] as const;
 type W7State = (typeof W7_STATES)[number][0];
 
 const w7PoolCard = (state: W7State) => {
   const chipFor: Record<string, string> = {
-    open: chip("Open", "ok", { dot: true }), "not-ready": chip("Not ready", "plain", { dot: true }),
+    open: chip("Open", "ok", { dot: true }), "open-no-cycle": chip("Open", "ok", { dot: true }),
+    "not-ready": chip("Not ready", "plain", { dot: true }),
     "preflight-complete": chip("Checks complete", "warn", { dot: true }),
     ready: chip("Ready", "warn", { dot: true }), paused: chip("Paused", "warn", { dot: true }),
+    "paused-cycle-composted": chip("Paused", "warn", { dot: true }),
     reconciled: chip("Open", "ok", { dot: true }), "cycle-composted": chip("Open", "ok", { dot: true }),
   };
   const acts =
@@ -227,8 +236,12 @@ const w7PoolCard = (state: W7State) => {
       ? `${hot("w7.mark-ready", btn("Mark pool ready", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit readiness", { kind: "sec", sm: true }))}`
       : state === "ready"
       ? `${hot("w7.seed-cycle", btn("Seed a cycle", { kind: "pri" }))}${hot("w7.open-pool", btn("Open pool", { kind: "sec", sm: true }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
+      : state === "open-no-cycle"
+      ? `${hot("w7.seed-cycle", btn("Seed a cycle", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
       : state === "cycle-composted"
-      ? `${hot("w7.close-pool", btn("Close pool…", { kind: "danger" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
+      ? `${hot("w7.seed-cycle", btn("Seed the next cycle", { kind: "pri" }))}${hot("w7.close-pool", btn("Close pool…", { kind: "danger" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
+      : state === "paused-cycle-composted"
+      ? `${hot("w7.close-pool-paused", btn("Close pool…", { kind: "danger" }))}${hot("w7.resume-composted", btn("Resume pool", { kind: "sec", sm: true }))}`
       : state === "paused"
         ? `${hot("w7.resume", btn("Resume pool", { kind: "pri" }))}${hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }))}`
           : hot("w7.edit-charter", btn("Edit charter", { kind: "sec", sm: true }));
@@ -243,8 +256,12 @@ const w7PoolCard = (state: W7State) => {
         ? banner("All three checks pass. Marking Ready records the onchain pool transition; it does not open member participation yet.", "stone")
       : state === "ready"
         ? banner("Everything is in place. Opening the pool lets members see and make promises.", "stone")
+        : state === "open-no-cycle"
+          ? banner("The pool is open. Seed a Season or Campaign before members can make cycle-scoped promises.", "stone")
         : state === "cycle-composted"
           ? banner("Every cycle in this pool has composted. Seed the next one — or close the pool; closing ends participation and keeps the history with the garden.", "stone")
+        : state === "paused-cycle-composted"
+          ? banner("The season has composted, and the pool remains paused. Resume to prepare another cycle, or close the pool while preserving its history.", "amber", "error-warning-line")
         : state === "paused"
           ? banner("Paused with reason: “seasonal flooding, back after the rains”. Members keep evidence and recovery; create/claim/confirm wait.", "amber", "error-warning-line")
           : "";
@@ -271,25 +288,29 @@ const w7Cycles = (state: W7State) => {
   // While Paused, opening or seeding a cycle would revert (openCycle needs the
   // pool Open, seedCycle Ready or Open — CS:726/727). The controls stay visible
   // and honestly disabled; closing a cycle is wind-down and remains live.
-  const canOpenCycles = state !== "paused";
+  const paused = state === "paused" || state === "paused-cycle-composted";
+  const composted = state === "cycle-composted" || state === "paused-cycle-composted";
+  const canOpenCycles = !paused;
   // The Season row tracks the drawn moment: live → close/cancel; reconciled or
   // composted → scoped report only (Close pool is the pool card's act, §6.2).
   const seasonChip =
-    state === "cycle-composted" ? chip("Composted", "plain", { dot: true })
+    composted ? chip("Composted", "plain", { dot: true })
     : state === "reconciled" ? chip("Reconciled", "plain", { dot: true })
     : chip("Open", "ok", { dot: true });
   const seasonActs =
-    state === "reconciled" || state === "cycle-composted"
+    state === "reconciled" || composted
       ? hot("w7.report-row", btn("Scoped report", { kind: "sec", sm: true }))
-      : `${hot("w7.close-season", btn("Close season…", { kind: "sec", sm: true }))}${hot("w7.cancel-cycle", btn("Cancel…", { kind: "ghost", sm: true }))}`;
-  const stageIx = state === "cycle-composted" ? 5 : state === "reconciled" ? 4 : 1;
+      : state === "paused"
+        ? `${hot("w7.close-season-paused", btn("Close season…", { kind: "sec", sm: true }))}${hot("w7.cancel-cycle-paused", btn("Cancel…", { kind: "ghost", sm: true }))}`
+        : `${hot("w7.close-season", btn("Close season…", { kind: "sec", sm: true }))}${hot("w7.cancel-cycle", btn("Cancel…", { kind: "ghost", sm: true }))}`;
+  const stageIx = composted ? 5 : state === "reconciled" ? 4 : 1;
   // The Campaigns list must agree with the Season about whether anything is
   // still running. §6.2 offers Close pool only after the LAST cycle composts,
   // so the composted state cannot also show open campaigns — that combination
   // made the close confirmation's "its last cycle has composted" false on the
   // one screen that offers the act.
   const campaigns =
-    state === "cycle-composted"
+    composted
       ? disclosure(
           "Campaigns",
           "3 composted",
@@ -357,7 +378,7 @@ const w7Summary = () =>
     .join("")}</div>`;
 
 const w7Claims = (state: W7State) => {
-  // One cast across the whole decline arc (sb3): Ana and João ask; Ana is
+  // One cast across the whole decline arc (sb3): Maria and João ask; Maria is
   // declined, asks again, and her fresh row is superseded when João is
   // accepted. Garden claims are the protocol console's story (W12 / sb13) —
   // a garden claim in a garden pool would name the pool garden itself
@@ -365,22 +386,22 @@ const w7Claims = (state: W7State) => {
   if (state === "claim-declined")
     return acard(
       "Claims — after the decline",
-      `<div class="arow"><div class="grow"><b>Field survey</b> · Ana · individual · Jul 9</div>${chip("Declined — reason recorded", "plain", { dot: true })}</div>
-<div class="arow"><div class="grow"><b>Field survey</b> · João · individual · Jul 10</div>${chip("Pending", "warn", { dot: true })}</div>
-${banner("Only the selected request changed. João's request stays pending, the promise stays claimable, and Ana may ask again.", "stone")}`,
+      `<div class="arow"><div class="grow"><b>Ride to the market on Saturday</b> · Maria · individual · Jul 9</div>${chip("Declined — reason recorded", "plain", { dot: true })}</div>
+<div class="arow"><div class="grow"><b>Ride to the market on Saturday</b> · João · individual · Jul 10</div>${chip("Pending", "warn", { dot: true })}</div>
+${banner("Only the selected request changed. João's request stays pending, the promise stays claimable, and Maria may ask again.", "stone")}`,
     );
   if (state === "claim-outcomes")
     return acard(
       "Claims — steward-reviewed",
-      `<div class="arow"><div class="grow">Ana · individual · Jul 9</div>${chip("Declined — reason recorded", "plain", { dot: true })}</div>
+      `<div class="arow"><div class="grow">Maria · individual · Jul 9</div>${chip("Declined — reason recorded", "plain", { dot: true })}</div>
 <div class="arow"><div class="grow">João · individual · Jul 10</div>${chip("Accepted — terms stored", "ok", { dot: true })}</div>
-<div class="arow"><div class="grow">Ana · individual · second ask · Jul 10</div>${chip("Superseded", "plain", { dot: true })}</div>
+<div class="arow"><div class="grow">Maria · individual · second ask · Jul 10</div>${chip("Superseded", "plain", { dot: true })}</div>
 ${banner("Accepting one request supersedes the other pending rows — an indexer side-effect, never a member action.", "stone")}`,
     );
   if (state === "expiry-queue")
     return acard(
       "Lapsed this cycle",
-      `<div class="arow"><div class="grow"><b>Field survey</b> ${chip("Request", "request")} ${chip("Expired", "plain", { dot: true })} <span class="t-meta num">due Jul 2 · 0 of 1 taken up</span></div>${hot("w7.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}${hot("w7.history", btn("View history", { kind: "ghost", sm: true }))}</div>
+      `<div class="arow"><div class="grow"><b>Market rides</b> ${chip("Campaign", "request")} ${chip("Expired", "plain", { dot: true })} <span class="t-meta num">due Jul 2 · 0 of 16 kept</span></div>${hot("w7.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}${hot("w7.history", btn("View history", { kind: "ghost", sm: true }))}</div>
 ${banner("Expiry runs both paths: this queue for stewards, “offer again” for members.", "stone")}`,
     );
   // Tonal, not filled: in a multi-row queue no single row's accept is the
@@ -389,44 +410,74 @@ ${banner("Expiry runs both paths: this queue for stewards, “offer again” for
     `${hot(acceptHot, btn("Accept", { kind: "sec", sm: true }))}${hot(declineHot, btn("Decline…", { kind: "ghost", sm: true }))}`;
   return acard(
     "Claims waiting — steward-reviewed",
-    `<div class="arow"><div class="grow"><b>Field survey</b> · Ana · individual · Jul 9</div>${rowActions("w7.accept-ana", "w7.decline-claim")}</div>
-<div class="arow"><div class="grow"><b>Field survey</b> · João · individual · Jul 10</div>${rowActions("w7.accept-claim", "w7.decline-joao")}</div>`,
+    `<div class="arow"><div class="grow"><b>Ride to the market on Saturday</b> · Maria · individual · Jul 9</div>${rowActions("w7.accept-maria", "w7.decline-claim")}</div>
+<div class="arow"><div class="grow"><b>Ride to the market on Saturday</b> · João · individual · Jul 10</div>${rowActions("w7.accept-claim", "w7.decline-joao")}</div>`,
   );
 };
 
 const W7_DESC: Record<W7State, string> = {
   open: "Season of First Rains is live — offers and requests between neighbors.",
+  "open-no-cycle": "The pool is open — seed a Season or Campaign next.",
   "not-ready": "Finish the readiness checklist before members can promise.",
   "preflight-complete": "All readiness checks pass — mark the pool Ready onchain.",
   ready: "Everything is in place — open the pool when you're ready.",
   paused: "Paused for the season — evidence and recovery stay open.",
+  "paused-cycle-composted": "The season has composted; the pool remains paused.",
   reconciled: "The season is reconciled — promises settled; compost comes next.",
   "cycle-composted": "Every cycle has composted — seed the next one, or close the pool.",
   "pool-closed": "The pool is closed — its history stays with the garden.",
-  "claim-declined": "Ana's request is declined; João's stays pending.",
+  "compost-pool-confirm": "The pool is closed — confirm before archiving it.",
+  "pool-composted": "The pool is composted — reopen it to begin a new era.",
+  "reopen-confirm": "The pool is composted — reopen it to begin a new era.",
+  manage: "Pool and cycle lifecycle controls for Rocinha.",
+  "claim-declined": "Maria's request is declined; João's stays pending.",
   "claim-outcomes": "How this cycle's steward-reviewed claims resolved.",
+  claims: "Requests waiting for a steward decision in this cycle.",
   "expiry-queue": "Promises that lapsed this cycle — offer them again.",
+  "seed-cycle": "Set the next Season or Campaign before opening it.",
   loading: "Loading the pool…",
   empty: "The pool is open and waiting for its first promise.",
   "pause-confirm": "Season of First Rains is live — offers and requests between neighbors.",
   "close-pool-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+  "paused-close-pool-confirm": "The season has composted; the pool remains paused.",
   "cancel-cycle-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+  "paused-cancel-cycle-confirm": "Paused for the season — evidence and recovery stay open.",
   "decline-claim-confirm": "Season of First Rains is live — offers and requests between neighbors.",
 };
 
 // Dimmed pool route behind a W7 confirmation. Hotspot-free for the same reason
 // W10's is: foreign ids here would break bidirectional hotspot integrity.
-const w7Behind = () =>
+export const w7Behind = (state: "open" | "ready" | "paused" | "closed" | "composted" = "open") =>
   adminCanvas("garden", "garden", {
     screenId: "W7",
     garden: "Rocinha",
     interactiveChrome: false,
-    header: pageHeader({ title: "Garden", description: W7_DESC.open }),
+    header: pageHeader({
+      title: "Garden",
+      description:
+        state === "ready"
+          ? W7_DESC.ready
+          : state === "paused"
+            ? W7_DESC.paused
+            : state === "composted"
+              ? W7_DESC["pool-composted"]
+              : state === "closed"
+                ? W7_DESC["pool-closed"]
+              : W7_DESC.open,
+    }),
     tabRail: tabRail([{ label: "Health" }, { label: "Impact" }, { label: "Activity" }, { label: "Pool" }], 3),
     body: acard(
       "Pool",
       `${kv("Charter", "agreed ✓")}${kv("Baseline", "recorded ✓")}${kv("Provider open-commitment cap", "24 commitments")}`,
-      chip("Open", "ok", { dot: true }),
+      state === "ready"
+        ? chip("Ready", "warn", { dot: true })
+        : state === "paused"
+          ? chip("Paused", "warn", { dot: true })
+        : state === "composted"
+          ? chip("Composted", "plain", { dot: true })
+          : state === "closed"
+            ? chip("Closed", "plain", { dot: true })
+          : chip("Open", "ok", { dot: true }),
     ),
   });
 
@@ -462,6 +513,26 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
     actions: `${hot("w7.close-dismiss", btn("Keep open", { kind: "ghost" }))}${hot("w7.close-pool-confirm", btn("Close pool", { kind: "danger" }))}`,
     closeHot: "w7.close-dismiss",
   },
+  "paused-close-pool-confirm": {
+    title: "Close this paused pool",
+    body: banner(
+      "Closing ends participation for 23 members. The pool is paused and its last cycle has composted; its history stays with the garden. Compost and reopen stay available.",
+      "amber",
+      "error-warning-line",
+    ),
+    actions: `${hot("w7.paused-close-dismiss", btn("Keep paused", { kind: "ghost" }))}${hot("w7.close-pool-paused-confirm", btn("Close pool", { kind: "danger" }))}`,
+    closeHot: "w7.paused-close-dismiss",
+  },
+  "compost-pool-confirm": {
+    title: "Compost this pool",
+    body: banner(
+      "Composting archives this closed pool. Its seasons, promises, reasons, and settlement history remain readable; reopening later begins from Ready.",
+      "amber",
+      "error-warning-line",
+    ),
+    actions: `${hot("w7.compost-dismiss", btn("Keep closed", { kind: "ghost" }))}${hot("w7.compost-confirm", btn("Compost pool", { kind: "danger" }))}`,
+    closeHot: "w7.compost-dismiss",
+  },
   "cancel-cycle-confirm": {
     title: "Cancel this season",
     body: w7Confirm(
@@ -471,10 +542,19 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
     actions: `${hot("w7.confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-confirm", btn("Cancel season", { kind: "danger" }))}`,
     closeHot: "w7.confirm-dismiss",
   },
-  "decline-claim-confirm": {
-    title: "Decline Ana's request",
+  "paused-cancel-cycle-confirm": {
+    title: "Cancel this paused season",
     body: w7Confirm(
-      "Only Ana's request is declined — João's stays pending and the promise stays claimable. Ana sees your reason and may ask again.",
+      "The pool stays paused. Cancelling ends Season of First Rains for everyone in it; all 8 promises keep their own records, and members see the reason you give here.",
+      "funding fell through for the rains",
+    ),
+    actions: `${hot("w7.paused-confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-paused-confirm", btn("Cancel season", { kind: "danger" }))}`,
+    closeHot: "w7.paused-confirm-dismiss",
+  },
+  "decline-claim-confirm": {
+    title: "Decline Maria's request",
+    body: w7Confirm(
+      "Only Maria's request is declined — João's stays pending and the promise stays claimable. Maria sees your reason and may ask again.",
       "provider context — see charter",
     ),
     actions: `${hot("w7.decline-dismiss", btn("Keep pending", { kind: "ghost" }))}${hot("w7.decline-claim-confirm", btn("Decline request", { kind: "pri" }))}`,
@@ -490,7 +570,7 @@ function w7(state: W7State): string {
   if (state === "seed-cycle")
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool",
-      adminDialogM3(w7Behind(), "garden", {
+      adminDialogM3(w7Behind("ready"), "garden", {
         title: "Seed a cycle",
         body: `${field("Type", radio([{ label: "Season", meta: "one open Season at a time", on: true }, { label: "Campaign", meta: "any number may run alongside" }], { interactive: true, name: "cycle-type" }))}${field("Name", input("Season of First Rains"))}${field("Runs through", input("Aug 30"))}${banner(
           "Seeding records the cycle. Opening it — with its allocation — is the next step, and no reason is stored for either.",
@@ -502,19 +582,35 @@ function w7(state: W7State): string {
     );
   const confirm = W7_CONFIRMS[state];
   if (confirm)
-    return deskWin("admin.greengoods.app/dashboard/garden/pool", adminDialogM3(w7Behind(), "garden", confirm));
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool",
+      adminDialogM3(
+        w7Behind(state === "compost-pool-confirm" ? "closed" : state.startsWith("paused-") ? "paused" : "open"),
+        "garden",
+        confirm,
+      ),
+    );
+  if (state === "reopen-confirm")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool",
+      adminDialogM3(w7Behind("composted"), "garden", {
+        title: "Reopen this pool",
+        body: `${banner("Reopening moves the composted pool to Ready. Members still cannot participate until a steward opens it again.", "stone")}${kv("Next state", "Ready")}${kv("History", "preserved")}`,
+        actions: `${hot("w7.reopen-dismiss", btn("Keep composted", { kind: "ghost" }))}${hot("w7.reopen-confirm", btn("Reopen to Ready", { kind: "pri" }))}`,
+        closeHot: "w7.reopen-dismiss",
+      }),
+    );
 
   // Garden workspace, net-new Pool tab (real rail: Health · Impact · Activity).
   const rail = tabRail([{ label: "Health" }, { label: "Impact" }, { label: "Activity" }, { label: "Pool" }], 3);
-  // Seed lives in the header (desktop puts creation in header actions, not a FAB).
-  // seedCycle requires the pool to be Ready or Open (CS:726), so the readiness
-  // states show the control disabled rather than offering an act that fails.
-  // Creation is gated by pool state, not just drawn: createCommitment/seedCycle
-  // need the pool Ready or Open (CS:726), and §4.1 disables create/claim while
-  // Paused — only safe wind-down stays. Offering an act that would revert is
-  // what the disabled Seed control exists to prevent.
-  const seedable =
-    state !== "not-ready" && state !== "preflight-complete" && state !== "pool-closed" && state !== "paused";
+  // Seed commitment lives in the header (desktop puts creation in header
+  // actions, not a FAB). createCommitment requires Pool Open, so Ready keeps
+  // this control disabled even though its separate pool-card action may legally
+  // seed a cycle. §4.1 also disables create/claim while Paused.
+  const seedable = [
+    "open", "manage", "reconciled", "cycle-composted", "claims", "claim-declined",
+    "claim-outcomes", "expiry-queue", "empty",
+  ].includes(state);
   const seed = seedable
     ? hot("w7.seed-fab", btn("Seed", { kind: "pri", sm: true, icon: "add-line" }))
     : btn("Seed", { kind: "pri", sm: true, icon: "add-line", disabled: true });
@@ -528,7 +624,7 @@ function w7(state: W7State): string {
       "When the pool is open, offers and requests between neighbors show up here. Seed the first promise to begin.",
       seed,
     );
-  } else if (state === "not-ready" || state === "preflight-complete" || state === "ready") {
+  } else if (state === "not-ready" || state === "preflight-complete" || state === "ready" || state === "open-no-cycle") {
     // A pool that has not opened has no cycles, no accepted commitments, and no
     // claims. Rendering those consoles here showed an open Season with Close and
     // Cancel actions on a pool members cannot yet participate in.
@@ -544,6 +640,32 @@ function w7(state: W7State): string {
       )}<div class="actrow">${hot("w7.compost-pool", btn("Compost pool…", { kind: "sec", sm: true }))}</div>`,
       chip("Closed", "plain", { dot: true }),
     );
+  } else if (state === "pool-composted") {
+    body = acard(
+      "Pool",
+      `${kv("History", "1 season · 23 promises · 19 kept")}${banner(
+        "This pool is archived. Reopening preserves its history and returns it to Ready; member participation stays closed until the pool opens again.",
+        "stone",
+      )}<div class="actrow">${hot("w7.reopen-pool", btn("Reopen pool…", { kind: "pri", sm: true }))}</div>`,
+      chip("Composted", "plain", { dot: true }),
+    );
+  } else if (state === "paused-cycle-composted") {
+    body = `${w7PoolCard(state)}${w7Cycles(state)}`;
+  } else if (state === "paused") {
+    body = `${w7PoolCard("paused")}${disclosure(
+      "Paused season",
+      "evidence and recovery stay open",
+      `${kv("Season of First Rains", "Open · participation paused")}${kv("Reason", "seasonal flooding, back after the rains")}
+<div class="actrow">${hot("w7.close-season-paused", btn("Close season", { kind: "sec", sm: true }))}${hot("w7.cancel-cycle-paused", btn("Cancel season…", { kind: "danger", sm: true }))}</div>`,
+    )}`;
+  } else if (state === "reconciled") {
+    body = `${w7Cycles("reconciled")}${disclosure(
+      "Pool status",
+      "Open",
+      `${kv("Pool", "Open")}${kv("Next lifecycle act", "Compost this cycle after review")}`,
+    )}`;
+  } else if (state === "cycle-composted") {
+    body = w7PoolCard("cycle-composted");
   } else {
     // The default view answers "what needs me?" — summary, pool state, the
     // scoped commitment list, and (per §6.2 section 4) the claims queue while
@@ -553,7 +675,13 @@ function w7(state: W7State): string {
       state === "claims" || state === "claim-declined" || state === "claim-outcomes" || state === "expiry-queue"
         ? `${w7Summary()}${w7Claims(state)}`
         : state === "open"
-          ? `${w7Summary()}${w7PoolCard(state)}${w7Cycles(state)}${w7Commitments()}${w7Claims(state)}`
+          ? `${w7Summary()}${w7Commitments()}${disclosure(
+              "Pool and cycles",
+              "Open · Season live",
+              `${kv("Pool", "Open")}${kv("Season of First Rains", "Open")}${hot("w7.manage", btn("Manage lifecycle", { kind: "sec", sm: true }))}`,
+            )}`
+          : state === "manage"
+            ? `${w7PoolCard("open")}${w7Cycles("open")}`
           : `${w7Summary()}${w7PoolCard(state)}${w7Cycles(state)}${w7Commitments()}`;
   }
   const header = pageHeader({ title: "Garden", description: W7_DESC[state], actions: seed });
@@ -566,35 +694,49 @@ function w7(state: W7State): string {
 const W7_HOTS: HifiDef["hots"] = {
   "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@pause-confirm", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
   "w7.confirm-dismiss": { l: "Keep as it is", to: "screen:W7", info: "Closes the confirmation without applying the act." },
-  "w7.pause-confirm": { l: "Pause pool (confirm)", to: "screen:W7@paused", info: "pausePool(reason) — the stored reason renders in the member banner (UX:60 · CS:725)." },
-  "w7.close-pool-confirm": { l: "Close pool (confirm)", to: "screen:W7@pool-closed", info: "closePool(poolId) — no stored reason (CS:556). Lands on the steward's closed-pool console; the member echo is W1@closed; compost/reopen follow per §4.1." },
+  "w7.pause-confirm": { l: "Pause pool (confirm)", to: "screen:W7@paused", info: "pausePool(reason) — the stored reason renders in the member banner (UX:60 · CS:725).", calls: ["pausePool"] },
+  "w7.close-pool-confirm": { l: "Close pool (confirm)", to: "screen:W7@pool-closed", info: "closePool(poolId) — no stored reason (CS:556). Lands on the steward's closed-pool console; the member echo is W1@closed; compost/reopen follow per §4.1.", calls: ["closePool"] },
+  "w7.close-pool-paused-confirm": { l: "Close paused pool (confirm)", to: "screen:W7@pool-closed", info: "closePool(poolId) changes Paused → Closed after the last cycle composts; it stores no reason and preserves history.", calls: ["closePool"] },
   "w7.close-dismiss": { l: "Keep the pool open", to: "screen:W7@cycle-composted", info: "Closes the confirmation; the pool stays open with its composted season's history." },
+  "w7.paused-close-dismiss": { l: "Keep the pool paused", to: "screen:W7@paused-cycle-composted", info: "Closes the confirmation; the pool stays Paused and its season stays Composted." },
+  "w7.paused-confirm-dismiss": { l: "Keep the paused season", to: "screen:W7@paused", info: "Closes the confirmation without cancelling the season or resuming the pool." },
   "w7.decline-dismiss": { l: "Keep pending", to: "screen:W7@claims", info: "Closes the confirmation and returns to the claims queue with both requests still pending." },
-  "w7.cancel-cycle-confirm": { l: "Cancel season (confirm)", to: "screen:W1@cancelled-cycle", info: "cancelCycle(reason) → quiet member banner naming the reason (UX:77 · CS:104)." },
-  "w7.decline-claim-confirm": { l: "Decline request (confirm)", to: "screen:W7@claim-declined", info: "declineClaim(reason) clears exactly one request — the other row stays pending; the claimant may ask again (CS:734)." },
-  "w7.resume": { l: "Resume pool", to: "screen:W7", info: "resumePool clears the indexed reason (CS:725)." },
+  "w7.cancel-cycle-confirm": { l: "Cancel season (confirm)", to: "screen:W1@cancelled-cycle", info: "cancelCycle(reason) → quiet member banner naming the reason (UX:77 · CS:104).", calls: ["cancelCycle"] },
+  "w7.cancel-cycle-paused-confirm": { l: "Cancel paused season (confirm)", to: "screen:W1@paused-cancelled-cycle", info: "cancelCycle(reason) changes only the cycle to Cancelled; the member echo keeps the pool Paused.", calls: ["cancelCycle"] },
+  "w7.decline-claim-confirm": { l: "Decline request (confirm)", to: "screen:W7@claim-declined", info: "declineClaim(reason) clears exactly one request — the other row stays pending; the claimant may ask again (CS:734).", calls: ["declineClaim"] },
+  "w7.resume": { l: "Resume pool", to: "screen:W7", info: "resumePool clears the indexed reason (CS:725).", calls: ["resumePool"] },
   "w7.edit-charter": { l: "Edit readiness", to: "screen:W7@preflight-complete", info: "Completes the charter, non-zero provider open-commitment cap, and qualifying Baseline preflight; the pool remains NotReady until markPoolReady succeeds (UX:269)." },
-  "w7.mark-ready": { l: "Mark pool ready", to: "screen:W7@ready", info: "markPoolReady records NotReady → Ready after charter + non-zero cap pass onchain and the qualifying Baseline passes the app preflight (CS:724 · UX:269)." },
-  "w7.open-pool": { l: "Open pool", to: "screen:W7", info: "openPool → PoolOpened. Adopted onto the status card per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
+  "w7.mark-ready": { l: "Mark pool ready", to: "screen:W7@ready", info: "markPoolReady records NotReady → Ready after charter + non-zero cap pass onchain and the qualifying Baseline passes the app preflight (CS:724 · UX:269).", calls: ["markPoolReady"] },
+  "w7.open-pool": { l: "Open pool", to: "screen:W7@open-no-cycle", info: "openPool → PoolOpened. The pool opens without inventing an active cycle; seeding remains the next act (CS:100, CS:727).", calls: ["openPool"] },
   "w7.close-pool": { l: "Close pool", to: "screen:W7@close-pool-confirm", info: "Offered only once the last cycle composts (uiux §6.2 · CS:102); closePool(poolId) takes no reason (CS:556). Compost/reopen follow per §4.1." },
-  "w7.close-season": { l: "Close season", to: "screen:W26", info: "closeCycle — the reconcile act; commitments derive Reconciled (CS:118)." },
+  "w7.close-pool-paused": { l: "Close paused pool", to: "screen:W7@paused-close-pool-confirm", info: "Offered after the paused pool's last cycle composts; closePool may move Paused → Closed and stores no reason." },
+  "w7.close-season": { l: "Close season", to: "screen:W26", info: "Opens the close wizard while the cycle remains Reviewing/Open on-chain. The wizard resolves outstanding items before its final ordered closeCycle → compostCycle action." },
+  "w7.close-season-paused": { l: "Close paused season", to: "screen:W26@paused-review", info: "Opens the same close wizard without resuming the Paused pool; reconciliation happens only after unresolved review." },
   "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W7@cancel-cycle-confirm", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
+  "w7.cancel-cycle-paused": { l: "Cancel a paused cycle (reason)", to: "screen:W7@paused-cancel-cycle-confirm", info: "Opens the reason confirmation while preserving the Paused pool context." },
   "w7.new-campaign": { l: "New campaign", to: "screen:W7@seed-cycle", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
   "w7.seed-cycle": { l: "Seed a cycle", to: "screen:W7@seed-cycle", info: "seedCycle(poolId, cycleType, startTime, endTime, metadataCID) — legal while the pool is Ready or Open; stores no reason (CS:566)." },
   "w7.seed-cycle-dismiss": { l: "Cancel", to: "screen:W7@ready", info: "Closes the dialog without recording a cycle." },
-  "w7.seed-cycle-confirm": { l: "Seed this cycle", to: "screen:W1@seeded", info: "seedCycle → CycleSeeded. The member echo is the read-only “opens soon” preview; allocation and opening follow in W11." },
-  "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733)." },
+  "w7.seed-cycle-confirm": { l: "Seed this cycle", to: "screen:W1@seeded", info: "seedCycle → CycleSeeded. The member echo is the read-only “opens soon” preview; allocation and opening follow in W11.", calls: ["seedCycle"] },
+  "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733).", calls: ["acceptClaim"] },
   "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@decline-claim-confirm", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.reseed": { l: "Re-seed", to: "screen:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94). Adopted MF-4." },
   "w7.history": { l: "View history", info: "Opens this expired promise's state history and recorded reason." },
-  // Info-only mirrors of the two acts this storyboard walks: accepting Ana or
+  // Info-only mirrors of the two acts this storyboard walks: accepting Maria or
   // declining João is equally legal, but the resulting outcome set is not drawn
-  // (the outcomes state depicts João accepted / Ana superseded). Named so the
+  // (the outcomes state depicts João accepted / Maria superseded). Named so the
   // control is honest about being a preview rather than silently inert.
-  "w7.accept-ana": { l: "Accept Ana's request", info: "Legal and symmetric to accepting João — consumes Ana's stored terms and supersedes every other pending row (CS:733). The mirrored outcome set is not drawn; the storyboard walks the accept-João path. Garden-context claims live on the protocol console (W12/sb13)." },
-  "w7.decline-joao": { l: "Decline João's request (reason)", info: "Legal and symmetric to declining Ana — clears only João's row with a required reason (CS:734). The mirrored outcome set is not drawn; the storyboard walks the decline-Ana path." },
+  "w7.accept-maria": { l: "Accept Maria's request", info: "Legal and symmetric to accepting João — consumes Maria's stored terms and supersedes every other pending row (CS:733). The mirrored outcome set is not drawn; the storyboard walks the accept-João path. Garden-context claims live on the protocol console (W12/sb13).", calls: ["acceptClaim"] },
+  "w7.decline-joao": { l: "Decline João's request (reason)", info: "Legal and symmetric to declining Maria — clears only João's row with a required reason (CS:734). The mirrored outcome set is not drawn; the storyboard walks the decline-Maria path.", calls: ["declineClaim"] },
   "w7.open-cycle-flow": { l: "Open cycle", to: "screen:W11@campaign-allocation", info: "Runs the §6.10 open-cycle flow (allocation → open) for this Seeded Campaign. The pool is already Open here, so the flow uses its campaign path — no Ready-pool guard (CS:114)." },
-  "w7.compost-pool": { l: "Compost pool", info: "compostPool archives the closed pool; reopenPool starts the next era (§4.1). Not drawn past this point." },
+  "w7.compost-pool": { l: "Compost pool", to: "screen:W7@compost-pool-confirm", info: "Opens a banner-only confirmation; compostPool stores no reason." },
+  "w7.compost-dismiss": { l: "Keep pool closed", to: "screen:W7@pool-closed", info: "Closes the confirmation without archiving the pool." },
+  "w7.compost-confirm": { l: "Compost pool (confirm)", to: "screen:W7@pool-composted", info: "compostPool archives the closed pool; reopenPool starts the next era (§4.1).", calls: ["compostPool"] },
+  "w7.reopen-pool": { l: "Reopen pool", to: "screen:W7@reopen-confirm", info: "Opens the no-reason confirmation for reopenPool(poolId, false)." },
+  "w7.reopen-dismiss": { l: "Keep composted", to: "screen:W7@pool-composted", info: "Closes the confirmation without changing the composted pool." },
+  "w7.reopen-confirm": { l: "Reopen to Ready", to: "screen:W7@ready", info: "reopenPool(poolId, false) preserves history and returns Composted → Ready.", calls: ["reopenPool"] },
+  "w7.resume-composted": { l: "Resume after cycle compost", to: "screen:W7@cycle-composted", info: "resumePool changes only Paused → Open; the cycle stays Composted.", calls: ["resumePool"] },
+  "w7.manage": { l: "Manage pool and cycles", to: "screen:W7@manage", info: "Moves lifecycle plumbing out of the default triage view." },
   "w7.commitment-row": { l: "Commitment row", to: "screen:W10", info: "Opens the commitment dialog." },
   "w7.scope": { l: "Commitment scope", info: "Open · Confirmed · Past (uiux-spec §6.2 addendum). Composted cycles and settled records surface under Past; the old cycle-console “History:” row is retired. Maps to AdminFilterChip." },
   "w7.jump-confirm": { l: "Awaiting confirmation", info: "Scrolls to the commitments list scoped to promises waiting on a confirmation you can give." },
@@ -662,7 +804,7 @@ function w8(state: W8State): string {
   let next: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("hours", { select: true }))}${field("Target", input("12"))}${field("Action requirements", `<div class="arow"><div class="grow"><b>Prune</b> <span class="t-meta">Land stewardship</span></div>${input("2")}<span class="t-meta">approved works</span></div><div class="arow"><div class="grow"><b>Plant</b> <span class="t-meta">Land stewardship</span></div>${input("1")}<span class="t-meta">approved work</span></div>${hot("w8.add-action", btn("Add action", { kind: "ghost", sm: true, icon: "add-line" }))}`)}${field("Assessment required", radio([{ label: "No", on: true }, { label: "Yes — attach before confirmation" }]))}${field("Due", input("cycle deadline", { select: true }))}`;
+      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${banner("This campaign promise is evidence-confirmed, so it has no garden-work action requirements or assessment gate.", "stone")}${field("Due", input("cycle deadline", { select: true }))}`;
       next = hot("w8.continue-requirements", btn("Continue", { kind: "pri" }));
       break;
     case "step3":
@@ -682,7 +824,7 @@ ${banner("One rail only. External payout records are recorded here after the fac
       next = hot("w8.continue-reward", btn("Continue", { kind: "pri" }));
       break;
     case "step5":
-      inner = `${kv("Kind", "Garden work · the pool requests")}${kv("Title", "Restore the north beds")}${kv("Unit · target", "hours · 12")}${kv("Action requirements", "Prune × 2 · Plant × 1")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
+      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
       next = hot("w8.seed", btn("Seed this commitment", { kind: "pri" }));
       break;
     default:
@@ -707,7 +849,6 @@ ${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title"
 }
 
 const W8_HOTS: HifiDef["hots"] = {
-  "w8.add-action": { l: "Add action requirement", info: "Adds another approved-work requirement to the seeded promise." },
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
   "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open." },
   "w8.reward": { l: "Reward rail", info: "Exactly one rail is declared: none, an external payout record, or a Celo G$ settlement. External rewards are references only; G$ uses the settlement module." },
@@ -725,7 +866,7 @@ const W8_HOTS: HifiDef["hots"] = {
   "w8.record": { l: "Record the captured promise", to: "screen:W7", info: "OperatorCaptured create — the member stays the social source; the steward is recorded as recordedBy (CS:730)." },
   "w8.keep-editing": { l: "Keep editing", to: "screen:W8", info: "Returns to the flow with entered values intact." },
   "w8.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow and drops the unsaved seeded promise." },
-  "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — season/campaign and steward-captured kinds are created only here (UX:150)." },
+  "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — season/campaign and steward-captured kinds are created only here (UX:150).", calls: ["createCommitment"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -812,13 +953,13 @@ const w10Behind = () =>
 
 const W10_TITLE: Record<W10State, string> = {
   detail: "Prune the north beds", fulfilled: "Prune the north beds",
-  accepted: "Prune the north beds", "record-payout": "Record payout",
+  accepted: "Repair tool handles", "record-payout": "Record payout",
   "queue-settlement": "Queue Celo settlement",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
-  "attach-assessment": "Attach assessment", "mark-ready-override": "Mark ready with override",
+  "attach-assessment": "Attach assessment", "mark-ready-override": "Mark service ready with override",
   "garden-ready": "Methodology survey", "garden-fulfilled": "Methodology survey",
   "queue-settlement-garden": "Queue Celo settlement",
-  cancel: "Cancel this promise", "not-found": "Promise unavailable",
+  cancel: "Cancel this service promise", "not-found": "Promise unavailable",
 };
 
 function w10(state: W10State): string {
@@ -861,7 +1002,7 @@ function w10(state: W10State): string {
       // sentence that separates the three used to sit below the fold.
       body = `${cmChips(chip("Offer", "offer"), chip("Accepted", "request", { dot: true }), chip("Evidence in", "warn", { dot: true }))}
 ${banner("Evidence is in. Send it to the recipient, who confirms the promise was kept.", "stone")}
-${kv("Maria → João", "6 hours · due Aug 12")}
+${kv("Maria → João", "1 repair session · due Aug 12")}
 ${stages(["Offered", "Accepted", "Evidence in", "Ready", "Fulfilled"], 2)}
 ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, note")}${kv("Provider", "Maria — cannot confirm")}
 <div class="arow"><div class="grow"><b>Recipient can't confirm?</b> <span class="t-meta">A steward can mark it ready with a recorded reason.</span></div>${hot("w10.mark-override", btn("Mark ready…", { kind: "sec", sm: true }))}</div>
@@ -942,24 +1083,36 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
 
 const W10_HOTS: HifiDef["hots"] = {
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
-  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h)." },
-  "w10.queue-settlement-confirm": { l: "Queue disbursement", to: "screen:W21", info: "CeloSettlement only: queueDisbursement snapshots the owning-pool Safe source and canonical G$ delivery facts." },
+  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
+  "w10.queue-settlement-confirm": {
+    l: "Queue disbursement",
+    to: "screen:W21",
+    info: "CeloSettlement only: queueDisbursement snapshots the active owning-pool Safe source and canonical G$ delivery facts.",
+    calls: ["queueDisbursement"],
+    facts: { commitment: "Fulfilled", settlementAccount: "Active", beneficiarySettlementAccount: "NotRequired" },
+  },
   "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
-  "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "Overrides render visible markers in the member timeline (UX:287,301)." },
+  "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "confirmFulfillmentAsFallback stores the steward's required reason; the member timeline renders the override marker.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
-  "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143)." },
+  "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143).", calls: ["raiseDispute"] },
   "w10.resolve-options": { l: "Resolution outcomes", info: "RestorePrevious / Fulfilled / Cancelled / Expired, each with a required reason (CS:144)." },
-  "w10.resolve": { l: "Resolve", to: "screen:W2@accepted", info: "RestorePrevious returns the exact stored state — no unit movement (LAP:186)." },
+  "w10.resolve": { l: "Resolve", to: "screen:W2@ready-confirmer", info: "This fixture selects RestorePrevious, returning the exact stored ReadyForConfirmation state with no unit movement (LAP:186).", calls: ["resolveDispute"], resultFacts: { commitment: "ReadyForConfirmation" } },
   "w10.assessment-pick": { l: "Assessment picker", info: "Attach re-runs the auto-Ready check → CommitmentReadyForConfirmation (CS:740)." },
-  "w10.attach": { l: "Attach assessment", to: "screen:W2@ready-confirmer", info: "attachAssessment → auto-Ready re-run (UX:287). Adopted MF-13 placement." },
-  "w10.send-confirmation": { l: "Send for confirmation", to: "screen:W2@ready-confirmer", info: "Evidence-only records expose Send for confirmation to eligible creator/counterparty/steward; DomainImpact never does (UX:294)." },
+  "w10.attach": { l: "Attach assessment", to: "screen:W2@ready-confirmer", info: "attachAssessment → auto-Ready re-run (UX:287). Adopted MF-13 placement.", calls: ["attachAssessment"] },
+  "w10.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-confirmer", info: "Evidence-only records expose Send for confirmation to eligible creator/counterparty/steward; the member result keeps the SupportService cast (UX:294).", calls: ["submitForConfirmation"] },
   "w10.mark-override": { l: "Mark ready with override", to: "screen:W10@mark-ready-override", info: "Steward-only, separate from Send for confirmation; requires a visible reason (UX:294)." },
-  "w10.override-confirm": { l: "Mark ready (confirm)", to: "screen:W2@ready-confirmer", info: "Records the override reason; the member timeline shows the steward marked it ready (UX:294)." },
+  "w10.override-confirm": { l: "Mark ready (confirm)", to: "screen:W2@support-ready-confirmer", info: "Records the override reason; the member timeline keeps the service identity and shows the steward marked it ready (UX:294).", calls: ["markReadyForConfirmation"] },
   "w10.cancel": { l: "Cancel promise (steward)", to: "screen:W10@cancel", info: "MF-2b: steward cancel of an Accepted (or §4.1 Paused) promise — cancelCommitment (CS:745; AM:36-37)." },
-  "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@cancelled", info: "Accepted → Cancelled with a recorded reason; units release; lands on the member view whose timeline carries the reason (CS:745) — the same member-echo convention as every other W10 act." },
-  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743)." },
+  "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@support-cancelled", info: "Accepted → Cancelled with a recorded reason; units release; the member result keeps the SupportService cast and its reason (CS:745).", calls: ["cancelCommitment"] },
+  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743).", calls: ["confirmFulfillment"] },
   "w10.queue-settlement-garden": { l: "Queue disbursement", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
-  "w10.queue-settlement-garden-confirm": { l: "Queue disbursement (confirm)", to: "screen:W21@protocol-queue", info: "queueDisbursement takes no reason. Garden claims resolve the beneficiary to the providing garden's registered Celo Safe; source is the GG protocol Safe (AM:43 · SS:516)." },
+  "w10.queue-settlement-garden-confirm": {
+    l: "Queue disbursement (confirm)",
+    to: "screen:W21@protocol-queue",
+    info: "queueDisbursement takes no reason. Both the GG protocol source Safe and the providing garden's Celo Safe are active before this action is offered (AM:43 · SS:516).",
+    calls: ["queueDisbursement"],
+    facts: { commitment: "Fulfilled", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+  },
   "w10.dismiss": { l: "Close dialog", to: "screen:W10", info: "Closes without applying the pending steward action." },
   "w10.retry": { l: "Retry promise read", to: "screen:W10", info: "Retries the promise read; the sentinel state never renders as a lifecycle chip." },
   "w10.back-pool": { l: "Back to pool", to: "screen:W7", info: "Returns to the scoped garden pool after a missing record." },
@@ -998,7 +1151,7 @@ function w11(state: W11State): string {
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/open-cycle",
       discardDialog(
-        w7Behind(),
+        w7Behind(state === "campaign-discard" ? "open" : "ready"),
         "garden",
         state === "campaign-discard" ? "w11.campaign-keep-editing" : "w11.keep-editing",
         state === "campaign-discard" ? "w11.campaign-discard-confirm" : "w11.discard-confirm",
@@ -1010,14 +1163,17 @@ function w11(state: W11State): string {
     const body = campaign
       ? `${banner("The pool is already open, so opening this campaign only starts the campaign — it runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`
       : `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`;
+    const orderedCalls = campaign
+      ? ""
+      : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation).", "stone");
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/open-cycle",
-      flowDialog(w7Behind(), "garden", {
+      flowDialog(w7Behind(campaign ? "open" : "ready"), "garden", {
         context: W11_CONTEXT(state),
         title: "Open cycle",
         steps: CYCLE_STEPS,
         current: 1,
-        body,
+        body: `${body}${orderedCalls}`,
         back: campaign ? "w11.campaign-back" : "w11.back",
         cancelHot: campaign ? "w11.campaign-cancel" : "w11.cancel",
         next: campaign
@@ -1044,7 +1200,7 @@ ${banner("Treasury is at the 15% guidance floor. This split is locked when the c
   const campaign = w11IsCampaign(state);
   return deskWin(
     "admin.greengoods.app/dashboard/garden/pool/open-cycle",
-    flowDialog(w7Behind(), "garden", {
+    flowDialog(w7Behind(campaign ? "open" : "ready"), "garden", {
       context: W11_CONTEXT(state),
       title: "Open cycle",
       steps: CYCLE_STEPS,
@@ -1067,14 +1223,14 @@ const W11_HOTS: HifiDef["hots"] = {
   "w11.cancel": { l: "Cancel open-cycle", to: "screen:W11@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard, scoped to this flow." },
   "w11.keep-editing": { l: "Keep editing", to: "screen:W11", info: "Returns to the allocation editor with the entered shares intact." },
   "w11.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the open-cycle flow; the cycle stays Seeded." },
-  "w11.open-cycle": { l: "Open pool and cycle", to: "screen:W7", info: "openCycle(cycleId, allocation) validates, stores, and emits the complete six-class snapshot; the shares must total 100% (UX:322-330). The Ready-pool guard opens the pool with the cycle (register #34a)." },
+  "w11.open-cycle": { l: "Open pool and cycle", to: "screen:W7", info: "Two ordered writes: openPool(poolId), then openCycle(cycleId, allocation). The cycle call validates, stores, and emits the complete six-class snapshot; shares must total 100% (UX:322-330).", calls: ["openPool", "openCycle"] },
   // Campaign path — same flow from an already-Open pool, so no guard prompt.
   "w11.campaign-continue": { l: "Continue to open", to: "screen:W11@campaign-open", info: "Allocation → the open step. The pool is already Open, so this step opens only the campaign." },
   "w11.campaign-back": { l: "Back to allocation", to: "screen:W11@campaign-allocation", info: "Steps back to this campaign's six-role split with the entered values retained." },
   "w11.campaign-cancel": { l: "Cancel open-cycle", to: "screen:W11@campaign-discard", info: "A dirty flow confirms before discarding; Keep editing returns to the campaign flow, not the Season one." },
   "w11.campaign-keep-editing": { l: "Keep editing", to: "screen:W11@campaign-allocation", info: "Returns to the campaign allocation editor with the entered shares intact." },
   "w11.campaign-discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow; the campaign stays Seeded." },
-  "w11.campaign-open-cycle": { l: "Open campaign", to: "screen:W7", info: "openCycle(cycleId, allocation) on a pool that is already Open — any number of Campaigns may run concurrently beside the one Season (UX:66 · CS:114)." },
+  "w11.campaign-open-cycle": { l: "Open campaign", to: "screen:W7", info: "openCycle(cycleId, allocation) on a pool that is already Open — any number of Campaigns may run concurrently beside the one Season (UX:66 · CS:114).", calls: ["openCycle"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -1236,17 +1392,58 @@ const HUBWORK_HOTS: HifiDef["hots"] = {
 
 // ---------------------------------------------------------------------------
 
+const w7Facts = (state: W7State): StateFacts | undefined => {
+  if (state === "not-ready" || state === "preflight-complete") return { pool: "NotReady" };
+  if (state === "ready" || state === "seed-cycle") return { pool: "Ready" };
+  if (state === "open-no-cycle") return { pool: "Open" };
+  if (state === "paused" || state === "paused-cancel-cycle-confirm") return { pool: "Paused", cycle: "Open" };
+  if (state === "paused-cycle-composted" || state === "paused-close-pool-confirm")
+    return { pool: "Paused", cycle: "Composted" };
+  if (state === "pool-closed" || state === "compost-pool-confirm") return { pool: "Closed", cycle: "Composted" };
+  if (state === "pool-composted" || state === "reopen-confirm") return { pool: "Composted", cycle: "Composted" };
+  if (state === "reconciled") return { pool: "Open", cycle: "Reconciled" };
+  if (state === "cycle-composted" || state === "close-pool-confirm") return { pool: "Open", cycle: "Composted" };
+  if (state === "loading") return undefined;
+  if (["claims", "decline-claim-confirm", "claim-declined"].includes(state))
+    return { pool: "Open", cycle: "Open", commitment: "Requested", kind: "SupportService" };
+  if (state === "claim-outcomes")
+    return { pool: "Open", cycle: "Open", commitment: "Accepted", kind: "SupportService" };
+  return { pool: "Open", cycle: "Open" };
+};
+
+const w10Facts = (state: W10State): StateFacts | undefined => {
+  if (state === "not-found") return undefined;
+  const context = { pool: "Open" as const, cycle: "Open" as const };
+  if (["fulfilled", "record-payout", "queue-settlement", "garden-fulfilled", "queue-settlement-garden"].includes(state))
+    return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
+  if (["detail", "fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
+    return { ...context, commitment: "ReadyForConfirmation", kind: "DomainImpact" };
+  if (state === "resolve-dispute") return { ...context, commitment: "Disputed", kind: "DomainImpact" };
+  if (state === "attach-assessment") return { ...context, commitment: "PartiallyApproved", kind: "DomainImpact" };
+  if (["accepted", "mark-ready-override"].includes(state))
+    return { ...context, commitment: "EvidenceSubmitted", kind: "SupportService" };
+  if (state === "cancel") return { ...context, commitment: "Accepted", kind: "SupportService" };
+  return undefined;
+};
+
+const w11Facts = (state: W11State): StateFacts => ({
+  pool: w11IsCampaign(state) ? "Open" : "Ready",
+  cycle: "Seeded",
+});
+
+const w8Facts = (_state: W8State): StateFacts => ({ pool: "Open", cycle: "Open" });
+
 export const ADMIN_DEFS: HifiDef[] = [
   { screen: { id: "W7", title: "W7 · Garden Pool tab (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W7_STATES.map(([id, label]) => ({ id, label, html: w7(id) })) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
+    states: W7_STATES.map(([id, label]) => ({ id, label, facts: w7Facts(id), html: w7(id) })) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
   { screen: { id: "W8", title: "W8 · Seeding console", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W8_STATES.map(([id, label]) => ({ id, label, html: w8(id) })) }, hots: W8_HOTS },
+    states: W8_STATES.map(([id, label]) => ({ id, label, facts: w8Facts(id), html: w8(id) })) }, hots: W8_HOTS },
   { screen: { id: "W9", title: "W9 · Analog capture", surface: "admin", frame: "desktop", group: "Admin console",
     states: W9_STATES.map(([id, label]) => ({ id, label, html: w9(id) })) }, hots: W9_HOTS },
   { screen: { id: "W10", title: "W10 · Commitment dialog (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W10_STATES.map(([id, label]) => ({ id, label, html: w10(id) })) }, hots: W10_HOTS },
+    states: W10_STATES.map(([id, label]) => ({ id, label, facts: w10Facts(id), html: w10(id) })) }, hots: W10_HOTS },
   { screen: { id: "W11", title: "W11 · Open-cycle allocation", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W11_STATES.map(([id, label]) => ({ id, label, html: w11(id) })) }, hots: W11_HOTS },
+    states: W11_STATES.map(([id, label]) => ({ id, label, facts: w11Facts(id), html: w11(id) })) }, hots: W11_HOTS },
   { screen: { id: "W13", title: "W13 · Hub Confirm stage", surface: "admin", frame: "desktop", group: "Admin console",
     states: W13_STATES.map(([id, label]) => ({ id, label, html: w13(id) })) }, hots: { ...adminChromeHots("w13", "hub"), ...W13_HOTS } },
   { screen: { id: "W14", title: "W14 · Assessment v3 additions", surface: "admin", frame: "desktop", group: "Admin console",

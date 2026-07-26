@@ -4,6 +4,7 @@
 
 import { esc, escAttr, hot } from "./html";
 import { icon } from "./icons";
+import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
 
 // ---- device chrome ----------------------------------------------------------
 
@@ -13,12 +14,12 @@ import { icon } from "./icons";
 // destination or explicitly opt out for a genuinely non-AppShell surface.
 export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: string | false } = {}): string {
   const bottomBar = opts.appBar === false ? "" : (opts.appBar ?? appBar("garden"));
-  return `<div class="phone"><div class="scr">
+  return `<div class="phonefit" data-phone-scale="1"><div class="phone"><div class="scr" data-viewport-width="${PHONE_VIEWPORT_WIDTH}" data-viewport-height="${PHONE_VIEWPORT_HEIGHT}">
 <div class="statusbar"><span class="num">9:41</span><span class="sbr">${opts.offline ? icon("wifi-off-line", "s") : ""}<span class="sb-sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="sb-batt"></span></span></div>
 <main class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</main>
 ${bottomBar}
 <div class="homebar"><i></i></div>
-</div></div>`;
+</div></div></div>`;
 }
 
 // Screen header — client views hand-render h1 (.title-screen grammar).
@@ -179,7 +180,7 @@ export function input(value: string, opts: { placeholder?: boolean; select?: boo
 }
 
 export function radio(
-  options: { label: string; meta?: string; on?: boolean }[],
+  options: { label: string; meta?: string; on?: boolean; hot?: string }[],
   opts: { interactive?: boolean; name?: string } = {},
 ): string {
   const name = escAttr(opts.name ?? options.map((o) => o.label).join("-").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 36));
@@ -189,7 +190,8 @@ export function radio(
       const dot = opts.interactive
         ? `<input class="rdot" id="${optionId}" type="radio" name="${name}"${o.on ? " checked" : ""}>`
         : `<span class="rdot" aria-hidden="true"></span>`;
-      return `<label class="ro${!opts.interactive && o.on ? " on" : ""}"${opts.interactive ? ` for="${optionId}"` : ""}>${dot}<span><span class="rl">${esc(o.label)}</span>${o.meta ? `<span class="rm">${esc(o.meta)}</span>` : ""}</span></label>`;
+      const row = `<label class="ro${!opts.interactive && o.on ? " on" : ""}"${opts.interactive ? ` for="${optionId}"` : ""}>${dot}<span><span class="rl">${esc(o.label)}</span>${o.meta ? `<span class="rm">${esc(o.meta)}</span>` : ""}</span></label>`;
+      return o.hot ? hot(o.hot, row) : row;
     })
     .join("")}</div>`;
 }

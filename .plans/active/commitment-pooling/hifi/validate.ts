@@ -12,8 +12,11 @@
 // OperatorCaptured) — they are not screen copy and are never scanned.
 
 import type { SB as RawSB, Scene } from "./journeys";
+import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
 import { HOME_SURFACE, SCENE_SURFACES } from "./types";
-import type { HotRegistry, ResolveTables, Screen, ShippedSB, ShippedStep } from "./types";
+import type {
+  ContractCall, HotRegistry, ResolveTables, Screen, ShippedSB, ShippedStep, StateFacts,
+} from "./types";
 
 export type Ctx = {
   screens: Screen[];
@@ -28,6 +31,161 @@ const err: string[] = [];
 const warn: string[] = [];
 
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
+
+type FactKey =
+  | "pool" | "cycle" | "commitment"
+  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement";
+const FACT_KEYS = [
+  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement",
+] as const satisfies readonly (keyof StateFacts)[];
+type CallRule = {
+  key: FactKey;
+  allowed: readonly string[];
+  next?: string;
+  effects?: Partial<Record<FactKey, string>>;
+  kinds?: readonly string[];
+  requires?: Partial<Record<FactKey, readonly string[]>>;
+  resultAllowed?: readonly string[];
+};
+
+// Contract-spec lifecycle gates, expressed once and applied to every emitted
+// hotspot that names a call. Calls run in order, so compound controls cannot
+// hide an illegal second act behind legal first-act copy.
+const CALL_RULES: Record<ContractCall, CallRule> = {
+  createCommitment: { key: "pool", allowed: ["Open"] },
+  claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
+  acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
+  declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
+  attachEvidence: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "EvidenceSubmitted" },
+  linkWork: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
+  attachAssessment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation", kinds: ["DomainImpact"] },
+  submitForConfirmation: { key: "commitment", allowed: ["EvidenceSubmitted"], next: "ReadyForConfirmation", kinds: ["SupportService", "SeasonCampaign", "OperatorCaptured"] },
+  markReadyForConfirmation: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation" },
+  confirmFulfillment: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
+  confirmFulfillmentAsFallback: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
+  cancelCommitment: { key: "commitment", allowed: ["Offered", "Requested", "Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "Cancelled" },
+  raiseDispute: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved", "ReadyForConfirmation", "Expired"], next: "Disputed" },
+  resolveDispute: {
+    key: "commitment",
+    allowed: ["Disputed"],
+    resultAllowed: ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
+  },
+  recordRewardPaid: { key: "commitment", allowed: ["Fulfilled"] },
+  markPoolReady: { key: "pool", allowed: ["NotReady"], next: "Ready" },
+  openPool: { key: "pool", allowed: ["Ready"], next: "Open" },
+  pausePool: { key: "pool", allowed: ["Open"], next: "Paused" },
+  resumePool: { key: "pool", allowed: ["Paused"], next: "Open" },
+  closePool: { key: "pool", allowed: ["Open", "Paused"], next: "Closed" },
+  compostPool: { key: "pool", allowed: ["Closed"], next: "Composted" },
+  reopenPool: { key: "pool", allowed: ["Composted"], next: "Ready" },
+  seedCycle: { key: "pool", allowed: ["Ready", "Open"], effects: { cycle: "Seeded" } },
+  openCycle: { key: "cycle", allowed: ["Seeded"], next: "Open", requires: { pool: ["Open"] } },
+  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled" },
+  compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
+  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
+  registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
+  queueDisbursement: {
+    key: "commitment",
+    allowed: ["Fulfilled"],
+    effects: { disbursement: "Queued" },
+    requires: {
+      settlementAccount: ["Active"],
+      beneficiarySettlementAccount: ["NotRequired", "Active"],
+    },
+  },
+  createBatch: { key: "disbursement", allowed: ["Queued"] },
+  dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
+  dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
+  retryBatchCommand: { key: "disbursement", allowed: ["Dispatched"] },
+  retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
+  cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },
+  requeue: { key: "disbursement", allowed: ["Failed"], next: "Queued" },
+  cancelDisbursement: { key: "disbursement", allowed: ["Queued", "Failed"], next: "Cancelled" },
+};
+
+function validateCalls(
+  screen: Screen,
+  stateId: string,
+  facts: StateFacts | undefined,
+  hid: string,
+  calls: ContractCall[],
+  targetFacts?: StateFacts,
+  targetIsPending = false,
+  resultFacts?: StateFacts,
+) {
+  const source: StateFacts = { ...facts };
+  const current: StateFacts = { ...source };
+  const touched = new Set<keyof StateFacts>();
+  const changed = new Set<keyof StateFacts>();
+  const consumedResults = new Set<keyof StateFacts>();
+  for (const call of calls) {
+    const rule = CALL_RULES[call];
+    touched.add(rule.key);
+    const value = current[rule.key];
+    if (!value) {
+      err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} lacks drawn ${rule.key} state metadata`);
+      continue;
+    }
+    if (!rule.allowed.includes(value))
+      err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} forbidden from ${rule.key} ${value} (allowed: ${rule.allowed.join(", ")})`);
+    if (rule.kinds && (!current.kind || !rule.kinds.includes(current.kind)))
+      err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} forbidden for kind ${current.kind ?? "<missing>"} (allowed: ${rule.kinds.join(", ")})`);
+    for (const [requiredKey, allowed] of Object.entries(rule.requires ?? {}) as [FactKey, readonly string[]][]) {
+      const requiredValue = current[requiredKey];
+      if (!requiredValue || !allowed.includes(requiredValue))
+        err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} requires ${requiredKey} ${allowed.join(" or ")}, drew ${requiredValue ?? "<missing>"}`);
+    }
+    if (rule.next) {
+      (current as Record<string, string>)[rule.key] = rule.next;
+      changed.add(rule.key);
+    }
+    for (const [effectKey, effectValue] of Object.entries(rule.effects ?? {}) as [FactKey, string][]) {
+      (current as Record<string, string>)[effectKey] = effectValue;
+      touched.add(effectKey);
+      changed.add(effectKey);
+    }
+    if (rule.resultAllowed) {
+      const result = resultFacts?.[rule.key];
+      if (!result)
+        err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} must declare resultFacts.${rule.key}`);
+      else if (!rule.resultAllowed.includes(result))
+        err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} cannot produce ${rule.key} ${result} (allowed: ${rule.resultAllowed.join(", ")})`);
+      else {
+        (current as Record<string, string>)[rule.key] = result;
+        changed.add(rule.key);
+      }
+      consumedResults.add(rule.key);
+    }
+  }
+  for (const resultKey of Object.keys(resultFacts ?? {}) as (keyof StateFacts)[])
+    if (!consumedResults.has(resultKey))
+      err.push(`CALL ${screen.id}@${stateId} ${hid}: resultFacts.${resultKey} does not belong to an outcome-dependent call`);
+  // Compare the complete overlapping fact set, not only the entity a call
+  // mutates. closeCycle/cancelCycle, for example, must preserve a Paused pool.
+  // Queued targets compare against the pre-call source because the contract
+  // effect has not landed yet. The explicit Paused confirmation/wizard variants
+  // are regression fixtures for this preservation rule.
+  const expected = targetIsPending ? source : current;
+  for (const key of FACT_KEYS) {
+    // A call can touch an entity without declaring a deterministic `next`
+    // state (claimCommitment is derived by claim mode). In that case source
+    // legality is validated, but the target value is intentionally not guessed.
+    const comparable = targetIsPending || changed.has(key) || !touched.has(key);
+    const targetValue = targetFacts?.[key];
+    const expectedValue = expected[key];
+    if (!comparable || !targetValue) continue;
+    if (!expectedValue)
+      err.push(
+        `CALL ${screen.id}@${stateId} ${hid}: target introduces ${key} ${targetValue}, but no call produces it`,
+      );
+    else if (targetValue !== expectedValue)
+      err.push(
+        `CALL ${screen.id}@${stateId} ${hid}: target draws ${key} ${targetValue}, but ${
+          targetIsPending ? "the queued transition preserves" : "calls produce"
+        } ${expectedValue}`,
+      );
+  }
+}
 
 // data-hot / data-mark tokens actually present in one state's html
 function domTokens(html: string) {
@@ -104,8 +262,9 @@ const ADMIN_HERO: [RegExp, string][] = [
 // signature that does not exist. Extend this set from the contract spec when a
 // new reason-taking confirmation is drawn.
 const REASON_CONFIRMS = new Set([
-  "pause-confirm", "cancel-cycle-confirm", "decline-claim-confirm",
+  "pause-confirm", "cancel-cycle-confirm", "paused-cancel-cycle-confirm", "decline-claim-confirm",
   "fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
+  "cancel-queued-confirm",
   "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
 ]);
 
@@ -119,6 +278,13 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   if (html.length < (screen.frame === "ascii" ? 40 : 200)) err.push(`RENDER ${where}: suspiciously empty (${html.length} chars)`);
   for (const bad of ["undefined", "[object ", "NaN"]) {
     if (stripTags(html).includes(bad)) err.push(`RENDER ${where}: contains "${bad}"`);
+  }
+  if (screen.frame === "phone") {
+    const viewportContract = `class="scr" data-viewport-width="${PHONE_VIEWPORT_WIDTH}" data-viewport-height="${PHONE_VIEWPORT_HEIGHT}"`;
+    if (!html.includes('class="phonefit"'))
+      err.push(`FRAME ${where}: phone is missing its uniform-fit wrapper`);
+    if (!html.includes(viewportContract))
+      err.push(`FRAME ${where}: phone must declare a ${PHONE_VIEWPORT_WIDTH}×${PHONE_VIEWPORT_HEIGHT} logical viewport`);
   }
   const text = stripTags(html);
   // Core vocabulary is never warn-only: ASCII and September previews are still
@@ -337,6 +503,24 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       for (const h of t.hots) {
         emitted.add(h);
         if (!ctx.screenHots[s.id]?.has(h)) err.push(`EMITTED ${h} unregistered on ${s.id}@${st.id}`);
+        const meta = ctx.hots[h];
+        if (meta?.calls?.length) {
+          let targetFacts: StateFacts | undefined;
+          if (meta.to?.startsWith("screen:")) {
+            const target = resolveScreen(meta.to.slice(7), `call target ${h}`);
+            targetFacts = target?.screen.states.find((candidate) => candidate.id === target.state)?.facts;
+          }
+          validateCalls(
+            s,
+            st.id,
+            { ...st.facts, ...meta.facts },
+            h,
+            meta.calls,
+            targetFacts,
+            !!meta.pendingSync,
+            meta.resultFacts,
+          );
+        }
       }
     }
     for (const h of ctx.screenHots[s.id] ?? []) {

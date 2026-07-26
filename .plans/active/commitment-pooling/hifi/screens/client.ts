@@ -6,7 +6,7 @@
 // wireframes.md:166: state + next action in the viewport; Timeline / Evidence
 // / Work behind disclosures; identifiers behind a single Details disclosure.
 // Dissolved lo-fi variants: W1P/W1S → W1@claim-*, MF3 → W2@expired, MF5 →
-// W1@waiting-membership, MF6 → W2@evidence-submitted, MF10 → W1@cycle-summary.
+// W1@waiting-membership, MF6 → W2@request-evidence-submitted, MF10 → W1@cycle-summary.
 
 import { hot } from "../html";
 import { icon } from "../icons";
@@ -16,6 +16,7 @@ import {
   sheetOver, skeleton, stateChip, stepDots, syncBar, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
+import type { StateFacts } from "../types";
 
 // ---------------------------------------------------------------------------
 // W1 — Pool tab on the garden detail (uiux-spec §5.2)
@@ -23,9 +24,13 @@ import type { HifiDef } from "./index";
 
 const W1_STATES = [
   ["open", "Open"], ["not-ready", "Not ready"], ["ready", "Ready"], ["seeded", "Seeded"],
-  ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"], ["cancelled-cycle", "Cycle cancelled"],
+  ["request-open", "Open request"], ["request-queued", "Request queued"],
+  ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"],
+  ["cancelled-cycle", "Cycle cancelled"], ["paused-cancelled-cycle", "Cycle cancelled · pool paused"],
   ["empty-open", "Empty pool"], ["no-season", "No season"],
-  ["queued", "Queued send"], ["sync-failed", "Send failed"], ["waiting-membership", "Waiting for membership"],
+  ["campaign-market", "Campaign · Market rides"], ["campaign-tools", "Campaign · Tool library"],
+  ["queued", "Queued send"], ["support-queued", "Service offer queued"],
+  ["sync-failed", "Send failed"], ["waiting-membership", "Waiting for membership"],
   ["cycle-summary", "Season closed"], ["claim-pending", "Claim pending"], ["claim-declined", "Claim declined"],
   ["claim-superseded", "Claim superseded"], ["claim-accepted", "Claim accepted"],
   ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
@@ -55,28 +60,50 @@ const campaignsBlock = () =>
     "Campaigns",
     "2 open",
     card(
-      listRow({ icon: "seedling-line", primary: "Market rides", meta: "Campaign · Open", chipHtml: `<span class="ch num">6/16</span>`, chevron: true }) +
-        listRow({ icon: "seedling-line", primary: "Tool library", meta: "Campaign · Reviewing", chipHtml: `<span class="ch num">8/8</span>`, chevron: true }),
+      hot("w1.campaign-market", listRow({ icon: "seedling-line", primary: "Market rides", meta: "Campaign · Open", chipHtml: `<span class="ch num">6/16</span>`, chevron: true })) +
+        hot("w1.campaign-tools", listRow({ icon: "seedling-line", primary: "Tool library", meta: "Campaign · Reviewing", chipHtml: `<span class="ch num">8/8</span>`, chevron: true })),
       { cls: "flat" },
     ),
   );
 
-const offerCard = (opts: { queued?: boolean; waiting?: boolean; failed?: boolean } = {}) => {
+const offerCard = (opts: {
+  queued?: boolean;
+  waiting?: boolean;
+  failed?: boolean;
+  readOnly?: boolean;
+  readOnlyNote?: string;
+  detailHot?: string;
+  detailLabel?: string;
+} = {}) => {
   const chips = `${chip("Offer", "offer")}${chip("AGRO", "domain")}${opts.queued ? chip("Queued", "queued") : ""}${opts.waiting ? chip("Waiting", "queued") : ""}${opts.failed ? chip("Couldn't send", "err") : ""}`;
-  const cta = opts.queued || opts.waiting || opts.failed ? "" : `<div class="brow">${hot("w1.take-up", btn("Take this up", { kind: "sec" }))}</div>`;
+  const cta = opts.queued || opts.waiting || opts.failed
+    ? ""
+    : opts.readOnly
+      ? opts.detailHot
+        ? `<div class="brow">${hot(opts.detailHot, btn(opts.detailLabel ?? "Open promise", { kind: "sec" }))}</div>`
+        : ""
+      : `<div class="brow">${hot("w1.take-up", btn("Take this up", { kind: "sec" }))}</div>`;
   const note = opts.waiting
     ? `<div class="t-meta">Waiting for your garden membership — it will send once you're welcomed in.</div>`
     : opts.failed
       ? `<div class="t-meta">Five send attempts used. You can retry or discard.</div><div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
-      : `<div class="t-meta">Anyone in this garden may take this up.</div>`;
-  const title = opts.queued || opts.waiting || opts.failed ? "Compost workshop" : "Prune the north beds";
-  const meta = opts.queued || opts.waiting || opts.failed ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
+      : opts.readOnly
+        ? `<div class="t-meta">${opts.readOnlyNote ?? "This promise remains visible, but taking it up is not available right now."}</div>`
+        : `<div class="t-meta">Anyone in this garden may take this up.</div>`;
+  const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
+  const meta = opts.waiting ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
   return card(`<div class="cardrow">${chips}</div><div class="t-title">${title}</div><div class="t-meta num">${meta}</div>${note}${cta}`);
 };
 
-const requestCard = () =>
+const requestCard = (opts: { openClaim?: boolean; queued?: boolean; context?: string; claimHot?: string } = {}) =>
   card(
-    `<div class="cardrow">${chip("Request", "request")}</div><div class="t-title">Ride to the market on Saturday</div><div class="t-meta num">1 ride · runs with the season</div><div class="t-meta">Stewards review who takes this up.</div><div class="brow">${hot("w1.ask-take-up", btn("Ask to take this up", { kind: "sec" }))}</div>`,
+    `<div class="cardrow">${chip("Request", "request")}${opts.queued ? chip("Queued", "queued") : ""}</div><div class="t-title">Ride to the market on Saturday</div><div class="t-meta num">1 ride · ${opts.context ?? "runs with the season"}</div>${
+      opts.queued
+        ? `<div class="t-meta">Saved on this device — it will send when connected.</div>`
+        : opts.openClaim
+          ? `<div class="t-meta">Anyone in this garden may offer to help.</div><div class="brow">${hot(opts.claimHot ?? "w1.take-up-request", btn("I can help", { kind: "sec" }))}</div>`
+          : `<div class="t-meta">Stewards review who takes this up.</div><div class="brow">${hot("w1.ask-take-up", btn("Ask to take this up", { kind: "sec" }))}</div>`
+    }`,
   );
 
 const claimCard = (state: W1State) => {
@@ -93,7 +120,7 @@ const claimCard = (state: W1State) => {
       `<div class="cardrow">${chip("Taken up by another provider", "plain", { dot: true })}</div><div class="t-title">Ride to the market on Saturday</div><div class="t-meta">No longer available — this is not a send failure.</div><div class="brow">${hot("w1.back-browse", btn("Back to browsing", { kind: "ghost" }))}</div>`,
     );
   return card(
-    `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}</div><div class="t-title">Your request was accepted</div><div class="t-meta">Provider garden: Rocinha.</div><div class="brow">${hot("w1.open-commitment", btn("Open the promise", { kind: "pri" }))}</div>`,
+    `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}</div><div class="t-title">Your request to help was accepted</div><div class="t-meta">Ride to the market on Saturday · Ana asked · provider: you.</div><div class="brow">${hot("w1.open-commitment", btn("Open the promise", { kind: "pri" }))}</div>`,
   );
 };
 
@@ -125,7 +152,11 @@ function w1(state: W1State): string {
       content = pagepad(
         banner("Paused by your stewards — “seasonal flooding, back after the rains”. Nothing is lost; promises resume when the pool does.", "amber", "error-warning-line"),
         seasonCard({ stage: "Paused" }),
-        offerCard(),
+        offerCard({
+          readOnly: true,
+          readOnlyNote: "New participation is paused. Evidence, linked work, and recovery remain available inside the promise.",
+          detailHot: "w1.open-paused-promise",
+        }),
       );
       break;
     case "closed":
@@ -138,7 +169,24 @@ function w1(state: W1State): string {
       content = pagepad(
         banner("No season is running right now. Campaigns may still open.", "stone"),
         campaignsBlock(),
-        `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri", full: true }))}</div>`,
+        card(`<div class="t-title">New season offers are paused</div><div class="t-meta">Open a campaign to see its promises, or wait for your steward to seed the next season.</div>`, { cls: "inset" }),
+      );
+      break;
+    case "campaign-market":
+      content = pagepad(
+        banner("No Season is open. This campaign remains available on its own.", "stone"),
+        card(`<div class="cardrow"><div class="grow"><div class="t-title">Market rides</div><div class="t-meta">Campaign · Open · through Aug 18</div></div>${chip("6 of 16", "plain")}</div>`),
+        sectionTitle("Campaign promises"),
+        requestCard({ openClaim: true, context: "Market rides campaign", claimHot: "w1.take-up-campaign-request" }),
+        hot("w1.campaigns-back", btn("Back to campaigns", { kind: "ghost", full: true })),
+      );
+      break;
+    case "campaign-tools":
+      content = pagepad(
+        banner("Tool library is under review. Evidence and confirmations stay available.", "stone", "eye-line"),
+        card(`<div class="cardrow"><div class="grow"><div class="t-title">Tool library</div><div class="t-meta">Campaign · Reviewing · through Aug 18</div></div>${chip("8 of 8", "plain")}</div>`),
+        card(`<div class="cardrow">${chip("Offer", "offer")}${chip("Support / service", "plain")}</div><div class="t-title">Repair tool handles</div><div class="t-meta">1 repair session · Tool library campaign</div><div class="t-meta">This promise is ready for confirmation.</div><div class="brow">${hot("w1.open-tools-promise", btn("Review confirmation", { kind: "pri" }))}</div>`),
+        hot("w1.campaigns-back", btn("Back to campaigns", { kind: "ghost", full: true })),
       );
       break;
     case "empty-open":
@@ -156,24 +204,52 @@ function w1(state: W1State): string {
         campaignsBlock(),
       );
       break;
+    case "request-open":
+      content = pagepad(
+        seasonCard(),
+        sectionTitle("Open request"),
+        hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 2)),
+        requestCard({ openClaim: true }),
+      );
+      break;
+    case "request-queued":
+      content = pagepad(
+        seasonCard(),
+        banner("Your request is saved on this device and will send when connected.", "stone", "wifi-off-line"),
+        hot("w1.queued-card", requestCard({ queued: true })),
+      );
+      break;
     case "queued":
-    case "sync-failed":
-    case "waiting-membership": {
-      const flavor = state === "queued" ? { queued: true } : state === "sync-failed" ? { failed: true } : { waiting: true };
       content = pagepad(
         seasonCard(),
         `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri" }))}${hot("w1.request", btn("Request help", { kind: "sec" }))}</div>`,
         hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 4)),
-        hot("w1.queued-card", offerCard(flavor)),
+        hot("w1.queued-card", offerCard({ queued: true })),
+        disclosure("Browse other promises", "pool stays open", requestCard()),
+      );
+      break;
+    case "waiting-membership":
+      content = pagepad(
+        seasonCard(),
+        `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri" }))}${hot("w1.request", btn("Request help", { kind: "sec" }))}</div>`,
+        hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 4)),
+        hot("w1.queued-card", offerCard({ waiting: true })),
         offerCard(),
       );
       break;
-    }
+    case "sync-failed":
+      content = pagepad(
+        seasonCard(),
+        banner("This promise did not send after five attempts. Retry it, or discard the local copy.", "amber", "error-warning-line"),
+        hot("w1.queued-card", offerCard({ failed: true })),
+        disclosure("Browse other promises", "pool stays open", requestCard()),
+      );
+      break;
     case "claim-pending":
     case "claim-declined":
     case "claim-superseded":
     case "claim-accepted":
-      content = pagepad(claimCard(state), hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 0)), offerCard());
+      content = pagepad(claimCard(state));
       break;
     case "seeded":
       content = pagepad(
@@ -186,13 +262,36 @@ function w1(state: W1State): string {
       content = pagepad(
         banner("Your stewards are reviewing this season. You can still add evidence and confirm promises.", "stone", "eye-line"),
         seasonCard({ stage: "Reviewing" }),
-        offerCard(),
+        offerCard({
+          readOnly: true,
+          readOnlyNote: "This promise is ready for your confirmation. Other promises still accept evidence while the season is reviewed.",
+          detailHot: "w1.open-reviewing-promise",
+          detailLabel: "Review confirmation",
+        }),
       );
       break;
     case "cancelled-cycle":
       content = pagepad(
         banner("This season was cancelled — “funding fell through for the rains”. Its history stays with the garden.", "stone", "information-line"),
         card(`<div class="t-title">Season of First Rains</div><div class="t-meta num">8 promises made · 5 kept</div>`),
+      );
+      break;
+    case "paused-cancelled-cycle":
+      content = pagepad(
+        banner("The pool remains paused — “seasonal flooding, back after the rains”. This season was cancelled, and its history stays with the garden.", "amber", "error-warning-line"),
+        card(`<div class="cardrow"><div class="grow"><div class="t-title">Season of First Rains</div><div class="t-meta num">8 promises made · 5 kept</div></div>${chip("Cancelled", "plain", { dot: true })}</div>`),
+      );
+      break;
+    case "support-queued":
+      content = pagepad(
+        seasonCard(),
+        banner("Your service offer is saved on this device and will send when connected.", "stone", "wifi-off-line"),
+        hot(
+          "w1.queued-card",
+          card(
+            `<div class="cardrow">${chip("Offer", "offer")}${chip("Support / service", "plain")}${chip("Queued", "queued")}</div><div class="t-title">Repair tool handles</div><div class="t-meta">1 repair session · Tool library campaign</div><div class="t-meta">João can take it up after the offer reaches the pool.</div>`,
+          ),
+        ),
       );
       break;
     case "loading":
@@ -224,19 +323,32 @@ function w1(state: W1State): string {
       );
   }
 
-  const sync = state === "queued" ? syncBar("1 promise waiting to send") : state === "sync-failed" ? syncBar("1 item needs attention") : "";
-  const offline = state === "queued" || state === "sync-failed";
+  const sync =
+    state === "queued" || state === "support-queued" || state === "request-queued"
+      ? syncBar("1 promise waiting to send")
+      : state === "sync-failed"
+        ? syncBar("1 item needs attention")
+        : "";
+  const offline = state === "queued" || state === "support-queued" || state === "request-queued" || state === "sync-failed";
   return phoneFrame(`${head}${tabs}${content}<div style="flex:1"></div>${sync}`, { offline });
 }
 
 const W1_HOTS: HifiDef["hots"] = {
   "w1.offer": { l: "Offer support", to: "screen:W3", info: "Starts the creation flow with direction = offer (UX:120)." },
   "w1.request": { l: "Request help", to: "screen:W3@request-variant", info: "Creation flow with direction = request (UX:153)." },
-  "w1.take-up": { l: "Take this up (open claim)", to: "screen:W2", info: "Open mode: claim job → optimistic Accepted (UX:129)." },
-  "w1.ask-take-up": { l: "Ask to take this up (steward-reviewed)", to: "screen:W1@claim-pending", info: "Approval-gated: creates a claim request with stored terms; the commitment stays available to others (UX:99)." },
-  "w1.ask-again": { l: "Ask again", to: "screen:W1@claim-pending", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105)." },
+  "w1.take-up": { l: "Take this up (open claim)", to: "screen:W2", info: "Open mode: claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
+  "w1.take-up-request": { l: "I can help (open request)", to: "screen:W2@request-active", info: "Open mode: the claimant becomes the provider and the request creator remains the confirmer.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
+  "w1.take-up-campaign-request": { l: "I can help (campaign request)", to: "screen:W2@campaign-request-active", info: "Open mode preserves the Market rides Campaign binding while the claimant becomes provider.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
+  "w1.open-paused-promise": { l: "Open promise while paused", to: "screen:W2@active", info: "Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
+  "w1.open-reviewing-promise": { l: "Review confirmation", to: "screen:W2@ready-confirmer", info: "Reviewing keeps evidence and confirmation available; this selected promise is already ReadyForConfirmation (UX:74)." },
+  "w1.campaign-market": { l: "Open Market rides campaign", to: "screen:W1@campaign-market", info: "Campaigns remain independently usable when no Season is open (UX:127)." },
+  "w1.campaign-tools": { l: "Open Tool library campaign", to: "screen:W1@campaign-tools", info: "A Reviewing campaign stays independently browseable and keeps evidence and confirmation available (UX:74,127)." },
+  "w1.campaigns-back": { l: "Back to campaigns", to: "screen:W1@no-season", info: "Returns to the no-Season pool home with both Campaigns available." },
+  "w1.open-tools-promise": { l: "Review Tool library confirmation", to: "screen:W4@confirm-support", info: "Opens a SupportService promise that remains confirmable while its Campaign is Reviewing." },
+  "w1.ask-take-up": { l: "Ask to take this up (steward-reviewed)", to: "screen:W1@claim-pending", info: "Approval-gated: creates a claim request with stored terms; the commitment stays available to others (UX:99).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
+  "w1.ask-again": { l: "Ask again", to: "screen:W1@claim-pending", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w1.back-browse": { l: "Back to browsing", to: "screen:W1", info: "Declined/superseded exits return to browse." },
-  "w1.open-commitment": { l: "Open the promise", to: "screen:W2", info: "Acceptance names the counterparty / provider garden (UX:104)." },
+  "w1.open-commitment": { l: "Open the promise", to: "screen:W2@request-active", info: "Acceptance opens the same request record with the accepted claimant as provider (UX:104)." },
   "w1.scope": { l: "Scope control", info: "Filters the list; every aggregate names its scope — Season and Campaigns never blur (UX:127)." },
   "w1.filters": { l: "Filter chips", info: "Client-local filter chips (admin AdminFilterChip is admin-only)." },
   "w1.season-card": { l: "Cycle card", info: "Season vs Campaign is always named; derived InProgress/Reviewing overlays follow activity (CS:115-117). Calm dates, never timers." },
@@ -257,16 +369,40 @@ const W1_HOTS: HifiDef["hots"] = {
 const W2_STATES = [
   ["accepted", "Accepted"], ["offered", "Offered (yours)"], ["requested", "Requested (yours)"],
   ["active", "Active"], ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
-  ["ready-confirmer", "Ready — confirmer view"], ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
+  ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
+  ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
   ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
   ["support-executed", "Celo executed"], ["support-confirming", "Confirming arrival"],
   ["support-arrived", "Support arrived"], ["support-failed", "Support failed"],
   ["support-cancelled-queued", "Support withdrawn"], ["support-cancelled-failed", "Support closed after failed delivery"],
   ["reconciled", "Reconciled"], ["cancelled", "Cancelled"], ["expired", "Expired"],
   ["disputed", "Under review"], ["captured", "Recorded for you"],
+  ["captured-evidence-queued", "Recorded — evidence queued"],
+  ["captured-evidence-submitted", "Recorded — evidence in"],
+  ["captured-ready-pending", "Recorded — readiness queued"],
+  ["captured-ready-confirmer", "Recorded — ready"], ["captured-confirmation-pending", "Recorded — confirmation queued"],
+  ["captured-fulfilled", "Recorded — fulfilled"],
+  ["captured-disputed", "Recorded — steward review"],
   ["withdraw-confirm", "Withdraw — confirm"], ["withdrawn", "Withdrawn (yours)"],
   ["garden-provider", "Your garden provides"], ["garden-support-arrived", "Support reached your garden"],
-  ["request-active", "Request — helper working"], ["request-evidence-submitted", "Request — evidence in"], ["request-fulfilled", "Request — help arrived"],
+  ["request-active", "Request — helper working"], ["campaign-request-active", "Campaign request — helper working"],
+  ["campaign-request-evidence-queued", "Campaign request — evidence queued"],
+  ["campaign-request-evidence-submitted", "Campaign request — evidence in"],
+  ["campaign-request-ready-pending", "Campaign request — readiness queued"],
+  ["campaign-request-ready-confirmer", "Campaign request — ready"],
+  ["campaign-request-confirmation-pending", "Campaign request — confirmation queued"],
+  ["campaign-request-fulfilled", "Campaign request — fulfilled"], ["campaign-request-disputed", "Campaign request — review"],
+  ["request-evidence-queued", "Request — evidence queued"], ["request-evidence-submitted", "Request — evidence in"],
+  ["request-ready-pending", "Request — readiness queued"], ["request-ready-confirmer", "Request — ready"],
+  ["request-confirmation-pending", "Request — confirmation queued"],
+  ["request-fulfilled", "Request — help arrived"], ["request-disputed", "Request — steward review"],
+  ["support-offered", "Service offer — open"], ["support-active", "Service offer — active"],
+  ["support-evidence-queued", "Service offer — evidence queued"],
+  ["support-evidence-submitted", "Service offer — evidence in"], ["support-ready-pending", "Service offer — readiness queued"],
+  ["support-ready-confirmer", "Service offer — ready"],
+  ["support-confirmation-pending", "Service offer — confirmation queued"],
+  ["support-fulfilled", "Service offer — fulfilled"], ["support-cancelled", "Service offer — cancelled"],
+  ["support-disputed", "Service offer — steward review"],
   ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W2State = (typeof W2_STATES)[number][0];
@@ -275,22 +411,67 @@ type W2ChipState = Exclude<W2State, "loading" | "not-found" | "read-error">;
 const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
   "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
-  "ready-confirmer": "Ready to confirm", fulfilled: "Fulfilled", "reward-released": "Fulfilled",
+  "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
+  fulfilled: "Fulfilled", "reward-released": "Fulfilled",
   "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
   "support-executed": "Fulfilled", "support-confirming": "Fulfilled", "support-arrived": "Fulfilled",
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
   reconciled: "Reconciled",
   cancelled: "Cancelled", expired: "Expired", disputed: "Under review", captured: "Accepted",
+  "captured-evidence-queued": "Active", "captured-evidence-submitted": "Evidence in",
+  "captured-ready-pending": "Evidence in", "captured-ready-confirmer": "Ready to confirm",
+  "captured-confirmation-pending": "Ready to confirm",
+  "captured-fulfilled": "Fulfilled", "captured-disputed": "Under review",
   "withdraw-confirm": "Offered", withdrawn: "Withdrawn",
   "garden-provider": "Accepted", "garden-support-arrived": "Fulfilled",
-  "request-active": "Active", "request-evidence-submitted": "Evidence in", "request-fulfilled": "Fulfilled",
+  "request-active": "Active", "campaign-request-active": "Active",
+  "campaign-request-evidence-queued": "Active", "campaign-request-evidence-submitted": "Evidence in",
+  "campaign-request-ready-pending": "Evidence in", "campaign-request-ready-confirmer": "Ready to confirm",
+  "campaign-request-confirmation-pending": "Ready to confirm",
+  "campaign-request-fulfilled": "Fulfilled", "campaign-request-disputed": "Under review",
+  "request-evidence-queued": "Active",
+  "request-evidence-submitted": "Evidence in", "request-ready-pending": "Evidence in",
+  "request-ready-confirmer": "Ready to confirm", "request-confirmation-pending": "Ready to confirm",
+  "request-fulfilled": "Fulfilled", "request-disputed": "Under review",
+  "support-offered": "Offered", "support-active": "Active", "support-evidence-queued": "Active",
+  "support-evidence-submitted": "Evidence in", "support-ready-pending": "Evidence in",
+  "support-ready-confirmer": "Ready to confirm", "support-confirmation-pending": "Ready to confirm",
+  "support-fulfilled": "Fulfilled", "support-cancelled": "Cancelled",
+  "support-disputed": "Under review",
 };
 
-const W2_REQUEST = new Set<string>(["request-active", "request-evidence-submitted", "request-fulfilled"]);
+const W2_REQUEST = new Set<string>([
+  "request-active", "request-evidence-queued", "request-evidence-submitted",
+  "request-ready-pending", "request-ready-confirmer", "request-confirmation-pending",
+  "request-fulfilled", "request-disputed",
+]);
+const W2_CAMPAIGN_REQUEST = new Set<string>([
+  "campaign-request-active", "campaign-request-evidence-queued", "campaign-request-evidence-submitted",
+  "campaign-request-ready-pending", "campaign-request-ready-confirmer",
+  "campaign-request-confirmation-pending",
+  "campaign-request-fulfilled", "campaign-request-disputed",
+]);
+const W2_SUPPORT = new Set<string>([
+  "support-offered", "support-active", "support-evidence-queued",
+  "support-evidence-submitted", "support-ready-pending", "support-ready-confirmer", "support-fulfilled",
+  "support-confirmation-pending",
+  "support-cancelled", "support-disputed",
+]);
+const W2_CAPTURED = new Set<string>([
+  "captured", "captured-evidence-queued", "captured-evidence-submitted",
+  "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
+  "captured-fulfilled", "captured-disputed",
+]);
+const W2_WORK = new Set<W2State>(["accepted", "active", "evidence-submitted", "partially-approved"]);
 const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
-type PromiseCast = "offer" | "request" | "garden";
+type PromiseCast = "offer" | "request" | "campaign-request" | "support" | "captured" | "garden";
 const w2Cast = (state: W2State): PromiseCast =>
-  W2_GARDEN.has(state) ? "garden" : W2_REQUEST.has(state) ? "request" : "offer";
+  W2_GARDEN.has(state) ? "garden"
+  : W2_CAMPAIGN_REQUEST.has(state) ? "campaign-request"
+  : W2_REQUEST.has(state) ? "request"
+  : W2_SUPPORT.has(state) ? "support"
+  : W2_CAPTURED.has(state) ? "captured"
+  : "offer";
 const W2_IDENTITY: Record<PromiseCast, { title: string; meta: string; chips: string }> = {
   offer: {
     title: "Prune the north beds",
@@ -301,6 +482,21 @@ const W2_IDENTITY: Record<PromiseCast, { title: string; meta: string; chips: str
     title: "Ride to the market on Saturday",
     meta: "1 ride · runs with the season · Season of First Rains",
     chips: chip("Request", "request"),
+  },
+  "campaign-request": {
+    title: "Ride to the market on Saturday",
+    meta: "1 ride · Market rides campaign",
+    chips: chip("Request", "request") + chip("Campaign", "plain"),
+  },
+  support: {
+    title: "Repair tool handles",
+    meta: "1 repair session · Tool library campaign",
+    chips: chip("Offer", "offer") + chip("Support / service", "plain"),
+  },
+  captured: {
+    title: "Compost workshop",
+    meta: "3 sessions · recorded for Kwame · Season of First Rains",
+    chips: chip("Offer", "offer") + chip("Recorded for you", "plain"),
   },
   garden: {
     title: "Methodology survey",
@@ -374,15 +570,91 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     return [{ label: "Offered", meta: "Maria · Jul 2 — waiting for someone to take it up", open: true }];
   if (state === "requested") return [{ label: "Requested", meta: "Ana · Jul 2 — stewards review who takes this up", open: true }];
 
-  if (state === "request-active" || state === "request-evidence-submitted" || state === "request-fulfilled") {
+  if (W2_CAMPAIGN_REQUEST.has(state)) {
+    const campaignAsked: Moment[] = [
+      { label: "Requested", meta: "Market rides Campaign · Ana · Jul 2" },
+      { label: "João can help", meta: "took this up · Jul 5" },
+    ];
+    if (state === "campaign-request-active")
+      return [...campaignAsked, { label: "Getting it done", meta: "waiting on the ride", open: true }];
+    if (state === "campaign-request-evidence-queued")
+      return [...campaignAsked, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "campaign-request-evidence-submitted")
+      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6", open: true }];
+    if (state === "campaign-request-ready-pending")
+      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "campaign-request-ready-confirmer")
+      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Ready to confirm", meta: "waiting on Ana", open: true }];
+    if (state === "campaign-request-confirmation-pending")
+      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
+    if (state === "campaign-request-disputed")
+      return [...campaignAsked, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
+    return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Promise kept", meta: "confirmed by Ana · Jul 6", open: true }];
+  }
+  if (W2_REQUEST.has(state)) {
     const asked: Moment[] = [
       { label: "Requested", meta: "Ana · Jul 2" },
       { label: "João can help", meta: "took this up · Jul 5" },
     ];
     if (state === "request-active") return [...asked, { label: "Getting it done", meta: "waiting on the ride", open: true }];
+    if (state === "request-evidence-queued")
+      return [...asked, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "request-evidence-submitted")
       return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6", open: true }];
+    if (state === "request-ready-pending")
+      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "request-ready-confirmer")
+      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Ready to confirm", meta: "waiting on Ana", open: true }];
+    if (state === "request-confirmation-pending")
+      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
+    if (state === "request-disputed")
+      return [...asked, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
     return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Promise kept", meta: "confirmed by Ana · Jul 6", open: true }];
+  }
+  if (W2_SUPPORT.has(state)) {
+    if (state === "support-offered")
+      return [{ label: "Offered", meta: "Maria · Jul 2", open: true }];
+    const offered: Moment[] = [
+      { label: "Offered", meta: "Maria · Jul 2" },
+      { label: "Accepted", meta: "João took this up · Jul 3" },
+    ];
+    if (state === "support-active") return [...offered, { label: "Getting it done", meta: "waiting on the repair", open: true }];
+    if (state === "support-evidence-queued")
+      return [...offered, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "support-evidence-submitted")
+      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6", open: true }];
+    if (state === "support-ready-pending")
+      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "support-ready-confirmer")
+      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Ready to confirm", meta: "waiting on João", open: true }];
+    if (state === "support-confirmation-pending")
+      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Confirmation queued", meta: "João · saved on this device", open: true }];
+    if (state === "support-cancelled")
+      return [...offered, { label: "Cancelled", meta: "steward · Jul 9", note: "“withdrawn by agreement at the gathering”", warn: true, open: true }];
+    if (state === "support-disputed")
+      return [...offered, { label: "Under steward review", meta: "João recorded what still needs doing", open: true }];
+    return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Promise kept", meta: "confirmed by João · Jul 6", open: true }];
+  }
+  if (W2_CAPTURED.has(state)) {
+    const recorded: Moment[] = [
+      { label: "Recorded for Kwame", meta: "steward record · Jul 2" },
+      { label: "Accepted", meta: "João took this up · Jul 3" },
+    ];
+    if (state === "captured")
+      return [...recorded, { label: "Getting it done", meta: "waiting on the workshop", open: true }];
+    if (state === "captured-evidence-queued")
+      return [...recorded, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "captured-evidence-submitted")
+      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6", open: true }];
+    if (state === "captured-ready-pending")
+      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+    if (state === "captured-ready-confirmer")
+      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Ready to confirm", meta: "waiting on João", open: true }];
+    if (state === "captured-confirmation-pending")
+      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
+    if (state === "captured-disputed")
+      return [...recorded, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
+    return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Promise kept", meta: "confirmed by João · Jul 6", open: true }];
   }
   if (state === "garden-provider")
     return [
@@ -411,6 +683,8 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     return [...opened, { label: "Expired", meta: "ran through Aug 12", warn: true, open: true }];
 
   const worked: Moment[] = [...opened, { label: "Work linked", meta: "pruning session · Jul 8" }];
+  if (state === "confirmation-pending")
+    return [...worked, { label: "Confirmation queued", meta: "João · saved on this device", open: true }];
   if (state === "disputed")
     return [...worked, { label: "Under review by stewards", meta: "Jul 10", note: "“the far bed is still overgrown”", warn: true, open: true }];
 
@@ -424,8 +698,46 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
 
 const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: boolean } = {}) => {
   const moments = w2Moments(state, !!opts.overrideNote);
+  const cast = w2Cast(state);
   // Nothing has been done yet on an unclaimed promise — no evidence, no work.
-  const preAcceptance = state === "offered" || state === "requested" || state === "withdraw-confirm" || state === "withdrawn";
+  const preAcceptance =
+    state === "offered" || state === "requested" || state === "support-offered" ||
+    state === "withdraw-confirm" || state === "withdrawn";
+  const evidenceQueued =
+    state === "support-evidence-queued" || state === "request-evidence-queued" ||
+    state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
+  const evidence =
+    cast === "support"
+      ? listRow({
+          icon: "image-line",
+          primary: "Tool handles after repair",
+          meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
+          chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
+        })
+      : cast === "request" || cast === "campaign-request"
+        ? listRow({
+            icon: "image-line",
+            primary: "Ride arrived at the market",
+            meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
+            chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
+          })
+        : cast === "captured"
+          ? listRow({
+              icon: "image-line",
+              primary: "Compost workshop underway",
+              meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
+              chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
+            })
+          : cast === "garden"
+            ? listRow({ icon: "file-copy-line", primary: "Methodology survey sheet", meta: "Document · Jul 10" })
+            : listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · Jul 8" }) +
+              listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · Jul 8" });
+  const evidenceCount = evidenceQueued ? "1 queued" : cast === "offer" ? "2 items" : "1 item";
+  const scope =
+    cast === "support" ? kv("Campaign", "Tool library")
+    : cast === "campaign-request" ? kv("Campaign", "Market rides")
+    : cast === "garden" ? kv("Pool", "Protocol")
+    : kv("Season", "First Rains");
   return (
     disclosure(
       "Timeline",
@@ -436,9 +748,8 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       ? ""
       : disclosure(
           "Evidence",
-          "2 items",
-          listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · Jul 8" }) +
-            listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · Jul 8" }),
+          evidenceCount,
+          evidence,
         )) +
     (preAcceptance || opts.work === false
       ? ""
@@ -450,7 +761,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
         )) +
     hot(
       "w2.details",
-      disclosure("Details", "ids & records", `${kv("Commitment", "0x8c…41f2")}${kv("Recorded on", "Arbitrum")}${kv("Cycle", "Season of First Rains")}`),
+      disclosure("Details", "ids & records", `${kv("Commitment", "0x8c…41f2")}${kv("Recorded on", "Arbitrum")}${scope}`),
     )
   );
 };
@@ -473,7 +784,7 @@ function w2(state: W2State): string {
   const meta = `<div class="hsub num">${ident.meta}</div>`;
 
   const capturedChip =
-    state === "captured"
+    W2_CAPTURED.has(state)
       ? hot("w2.captured-chip", banner("Recorded by your steward on your behalf. The promise stays yours.", "stone", "hand-heart-line"))
       : "";
 
@@ -487,18 +798,147 @@ function w2(state: W2State): string {
   else switch (state) {
     case "request-active":
       band = card(
-        `<div class="t-title">João is helping</div><div class="t-meta">Add evidence as it happens — Ana asked for this, so Ana confirms it was done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">João is helping</div><div class="t-meta">Add evidence as it happens — Ana asked for this, so Ana confirms it was done.</div><div class="brow">${hot("w2.add-evidence-request", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "campaign-request-active":
+      band = card(
+        `<div class="t-title">João is helping with this Campaign request</div><div class="t-meta">The Market rides Campaign remains the scope. Add evidence as the ride happens.</div><div class="brow">${hot("w2.add-evidence-campaign-request", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "campaign-request-evidence-queued":
+      band = card(
+        `<div class="t-title">Campaign evidence saved on this device</div><div class="t-meta">It will send when connected. The Market rides Campaign remains the scope.</div>`,
+      );
+      break;
+    case "campaign-request-evidence-submitted":
+      band = card(
+        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">Ana confirms this Market rides Campaign request.</div>${hot("w2.send-confirmation-campaign-request", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "campaign-request-ready-pending":
+      band = card(
+        `<div class="t-title">Campaign readiness saved on this device</div><div class="t-meta">The promise stays Evidence in until this sends. Its Campaign binding does not change.</div>`,
+      );
+      break;
+    case "campaign-request-ready-confirmer":
+      band = card(
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana confirms the Market rides Campaign request. João, who provided it, cannot.</div>${hot("w2.confirm-campaign-request-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "campaign-request-confirmation-pending":
+      band = card(
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's saved confirmation stays with this Market rides Campaign request. No second confirmation is available while it syncs.</div>`,
+      );
+      break;
+    case "campaign-request-fulfilled":
+      band = card(hero("Help arrived", "Confirmed by Ana · the Market rides Campaign count just grew", "checkbox-circle-fill"));
+      break;
+    case "request-evidence-queued":
+      band = card(
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. Readiness stays unavailable until the evidence reaches Ana's request.</div>`,
       );
       break;
     case "request-evidence-submitted":
       band = card(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">Ana asked for this help, so Ana confirms it arrived.</div>${hot("w2.send-confirmation", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">Ana asked for this help, so Ana confirms it arrived.</div>${hot("w2.send-confirmation-request", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "request-ready-pending":
+      band = card(
+        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The request remains Evidence in until this sends. Ana cannot confirm it twice or before the readiness transition lands.</div>`,
+      );
+      break;
+    case "request-ready-confirmer":
+      band = card(
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana asked for this help and is the named confirmer. João, who provided it, cannot.</div>${hot("w2.confirm-request-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "request-confirmation-pending":
+      band = card(
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's saved confirmation is queued. The request stays ready and cannot be confirmed twice while it syncs.</div>`,
       );
       break;
     case "request-fulfilled":
       band = card(
         `<div class="t-title">Help arrived</div><div class="t-meta">Ana confirmed the ride on Jul 6. The season's count just grew.</div>`,
       );
+      break;
+    case "support-offered":
+      band = card(
+        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching evidence.</div><div class="brow">${hot("w2.take-up-support", btn("Take this up", { kind: "pri" }))}</div>`,
+      );
+      break;
+    case "support-active":
+      band = card(
+        `<div class="t-title">Repair underway</div><div class="t-meta">Add evidence as the tool handles are repaired. This service offer does not require linked garden work.</div><div class="brow">${hot("w2.add-evidence-support", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "support-evidence-queued":
+      band = card(
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. Confirmation stays unavailable until the evidence reaches the promise.</div>${listRow({
+          icon: "image-line",
+          primary: "Tool handles after repair",
+          meta: "Photo · waiting to send",
+          chipHtml: chip("Queued", "queued"),
+        })}`,
+      );
+      break;
+    case "support-evidence-submitted":
+      band = card(
+        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">João is named to confirm the repair.</div>${hot("w2.send-confirmation", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "support-ready-pending":
+      band = card(
+        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The service remains Evidence in until this sends. João's confirmation opens after the readiness transition lands.</div>`,
+      );
+      break;
+    case "support-ready-confirmer":
+      band = card(
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">João was named to confirm this service. Maria, who offered it, cannot.</div>${hot("w2.confirm-support-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "support-confirmation-pending":
+      band = card(
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">João's saved confirmation is queued. The service stays ready and cannot be confirmed twice while it syncs.</div>`,
+      );
+      break;
+    case "support-fulfilled":
+      band = card(hero("Promise kept", "Confirmed by João · the campaign's count just grew", "checkbox-circle-fill"));
+      break;
+    case "captured":
+      band = card(
+        `<div class="t-title">Workshop underway</div><div class="t-meta">This recorded-for-Kwame promise is evidence-only. Add evidence without introducing a garden-work approval requirement.</div><div class="brow">${hot("w2.add-evidence-captured", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "captured-evidence-queued":
+      band = card(
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The recorded promise keeps its OperatorCaptured path.</div>`,
+      );
+      break;
+    case "captured-evidence-submitted":
+      band = card(
+        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">The named counterparty confirms this recorded promise.</div>${hot("w2.send-confirmation-captured", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "captured-ready-pending":
+      band = card(
+        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The record remains Evidence in until this sends; confirmation stays unavailable meanwhile.</div>`,
+      );
+      break;
+    case "captured-ready-confirmer":
+      band = card(
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">The accepted provider remains excluded. The named counterparty reviews the captured promise.</div>${hot("w2.confirm-captured-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "captured-confirmation-pending":
+      band = card(
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">The saved confirmation stays with Kwame's recorded promise and cannot be submitted twice while it syncs.</div>`,
+      );
+      break;
+    case "captured-fulfilled":
+      band = card(hero("Promise kept", "The captured promise was confirmed after its evidence synced", "checkbox-circle-fill"));
       break;
     case "garden-provider":
       band = card(
@@ -525,7 +965,7 @@ function w2(state: W2State): string {
       break;
     case "evidence-submitted":
       band = card(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">The person this promise was made to confirms it was kept.</div>${hot("w2.send-confirmation", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+        `<div class="t-title">Evidence attached: 1</div><div class="t-meta">This is garden work, so approved linked work and its assessment move the promise toward confirmation.</div>`,
       );
       break;
     case "partially-approved":
@@ -534,6 +974,11 @@ function w2(state: W2State): string {
     case "ready-confirmer":
       band = card(
         `<div class="t-title">Ready to confirm</div><div class="t-meta">You were named to confirm this promise. Maria, who made it, cannot.</div>${hot("w2.confirm", btn("Confirm: promise kept", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "confirmation-pending":
+      band = card(
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Your saved confirmation is queued. This promise stays ready and cannot be confirmed twice while it syncs.</div>`,
       );
       break;
     case "fulfilled":
@@ -545,10 +990,17 @@ function w2(state: W2State): string {
       );
       break;
     case "disputed":
+    case "request-disputed":
+    case "campaign-request-disputed":
+    case "support-disputed":
+    case "captured-disputed":
       band = banner("Under review by stewards — actions pause here until they resolve it. Every outcome shows its reason in the timeline.", "amber", "error-warning-line");
       break;
     case "cancelled":
       band = banner("Cancelled — the reason is recorded in the timeline.", "stone");
+      break;
+    case "support-cancelled":
+      band = banner("This service promise was cancelled by a steward. The recorded reason stays in the timeline.", "stone");
       break;
     case "reconciled":
       band = banner("This season closed. The promise rolled into the season summary.", "stone", "seedling-line");
@@ -559,7 +1011,22 @@ function w2(state: W2State): string {
       );
   }
 
-  const showReward = !["offered", "requested", "cancelled", "expired", "disputed", "captured", "withdraw-confirm", "withdrawn", "request-active", "request-evidence-submitted", "request-fulfilled"].includes(state);
+  const showReward = ![
+    "offered", "requested", "cancelled", "expired", "disputed", "request-disputed",
+    "support-disputed", "support-cancelled", "withdraw-confirm", "withdrawn",
+    "request-active", "campaign-request-active", "campaign-request-evidence-queued",
+    "campaign-request-evidence-submitted", "campaign-request-ready-pending",
+    "campaign-request-ready-confirmer", "campaign-request-confirmation-pending",
+    "campaign-request-fulfilled", "campaign-request-disputed",
+    "request-evidence-queued",
+    "request-evidence-submitted", "request-ready-pending", "request-ready-confirmer",
+    "request-confirmation-pending", "request-fulfilled",
+    "support-offered", "support-active", "support-evidence-queued", "support-evidence-submitted",
+    "support-ready-pending", "support-ready-confirmer", "support-confirmation-pending",
+    "captured", "captured-evidence-queued", "captured-evidence-submitted",
+    "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
+    "captured-fulfilled", "captured-disputed", "confirmation-pending",
+  ].includes(state);
   // Reward/settlement status sits with the band — it is scan-layer status, not
   // deep dive. Disclosures stay last and stay present even under review: the
   // dispute banner tells the member the reason is in the timeline, so hiding
@@ -569,7 +1036,7 @@ function w2(state: W2State): string {
     capturedChip,
     band,
     showReward ? w2RewardRow(state) : "",
-    w2Disclosures(state, { overrideNote: state === "captured" || state === "fulfilled", work: state !== "evidence-submitted" && !W2_REQUEST.has(state) }),
+    w2Disclosures(state, { overrideNote: state === "captured" || state === "fulfilled", work: W2_WORK.has(state) }),
   );
 
   // Withdrawing is the member's own irreversible act, so it confirms over the
@@ -587,18 +1054,51 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
     );
 
   // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
-  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`, { appBar: false });
+  const evidenceQueued =
+    state === "support-evidence-queued" || state === "request-evidence-queued" ||
+    state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
+  const readinessQueued =
+    state === "support-ready-pending" || state === "request-ready-pending" ||
+    state === "campaign-request-ready-pending" || state === "captured-ready-pending";
+  const confirmationQueued =
+    state === "confirmation-pending" || state === "support-confirmation-pending" ||
+    state === "request-confirmation-pending" ||
+    state === "campaign-request-confirmation-pending" ||
+    state === "captured-confirmation-pending";
+  const sync = evidenceQueued
+    ? syncBar("1 evidence item waiting to send")
+    : readinessQueued
+      ? syncBar("1 readiness update waiting to send")
+      : confirmationQueued
+        ? syncBar("1 confirmation waiting to send")
+      : "";
+  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>${sync}`, {
+    appBar: false,
+    offline: evidenceQueued || readinessQueued || confirmationQueued,
+  });
 }
 
 const W2_HOTS: HifiDef["hots"] = {
+  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-active", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
+  "w2.add-evidence-request": { l: "Add request evidence", to: "screen:W2a@compose-request", info: "Keeps Ana's request and João's provider role intact while opening the shared evidence composer." },
+  "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@compose-campaign-request", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
+  "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@compose-support", info: "Evidence-only SupportService offer: photo / link / note → one offline evidence job (UX:159)." },
+  "w2.add-evidence-captured": { l: "Add captured-promise evidence", to: "screen:W2a@compose-captured", info: "Keeps the OperatorCaptured kind and the member as promise source while opening the evidence composer." },
   "w2.submit-work": { l: "Submit work for this promise", to: "screen:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
-  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker of your approved/pending works → workLink job (UX:140). The prototype resumes at the linked work's existing approval surface." },
+  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker of your approved/pending works → workLink job (UX:140). The prototype resumes at the linked work's existing approval surface.", calls: ["linkWork"] },
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
-  "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
+  "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-pending", info: "Queues the evidence-only readiness transition; DomainImpact is rejected on-chain (CS:138b).", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService promise." },
+  "w2.send-confirmation-request": { l: "Send request for confirmation", to: "screen:W2@request-ready-pending", info: "Queues submitForConfirmation while keeping Ana as default confirmer and João as provider.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.confirm-request-detail": { l: "Review request confirmation", to: "screen:W4@confirm-request", info: "Opens only after the request readiness update has synced." },
+  "w2.send-confirmation-campaign-request": { l: "Send campaign request for confirmation", to: "screen:W2@campaign-request-ready-pending", info: "Queues readiness without losing the Market rides Campaign binding.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.confirm-campaign-request-detail": { l: "Review campaign-request confirmation", to: "screen:W4@confirm-campaign-request", info: "Opens the named request creator's confirmation while preserving Campaign scope." },
+  "w2.send-confirmation-captured": { l: "Send captured promise for confirmation", to: "screen:W2@captured-ready-pending", info: "OperatorCaptured is evidence-only and may call submitForConfirmation without linked work.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.confirm-captured-detail": { l: "Review captured-promise confirmation", to: "screen:W4@confirm-captured", info: "Opens the named counterparty's confirmation without changing the captured member source." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
   "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
-  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145)." },
+  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145).", calls: ["cancelCommitment"] },
   "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
@@ -613,7 +1113,11 @@ const W2_HOTS: HifiDef["hots"] = {
 const w2aBehind = (promise: PromiseCast = "offer") =>
   `${hdr(W2_IDENTITY[promise].title, { back: true })}<div class="hsub num">${W2_IDENTITY[promise].meta}</div>`;
 
-function w2a(state: "compose" | "queued" | "failed" | "compose-request"): string {
+type W2aState =
+  | "compose" | "queued" | "failed" | "compose-request"
+  | "compose-campaign-request" | "compose-support" | "compose-captured";
+
+function w2a(state: W2aState): string {
   const kinds = hot(
     "w2a.kind",
     `<div class="radio">
@@ -622,7 +1126,11 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
       .join("")}</div>`,
   );
   const request = state === "compose-request";
-  const title = state === "compose" || request ? "Add evidence" : state === "failed" ? "One item needs another try" : "Evidence queued";
+  const campaignRequest = state === "compose-campaign-request";
+  const support = state === "compose-support";
+  const captured = state === "compose-captured";
+  const composing = state === "compose" || request || campaignRequest || support || captured;
+  const title = composing ? "Add evidence" : state === "failed" ? "One item needs another try" : "Evidence queued";
   let inner: string;
   if (state === "failed") {
     inner =
@@ -636,15 +1144,27 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
       banner("It will send when you're back online. Nothing else to do.", "stone", "wifi-off-line") +
       hot("w2a.done", btn("Done", { kind: "sec", full: true }));
   } else {
-    inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot("w2a.attach", btn("Attach evidence", { kind: "pri", full: true }))}`;
+    const attachHot =
+      support ? "w2a.attach-support"
+      : campaignRequest ? "w2a.attach-campaign-request"
+      : request ? "w2a.attach-request"
+      : captured ? "w2a.attach-captured"
+      : "w2a.attach";
+    inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }))}`;
   }
-  const body = sheetOver(w2aBehind(request ? "request" : "offer"), title, inner);
+  const cast: PromiseCast =
+    campaignRequest ? "campaign-request" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
+  const body = sheetOver(w2aBehind(cast), title, inner);
   return phoneFrame(`${body}`, { offline: state === "queued" || state === "failed", appBar: false });
 }
 
 const W2A_HOTS: HifiDef["hots"] = {
   "w2a.kind": { l: "Evidence kind", info: "Photo / link / note → one evidence job per submit (UX:159)." },
-  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-submitted", info: "Enqueues the evidence job → EvidenceAttached after sync (CS:739)." },
+  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-submitted", info: "Enqueues the evidence job → EvidenceAttached after sync (CS:739).", calls: ["attachEvidence"] },
+  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS:739).", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-captured": { l: "Attach captured-promise evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence while preserving OperatorCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed evidence job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
   "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the promise with the queued or sent evidence row still visible." },
 };
@@ -655,7 +1175,8 @@ const W2A_HOTS: HifiDef["hots"] = {
 
 const W3_STATES = [
   ["step-what", "1 · What"], ["step-howmuch", "2 · How much"], ["step-anchors", "3 · Anchors"],
-  ["step-review", "4 · Review"], ["request-variant", "Request · review"], ["draft-resume", "Draft resume"],
+  ["step-review", "4 · Review"], ["support-howmuch", "Support · amount"], ["support-review", "Support · review"],
+  ["request-variant", "Request · review"], ["draft-resume", "Draft resume"],
   ["validation", "Validation error"],
 ] as const;
 type W3State = (typeof W3_STATES)[number][0];
@@ -694,11 +1215,27 @@ function w3(state: W3State): string {
         hot("w3.submit", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
       break;
+    case "support-review":
+      body = `${w3Head("Make an offer", 2, 3)}${pagepad(
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}`),
+        `<div class="t-meta">Service offers skip action anchors. Evidence and the named recipient carry the proof.</div>`,
+        hot("w3.submit-support", btn("Make this offer", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "support-howmuch":
+      body = `${w3Head("Make an offer", 1, 3)}${pagepad(
+        field("Unit", input("repair sessions", { select: true })),
+        field("How many", input("1")),
+        field("Campaign", input("Tool library", { select: true })),
+        field("Due", input("Aug 12")),
+        hot("w3.continue-support-howmuch", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
     case "request-variant":
       body = `${w3Head("Ask for help", 2, 3)}${pagepad(
         card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
-        hot("w3.submit", btn("Ask for this help", { kind: "pri", full: true })),
+        hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true })),
       )}`;
       break;
     case "draft-resume":
@@ -725,7 +1262,7 @@ function w3(state: W3State): string {
     default:
       body = `${w3Head("Make an offer", 0)}${pagepad(
         field("Direction", hot("w3.direction", radio([{ label: "Offer support", meta: "something you can give", on: true }, { label: "Request help", meta: "something you need" }], { interactive: true, name: "commitment-direction" }))),
-        field("Kind", radio([{ label: "Garden work", meta: "counts toward the garden's actions", on: true }, { label: "Support / service", meta: "rides, meals, repairs — evidence-confirmed" }])),
+        field("Kind", radio([{ label: "Garden work", meta: "counts toward the garden's actions", on: true }, { label: "Support / service", meta: "rides, meals, repairs — evidence-confirmed", hot: "w3.choose-support" }], { interactive: true, name: "commitment-kind" })),
         field("Cycle", hot("w3.cycle", input("Season: First Rains", { select: true }))),
         field("Title", input("Prune the north beds")),
         field("Note", input("optional", { placeholder: true })),
@@ -739,11 +1276,15 @@ function w3(state: W3State): string {
 
 const W3_HOTS: HifiDef["hots"] = {
   "w3.direction": { l: "Direction", info: "Offer vs request — season/campaign seeding and on-behalf capture are console-seeded only, never here (UX:150)." },
+  "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:153)." },
+  "w3.continue-support-howmuch": { l: "Continue with service amount", to: "screen:W3@support-review", info: "Carries the entered service unit and quantity into review without introducing action anchors." },
   "w3.cycle": { l: "Cycle scope", info: "Every promise names its cycle; Season and Campaigns never blur (UX:127)." },
   "w3.continue-what": { l: "Continue to amount", to: "screen:W3@step-howmuch", info: "What + cycle scope → amount (UX:150-153)." },
   "w3.continue-howmuch": { l: "Continue to anchors", to: "screen:W3@step-anchors", info: "Amount → action anchors for garden work (UX:150-153)." },
   "w3.continue-anchors": { l: "Continue to review", to: "screen:W3@step-review", info: "Action anchors → review (UX:150-153)." },
-  "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212)." },
+  "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
+  "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
+  "w3.submit-request": { l: "Ask for this help", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
   "w3.add-action": { l: "Add an action", info: "DomainImpact requirements builder: 1–4 rows, each count ≥ 1, equal lengths, positional domain match, registry existence; a running summary chip sits in the header. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
@@ -754,22 +1295,48 @@ const W3_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W4_STATES = [
-  ["confirm-domain", "Garden work"], ["confirm-support", "Support / service"], ["confirm-request", "A request you asked for"],
-  ["not-yet", "Not yet — reason"], ["provider-view", "Provider view"],
-  ["confirmed-pending", "Fulfilled — pending sync"], ["confirmed", "Fulfilled — synced"], ["not-yet-failed", "Not yet — send failed"],
+  ["confirm-domain", "Garden work"], ["confirm-support", "Support / service"],
+  ["confirm-request", "A request you asked for"], ["confirm-campaign-request", "A Campaign request"],
+  ["confirm-captured", "A recorded promise"],
+  ["not-yet", "Not yet — garden work"], ["not-yet-support", "Not yet — service"],
+  ["not-yet-request", "Not yet — request"], ["not-yet-campaign-request", "Not yet — Campaign request"],
+  ["not-yet-captured", "Not yet — recorded promise"],
+  ["provider-view", "Provider view"],
+  ["confirmed-pending", "Ready — confirmation pending"], ["confirmed", "Fulfilled — synced"],
+  ["confirmed-pending-support", "Support — confirmation pending"], ["confirmed-support", "Support — fulfilled"],
+  ["confirmed-pending-request", "Request — pending sync"], ["confirmed-request", "Request — synced"],
+  ["confirmed-pending-campaign-request", "Campaign request — pending sync"],
+  ["confirmed-campaign-request", "Campaign request — synced"],
+  ["confirmed-pending-captured", "Recorded promise — pending sync"],
+  ["confirmed-captured", "Recorded promise — synced"],
+  ["not-yet-failed", "Not yet — garden work send failed"],
+  ["not-yet-failed-support", "Not yet — service send failed"],
+  ["not-yet-failed-request", "Not yet — request send failed"],
+  ["not-yet-failed-campaign-request", "Not yet — Campaign request send failed"],
+  ["not-yet-failed-captured", "Not yet — recorded promise send failed"],
 ] as const;
 type W4State = (typeof W4_STATES)[number][0];
 
-const w4Behind = (request = false) =>
-  request
-    ? `${hdr("Ride to the market on Saturday", { back: true })}<div class="hsub num">João · 1 ride · runs with the season</div>`
-    : `${hdr("Prune the north beds", { back: true })}<div class="hsub num">Maria · 6 hours · due Aug 12</div>`;
+const w4Behind = (cast: PromiseCast = "offer") =>
+  `${hdr(W2_IDENTITY[cast].title, { back: true })}<div class="hsub num">${W2_IDENTITY[cast].meta}</div>`;
 
 function w4(state: W4State): string {
-  const request = state === "confirm-request";
-  const summary = request
-    ? `<div class="t-meta">Request · João provides · Ana asked for this and confirms it.</div>`
-    : `<div class="t-meta">Offer · Maria provides · the people it was made to confirm.</div>`;
+  const campaignRequest = state.includes("campaign-request");
+  const request = state.includes("request") && !campaignRequest;
+  const support = state.includes("support");
+  const captured = state.includes("captured");
+  const cast: PromiseCast = campaignRequest ? "campaign-request" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
+  const evidenceOnly = request || campaignRequest || support || captured;
+  const summary =
+    cast === "request"
+      ? `<div class="t-meta">Request · João provides · Ana asked for this and confirms it.</div>`
+      : cast === "campaign-request"
+        ? `<div class="t-meta">Campaign request · João provides · Ana confirms for Market rides.</div>`
+        : cast === "support"
+          ? `<div class="t-meta">Offer · Maria provides the service · João confirms it.</div>`
+          : cast === "captured"
+            ? `<div class="t-meta">Recorded for Kwame · Kwame remains the source · Ana confirms it.</div>`
+            : `<div class="t-meta">Offer · Maria provides · the people it was made to confirm.</div>`;
   // Who has already confirmed is context; whose turn it is is the point. The
   // confirmed members condense to one row so the sheet leads with the reader's
   // own act (§5.6 keeps the self row distinct).
@@ -778,8 +1345,10 @@ function w4(state: W4State): string {
     listRow({ icon: "user-line", primary: "You", chipHtml: chip("Your turn", "warn") });
   const exclusion = hot(
     "w4.provider-note",
-    request
+    request || campaignRequest
       ? banner("João gave the ride, so João cannot confirm it — the person who asked does. Not even a steward can confirm their own.", "stone", "shield-check-line")
+      : captured
+        ? banner("Kwame's named provider cannot confirm their own work — the named counterparty does.", "stone", "shield-check-line")
       : banner("Maria made this promise, so Maria cannot confirm it — not even a steward can confirm their own.", "stone", "shield-check-line"),
   );
 
@@ -788,26 +1357,89 @@ function w4(state: W4State): string {
   switch (state) {
     case "confirm-request":
       title = "Did the help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      break;
+    case "confirm-campaign-request":
+      title = "Did the Campaign help arrive?";
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-support":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "2 items attached" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      break;
+    case "confirm-captured":
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
       break;
     case "not-yet":
+    case "not-yet-support":
+    case "not-yet-request":
+    case "not-yet-campaign-request":
+    case "not-yet-captured":
       title = "Tell the stewards";
-      inner = `${field("What still needs doing?", input("The far bed is still overgrown…", { placeholder: false }))}${banner("This never cancels the promise — stewards review and every outcome shows its reason.", "stone")}${hot("w4.not-yet-send", btn("Send to the stewards", { kind: "pri", full: true }))}`;
+      inner = `${field("What still needs doing?", input(
+        request || campaignRequest ? "The ride did not arrive…"
+        : support ? "Two handles still need repair…"
+        : captured ? "The workshop has not happened yet…"
+        : "The far bed is still overgrown…",
+        { placeholder: false },
+      ))}${banner("This never cancels the promise — stewards review and every outcome shows its reason.", "stone")}${hot(
+        campaignRequest ? "w4.not-yet-send-campaign-request"
+        : request ? "w4.not-yet-send-request"
+        : support ? "w4.not-yet-send-support"
+        : captured ? "w4.not-yet-send-captured"
+        : "w4.not-yet-send",
+        btn("Send to the stewards", { kind: "pri", full: true }),
+      )}`;
       break;
     case "confirmed-pending":
-      title = "Promise kept";
-      inner = `${meter(100, { left: "confirmations", right: "3 of 3" })}${listRow({ icon: "checkbox-circle-fill", primary: "You", chipHtml: chip("Confirmed", "ok") })}${banner("Saved on this device — this confirms once it syncs.", "stone", "wifi-off-line")}${hot("w4.pending-done", btn("Done", { kind: "sec", full: true }))}`;
+    case "confirmed-pending-support":
+    case "confirmed-pending-request":
+    case "confirmed-pending-campaign-request":
+    case "confirmed-pending-captured":
+      title = "Confirmation saved";
+      inner = `${meter(100, { left: "including this device", right: evidenceOnly ? "1 of 1 saved" : "3 of 3 saved" })}${listRow({ icon: "time-line", primary: "Your confirmation", chipHtml: chip("Waiting to send", "queued") })}${banner("Your confirmation is counted on this device. Fulfillment appears only after it syncs on-chain.", "stone", "wifi-off-line")}${hot(
+        campaignRequest ? "w4.pending-campaign-request-done"
+        : request ? "w4.pending-request-done"
+        : support ? "w4.pending-support-done"
+        : captured ? "w4.pending-captured-done"
+        : "w4.pending-done",
+        btn("Done", { kind: "sec", full: true }),
+      )}`;
       break;
     case "confirmed":
+    case "confirmed-support":
+    case "confirmed-request":
+    case "confirmed-campaign-request":
+    case "confirmed-captured":
       title = "Promise kept";
-      inner = `${hero("Promise kept", "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot("w4.done", btn("Back to the pool", { kind: "pri", full: true }))}`;
+      inner = `${hero(request || campaignRequest ? "Help arrived" : "Promise kept", support || campaignRequest ? "Confirmed · the Campaign's count just grew" : captured ? "Confirmed · the recorded promise is fulfilled" : "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot(
+        campaignRequest ? "w4.done-campaign-request"
+        : request ? "w4.done-request"
+        : support ? "w4.done-support"
+        : captured ? "w4.done-captured"
+        : "w4.done",
+        btn("Back to the pool", { kind: "pri", full: true }),
+      )}`;
       break;
     case "not-yet-failed":
+    case "not-yet-failed-support":
+    case "not-yet-failed-request":
+    case "not-yet-failed-campaign-request":
+    case "not-yet-failed-captured":
       title = "Tell the stewards";
-      inner = `${field("What still needs doing?", input("The far bed is still overgrown…", { placeholder: false }))}${banner("Couldn't reach the stewards just now. Your note is kept and this promise stays ready to confirm — try again when you're back online.", "amber", "error-warning-line")}${hot("w4.not-yet-retry", btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
+      inner = `${field("What still needs doing?", input(
+        request || campaignRequest ? "The ride did not arrive…"
+        : support ? "Two handles still need repair…"
+        : captured ? "The workshop has not happened yet…"
+        : "The far bed is still overgrown…",
+        { placeholder: false },
+      ))}${banner("Couldn't reach the stewards just now. Your note is kept and this promise stays ready to confirm — try again when you're back online.", "amber", "error-warning-line")}${hot(
+        campaignRequest ? "w4.not-yet-retry-campaign-request"
+        : request ? "w4.not-yet-retry-request"
+        : support ? "w4.not-yet-retry-support"
+        : captured ? "w4.not-yet-retry-captured"
+        : "w4.not-yet-retry",
+        btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }),
+      )}`;
       break;
     case "provider-view":
       // The provider's question is "where has this got to?", not "may I
@@ -818,35 +1450,154 @@ function w4(state: W4State): string {
     default:
       inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
   }
-  return phoneFrame(sheetOver(w4Behind(request), title, inner), { appBar: false });
+  return phoneFrame(sheetOver(w4Behind(cast), title, inner), { appBar: false });
 }
 
 const W4_HOTS: HifiDef["hots"] = {
-  "w4.confirm": { l: "Confirm — promise kept", to: "screen:W2@fulfilled", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled (CS:139)." },
+  "w4.confirm": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled after the queued confirmation syncs (CS:139).", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-support": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the evidence-only service promise; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-request": { l: "Confirm — help arrived", to: "screen:W4@confirmed-pending-request", info: "The request creator confirms the claimant's help; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-campaign-request": { l: "Confirm — Campaign help arrived", to: "screen:W4@confirmed-pending-campaign-request", info: "The request creator confirms the Campaign-scoped request without losing that Campaign binding.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-captured": { l: "Confirm — recorded promise kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only OperatorCaptured promise.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.not-yet": { l: "Not yet", to: "screen:W4@not-yet", info: "Requires a reason → online steward review. It never cancels the promise (UX:167)." },
-  "w4.not-yet-send": { l: "Send to the stewards", to: "screen:W2@disputed", info: "Online-only raiseDispute with the reason; the promise freezes at “under review by stewards” (CS:143 · UX:426)." },
+  "w4.not-yet-support": { l: "Not yet — service", to: "screen:W4@not-yet-support", info: "Keeps the service-offer cast while collecting the required dispute reason." },
+  "w4.not-yet-request": { l: "Not yet — request", to: "screen:W4@not-yet-request", info: "Keeps the request cast while collecting the required dispute reason." },
+  "w4.not-yet-campaign-request": { l: "Not yet — Campaign request", to: "screen:W4@not-yet-campaign-request", info: "Keeps the Campaign request binding while collecting the required dispute reason." },
+  "w4.not-yet-captured": { l: "Not yet — recorded promise", to: "screen:W4@not-yet-captured", info: "Keeps the OperatorCaptured cast while collecting the required dispute reason." },
+  "w4.not-yet-send": { l: "Send to the stewards", to: "screen:W2@disputed", info: "Online-only raiseDispute with the reason; the promise freezes at “under review by stewards” (CS:143 · UX:426).", calls: ["raiseDispute"] },
+  "w4.not-yet-send-support": { l: "Send service dispute to stewards", to: "screen:W2@support-disputed", info: "raiseDispute preserves the service offer's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
+  "w4.not-yet-send-request": { l: "Send request dispute to stewards", to: "screen:W2@request-disputed", info: "raiseDispute preserves the request's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
+  "w4.not-yet-send-campaign-request": { l: "Send Campaign request dispute to stewards", to: "screen:W2@campaign-request-disputed", info: "raiseDispute preserves the Campaign request's exact pre-dispute state and scope.", calls: ["raiseDispute"] },
+  "w4.not-yet-send-captured": { l: "Send recorded-promise dispute to stewards", to: "screen:W2@captured-disputed", info: "raiseDispute preserves the OperatorCaptured kind and member source.", calls: ["raiseDispute"] },
   "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; the accepted provider is excluded before threshold validation (UX:280)." },
   "w4.provider-note": { l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
   "w4.done": { l: "Back to the pool", to: "screen:W2@fulfilled", info: "The Commitment Fulfilled hero (High) fires on sync completion, not enqueue; reduced-motion shows a static celebratory frame (UX:169,201,204)." },
-  "w4.pending-done": { l: "Done", to: "screen:W2@ready-confirmer", info: "Returns to the promise while the confirmation is still pending local sync; fulfillment is not shown early." },
-  "w4.not-yet-retry": { l: "Try again", to: "screen:W2@disputed", info: "“Not yet” is online-only — dispute creation is not an offline queue kind. Failure leaves ReadyForConfirmation and exposes inline retry; success invalidates to under review by stewards (UX:169,221)." },
+  "w4.done-support": { l: "Back to the pool", to: "screen:W2@support-fulfilled", info: "Returns to the same SupportService offer after its fulfillment syncs." },
+  "w4.done-request": { l: "Back to the pool", to: "screen:W2@request-fulfilled", info: "Returns to the same request record after its fulfillment syncs." },
+  "w4.done-campaign-request": { l: "Back to the pool", to: "screen:W2@campaign-request-fulfilled", info: "Returns to the same Campaign request record after its fulfillment syncs." },
+  "w4.done-captured": { l: "Back to the pool", to: "screen:W2@captured-fulfilled", info: "Returns to the same OperatorCaptured record after its fulfillment syncs." },
+  "w4.pending-done": { l: "Done", to: "screen:W2@confirmation-pending", info: "Returns to the same promise with its queued confirmation visible and no duplicate confirmation act." },
+  "w4.pending-support-done": { l: "Done", to: "screen:W2@support-confirmation-pending", info: "Returns to the service promise with its queued confirmation visible and no duplicate submission act." },
+  "w4.pending-request-done": { l: "Done", to: "screen:W2@request-confirmation-pending", info: "Returns to the request with its queued confirmation visible and no duplicate submission act." },
+  "w4.pending-campaign-request-done": { l: "Done", to: "screen:W2@campaign-request-confirmation-pending", info: "Returns to the Campaign request with its scope and queued confirmation intact." },
+  "w4.pending-captured-done": { l: "Done", to: "screen:W2@captured-confirmation-pending", info: "Returns to the OperatorCaptured promise with its queued confirmation visible." },
+  "w4.not-yet-retry": { l: "Try again", to: "screen:W2@disputed", info: "“Not yet” is online-only — dispute creation is not an offline queue kind. Failure leaves ReadyForConfirmation and exposes inline retry; success invalidates to under review by stewards (UX:169,221).", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-support": { l: "Try service dispute again", to: "screen:W2@support-disputed", info: "Retries the kept reason against the same service promise.", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-request": { l: "Try request dispute again", to: "screen:W2@request-disputed", info: "Retries the kept reason against the same request.", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-campaign-request": { l: "Try Campaign request dispute again", to: "screen:W2@campaign-request-disputed", info: "Retries the kept reason without dropping Campaign scope.", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-captured": { l: "Try recorded-promise dispute again", to: "screen:W2@captured-disputed", info: "Retries the kept reason against the same OperatorCaptured promise.", calls: ["raiseDispute"] },
 };
 
 // ---------------------------------------------------------------------------
 
+const w1Facts = (state: W1State): StateFacts | undefined => {
+  if (state === "not-ready") return { pool: "NotReady" };
+  if (state === "ready" || state === "seeded") return { pool: "Ready", cycle: state === "seeded" ? "Seeded" : undefined };
+  if (state === "paused") return { pool: "Paused", cycle: "Open" };
+  if (state === "closed") return { pool: "Closed", cycle: "Composted" };
+  if (state === "cycle-summary") return { pool: "Open", cycle: "Composted" };
+  if (state === "cancelled-cycle") return { pool: "Open", cycle: "Cancelled" };
+  if (state === "paused-cancelled-cycle") return { pool: "Paused", cycle: "Cancelled" };
+  if (state === "no-season") return { pool: "Open" };
+  if (state.startsWith("claim-"))
+    return {
+      pool: "Open",
+      cycle: "Open",
+      commitment: state === "claim-accepted" ? "Accepted" : "Requested",
+      kind: "SupportService",
+    };
+  if (["open", "request-open", "request-queued", "empty-open", "campaign-market", "campaign-tools", "queued", "support-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
+    return { pool: "Open", cycle: "Open" };
+  return undefined;
+};
+
+const w2Facts = (state: W2State): StateFacts | undefined => {
+  const kind: StateFacts["kind"] =
+    W2_CAPTURED.has(state) ? "OperatorCaptured"
+    : W2_REQUEST.has(state) || W2_CAMPAIGN_REQUEST.has(state) || W2_SUPPORT.has(state) ? "SupportService"
+    : "DomainImpact";
+  const commitment: StateFacts["commitment"] =
+    state === "offered" || state === "support-offered" || state === "withdraw-confirm" ? "Offered"
+    : state === "requested" ? "Requested"
+    : state === "active" || state === "request-active" || state === "campaign-request-active" ||
+      state === "support-active" || state === "support-evidence-queued" ||
+      state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
+      state === "captured" || state === "captured-evidence-queued" ? "Active"
+    : state === "evidence-submitted" || state === "request-evidence-submitted" ||
+      state === "campaign-request-evidence-submitted" || state === "support-evidence-submitted" ||
+      state === "captured-evidence-submitted" || state === "request-ready-pending" ||
+      state === "campaign-request-ready-pending" || state === "support-ready-pending" ||
+      state === "captured-ready-pending" ? "EvidenceSubmitted"
+    : state === "partially-approved" ? "PartiallyApproved"
+    : state === "ready-confirmer" || state === "confirmation-pending" ||
+      state === "request-ready-confirmer" || state === "request-confirmation-pending" ||
+      state === "campaign-request-ready-confirmer" || state === "support-ready-confirmer" ||
+      state === "campaign-request-confirmation-pending" ||
+      state === "support-confirmation-pending" ||
+      state === "captured-ready-confirmer" || state === "captured-confirmation-pending"
+      ? "ReadyForConfirmation"
+    : state === "fulfilled" || state === "request-fulfilled" || state === "campaign-request-fulfilled" ||
+      state === "support-fulfilled" || state === "captured-fulfilled" ||
+      state === "garden-support-arrived" || W2_SETTLED.has(state) ? "Fulfilled"
+    : state === "cancelled" || state === "withdrawn" || state === "support-cancelled" ? "Cancelled"
+    : state === "expired" ? "Expired"
+    : state === "disputed" || state === "request-disputed" ||
+      state === "campaign-request-disputed" || state === "support-disputed" ||
+      state === "captured-disputed" ? "Disputed"
+    : state === "reconciled" ? "Reconciled"
+    : ["loading", "not-found", "read-error"].includes(state) ? undefined
+    : "Accepted";
+  return commitment
+    ? { pool: "Open", cycle: state === "reconciled" ? "Reconciled" : "Open", commitment, kind }
+    : undefined;
+};
+
+const w4Facts = (state: W4State): StateFacts => ({
+  pool: "Open",
+  cycle: "Open",
+  commitment: state === "confirmed" || state === "confirmed-support" ||
+    state === "confirmed-request" || state === "confirmed-campaign-request" ||
+    state === "confirmed-captured" ? "Fulfilled" : "ReadyForConfirmation",
+  kind: state.includes("captured") ? "OperatorCaptured"
+    : state.includes("support") || state.includes("request") ? "SupportService"
+    : "DomainImpact",
+});
+
+const w3Facts = (_state: W3State): StateFacts => ({ pool: "Open", cycle: "Open" });
+
+const w2aFacts = (state: W2aState): StateFacts | undefined => {
+  if (state === "queued" || state === "failed") return undefined;
+  return {
+    pool: "Open",
+    cycle: "Open",
+    commitment: "Active",
+    kind: state === "compose" ? "DomainImpact" : state === "compose-captured" ? "OperatorCaptured" : "SupportService",
+  };
+};
+
 const mk = <T extends readonly (readonly [string, string])[]>(
-  id: string, title: string, states: T, render: (s: T[number][0]) => string, proposed: Set<string> = new Set(),
+  id: string,
+  title: string,
+  states: T,
+  render: (s: T[number][0]) => string,
+  facts: (s: T[number][0]) => StateFacts | undefined = () => undefined,
+  proposed: Set<string> = new Set(),
 ) => ({
   screen: {
     id, title, surface: "client" as const, frame: "phone" as const, group: "Client PWA",
-    states: states.map(([sid, label]) => ({ id: sid, label, proposed: proposed.has(sid), html: render(sid) })),
+    states: states.map(([sid, label]) => ({ id: sid, label, proposed: proposed.has(sid), facts: facts(sid), html: render(sid) })),
   },
 });
 
 export const CLIENT_DEFS: HifiDef[] = [
-  { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1), hots: W1_HOTS },
-  { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2), hots: W2_HOTS },
-  { ...mk("W2a", "W2a · Evidence sheet", [["compose", "Compose"], ["compose-request", "Compose — a request"], ["queued", "Queued"], ["failed", "Upload failed"]] as const, w2a), hots: W2A_HOTS },
-  { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3), hots: W3_HOTS },
-  { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4), hots: W4_HOTS },
+  { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1, w1Facts), hots: W1_HOTS },
+  { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts), hots: W2_HOTS },
+  { ...mk("W2a", "W2a · Evidence sheet", [
+    ["compose", "Compose"], ["compose-request", "Compose — a request"],
+    ["compose-campaign-request", "Compose — Campaign request"],
+    ["compose-support", "Compose — service offer"], ["compose-captured", "Compose — recorded promise"],
+    ["queued", "Queued"], ["failed", "Upload failed"],
+  ] as const, w2a, w2aFacts), hots: W2A_HOTS },
+  { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3, w3Facts), hots: W3_HOTS },
+  { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4, w4Facts), hots: W4_HOTS },
 ];

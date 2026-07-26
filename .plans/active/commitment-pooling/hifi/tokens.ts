@@ -8,6 +8,12 @@
 // · springs per the 6 motion tokens. Fonts fall back to the system stack —
 // artifacts allow no external requests; Inter's metrics are SF-adjacent.
 
+export const PHONE_VIEWPORT_WIDTH = 390;
+export const PHONE_VIEWPORT_HEIGHT = 844;
+export const PHONE_BEZEL = 12;
+export const PHONE_SHELL_WIDTH = PHONE_VIEWPORT_WIDTH + PHONE_BEZEL * 2;
+export const PHONE_SHELL_HEIGHT = PHONE_VIEWPORT_HEIGHT + PHONE_BEZEL * 2;
+
 export const HIFI_CSS = `
 /* Six motion tokens projected from theme.css. Component motion below derives
    from these values so reduced-motion can remove animation without leaving
@@ -56,15 +62,19 @@ export const HIFI_CSS = `
 .device.f-phone{border:0;background:transparent;padding:18px 8px 8px;display:flex;justify-content:center}
 .device.f-phone .mftag{right:8px}
 
-/* phone bezel + screen (390pt, concentric radii 44 → 32) */
-.hf .phone{width:390px;max-width:100%;background:var(--bezel);border-radius:44px;padding:12px;
+/* Phone preview contract: the app owns a fixed 390×844 logical viewport.
+   .phonefit may uniformly scale the complete shell for the review canvas, but
+   it must never change this aspect ratio or make the app reflow at a fake
+   width. The 12px bezel sits outside that logical viewport. */
+.hf .phonefit{position:relative;flex:none;width:${PHONE_SHELL_WIDTH}px;height:${PHONE_SHELL_HEIGHT}px;
+  --phone-scale:1}
+.hf .phone{position:absolute;top:0;left:0;width:${PHONE_SHELL_WIDTH}px;height:${PHONE_SHELL_HEIGHT}px;
+  max-width:none;background:var(--bezel);border-radius:44px;padding:${PHONE_BEZEL}px;
+  transform:scale(var(--phone-scale));transform-origin:top left;
   box-shadow:0 18px 48px rgba(14,18,27,.18),0 2px 8px rgba(14,18,27,.12)}
 [data-theme="dark"] .hf .phone{box-shadow:0 18px 48px rgba(0,0,0,.5)}
-/* Phone screen: capped to the viewport, with fixed device chrome around an
-   AppShell-like owned scroll surface. Height stays consistent across screens;
-   --dev-cap is inherited from the artifact :root. */
 .hf .scr{background:var(--cv);border-radius:32px;display:flex;flex-direction:column;
-  height:calc(var(--dev-cap) - 50px);min-height:0;overflow:hidden;
+  width:${PHONE_VIEWPORT_WIDTH}px;height:${PHONE_VIEWPORT_HEIGHT}px;min-height:0;overflow:hidden;
   position:relative;font-size:15px;line-height:1.45}
 .hf .statusbar{display:flex;justify-content:space-between;align-items:center;
   padding:14px 24px 6px;font:600 13px/1 inherit;color:var(--ink);
@@ -700,7 +710,7 @@ export const HIFI_CSS = `
 
 /* device entrance (state/step swaps) */
 @media (prefers-reduced-motion: no-preference){
-  .device .phone,.device .deskwin,.device .webwin,.device pre.ascii{animation:devin var(--spring-spatial) both}
+  .device .phonefit,.device .deskwin,.device .webwin,.device pre.ascii{animation:devin var(--spring-spatial) both}
   @keyframes devin{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
 }
 
