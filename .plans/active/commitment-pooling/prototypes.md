@@ -1,7 +1,7 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
-- **Updated**: 2026-07-23 — CCIP, readiness, and placement closure (see Changelog); the hi-fi render upgrade was register #36.
+- **Updated**: 2026-07-26 — lifecycle-context preservation and offline-queue closure (see Changelog); the hi-fi render upgrade was register #36.
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
 - **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
@@ -15,6 +15,9 @@
 | 2026-07-21 | Reference-tab redesign: the sidebar now follows document order under grouped headers, a compact table of contents leads the body, and long sections collapse behind an at-a-glance line. Editorial condensation for scannability (walls → lead-in + bullets) — no spec facts or cites changed. MF-6/MF-9/MF-10/MF-11 status corrected: realized in the hi-fi artifact (W2 · W26 · W1 · W24/W12), no longer "proposed/undrawn." New companion `prototypes-coverage.md` audits every screen's built vs spec'd states. |
 | 2026-07-22 | Prototype coherency pass: presentation catalogs now separate Client PWA, Admin Console, End-to-end, and Public review surfaces; Community wireframes and source flow 14 remain validated but hidden from the catalogs. Guided flows expose consequential creation, evidence, claim-outcome, dispute, seeding, closeout, payout, wallet, and receipt-check intermediates; AppShell-backed Client frames restore the 69px AppBar and AdminDialog follows desktop-centered/mobile-bottom-sheet geometry. |
 | 2026-07-23 | Placement closure (register #51): W10 steward cancellation, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, and all previously adopted MF aliases are realized without amber proposal tags. |
+| 2026-07-25 | Audit closure: ordered hotspot calls are validated against declared lifecycle facts; the DomainImpact happy path now uses work approvals + assessment rather than evidence-only submission; request fixtures stay request-shaped; W7 defaults to triage with lifecycle controls in a focused view; pool compost/reopen, settlement registration, failed-member requeue, and unbatched queued cancellation have executable outcomes; six new guided flows cover the consequential Screen-library gaps. |
+| 2026-07-25 | Review closure: lifecycle validation now covers claim, evidence, assessment, cancellation, dispute, reward, batch, dispatch, and retry calls; paused/reviewing/no-Season states retain their legal acts; O23 gains a batch review/result; requeue copy creates its key on dispatch; SB-26–31 walk the remaining participation, campaign, service, and batch-cancel paths. |
+| 2026-07-26 | Scoped review fixes: contract-call validation now preserves every untouched overlapping lifecycle fact; Paused cycle close/cancel paths retain the Paused pool through confirmation, reconciliation, compost, and member echo; SupportService creation and evidence both render their required local queue boundary; SB-32 walks the paused wind-down variants. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
 - Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
@@ -42,7 +45,7 @@
 
 ## Storyboard index
 
-**At a glance** — fourteen storyboards mapped to personas, scenarios, and surfaces, grouped member → steward → settlement → protocol.
+**At a glance** — thirty-two numbered storyboards (thirty-seven validated source flows after surface/task splits) mapped to personas, scenarios, and surfaces.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
@@ -60,16 +63,34 @@
 | SB-12 | Funding routes → CCIP dispatch → authenticated acknowledgment | Garden Steward + automated protocol executor | S8/S9 steward side | Admin |
 | SB-13 | Cross-garden claim on the protocol pool | Garden Operator (Leila) | S14 | Client PWA + Admin |
 | SB-14 | Community Need → triage → seeded promise (September) | Community (Kwame) + Operator | S10 | Community PWA + Admin |
+| SB-15 | Follow a garden's promises publicly | Neighbour or funder | S11 | Editorial (+ client echo) |
+| SB-16 | Withdraw an offer before acceptance | Gardener (Maria) | S1 edge | Client PWA |
+| SB-17 | Recover a stalled promise | Steward (David) | S5 | Admin (+ client echo) |
+| SB-18 | Find every promise waiting on you | Gardener | S6 | Client PWA |
+| SB-19 | Send a garden's G$ to its own Safe | Protocol steward | S14 settlement | Admin (+ client echo) |
+| SB-20 | Open a campaign beside the season | Steward | S5 | Admin |
+| SB-21 | Move from Community to this garden's pool | Protocol steward | S14 | Admin |
+| SB-22 | Start a baseline from the Hub | Steward or evaluator | S4 | Admin |
+| SB-23 | Register an existing settlement account | Settlement steward | S8 | Admin |
+| SB-24 | Check command transport and route authority | Protocol deployer | S8/S9 | Admin |
+| SB-25 | Recover or cancel one settlement delivery | Settlement steward | S8 | Admin |
+| SB-26 | Wait for readiness, then start the first promise | Gardener | S1 gates | Client PWA |
+| SB-27 | Open a campaign while no Season is running | Gardener | S1 campaign window | Client PWA |
+| SB-28 | Confirm while a Season is under review | Gardener | S1 review window | Client PWA |
+| SB-29 | Offer and confirm an evidence-only service | Gardener + recipient | S1 SupportService | Client PWA |
+| SB-30 | Finish a Campaign promise while it is reviewing | Gardener | S1 campaign review | Client PWA |
+| SB-31 | Cancel an immutable queued batch | Settlement steward | S8 batch recovery | Admin |
+| SB-32 | Wind down a season while its pool stays paused | Steward | S5 paused wind-down | Admin (+ member echo) |
 
-Grouping: member journeys SB-1–7 · steward journeys SB-8–10 · settlement SB-11–12 · protocol + September SB-13–14. The 5-state §4.1 pool lifecycle and cycle cardinality live in SB-9; every other storyboard assumes pool Open unless stated.
+Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, and SB-32 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool.
 
 ---
 
 ## SB-1 — Offer → promise kept
 
-**At a glance** — Maria offers help with no reward; João takes it up, adds evidence, and confirms it was kept — the mutual-aid happy path.
+**At a glance** — Maria offers garden work; after linked work approvals and the required assessment, João confirms it was kept.
 
-**Persona**: Gardener (Maria, research persona `design-research.md:104`) offers; a fellow member takes it up and, as recipient, confirms. **Scenario**: S1 (LAP:164-167). **Surfaces**: client PWA; editorial echo. **Theme**: Tech and Sun Hub design-workshop offer (LAP:122) — mutual aid, no declared reward, no domains.
+**Persona**: Gardener Maria offers; João takes it up and, as recipient, confirms. **Scenario**: S1 (LAP:164-167). **Surfaces**: client PWA, admin work/assessment echoes, editorial echo. **Theme**: Rocinha's "Prune the north beds" DomainImpact promise.
 
 ```mermaid
 flowchart LR
@@ -77,25 +98,26 @@ flowchart LR
   B -->|"Make this offer"| C["W1 optimistic card"]
   C -->|"sync"| D["W1 Offered card"]
   D -->|"Joao: Take this up"| E["W2 Accepted detail"]
-  E -->|"add evidence"| F["W2a attach sheet"]
-  F -->|"send for confirmation"| G["W4 confirm sheet"]
-  G -->|"Joao: promise kept"| H["W2 Fulfilled + hero"]
-  H -->|"aggregates"| I["W15 pool story"]
+  E -->|"submit + link work"| F["Existing Work flow"]
+  F -->|"approve work + attach assessment"| G["W2 Ready"]
+  G -->|"eligible recipient opens"| H["W4 confirm sheet"]
+  H -->|"Joao: promise kept"| I["W2 Fulfilled + hero"]
+  I -->|"aggregates"| J["W15 pool story"]
 ```
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W1 (WF:59-101) | Maria opens the garden's Pool tab; Season card + browse render | reads from `queryKeys.pools.*` (UX:222) | Pool Open, cycle Open (UX:59,72) | Pool NotReady/Paused variants → SB-9 |
 | 2 | W1 | Taps **[ Offer support ]** (WF:79) | routes to `/home/:id/pool/new?direction=offer` (UX:120) | — | — |
-| 3 | W3 (WF:172-196) | Step 1: direction Offer, type Support/service, cycle = Season (explicit binding, UX:150); Step 2: unit "1 session", due date; Step 4 review → **[ Make this offer ]** | enqueues `commitment` job (UX:212); returns to W1 with optimistic card + `··queued··` badge (WF:97) | Draft → local; Offered (optimistic) | Offline/retry lanes → SB-7 |
+| 3 | W3 (WF:172-196) | Direction Offer, type Garden work, AGRO action anchors, 6 hours, due Aug 12 → **[ Make this offer ]** | enqueues `commitment` job (UX:212); returns to W1 with optimistic queued card | Draft → local; Offered (optimistic) | Offline/retry lanes → SB-7 |
 | 4 | W1 | — (sync completes) | `CommitmentCreated` (CS:132); SyncStatusBar count clears (UX:237) | **Offered** (on-chain) | After 5 retries: Failed chip + retry/discard (UX:240) |
 | 5 | W1 | João taps **[ Take this up ]** on the open-mode card (WF:86; helper text names the mode, UX:129) | enqueues `claim`; on sync `CommitmentAccepted` + `UnitsCommitted` (CS:133; DG:176-181). Provider = Maria (Offer creator); confirmer default = João (recipient) — AM:34, UX:32 | **Accepted** | Approval-gated variant → SB-3 |
-| 6 | W2 (WF:134-161) | Either party opens detail; **[ + Add ]** evidence → W2a photo/note (WF:164) | `evidence` job → `EvidenceAttached` (CS:739) | derived Active → EvidenceSubmitted (CS:134-135) | Per-row retry; media never dropped (UX:214) |
-| 7 | W2 | **Send for confirmation** (evidence-only SupportService; control per UX:141 — drawn in SB-2's MF-6) | `confirmation` job `action:"submit"` → `CommitmentReadyForConfirmation` (CS:138 path b) | **ReadyForConfirmation** | Missing evidence blocks submit (UX:141) |
-| 8 | W4 (WF:207-221) | João reviews: sheet names the direction rule — "Offer · provider Maria · recipient confirms" (WF:210) and "Provider Maria cannot confirm this delivery." (WF:215) | — | — | João picks **Not yet** → SB-5 |
-| 9 | W4 | **[ Confirm — promise kept ]** | `confirmation` job `action:"confirm"` → `ConfirmationRecorded` 1 of 1 → `CommitmentFulfilled` + `UnitsFulfilled` (CS:139) | **Fulfilled** | Optimism reverts on failure; dedupe by action+id+address (UX:216) |
-| 10 | W2 | Maria next opens detail or pool tab | Fulfilled hero fires once, on sync completion, seen-marker tracked (UX:197-199) | Fulfilled | `prefers-reduced-motion` → static frame (UX:430) |
-| 11 | W15 (WF:466-479) | — (public echo) | pool story counts tick: "9 promises made, 7 kept so far" — counts-only below the §7.2 threshold (UX:350) | aggregate only | — |
+| 6 | W2 → WFLOW | Maria submits work with `meta.commitmentId`; a second existing work may be linked | existing work job plus `linkWork`; DomainImpact never exposes `submitForConfirmation` (CS:735,138b) | Accepted → Active | Existing work/evidence recovery stays on its ordinary rail |
+| 7 | HUBWORK → W10 | Stewards approve the required works; a steward or evaluator attaches the qualifying assessment | `onWorkApproved` counts requirements; `attachAssessment` re-runs auto-Ready (CS:737,740) | PartiallyApproved → ReadyForConfirmation | Missing approval or assessment keeps the promise out of Ready |
+| 8 | W4 | Maria's provider view is read-only; João's eligible-recipient sheet names the provider exclusion | — | ReadyForConfirmation | João picks **Not yet** → SB-5 |
+| 9 | W4 | João **[ Confirm — promise kept ]** | queued confirmation syncs, then `ConfirmationRecorded` reaches the threshold and fulfills | pending local sync → **Fulfilled** | No Fulfilled result is shown before sync |
+| 10 | W2 | Maria next opens detail or pool tab | Fulfilled result fires once on sync completion (UX:197-199) | Fulfilled | `prefers-reduced-motion` → static frame |
+| 11 | W15 | — (public echo) | pool story count ticks below the publication threshold | aggregate only | — |
 
 **Comprehension note (finding input)**: the S1 pilot thread names an attending cohort as a 3-of-5 named confirmation group (LAP:122), but W3 has no confirmer step — member creation always gets the direction default (UX:32; W3 steps at UX:150-153), and `setConfirmerRule` is steward-only, pre-acceptance (CS:731). A member cannot express the cohort rule without a steward seeding it (W8 step 3, WF:334-337). The storyboard therefore uses the default recipient rule; the named-group version of this journey is SB-8/W8 territory.
 
@@ -127,10 +149,10 @@ flowchart LR
 | 6 | W4 | Ana's sheet reads **"claimant provides · request creator confirms"** (WF:224); João is excluded | — | — | Ana picks Not yet → SB-5 |
 | 7 | W4 | Ana **[ Confirm — promise kept ]** | `ConfirmationRecorded` → `CommitmentFulfilled` (CS:139) | **Fulfilled** | — |
 
-The send-for-confirmation control is now realized as the non-proposed `W2@evidence-submitted` state in the hi-fi artifact. UX:141 defines it on evidence-only detail, UX:287 gives the admin twin, and the ordinary W2 frame remains DomainImpact. The original MF-6 source sketch is preserved below:
+The send-for-confirmation control is realized on the request-specific `W2@request-evidence-submitted` state. The ordinary `W2@evidence-submitted` cast is DomainImpact and offers only the legal work-linkage path.
 
 ```text
-REALIZED — source sketch for W2@evidence-submitted (MF-6, below the Evidence list)
+REALIZED — source sketch for W2@request-evidence-submitted (MF-6, below the Evidence list)
 ┌──────────────────────────────────────────────┐
 │ Evidence attached: 1 · no work required      │  evidence-only helper line
 │ [ Send for confirmation ]                    │  → confirmation{submit} job
@@ -139,7 +161,7 @@ REALIZED — source sketch for W2@evidence-submitted (MF-6, below the Evidence l
 └──────────────────────────────────────────────┘
 ```
 
-**Direction-flip legibility check (finding input)**: the flip is carried at the moment of action by W4's responsibility line (WF:210 for Offers, WF:224 for Requests) — but browse cards (W1) and detail headers (W2) carry no "who will confirm" line before the confirmation moment; a provider can reach W4 before learning they cannot confirm. See findings.
+**Direction-flip closure (2026-07-25)**: the request cast now names responsibility before the confirmation moment. `W1@claim-accepted` identifies the accepted helper, `W2@request-active` says Ana asked and therefore confirms, and W4 repeats the same João-provides / Ana-confirms relationship. The provider never learns the exclusion only after reaching the confirmation sheet.
 
 ---
 
@@ -151,10 +173,10 @@ REALIZED — source sketch for W2@evidence-submitted (MF-6, below the Evidence l
 
 ```mermaid
 flowchart LR
-  A["W1 gated card"] -->|"Ana: Ask to take this up"| B["W1 Pending row"]
+  A["W1 gated card"] -->|"Maria: Ask to take this up"| B["W1 Pending row"]
   A -->|"Joao: Ask to take this up"| B2["W1 Pending row B"]
   B -->|"steward opens queue"| C["W7 claims queue"]
-  C -->|"Decline Ana + reason"| D["W1 Declined panel"]
+  C -->|"Decline Maria + reason"| D["W1 Declined panel"]
   D -->|"Ask again"| B3["W1 fresh Pending"]
   C -->|"Accept Joao"| E["W1 Accepted panel"]
   B3 -->|"indexer supersedes"| F["W1 Superseded panel"]
@@ -163,14 +185,14 @@ flowchart LR
 
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
-| 1 | W1 | Ana taps **[ Ask to take this up ]** (WF:92); card helper reads "stewards review who takes this up" (WF:91) | `claim` job → `ClaimRequested` with stored `{claimant, requestedBy, kind, gardenContext, requestedAt}` (CS:133; UX:99) | commitment stays **Offered/Requested**; request **Pending** (§4.4 UX:103) | Pre-event network failure reverts the optimistic row — ordinary Retry/Discard, **never** rendered as Declined (UX:108) |
-| 2 | W1 | Ana sees the PENDING panel: "Waiting for steward · requested Jul 9 · Provider: myself" (WF:112-117) | commitment stays browseable to other claimants (UX:103) | Pending | No claimant-cancel exists — wait for accept/decline/supersede (UX:103) |
+| 1 | W1 | Maria taps **[ Ask to take this up ]** (WF:92); card helper reads "stewards review who takes this up" (WF:91) | `claim` job → `ClaimRequested` with stored `{claimant, requestedBy, kind, gardenContext, requestedAt}` (CS:133; UX:99) | commitment stays **Offered/Requested**; request **Pending** (§4.4 UX:103) | Pre-event network failure reverts the optimistic row — ordinary Retry/Discard, **never** rendered as Declined (UX:108) |
+| 2 | W1 | Maria sees the PENDING panel: "Waiting for steward · requested Jul 9 · Provider: myself" (WF:112-117) | commitment stays browseable to other claimants (UX:103) | Pending | No claimant-cancel exists — wait for accept/decline/supersede (UX:103) |
 | 3 | W1 | João submits a second request the same way | second Pending row indexed (DG:684-687) | Pending ×2 | — |
 | 4 | W7 | David opens the claims queue: each row shows claimant · requestedBy · kind · provider context · requested time (WF:291-296; UX:272) | reads `claimRequests` index | — | — |
-| 5 | W7 | **[ Decline… ]** on Ana's row with reason | `declineClaim` (CS:734, online mutation UX:218) → `ClaimDeclined`; **only Ana's row changes** (WF:305-309) | Ana **Declined**; João still Pending (UX:105) | Failure preserves indexed state + inline retry (UX:218) |
-| 6 | W1 | Ana reads the rationale, taps **[ Ask again ]** (WF:113-118) | a **fresh** request record; never retries the declined row (UX:105) | new Pending | Only while the commitment is still claimable (UX:105) |
-| 7 | W7 | **[ Accept ]** on João's row | `acceptClaim` consumes João's stored terms — caller-supplied replacements are never accepted (CS:733; UX:104); `CommitmentAccepted`; indexer marks every other pending row **Superseded** (DG:696-702) | commitment **Accepted**; Ana's fresh row **Superseded** | — |
-| 8 | W1 | Ana sees SUPERSEDED: "Taken up by another provider" — resolution code distinguishes acceptance from cancellation/expiry; "This is not a sync failure." (WF:119-123; UX:106; DG:706) | — | Superseded (terminal) | Exit to browse; new request only if it becomes claimable again (UX:106) |
+| 5 | W7 | **[ Decline… ]** on Maria's row with reason | `declineClaim` (CS:734, online mutation UX:218) → `ClaimDeclined`; **only Maria's row changes** (WF:305-309) | Maria **Declined**; João still Pending (UX:105) | Failure preserves indexed state + inline retry (UX:218) |
+| 6 | W1 | Maria reads the rationale, taps **[ Ask again ]** (WF:113-118) | a **fresh** request record; never retries the declined row (UX:105) | new Pending | Only while the commitment is still claimable (UX:105) |
+| 7 | W7 | **[ Accept ]** on João's row | `acceptClaim` consumes João's stored terms — caller-supplied replacements are never accepted (CS:733; UX:104); `CommitmentAccepted`; indexer marks every other pending row **Superseded** (DG:696-702) | commitment **Accepted**; Maria's fresh row **Superseded** | — |
+| 8 | W1 | Maria sees SUPERSEDED: "Taken up by another provider" — resolution code distinguishes acceptance from cancellation/expiry; "This is not a sync failure." (WF:119-123; UX:106; DG:706) | — | Superseded (terminal) | Exit to browse; new request only if it becomes claimable again (UX:106) |
 | 9 | W2 | João proceeds to work/evidence | — | Accepted → SB-4 | — |
 
 No missing frames: the four §4.4 request panels (WF:111-125) and the two admin outcome panels (WF:304-311) already cover every state this storyboard touches. Supersession is an indexer side-effect, never a user action (DG:466) — it appears in the inventory's system table only.
@@ -300,7 +322,7 @@ REALIZED — source sketch for W2@expired (MF-3, replaces the confirm block)
 
 REALIZED — source sketch for W7@expiry-queue (MF-4, below Claims waiting)
 ┌─ Lapsed this cycle ────────────────────────────────────────────────────┐
-│ ≡ Field survey  (Request)(Expired)  due Jul 2 · 0 of 1 taken up        │
+│ ≡ Market rides  (Campaign)(Expired) due Jul 2 · 0 of 16 kept          │
 │                                  [ Re-seed… ]  [ View history ]        │  → W8 prefilled
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -388,9 +410,9 @@ Dignity check carried by existing frames: the member is the promise's owner on e
 flowchart LR
   A["W7 NotReady checklist"] -->|"complete charter + cap + baseline"| B["W7 checks complete"]
   B -->|"markPoolReady"| C["W7 Ready card"]
-  C -->|"openPool"| D["W7 Open card"]
-  D -->|"seed cycle"| E["W8-style seed flow"]
-  E -->|"open cycle + allocation"| F["W11 allocation step"]
+  C -->|"seed cycle"| D["W7 Seeded cycle"]
+  D -->|"allocation"| E["W11 Ready-pool guard"]
+  E -->|"openPool then openCycle"| F["W7 Open pool + cycle"]
   F -->|"CycleOpened"| G["W1 member Season card"]
   G -->|"pause + resume"| H["W7 paused band"]
   H -->|"close cycle"| I["W7 Reconciled report"]
@@ -402,17 +424,17 @@ flowchart LR
 | 1 | W7 | Pool card shows the NotReady checklist: charter CID, non-zero provider open-commitment cap, one current non-revoked Baseline (v2/v3, recipient = pool garden) (UX:57,269; WF:104 variant) | — | Pool **NotReady** (client: Pool tab absent, UX:57) | — |
 | 2 | W7 | **[ Edit readiness ]** → charter CID; concurrent commitment-count cap field; qualifying Baseline preflight | `setPoolCharter`; `setProviderOpenCommitmentCap` — required before Ready | Pool remains **NotReady** until the explicit write | — |
 | 3 | W7@preflight-complete | Steward taps **Mark pool ready** after charter + non-zero provider open-commitment cap + qualifying Baseline all pass; the control is realized in W7 and disabled before this state (UX:269) | `markPoolReady` (CS:724) | Pool **Ready** — member sees "warming up" banner, browse/create disabled (UX:58) | Contract rechecks charter + cap; app/shared/admin rechecks the Baseline preflight |
-| 4 | W7@ready | Steward taps **Open pool** on the adopted pool-card action (MF-1/register #34a) | `openPool` (CS:100) | Pool **Open**; cycle opening is no longer deadlocked | `openCycle` remains blocked until the pool is Open |
-| 5 | W7 | Seed the Season: cycle flow per §6.2.2 — type, window, metadata (WF:280 `[ New Campaign ]` grammar; Season slot blocks a second open Season, WF:277-279; UX:66) | `seedCycle` carries no allocation | Cycle **Seeded** — member sees "opens soon", seeded promises browsable read-only (UX:71) | Second Season blocked with a link to the existing one (UX:66) |
-| 6 | W11 | Open-cycle flow's allocation step: preset → editable percentages, encoded as six bps fields whose total must equal 10,000; soft warning below 15% treasury (WF:390-398; UX:322-330) | `openCycle(cycleId, allocation)` validates, stores, and emits the six-class snapshot | Cycle **Open** | Encoded sum ≠ 10,000 blocks (WF:395) |
+| 4 | W7@ready | Steward seeds the Season: type, window, metadata. The page-header **Seed commitment** control remains disabled because member/seeded commitment creation requires Pool Open. | `seedCycle` is legal from Ready and carries no allocation | Cycle **Seeded** — member sees "opens soon" | Second Season blocked with a link to the existing one |
+| 5 | W1@seeded | (member echo) the Season is visible but read-only | — | Pool Ready · cycle Seeded | — |
+| 6 | W11 | Allocation totals 10,000 bps; the Ready-pool guard explicitly submits **two ordered writes**: `openPool(poolId)`, then `openCycle(cycleId, allocation)` | Pool Ready → Open, then cycle Seeded → Open; allocation snapshot stored unchanged | Pool **Open** · cycle **Open** | If `openPool` fails, `openCycle` is not offered as though it succeeded; invalid allocation blocks before either write |
 | 7 | W1 | (member echo) Season card live: stepper, progress, calm date (WF:66-70) | derived InProgress/Reviewing overlay per activity (CS:115-117) | Open → InProgress | — |
 | 8 | W7 | Mid-season **[ Pause… ]** with reason (WF:274) | `pausePool(reasonCID)` (CS:725,101) | Pool **Paused** — member banner "new participation paused by stewards" + reason; create/claim/Ready-submit/confirm disabled; evidence, linkage, cancellation/expiry, dispute recovery stay available (UX:60; WF:104) | Resume clears the indexed reason (CS:725) |
 | 9 | W7 | **Resume** | `resumePool` | Pool Open | — |
 | 10 | W7 | Season end: **close cycle** (the reconcile act) | `closeCycle` → `CycleClosed` (CS:118); Fulfilled/Cancelled/Expired commitments derive Reconciled (CS:140,145) | Cycle **Reconciled** | — |
 | 11 | W26 | Read the realized reconciliation report in the cycle-close wizard (MF-9; UX:75) | report resolves outstanding commitments and carries the scoped allocation snapshot | Reviewing → Reconciled | — |
 | 12 | W1@cycle-summary | (member echo) realized cycle summary card + the medium cycle-close hero, once (MF-10; UX:75,200) | — | Reconciled | reduced-motion → static (UX:430) |
-| 13 | W7 | **[ Compost ]** | `compostCycle` → `CycleComposted` (CS:119) | Cycle **Composted** — member: history + "ready for the next season" (UX:62,76) | — |
-| 14 | W7 | (variants) **Cancel…** a cycle with reason (WF:279-282) → §4.2 Cancelled quiet banner w/ reason for members (UX:77); pool coda: close → compost → **Reopen** (UX:61-62; `reopenPool` CS:104) — closePool adopted with MF-1 (register #34a) | `cancelCycle` (CS:729); `compostPool`/`reopenPool` (CS:725) | Cancelled / Closed / Composted | — |
+| 13 | W26 | **[ Compost cycle ]** after closeCycle already reconciled it | `compostCycle` only → `CycleComposted` | Cycle **Composted** — member history remains | — |
+| 14 | W7 | Close pool → compost pool → confirm **Reopen to Ready**; the cancel-season variant remains a separate branch from an Open cycle | `closePool` → `compostPool` → `reopenPool(poolId,false)`; or `cancelCycle(reason)` | Closed → Composted → Ready; or cycle Cancelled | Reopening preserves history and does not reopen participation |
 
 ```text
 REALIZED — source sketch for W7 pool status card action row (MF-1)
@@ -563,7 +585,7 @@ flowchart LR
 | 4 | W12 | Protocol steward reviews **Claims across gardens** — claimant-kind column names "Awka Hub (garden claim)" (WF:415; UX:313) | root-garden Hats stewardship (CS:58) | — | — |
 | 5 | W12 → W7 grammar | **[ Accept ]** consumes the stored terms; derived `providerGarden` shown (WF:313; CS:733) | `CommitmentAccepted(provider, providerGarden)`; other pending rows Superseded (DG:696-702) | **Accepted** | Decline-with-reason per SB-3.5 |
 | 6 | W2 / existing work flow | Leila's gardeners work and prove: Work + assessments use **providerGarden as EAS recipient** while the commitment stays owned by the root pool (CS:772; LAP:181) | `WorkLinked`/`ApprovedWorkCounted` as SB-4 | Active → … → ReadyForConfirmation | — |
-| 7 | W12 | **Confirmations queue** row "Field survey — 1 of 2 confirmed" (WF:417) | mirrors the Hub Confirm grammar scoped to the protocol pool (UX:313) | ReadyForConfirmation | — |
+| 7 | W12 | **Confirmations queue** row "Methodology survey — 1 of 2 confirmed" (WF:417) | mirrors the Hub Confirm grammar scoped to the same protocol-pool commitment | ReadyForConfirmation | — |
 | 8 | W10 | Named confirmer (or fallback-eligible steward, with reason) confirms | `CommitmentFulfilled`; co-funded reward references stay with the owning garden (WF:413; UX:313) | **Fulfilled** | — |
 
 Guard rails carried by existing copy: the garden claim "does not create token custody or a member-delivery fallback" (WF:106); a Garden-claim G$ beneficiary is the registered `providerGarden` Celo Safe, never the Arbitrum GardenAccount (AM:38-39).
@@ -611,6 +633,36 @@ flowchart LR
 | 8 | CI-W5/CI-W6 | When the seeded promise reaches ReadyForConfirmation and Kwame is the named confirmer (Request-author default), the **author confirm CTA** appears (CI-SPEC:259); afterwards he may **add testimony** (Community Hat attestation, CS:762); both live in Profile history (CI-WF:194) | consumes the shared confirmation/testimony primitives owned by this feature (UX:374) | Fulfilled + testimony | — |
 
 This storyboard stays at wireframe depth on purpose: the community frames are canonical in `.plans/active/community-interface/` (WF:505-512 removed this file's own September sketches), and the August release neither ships nor depends on them (AM:68).
+
+---
+
+### Additional guided-flow catalogue (SB-15–32)
+
+The executable artifact also carries the focused, shorter journeys below. They
+reuse the contracts and screens specified above; their purpose is to make every
+consequential action or handoff directly walkable without inflating the original
+scenario chapters.
+
+| SB | Walked path | Contract or navigation proof |
+|---|---|---|
+| 15 | public pool story → protocol impact → install → member pool | publication threshold and no-ranking story |
+| 16 | offered owner → withdraw confirmation → withdrawn result | `cancelCommitment` creator path with reason |
+| 17 | accepted recovery → override/cancel/review outcomes | steward-only recovery calls and member echoes |
+| 18 | wallet confirmation inbox → pending sync → confirmed result | provider exclusion and sync-gated fulfillment |
+| 19 | protocol garden reward → queue → command → Operations → garden receipt | garden Safe beneficiary, authenticated arrival only |
+| 20 | seeded Campaign → allocation → open beside Season | `openCycle` only; pool already Open |
+| 21 | Community Protocol pool → This garden → Garden Pool | one-tap workspace handoff |
+| 22 | Hub Assess → Baseline → work context chip | existing assessment flow, extended rather than forked |
+| 23 | unregistered settlement section → registration → registered result | `registerSettlementAccount` |
+| 24 | Operations Queue → CCIP health → command route gate | scoped executor authority and reserve evidence |
+| 25 | authenticated failure → requeue result → unbatched queued cancellation | `requeue`; `cancelDisbursement(reason)` |
+| 26 | NotReady → Ready → first open-pool promise | participation controls appear only at Open |
+| 27 | no Season → open Campaign → take up its request | Campaign remains independently usable |
+| 28 | Season Reviewing → legal confirmation → synced result | review blocks new participation, not confirmation |
+| 29 | SupportService offer → local offer queue → evidence → local evidence queue → confirmation | both offline writes remain visible before their indexed outcomes; no work anchors are invented |
+| 30 | reviewing Campaign → legal service confirmation | campaign count changes only after sync |
+| 31 | queued batch → atomic cancellation → result | `cancelBatch(reason)` names every immutable member |
+| 32 | Paused open season → close/reconcile/compost, or cancel with reason | cycle calls preserve the Paused pool through every result |
 
 ---
 
@@ -663,7 +715,7 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | M2 | Take this up / ask to take this up | `claimCommitment` (CS:732) | W1 card + §4.4 panels (WF:111-127) | offline `claim` (UX:213) | NEW | open vs steward-reviewed is card helper text, never a member toggle (UX:129); "ask again" = fresh request (UX:105) |
 | M3 | Add evidence (photo / link / note) | `attachEvidence` (CS:739) | W2 → W2a | offline `evidence` (UX:214) | NEW | steward also authorized on-chain, no admin control drawn (W10 read-only) |
 | M4 | Link existing work to a promise | `linkWork` (CS:735) | W2 picker | offline `workLink` (UX:215) | NEW | deep-linked NEW work rides the existing `work` job (extension row E1 below) |
-| M5 | Send for confirmation | `submitForConfirmation` (CS:741) | `W2@evidence-submitted` (MF-6 realized); admin twin UX:287 | offline `confirmation{submit}` (UX:216) | NEW | evidence-only kinds; DomainImpact rejected on-chain (CS:138b) |
+| M5 | Send for confirmation | `submitForConfirmation` (CS:741) | `W2@request-evidence-submitted` (MF-6 realized); admin twin UX:287 | offline `confirmation{submit}` (UX:216) | NEW | evidence-only kinds; DomainImpact `W2@evidence-submitted` exposes only legal work linkage |
 | M6 | Confirm — promise kept | `confirmFulfillment` (CS:743) | W4 sheet · W5 inbox · admin W13 stage · W12 protocol queue | offline `confirmation{confirm}` (UX:216) | NEW | provider always excluded (`SelfConfirmation`); once per confirmer |
 | M7 | Not yet — ask the stewards to look | `raiseDispute` (CS:747) | W4 decline branch | **online** (UX:217) | NEW | member entry exists only at ReadyForConfirmation via W4; contract also allows creator/counterparty from Accepted/Expired — unsurfaced |
 | M8 | Send G$ onward | Celo wallet transfer (value leg — not a module entry point) | W23 send sheet | **online** `transfer`, AA-gated (UX:219; SS:433) | NEW | sponsored gas; absent entirely while `memberDeliveryEnabled` is false |
@@ -682,7 +734,7 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | O1 | Edit the pool charter | `setPoolCharter` (CS:723) | W7 pool card | online | NEW | — |
 | O2 | Set the provider open-commitment cap | `setProviderOpenCommitmentCap` | W7 readiness checklist | online | NEW | non-zero concurrent commitment count required before Ready |
 | O3 | Mark the pool ready | `markPoolReady` (CS:724) | `W7@preflight-complete` (realized) | online | NEW | disabled until charter + cap + qualifying Baseline; Ready remains distinct from Open |
-| O4 | Pool lifecycle controls | `pausePool`/`resumePool`/`compostPool`/`reopenPool` (UX:60-62; WF:274) + `openPool`/`closePool` adopted onto the card per register #34a (MF-1) | W7 pool card | online | NEW | all 6 entry points placed as of 2026-07-11; open-cycle flow gains only a Ready-state guard prompt |
+| O4 | Pool lifecycle controls | `pausePool`/`resumePool`/`compostPool`/`reopenPool` (UX:60-62; WF:274) + `openPool`/`closePool` | W7 focused lifecycle view + compost/reopen outcomes | online | NEW | SB-9 walks close → compost → reopen; the Ready-state open-cycle guard declares `openPool` then `openCycle` |
 | O5 | Seed a cycle (Season / Campaign) | `seedCycle` (CS:726) | W7 cycles console (UX:270) | online | NEW | one open Season invariant enforced in-console (WF:279) |
 | O6 | Open a cycle (with allocation policy) | `openCycle(cycleId, allocation)` (CS:727) | W11 step in the open-cycle flow | online | NEW | percent inputs encode an exact 10,000 bps total; six-class snapshot stored and emitted (UX:322-330) |
 | O7 | Close a cycle (reconcile) | `closeCycle` (CS:728) | W7 cycle row | online | NEW | fires client cycle-close hero downstream (UX:200) |
@@ -698,14 +750,14 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | O17 | Raise a dispute (steward) | `raiseDispute` (CS:747) | W10 | online | NEW | same entry point as M7, different surface + vocabulary |
 | O18 | Resolve a dispute (4 outcomes, reason) | `resolveDispute` (CS:748) | W10 (WF:381-382) | online | NEW | Expired can never resolve Fulfilled (CS:144) |
 | O19 | Record external payout | `recordRewardPaid` (CS:749) | W10 + AdminConfirmDialog (UX:302) | online | NEW | `ArbitrumExternal` only; `CeloSettlement` reverts |
-| O20 | Set up the settlement account | `registerSettlementAccount` (SS:169) | W21 (WF:572) | online | NEW | steward or module owner |
+| O20 | Set up the settlement account | `registerSettlementAccount` (SS:169) | W21 registration form + result (SB-23) | online | NEW | registers an already-deployed, governance-verified Safe; steward or module owner |
 | O21 | Queue a disbursement | `queueDisbursement` (SS:171) | W10@queue-settlement (WF:564; SS:526) | online | NEW | `CeloSettlement` only; gated on member delivery + Fulfilled + active source/beneficiary routes |
 | O22 | Queue garden funding | `queueFunding` (SS:172) | W24 Operations funding view + W12 funding context (SS:528; MF-11, realized) | online | NEW | protocol steward or owner; GG→garden only |
-| O23 | Create a settlement batch | `createBatch` (SS:235) | W21 (WF:583) | online | NEW | resolved settlement steward only; 1–configured-limit immutable members; hard ceiling 24 |
+| O23 | Create a settlement batch | `createBatch` (SS:235) | W21 batch review + queued result (SB-12; WF:583) | online | NEW | resolved settlement steward only; homogeneous 1–configured-limit immutable members; hard ceiling 24 |
 | O24 | Retry command / acknowledgment | `retryCommand` / `retryBatchCommand` / `retryAcknowledgment` | W22 | online | NEW | source retry preserves attempt + execution key; a stored acknowledgment retry cannot move G$ |
 | O25 | Dispatch a settlement command | `dispatchDisbursement` / `dispatchBatch` | W22 | online | NEW | immutable source facts only; no arbitrary target, token, amount, or calldata |
-| O26 | Requeue a failed member | `requeue` (SS:182) | W21/W22 (WF:536,562) | online | NEW | clears old batchId; attempts++ |
-| O27 | Cancel a disbursement or queued batch (reason) | `cancelDisbursement` / `cancelBatch` (SS §3.2) | W21/W22 (WF §W21–W22) | online | NEW | individual cancellation is only for unbatched Queued or Failed items; a Queued batch cancels atomically in full, with no partial-member path |
+| O26 | Requeue a failed member | `requeue` (SS:182) | W22 outcome → W21 confirmation + queued result (SB-25) | online | NEW | preserves old attempt, clears old batchId, attempts++; the new execution key is created only when the next unbatched dispatch begins |
+| O27 | Cancel a disbursement or queued batch (reason) | `cancelDisbursement` / `cancelBatch` (SS §3.2) | W21 individual confirmation/result + W22 atomic batch confirmation/result (SB-25/SB-31) | online | NEW | individual cancellation only for unbatched Queued or Failed; a Queued batch cancels atomically with no partial-member path |
 
 **Protocol executor — no human-facing actions.** `CeloSettlementExecutor` is the authenticated Celo contract and scoped Zodiac Roles member, never a Safe owner. CCIP command receipt, bounded G$ execution, outcome storage, and acknowledgment dispatch are system actions. M8 Send G$ (W23) remains the only member value-leg action.
 
@@ -763,11 +815,11 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 | State | Client PWA | Admin | Editorial | Community |
 |---|---|---|---|---|
 | NotReady | explicit: tab absent (UX:57) — noted SB-9.1 | SB-9.1–3 | static: readiness copy (UX:57; WF:481) | Sept static |
-| Ready | SB-9.3 echo ("warming up", UX:58) | SB-9.3–4 (open-pool control adopted per register #34a — MF-1) | static (UX:58) | Sept static |
+| Ready | SB-9 echo (`W1@ready`) | SB-9 mark-ready result + reopened result | static (UX:58) | Sept static |
 | Open | SB-1.1 | SB-9.5+ | SB-1.11 (W15) | Sept view |
 | Paused | SB-9.8 echo (UX:60) | SB-9.8–9 | static: quiet-period line (UX:60) | Sept view + recovery |
-| Closed | static: view-only history (UX:61) | SB-9.14 coda (closePool adopted per register #34a) | static (UX:61) | Sept view |
-| Composted | SB-9.13 echo (UX:62) | SB-9.14 (reopen) | static: past cycles (UX:62) | Sept history |
+| Closed | SB-9 member echo | SB-9 close-pool result | static (UX:61) | Sept view |
+| Composted | closed/history copy remains | SB-9 pool-composted + reopen confirmation | static: past cycles (UX:62) | Sept history |
 
 ### 17.2 Cycle states (UX:68-77)
 
@@ -791,7 +843,7 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 | Requested | SB-2.2 | W7 table | static: counts only | Sept view |
 | Accepted | SB-1.5 · SB-3.7 | SB-3.7 | static: counts only | Sept view |
 | Active | SB-4.4 | static: monitor list (UX:87) | static: active aggregate | Sept view |
-| EvidenceSubmitted | SB-1.6 · SB-2.4 | SB-4.5 (review queue) | explicit: not distinct from Active (UX:88) | Sept view |
+| EvidenceSubmitted | SB-1 DomainImpact evidence stays on the work path · SB-2 request evidence may submit for confirmation | SB-4 review queue | explicit: not distinct from Active (UX:88) | Sept view |
 | PartiallyApproved | SB-4.5 | SB-4.5 | explicit: not distinct | explicit: not distinct |
 | ReadyForConfirmation | SB-1.7 · SB-2.5 | SB-10.3 (W13) · SB-13.7 (W12) | explicit: not distinct | Sept: confirm CTA (SB-14.8) |
 | Fulfilled | SB-1.9–10 | SB-10.5 | SB-1.11 (counts + rate per §7.2) | Sept: testimony CTA (SB-14.8; resolved register #34g — September-realized) |
@@ -813,13 +865,13 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 
 | State | Member (client) | Steward / Operations (admin) |
 |---|---|---|
-| Queued | W2 `support-queued` ("support is queued") | W22 `ready` |
+| Queued | W2 `support-queued` ("support is queued") | W21 queue + requeued result; W22 ready; SB-25 |
 | Dispatched | W2 `support-en-route` ("support on its way") | W22 `dispatched` |
 | Celo executed / acknowledgment pending (derived) | W2 `support-executed` / `support-confirming` | W22 `executed` / `acknowledgment-pending` |
 | Confirmed | W2 `support-arrived` ("support arrived ↗") | W22 `outcome` |
-| Failed (authenticated acknowledgment only) | W2 `support-failed` ("still arranging support — your promise is recorded") | W22 `outcome` (per-member requeue) |
+| Failed (authenticated acknowledgment only) | W2 `support-failed` ("still arranging support — your promise is recorded") | W22 outcome → W21 requeue confirmation/result (SB-25) |
 | Delayed (derived, state remains Dispatched) | W2 `support-delayed` ("support on its way — delivery delayed") | W22 `delivery-delayed` |
-| Cancelled from Queued | W2 `support-cancelled-queued` — "this support was withdrawn before it was sent — your promise and its record stay intact" | W21 queued recovery |
+| Cancelled from Queued | W2 `support-cancelled-queued` — "this support was withdrawn before it was sent — your promise and its record stay intact" | W21 unbatched confirmation + explicit result (SB-25); W22 batch confirmation stays atomic |
 | Cancelled from Failed | W2 `support-cancelled-failed` — "this support was closed after delivery could not complete — your promise and its record stay intact" | W21 failed recovery |
 
-**Coverage verdict**: no fully silent settlement state–surface cell or unlocked August placement remains. Both cancellation origins have locked member copy and admin recovery placement; MF-2b/MF-7/MF-8/MF-13 are locked by register #51; Ready→Open and member cancel are resolved; testimony is September-only. The dispatch's 13 required August flows map: S1→SB-1 · S2→SB-2 · S3→SB-3 · S4→SB-4 · S5→SB-5+SB-9 · expiry→SB-6 · S6→SB-7 · S7→SB-8 · seeding+cycles→SB-9 · S13→SB-10 · S8/S9 member→SB-11 · S8 operator→SB-12 · S14→SB-13. S10→SB-14 remains September Community source material and is hidden from the presentation catalogs until high fidelity.
+**Coverage verdict**: every August action-inventory item with a plan-defined interactive landing path now has a guided walk. SB-20–31 cover campaign opening and member use, the Community→Garden handoff, assessment entry/context, settlement registration, route authority, batch creation/cancellation, failed-member requeue, and unbatched cancellation. O22 `queueFunding` remains the decided read-only integration gate: drawing a landing state would invent a path the plan does not define. Exhaustive loading, not-found, read-error, discard, validation, and quiet non-action empty states remain intentionally Screen-library-only. S10→SB-14 remains September Community source material and is hidden until high fidelity.

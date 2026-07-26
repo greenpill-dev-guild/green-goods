@@ -11,6 +11,7 @@ import {
   phoneFrame, radio, sectionTitle, seg, sheetOver, skeleton, stepDots,
 } from "../kit";
 import type { HifiDef } from "./index";
+import type { StateFacts } from "../types";
 
 // ---------------------------------------------------------------------------
 // W5 — WalletDrawer pools panel (uiux-spec §5.8; absorbs W6's summary line)
@@ -212,7 +213,7 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
 
 const W25_HOTS: HifiDef["hots"] = {
   "w25.chooser": { l: "Context chooser", info: "Garden claim: claimant = GardenAccount, requestedBy = you. No custody, no member-delivery via garden claims (AM:38-39)." },
-  "w25.continue": { l: "Continue", to: "screen:W25@pending", info: "Creates the claim request with the chosen context's stored terms — claimant, requestedBy, kind, gardenContext (CS:133). Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged." },
+  "w25.continue": { l: "Continue", to: "screen:W25@pending", info: "Creates the claim request with the chosen context's stored terms — claimant, requestedBy, kind, gardenContext (CS:133). Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged.", calls: ["claimCommitment"] },
   "w25.cancel": { l: "Cancel", to: "screen:W25", info: "Closes the provider-context sheet without creating a claim request." },
   "w25.open-promise": { l: "Open the promise", to: "screen:W2@garden-provider", info: "The garden-provided promise opens in the ordinary commitment detail; work and evidence rails are unchanged." },
   "w25.ask": { l: "Ask to take this up", to: "screen:W25@context-chooser", info: "Opens the provider-context sheet before any claim request exists; the garden option renders for eligible stewards only (CS:581). The (Protocol) chip is the only new mark on the card grammar (WF:671)." },
@@ -259,7 +260,15 @@ export const WALLET_DEFS: HifiDef[] = [
   },
   {
     screen: { id: "W25", title: "W25 · Protocol-pool claim", surface: "client", frame: "phone", group: "Client PWA",
-      states: W25_STATES.map(([id, label]) => ({ id, label, html: w25(id) })) },
+      states: W25_STATES.map(([id, label]) => ({
+        id,
+        label,
+        facts: {
+          commitment: id === "accepted" ? "Accepted" : "Requested",
+          kind: "SupportService",
+        } satisfies StateFacts,
+        html: w25(id),
+      })) },
     hots: W25_HOTS,
   },
   {

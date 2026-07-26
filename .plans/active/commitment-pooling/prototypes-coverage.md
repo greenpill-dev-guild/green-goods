@@ -1,13 +1,13 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-07-23. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, and invalid navigation targets.
+Updated 2026-07-26. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
 
 ## Build snapshot
 
-- 31 registered screens / 185 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 178 states: 9 Client PWA (100 states), 13 Admin console (73 states), 2 Editorial website (5 states)
-- 290 registered hotspots
-- 24 validated source flows / 191 scenes; 23 presentation-visible flows / 182 scenes: 11 Client PWA, 11 Admin console, 1 Editorial website
+- 31 registered screens / 228 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 221 states: 9 Client PWA (123 states), 13 Admin console (93 states), 2 Editorial website (5 states)
+- 343 registered hotspots
+- 37 validated source flows / 281 scenes; 36 presentation-visible flows / 272 scenes: 16 Client PWA, 19 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -24,14 +24,32 @@ directions. Old `#sb3` / `#sb4` / `#sb6` hashes retire exactly as `#sb9` did.
 
 Community `C*` wireframes and the September Need→triage flow remain registered, validated, and directly addressable, but are hidden from the presentation catalogs until their high-fidelity pass.
 
+**Lifecycle audit closure (2026-07-25).** State metadata now declares the
+relevant pool, cycle, commitment kind/state, or settlement state.
+Audited lifecycle-sensitive write hotspots declare ordered `calls`; the build
+simulates claim, evidence, assessment, cancellation, dispute, reward, pool,
+cycle, settlement, batch, dispatch, and retry calls and rejects illegal source
+states, kind mismatches, compound-order violations, contradictory result-state
+facts, and changes to overlapping facts a call does not touch. The same pass
+adds guided walks for campaign opening and
+member use, Community→Garden navigation, assessment entry, settlement
+registration, route-gate inspection, batch creation/cancellation, and
+individual requeue/cancellation.
+
+Paused wind-down is an executable regression fixture: `closeCycle`,
+`compostCycle`, and `cancelCycle` advance only the cycle, while every
+confirmation, wizard step, result, and member echo keeps the pool Paused.
+
 `sb9` was split into `sb9a` (pool readiness → season open), `sb9b` (pause and resume),
 and `sb9c` (end a season — close, compost, or cancel). One 33-scene ribbon covering seven
 stewardship tasks left a reviewer with no chapter to orient against mid-flow.
 
 **Promise cast (2026-07-25).** The commitment detail, evidence sheet and
-confirmation sheet carry three casts, and identity follows the promise rather
+confirmation sheet carry four casts, and identity follows the promise rather
 than the fixture: the neighbour-to-neighbour **offer** (Maria → João, 6 hours),
 the **request** (Ana asks, João provides, Ana confirms — 1 ride), and the
+evidence-only **service offer** (Maria provides, João confirms — 1 repair
+session), plus the
 **garden-provided** protocol commitment (Awka Hub provides, protocol stewards
 confirm — 1 survey). A request that renders offer copy mid-flow is a fiction
 break, not a styling detail: direction, title, unit and cast all differ.
@@ -40,7 +58,8 @@ break, not a styling detail: direction, title, unit and cast all differ.
 
 - `W2a` is guided-flow-covered: evidence composition is shown before evidence-submitted outcomes.
 - `W16`'s states are walked by the editorial flow and `W5`'s by the wallet-drawer flow; only their error/loading states stay Screen-library-only because they are exhaustive drawer/editorial state references rather than consequential flow transitions.
-- Guided flows own the primary transitions and consequential intermediate states; Screen library owns exhaustive loading, empty, validation, recovery, and alternate states.
+- SB-5 walks the complete “Not yet” dispute lifecycle once. `W4@not-yet-request`, `W4@not-yet-support`, `W2@request-disputed`, and `W2@support-disputed` remain Screen-library cast variants of that same call path so reviewers can verify identity continuity without duplicating the journey.
+- Guided flows own the primary transitions and consequential intermediate states, including the actionable open-pool empty state. Screen library owns exhaustive loading, non-action empty, validation, recovery, and alternate states.
 
 ## Cross-cutting recovery coverage
 
@@ -49,11 +68,11 @@ break, not a styling detail: direction, title, unit and cast all differ.
 | Loading / skeleton preserves layout | `W1@loading`, `W2@loading`, `W5@loading`, `W7@loading` |
 | Not-found / sentinel recovery | `W1@not-found`, `W2@not-found`, `W5@not-found`, `W10@not-found` |
 | Read error with retry | `W1@read-error`, `W2@read-error`, `W5@read-error` |
-| Scope-named empty | `W1@empty-open`, `W1@no-season`, `W5@empty`, `W7@empty`, `W13@empty` |
-| Offline queue / exhausted retry | `W1@queued`, `W1@sync-failed`, `W1@waiting-membership`, `W2a@queued`, `W2a@failed` |
-| Confirmation outcome / retry | `W4@confirmed-pending`, `W4@confirmed`, `W4@not-yet`, `W4@not-yet-failed` |
+| Scope-named empty | `W1@empty-open` and `W1@no-season` are guided because they offer legal next acts; `W5@empty`, `W7@empty`, and `W13@empty` remain exhaustive Screen-library references |
+| Offline queue / exhausted retry | `W1@queued`, `W1@support-queued`, `W1@sync-failed`, `W1@waiting-membership`, `W2@support-evidence-queued`, `W2a@queued`, `W2a@failed` |
+| Confirmation outcome / retry | `W4@confirmed-pending`, `W4@confirmed`, request- and service-specific pending/synced variants, `W4@not-yet`, `W4@not-yet-failed` |
 | Wallet send retention / retry | `W23@send`, `W23@send-pending`, `W23@send-failed` |
-| Cycle banners | `W1@reviewing`, `W1@paused`, `W1@closed`, `W1@cancelled-cycle`, `W1@cycle-summary` |
+| Cycle banners | `W1@reviewing`, `W1@paused`, `W1@closed`, `W1@cancelled-cycle`, `W1@paused-cancelled-cycle`, `W1@cycle-summary`; reviewing and paused wind-down both have guided legal paths |
 | Steward send / override / cancel | `W10@accepted`, `W10@mark-ready-override`, `W10@cancel` |
 
 ## Confirmation before consequence
@@ -69,26 +88,30 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | --- | --- | --- |
 | Pause pool | `W7@pause-confirm` | 23 members · 7 open promises · what stays open |
 | Close pool | `W7@close-pool-confirm` | ends participation for 23 members · reachable only once the last cycle composts (`W7@cycle-composted`) · no stored reason |
+| Close paused pool | `W7@paused-close-pool-confirm` | pool remains Paused through cycle compost · `closePool` alone changes it to Closed · no stored reason |
+| Reopen pool | `W7@reopen-confirm` | Composted → Ready · history preserved · participation stays closed |
 | Cancel season | `W7@cancel-cycle-confirm` | 8 promises, 5 kept · records survive |
-| Decline claim | `W7@decline-claim-confirm` | one request only · João stays pending |
+| Cancel season while paused | `W7@paused-cancel-cycle-confirm` | pool remains Paused · cycle alone becomes Cancelled · records survive |
+| Decline claim | `W7@decline-claim-confirm` | Maria's request only · João stays pending |
 | Cancel batch | `W22@cancel-batch-confirm` | all 2 members atomically · no partial path |
 | Close delivery | `W21@close-delivery-confirm` | attempt + failure code survive · no new key |
+| Cancel queued delivery | `W21@cancel-queued-confirm` | one unbatched Queued item only · no batch or command created |
 | Withdraw your offer | `W2@withdraw-confirm` | pre-acceptance only · no units committed, so none release |
 
 ## Screen registry
 
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
-| W1 | Client PWA | 21 | open, not-ready, ready, seeded, reviewing, paused, closed, cancelled-cycle, empty-open, no-season, queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
-| W2 | Client PWA | 33 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, request-evidence-submitted, request-fulfilled, loading, not-found, read-error |
-| W2a | Client PWA | 4 | compose, compose-request, queued, failed |
-| W3 | Client PWA | 7 | step-what, step-howmuch, step-anchors, step-review, request-variant, draft-resume, validation |
-| W4 | Client PWA | 8 | confirm-domain, confirm-support, confirm-request, not-yet, provider-view, confirmed-pending, confirmed, not-yet-failed |
+| W1 | Client PWA | 27 | open, not-ready, ready, seeded, request-open, request-queued, reviewing, paused, closed, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
+| W2 | Client PWA | 42 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, request-evidence-submitted, request-fulfilled, request-disputed, support-offered, support-active, support-evidence-queued, support-evidence-submitted, support-ready-confirmer, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error |
+| W2a | Client PWA | 5 | compose, compose-request, compose-support, queued, failed |
+| W3 | Client PWA | 8 | step-what, step-howmuch, step-anchors, step-review, support-review, request-variant, draft-resume, validation |
+| W4 | Client PWA | 14 | confirm-domain, confirm-support, confirm-request, not-yet, not-yet-support, not-yet-request, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, not-yet-failed |
 | W5 | Client PWA | 7 | default, queued, waiting-membership, empty, loading, not-found, read-error |
 | W23 | Client PWA | 5 | balance, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
 | WFLOW | Client PWA | 1 | review |
-| W7 | Admin console | 19 | open, not-ready, preflight-complete, ready, paused, reconciled, cycle-composted, pool-closed, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, cancel-cycle-confirm, decline-claim-confirm, loading, empty |
+| W7 | Admin console | 25 | open, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
 | W10 | Admin console | 15 | detail, fulfilled, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
@@ -96,10 +119,10 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 4 | queue, context-chip, assess, empty |
 | W14 | Admin console | 3 | baseline, delta, discard |
-| W21 | Admin console | 6 | queue, unregistered, failed-recovery, gate-status, close-delivery-confirm, protocol-queue |
+| W21 | Admin console | 16 | queue, unregistered, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
 | W22 | Admin console | 9 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm, garden-command |
 | W24 | Admin console | 3 | queue, ccip, flows |
-| W26 | Admin console | 4 | review, shares, certificate, rest |
+| W26 | Admin console | 8 | review, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest |
 | HUBWORK | Admin console | 1 | approve |
 | W15 | Editorial website | 3 | counts-only, above-threshold, pre-launch |
 | W16 | Editorial website | 2 | band, pipeline-delta |

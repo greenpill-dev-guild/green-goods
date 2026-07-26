@@ -28,14 +28,59 @@ export const HOME_SURFACE: Record<ReviewGroup, SceneSurface> = {
   editorial: "editorial",
 };
 
+export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" | "Composted";
+export type CycleLifecycle = "Draft" | "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
+export type CommitmentLifecycle =
+  | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
+  | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
+  | "Expired" | "Disputed" | "Reconciled";
+export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "OperatorCaptured";
+export type SettlementLifecycle = "Unregistered" | "Registered" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+
+// Explicit facts make lifecycle legality reviewable by the build. A state need
+// only declare the entities that its controls act on.
+export type StateFacts = {
+  pool?: PoolLifecycle;
+  cycle?: CycleLifecycle;
+  commitment?: CommitmentLifecycle;
+  kind?: CommitmentKind;
+  settlement?: SettlementLifecycle;
+};
+
+export type ContractCall =
+  | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
+  | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
+  | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment"
+  | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
+  | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
+  | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
+  | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
+  | "queueDisbursement" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryBatchCommand"
+  | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
+
 // Metadata for one registered hotspot (a tappable control on a screen).
 // `to` targets: "screen:W2" | "screen:W2@disputed" | "sb5:0".
-export type HotMeta = { l: string; to?: string; info?: string };
+// `calls` is ordered: a Ready-pool open-cycle control must declare
+// openPool → openCycle so the validator can apply the intermediate state.
+export type HotMeta = {
+  l: string;
+  to?: string;
+  info?: string;
+  calls?: ContractCall[];
+  // Page-level facts describe the containing screen. A list-row action may
+  // act on a more specific entity (for example, an Offered commitment inside
+  // an Open pool), so hotspot facts refine that source before validation.
+  facts?: StateFacts;
+  // The control queues the named call but lands on a pre-sync state. Source
+  // legality still validates; target lifecycle effects apply only after sync.
+  pendingSync?: boolean;
+};
 
 export type ScreenState = {
   id: string; // kebab id, e.g. "disputed"; first state in the list is the default
   label: string; // chip label in the state switcher
   proposed?: boolean; // amber tag reserved for genuinely unlocked review states
+  facts?: StateFacts;
   html: string; // pre-rendered screen body (device inner HTML)
 };
 

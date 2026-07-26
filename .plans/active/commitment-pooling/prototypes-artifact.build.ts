@@ -175,8 +175,8 @@ const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc
   `<a href="#${s.id}"><b>${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</b></a>`
 ).join("")}</nav>`;
 
-const statusNote = `<aside class="status"><h2>Status — coherency pass 2026-07-22 · hi-fi register #36</h2>
-<p><strong>Presentation review</strong>: 13 guided flows and 24 high-fidelity screens are grouped by Client PWA, Admin Console, End-to-end, and Public surfaces. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy is build-linted (banned vocabulary · steward naming · quiet-admin · chain placement).</p>
+const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
+<p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
 <p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21/W12 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
 <p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
 
@@ -654,13 +654,13 @@ ${iconSprite()}
 <div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
 <div class="wrap">
 <nav class="doc" aria-label="Sections">
-  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-22</small></div>
+  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-25</small></div>
   ${navSb}
   ${navRef}
 </nav>
 <main>
 <h1>${esc(h1)}</h1>
-<p class="sub">Fourteen storyboards composing the locked wireframes (W1–W26 + community CI-W frames), the missing-frame index, the action inventory, and the state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
+<p class="sub">${new Set(SBS.map((b) => b.n)).size} storyboards composing the locked wireframes (W1–W26 + community CI-W frames), the missing-frame index, the action inventory, and the state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
 ${refToc}
 ${statusNote}
 ${front.join("\n")}

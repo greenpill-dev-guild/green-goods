@@ -26,7 +26,7 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `uiux-spec.md` | Canonical cross-surface flows + §4 state tables + job kinds | UI/UX contract |
 | `wireframes.md` | 23 CP frame headings across four surfaces (W1–W16, W13b, W21–W26; W6 is a retirement tombstone) | **Lo-fi structural truth** |
 | `diagrams.md` | D1–D14 mermaid execution reference (18 named sections; ERD, sequences, state machines, topology) | Flow truth |
-| `prototypes.md` | 14 storyboards (SB-1–14) + missing-frame index + action inventory | Fidelity-neutral walks — **adds no design authority** |
+| `prototypes.md` | 32 numbered storyboards / 37 source journeys (SB-1–32, including surface/task splits) + missing-frame index + action inventory | Fidelity-neutral walks — **adds no design authority** |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration | Asset index |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
@@ -43,7 +43,7 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
 
-- [Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — 13 review-visible guided flows + 24 hi-fi screens; Community source flow and wireframes remain hidden but validated (`prototypes-artifact.build.ts` + `hifi/`)
+- [Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — 36 review-visible guided flows + 24 hi-fi screens; the September Community source flow and wireframes remain hidden but validated (`prototypes-artifact.build.ts` + `hifi/`)
 - [Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d) — all assets rendered, three audience tabs (`visual-assets-artifact.build.ts`)
 
 **External-facing canonical home**: [Green Goods Commitment Pooling (Google Doc)](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit). `external-brief.md` is a pointer and source map only; no repo file mirrors the external narrative.

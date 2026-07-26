@@ -179,7 +179,7 @@ export function input(value: string, opts: { placeholder?: boolean; select?: boo
 }
 
 export function radio(
-  options: { label: string; meta?: string; on?: boolean }[],
+  options: { label: string; meta?: string; on?: boolean; hot?: string }[],
   opts: { interactive?: boolean; name?: string } = {},
 ): string {
   const name = escAttr(opts.name ?? options.map((o) => o.label).join("-").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 36));
@@ -189,7 +189,8 @@ export function radio(
       const dot = opts.interactive
         ? `<input class="rdot" id="${optionId}" type="radio" name="${name}"${o.on ? " checked" : ""}>`
         : `<span class="rdot" aria-hidden="true"></span>`;
-      return `<label class="ro${!opts.interactive && o.on ? " on" : ""}"${opts.interactive ? ` for="${optionId}"` : ""}>${dot}<span><span class="rl">${esc(o.label)}</span>${o.meta ? `<span class="rm">${esc(o.meta)}</span>` : ""}</span></label>`;
+      const row = `<label class="ro${!opts.interactive && o.on ? " on" : ""}"${opts.interactive ? ` for="${optionId}"` : ""}>${dot}<span><span class="rl">${esc(o.label)}</span>${o.meta ? `<span class="rm">${esc(o.meta)}</span>` : ""}</span></label>`;
+      return o.hot ? hot(o.hot, row) : row;
     })
     .join("")}</div>`;
 }
