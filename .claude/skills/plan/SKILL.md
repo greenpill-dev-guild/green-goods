@@ -303,24 +303,18 @@ in `.plans`.
 **Linear Source**: source:plans
 ```
 
-Rules:
+Rules: team routing, project attachment, label namespaces, and the privacy boundary follow
+[`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) — do not
+restate them here. Plan-specific deltas:
 
 - Use `source:plans` whenever the Linear record mirrors a `.plans` item.
-- Attach a bounded active Linear project only when the plan scope clearly matches it.
-- Do not route new work into completed/staging umbrella projects such as `Green Goods`,
-  `Coop`, `Network Website`, or `Cookie Jar`.
-- If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
-  labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
 - Linear *project* descriptions (not issues) follow
   `.claude/context/linear-project-template.md`.
 
 ### Progress Updates
 
 Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
-the safe, stakeholder-relevant status. Do not paste private identifiers, debugging links, replay
-URLs, wallet addresses, or sensitive security detail into public Linear bodies or comments.
+the safe, stakeholder-relevant status, respecting the routing-rules privacy boundary.
 
 ### PR Linkage
 

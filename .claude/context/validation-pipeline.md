@@ -31,6 +31,10 @@ Conditional additions when the change touches the relevant surface:
   also run `bun run --filter @green-goods/contracts test:fork`
 - Frontend, UI, CSS, accessibility, or web-design changes: retrieve current guidance with
   `bun run agentic:guidance`, then run `bun run agentic:check`
+- Changed E2E specs or CI auth paths (`AuthGate`, `DevAuthProvider`, CI auth helpers): run the
+  matching Playwright CI project — client: `PLAYWRIGHT_APP=client APP_ENV=test bunx playwright
+  test --project=client-ci`; admin: `PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test
+  --project=admin-ci`
 
 Visible UI additionally requires rendered proof through the authenticated Brave QA profile. If
 that path is unavailable, record browser proof as `BLOCKED` and return `COMMENT_ONLY` unless a
