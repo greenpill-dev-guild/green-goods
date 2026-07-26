@@ -13,7 +13,9 @@
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 29 assets, not a table of contents for this file: 23 named D-diagram sections (D1–D16, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **32 Architecture Mermaid blocks** below, because four sections are drawn as an overview plus zoom-in sub-blocks — D2 (overview + three acts), D6 (overview + three acts), D7 (entity map + two field blocks), and D9 (healthy path + idempotency + retries) — D13 adds a capability-separation mini-diagram, and D13b is a semantic table rather than Mermaid. **Every D-section has exactly one row** — D3 and D8 were previously missing, and the commitment-pooling ERD was previously counted twice. The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
+This is the cross-hub inventory of 29 assets, not a table of contents for this file: 23 named D-diagram sections (D1–D16, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **32 Architecture Mermaid blocks** below, because four sections are drawn as an overview plus zoom-in sub-blocks — D2 (overview + three acts), D6 (overview + three acts), D7 (entity map + two field blocks), and D9 (healthy path + idempotency + retries) — D13 adds a capability-separation mini-diagram, and D13b is a semantic table rather than Mermaid. **Every D-section has exactly one row** — D3 and D8 were previously missing, and the commitment-pooling ERD was previously counted twice.
+
+**Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling: `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one, which is what gives D2/D6/D7/D9 their overview-plus-zoom shape and what the 26-section / 32-block assertions count. Promoting them to `###` would convert 14 sub-blocks into sections and dismantle the anchor and nav design. markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives. The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
 
 | # | Asset | Audience | Question answered | Source of truth | Current status | Correction needed | Validation method |
 |---:|---|---|---|---|---|---|---|
@@ -287,7 +289,11 @@ sequenceDiagram
   Note over M: every per-action required count met<br/>and assessment satisfied → ReadyForConfirmation
   A->>M: counterparty confirms (act 3 · D2.3)
   M->>R: fulfillUnits — units converted, the one slot released
-  OP->>M: closeCycle → derived Reconciled
+  alt cycle-scoped (cycleId != 0)
+    OP->>M: closeCycle → CycleClosed derives Reconciled
+  else cycle-less (cycleId == 0)
+    OP->>M: closePool → PoolClosed derives Reconciled
+  end
 ```
 
 #### D2.1 Act 1 — Creation and acceptance
@@ -644,7 +650,7 @@ erDiagram
   COMMITMENT_POOL ||--o{ COMMITMENT : "commitments"
   COMMITMENT_CYCLE |o--o{ COMMITMENT : "cycle-scoped, optional"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
-  COMMITMENT_POOL ||--o{ COMMITMENT_EVENT : "audit trail"
+  COMMITMENT_POOL |o--o{ COMMITMENT_EVENT : "audit trail; poolId is null for pool-less authority and configuration events"
   COMMITMENT_CYCLE |o--o{ COMMITMENT_EVENT : "cycle events"
   COMMITMENT |o--o{ COMMITMENT_EVENT : "commitment events"
   COMMITMENT ||--o{ COMMITMENT_CLAIM_REQUEST : "approval-gated requests"
@@ -667,7 +673,7 @@ erDiagram
   COMMITMENT_POOL ||--o{ COMMITMENT : "commitments"
   COMMITMENT_CYCLE |o--o{ COMMITMENT : "cycle-scoped, optional"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
-  COMMITMENT_POOL ||--o{ COMMITMENT_EVENT : "audit trail"
+  COMMITMENT_POOL |o--o{ COMMITMENT_EVENT : "audit trail; poolId is null for pool-less authority and configuration events"
   COMMITMENT_CYCLE |o--o{ COMMITMENT_EVENT : "cycle events"
   COMMITMENT |o--o{ COMMITMENT_EVENT : "commitment events"
 
@@ -1045,7 +1051,7 @@ The pipeline itself is the existing Envio runtime, which is live; every box abov
 
 ## D8. G$ funding topology, Safe recovery, and CCIP boundary
 
-**How to read this**: canonical G$ stays on Celo. Arbitrum sends a data-only command; the Celo executor derives the Safe/token call, executes through a bounded Zodiac role, stores the outcome, and sends a data-only acknowledgment. The executor is never a Safe owner. A message timeout never creates a second payment attempt. **Three edge meanings, three arrow styles** — a thick solid arrow moves G$, a plain arrow carries a protocol message or read, and a dotted arrow is an ownership relation, never a transfer.
+**How to read this**: canonical G$ stays on Celo. Arbitrum sends a data-only command; the Celo executor derives the Safe/token call, executes through a bounded Zodiac role, stores the outcome, and sends a data-only acknowledgment. The executor is never a Safe owner. A message timeout never creates a second payment attempt. **Three edge meanings, three arrow styles** — a thick solid arrow is G$ actually moving between accounts, a plain arrow carries a protocol message, read, or **instruction**, and a dotted arrow is an ownership relation, never a transfer. The executor's edges into the Safes are plain on purpose: it is a bounded Zodiac Roles member that *instructs* the source Safe to pay, and never custodies or funds one. The only value paths are the thick ones — HoA into the protocol Safe, protocol Safe to garden Safe, and either Safe out to members.
 
 ```mermaid
 flowchart TD
@@ -1072,8 +1078,8 @@ flowchart TD
   PS ==>|"ProtocolToGarden<br/>source + recipient derived"| GS
   PS ==>|"protocol-pool disbursements"| MEM
   GS ==>|"garden disbursements"| MEM
-  CE ==>|"exact-net canonical G$ transfer<br/>Roles native allowance + fee/gross caps"| PS
-  CE ==>|"exact-net canonical G$ transfer<br/>Roles native allowance + fee/gross caps"| GS
+  CE -->|"instructs the exact-net G$ transfer<br/>bounded Zodiac Roles allowance + fee/gross caps<br/>never custodies, never funds the Safe"| PS
+  CE -->|"instructs the exact-net G$ transfer<br/>bounded Zodiac Roles allowance + fee/gross caps<br/>never custodies, never funds the Safe"| GS
 
   HATS --> SM
   CPM -->|"Fulfilled read at queue time"| SM
@@ -1098,15 +1104,15 @@ The Safe owner set remains exactly protocol recovery multisig, Dev Guild recover
 
 **How to read this**: three separate concerns used to share one canvas, so they are drawn separately — the path a healthy settlement takes (D9.0), what stops a second payment when a message arrives twice (D9.1), and the three independent retry lifecycles (D9.2). Across all three: one immutable execution key, and only the authenticated success acknowledgment for the subject's **current key and attempt** turns Arbitrum state into `Confirmed`.
 
-Three distinct principals act, and D13b is the exact gate for each: the commitment-pool steward queues a disbursement, the **protocol** steward or module owner queues funding, and acknowledgment retry is **permissionless** to anyone supplying the exact CELO fee. Dispatch and command retry additionally accept the configured `dispatcher`.
+Every steward action below is taken in the Admin Operations workspace. The two actors are shortened to fit the frame: **Pool steward** is the resolved commitment-pool steward and **Protocol steward** is the protocol steward or module owner — D13b is the exact gate for every call. Three distinct principals act, and D13b is the exact gate for each: the commitment-pool steward queues a disbursement, the **protocol** steward or module owner queues funding, and acknowledgment retry is **permissionless** to anyone supplying the exact CELO fee. Dispatch and command retry additionally accept the configured `dispatcher`.
 
 #### D9.0 The healthy path — queue, dispatch, execute, acknowledge
 
 ```mermaid
 sequenceDiagram
   autonumber
-  actor OP as Commitment-pool steward (via Admin Operations)
-  actor PST as Protocol steward / module owner
+  actor OP as Pool steward
+  actor PST as Protocol steward
   participant SM as SettlementModule (Arbitrum)
   participant CPM as CommitmentPoolingModule
   participant AR as CCIP Router (Arbitrum)
@@ -1115,9 +1121,13 @@ sequenceDiagram
   participant SAFE as Owning-pool Celo Safe
   participant IDX as Envio read model
 
-  OP->>SM: queueDisbursement(commitmentId)
-  PST->>SM: queueFunding(garden, amount) — protocol steward or owner only
-  SM->>CPM: read canonical eligible facts
+  alt CommitmentReward — one fulfilled commitment
+    OP->>SM: queueDisbursement(commitmentId)
+    SM->>CPM: read canonical eligible facts for that commitment
+  else Funding — ProtocolToGarden top-up, commitmentId is 0
+    PST->>SM: queueFunding(garden, amount) — protocol steward or owner only
+    Note over SM,CPM: no commitment is read — source, recipient and token<br/>derive from the funding config
+  end
   SM-->>IDX: DisbursementQueued ("support is queued")
   OP->>SM: dispatchDisbursement or dispatchBatch
   SM->>AR: ccipSend(command tuple, no tokens, snapshotted peer/version/gas)
@@ -1171,7 +1181,8 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  actor OP as Commitment-pool steward or configured dispatcher
+  actor DSP as Stored steward, owner, or configured dispatcher
+  actor STW as Resolved settlement steward only
   actor ANY as Anyone (permissionless)
   participant SM as SettlementModule (Arbitrum)
   participant AR as CCIP Router (Arbitrum)
@@ -1181,8 +1192,8 @@ sequenceDiagram
   participant IDX as Envio read model
 
   rect rgb(244, 239, 230)
-  Note over OP,IDX: 1 · command retry — the command may not have arrived
-  OP->>SM: retryCommand(disbursementId) / retryBatchCommand(batchId)
+  Note over DSP,IDX: 1 · command retry — the command may not have arrived
+  DSP->>SM: retryCommand(disbursementId) / retryBatchCommand(batchId)
   SM->>AR: ccipSend(same tuple + same destination snapshot, new messageId)
   SM-->>IDX: SettlementCommandRetried (same key, same attempt, new messageId)
   Note over CE,SAFE: a duplicate executionKey reuses the stored outcome —<br/>no second G$ execution
@@ -1197,10 +1208,10 @@ sequenceDiagram
   end
 
   rect rgb(244, 239, 230)
-  Note over OP,IDX: 3 · requeue — an authenticated failure earns a new attempt
-  OP->>SM: requeue(disbursementId)
+  Note over STW,IDX: 3 · requeue — an authenticated failure earns a new attempt
+  STW->>SM: requeue(disbursementId)
   SM-->>IDX: DisbursementRequeued (attempt incremented)
-  Note over OP,SM: only after an authenticated failure · one member at a time ·<br/>an immutable failed batch is never requeued as a batch
+  Note over STW,SM: steward only — a configured dispatcher may dispatch and retry an<br/>unchanged command but may never requeue, because requeue increments the<br/>attempt and creates fresh payment authority after a failure
   end
 
   Note over SM,CE: a submitted-but-slow message is not a deferral and needs no retry.<br/>Delay alone never cancels, never creates an attempt, and never pays twice
@@ -1599,6 +1610,7 @@ flowchart LR
     R2["Wait — a steward or the protocol must act"]
     R3["Retry the same job, or discard it"]
     R4["Requeue as a new attempt, or cancel with a reason"]
+    R6["Retry the stored acknowledgment<br/>permissionless, caller-funded · the Safe is not called again"]
     R5["Nothing to do — the outcome is terminal and explained"]
   end
 
@@ -1615,13 +1627,13 @@ flowchart LR
   S2 --> R4
   S3 --> R2
   S3 --> R5
-  S4 --> R4
+  S4 --> R6
 
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
-  class E1,E2,E3,E4,E5,S1,S2,S3,S4,R1,R2,R3,R4,R5 planned
+  class E1,E2,E3,E4,E5,S1,S2,S3,S4,R1,R2,R3,R4,R5,R6 planned
 ```
 
-Three rules this taxonomy exists to enforce. A register error is a protocol invariant breach, not member input — it surfaces to the steward, never as "try again" to a gardener. `AcknowledgmentDeferralCode` is operational: it says the *report* did not go out, never that value moved or failed, so it must not appear in member copy at all. And a `waiting_for_hat` job (D14) is not an error and consumes no attempt — it never enters this taxonomy.
+Three rules this taxonomy exists to enforce. A register error is a protocol invariant breach, not member input — it surfaces to the steward, never as "try again" to a gardener. `AcknowledgmentDeferralCode` is operational: it says the *report* did not go out, never that value moved or failed, so it must not appear in member copy at all — **and its recovery is retrying the stored acknowledgment, never requeue**. Requeue is reachable only from an authenticated execution *failure*; offering it after a deferral would invite a second payment attempt for an outcome that is already stored. And a `waiting_for_hat` job (D14) is not an error and consumes no attempt — it never enters this taxonomy.
 
 ---
 
