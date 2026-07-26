@@ -229,7 +229,7 @@ When Codex is running unattended maintenance work:
 `.claude/skills` is the canonical repo skill source. `.agents/skills` is a symlink to it (`.agents/skills -> ../.claude/skills`), so Claude Code and Codex read one shared skill tree — there is no generated mirror and nothing to keep in sync.
 
 - Edit skills in `.claude/skills`; Codex sees the same files through the `.agents/skills` symlink.
-- Codex officially follows symlinked skill folders, so no `skills:sync` regeneration or `check:skills` drift gate is needed.
+- Codex officially follows symlinked skill folders, so the retired `skills:sync` regeneration and `check:skills` drift gate stay removed.
 - Do not convert `.agents/skills` back into a real directory or a second copy — that reintroduces the copy drift this symlink removes.
 
 ## Scripts

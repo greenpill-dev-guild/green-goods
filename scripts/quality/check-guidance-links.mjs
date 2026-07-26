@@ -52,8 +52,14 @@ for (const p of pkgJsonPaths) {
 }
 
 const failures = [];
-const LINK_RE = /\]\(([^)#\s]+?\.md)(#[^)]*)?\)/g;
-const RUN_RE = /`bun run (?!-)([a-z0-9:._-]+)[^`]*`/g;
+const LINK_RE = /\]\(([^)#\s]+?\.mdx?)(#[^)]*)?\)/g;
+// Three shapes of script mention: inline-backtick, fenced/line-start (bun or npm),
+// and the --filter package-scoped form. All validate against knownScripts.
+const RUN_RES = [
+  /`bun run (?!-)([a-z0-9:._-]+)[^`]*`/g,
+  /(?:^|\n)\s*(?:bun|npm) run (?!-)([a-z0-9:._-]+)/g,
+  /bun run --filter\s+\S+\s+([a-z0-9:._-]+)/g,
+];
 
 // Names retired by the lean-skills consolidations (#638 and round 2). Exact
 // tokens and path/slash regexes only — prose forms that would false-positive
@@ -82,7 +88,10 @@ const RETIRED_PATTERNS = [
   /(^|[\s`(])\/(principles|architecture|audit-then-ship|drift)\b/,
 ];
 // Lines that are themselves retirement/archive notices are legitimate history.
-const RETIREMENT_NOTICE_RE = /retir|fold|remov|replac|renam|delet|archiv/i;
+// Word-bounded past/nominal forms only — bare stems would exempt live
+// instructions ("remove X", "the folder") and gut the guard.
+const RETIREMENT_NOTICE_RE =
+  /\b(retired?|retirement|folded|removed|removal|replaced|renamed|deleted|deletion|archived|superseded|moved)\b/i;
 // The retirement ledger and this checker's own documentation are exempt files.
 const RETIRED_SCAN_EXEMPT = new Set([".claude/loop.md"]);
 
@@ -97,9 +106,14 @@ for (const file of guidanceFiles) {
     if (!fs.existsSync(resolved)) failures.push(`${rel}: broken link -> ${target}`);
   }
 
-  for (const m of text.matchAll(RUN_RE)) {
-    const script = m[1];
-    if (!knownScripts.has(script)) failures.push(`${rel}: unknown script -> bun run ${script}`);
+  const seenScripts = new Set();
+  for (const re of RUN_RES) {
+    for (const m of text.matchAll(re)) {
+      const script = m[1];
+      if (seenScripts.has(script)) continue;
+      seenScripts.add(script);
+      if (!knownScripts.has(script)) failures.push(`${rel}: unknown script -> bun run ${script}`);
+    }
   }
 
   if (!RETIRED_SCAN_EXEMPT.has(rel)) {
@@ -122,19 +136,27 @@ for (const file of guidanceFiles) {
 
 // Banner ↔ frontmatter parity: the slash commands the SessionStart banner
 // advertises must be exactly the skills declaring `user-invocable: true`.
-const settingsPath = path.join(repoRoot, ".claude", "settings.json");
-const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
-const bannerCmd = (settings.hooks?.SessionStart ?? [])
-  .flatMap((entry) => entry.hooks ?? [])
-  .map((hook) => hook.command ?? "")
-  .find((cmd) => cmd.includes("/review"));
-if (!bannerCmd) {
+let bannerCmd;
+try {
+  const settingsPath = path.join(repoRoot, ".claude", "settings.json");
+  const settings = JSON.parse(fs.readFileSync(settingsPath, "utf8"));
+  bannerCmd = (settings.hooks?.SessionStart ?? [])
+    .flatMap((entry) => entry.hooks ?? [])
+    .map((hook) => hook.command ?? "")
+    .find((cmd) => cmd.includes("Green Goods Claude Code"));
+} catch (error) {
+  failures.push(`.claude/settings.json: could not read/parse for banner parity check (${error.message})`);
+}
+if (bannerCmd === undefined && failures.every((f) => !f.includes("banner parity"))) {
   failures.push(
-    ".claude/settings.json: SessionStart banner with slash commands not found (update this checker if the banner moved)",
+    ".claude/settings.json: SessionStart banner ('Green Goods Claude Code') not found (update this checker if the banner moved)",
   );
-} else {
+}
+if (bannerCmd) {
+  // Boundary before the slash so future URLs/paths in the banner text
+  // (claude.ai/code/..., docs/foo) can't mint phantom skill names.
   const bannerSkills = new Set(
-    [...bannerCmd.matchAll(/\/([a-z][a-z-]+)/g)].map((m) => m[1]),
+    [...bannerCmd.matchAll(/(^|[\s'])\/([a-z][a-z-]+)\b/g)].map((m) => m[2]),
   );
   const invocableSkills = new Set();
   const skillsDir = path.join(repoRoot, ".claude", "skills");

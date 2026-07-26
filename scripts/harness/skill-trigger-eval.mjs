@@ -29,11 +29,25 @@ for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
   const skillPath = path.join(skillsDir, entry.name, "SKILL.md");
   if (!fs.existsSync(skillPath)) continue;
   const fm = fs.readFileSync(skillPath, "utf8").match(/^---\n([\s\S]*?)\n---/);
-  const desc = fm?.[1].match(/^description:\s*(.*(?:\n(?![a-z-]+:).*)*)/m)?.[1];
-  if (desc) skills.push({ name: entry.name, description: desc.replace(/\s+/g, " ").trim() });
+  const desc = fm?.[1].match(/^description:\s*(.*(?:\n(?![A-Za-z0-9_-]+:).*)*)/m)?.[1];
+  if (desc) {
+    const clean = desc.replace(/\s+/g, " ").trim().replace(/^["']|["']$/g, "");
+    skills.push({ name: entry.name, description: clean });
+  }
 }
 if (skills.length === 0) {
   console.error("skill-trigger-eval: no skills found under .claude/skills — aborting");
+  process.exit(2);
+}
+
+const skillNames = new Set([...skills.map((s) => s.name), "none"]);
+const staleExpects = cases
+  .flatMap((c) => (Array.isArray(c.expect) ? c.expect : [c.expect]))
+  .filter((e) => !skillNames.has(e));
+if (staleExpects.length > 0) {
+  console.error(
+    `skill-trigger-eval: fixture expects unknown skill(s): ${[...new Set(staleExpects)].join(", ")} — update scripts/data/skill-trigger-eval.json (a skill was likely renamed/retired).`,
+  );
   process.exit(2);
 }
 
@@ -54,12 +68,25 @@ const prompt = [
 ].join("\n");
 
 function runModel() {
-  const raw = execFileSync(
-    "claude",
-    ["-p", prompt, "--model", process.env.EVAL_MODEL ?? "haiku", "--output-format", "json"],
-    { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, timeout: 300_000 },
-  );
+  let raw;
+  try {
+    raw = execFileSync(
+      "claude",
+      ["-p", prompt, "--model", process.env.EVAL_MODEL ?? "haiku", "--output-format", "json"],
+      { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, timeout: 300_000 },
+    );
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      console.error("skill-trigger-eval: `claude` CLI not found on PATH — this eval needs a logged-in Claude Code install.");
+      process.exit(2);
+    }
+    throw error;
+  }
   const outer = JSON.parse(raw);
+  if (outer.is_error) {
+    console.error(`skill-trigger-eval: claude returned an error (not retrying): ${outer.result}`);
+    process.exit(2);
+  }
   let text = (outer.result ?? "").trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenced) text = fenced[1].trim();
