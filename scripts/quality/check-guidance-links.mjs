@@ -75,6 +75,7 @@ const RETIRED_PATTERNS = [
   "agent-output-gate",
   "context/docs.md",
   "context/intent.md",
+  "skills/posthog-questions",
   // Retired domain-skill paths — their content lives in .claude/context/*.md
   /\bskills\/(react|testing|web3|data-layer|indexer|contracts|ops|ui)\b/,
   // Slash-command forms of folded skills (the form prompt sweeps kept missing)

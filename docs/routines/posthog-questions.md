@@ -1,23 +1,20 @@
----
-name: posthog-questions
-user-invocable: false
-description: Canonical curated-question library for PostHog reads across Green Goods routines and skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer per question. Routines reference questions by name; the connector or fallback script resolves them.
----
-
 # PostHog Curated Questions
+
+> Canonical curated-question library for PostHog reads across Green Goods routines and
+> skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer
+> per question. Formerly `.claude/skills/posthog-questions/SKILL.md` — moved here in the
+> 2026-07 round-2 consolidation because it is a data dictionary, not a procedure.
 
 Single source of truth for every PostHog read a routine or interactive skill should need. Routines reference questions **by name** (`errors.recent`, `funnel.onboarding`, etc.) — never paste raw HogQL into a routine prompt. When a question's underlying query needs to evolve, edit it here once and every consumer picks up the change.
 
-## When to use this skill
+## When to use this library
 
 - Authoring or editing a routine that needs PostHog data — pick a named question instead of writing HogQL.
-- Authoring or editing a skill that pulls PostHog evidence (e.g. `/debug`) — reference the same library so privacy boundaries match.
+- Authoring or editing a skill that pulls PostHog evidence (e.g. `debug`) — reference the same library so privacy boundaries match.
 - Reviewing a routine for compliance — every PostHog call should resolve to a name in this file. Raw HogQL outside this file is a `routine-self-audit` violation.
 - Designing a new metric — propose a new question entry here first, then wire routines.
 
-## Activation
-
-Use this skill whenever a Green Goods routine, skill, or agent prompt needs PostHog evidence. Treat this file as the registry of allowed question names, privacy modes, output fields, and current invocation paths.
+Treat this file as the registry of allowed question names, privacy modes, output fields, and current invocation paths.
 
 Default flow:
 
@@ -73,7 +70,7 @@ Each question has:
   ```
   Run question `funnel.onboarding` (window 30d) via the PostHog connector's
   query-run, using the HogQL block defined under that name in
-  .claude/skills/posthog-questions/SKILL.md. Privacy mode: public.
+  docs/routines/posthog-questions.md. Privacy mode: public.
   ```
 - **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`.
   ```bash

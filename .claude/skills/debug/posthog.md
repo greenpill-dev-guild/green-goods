@@ -102,7 +102,7 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 
 ## Read-side: PostHog lookup during bug debugging
 
-> **Question library**: the canonical curated-question library lives at `.claude/skills/posthog-questions/SKILL.md`. It covers both the product/quality lens used here and the growth/BD lens used by `growth-pulse`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
+> **Question library**: the canonical curated-question library lives at `docs/routines/posthog-questions.md`. It covers both the product/quality lens used here and the growth/BD lens used by `growth-pulse`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
 
 When you start work on a reported bug, reproduce or probe the failing boundary first, then use PostHog and Sentry for evidence. PostHog answers "how many users/sessions and what path?" Sentry answers "which stack, release, and suspected code path?"
 

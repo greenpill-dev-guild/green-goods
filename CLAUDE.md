@@ -144,7 +144,7 @@ Rule, in order:
 3. Run the PostHog query.
 4. If the first project returns nothing relevant, try the next likely project — do not assume "no data" until you've checked the surface the user actually described.
 
-Authoritative source for these IDs and the surface mapping: [docs/routines/README.md § PostHog projects](docs/routines/README.md). Curated-question library + privacy boundaries: [.claude/skills/posthog-questions/SKILL.md](.claude/skills/posthog-questions/SKILL.md).
+Authoritative source for these IDs and the surface mapping: [docs/routines/README.md § PostHog projects](docs/routines/README.md). Curated-question library + privacy boundaries: [docs/routines/posthog-questions.md](docs/routines/posthog-questions.md).
 
 ## QA Sync Triage
 

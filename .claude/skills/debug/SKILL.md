@@ -246,5 +246,5 @@ Debug-specific deltas, applied after a bug is reproduced and root-caused:
 ## Related Skills
 
 - `review` — post-fix review of the change (regressions, gaps, validation)
-- `posthog-questions` — curated telemetry reads when scale/impact context is needed
+- [docs/routines/posthog-questions.md](../../../docs/routines/posthog-questions.md) — curated telemetry question library when scale/impact context is needed
 - Error-handling and testing invariants live in `.claude/context/shared.md` and `.claude/context/testing.md`
