@@ -9,6 +9,8 @@
 
 **Role vocabulary (decision 2026-07-18)**: these diagrams say **Garden steward** (protocol pool: **Protocol steward**) for the pool-authority role — the holder of the garden's operator/owner Hats (`_requirePoolSteward`). The shipped app and community glossary still say "Operator"; the app-wide rename is a recorded follow-up, so treat steward = operator/owner Hats wherever the two vocabularies meet.
 
+**Vocabulary source (2026-07-26)**: every state and enum label below is drawn from the machine-readable ontology sidecar, `packages/shared/src/ontology/green-goods-ontology.json` (human-readable render: `docs/docs/reference/ontology.generated.mdx`), which became repo canon with the ontology foundation. The twelve commitment-pooling vocabularies carry `status: "spec"` and are transcribed member-for-member from `contract-spec.md` §6.1/§6.2: `commitment-pool-type`, `pool-state`, `cycle-type`, `cycle-state`, `commitment-direction`, `commitment-type`, `commitment-state`, `claim-type`, `claim-mode`, `dispute-resolution`, `reward-rail`, `accounting-state`. Display copy may prettify — a diagram may write `APPROVAL_GATED` where the indexer's GraphQL mirror does, or "accepted (creator)" as an edge label — but **every label must map 1:1 onto a canonical member**; nothing here may introduce a term the sidecar does not carry. `bun run check:ontology` guards the code layers and does not parse Markdown or images, so this file is the manual leg of that contract.
+
 ## Visual coverage matrix
 
 This is the cross-hub inventory of 29 assets, not a table of contents for this file: 23 named D-diagram sections (D1–D16, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **32 Architecture Mermaid blocks** below, because four sections are drawn as an overview plus zoom-in sub-blocks — D2 (overview + three acts), D6 (overview + three acts), D7 (entity map + two field blocks), and D9 (healthy path + idempotency + retries) — D13 adds a capability-separation mini-diagram, and D13b is a semantic table rather than Mermaid. **Every D-section has exactly one row** — D3 and D8 were previously missing, and the commitment-pooling ERD was previously counted twice. The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
@@ -53,7 +55,19 @@ This is the cross-hub inventory of 29 assets, not a table of contents for this f
 | **Planned/gated** | dashed stone stroke, paper fill (`#6e6857` dashed `6 4` / `#fbf8f2`) | does not exist yet, or is gated |
 | **Existing surface, planned delta** | solid green stroke, paper fill (`#50784a` / `#fbf8f2`) | the component is live today and this work adds a planned capability to it — the client PWA, editorial website, Admin, and the Envio read model are all in this class |
 
-The third treatment is why the Architecture tab and the story assets agree: the story assets label *actions* Built or Planned, and a live surface carrying a planned action is exactly this class. Dashes never mean read, boundary, derived, or app-only. Relationship meaning is written on the arrow. State provenance is explicit in the node label and fill: paper = on-chain, amber = derived (`#b98a3e` / `#f6ecdc`), grey = app-only (`#8a8a8a` / `#ececec`). One palette per semantic, everywhere — a fill never means two different things in two diagrams.
+The third treatment is why the Architecture tab and the story assets agree: the story assets label *actions* Built or Planned, and a live surface carrying a planned action is exactly this class. Dashes never mean read, boundary, derived, or app-only. Relationship meaning is written on the arrow. One palette per semantic, everywhere — a fill never means two different things in two diagrams.
+
+**State provenance is not decoration.** The sidecar's `state_machines` section flags every state `on-chain`, `derived`, or `off-chain`, and the state machines below must render that distinction so a derived state never reads as a chain write:
+
+| Sidecar `storage` | Treatment | Means |
+|---|---|---|
+| `on-chain` | paper fill, no class | the module stores it; a transaction moved it here |
+| `derived` | amber (`#b98a3e` / `#f6ecdc`), `class … derived` | the indexer computes it from events — **no transaction writes this state** |
+| `off-chain` | grey (`#8a8a8a` / `#ececec`), `class … appOnly` | app-side only; `Draft` lives in IndexedDB and has no chain presence at all |
+
+Derived across the spec machines: `Active`, `EvidenceSubmitted`, `PartiallyApproved`, `Reconciled` (commitment) and `InProgress`, `Reviewing` (cycle). Off-chain: `Draft` (commitment and cycle).
+
+**One name, two storages — do not "fix" this.** `Reconciled` is **derived** in the commitment machine (D6c computes it from `CycleClosed`) but **on-chain** in the cycle machine (D5, where `closeCycle` is the reconcile act that writes it). The two diagrams therefore style the same word differently, and both are correct.
 
 **Label glossary**: one name per thing, across every diagram below. Where two labels used to compete, the left column is now the only one used.
 
@@ -67,6 +81,19 @@ The third treatment is why the Architecture tab and the story assets agree: the 
 | Garden Celo Safe | `GS` | — | per garden, 2-of-3 recovery |
 | Chainlink CCIP | `CCIP` | — | payload is always **data-only**, never "message-only" |
 | Deployment timelock | `TL` | — | gates exactly four settlement setters (D13b) |
+
+**Two vocabularies share one Solidity identifier — never collapse them.** `PoolType` names two different things and the sidecar keeps them as separate vocabularies on purpose:
+
+| Vocabulary | Members | What it is |
+|---|---|---|
+| `commitment-pool-type` *(spec)* | `Garden`, `Protocol` | the commitment-pooling pool anchor kind — the only one these diagrams draw |
+| `signal-pool-type` *(live)* | `ActionSignal`, `HypercertSignal` | the **Gardens V2 conviction signal pool** attached to a garden — out of scope here |
+
+Write `CommitmentPoolType` in full wherever the type is named (D7.1 does). A bare "PoolType" is ambiguous, and labelling a Gardens V2 signal pool with the commitment members — or the reverse — is a vocabulary error, not a shorthand.
+
+**Entity definitions come from the sidecar, not from these diagrams.** Two matter most for the flows drawn here. **Work** is one documented instance of an Action performed by a gardener — media, notes, and metadata *submitted as an EAS Work attestation for operator review*; approval records a **separate Work Approval attestation** (which is why D2.2 draws the submission and the approval as two distinct EAS interactions, not one round trip). **Assessment** is an *up-front* baseline and strategy — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored before work begins and mirrored to a Karma GAP milestone **only when that module is active**; it is explicitly *not* a review of submitted Work. A commitment is deliberately **not** an EAS attestation: it is a module-native record.
+
+**MDR is ambiguous and unused here.** In client surfaces MDR means the **Media–Details–Review** capture wizard; in evaluation contexts it means the **Monitoring–Data–Reporting** pipeline (v1-0 §16.1 disambiguates the two). No diagram or asset in this hub uses the abbreviation, and none should — spell whichever one is meant.
 
 **Steward names are deliberately distinct, not drift.** They are different *resolutions* of the same Hats-based authority, and D13b is the exact gate for each: **commitment-pool steward** (the resolved authority of the commitment's pool), **protocol steward** (the root/protocol pool's steward specifically — the only one who may `queueFunding`), **settlement steward** (the resolved steward for a settlement subject), and **batch steward** (the resolved steward for an immutable batch's executor garden). Where a diagram says only "steward", the resolution is whichever of these the function's D13b row names. `operatorBps` keeps its GraphQL field name because that is canonical in `contract-spec.md` §8.2; its label reads "steward share" everywhere it is drawn.
 
@@ -583,11 +610,13 @@ stateDiagram-v2
 
 The module stores `preDisputeState` before entering `Disputed`; `RestorePrevious` restores that exact state. There is no `Reconciled` dispute resolution. Unit accounting is exact:
 
-- create registers the class but commits no units;
-- cancellation or expiry from `Offered`/`Requested` releases nothing;
-- acceptance commits units and acquires one provider open-commitment slot once, regardless of `targetUnits`;
-- cancellation or expiry from `Accepted`/`ReadyForConfirmation` releases those committed units and that one slot once;
-- fulfillment converts committed units with `fulfillUnits` and releases that one slot;
+This ledger *is* the register's `accounting-state` vocabulary — the sidecar's fourth commitment-pooling state family, whose members are `Registered`, `Committed`, `Released`, `Fulfilled`. Each bullet below names the transition that moves a class between them, and the enum is single-shot per class: a slot is claimed once and released once, which is what `ClassAccountingStateMismatch` enforces.
+
+- create **registers** the class (`Registered`) but commits no units;
+- cancellation or expiry from `Offered`/`Requested` releases nothing — the class stays `Registered`;
+- acceptance **commits** units (`Committed`) and acquires one provider open-commitment slot once, regardless of `targetUnits`;
+- cancellation or expiry from `Accepted`/`ReadyForConfirmation` **releases** those committed units and that one slot once (`Released`);
+- fulfillment converts committed units with `fulfillUnits` (`Fulfilled`) and releases that one slot;
 - raising or restoring a dispute has no unit or slot effect;
 - resolving to `Fulfilled`, `Cancelled`, or `Expired` applies the same conversion/release only when units and the slot are still held; a pre-dispute `Expired` record cannot become `Fulfilled` and never releases twice.
 

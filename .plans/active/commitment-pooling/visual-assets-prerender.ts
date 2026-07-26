@@ -5,6 +5,13 @@
 // (unauthenticated) viewers can't invoke that renderer, so the share is refused
 // ("This version can't be shared publicly"). Confirmed empirically 2026-07-22.
 //
+// VOCABULARY: this step only freezes what the builder produced — it introduces no
+// labels of its own. The gallery's vocabulary source is the ontology sidecar,
+// packages/shared/src/ontology/green-goods-ontology.json; every state/enum label
+// in diagrams.md maps 1:1 onto a canonical member there. `bun run check:ontology`
+// guards the code layers and parses neither Markdown nor the SVGs frozen here, so
+// that mapping is maintained by hand (see visual-assets.md § Vocabulary source).
+//
 // WHAT: This step freezes every Mermaid diagram to inline <svg> at build time,
 // so the published body is fully self-contained static HTML with NO
 // <pre class="mermaid"> blocks — exactly the form that shares (like the hand-drawn

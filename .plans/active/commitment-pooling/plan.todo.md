@@ -550,6 +550,44 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
    These were hand edits by design (a 72k-character Linear document cannot be safely regenerated through the MCP write path). **Moot as of 2026-07-22:** Linear Doc 2 is archived, and Google Doc tab 02 — re-authored, not a mirror of Doc 2's `§2.7`/Change-Log structure — already states the corrected model. `working-capital` returns 0 doc-wide, and the tab-01 money map renders the direct HoA → GG protocol Safe → garden route with "No bridged G$, ever." No edit remains outstanding.
 
+## Ontology sidecar gaps found by the 2026-07-26 visual alignment
+
+The ontology foundation (PR #661) made `packages/shared/src/ontology/green-goods-ontology.json` repo
+canon and encoded twelve commitment-pooling vocabularies as `status: "spec"`. Aligning the visual
+artifacts against it confirmed every state/enum label in `diagrams.md` maps 1:1 onto a canonical
+member, and that all four spec state machines render the sidecar's `on-chain` / `derived` /
+`off-chain` storage flags correctly.
+
+It also surfaced vocabularies these diagrams **must** draw that the sidecar does not yet carry.
+Per the alignment contract these are flagged here rather than invented — each is already frozen in a
+canonical spec, so the gap is sidecar coverage, not an undefined term:
+
+| Vocabulary drawn | Layer and exact members | Frozen in | Drawn by |
+|---|---|---|---|
+| `DisbursementState` | Solidity `None, Queued, Dispatched, Confirmed, Failed, Cancelled`; GraphQL mirror `UNKNOWN, QUEUED, DISPATCHED, CONFIRMED, FAILED, CANCELLED` | `settlement-spec.md` §3.1.2 | D10, D10b, D7b |
+| `FailureCode` | Solidity, 12 members `None` … `BalanceDeltaMismatch` | `settlement-spec.md` §3.1.2 | D16, D7b |
+| `AcknowledgmentDeferralCode` | Solidity `None, QuoteFailed, FeeReserveLow, SendFailed` | `settlement-spec.md` §3.1.2 | D9.2, D16, D7b |
+| `DisbursementKind` | Solidity `CommitmentReward, Funding`; GraphQL `UNKNOWN, COMMITMENT_REWARD, FUNDING` | `settlement-spec.md` §3.1.2 | D7b |
+| `FundingRoute` | Solidity `None, ProtocolToGarden`; GraphQL `UNKNOWN, NONE, PROTOCOL_TO_GARDEN` | `settlement-spec.md` §3.1.2 | D7b, D8, D12 |
+| `ResultStatus` / `SettlementExecutionStatus` | **two names, two layers**: Solidity `ResultStatus { None, Success, Failed }`, GraphQL `SettlementExecutionStatus { UNKNOWN, SUCCESS, FAILED }` | `settlement-spec.md` §3.1.2, §6 | D7b, D9.1 |
+| `CommitmentClaimRequestState` | GraphQL `PENDING, ACCEPTED, DECLINED, SUPERSEDED` | `contract-spec.md` §8.2 | D11b, D7.2 |
+| `CommitmentEventType` | GraphQL, 40+ members incl. `UNITS_COMMITTED`, `UNITS_RELEASED`, `UNITS_FULFILLED` | `contract-spec.md` §8.2 | D7.1 |
+| `CommitmentUnitScope` | GraphQL `POOL, CYCLE` | `contract-spec.md` §8.2 | D7.2 |
+
+Two further families are app-side and may not belong in the sidecar at all — recorded so the decision
+is deliberate rather than an omission: the nine member-facing settlement states D10b derives
+(`support-queued` … `support-cancelled-failed`, `uiux-spec.md` §5.9) and the offline job states D14
+draws (`waiting_for_hat`, `Syncing`, `RetryableFailure`, `Exhausted`, `Discarded`); the sidecar's
+`job-kind` covers job *kinds* (`work`, `approval`) but no job *state* vocabulary exists.
+
+Conversely `accounting-state` (`Registered`, `Committed`, `Released`, `Fulfilled`) was in the sidecar
+but surfaced in no visual; D6c's unit-and-slot ledger now names its members explicitly.
+
+**Next step**: when the settlement and indexer enums land in Solidity/GraphQL, add them to the
+sidecar with `planned_anchor` entries so `check:ontology`'s spec-arrival guard watches them the way
+it watches the current twelve. `check:ontology` parses neither Markdown nor images, so `diagrams.md`
+and the gallery remain the manual leg of that contract.
+
 ## Boundary
 
 No implementation code starts from this plan without Afo dispatching the specific lane or handoff. G$ split-state settlement is Build-phase scope via [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) (`settlement-spec.md`, Decision Log #14), targeting the 2026-08-12 Release. Implementation may begin only from its scoped handoff after the pooling reward/provider interface freezes; production Safe/Zodiac authority evidence, audit/timelock, native-fee policy, GoodDollar configuration, AA outcome, broadcasts, and canary remain human Release gates. The date waives no gate. Still out of scope for every lane: bridged G$ (never), arbitrary bridge-executor automation, a `packages/agent` settlement relayer/write path, bridge custody/unbounded value authority, Sarafu integration, transferable settlement vouchers and `settlementAdapter`/`settlementEnabled` activation (PRD-651), indexing raw Celo/G$ transfers, garden-to-garden federation, leaderboards, and public credit scores. Optional later agent alerts are read-only and hold no settlement authority. Borrow-and-repay `CreditRegister` is a blocked follow-on lane; no implementation without a new scope lock.

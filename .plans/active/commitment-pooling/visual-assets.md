@@ -59,6 +59,18 @@ Use the exact intent below when manually uploading a PNG to Linear or the canoni
 
 Tab **02** now has **2 of the 4** synthesis assets embedded and visibly rendered — `synthesis-ge-protocol` (under "The six protocol functions") and `synthesis-flywheel` (under "One model, one loop") — live-verified in the Google Doc on 2026-07-22 (supersedes the earlier "zero images today" note). **`synthesis-three-tiers` and `synthesis-circular-gd` are still not uploaded.** Google Docs will not accept embedded images over MCP: drag the remaining 2x PNGs in by hand.
 
+## Vocabulary source
+
+Every state and enum label in these assets resolves to the machine-readable ontology sidecar, **`packages/shared/src/ontology/green-goods-ontology.json`** (human-readable render: `docs/docs/reference/ontology.generated.mdx`), which became repo canon with the ontology foundation on 2026-07-26. The twelve commitment-pooling vocabularies carry `status: "spec"` and are transcribed member-for-member from `contract-spec.md` §6.1/§6.2.
+
+Three rules bind the assets:
+
+1. **1:1 mapping.** Display copy may prettify — a GraphQL mirror may read `APPROVAL_GATED`, an edge label may read "accepted (creator)" — but every label must map onto exactly one canonical member. No asset may introduce a term the sidecar does not carry; see `plan.todo.md` § *Ontology sidecar gaps* for the families flagged rather than invented.
+2. **Provenance is visible.** The sidecar flags each state `on-chain`, `derived`, or `off-chain`, and the Architecture tab renders that: paper = on-chain, amber = derived, grey = app-only. A derived state must never read as a chain write. `Reconciled` is derived for commitments and on-chain for cycles — the two diagrams style it differently on purpose.
+3. **`PoolType` is two vocabularies.** `commitment-pool-type` (Garden/Protocol) and the live Gardens V2 `signal-pool-type` (ActionSignal/HypercertSignal) share a Solidity identifier and must never be labelled interchangeably.
+
+The 12 hand-drawn story SVGs carry prose rather than enum labels, so they hold no vocabulary surface. `bun run check:ontology` guards the code layers only — it parses neither Markdown nor images, so this index and `diagrams.md` are the manual leg of that contract.
+
 ## Truth sources
 
 Audience assets simplify, never contradict, the engineering diagrams in `diagrams.md`: money map ↔ D8 + D12 + `settlement-spec.md`; roles strip ↔ D13 capability summary and D13b exact permissions; settlement states ↔ D10 + **D10b** (the 5-stored → 9-rendered derivation) + D9.0/D9.1/D9.2; loop ↔ D2.0 overview and D6.0 overview. If a spec changes, regenerate the affected asset in the same pass.

@@ -562,7 +562,7 @@ section{scroll-margin-top:6.5rem;}
     </div>
   </div>
 </dialog>
-<footer>Green Goods · Commitment Pooling visual assets · execution reference — diagrams introduce nothing the specs don't define.</footer>
+<footer>Green Goods · Commitment Pooling visual assets · execution reference — diagrams introduce nothing the specs don't define.<br>Vocabulary source: the ontology sidecar <code>packages/shared/src/ontology/green-goods-ontology.json</code> — every state and enum label maps 1:1 onto a canonical member. Paper = on-chain · amber = derived by the indexer · grey = app-only.</footer>
 <script>
 (function(){
   var requestedTheme = new URLSearchParams(window.location.search).get('theme');
