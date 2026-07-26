@@ -1,0 +1,70 @@
+name: Ontology
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "packages/shared/src/**"
+      - "packages/contracts/src/**"
+      - "packages/contracts/config/schemas.json"
+      - "packages/indexer/schema.graphql"
+      - "docs/docs/reference/glossary-community.md"
+      - "docs/docs/reference/ontology.generated.mdx"
+      - "docs/docs/builders/integrations/entity-matrix.mdx"
+      - "scripts/quality/check-ontology.mjs"
+      - "scripts/quality/ontology-render.mjs"
+      - "scripts/quality/check-ontology.test.mjs"
+      - "scripts/data/ontology-drift-baseline.json"
+      - ".github/workflows/ontology.yml"
+      - ".plans/active/commitment-pooling/contract-spec.md"
+      - "docs/docs/builders/architecture/erd.mdx"
+      - "docs/docs/builders/specs/v1-0.mdx"
+      - "packages/contracts/script/DeployBadgeSchema.s.sol"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "packages/shared/src/**"
+      - "packages/contracts/src/**"
+      - "packages/contracts/config/schemas.json"
+      - "packages/indexer/schema.graphql"
+      - "docs/docs/reference/glossary-community.md"
+      - "docs/docs/reference/ontology.generated.mdx"
+      - "docs/docs/builders/integrations/entity-matrix.mdx"
+      - "scripts/quality/check-ontology.mjs"
+      - "scripts/quality/ontology-render.mjs"
+      - "scripts/quality/check-ontology.test.mjs"
+      - "scripts/data/ontology-drift-baseline.json"
+      - ".github/workflows/ontology.yml"
+      - ".plans/active/commitment-pooling/contract-spec.md"
+      - "docs/docs/builders/architecture/erd.mdx"
+      - "docs/docs/builders/specs/v1-0.mdx"
+      - "packages/contracts/script/DeployBadgeSchema.s.sol"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ontology-drift:
+    name: Ontology Drift
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: "22"
+
+      # No dependency install on purpose: check-ontology.mjs uses only the Node
+      # standard library, which keeps this gate sub-minute and lets the ci-gate
+      # matcher exclude package.json/bun.lock from its path filter.
+      - name: Ontology checker unit tests
+        run: node --test scripts/quality/check-ontology.test.mjs
+
+      - name: Ontology drift gate
+        run: node scripts/quality/check-ontology.mjs
