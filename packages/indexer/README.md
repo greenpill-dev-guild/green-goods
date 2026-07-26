@@ -213,13 +213,17 @@ bun run dev:manual
 **Manual fix:**
 ```bash
 cd generated
-pnpm install
-pnpm run build
+corepack pnpm install
+corepack pnpm run build
 cd ..
 bun run dev:manual
 ```
 
-**Why this happens:** ReScript needs dependencies installed locally in the `generated/` folder. Envio uses pnpm for proper Node.js module resolution, while bun's workspace hoisting puts dependencies at the root.
+**Why this happens:** ReScript needs dependencies installed locally in the `generated/` folder.
+Envio uses the exact pnpm version pinned in this package for proper Node.js module resolution,
+while Bun remains the monorepo package manager and its workspace hoisting puts dependencies at the
+root. Invoke generated-workspace commands through `corepack pnpm`; do not replace the root
+`packageManager` declaration.
 
 ### Other Common Issues
 

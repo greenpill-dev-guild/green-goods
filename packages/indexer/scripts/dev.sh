@@ -82,7 +82,7 @@ if [ "$DEPS_INSTALLED" = false ]; then
   INSTALL_SUCCESS=false
 
   while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$INSTALL_SUCCESS" = false ]; do
-    if pnpm install 2>&1; then
+    if corepack pnpm install 2>&1; then
       INSTALL_SUCCESS=true
     else
       RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -99,7 +99,7 @@ if [ "$DEPS_INSTALLED" = false ]; then
     echo ""
     echo "Try running manually:"
     echo "  cd packages/indexer/generated"
-    echo "  pnpm install"
+    echo "  corepack pnpm install"
     echo ""
     exit 1
   fi
@@ -110,13 +110,13 @@ if [ -f "src/Index.res.js" ] && [ -f "src/db/Migrations.res.js" ]; then
   echo "🔨 ReScript code already compiled, skipping build"
 else
   echo "🔨 Building ReScript code..."
-  if ! pnpm exec rescript 2>&1; then
+  if ! corepack pnpm exec rescript 2>&1; then
     echo ""
     echo "❌ Failed to build ReScript code."
     echo ""
     echo "Try running manually:"
     echo "  cd packages/indexer/generated"
-    echo "  pnpm exec rescript"
+    echo "  corepack pnpm exec rescript"
     echo ""
     exit 1
   fi
