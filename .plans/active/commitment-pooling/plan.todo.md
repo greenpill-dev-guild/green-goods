@@ -25,7 +25,7 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `../../backlog/commitment-credit-follow-on/spec.md` | Borrow-and-repay `CreditRegister` | Design only — **blocked follow-on**, not dispatchable |
 | `uiux-spec.md` | Canonical cross-surface flows + §4 state tables + job kinds | UI/UX contract |
 | `wireframes.md` | 23 CP frame headings across four surfaces (W1–W16, W13b, W21–W26; W6 is a retirement tombstone) | **Lo-fi structural truth** |
-| `diagrams.md` | D1–D14 mermaid execution reference (18 named sections; ERD, sequences, state machines, topology) | Flow truth |
+| `diagrams.md` | D1–D16 mermaid execution reference (23 named sections rendering 32 Architecture Mermaid blocks; ERD, sequences, state machines, topology, deployment, error taxonomy) | Flow truth |
 | `prototypes.md` | 14 storyboards (SB-1–14) + missing-frame index + action inventory | Fidelity-neutral walks — **adds no design authority** |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration | Asset index |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
@@ -309,7 +309,7 @@ and creates no new product or architecture decision.
 - [x] Human judgment points surfaced and decided: 27 alignment decisions (2026-07-03), approved Linear change set (2026-07-04), all 22 readiness findings scope-locked (2026-07-10), and the final four August UI placements locked by register #51 (2026-07-23)
 - [x] Out of scope defined: no bridged G$, bridge custody/unbounded value authority, Sarafu integration, transferable settlement vouchers, indexed Celo/G$ transfers, garden-to-garden federation, leaderboards, or public credit scores; no commitment EAS schema; no claim flow in the community interface v1
 - [x] Lightest honest validation chosen per lane (see Validation)
-- [x] Design coverage audit completed 2026-07-10; the corrected 23-asset inventory rendered as 20 Mermaid blocks and its semantic updates are tracked in `diagrams.md` and `wireframes.md` and must parse before implementation handoff.
+- [x] Design coverage audit completed 2026-07-10 (23 assets / 20 Mermaid blocks at that date); superseded by the 2026-07-25 architecture coherency pass — the inventory is now 29 assets rendering 32 Architecture Mermaid blocks, tracked in `diagrams.md` and `wireframes.md`, and every block must parse before implementation handoff.
 - [x] Settlement scoping landed 2026-07-04: `settlement-spec.md` (SettlementModule, Safe topology, member receipt, multi-chain tiers, failure states) + diagrams D8–D10 + [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686)
 - [x] Settlement transport re-frozen and corrected through 2026-07-24: commitment-bound
   message-only CCIP command; exact command/ack tuples and fee-aware failure codes; idempotent
@@ -549,6 +549,44 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
    - **Change Log, Pass-4 row V** — do **not** rewrite it (it is accurate as history). Append to the end of the row: `**Superseded 2026-07-18**: the working-capital hop was retired — the House of Alignment stream now lands directly in the GG protocol Safe. See reports/corrections-log.md §9.`
 
    These were hand edits by design (a 72k-character Linear document cannot be safely regenerated through the MCP write path). **Moot as of 2026-07-22:** Linear Doc 2 is archived, and Google Doc tab 02 — re-authored, not a mirror of Doc 2's `§2.7`/Change-Log structure — already states the corrected model. `working-capital` returns 0 doc-wide, and the tab-01 money map renders the direct HoA → GG protocol Safe → garden route with "No bridged G$, ever." No edit remains outstanding.
+
+## Ontology sidecar gaps found by the 2026-07-26 visual alignment
+
+The ontology foundation (PR #661) made `packages/shared/src/ontology/green-goods-ontology.json` repo
+canon and encoded twelve commitment-pooling vocabularies as `status: "spec"`. Aligning the visual
+artifacts against it confirmed every state/enum label in `diagrams.md` maps 1:1 onto a canonical
+member, and that all four spec state machines render the sidecar's `on-chain` / `derived` /
+`off-chain` storage flags correctly.
+
+It also surfaced vocabularies these diagrams **must** draw that the sidecar does not yet carry.
+Per the alignment contract these are flagged here rather than invented — each is already frozen in a
+canonical spec, so the gap is sidecar coverage, not an undefined term:
+
+| Vocabulary drawn | Layer and exact members | Frozen in | Drawn by |
+|---|---|---|---|
+| `DisbursementState` | Solidity `None, Queued, Dispatched, Confirmed, Failed, Cancelled`; GraphQL mirror `UNKNOWN, QUEUED, DISPATCHED, CONFIRMED, FAILED, CANCELLED` | `settlement-spec.md` §3.1.2 | D10, D10b, D7b |
+| `FailureCode` | Solidity, 12 members `None` … `BalanceDeltaMismatch` | `settlement-spec.md` §3.1.2 | D16, D7b |
+| `AcknowledgmentDeferralCode` | Solidity `None, QuoteFailed, FeeReserveLow, SendFailed` | `settlement-spec.md` §3.1.2 | D9.2, D16, D7b |
+| `DisbursementKind` | Solidity `CommitmentReward, Funding`; GraphQL `UNKNOWN, COMMITMENT_REWARD, FUNDING` | `settlement-spec.md` §3.1.2 | D7b |
+| `FundingRoute` | Solidity `None, ProtocolToGarden`; GraphQL `UNKNOWN, NONE, PROTOCOL_TO_GARDEN` | `settlement-spec.md` §3.1.2 | D7b, D8, D12 |
+| `ResultStatus` / `SettlementExecutionStatus` | **two names, two layers**: Solidity `ResultStatus { None, Success, Failed }`, GraphQL `SettlementExecutionStatus { UNKNOWN, SUCCESS, FAILED }` | `settlement-spec.md` §3.1.2, §6 | D7b, D9.1 |
+| `CommitmentClaimRequestState` | GraphQL `PENDING, ACCEPTED, DECLINED, SUPERSEDED` | `contract-spec.md` §8.2 | D11b, D7.2 |
+| `CommitmentEventType` | GraphQL, 40+ members incl. `UNITS_COMMITTED`, `UNITS_RELEASED`, `UNITS_FULFILLED` | `contract-spec.md` §8.2 | D7.1 |
+| `CommitmentUnitScope` | GraphQL `POOL, CYCLE` | `contract-spec.md` §8.2 | D7.2 |
+
+Two further families are app-side and may not belong in the sidecar at all — recorded so the decision
+is deliberate rather than an omission: the nine member-facing settlement states D10b derives
+(`support-queued` … `support-cancelled-failed`, `uiux-spec.md` §5.9) and the offline job states D14
+draws (`waiting_for_hat`, `Syncing`, `RetryableFailure`, `Exhausted`, `Discarded`); the sidecar's
+`job-kind` covers job *kinds* (`work`, `approval`) but no job *state* vocabulary exists.
+
+Conversely `accounting-state` (`Registered`, `Committed`, `Released`, `Fulfilled`) was in the sidecar
+but surfaced in no visual; D6c's unit-and-slot ledger now names its members explicitly.
+
+**Next step**: when the settlement and indexer enums land in Solidity/GraphQL, add them to the
+sidecar with `planned_anchor` entries so `check:ontology`'s spec-arrival guard watches them the way
+it watches the current twelve. `check:ontology` parses neither Markdown nor images, so `diagrams.md`
+and the gallery remain the manual leg of that contract.
 
 ## Boundary
 

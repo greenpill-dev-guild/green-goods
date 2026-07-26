@@ -1,7 +1,7 @@
 # Commitment Pooling — Visual Asset Index
 
-**Updated**: 2026-07-23 (all 12 SVGs use document-scale type, contrast-safe Warm Earth roles, and accessible metadata; the settlement assets use the frozen CCIP command/acknowledgment states; the ownership map matches the six-tab external document; Follow On / Hardening and the Community/evidence checkpoint close separately in parallel on September 30)
-**Gallery**: [Commitment Pooling — Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d), built by `visual-assets-artifact.build.ts` in this folder. The source now covers all 12 assets across the story — loop, roles, money map, settlement states, funding rails, the Use Cases journey strip, flywheel, three tiers, circular G$, GE protocol functions, rollout timeline, and ownership map. Rebuild and validate locally before republishing to the same URL; an unavailable artifact publisher is a publication blocker, not proof that the live URL changed.
+**Updated**: 2026-07-25 (architecture coherency pass — the 12 story SVGs are unchanged; the Architecture tab was reconciled to the frozen specs, its three densest diagrams split, and five previously undrawn surfaces added. Story SVG state as of 2026-07-23: document-scale type, contrast-safe Warm Earth roles, accessible metadata, frozen CCIP command/acknowledgment states, ownership map matching the six-tab external document, and Follow On / Hardening closing in parallel with the Community/evidence checkpoint on September 30.)
+**Gallery**: [Commitment Pooling — Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d), built by `visual-assets-artifact.build.ts` in this folder. The story tab covers all 12 hand-drawn assets — loop, roles, the Use Cases journey strip, money map, settlement states, funding rails, flywheel, three tiers, circular G$, GE protocol functions, rollout timeline, and ownership map. The Architecture tab is generated wholly from `diagrams.md` (**32 Mermaid blocks across 23 named D-sections**) and the Screens tab from `wireframes.md`. Rebuild and validate locally before republishing to the same URL; an unavailable artifact publisher is a publication blocker, not proof that the live URL changed.
 **Pipeline**: every asset is a hand-crafted, self-contained SVG (Warm-Earth palette, explicit 2x `width`/`height` so Linear sizes it correctly) with a 2x PNG companion for Linear upload. Linear docs cannot be written with embedded images over MCP — **uploads are manual** (drag the PNG into the doc at the placement below). The SVG is the print/PDF source; the PNG is the Linear-upload source.
 
 ## Style contract
@@ -59,9 +59,23 @@ Use the exact intent below when manually uploading a PNG to Linear or the canoni
 
 Tab **02** now has **2 of the 4** synthesis assets embedded and visibly rendered — `synthesis-ge-protocol` (under "The six protocol functions") and `synthesis-flywheel` (under "One model, one loop") — live-verified in the Google Doc on 2026-07-22 (supersedes the earlier "zero images today" note). **`synthesis-three-tiers` and `synthesis-circular-gd` are still not uploaded.** Google Docs will not accept embedded images over MCP: drag the remaining 2x PNGs in by hand.
 
+## Vocabulary source
+
+Every state and enum label in these assets resolves to the machine-readable ontology sidecar, **`packages/shared/src/ontology/green-goods-ontology.json`** (human-readable render: `docs/docs/reference/ontology.generated.mdx`), which became repo canon with the ontology foundation on 2026-07-26. The twelve commitment-pooling vocabularies carry `status: "spec"` and are transcribed member-for-member from `contract-spec.md` §6.1/§6.2.
+
+Three rules bind the assets:
+
+1. **1:1 mapping.** Display copy may prettify — a GraphQL mirror may read `APPROVAL_GATED`, an edge label may read "accepted (creator)" — but every label must map onto exactly one canonical member. No asset may introduce a term the sidecar does not carry; see `plan.todo.md` § *Ontology sidecar gaps* for the families flagged rather than invented.
+2. **Provenance is visible.** The sidecar flags each state `on-chain`, `derived`, or `off-chain`, and the Architecture tab renders that: paper = on-chain, amber = derived, grey = app-only. A derived state must never read as a chain write. `Reconciled` is derived for commitments and on-chain for cycles — the two diagrams style it differently on purpose.
+3. **`PoolType` is two vocabularies.** `commitment-pool-type` (Garden/Protocol) and the live Gardens V2 `signal-pool-type` (ActionSignal/HypercertSignal) share a Solidity identifier and must never be labelled interchangeably.
+
+The 12 hand-drawn story SVGs carry prose rather than enum labels, so they hold no vocabulary surface. `bun run check:ontology` guards the code layers only — it parses neither Markdown nor images, so this index and `diagrams.md` are the manual leg of that contract.
+
 ## Truth sources
 
-Audience assets simplify, never contradict, the engineering diagrams in `diagrams.md`: money map ↔ D8 + D12 + `settlement-spec.md`; roles strip ↔ D13 permission map; settlement states ↔ D10 + D9; loop ↔ D2/D6. If a spec changes, regenerate the affected asset in the same pass.
+Audience assets simplify, never contradict, the engineering diagrams in `diagrams.md`: money map ↔ D8 + D12 + `settlement-spec.md`; roles strip ↔ D13 capability summary and D13b exact permissions; settlement states ↔ D10 + **D10b** (the 5-stored → 9-rendered derivation) + D9.0/D9.1/D9.2; loop ↔ D2.0 overview and D6.0 overview. If a spec changes, regenerate the affected asset in the same pass.
+
+**Status vocabulary across the two tabs**: the story assets label *actions* Built or Planned; the Architecture tab labels *components*, using three treatments — Built/live, Planned/gated, and **existing surface with a planned delta** (`diagrams.md` § Visual status contract). A live surface carrying a planned action is the third class, which is why the client PWA, editorial website, Admin, and the Envio read model read as Built in the story tab and as an existing-surface delta in D1/D1b without contradiction.
 
 ## Optional: product screenshots as Built-proof
 
@@ -69,8 +83,22 @@ Audience assets simplify, never contradict, the engineering diagrams in `diagram
 
 ## Regeneration
 
-**After editing any asset, rebuild the gallery** so the shared link reflects it:
-`bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts` — builds both gallery targets in one pass (three audience tabs: story; 18 named Architecture sections D1–D14 including D1b/D7b/D7c/D13b, rendered as 20 Architecture Mermaid blocks; and the canonical CP screen states). `/tmp/commitment-pooling-visual-assets.html` is the complete local `file://` preview with the locked Mermaid runtime embedded; open this file for validation. `/tmp/commitment-pooling-visual-assets.artifact-body.html` is the body-content entrypoint for the Claude Artifact host; publish only that file. Both targets carry the Warm Earth Mermaid theme, responsive overview treatment, and SVG accessibility contract, while the Artifact body relies on the host runtime to draw its Mermaid source. The builder hard-fails on missing/duplicate required D sections, a Mermaid-count drift, or a diagram-bearing “How to read this” section losing its diagram. `LOCAL_OUT` (or legacy `OUT`) and `ARTIFACT_OUT` may override the two paths. W6 and the dissolved lo-fi variants are not standalone frames. Republish only after validating both outputs.
+**After editing any asset, rebuild the gallery** so the shared link reflects it. There are **two steps, and the second is not optional for publishing**:
+
+```bash
+bun .plans/active/commitment-pooling/visual-assets-prerender.ts
+```
+
+That script runs the builder read-only and then freezes the result, producing all three outputs:
+
+1. `visual-assets-artifact.build.ts` writes the two build targets — three audience tabs: story; **23 named Architecture sections D1–D16** (including D1b, D7b, D7c, D7d, D10b, D11b, D13b) rendered as **32 Architecture Mermaid blocks**; and the canonical CP screen states.
+   - `LOCAL_OUT` → `/tmp/commitment-pooling-visual-assets.html` — the complete local `file://` preview with the locked Mermaid runtime embedded. **This is the file to open for visual validation.**
+   - `ARTIFACT_OUT` → `/tmp/commitment-pooling-visual-assets.artifact-body.html` — body content that still contains `<pre class="mermaid">`.
+2. The prerender step renders every block through the already-installed Playwright chromium (light + dark), splices the resulting inline `<svg>` into the body, and writes `SHAREABLE_OUT`.
+
+**Publish `SHAREABLE_OUT`, not `ARTIFACT_OUT`.** An artifact containing `<pre class="mermaid">` cannot be shared publicly — the host renders Mermaid at view time and unauthenticated viewers can't invoke that renderer, so the share is refused with "This version can't be shared publicly" (confirmed empirically 2026-07-22). The frozen body has no `<pre class="mermaid">`, no embedded runtime, and no external script references; the prerender asserts all three before writing.
+
+The builder hard-fails on missing or duplicate required D sections, Mermaid-count drift, a diagram-bearing section losing its diagram, a reading-guide section losing its panel, and any nav link that does not resolve to a section or sub-block anchor. The prerender additionally fails if any diagram does not render to SVG — its `render status: … (rendered N, failed 0)` line is the parse proof. `LOCAL_OUT`, `ARTIFACT_OUT`, and `SHAREABLE_OUT` may all be overridden by environment variable. W6 and the dissolved lo-fi variants are not standalone frames. Republish only after validating the local preview.
 
 The per-asset SVG/PNG steps:
 
