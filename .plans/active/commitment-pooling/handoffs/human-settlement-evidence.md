@@ -59,7 +59,7 @@ the smallest exact read-only evidence-reproduction command before dispatch.
 - The privacy owner, research publication threshold, exact retention/deletion rules, and incident response are recorded.
 - The packet owner, reproducibility reviewer, calculation artifact, private safeguarding store, and publication owners are named.
 - Thresholds and stop conditions are dated before outcome interpretation; any retrospective choice is labeled exploratory.
-- The thin Product issue exists under PRD-650, has a September 30 due date, and has no `agent:*` label.
+- The thin Community issue (COM-11) exists under PRD-650, has a September 30 due date, and has no `agent:*` label.
 - The repository and live Linear issue are reread after the update and agree.
 
 ## Out of scope

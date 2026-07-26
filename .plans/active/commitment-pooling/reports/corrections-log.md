@@ -270,7 +270,7 @@ The independent local deep review and correction pass is complete once the plan 
 closure audit pass. Implementation remains paused pending convergence and live re-read of the
 Linear mirror and linked source document.
 
-## 13. Identifier re-home — settlement evidence PRD-735 → COM-11 — 2026-07-24
+## 13. Identifier re-home — settlement evidence PRD-735 → COM-11 — 2026-07-24 (Linear move recorded 2026-07-25T00:22Z)
 
 The thin settlement-evidence lane issue moved from the Product team to the Community team at
 2026-07-25T00:22Z (its state history shows the same-name Todo→Todo workflow remap a team move
