@@ -99,13 +99,22 @@ export const scopes = {
       severity: "high",
     },
   ],
+  ontology: [
+    {
+      id: "ontology",
+      label: "Ontology drift",
+      command: ["bun", "run", "check:ontology"],
+      route: "review",
+      severity: "medium",
+    },
+  ],
 };
 
 export const validScopes = new Set(["all", ...Object.keys(scopes)]);
 
 export function usage(exitCode = 0) {
   const message = [
-    "Usage: node scripts/quality/drift-check.mjs [--scope <all|guidance|plans|design|docs|cleanup|quality>] [--json]",
+    "Usage: node scripts/quality/drift-check.mjs [--scope <all|guidance|plans|design|docs|cleanup|quality|ontology>] [--json]",
     "       node scripts/quality/drift-check.mjs <scope> [--json]",
   ].join("\n");
   if (exitCode === 0) console.log(message);
