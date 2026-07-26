@@ -4,10 +4,10 @@ Updated 2026-07-26. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 31 registered screens / 228 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 221 states: 9 Client PWA (123 states), 13 Admin console (93 states), 2 Editorial website (5 states)
-- 343 registered hotspots
-- 37 validated source flows / 282 scenes; 36 presentation-visible flows / 273 scenes: 16 Client PWA, 19 Admin console, 1 Editorial website
+- 31 registered screens / 267 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 260 states: 9 Client PWA (150 states), 13 Admin console (105 states), 2 Editorial website (5 states)
+- 370 registered hotspots
+- 37 validated source flows / 296 scenes; 36 presentation-visible flows / 287 scenes: 16 Client PWA, 19 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -45,11 +45,12 @@ and `sb9c` (end a season — close, compost, or cancel). One 33-scene ribbon cov
 stewardship tasks left a reviewer with no chapter to orient against mid-flow.
 
 **Promise cast (2026-07-25).** The commitment detail, evidence sheet and
-confirmation sheet carry four casts, and identity follows the promise rather
+confirmation sheet carry six casts, and identity follows the promise rather
 than the fixture: the neighbour-to-neighbour **offer** (Maria → João, 6 hours),
 the **request** (Ana asks, João provides, Ana confirms — 1 ride), and the
 evidence-only **service offer** (Maria provides, João confirms — 1 repair
-session), plus the
+session), the Campaign-scoped request, the steward-recorded
+**OperatorCaptured** promise, plus the
 **garden-provided** protocol commitment (Awka Hub provides, protocol stewards
 confirm — 1 survey). A request that renders offer copy mid-flow is a fiction
 break, not a styling detail: direction, title, unit and cast all differ.
@@ -58,7 +59,7 @@ break, not a styling detail: direction, title, unit and cast all differ.
 
 - `W2a` is guided-flow-covered: evidence composition is shown before evidence-submitted outcomes.
 - `W16`'s states are walked by the editorial flow and `W5`'s by the wallet-drawer flow; only their error/loading states stay Screen-library-only because they are exhaustive drawer/editorial state references rather than consequential flow transitions.
-- SB-5 walks the complete “Not yet” dispute lifecycle once. `W4@not-yet-request`, `W4@not-yet-support`, `W2@request-disputed`, and `W2@support-disputed` remain Screen-library cast variants of that same call path so reviewers can verify identity continuity without duplicating the journey.
+- SB-5 walks the complete “Not yet” dispute lifecycle once. Request, Campaign-request, service-offer, and OperatorCaptured variants remain Screen-library cast fixtures of that same call path so reviewers can verify identity and retry continuity without duplicating the journey.
 - Guided flows own the primary transitions and consequential intermediate states, including the actionable open-pool empty state. Screen library owns exhaustive loading, non-action empty, validation, recovery, and alternate states.
 
 ## Cross-cutting recovery coverage
@@ -89,6 +90,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | Pause pool | `W7@pause-confirm` | 23 members · 7 open promises · what stays open |
 | Close pool | `W7@close-pool-confirm` | ends participation for 23 members · reachable only once the last cycle composts (`W7@cycle-composted`) · no stored reason |
 | Close paused pool | `W7@paused-close-pool-confirm` | pool remains Paused through cycle compost · `closePool` alone changes it to Closed · no stored reason |
+| Compost pool | `W7@compost-pool-confirm` | archives the closed pool · history remains readable · no stored reason |
 | Reopen pool | `W7@reopen-confirm` | Composted → Ready · history preserved · participation stays closed |
 | Cancel season | `W7@cancel-cycle-confirm` | 8 promises, 5 kept · records survive |
 | Cancel season while paused | `W7@paused-cancel-cycle-confirm` | pool remains Paused · cycle alone becomes Cancelled · records survive |
@@ -103,15 +105,15 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
 | W1 | Client PWA | 27 | open, not-ready, ready, seeded, request-open, request-queued, reviewing, paused, closed, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
-| W2 | Client PWA | 42 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, request-evidence-submitted, request-fulfilled, request-disputed, support-offered, support-active, support-evidence-queued, support-evidence-submitted, support-ready-confirmer, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error |
-| W2a | Client PWA | 5 | compose, compose-request, compose-support, queued, failed |
-| W3 | Client PWA | 8 | step-what, step-howmuch, step-anchors, step-review, support-review, request-variant, draft-resume, validation |
-| W4 | Client PWA | 14 | confirm-domain, confirm-support, confirm-request, not-yet, not-yet-support, not-yet-request, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, not-yet-failed |
+| W2 | Client PWA | 64 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-active, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error |
+| W2a | Client PWA | 7 | compose, compose-request, compose-campaign-request, compose-support, compose-captured, queued, failed |
+| W3 | Client PWA | 9 | step-what, step-howmuch, step-anchors, step-review, support-howmuch, support-review, request-variant, draft-resume, validation |
+| W4 | Client PWA | 26 | confirm-domain, confirm-support, confirm-request, confirm-campaign-request, confirm-captured, not-yet, not-yet-support, not-yet-request, not-yet-campaign-request, not-yet-captured, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, confirmed-pending-campaign-request, confirmed-campaign-request, confirmed-pending-captured, confirmed-captured, not-yet-failed, not-yet-failed-support, not-yet-failed-request, not-yet-failed-campaign-request, not-yet-failed-captured |
 | W5 | Client PWA | 7 | default, queued, waiting-membership, empty, loading, not-found, read-error |
 | W23 | Client PWA | 5 | balance, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
 | WFLOW | Client PWA | 1 | review |
-| W7 | Admin console | 25 | open, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
+| W7 | Admin console | 27 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
 | W10 | Admin console | 15 | detail, fulfilled, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |

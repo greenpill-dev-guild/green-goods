@@ -32,9 +32,11 @@ const warn: string[] = [];
 
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
-type FactKey = "pool" | "cycle" | "commitment" | "settlementAccount" | "disbursement";
+type FactKey =
+  | "pool" | "cycle" | "commitment"
+  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement";
 const FACT_KEYS = [
-  "pool", "cycle", "commitment", "kind", "settlementAccount", "disbursement",
+  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement",
 ] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
@@ -82,7 +84,15 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
   cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
-  queueDisbursement: { key: "commitment", allowed: ["Fulfilled"], effects: { disbursement: "Queued" } },
+  queueDisbursement: {
+    key: "commitment",
+    allowed: ["Fulfilled"],
+    effects: { disbursement: "Queued" },
+    requires: {
+      settlementAccount: ["Active"],
+      beneficiarySettlementAccount: ["NotRequired", "Active"],
+    },
+  },
   createBatch: { key: "disbursement", allowed: ["Queued"] },
   dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
   dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
@@ -161,11 +171,18 @@ function validateCalls(
     // state (claimCommitment is derived by claim mode). In that case source
     // legality is validated, but the target value is intentionally not guessed.
     const comparable = targetIsPending || changed.has(key) || !touched.has(key);
-    if (comparable && targetFacts?.[key] && expected[key] && targetFacts[key] !== expected[key])
+    const targetValue = targetFacts?.[key];
+    const expectedValue = expected[key];
+    if (!comparable || !targetValue) continue;
+    if (!expectedValue)
       err.push(
-        `CALL ${screen.id}@${stateId} ${hid}: target draws ${key} ${targetFacts[key]}, but ${
+        `CALL ${screen.id}@${stateId} ${hid}: target introduces ${key} ${targetValue}, but no call produces it`,
+      );
+    else if (targetValue !== expectedValue)
+      err.push(
+        `CALL ${screen.id}@${stateId} ${hid}: target draws ${key} ${targetValue}, but ${
           targetIsPending ? "the queued transition preserves" : "calls produce"
-        } ${expected[key]}`,
+        } ${expectedValue}`,
       );
   }
 }
