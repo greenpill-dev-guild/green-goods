@@ -1,11 +1,13 @@
 // Builds the "Commitment Pooling — Visual Asset Gallery" claude.ai artifact from
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Three audience tabs
 // (decision 2026-07-18):
-//   1) The story    — the 7-step loop + baseline panel + money maps (shareable narrative)
-//   2) Architecture — D1–D14 with their "How to read this" panels (Mermaid renders
+//   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
+//   2) Architecture — D1–D16 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
-//   3) Screens      — cross-surface flow map + canonical hi-fi screen headings
+//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26.
+//                     The hi-fi screen set is a different artifact entirely —
+//                     see prototypes-artifact.build.ts.
 //
 // Rebuild:  bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts
 //           Always writes two explicit outputs:
@@ -64,7 +66,7 @@ function slug(t: string): string {
   return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
 }
 
-type Sec = { id: string; title: string; level: number; html: string[] };
+type Sec = { id: string; title: string; level: number; html: string[]; subs: { id: string; title: string }[] };
 
 function renderMd(md: string): { secs: Sec[] } {
   const lines = md.split("\n");
@@ -97,10 +99,15 @@ function renderMd(md: string): { secs: Sec[] } {
       const level = h[1].length;
       const title = h[2].trim();
       if (level <= 3) {
-        cur = { id: slug(title), title, level, html: [] };
+        cur = { id: slug(title), title, level, html: [], subs: [] };
         secs.push(cur);
       } else {
-        push(`<h4>${inline(title)}</h4>`);
+        // h4 sub-blocks (D2.1, D6a, D7.0, D9.2 …) are real destinations: they get
+        // an anchor and a nav entry. Without this the split diagrams are
+        // unreachable by link and invisible in the table of contents.
+        const subId = slug(title);
+        cur?.subs.push({ id: subId, title });
+        push(`<h4 id="${subId}">${inline(title)}</h4>`);
       }
       i++;
       continue;
@@ -196,9 +203,13 @@ const wf = renderMd(wireframesMd);
 
 function sectionsHtml(secs: Sec[], skipTitles: string[] = []): { nav: string; body: string } {
   const kept = secs.filter((s) => s.html.length > 0 && !skipTitles.includes(s.title));
+  const navLabel = (t: string) => esc(t.replace(/\s*\(.*?\)\s*$/, ""));
   const nav = kept
     .filter((s) => s.level >= 2)
-    .map((s) => `<a href="#${s.id}">${esc(s.title.replace(/\s*\(.*?\)\s*$/, ""))}</a>`)
+    .map((s) =>
+      `<a href="#${s.id}">${navLabel(s.title)}</a>` +
+      s.subs.map((sub) => `<a class="sub" href="#${sub.id}">${navLabel(sub.title)}</a>`).join(""),
+    )
     .join("");
   const body = kept
     .map((s) => {
@@ -222,17 +233,27 @@ const requiredArchitectureSections = [
   ["D7.", "d7-indexer-entity-delta-erd"],
   ["D7b.", "d7b-settlement-erd"],
   ["D7c.", "d7c-fulfilled-commitment-hypercert-cut-over-and-indexer-delta"],
+  ["D7d.", "d7d-indexer-pipeline-and-the-garden-id-cut-over"],
   ["D8.", "d8-g-funding-topology-safe-recovery-and-ccip-boundary"],
   ["D9.", "d9-settlement-sequence-with-failure-retry"],
   ["D10.", "d10-disbursement-state-machine-all-module-native-on-chain"],
+  ["D10b.", "d10b-settlement-status-the-member-sees-5-stored-9-rendered"],
   ["D11.", "d11-approval-gated-claim-request-decline-acceptance-and-superses"],
+  ["D11b.", "d11b-claim-request-state-machine"],
   ["D12.", "d12-protocol-to-garden-funding-route"],
   ["D13.", "d13-capability-responsibility-summary"],
   ["D13b.", "d13b-exact-sensitive-action-permission-table"],
   ["D14.", "d14-commitment-offline-job-lifecycle"],
+  ["D15.", "d15-deployment-and-upgrade-topology"],
+  ["D16.", "d16-error-taxonomy-surface-and-recovery-map"],
 ];
+// Every diagram-bearing section carries a reading guide. The list used to skip
+// exactly the dense ones (D7 had none at 138 source lines) — that inversion is
+// the thing this list now prevents from coming back.
 const diagramHowToPrefixes = [
-  "D1.", "D1b.", "D2.", "D7b.", "D7c.", "D8.", "D9.", "D11.", "D12.", "D13.", "D14.",
+  "D1.", "D1b.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D7b.", "D7c.", "D7d.",
+  "D8.", "D9.", "D10.", "D10b.", "D11.", "D11b.", "D12.", "D13.", "D13b.", "D14.",
+  "D15.", "D16.",
 ];
 
 const storyBody = `
@@ -300,7 +321,7 @@ const storyBody = `
 const storyNav = [
   ["story-loop", "The commitment loop"],
   ["story-roles", "Who does what"],
-  ["story-baseline", "Why the baseline matters"],
+  ["story-use-cases", "Three grounded journeys"],
   ["story-money", "Where value lives"],
   ["story-settlement", "How a payout becomes provable"],
   ["story-funding", "How outcomes attract funding"],
@@ -377,6 +398,7 @@ aside.toc{position:sticky;top:6.4rem;align-self:start;max-height:calc(100vh - 7.
 aside.toc a{display:block;color:var(--stone);text-decoration:none;padding:.18rem .5rem;border-left:2px solid var(--line);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 aside.toc a:hover{color:var(--ink);border-left-color:var(--sand);}
+aside.toc a.sub{padding-left:1.1rem;font-size:.94em;opacity:.85;}
 .paneshost{position:relative;min-width:0;overflow:hidden;}
 .pane{min-width:0;}
 .pane[aria-hidden="true"]{position:absolute;inset:0;width:100%;height:1px;overflow:hidden;visibility:hidden;pointer-events:none;}
@@ -500,7 +522,7 @@ section{scroll-margin-top:6.5rem;}
 <header class="top">
   <div class="mast">
     <h1>Commitment Pooling — Visual Asset Gallery</h1>
-    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs · rebuilt 2026-07-22 (count-safe architecture; September 30 parallel closures; six protocol functions)</p>
+    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs + 32 architecture diagrams · rebuilt 2026-07-25 (architecture reconciled to the frozen specs; D2/D7/D9 split; D7d, D10b, D11b, D15, D16 added)</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Gallery sections">
     <button id="tab-story" role="tab" aria-selected="true" aria-controls="pane-story" tabindex="0" data-tab="story">The story</button>
@@ -540,7 +562,7 @@ section{scroll-margin-top:6.5rem;}
     </div>
   </div>
 </dialog>
-<footer>Green Goods · Commitment Pooling visual assets · execution reference — diagrams introduce nothing the specs don't define.</footer>
+<footer>Green Goods · Commitment Pooling visual assets · execution reference — diagrams introduce nothing the specs don't define.<br>Vocabulary source: the ontology sidecar <code>packages/shared/src/ontology/green-goods-ontology.json</code> — every state and enum label maps 1:1 onto a canonical member. Paper = on-chain · amber = derived by the indexer · grey = app-only.</footer>
 <script>
 (function(){
   var requestedTheme = new URLSearchParams(window.location.search).get('theme');
@@ -1030,6 +1052,15 @@ ${mermaidRuntime}
   var themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
 
   function diagramLabel(block, index){
+    // Must agree with previewLabel(): walk back to the nearest preceding h4 so
+    // sibling sub-blocks (D6.0/D6a/D6b/D6c, D7.0/D7.1/D7.2 …) get distinct
+    // accessible names instead of all inheriting the section heading.
+    var container = block.closest('.dia') || block;
+    var previous = container.previousElementSibling;
+    while (previous) {
+      if (previous.matches && previous.matches('h4')) return previous.textContent.trim();
+      previous = previous.previousElementSibling;
+    }
     var section = block.closest('section');
     var heading = section && section.querySelector('h2,h3,h4');
     return heading ? heading.textContent.trim() : 'Architecture diagram ' + (index + 1);
@@ -1323,11 +1354,63 @@ for (const prefix of diagramHowToPrefixes) {
   assertBuild(Boolean(section), `${prefix} How-to owner is missing`);
   const html = section!.html.join("\n");
   assertBuild(html.includes('class="howto"'), `${prefix} lost its How to read this panel`);
-  assertBuild(html.includes('class="mermaid"'), `${prefix} How to read this panel lost its diagram`);
+  // D13b is the one reading-guide owner with no diagram — it is a permission table.
+  if (prefix !== "D13b.") {
+    assertBuild(html.includes('class="mermaid"'), `${prefix} section lost its diagram`);
+  }
+  // Reading-guide coverage is per diagram-bearing block, not per section. After the
+  // D2/D7/D9 splits a section holds several sub-blocks, and a section-level check
+  // passes as long as ANY one of them still has a panel — so D7.0 could lose its
+  // guide silently while D7.1/D7.2 kept theirs. Two placements are both valid:
+  // one section-level guide covering every sub-block (D2, D6, D9), or one guide
+  // per sub-block (D7). What is never valid is a diagram with neither.
+  const preambleHasGuide = html.split("<h4 id=")[0].includes('class="howto"');
+  if (!preambleHasGuide) {
+    for (const chunk of html.split(/(?=<h4 id=)/).slice(1)) {
+      if (!chunk.includes('class="dia"')) continue;
+      const subId = chunk.match(/<h4 id="([^"]*)"/)?.[1] ?? prefix;
+      assertBuild(
+        chunk.includes('class="howto"'),
+        `sub-block #${subId} has a diagram but no reading guide, and ${prefix} has no section-level guide covering it`,
+      );
+    }
+  }
 }
-assertBuild(architectureSectionCount === 21, "Architecture output must contain 21 sections");
-assertBuild(architectureMermaidCount === 20, "Architecture output must contain 20 Mermaid blocks");
-assertBuild(mermaidCount === 21, "Gallery output must contain 21 Mermaid blocks including the Screens flow");
+// Every anchor the nav can target must be unique across the whole document — both
+// panes are in the DOM at once, so a section id colliding with a sub-block id (or a
+// sub-block id repeated across tabs) would silently break the anchors added here.
+const allAnchorIds = [...dia.secs, ...wf.secs].flatMap((s) => [s.id, ...s.subs.map((sub) => sub.id)]);
+const duplicateAnchor = allAnchorIds.find((id, i) => allAnchorIds.indexOf(id) !== i);
+assertBuild(!duplicateAnchor, `anchor id "${duplicateAnchor}" is used more than once across the gallery`);
+// Nav/body parity, both directions. A nav entry pointing at a section that does
+// not exist (story-baseline) and a section with no nav entry (story-use-cases)
+// both shipped undetected because nothing checked this.
+for (const [navHtml, bodyHtml, label] of [
+  [storyNav, storyBody, "Story"],
+  [diaOut.nav, diaOut.body, "Architecture"],
+  [wfOut.nav, wfOut.body, "Screens"],
+] as const) {
+  const navIds = [...navHtml.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
+  const sectionIds = [...bodyHtml.matchAll(/<section id="([^"]+)"/g)].map((m) => m[1]);
+  // Sub-block anchors live on <h4>, not on <section>; both are valid nav targets.
+  const bodyIds = new Set([...sectionIds, ...[...bodyHtml.matchAll(/<h4 id="([^"]+)"/g)].map((m) => m[1])]);
+  for (const id of navIds) {
+    assertBuild(bodyIds.has(id), `${label} nav links to #${id}, which is not a section in the body`);
+  }
+  assertBuild(new Set(navIds).size === navIds.length, `${label} nav has a duplicate link`);
+  // The Story pane is hand-authored, so every one of its sections must also be
+  // reachable from the nav. Architecture/Screens nav is filtered to level >= 2,
+  // so their level-1 intro sections legitimately have no entry.
+  if (label === "Story") {
+    const navSet = new Set(navIds);
+    for (const id of sectionIds) {
+      assertBuild(navSet.has(id), `Story section #${id} has no nav entry`);
+    }
+  }
+}
+assertBuild(architectureSectionCount === 26, "Architecture output must contain 26 sections");
+assertBuild(architectureMermaidCount === 32, "Architecture output must contain 32 Mermaid blocks");
+assertBuild(mermaidCount === 33, "Gallery output must contain 33 Mermaid blocks including the Screens flow");
 assertBuild(localDocument.startsWith("<!doctype html>"), "local output must be a complete document");
 assertBuild(localDocument.includes(`data-embedded-runtime="mermaid@${mermaidVersion}"`), "local output must embed the locked Mermaid runtime");
 assertBuild((localDocument.match(/class="mermaid"/g) || []).length === mermaidCount, "local output lost Mermaid source blocks");

@@ -52,7 +52,7 @@ scripts/
 | Script | Caller | Purpose |
 |---|---|---|
 | `check-codex-docs.js` | `bun run check:codex-guidance` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
-| `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, cleanup readiness, and quality guardrails |
+| `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, ontology, cleanup readiness, and quality guardrails |
 | `drift-check.test.mjs` | `node --test scripts/quality/drift-check.test.mjs` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
 | `check-guidance-links.mjs` | `bun run drift:check` (guidance scope) | Guidance drift guard: relative md links resolve and `bun run` scripts named in `.claude/**`, CLAUDE.md, AGENTS.md, ONBOARDING.md exist |
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
@@ -65,6 +65,9 @@ scripts/
 | `require-authenticated-browser-qa.mjs` | `bun run browser-proof:routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
 | `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR gate that derives expected path-filtered workflows from changed files and waits for every expected workflow run to register and succeed |
 | `ci-gate.test.mjs` | `.github/workflows/ci-gate.yml` | Fixture coverage for CI Gate path-to-workflow expectations |
+| `check-ontology.mjs` | `bun run check:ontology` / `ontology:generate`, `ontology.yml`, `drift-check.mjs` (ontology scope), `agentic:check` | Ontology drift gate: cross-checks the sidecar (`packages/shared/src/ontology/`) against Solidity enums, indexer GraphQL, shared TS vocabularies, EAS schema config, and glossary tables, with a burn-down baseline; `--generate` renders the two docs artifacts |
+| `ontology-render.mjs` | `check-ontology.mjs` | Pure MDX renderers for the generated ontology reference page and entity matrix |
+| `check-ontology.test.mjs` | `node --test scripts/quality/check-ontology.test.mjs`, `ontology.yml` | Fixture tests for ontology extractors, baseline reconciliation, and renderers |
 
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
@@ -108,6 +111,7 @@ scripts/
 |---|---|---|
 | `plan-hub.mjs` | `plan` skill | Manage `.plans/{ideas,backlog,active,archive}/` queue, lane status, TDD gates, taxonomy summaries, and root-layout validation |
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
+| `skill-trigger-eval.mjs` | `bun run eval:skills` (on-demand, not CI) | Routes the fixture queries in `scripts/data/skill-trigger-eval.json` against the live SKILL.md descriptions via a cheap `claude -p` call — catches description-routing regressions after trigger edits |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
 
 ### `postinstall/`
@@ -124,6 +128,7 @@ scripts/
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
+- `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.
 
 ## Companion locations
 

@@ -47,7 +47,9 @@ flowchart LR
 | `.claude/evals/` (incl. `acceptance/`) | Committed eval directories | Retired |
 | `check-skill-frontmatter.js` / `bun run check:claude-guidance` | Skill registry/frontmatter structural checks | Retired |
 
-The `.claude/evals/` directory is gone entirely -- the lean-skills consolidation removed its last live surface (`acceptance/`) along with the skills registry, after the automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` had already been retired. There are no committed agent definitions anymore either; specialization routes through the 11 skills, built-in subagent types, and plan-hub lanes. Drift around that retirement state is handled by Claude routines, Copilot automatic review, and human review instead of a dedicated eval workflow.
+The `.claude/evals/` directory is gone entirely -- the lean-skills consolidation removed its last live surface (`acceptance/`) along with the skills registry, after the automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` had already been retired. There are no committed agent definitions anymore either; specialization routes through the 10 skills, built-in subagent types, and plan-hub lanes. Drift around that retirement state is handled by CI guidance checks (`check-guidance-links.mjs` in the supply-chain workflow), Claude routines, Copilot automatic review, and human review instead of a dedicated eval workflow.
+
+One deliberately small eval survives the retirement: `bun run eval:skills` (`scripts/harness/skill-trigger-eval.mjs` + `scripts/data/skill-trigger-eval.json`) routes ~30 realistic queries against the live `SKILL.md` frontmatter descriptions through a single cheap `claude -p` call. It tests **description routing only** -- not harness trigger behavior and not skill output quality -- and exists to catch description regressions after trigger edits (a trimmed description that stops firing, a greedy one that swallows a sibling's queries). It runs on demand, never in CI.
 
 ### Model Selection
 
@@ -112,11 +114,12 @@ Coverage remains a scheduled floor on package CI and pre-merge validation, not t
 
 ### Eval Surface Sync
 
-Dedicated eval-sync Actions are retired. Guidance and eval surface drift is checked through routines, Copilot automatic review, and manual local checks:
+Dedicated eval-sync Actions are retired. Guidance and eval surface drift is checked through CI, routines, and local checks:
 
-1. `bun run check:codex-guidance` validates Codex guidance parity
-2. the `.claude/loop.md` maintenance loop greps for stale references to retired surfaces
-3. the `pr-review` and `health-watch` routines catch guidance claims and production health drift on their scheduled runs
+1. the `guidance` job in the supply-chain workflow runs `check:codex-guidance`, `check-guidance-links.mjs` (link integrity + retired-name sweep + banner/frontmatter parity), `plan-hub validate`, and the plan-hub test suite on every guidance-touching PR
+2. `bun run drift:check --scope guidance` runs the same content checks locally; `.claude/loop.md` keeps the judgment-only prose-form sweep
+3. `bun run eval:skills` checks description routing after skill trigger edits (on demand)
+4. the `pr-review` and `health-watch` routines catch guidance claims and production health drift on their scheduled runs
 
 Diff-scoped automated review happens through GitHub native review, Copilot automatic review, Claude `pr-review`, and human validation, not through retired benchmark suites.
 
