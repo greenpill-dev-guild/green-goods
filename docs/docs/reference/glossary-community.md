@@ -8,6 +8,7 @@ last_verified: 2026-07-03
 feature_status: Live
 source_of_truth:
   - docs/docs/reference/banned-vocabulary.json
+  - packages/shared/src/ontology/green-goods-ontology.json
   - docs/docs/builders/glossary.mdx
   - docs/docs/community/welcome.mdx
   - DESIGN.md
@@ -45,10 +46,10 @@ The 10 entities the system tracks. Use the canonical form in code (types, hooks,
 
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
-| **Garden** | entity | admin · client · agent · public · docs | A community of gardeners doing regenerative work in a place. ERC-721 NFT bound to a Tokenbound Account that owns a Vault and operator/gardener Hats. |
+| **Garden** | entity | admin · client · agent · public · docs | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. |
 | **Action** | entity | admin · client · agent · public · docs | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). |
-| **Work** | entity | admin · client · agent · public · docs | A specific instance of an Action performed by a gardener, captured with photo + description + metadata, attested on-chain after operator approval. |
-| **Assessment** | entity | admin · client · public · docs | A garden's baseline and strategy, set up front (typically at onboarding): the domain, diagnosis, SMART-outcome targets, selected Actions, and reporting period that work is later measured against. It defines what success looks like *before* the work — it is **not** a review of submitted Work (that is Work Approval). |
+| **Work** | entity | admin · client · agent · public · docs | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted for operator review and attested via EAS once approved. |
+| **Assessment** | entity | admin · client · public · docs | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins and mirrored to a Karma GAP milestone; explicitly not a review of submitted Work (that is Work Approval). |
 | **Hypercert** | entity | admin · client · public · docs | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. |
 | **Vault** | entity | admin · client · public · docs | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. |
 | **Cookie Jar** | entity | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. |
