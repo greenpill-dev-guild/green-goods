@@ -45,8 +45,30 @@ permissions:
 
 jobs:
   audit:
-    uses: greenpill-dev-guild/.github/.github/workflows/supply-chain-guardrails.yml@5d33cf1e11c0ed1fae08edd65a09ec390f2aca3b
-    with:
-      mode: ci
-      fail-on-warning: false
-      working-directory: "."
+    name: Supply-chain guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout consumer repo
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          path: consumer
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout guardrail source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: greenpill-dev-guild/.github
+          ref: 5d33cf1e11c0ed1fae08edd65a09ec390f2aca3b
+          path: _guild-defaults
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run supply-chain guardrails audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node "$GITHUB_WORKSPACE/_guild-defaults/scripts/audit-supply-chain-guardrails.mjs" \
+            --mode=ci \
+            --fail-on-warning=false \
+            "$GITHUB_WORKSPACE/consumer"

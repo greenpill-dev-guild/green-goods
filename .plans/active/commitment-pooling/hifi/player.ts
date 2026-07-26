@@ -20,6 +20,68 @@ export const PLAYER_JS = `(function(){
   $("tabbtn-screens").addEventListener("click", function(){ setTab("screens"); });
   $("tabbtn-doc").addEventListener("click", function(){ setTab("doc"); });
 
+  // ---- theme ----
+  // Dialect tokens ship both signals: [data-theme="dark"] and a
+  // prefers-color-scheme twin gated on :not([data-theme="light"]). Untouched,
+  // the artifact follows the OS; the toggle pins an explicit value so dark is
+  // reviewable on a light machine (and light on a dark one).
+  var themeBtn = $("themebtn");
+  function prefersDark(){ return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches); }
+  function isDark(){
+    var t = document.documentElement.getAttribute("data-theme");
+    return t ? t === "dark" : prefersDark();
+  }
+  function syncThemeBtn(){ if (themeBtn) themeBtn.setAttribute("aria-pressed", String(isDark())); }
+  if (themeBtn) {
+    syncThemeBtn();
+    themeBtn.addEventListener("click", function(){
+      document.documentElement.setAttribute("data-theme", isDark() ? "light" : "dark");
+      syncThemeBtn();
+    });
+  }
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", syncThemeBtn);
+  }
+
+  // The device frames own their scroll; a screen taller than the frame can hide
+  // the very control a scene names. Find the owning scroller so the player can
+  // bring that control into view instead of leaving the caption pointing at
+  // something below the fold.
+  function scrollerOf(el){
+    var n = el.parentElement;
+    while (n && n.classList) {
+      if (n.classList.contains("appscroll") || n.classList.contains("mainscroll") ||
+          n.classList.contains("webbody") || n.classList.contains("dlg-body")) return n;
+      n = n.parentElement;
+    }
+    return null;
+  }
+  function revealTarget(dev){
+    var el = dev.querySelector("[data-hot].primary") || dev.querySelector("[data-hot].choice") || dev.querySelector(".marked");
+    if (!el) return;
+    // A named control inside a collapsed disclosure is invisible, and closed
+    // <details> content reports phantom geometry — so first open every ancestor
+    // disclosure. The state repaints per scene, so this never leaks between
+    // scenes or into free explore.
+    for (var anc = el.parentElement; anc; anc = anc.parentElement) {
+      if (anc.tagName === "DETAILS" && !anc.open) anc.open = true;
+    }
+    var sc = scrollerOf(el);
+    if (!sc || sc.scrollHeight - sc.clientHeight < 8) return;
+    var er = el.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+    // Centring a control taller than the fold pushes its start off-screen, so
+    // tall targets (a long radio group, an evidence list) align to their top.
+    var want = er.height >= sr.height
+      ? sc.scrollTop + (er.top - sr.top) - 8
+      : sc.scrollTop + (er.top - sr.top) - (sr.height - er.height) / 2;
+    var top = Math.max(0, Math.min(want, sc.scrollHeight - sc.clientHeight));
+    if (Math.abs(top - sc.scrollTop) < 2) return;
+    // Assigned, not smooth-scrolled: these scrollers sit inside transformed
+    // device stages, where scrollTo({behavior:"smooth"}) is silently dropped.
+    sc.scrollTop = top;
+  }
+
   var selectedFlowGroup = "client", selectedScreenSurface = "client";
   function setFlowGroup(group){
     selectedFlowGroup = group;
@@ -41,7 +103,7 @@ export const PLAYER_JS = `(function(){
   document.querySelectorAll('.surface-tab[data-screen-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setScreenSurface(tab.getAttribute("data-screen-surface")); }); });
   setFlowGroup(selectedFlowGroup); setScreenSurface(selectedScreenSurface);
 
-  var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Public page", community: "Community PWA", safe: "Safe app (external)" };
+  var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Editorial website", community: "Community PWA", safe: "Safe app (external)" };
 
   // ---- shared: screen/state lookup + alias resolution ----
   function resolveRef(ref){
@@ -124,11 +186,9 @@ export const PLAYER_JS = `(function(){
   // ---------- journey player ----------
   var curSb = null, curI = 0;
   function findSb(id){ for (var k = 0; k < DATA.sbs.length; k++) if (DATA.sbs[k].id === id) return DATA.sbs[k]; return null; }
-  function defSurface(sb){
-    if (sb.surface.indexOf("Community") === 0) return "community";
-    if (sb.surface.indexOf("Admin") === 0) return "admin";
-    return "pwa";
-  }
+  // A flow's home surface is its group — no prose sniffing. Scenes that land
+  // elsewhere carry their own surface token and are marked as echoes.
+  var HOME = { client: "pwa", admin: "admin", editorial: "editorial" };
   function showHome(){
     curSb = null;
     $("stage").classList.remove("on");
@@ -167,13 +227,25 @@ export const PLAYER_JS = `(function(){
     $("insp").classList.remove("on");
     $("st-title").textContent = sb.title;
     $("st-persona").textContent = sb.persona;
-    $("st-surface").textContent = SURFACE[sc.surface || defSurface(sb)] || sb.surface;
+    var effSurface = sc.surface || HOME[sb.reviewGroup];
+    $("st-surface").textContent = SURFACE[effSurface] || "";
+    $("st-surface").classList.toggle("echo", !!sc.echo);
     $("st-progress").textContent = "Step " + (curI + 1) + " of " + sb.steps.length;
     var device = $("device");
     var scr = screenOf(sc.f);
     var st = stateOf(scr, sc.v);
     if (!scr || !st) { device.textContent = "screen missing: " + sc.f; return; }
     paintDevice(device, scr, st, !!sc.mf);
+    // An echo is the same moment landing on another surface. Reviewers were
+    // reading these as screens they were driving, so say so on the frame — the
+    // stagebar pill alone is chrome the eye learns to skip.
+    if (sc.echo) {
+      device.classList.add("echo");
+      var etag = document.createElement("div");
+      etag.className = "echotag";
+      etag.textContent = "Meanwhile — " + (SURFACE[effSurface] || "");
+      device.prepend(etag);
+    }
     if (sc.hot) eachHot(device, sc.hot.h, function(el){ el.classList.add("primary"); el.setAttribute("aria-label", sc.hot.l + " — advance"); });
     (sc.alts || []).forEach(function(a){ eachHot(device, a.h, function(el){ el.classList.add("choice"); el.setAttribute("aria-label", a.l); }); });
     paintMarks(device, sc.marks);
@@ -181,8 +253,11 @@ export const PLAYER_JS = `(function(){
       if (!el.classList.contains("primary") && !el.classList.contains("choice")) el.classList.add("quiet");
     });
     var hint = $("hint");
-    if (sc.hot) { hint.innerHTML = ""; hint.appendChild(document.createTextNode("tap: ")); var bb = document.createElement("b"); bb.textContent = sc.hot.l; hint.appendChild(bb); var kk = document.createElement("span"); kk.className = "kbd"; kk.textContent = "  (or →) · outlined alternatives stay tappable"; hint.appendChild(kk); }
-    else { hint.innerHTML = ""; hint.appendChild(document.createTextNode("system step ")); var k2 = document.createElement("span"); k2.className = "kbd"; k2.textContent = "(→ to continue) · outlined controls stay tappable"; hint.appendChild(k2); }
+    // The keyboard/alternatives legend earns its space once per flow; repeating
+    // it on every scene turns the caption into chrome the reader learns to skip.
+    var legend = curI === 0;
+    if (sc.hot) { hint.innerHTML = ""; hint.appendChild(document.createTextNode("tap: ")); var bb = document.createElement("b"); bb.textContent = sc.hot.l; hint.appendChild(bb); if (legend) { var kk = document.createElement("span"); kk.className = "kbd"; kk.textContent = "  (or →) · outlined controls branch · dotted controls explain themselves"; hint.appendChild(kk); } }
+    else { hint.innerHTML = ""; hint.appendChild(document.createTextNode("system step ")); if (legend) { var k2 = document.createElement("span"); k2.className = "kbd"; k2.textContent = "(→ to continue) · outlined controls branch · dotted controls explain themselves"; hint.appendChild(k2); } }
     $("st-state").textContent = sc.st || "—";
     $("st-who").textContent = sc.who ? "acting: " + sc.who : "";
     $("st-ev").textContent = sc.ev;
@@ -212,6 +287,10 @@ export const PLAYER_JS = `(function(){
     $("nextbtn").setAttribute("aria-label", last ? "Finish flow" : "Next step");
     $("nextbtn").classList.toggle("done", last);
     if (history.replaceState) history.replaceState(null, "", "#" + sb.id + "/" + curI);
+    // Synchronous on purpose: getBoundingClientRect/scrollHeight force the
+    // layout this needs, and rAF is throttled in background tabs — a scene must
+    // never paint with its own named control parked below the fold.
+    revealTarget(device);
   }
   function next(){
     if (!curSb) return;
@@ -372,20 +451,31 @@ export const PLAYER_JS = `(function(){
     $("stage").addEventListener("touchend", function(e){ finishSwipe(e.changedTouches[0].clientX); }, { passive: true });
   }
 
-  // hash routing
-  var h = location.hash.replace("#", "");
-  if (h) {
-    var mPlay = h.match(/^(sb\\d+)\\/(\\d+)$/);
+  // ---- hash routing ----
+  // render()/renderExp() write the hash with replaceState, which fires no
+  // hashchange — so this re-runs only for real navigation: Back/Forward, a
+  // pasted deep link, an edited address bar. Without the listener the hash and
+  // the view diverge the first time a reviewer presses Back, and a hash pasted
+  // into an already-open tab does nothing.
+  function applyHash(){
+    var h = location.hash.replace("#", "");
+    if (!h || h === "play") { setTab("play"); if (curSb) showHome(); return; }
+    var mPlay = h.match(/^(sb[\\w-]+)\\/(\\d+)$/);
+    if (mPlay && findSb(mPlay[1])) { setTab("play"); start(mPlay[1], +mPlay[2]); return; }
     var mScr = h.match(/^screens\\/([\\w.@-]+)$/);
-    if (mPlay && findSb(mPlay[1])) { setTab("play"); start(mPlay[1], +mPlay[2]); }
-    else if (mScr) {
-      var r0 = resolveRef(mScr[1]);
-      if (screenOf(r0.id)) { setTab("screens"); openScreen(mScr[1], false); }
-      else setTab("screens");
+    if (mScr) {
+      setTab("screens");
+      if (screenOf(resolveRef(mScr[1]).id)) { expStack = []; openScreen(mScr[1], false); }
+      else expHome();
+      return;
     }
-    else if (h === "screens") setTab("screens");
-    else if (h !== "play") { setTab("doc"); var t = document.getElementById(h); if (t) t.scrollIntoView(); }
+    if (h === "screens") { setTab("screens"); expHome(); return; }
+    setTab("doc");
+    var t = document.getElementById(h);
+    if (t) t.scrollIntoView();
   }
+  applyHash();
+  window.addEventListener("hashchange", applyHash);
 
   if ("IntersectionObserver" in window) {
     var links = Array.prototype.slice.call(document.querySelectorAll("nav.doc a[href^='#']"));

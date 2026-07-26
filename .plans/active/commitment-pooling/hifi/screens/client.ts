@@ -13,7 +13,7 @@ import { icon } from "../icons";
 import {
   banner, btn, card, chip, disclosure, emptyState, field, gardenHeader, gardenTabs, hdr, hero,
   input, kv, listRow, meter, pagepad, phoneFrame, radio, sectionTitle, seg,
-  sheetOver, skeleton, stateChip, statTiles, stepDots, syncBar, timeline,
+  sheetOver, skeleton, stateChip, stepDots, syncBar, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
 
@@ -32,18 +32,33 @@ const W1_STATES = [
 ] as const;
 type W1State = (typeof W1_STATES)[number][0];
 
-const seasonCard = (opts: { pct?: number; stage?: string } = {}) =>
-  card(
+// Scoped state counts, never a cross-commitment percentage: this pool's units
+// are hours, rides, sessions and surveys, so a single "62%" would average
+// incommensurable things (uiux-spec §5.2 "There is no synthetic
+// cross-commitment progress percentage", §12). A seeded or empty season shows
+// no counts line at all rather than a row of zeroes.
+const seasonCard = (opts: { offered?: number; kept?: number; stage?: string } = {}) => {
+  const offered = opts.offered ?? 12;
+  const kept = opts.kept ?? 7;
+  const counts = offered === 0 && kept === 0 ? "" : `<div class="t-meta num">${offered} offered · ${kept} kept</div>`;
+  return card(
     `<div class="cardrow">${hot("w1.season-card", `<div class="grow"><div class="t-title">Season of First Rains</div><div class="t-meta">${opts.stage ?? "Open"} · runs through Aug 30</div></div>`)}${chip("Season", "plain")}</div>` +
-      meter(opts.pct ?? 62, { left: "promised units", right: `${opts.pct ?? 62}%` }),
+      counts,
   );
+};
 
+// Campaigns run alongside the Season but are not what a member came for; the
+// count stays visible while the rows fold away (uiux-spec §5.2 keeps them fully
+// usable, not prominent).
 const campaignsBlock = () =>
-  sectionTitle("Campaigns", chip("2 open")) +
-  card(
-    listRow({ icon: "seedling-line", primary: "Market rides", meta: "Campaign · Open", chipHtml: `<span class="ch num">6/16</span>`, chevron: true }) +
-      listRow({ icon: "seedling-line", primary: "Tool library", meta: "Campaign · Reviewing", chipHtml: `<span class="ch num">8/8</span>`, chevron: true }),
-    { cls: "flat" },
+  disclosure(
+    "Campaigns",
+    "2 open",
+    card(
+      listRow({ icon: "seedling-line", primary: "Market rides", meta: "Campaign · Open", chipHtml: `<span class="ch num">6/16</span>`, chevron: true }) +
+        listRow({ icon: "seedling-line", primary: "Tool library", meta: "Campaign · Reviewing", chipHtml: `<span class="ch num">8/8</span>`, chevron: true }),
+      { cls: "flat" },
+    ),
   );
 
 const offerCard = (opts: { queued?: boolean; waiting?: boolean; failed?: boolean } = {}) => {
@@ -116,7 +131,7 @@ function w1(state: W1State): string {
     case "closed":
       content = pagepad(
         banner("This pool has closed. Its history stays with the garden.", "stone"),
-        statTiles([{ n: "23", label: "promises made" }, { n: "19", label: "kept" }]),
+        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">23 promises made · 19 kept</div>`),
       );
       break;
     case "no-season":
@@ -128,7 +143,7 @@ function w1(state: W1State): string {
       break;
     case "empty-open":
       content = pagepad(
-        seasonCard({ pct: 0 }),
+        seasonCard({ offered: 0, kept: 0 }),
         card(`<div class="t-title">No promises yet</div><div class="t-meta">Start the first one — offer something you can give, or ask for help you need.</div>`),
         `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri" }))}${hot("w1.request", btn("Request help", { kind: "sec" }))}</div>`,
       );
@@ -136,7 +151,7 @@ function w1(state: W1State): string {
     case "cycle-summary":
       content = pagepad(
         card(
-          `${hero("Season of First Rains — closed", "11 of 14 promises kept · 61 units brought home", "seedling-line")}${kv("Promises kept", "11 of 14")}${kv("Units fulfilled", "61 of 74")}<div class="t-meta" style="text-align:center">Ready for the next season.</div>`,
+          `${hero("Season of First Rains — closed", "11 of 14 promises kept", "seedling-line")}${kv("Promises kept", "11 of 14")}${kv("Hours", "40 of 52")}${kv("Rides", "14 of 16")}<div class="t-meta" style="text-align:center">Ready for the next season.</div>`,
         ),
         campaignsBlock(),
       );
@@ -163,7 +178,7 @@ function w1(state: W1State): string {
     case "seeded":
       content = pagepad(
         banner("Opens soon — your steward is preparing this season's promises. You can browse what's coming; offering opens when the season does.", "amber", "time-line"),
-        seasonCard({ pct: 0, stage: "Opens soon" }),
+        seasonCard({ offered: 0, kept: 0, stage: "Opens soon" }),
         card(`<div class="t-title">A preview of this season</div><div class="t-meta">These promises stay read-only until the season opens.</div>`, { cls: "inset" }),
       );
       break;
@@ -177,7 +192,7 @@ function w1(state: W1State): string {
     case "cancelled-cycle":
       content = pagepad(
         banner("This season was cancelled — “funding fell through for the rains”. Its history stays with the garden.", "stone", "information-line"),
-        statTiles([{ n: "8", label: "promises made" }, { n: "5", label: "kept" }]),
+        card(`<div class="t-title">Season of First Rains</div><div class="t-meta num">8 promises made · 5 kept</div>`),
       );
       break;
     case "loading":
@@ -197,8 +212,11 @@ function w1(state: W1State): string {
       content = pagepad(
         seasonCard(),
         campaignsBlock(),
-        hot("w1.scope", seg(["All current", "Season", "Market rides"], 0)),
-        statTiles([{ n: "12", label: "offered" }, { n: "7", label: "fulfilled" }]),
+        // The browse section owns its own header, and the scope control rides
+        // in it as a labelled select: two stacked segmented rows put nine pills
+        // between the cycle cards and the first promise. The filter chips are
+        // the locked chip set (§5.2) and stay a chip row.
+        sectionTitle("Open promises", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
         `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri" }))}${hot("w1.request", btn("Request help", { kind: "sec" }))}</div>`,
         hot("w1.filters", seg(["All", "Offers", "Requests", "Matched", "Mine"], 0)),
         offerCard(),
@@ -246,6 +264,9 @@ const W2_STATES = [
   ["support-cancelled-queued", "Support withdrawn"], ["support-cancelled-failed", "Support closed after failed delivery"],
   ["reconciled", "Reconciled"], ["cancelled", "Cancelled"], ["expired", "Expired"],
   ["disputed", "Under review"], ["captured", "Recorded for you"],
+  ["withdraw-confirm", "Withdraw — confirm"], ["withdrawn", "Withdrawn (yours)"],
+  ["garden-provider", "Your garden provides"], ["garden-support-arrived", "Support reached your garden"],
+  ["request-active", "Request — helper working"], ["request-evidence-submitted", "Request — evidence in"], ["request-fulfilled", "Request — help arrived"],
   ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W2State = (typeof W2_STATES)[number][0];
@@ -260,11 +281,42 @@ const w2StateChip: Record<W2ChipState, string> = {
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
   reconciled: "Reconciled",
   cancelled: "Cancelled", expired: "Expired", disputed: "Under review", captured: "Accepted",
+  "withdraw-confirm": "Offered", withdrawn: "Withdrawn",
+  "garden-provider": "Accepted", "garden-support-arrived": "Fulfilled",
+  "request-active": "Active", "request-evidence-submitted": "Evidence in", "request-fulfilled": "Fulfilled",
+};
+
+const W2_REQUEST = new Set<string>(["request-active", "request-evidence-submitted", "request-fulfilled"]);
+const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
+type PromiseCast = "offer" | "request" | "garden";
+const w2Cast = (state: W2State): PromiseCast =>
+  W2_GARDEN.has(state) ? "garden" : W2_REQUEST.has(state) ? "request" : "offer";
+const W2_IDENTITY: Record<PromiseCast, { title: string; meta: string; chips: string }> = {
+  offer: {
+    title: "Prune the north beds",
+    meta: "6 hours · due Aug 12 · Season of First Rains",
+    chips: chip("Offer", "offer") + chip("AGRO", "domain"),
+  },
+  request: {
+    title: "Ride to the market on Saturday",
+    meta: "1 ride · runs with the season · Season of First Rains",
+    chips: chip("Request", "request"),
+  },
+  garden: {
+    title: "Methodology survey",
+    meta: "1 survey · due Aug 12 · Protocol pool",
+    chips: chip("Protocol", "ink") + chip("Request", "request"),
+  },
 };
 
 function w2RewardRow(state: W2State): string {
-  const settlementReward = state.startsWith("support-");
-  const rewardMeta = settlementReward ? "20 G$ from the garden's Celo account" : "20 DAI from the garden jar";
+  const gardenBeneficiary = state === "garden-provider" || state === "garden-support-arrived";
+  const settlementReward = state.startsWith("support-") || gardenBeneficiary;
+  const rewardMeta = gardenBeneficiary
+    ? "25 G$ to Awka Hub's Celo account"
+    : settlementReward
+      ? "20 G$ from the garden's Celo account"
+      : "20 DAI from the garden jar";
   const line = (label: string, v: string, tone?: "ok" | "warn") =>
     hot(
       "w2.reward-row",
@@ -274,6 +326,10 @@ function w2RewardRow(state: W2State): string {
       ),
     );
   switch (state) {
+    case "garden-provider":
+      return line("Support goes to the providing garden, not to an individual — it is queued once the promise is confirmed.", "Pending", "warn");
+    case "garden-support-arrived":
+      return line("It reached the garden's own Celo account ↗ — the reference is in Details.", "Arrived", "ok");
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
     case "support-queued":
@@ -299,39 +355,112 @@ function w2RewardRow(state: W2State): string {
   }
 }
 
-const w2Disclosures = (opts: { evidence?: number; work?: boolean; overrideNote?: boolean } = {}) =>
-  disclosure(
-    "Timeline",
-    "4 moments",
-    timeline([
-      { label: "Offered", meta: "Maria · Jul 2" },
-      { label: "Accepted", meta: "João took this up · Jul 3" },
-      { label: "Work linked", meta: "pruning session · Jul 8" },
-      opts.overrideNote
-        ? { label: "Ready", meta: "steward note", note: "“confirmed on site visit” (steward record)", warn: true }
-        : { label: "Ready to confirm", meta: "waiting on João", open: true },
-    ]) + `<div class="t-meta">Recorded on Arbitrum · every steward record shows its reason here.</div>`,
-  ) +
-  disclosure(
-    "Evidence",
-    `${opts.evidence ?? 2} items`,
-    listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · Jul 8" }) +
-      listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · Jul 8" }),
-  ) +
-  (opts.work === false
-    ? ""
-    : disclosure(
-        "Work for this promise",
-        "1 approved",
-        listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8", chipHtml: chip("Approved", "ok") }),
-      )) +
-  hot(
-    "w2.details",
-    disclosure("Details", "ids & records", `${kv("Commitment", "0x8c…41f2")}${kv("Recorded on", "Arbitrum")}${kv("Cycle", "Season of First Rains")}`),
+// Settlement-bearing outcomes: the commitment is Fulfilled and the only news
+// left is where the support is. Kept as one set so the state chip, the lead
+// band, and the timeline can never disagree about whether the promise is done.
+const W2_SETTLED = new Set<W2State>([
+  "reward-released", "support-queued", "support-en-route", "support-delayed",
+  "support-executed", "support-confirming", "support-arrived", "support-failed",
+  "support-cancelled-queued", "support-cancelled-failed",
+]);
+
+type Moment = { label: string; meta?: string; open?: boolean; warn?: boolean; note?: string };
+
+// The timeline is a function of where the promise actually is. A single shared
+// body made pre-acceptance states show an "Accepted" moment before anyone had
+// claimed, and made @cancelled promise a reason the timeline never carried.
+function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
+  if (state === "offered" || state === "withdraw-confirm")
+    return [{ label: "Offered", meta: "Maria · Jul 2 — waiting for someone to take it up", open: true }];
+  if (state === "requested") return [{ label: "Requested", meta: "Ana · Jul 2 — stewards review who takes this up", open: true }];
+
+  if (state === "request-active" || state === "request-evidence-submitted" || state === "request-fulfilled") {
+    const asked: Moment[] = [
+      { label: "Requested", meta: "Ana · Jul 2" },
+      { label: "João can help", meta: "took this up · Jul 5" },
+    ];
+    if (state === "request-active") return [...asked, { label: "Getting it done", meta: "waiting on the ride", open: true }];
+    if (state === "request-evidence-submitted")
+      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6", open: true }];
+    return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Promise kept", meta: "confirmed by Ana · Jul 6", open: true }];
+  }
+  if (state === "garden-provider")
+    return [
+      { label: "Requested", meta: "protocol pool · Jul 2" },
+      { label: "Accepted", meta: "Awka Hub took this up · asked by you · Jul 5", open: true },
+    ];
+  if (state === "garden-support-arrived")
+    return [
+      { label: "Requested", meta: "protocol pool · Jul 2" },
+      { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
+      { label: "Evidence in", meta: "survey sheet · Jul 10" },
+      { label: "Promise kept", meta: "confirmed by the protocol stewards · Jul 12", open: true },
+    ];
+  const opened: Moment[] = [
+    { label: "Offered", meta: "Maria · Jul 2" },
+    { label: "Accepted", meta: "João took this up · Jul 3" },
+  ];
+  if (state === "withdrawn")
+    return [
+      { label: "Offered", meta: "you · Jul 2" },
+      { label: "Withdrawn", meta: "you · Jul 9", note: "“plans changed — the beds got done at the gathering”", warn: true, open: true },
+    ];
+  if (state === "cancelled")
+    return [...opened, { label: "Cancelled", meta: "steward · Jul 9", note: "“withdrawn by agreement at the gathering”", warn: true, open: true }];
+  if (state === "expired")
+    return [...opened, { label: "Expired", meta: "ran through Aug 12", warn: true, open: true }];
+
+  const worked: Moment[] = [...opened, { label: "Work linked", meta: "pruning session · Jul 8" }];
+  if (state === "disputed")
+    return [...worked, { label: "Under review by stewards", meta: "Jul 10", note: "“the far bed is still overgrown”", warn: true, open: true }];
+
+  const ready: Moment = overrideNote
+    ? { label: "Ready", meta: "steward note", note: "“confirmed on site visit” (steward record)", warn: true }
+    : { label: "Ready to confirm", meta: "waiting on João", open: true };
+  if (state === "fulfilled" || state === "reconciled" || W2_SETTLED.has(state))
+    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by João · Jul 12", open: true }];
+  return [...worked, ready];
+}
+
+const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: boolean } = {}) => {
+  const moments = w2Moments(state, !!opts.overrideNote);
+  // Nothing has been done yet on an unclaimed promise — no evidence, no work.
+  const preAcceptance = state === "offered" || state === "requested" || state === "withdraw-confirm" || state === "withdrawn";
+  return (
+    disclosure(
+      "Timeline",
+      `${moments.length} ${moments.length === 1 ? "moment" : "moments"}`,
+      timeline(moments) + `<div class="t-meta">Recorded on Arbitrum · every steward record shows its reason here.</div>`,
+    ) +
+    (preAcceptance
+      ? ""
+      : disclosure(
+          "Evidence",
+          "2 items",
+          listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · Jul 8" }) +
+            listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · Jul 8" }),
+        )) +
+    (preAcceptance || opts.work === false
+      ? ""
+      : disclosure(
+          "Work for this promise",
+          "1 approved",
+          listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8", chipHtml: chip("Approved", "ok") }) +
+            `<div class="brow">${hot("w2.submit-work", btn("Submit work", { kind: "sec" }))}${hot("w2.link-work", btn("Link existing work", { kind: "ghost" }))}</div>`,
+        )) +
+    hot(
+      "w2.details",
+      disclosure("Details", "ids & records", `${kv("Commitment", "0x8c…41f2")}${kv("Recorded on", "Arbitrum")}${kv("Cycle", "Season of First Rains")}`),
+    )
   );
+};
 
 function w2(state: W2State): string {
-  const head = hdr("Prune the north beds", { back: true });
+  // Sample identity follows the promise, not the fixture. A request is a
+  // different promise from the offer — different title, unit and cast — and the
+  // header is the first thing that has to say so.
+  const ident = W2_IDENTITY[w2Cast(state)];
+  const head = hdr(ident.title, { back: true });
   // Read-surface recovery states short-circuit before the state chip is computed.
   const readWrap = (inner: string) => phoneFrame(`${head}${inner}<div style="flex:1"></div>`);
   if (state === "loading")
@@ -340,8 +469,8 @@ function w2(state: W2State): string {
     return readWrap(pagepad(emptyState("search-line", "Promise not found", "We couldn't find this promise. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))));
   if (state === "read-error")
     return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this promise", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))));
-  const chips = `<div class="cardrow">${chip("Offer", "offer")}${chip("AGRO", "domain")}${stateChip(w2StateChip[state])}</div>`;
-  const meta = `<div class="hsub num">6 hours · due Aug 12 · Season of First Rains</div>`;
+  const chips = `<div class="cardrow">${ident.chips}${stateChip(w2StateChip[state])}</div>`;
+  const meta = `<div class="hsub num">${ident.meta}</div>`;
 
   const capturedChip =
     state === "captured"
@@ -349,7 +478,43 @@ function w2(state: W2State): string {
       : "";
 
   let band: string;
-  switch (state) {
+  // Every settlement-bearing state is already Fulfilled — the live question is
+  // where the support is. Offering "Add evidence" here contradicted both the
+  // state chip and the reward row, and §5.3 gates evidence attach to
+  // Active / EvidenceSubmitted / PartiallyApproved anyway.
+  if (W2_SETTLED.has(state))
+    band = card(`<div class="t-title">Promise kept</div><div class="t-meta">Confirmed by João · Jul 12 — the season's count already grew.</div>`);
+  else switch (state) {
+    case "request-active":
+      band = card(
+        `<div class="t-title">João is helping</div><div class="t-meta">Add evidence as it happens — Ana asked for this, so Ana confirms it was done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "request-evidence-submitted":
+      band = card(
+        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">Ana asked for this help, so Ana confirms it arrived.</div>${hot("w2.send-confirmation", btn("Send for confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "request-fulfilled":
+      band = card(
+        `<div class="t-title">Help arrived</div><div class="t-meta">Ana confirmed the ride on Jul 6. The season's count just grew.</div>`,
+      );
+      break;
+    case "garden-provider":
+      band = card(
+        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The protocol stewards confirm it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+      );
+      break;
+    case "garden-support-arrived":
+      band = card(
+        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by the protocol stewards on Jul 12. The support went to the garden's own account.</div>`,
+      );
+      break;
+    case "withdrawn":
+      band = card(
+        `<div class="t-title">You withdrew this offer</div><div class="t-meta">It has left the pool. The record and the reason you gave stay in the timeline below.</div>`,
+      );
+      break;
     case "offered":
       band =
         card(`<div class="t-title">Your offer is live</div><div class="t-meta">Anyone in this garden may take this up. You can withdraw it until someone does.</div><div class="brow">${hot("w2.withdraw", btn("Withdraw this offer", { kind: "danger" }))}</div>`);
@@ -390,22 +555,39 @@ function w2(state: W2State): string {
       break;
     default:
       band = card(
-        `<div class="t-title">Keep the promise moving</div><div class="t-meta">Add evidence as you go, or link the work that fulfills it.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}${hot("w2.submit-work", btn("Submit work", { kind: "sec" }))}</div>${hot("w2.link-work", btn("Link existing work", { kind: "ghost" }))}`,
+        `<div class="t-title">Keep the promise moving</div><div class="t-meta">Add evidence as you go. Work that fulfills this promise links from the work section below.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
   }
 
-  const frozen = state === "disputed";
-  const showReward = !["offered", "requested", "cancelled", "expired", "disputed"].includes(state);
+  const showReward = !["offered", "requested", "cancelled", "expired", "disputed", "captured", "withdraw-confirm", "withdrawn", "request-active", "request-evidence-submitted", "request-fulfilled"].includes(state);
+  // Reward/settlement status sits with the band — it is scan-layer status, not
+  // deep dive. Disclosures stay last and stay present even under review: the
+  // dispute banner tells the member the reason is in the timeline, so hiding
+  // the timeline there pointed at nothing.
   const content = pagepad(
     chips.replace('<div class="cardrow">', '<div class="cardrow" style="padding:0 2px">'),
     capturedChip,
     band,
-    frozen ? "" : w2Disclosures({ overrideNote: state === "captured" || state === "fulfilled", work: state !== "evidence-submitted" }),
     showReward ? w2RewardRow(state) : "",
+    w2Disclosures(state, { overrideNote: state === "captured" || state === "fulfilled", work: state !== "evidence-submitted" && !W2_REQUEST.has(state) }),
   );
 
+  // Withdrawing is the member's own irreversible act, so it confirms over the
+  // promise it affects and takes the reason the contract stores (CS:145).
+  if (state === "withdraw-confirm")
+    return phoneFrame(
+      sheetOver(
+        `${head}${meta}${content}`,
+        "Withdraw this offer?",
+        `${banner("No one has taken this up yet. Withdrawing removes it from the pool; the record and your reason stay in the timeline.", "stone")}
+${field("Reason (required)", input("plans changed — the beds got done at the gathering"))}
+${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: true }))}${hot("w2.withdraw-keep", btn("Keep it open", { kind: "ghost", full: true }))}`,
+      ),
+      { appBar: false },
+    );
+
   // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
-  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`);
+  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>`, { appBar: false });
 }
 
 const W2_HOTS: HifiDef["hots"] = {
@@ -415,7 +597,9 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W4@confirm-support", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b). Adopted MF-6." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
-  "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@cancelled", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action." },
+  "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
+  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145)." },
+  "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },
@@ -426,9 +610,10 @@ const W2_HOTS: HifiDef["hots"] = {
 // W2a — evidence attach sheet (uiux-spec §5.5)
 // ---------------------------------------------------------------------------
 
-const w2aBehind = () => `${hdr("Prune the north beds", { back: true })}<div class="hsub num">6 hours · due Aug 12</div>`;
+const w2aBehind = (promise: PromiseCast = "offer") =>
+  `${hdr(W2_IDENTITY[promise].title, { back: true })}<div class="hsub num">${W2_IDENTITY[promise].meta}</div>`;
 
-function w2a(state: "compose" | "queued" | "failed"): string {
+function w2a(state: "compose" | "queued" | "failed" | "compose-request"): string {
   const kinds = hot(
     "w2a.kind",
     `<div class="radio">
@@ -436,7 +621,8 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
       .map(([ic, l, m], i) => `<div class="ro${i === 0 ? " on" : ""}"><span class="rdot"></span>${icon(ic as string)}<div><div class="rl">${l}</div><div class="rm">${m}</div></div></div>`)
       .join("")}</div>`,
   );
-  const title = state === "compose" ? "Add evidence" : state === "failed" ? "One item needs another try" : "Evidence queued";
+  const request = state === "compose-request";
+  const title = state === "compose" || request ? "Add evidence" : state === "failed" ? "One item needs another try" : "Evidence queued";
   let inner: string;
   if (state === "failed") {
     inner =
@@ -452,8 +638,8 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
   } else {
     inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot("w2a.attach", btn("Attach evidence", { kind: "pri", full: true }))}`;
   }
-  const body = sheetOver(w2aBehind(), title, inner);
-  return phoneFrame(`${body}`, { offline: state === "queued" || state === "failed" });
+  const body = sheetOver(w2aBehind(request ? "request" : "offer"), title, inner);
+  return phoneFrame(`${body}`, { offline: state === "queued" || state === "failed", appBar: false });
 }
 
 const W2A_HOTS: HifiDef["hots"] = {
@@ -474,8 +660,11 @@ const W3_STATES = [
 ] as const;
 type W3State = (typeof W3_STATES)[number][0];
 
-const w3Head = (title: string, step: number) =>
-  `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(4, step)}</span></div>`;
+// `total` is a parameter because the request path skips action anchors: a
+// support/service ask is three steps, and showing four dots promises a step
+// that never arrives (UX:153 · WF:199).
+const w3Head = (title: string, step: number, total = 4) =>
+  `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(total, step)}</span></div>`;
 
 function w3(state: W3State): string {
   let body: string;
@@ -486,7 +675,7 @@ function w3(state: W3State): string {
         `<div class="t-meta">Common here: hours, tasks, meals, rides, plants.</div>`,
         field("How many", input("6")),
         field("Due", ""),
-        radio([{ label: "Runs with the season", meta: "through Aug 30", on: true }, { label: "Pick a date", meta: "calm dates — no timers" }]),
+        radio([{ label: "Runs with the season", meta: "through Aug 30", on: true }, { label: "Pick a date", meta: "choose a day that suits you" }]),
         hot("w3.continue-howmuch", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
@@ -506,7 +695,7 @@ function w3(state: W3State): string {
       )}`;
       break;
     case "request-variant":
-      body = `${w3Head("Ask for help", 3)}${pagepad(
+      body = `${w3Head("Ask for help", 2, 3)}${pagepad(
         card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
         hot("w3.submit", btn("Ask for this help", { kind: "pri", full: true })),
@@ -543,7 +732,9 @@ function w3(state: W3State): string {
         hot("w3.continue-what", btn("Continue", { kind: "pri", full: true })),
       )}`;
   }
-  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "draft-resume" });
+  // `/pool/new` is a full-screen flow — the shipping AppBar hides here exactly
+  // as it does for the Garden work flow (uiux-spec:120 · AppBar.tsx:33).
+  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "draft-resume", appBar: false });
 }
 
 const W3_HOTS: HifiDef["hots"] = {
@@ -563,25 +754,42 @@ const W3_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W4_STATES = [
-  ["confirm-domain", "Garden work"], ["confirm-support", "Support / service"],
+  ["confirm-domain", "Garden work"], ["confirm-support", "Support / service"], ["confirm-request", "A request you asked for"],
   ["not-yet", "Not yet — reason"], ["provider-view", "Provider view"],
   ["confirmed-pending", "Fulfilled — pending sync"], ["confirmed", "Fulfilled — synced"], ["not-yet-failed", "Not yet — send failed"],
 ] as const;
 type W4State = (typeof W4_STATES)[number][0];
 
-const w4Behind = () => `${hdr("Prune the north beds", { back: true })}<div class="hsub num">Maria · 6 hours · due Aug 12</div>`;
+const w4Behind = (request = false) =>
+  request
+    ? `${hdr("Ride to the market on Saturday", { back: true })}<div class="hsub num">João · 1 ride · runs with the season</div>`
+    : `${hdr("Prune the north beds", { back: true })}<div class="hsub num">Maria · 6 hours · due Aug 12</div>`;
 
 function w4(state: W4State): string {
-  const summary = `<div class="t-meta">Offer · Maria provides · the people it was made to confirm.</div>`;
+  const request = state === "confirm-request";
+  const summary = request
+    ? `<div class="t-meta">Request · João provides · Ana asked for this and confirms it.</div>`
+    : `<div class="t-meta">Offer · Maria provides · the people it was made to confirm.</div>`;
+  // Who has already confirmed is context; whose turn it is is the point. The
+  // confirmed members condense to one row so the sheet leads with the reader's
+  // own act (§5.6 keeps the self row distinct).
   const confirmMeter = hot("w4.meter", `<div>${meter(66, { left: "confirmations", right: "2 of 3" })}</div>`) +
-    listRow({ icon: "user-line", primary: "João", chipHtml: chip("Confirmed", "ok") }) +
-    listRow({ icon: "user-line", primary: "Ana", chipHtml: chip("Confirmed", "ok") }) +
+    listRow({ icon: "checkbox-circle-fill", primary: "João and Ana confirmed", meta: "Jul 11 · Jul 12" }) +
     listRow({ icon: "user-line", primary: "You", chipHtml: chip("Your turn", "warn") });
-  const exclusion = hot("w4.provider-note", banner("Maria made this promise, so Maria cannot confirm it — not even a steward can confirm their own.", "stone", "shield-check-line"));
+  const exclusion = hot(
+    "w4.provider-note",
+    request
+      ? banner("João gave the ride, so João cannot confirm it — the person who asked does. Not even a steward can confirm their own.", "stone", "shield-check-line")
+      : banner("Maria made this promise, so Maria cannot confirm it — not even a steward can confirm their own.", "stone", "shield-check-line"),
+  );
 
   let inner: string;
   let title = "Promise kept?";
   switch (state) {
+    case "confirm-request":
+      title = "Did the help arrive?";
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      break;
     case "confirm-support":
       inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "2 items attached" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
       break;
@@ -591,7 +799,7 @@ function w4(state: W4State): string {
       break;
     case "confirmed-pending":
       title = "Promise kept";
-      inner = `${meter(100, { left: "confirmations", right: "3 of 3" })}${listRow({ icon: "checkbox-circle-fill", primary: "You", chipHtml: chip("Confirmed", "ok") })}${banner("Saved on this device — this confirms once it syncs. The celebration waits for sync.", "stone", "wifi-off-line")}${hot("w4.pending-done", btn("Done", { kind: "sec", full: true }))}`;
+      inner = `${meter(100, { left: "confirmations", right: "3 of 3" })}${listRow({ icon: "checkbox-circle-fill", primary: "You", chipHtml: chip("Confirmed", "ok") })}${banner("Saved on this device — this confirms once it syncs.", "stone", "wifi-off-line")}${hot("w4.pending-done", btn("Done", { kind: "sec", full: true }))}`;
       break;
     case "confirmed":
       title = "Promise kept";
@@ -602,12 +810,15 @@ function w4(state: W4State): string {
       inner = `${field("What still needs doing?", input("The far bed is still overgrown…", { placeholder: false }))}${banner("Couldn't reach the stewards just now. Your note is kept and this promise stays ready to confirm — try again when you're back online.", "amber", "error-warning-line")}${hot("w4.not-yet-retry", btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
       break;
     case "provider-view":
-      inner = `${summary}${confirmMeter}${exclusion}${btn("Confirm — promise kept", { kind: "pri", full: true, disabled: true })}`;
+      // The provider's question is "where has this got to?", not "may I
+      // confirm?" — a disabled full-width CTA answers the wrong one.
+      title = "Waiting on confirmation";
+      inner = `${summary}${confirmMeter}${exclusion}<div class="t-meta">Waiting on João and Ana. You'll see it here the moment they confirm.</div>`;
       break;
     default:
       inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
   }
-  return phoneFrame(sheetOver(w4Behind(), title, inner));
+  return phoneFrame(sheetOver(w4Behind(request), title, inner), { appBar: false });
 }
 
 const W4_HOTS: HifiDef["hots"] = {
@@ -635,7 +846,7 @@ const mk = <T extends readonly (readonly [string, string])[]>(
 export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1), hots: W1_HOTS },
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2), hots: W2_HOTS },
-  { ...mk("W2a", "W2a · Evidence sheet", [["compose", "Compose"], ["queued", "Queued"], ["failed", "Upload failed"]] as const, w2a), hots: W2A_HOTS },
+  { ...mk("W2a", "W2a · Evidence sheet", [["compose", "Compose"], ["compose-request", "Compose — a request"], ["queued", "Queued"], ["failed", "Upload failed"]] as const, w2a), hots: W2A_HOTS },
   { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3), hots: W3_HOTS },
   { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4), hots: W4_HOTS },
 ];

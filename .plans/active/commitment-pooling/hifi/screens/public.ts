@@ -40,7 +40,8 @@ function w15(state: W15State): string {
     case "above-threshold":
       panel = `<span class="kicker">Promises</span>
 <h3 class="serif-h">Midway through the Season of First Rains</h3>
-<div class="estatrow"><div class="estat"><div class="serif-n">14</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">11</div><div class="l">kept so far</div></div><div class="estat">${hot("w15.rate", `<div><div class="serif-n">79%</div><div class="l">kept rate</div></div>`)}</div></div>
+<div class="estatrow"><div class="estat"><div class="serif-n">14</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">11</div><div class="l">kept so far</div></div><div class="estat">${hot("w15.units", `<div class="eunits"><div class="erow"><span>Hours</span><span class="num">40 of 52</span></div><div class="erow"><span>Rides</span><span class="num">14 of 16</span></div></div>`)}
+${hot("w15.rate", `<div><div class="serif-n">79%</div><div class="l">kept rate</div></div>`)}</div></div>
 <p style="margin:0;max-width:52ch">Fulfilled promises from this cycle are anchored in the certificates below.</p>`;
       break;
     case "pre-launch":
@@ -60,6 +61,7 @@ ${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">9 promi
 const W15_HOTS: HifiDef["hots"] = {
   "w15.install": { l: "Install App", info: "Opens the installed-PWA prompt from the public garden page." },
   "w15.counts": { l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers; below that, counts-only sentences (UX:350)." },
+  "w15.units": { l: "Exact-label unit rows", info: "Each unit keeps its own label and total (§7.1). Hours and rides are never summed or averaged into a single figure — that is the mixed-unit percentage the spec forbids." },
   "w15.rate": { l: "Kept rate", info: "Rendered only above the small-community threshold; cancelled and under-review promises never appear individually in public (UX:350)." },
 };
 
@@ -89,7 +91,7 @@ ${hot("w16.pipeline", `<div class="pipe">${stages}</div>`)}
     `<div class="epanel">
 <span class="kicker">Promises</span>
 <h3 class="serif-h">Work that starts as a promise kept</h3>
-<div class="estatrow"><div class="estat"><div class="serif-n">11</div><div class="l">gardens with live pools</div></div><div class="estat"><div class="serif-n">43</div><div class="l">promises fulfilled this season</div></div></div>
+<div class="estatrow"><div class="estat"><div class="serif-n">11</div><div class="l">gardens with live pools</div></div><div class="estat"><div class="serif-n">43</div><div class="l">promises fulfilled this season</div></div>${hot("w16.gsupport", `<div class="estat"><div class="serif-n">312 G$</div><div class="l">support arrived</div></div>`)}</div>
 <p style="margin:0;max-width:56ch">A promise is offered, taken up, worked, witnessed, and confirmed by the person it was made to.</p>
 ${hot("w16.see-gardens", `<button type="button" class="elink">See the gardens →</button>`)}
 </div>`,
@@ -98,16 +100,17 @@ ${hot("w16.see-gardens", `<button type="button" class="elink">See the gardens �
 }
 
 const W16_HOTS: HifiDef["hots"] = {
-  "w16.install": { l: "Install App", info: "Opens the installed-PWA prompt from the public impact page." },
-  "w16.see-gardens": { l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
+  "w16.install": { l: "Install App", to: "screen:W1", info: "Opens the installed-PWA prompt from the public impact page." },
+  "w16.gsupport": { l: "Support arrived", info: "Counts only deliveries whose authenticated acknowledgment landed (§7.3) — queued and dispatched support is never published as arrived." },
+  "w16.see-gardens": { l: "See the gardens", to: "screen:W15", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
   "w16.pipeline": { l: "Evidence pipeline delta", info: "PublicEvidencePipeline gains the Promise and Confirmation stages (UX:345)." },
 };
 
 // ---------------------------------------------------------------------------
 
 export const PUBLIC_DEFS: HifiDef[] = [
-  { screen: { id: "W15", title: "W15 · Garden pool story (public)", surface: "public", frame: "browser", group: "Public pages",
+  { screen: { id: "W15", title: "W15 · Garden pool story (public)", surface: "editorial", frame: "browser", group: "Editorial website",
     states: W15_STATES.map(([id, label]) => ({ id, label, html: w15(id) })) }, hots: W15_HOTS },
-  { screen: { id: "W16", title: "W16 · /impact promises (public)", surface: "public", frame: "browser", group: "Public pages",
+  { screen: { id: "W16", title: "W16 · /impact promises (public)", surface: "editorial", frame: "browser", group: "Editorial website",
     states: W16_STATES.map(([id, label]) => ({ id, label, html: w16(id) })) }, hots: W16_HOTS },
 ];

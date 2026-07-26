@@ -148,7 +148,10 @@ export const HIFI_CSS = `
 .hf .empty .t-title{font-size:16px}
 .hf .empty .t-meta{max-width:34ch}
 .hf .empty .brow{margin-top:6px}
-.hf .cardrow{display:flex;align-items:center;gap:10px}
+/* Wraps rather than collides: at 390pt the reward row's meta ("20 G$ from the
+   garden's Celo account") ran into its status chip. */
+.hf .cardrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hf .cardrow > .ch,.hf .cardrow > .sbadge{flex:0 0 auto}
 .hf .grow{flex:1;min-width:0}
 .hf .t-title{font-size:15.5px;font-weight:600;letter-spacing:-.005em}
 .hf .t-body{font-size:14.5px}
@@ -523,20 +526,35 @@ export const HIFI_CSS = `
    meta. Children stay content-sized (mirrors .arow > *) so nowrap chips never
    flex-shrink below their text. */
 .hf .actrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px}
+/* Triage summary row (uiux-spec §6.2 layout addendum). Production maps to
+   MetaStrip + buildHubHeaderStats; each count names the queue that owns it. */
+.hf .sumrow{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.hf .sumcell{display:flex;align-items:baseline;gap:7px;border:0;cursor:pointer;font:inherit;color:var(--ink);
+  background:var(--card);box-shadow:inset 0 0 0 1px var(--ln);border-radius:14px;padding:9px 13px;min-height:44px}
+.hf .sumcell .n{font-weight:700;font-size:15px}
+.hf .sumcell .l{color:var(--stone);font-size:12px}
+/* Route-local scope chips for the commitments list — Open · Confirmed · Past
+   (uiux-spec §6.2 addendum, Garden OverviewTab precedent). Maps to AdminFilterChip. */
+.hf .scopechips{display:flex;gap:6px;flex-wrap:wrap}
+.hf .scopechips .sc-chip{border:0;cursor:pointer;font:600 12px inherit;color:var(--stone);border-radius:99px;
+  padding:7px 12px;min-height:36px;background:transparent;box-shadow:inset 0 0 0 1px var(--ln)}
+.hf .scopechips .sc-chip.on{color:var(--tone-ink,var(--act));background:var(--tone-soft,var(--gr-bg));box-shadow:none}
 .hf .actrow > *{flex:none}
 /* The kit chip dot-modifier uses class "dot", which collides with the artifact's
-   own journey-nav .dot rule (width:8px) and squishes dotted chips to 8px (text
-   overflows). Restore auto width on the admin/editorial surfaces. */
-.hf.s-admin .ch,.hf.s-public .ch{width:auto}
+   own journey-nav .dot rule (width:8px) and squishes dotted chips to 8px, so the
+   label overflows and the next chip lands on top of it. Surface-agnostic on
+   purpose: this was scoped to two surfaces, so renaming one silently dropped the
+   fix, and the client surface never had it at all. */
+.hf .ch{width:auto}
 /* flow form column — a step form sits directly on the route card (no card-on-card) */
 .hf .flowform{max-width:640px;display:flex;flex-direction:column;gap:11px}
 .hf .acard .ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hf .acard .ahead .at{font-weight:700;font-size:13.5px;flex:none}
 .hf .acard .ahead .ax{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .hf .acard .ahead .ax > *{flex:none}
-.hf .arow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--ln);min-height:40px;flex-wrap:wrap}
+.hf .arow{display:flex;align-items:center;gap:10px 10px;padding:8px 2px;border-bottom:1px solid var(--ln);min-height:40px;flex-wrap:wrap;align-content:center;row-gap:8px}
 .hf .arow > *{flex:none}
-.hf .arow > .grow{flex:1 1 auto}
+.hf .arow > .grow{flex:1 1 auto;min-width:0}
 .hf .arow:last-child{border-bottom:0}
 
 /* admin buttons: denser */
@@ -583,6 +601,36 @@ export const HIFI_CSS = `
   .hf .adlg{left:0;right:0;top:auto;bottom:0;translate:none;width:100%;max-height:calc(100% - 16px);
     border-radius:28px 28px 0 0}
 }
+
+/* Flow dialog — ActionFlowShell inside AdminDialog variant="flow" +
+   ADMIN_FLOW_DIALOG_CLASS. Pinned header (context + title, right padding
+   reserved for the close button), a labelled vertical step rail on desktop, a
+   centred reading column, and a pinned footer matching the shipping callers:
+   ONE leading button that morphs (Cancel on step one, Back after) beside the
+   primary; the dialog X is the constant exit, and the left slot mirrors the
+   real footer's progress/status slot (empty — no in-flight state is drawn).
+   Drawing these flows as bare route pages is what left every admin multi-step
+   form with no way back and no way out. */
+.hf .adlg.flow{width:min(880px,calc(100% - 40px));height:85%;max-height:85%}
+.hf .adlg.flow .dlg-head{flex-direction:column;align-items:stretch;gap:1px;position:relative;padding-right:62px}
+.hf .adlg.flow .dlg-head .eyebrow{font:600 11px inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.hf .adlg.flow .dlg-head .dclose{position:absolute;right:12px;top:12px}
+.hf .flowrow{flex:1;min-height:0;display:flex}
+.hf .steprail{flex:0 0 210px;border-right:1px solid var(--ln);padding:14px 12px;display:flex;
+  flex-direction:column;gap:2px;overflow-y:auto}
+.hf .steprail .srow{display:flex;gap:10px;align-items:flex-start;padding:8px 7px;border-radius:12px}
+.hf .steprail .srow.on{background:var(--tone-soft,var(--gr-bg))}
+.hf .steprail .sdot{flex:none;width:20px;height:20px;border-radius:99px;border:1px solid var(--ln2);
+  display:flex;align-items:center;justify-content:center;font:600 10px inherit;color:var(--stone);margin-top:1px}
+.hf .steprail .srow.on .sdot,.hf .steprail .srow.done .sdot{background:var(--tone-action,var(--act));
+  border-color:transparent;color:var(--on-act)}
+.hf .steprail .st{display:block;font:600 12.5px inherit;color:var(--ink);line-height:1.35}
+.hf .steprail .sd{display:block;font:12px inherit;color:var(--stone);line-height:1.35}
+.hf .adlg.flow .dlg-body{flex:1;padding:18px 22px}
+.hf .adlg.flow .dlg-body > .flowform{max-width:640px;width:100%;margin:0 auto}
+.hf .adlg.flow .dlg-foot{justify-content:space-between}
+.hf .adlg.flow .dlg-foot .fend{display:flex;gap:8px}
+@media (max-width:900px){.hf .steprail{display:none}}
 
 /* quiet confirmation row (admin never celebrates) */
 .hf .quietok{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--gr-ink)}
