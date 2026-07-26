@@ -4,8 +4,8 @@ Updated 2026-07-23. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 31 registered screens / 180 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 173 states: 9 Client PWA (95 states), 13 Admin console (73 states), 2 Editorial website (5 states)
+- 31 registered screens / 185 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 178 states: 9 Client PWA (100 states), 13 Admin console (73 states), 2 Editorial website (5 states)
 - 290 registered hotspots
 - 24 validated source flows / 191 scenes; 23 presentation-visible flows / 182 scenes: 11 Client PWA, 11 Admin console, 1 Editorial website
 - 0 build warnings
@@ -27,6 +27,14 @@ Community `C*` wireframes and the September Need→triage flow remain registered
 `sb9` was split into `sb9a` (pool readiness → season open), `sb9b` (pause and resume),
 and `sb9c` (end a season — close, compost, or cancel). One 33-scene ribbon covering seven
 stewardship tasks left a reviewer with no chapter to orient against mid-flow.
+
+**Promise cast (2026-07-25).** The commitment detail, evidence sheet and
+confirmation sheet carry three casts, and identity follows the promise rather
+than the fixture: the neighbour-to-neighbour **offer** (Maria → João, 6 hours),
+the **request** (Ana asks, João provides, Ana confirms — 1 ride), and the
+**garden-provided** protocol commitment (Awka Hub provides, protocol stewards
+confirm — 1 survey). A request that renders offer copy mid-flow is a fiction
+break, not a styling detail: direction, title, unit and cast all differ.
 
 ## Presentation coverage classification
 
@@ -72,10 +80,10 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
 | W1 | Client PWA | 21 | open, not-ready, ready, seeded, reviewing, paused, closed, cancelled-cycle, empty-open, no-season, queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
-| W2 | Client PWA | 30 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, loading, not-found, read-error |
-| W2a | Client PWA | 3 | compose, queued, failed |
+| W2 | Client PWA | 33 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, request-evidence-submitted, request-fulfilled, loading, not-found, read-error |
+| W2a | Client PWA | 4 | compose, compose-request, queued, failed |
 | W3 | Client PWA | 7 | step-what, step-howmuch, step-anchors, step-review, request-variant, draft-resume, validation |
-| W4 | Client PWA | 7 | confirm-domain, confirm-support, not-yet, provider-view, confirmed-pending, confirmed, not-yet-failed |
+| W4 | Client PWA | 8 | confirm-domain, confirm-support, confirm-request, not-yet, provider-view, confirmed-pending, confirmed, not-yet-failed |
 | W5 | Client PWA | 7 | default, queued, waiting-membership, empty, loading, not-found, read-error |
 | W23 | Client PWA | 5 | balance, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
