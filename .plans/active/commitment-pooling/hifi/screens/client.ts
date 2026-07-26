@@ -302,9 +302,9 @@ function w2RewardRow(state: W2State): string {
     );
   switch (state) {
     case "garden-provider":
-      return line("Declared support", "Support goes to the providing garden, not to an individual — it is queued once the promise is confirmed.", "warn");
+      return line("Support goes to the providing garden, not to an individual — it is queued once the promise is confirmed.", "Pending", "warn");
     case "garden-support-arrived":
-      return line("Support arrived", "25 G$ reached Awka Hub's Celo account ↗ — the reference is in Details.", "ok");
+      return line("It reached the garden's own Celo account ↗ — the reference is in Details.", "Arrived", "ok");
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
     case "support-queued":
@@ -421,7 +421,11 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
 };
 
 function w2(state: W2State): string {
-  const head = hdr("Prune the north beds", { back: true });
+  // Sample identity follows the promise, not the fixture: a garden-provided
+  // protocol commitment is a different promise from the neighbour-to-neighbour
+  // offer, and the header is the first thing that has to say so.
+  const gardenProvided = state === "garden-provider" || state === "garden-support-arrived";
+  const head = hdr(gardenProvided ? "Methodology survey" : "Prune the north beds", { back: true });
   // Read-surface recovery states short-circuit before the state chip is computed.
   const readWrap = (inner: string) => phoneFrame(`${head}${inner}<div style="flex:1"></div>`);
   if (state === "loading")
@@ -430,8 +434,12 @@ function w2(state: W2State): string {
     return readWrap(pagepad(emptyState("search-line", "Promise not found", "We couldn't find this promise. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))));
   if (state === "read-error")
     return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this promise", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))));
-  const chips = `<div class="cardrow">${chip("Offer", "offer")}${chip("AGRO", "domain")}${stateChip(w2StateChip[state])}</div>`;
-  const meta = `<div class="hsub num">6 hours · due Aug 12 · Season of First Rains</div>`;
+  const chips = `<div class="cardrow">${
+    gardenProvided ? chip("Protocol", "ink") + chip("Request", "request") : chip("Offer", "offer") + chip("AGRO", "domain")
+  }${stateChip(w2StateChip[state])}</div>`;
+  const meta = `<div class="hsub num">${
+    gardenProvided ? "1 survey · due Aug 12 · Protocol pool" : "6 hours · due Aug 12 · Season of First Rains"
+  }</div>`;
 
   const capturedChip =
     state === "captured"

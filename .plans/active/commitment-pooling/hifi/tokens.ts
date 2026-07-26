@@ -541,9 +541,11 @@ export const HIFI_CSS = `
 .hf .scopechips .sc-chip.on{color:var(--tone-ink,var(--act));background:var(--tone-soft,var(--gr-bg));box-shadow:none}
 .hf .actrow > *{flex:none}
 /* The kit chip dot-modifier uses class "dot", which collides with the artifact's
-   own journey-nav .dot rule (width:8px) and squishes dotted chips to 8px (text
-   overflows). Restore auto width on the admin/editorial surfaces. */
-.hf.s-admin .ch,.hf.s-public .ch{width:auto}
+   own journey-nav .dot rule (width:8px) and squishes dotted chips to 8px, so the
+   label overflows and the next chip lands on top of it. Surface-agnostic on
+   purpose: this was scoped to two surfaces, so renaming one silently dropped the
+   fix, and the client surface never had it at all. */
+.hf .ch{width:auto}
 /* flow form column — a step form sits directly on the route card (no card-on-card) */
 .hf .flowform{max-width:640px;display:flex;flex-direction:column;gap:11px}
 .hf .acard .ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
