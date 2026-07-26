@@ -61,7 +61,9 @@ Tab **02** now has **2 of the 4** synthesis assets embedded and visibly rendered
 
 ## Truth sources
 
-Audience assets simplify, never contradict, the engineering diagrams in `diagrams.md`: money map ↔ D8 + D12 + `settlement-spec.md`; roles strip ↔ D13 permission map; settlement states ↔ D10 + D9; loop ↔ D2/D6. If a spec changes, regenerate the affected asset in the same pass.
+Audience assets simplify, never contradict, the engineering diagrams in `diagrams.md`: money map ↔ D8 + D12 + `settlement-spec.md`; roles strip ↔ D13 capability summary and D13b exact permissions; settlement states ↔ D10 + **D10b** (the 5-stored → 9-rendered derivation) + D9.0/D9.1/D9.2; loop ↔ D2.0 overview and D6.0 overview. If a spec changes, regenerate the affected asset in the same pass.
+
+**Status vocabulary across the two tabs**: the story assets label *actions* Built or Planned; the Architecture tab labels *components*, using three treatments — Built/live, Planned/gated, and **existing surface with a planned delta** (`diagrams.md` § Visual status contract). A live surface carrying a planned action is the third class, which is why the client PWA, editorial website, Admin, and the Envio read model read as Built in the story tab and as an existing-surface delta in D1/D1b without contradiction.
 
 ## Optional: product screenshots as Built-proof
 
