@@ -33,7 +33,7 @@ node --test scripts/quality/check-ontology.test.mjs   # Checker unit fixtures
 
 ## `status: "spec"` semantics
 
-Commitment-pooling vocabularies/schemas/state machines are encoded from the locked spec (`.plans/active/commitment-pooling/contract-spec.md`) with `status: "spec"`, empty representations, and a `planned_anchor`. The gate skips code cross-checks for them but watches the planned anchor: the moment `enum <Symbol>` appears in that file (or a spec schema key lands in `config/schemas.json`), the gate fails with instructions to flip the entry to `live` and declare representations. If the spec's vocabulary changes before implementation, update the sidecar in the same PR as the spec edit.
+Commitment-pooling vocabularies/schemas/state machines are encoded from the locked spec (`.plans/active/commitment-pooling/contract-spec.md`) with `status: "spec"`, empty representations, and a `planned_anchor`. The gate skips code cross-checks for them but watches the planned anchor: once the anchor file exists and mentions the bare symbol anywhere outside comments (word-boundary match on the comment-stripped source — a type alias or constant set trips it too, not just `enum <Symbol>`; or a spec schema key lands in `config/schemas.json`), the gate fails with instructions to flip the entry to `live` and declare representations. If the spec's vocabulary changes before implementation, update the sidecar in the same PR as the spec edit.
 
 ## ⚠ PoolType name collision
 
