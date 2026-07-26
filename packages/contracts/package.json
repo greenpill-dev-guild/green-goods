@@ -141,7 +141,7 @@
     "@openzeppelin/contracts-5.0.2": "npm:@openzeppelin/contracts@5.0.2",
     "@openzeppelin/contracts-upgradeable": "4.9.6",
     "dotenv": "^16.4.5",
-    "js-yaml": "5.2.1"
+    "js-yaml": "5.2.2"
   },
   "devDependencies": {
     "bun-types": "latest",
