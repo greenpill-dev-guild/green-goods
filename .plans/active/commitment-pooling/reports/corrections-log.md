@@ -711,6 +711,17 @@ terminates the statement. A screen-space text-collision sweep over all 33 render
 and fixed colliding subgraph titles in D7d and D15, heavy edge crossing in D10b, and overlapping
 edge labels in D1, D6a, and D7b; one residual minor label adjacency remains in D6a, which is legible.
 
+**Review follow-up (same day).** A `/review` pass over the branch found three defects in the work
+above, now fixed. (1) D16 stated the `CommitmentRegister` error count as 12; `contract-spec.md` §6.2
+declares 13 — the number came from a subagent report and was never verified against the spec, which
+is the exact defect class this pass existed to remove. (2) The reading-guide assertion was
+per-section, so after the splits a sub-block could lose its guide silently while its siblings kept
+theirs; it is now per diagram-bearing block, accepting either one section-level guide covering every
+sub-block (D2, D6, D9) or one guide per sub-block (D7), and rejecting a diagram with neither.
+(3) `plan.todo.md`'s document map still described `diagrams.md` as D1–D14 / 18 named sections. A
+cross-tab anchor-uniqueness assertion was added alongside (2), since both panes share one DOM.
+Each new assertion was negative-tested to prove it fires with an accurate message.
+
 Out of boundary, reported not edited: the stale `settlement-spec.md` §3.2/§3.3 references in
 `acceptance-matrix.md:78`, `prototypes.md:6`, `wireframes.md:519`, and `settlement-spec.md:1150`
 itself. No product code, dependency installation, codegen, deployment, broadcast, transaction,

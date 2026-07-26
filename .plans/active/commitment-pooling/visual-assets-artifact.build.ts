@@ -1358,7 +1358,30 @@ for (const prefix of diagramHowToPrefixes) {
   if (prefix !== "D13b.") {
     assertBuild(html.includes('class="mermaid"'), `${prefix} section lost its diagram`);
   }
+  // Reading-guide coverage is per diagram-bearing block, not per section. After the
+  // D2/D7/D9 splits a section holds several sub-blocks, and a section-level check
+  // passes as long as ANY one of them still has a panel — so D7.0 could lose its
+  // guide silently while D7.1/D7.2 kept theirs. Two placements are both valid:
+  // one section-level guide covering every sub-block (D2, D6, D9), or one guide
+  // per sub-block (D7). What is never valid is a diagram with neither.
+  const preambleHasGuide = html.split("<h4 id=")[0].includes('class="howto"');
+  if (!preambleHasGuide) {
+    for (const chunk of html.split(/(?=<h4 id=)/).slice(1)) {
+      if (!chunk.includes('class="dia"')) continue;
+      const subId = chunk.match(/<h4 id="([^"]*)"/)?.[1] ?? prefix;
+      assertBuild(
+        chunk.includes('class="howto"'),
+        `sub-block #${subId} has a diagram but no reading guide, and ${prefix} has no section-level guide covering it`,
+      );
+    }
+  }
 }
+// Every anchor the nav can target must be unique across the whole document — both
+// panes are in the DOM at once, so a section id colliding with a sub-block id (or a
+// sub-block id repeated across tabs) would silently break the anchors added here.
+const allAnchorIds = [...dia.secs, ...wf.secs].flatMap((s) => [s.id, ...s.subs.map((sub) => sub.id)]);
+const duplicateAnchor = allAnchorIds.find((id, i) => allAnchorIds.indexOf(id) !== i);
+assertBuild(!duplicateAnchor, `anchor id "${duplicateAnchor}" is used more than once across the gallery`);
 // Nav/body parity, both directions. A nav entry pointing at a section that does
 // not exist (story-baseline) and a section with no nav entry (story-use-cases)
 // both shipped undetected because nothing checked this.

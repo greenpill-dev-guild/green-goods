@@ -1552,7 +1552,7 @@ Amber marks every step that runs **while pooling is paused** — the whole of ch
 flowchart LR
   subgraph FAM["Error families"]
     E1["CommitmentPoolingModule<br/>~40 named errors<br/>state, authorization, EAS validity"]
-    E2["CommitmentRegister<br/>12 named errors<br/>quota, slot, onlyModule"]
+    E2["CommitmentRegister<br/>13 named errors<br/>quota, slot, onlyModule"]
     E3["FailureCode — 12 values<br/>route, recipient, caps, fee, balance delta<br/>DECIDED ON CELO, crosses the boundary"]
     E4["AcknowledgmentDeferralCode — 4 values<br/>None · QuoteFailed · FeeReserveLow · SendFailed"]
     E5["Offline job failure<br/>5 attempts, then Exhausted"]
