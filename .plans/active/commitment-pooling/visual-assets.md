@@ -1,7 +1,7 @@
 # Commitment Pooling — Visual Asset Index
 
-**Updated**: 2026-07-23 (all 12 SVGs use document-scale type, contrast-safe Warm Earth roles, and accessible metadata; the settlement assets use the frozen CCIP command/acknowledgment states; the ownership map matches the six-tab external document; Follow On / Hardening and the Community/evidence checkpoint close separately in parallel on September 30)
-**Gallery**: [Commitment Pooling — Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d), built by `visual-assets-artifact.build.ts` in this folder. The source now covers all 12 assets across the story — loop, roles, money map, settlement states, funding rails, the Use Cases journey strip, flywheel, three tiers, circular G$, GE protocol functions, rollout timeline, and ownership map. Rebuild and validate locally before republishing to the same URL; an unavailable artifact publisher is a publication blocker, not proof that the live URL changed.
+**Updated**: 2026-07-25 (architecture coherency pass — the 12 story SVGs are unchanged; the Architecture tab was reconciled to the frozen specs, its three densest diagrams split, and five previously undrawn surfaces added. Story SVG state as of 2026-07-23: document-scale type, contrast-safe Warm Earth roles, accessible metadata, frozen CCIP command/acknowledgment states, ownership map matching the six-tab external document, and Follow On / Hardening closing in parallel with the Community/evidence checkpoint on September 30.)
+**Gallery**: [Commitment Pooling — Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d), built by `visual-assets-artifact.build.ts` in this folder. The story tab covers all 12 hand-drawn assets — loop, roles, the Use Cases journey strip, money map, settlement states, funding rails, flywheel, three tiers, circular G$, GE protocol functions, rollout timeline, and ownership map. The Architecture tab is generated wholly from `diagrams.md` (**32 Mermaid blocks across 23 named D-sections**) and the Screens tab from `wireframes.md`. Rebuild and validate locally before republishing to the same URL; an unavailable artifact publisher is a publication blocker, not proof that the live URL changed.
 **Pipeline**: every asset is a hand-crafted, self-contained SVG (Warm-Earth palette, explicit 2x `width`/`height` so Linear sizes it correctly) with a 2x PNG companion for Linear upload. Linear docs cannot be written with embedded images over MCP — **uploads are manual** (drag the PNG into the doc at the placement below). The SVG is the print/PDF source; the PNG is the Linear-upload source.
 
 ## Style contract
@@ -71,8 +71,22 @@ Audience assets simplify, never contradict, the engineering diagrams in `diagram
 
 ## Regeneration
 
-**After editing any asset, rebuild the gallery** so the shared link reflects it:
-`bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts` — builds both gallery targets in one pass (three audience tabs: story; 18 named Architecture sections D1–D14 including D1b/D7b/D7c/D13b, rendered as 20 Architecture Mermaid blocks; and the canonical CP screen states). `/tmp/commitment-pooling-visual-assets.html` is the complete local `file://` preview with the locked Mermaid runtime embedded; open this file for validation. `/tmp/commitment-pooling-visual-assets.artifact-body.html` is the body-content entrypoint for the Claude Artifact host; publish only that file. Both targets carry the Warm Earth Mermaid theme, responsive overview treatment, and SVG accessibility contract, while the Artifact body relies on the host runtime to draw its Mermaid source. The builder hard-fails on missing/duplicate required D sections, a Mermaid-count drift, or a diagram-bearing “How to read this” section losing its diagram. `LOCAL_OUT` (or legacy `OUT`) and `ARTIFACT_OUT` may override the two paths. W6 and the dissolved lo-fi variants are not standalone frames. Republish only after validating both outputs.
+**After editing any asset, rebuild the gallery** so the shared link reflects it. There are **two steps, and the second is not optional for publishing**:
+
+```bash
+bun .plans/active/commitment-pooling/visual-assets-prerender.ts
+```
+
+That script runs the builder read-only and then freezes the result, producing all three outputs:
+
+1. `visual-assets-artifact.build.ts` writes the two build targets — three audience tabs: story; **23 named Architecture sections D1–D16** (including D1b, D7b, D7c, D7d, D10b, D11b, D13b) rendered as **32 Architecture Mermaid blocks**; and the canonical CP screen states.
+   - `LOCAL_OUT` → `/tmp/commitment-pooling-visual-assets.html` — the complete local `file://` preview with the locked Mermaid runtime embedded. **This is the file to open for visual validation.**
+   - `ARTIFACT_OUT` → `/tmp/commitment-pooling-visual-assets.artifact-body.html` — body content that still contains `<pre class="mermaid">`.
+2. The prerender step renders every block through the already-installed Playwright chromium (light + dark), splices the resulting inline `<svg>` into the body, and writes `SHAREABLE_OUT`.
+
+**Publish `SHAREABLE_OUT`, not `ARTIFACT_OUT`.** An artifact containing `<pre class="mermaid">` cannot be shared publicly — the host renders Mermaid at view time and unauthenticated viewers can't invoke that renderer, so the share is refused with "This version can't be shared publicly" (confirmed empirically 2026-07-22). The frozen body has no `<pre class="mermaid">`, no embedded runtime, and no external script references; the prerender asserts all three before writing.
+
+The builder hard-fails on missing or duplicate required D sections, Mermaid-count drift, a diagram-bearing section losing its diagram, a reading-guide section losing its panel, and any nav link that does not resolve to a section or sub-block anchor. The prerender additionally fails if any diagram does not render to SVG — its `render status: … (rendered N, failed 0)` line is the parse proof. `LOCAL_OUT`, `ARTIFACT_OUT`, and `SHAREABLE_OUT` may all be overridden by environment variable. W6 and the dissolved lo-fi variants are not standalone frames. Republish only after validating the local preview.
 
 The per-asset SVG/PNG steps:
 

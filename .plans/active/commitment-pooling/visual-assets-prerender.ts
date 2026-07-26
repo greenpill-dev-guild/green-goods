@@ -5,7 +5,7 @@
 // (unauthenticated) viewers can't invoke that renderer, so the share is refused
 // ("This version can't be shared publicly"). Confirmed empirically 2026-07-22.
 //
-// WHAT: This step freezes the 19 Mermaid diagrams to inline <svg> at build time,
+// WHAT: This step freezes every Mermaid diagram to inline <svg> at build time,
 // so the published body is fully self-contained static HTML with NO
 // <pre class="mermaid"> blocks — exactly the form that shares (like the hand-drawn
 // story-tab SVGs, which already share fine).
