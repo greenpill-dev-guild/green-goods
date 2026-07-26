@@ -71,7 +71,7 @@
       "id": "work",
       "display": "Work",
       "status": "live",
-      "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted for operator review and attested via EAS once approved.",
+      "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation.",
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Work.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
@@ -91,7 +91,7 @@
       "id": "assessment",
       "display": "Assessment",
       "status": "live",
-      "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins and mirrored to a Karma GAP milestone; explicitly not a review of submitted Work (that is Work Approval).",
+      "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval).",
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Assessment.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
