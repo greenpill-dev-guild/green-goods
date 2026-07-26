@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -16,6 +25,7 @@ function createFixture() {
   mkdirSync(join(root, ".plans", "_templates"), { recursive: true });
   cpSync(SCRIPT_PATH, join(root, "scripts", "harness", "plan-hub.mjs"));
   cpSync(TEMPLATE_PATH, join(root, ".plans", "_templates", "feature"), { recursive: true });
+  symlinkSync(join(REPO_ROOT, "node_modules"), join(root, "node_modules"), "dir");
   return root;
 }
 
@@ -52,6 +62,21 @@ test("validate rejects unsupported plan-hub root entries", () =>
     assert.match(rejected.stderr, /reviews: unsupported plan-hub root entry/);
 
     rmSync(join(root, ".plans", "reviews"), { recursive: true });
+    const accepted = runPlanHub(root, ["validate"]);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }));
+
+test("validate rejects malformed fenced YAML", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "yaml-fixture", "--stage", "active"]).status, 0);
+    const specPath = join(root, ".plans", "active", "yaml-fixture", "config-spec.md");
+    writeFileSync(specPath, "```yaml\nroot:\n  - event: valid\n    - event: invalid\n```\n");
+
+    const rejected = runPlanHub(root, ["validate"]);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /config-spec\.md:4: invalid fenced YAML/);
+
+    writeFileSync(specPath, "```yaml\nroot:\n  - event: valid\n  - event: corrected\n```\n");
     const accepted = runPlanHub(root, ["validate"]);
     assert.equal(accepted.status, 0, accepted.stderr);
   }));
