@@ -83,6 +83,32 @@ const WORKFLOW_MATCHERS = new Map([
       path === ".github/workflows/indexer.yml",
   ],
   [
+    // Mirrors .github/workflows/ontology.yml path filters exactly. package.json
+    // and bun.lock are deliberately excluded: check-ontology.mjs is zero-dep
+    // (node stdlib only) and the workflow installs nothing, so dependency bumps
+    // cannot affect it. Keep that invariant if the checker ever grows imports.
+    "Ontology",
+    (path) =>
+      path.startsWith("packages/shared/src/") ||
+      path.startsWith("packages/contracts/src/") ||
+      [
+        "packages/contracts/config/schemas.json",
+        "packages/indexer/schema.graphql",
+        "docs/docs/reference/glossary-community.md",
+        "docs/docs/reference/ontology.generated.mdx",
+        "docs/docs/builders/integrations/entity-matrix.mdx",
+        "scripts/quality/check-ontology.mjs",
+        "scripts/quality/ontology-render.mjs",
+        "scripts/quality/check-ontology.test.mjs",
+        "scripts/data/ontology-drift-baseline.json",
+        ".github/workflows/ontology.yml",
+        ".plans/active/commitment-pooling/contract-spec.md",
+        "docs/docs/builders/architecture/erd.mdx",
+        "docs/docs/builders/specs/v1-0.mdx",
+        "packages/contracts/script/DeployBadgeSchema.s.sol",
+      ].includes(path),
+  ],
+  [
     "Shared",
     (path) =>
       ["package.json", "bun.lock", "biome.json", ".env.schema"].includes(path) ||

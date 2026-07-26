@@ -65,6 +65,9 @@ scripts/
 | `require-authenticated-browser-qa.mjs` | `bun run browser-proof:routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
 | `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR gate that derives expected path-filtered workflows from changed files and waits for every expected workflow run to register and succeed |
 | `ci-gate.test.mjs` | `.github/workflows/ci-gate.yml` | Fixture coverage for CI Gate path-to-workflow expectations |
+| `check-ontology.mjs` | `bun run check:ontology` / `ontology:generate`, `ontology.yml`, `drift-check.mjs` (ontology scope), `agentic:check` | Ontology drift gate: cross-checks the sidecar (`packages/shared/src/ontology/`) against Solidity enums, indexer GraphQL, shared TS vocabularies, EAS schema config, and glossary tables, with a burn-down baseline; `--generate` renders the two docs artifacts |
+| `ontology-render.mjs` | `check-ontology.mjs` | Pure MDX renderers for the generated ontology reference page and entity matrix |
+| `check-ontology.test.mjs` | `node --test scripts/quality/check-ontology.test.mjs`, `ontology.yml` | Fixture tests for ontology extractors, baseline reconciliation, and renderers |
 
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
@@ -124,6 +127,7 @@ scripts/
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
+- `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.
 
 ## Companion locations
 

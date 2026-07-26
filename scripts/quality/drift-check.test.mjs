@@ -107,3 +107,21 @@ test("cleanup is a supported scope", () => {
   assert.deepEqual(parsed, { scope: "cleanup", json: true });
   assert.equal(scopes.cleanup.length, 2);
 });
+
+test("infraExitCode maps to a distinct error status instead of fail", () => {
+  const check = {
+    id: "ontology",
+    label: "Ontology drift",
+    command: ["bun", "run", "check:ontology"],
+    route: "review",
+    severity: "medium",
+    infraExitCode: 2,
+  };
+
+  const infra = checkResultFromOutput(check, { exitCode: 2, stderr: "missing sidecar" });
+  assert.equal(infra.status, "error");
+  assert.match(infra.summary, /could not run \(tooling\/infrastructure fault\)\./);
+
+  const drift = checkResultFromOutput(check, { exitCode: 1, stderr: "unlisted drift" });
+  assert.equal(drift.status, "fail");
+});
