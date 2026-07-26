@@ -50,11 +50,10 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Decision: which component / primitive? | `design/implementation.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` |
 | PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
-| Self-audit the design-system skill stack (narrow) | `design/stack-review.md` — meta-review of `design/` infrastructure only |
-| Full design-system alignment across the repo | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions |
+| Design-system alignment (full repo, or stack-only self-audit) | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions; § Stack-only mode for `design/` infrastructure alone |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
 | Regenerative lens specifics | `design/regenerative.md` |
-| Inspiration / books / designers | `design/SKILL.md § Appendix` |
+| Inspiration / sources / research frameworks | `design/language.md § Philosophy` (Sources) |
 | View transitions API | `design/implementation.md § View Transitions` |
 
 ---
@@ -116,8 +115,7 @@ The filesystem is the registry: `design/SKILL.md` frontmatter (`name`, `descript
 - [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS prompt contract and reference role map
 - [quick-reference.md](./quick-reference.md) — One-page cheat sheet
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review (per-change)
-- [stack-review.md](./stack-review.md) — Narrow self-audit of `design/` + `ui/` skill stack only
-- [system-alignment-review.md](./system-alignment-review.md) — Full-repo design-system alignment review (DesignMD, tokens, Storybook, admin/client/docs, agentic guidance)
+- [system-alignment-review.md](./system-alignment-review.md) — Design-system alignment review: full-repo, plus § Stack-only mode for the `design/` stack itself
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette
 - [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary + palette
 - Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD source and dialect briefs

@@ -67,7 +67,7 @@ Each question has:
 
 ## Calling pattern (for routines and skills)
 
-**Today (2026-05-09): there is no `posthog.run_question(name, vars)` RPC and no `script ask <name>` subcommand yet.** Both are aspirational targets a follow-up plan will build. Until they exist, this is the concrete invocation a routine actually writes:
+**There is no `posthog.run_question(name, vars)` RPC and no `script ask <name>` subcommand.** The concrete invocation a routine actually writes:
 
 - **Claude routines and interactive Claude Code work**: use the PostHog connector as the primary path. Switch to the right project (`POSTHOG_PROJECT_ID_APP`, `POSTHOG_PROJECT_ID_ADMIN`, or `POSTHOG_PROJECT_ID_AGENT`) and run the HogQL block from this file verbatim through connector `query-run`. The routine prompt should reference the question by name in its `## PostHog usage` section and point to this file as the source of the HogQL.
   ```
@@ -81,15 +81,7 @@ Each question has:
   bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
   ```
 
-**Aspirational target (build in a follow-up plan):**
-
-```
-posthog.run_question("funnel.onboarding", { window: "30d" })
-```
-
-The eventual connector wrapper resolves the name against this file: if a Saved-Insight ID is present, it fetches that; otherwise it runs the HogQL string with the named bind variables. The script gains an `ask <name>` mode that reads the same library. Privacy stays the same: pass `privacy: "public"` to suppress private fields up-front rather than redacting after the fact.
-
-Until that wrapper exists, the connector invocation above is what a Claude routine should actually contain. Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
+Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
 
 ## Privacy boundary
 

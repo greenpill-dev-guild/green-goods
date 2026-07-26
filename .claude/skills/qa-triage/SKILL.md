@@ -1,7 +1,7 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Process a build sync QA session (the meeting formerly called product sync) and turn the meeting notes into triaged Linear records + QA-sheet rows. Use this skill whenever the user mentions a QA call, QA sync, build sync, product sync (legacy name), QA session, product review, "triage the QA bugs", "file the bugs from the call", "extract bugs from the sync notes", "update the QA sheet with bugs", processing meeting notes for bugs, or wants to file Linear issues from a recent QA meeting — even if they don't explicitly say "qa-triage". Pulls the latest Gemini notes from Drive (with ~/Downloads fallback), cross-references each item against PostHog telemetry and existing Linear/Sheet records, scope-locks the triage, then writes Linear Customer Needs/Issues with assignees and appends Defects rows to the Green Goods QA Sheet.
+description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/session, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 ---
 
