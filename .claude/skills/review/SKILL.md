@@ -40,7 +40,7 @@ Correctness of what changed. Prioritize high-signal risk areas:
 - retry, trust-boundary, migration, or destructive-operation changes
 - missing or misleading tests on changed behavior (bugfix with no regression test; public API change with no test update)
 
-**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers.
+**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers; vocabulary/enum/EAS-schema/glossary-entity edits update the ontology sidecar in the same change — `bun run check:ontology` gates it (protocol: `.claude/context/ontology.md`).
 
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 

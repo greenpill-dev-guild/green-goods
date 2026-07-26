@@ -52,7 +52,7 @@ Intent-triggered (no slash — just describe it in plain English):
 
 Loaded by context (you usually don't pick these manually):
 - [ ] `design` — Warm Earth design language, M3 anatomy, and implementation guidance (`design/implementation.md`).
-- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing. The curated PostHog question library lives in `docs/routines/posthog-questions.md`.
+- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing, plus the cross-cutting ontology update protocol (`ontology.md`). The curated PostHog question library lives in `docs/routines/posthog-questions.md`.
 
 (The skill directory itself is the index: `ls .claude/skills/`.)
 
