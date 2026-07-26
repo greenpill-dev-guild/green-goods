@@ -126,8 +126,7 @@ flowchart TB
   ENV -->|"queries"| ADMIN
   HOA -->|"G$ stream (upstream fact)"| PS
   PS -->|"ProtocolToGarden funding"| GS
-  CE -->|"protocol-pool disbursements"| GD
-  CE -->|"garden disbursements"| GD
+  CE -->|"protocol-pool and garden disbursements"| GD
   SET -->|"versioned command, no token amounts"| CCIP
   CCIP -->|"authenticated command"| CE
   CE -->|"versioned acknowledgment, no token amounts"| CCIP
@@ -390,7 +389,7 @@ sequenceDiagram
   PWA->>M: attachEvidence(commitmentId, cid) on sync
   M-->>IDX: EvidenceAttached (derived EvidenceSubmitted)
   MEM->>M: submitForConfirmation(commitmentId)
-  Note over PWA,IDX: allowed because the commitment carries no work requirement,<br/>at least one evidence is attached,<br/>and the declared assessment is attached — the same<br/>assessment predicate D6b applies; DomainImpact is rejected
+  Note over PWA,IDX: allowed because the commitment carries no work requirement,<br/>at least one evidence is attached,<br/>and the declared assessment is attached — the same<br/>assessment predicate D6b applies · DomainImpact is rejected
   M-->>IDX: CommitmentReadyForConfirmation
   CP->>M: confirmFulfillment(commitmentId)
   M-->>IDX: ConfirmationRecorded → CommitmentFulfilled
@@ -513,21 +512,22 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
+  direction TB
   classDef appOnly fill:#ececec,stroke:#8a8a8a
   Draft: Draft (client/admin IndexedDB)
   [*] --> Draft
-  Draft --> Offered : createCommitment (direction Offer)
-  Draft --> Requested : createCommitment (direction Request)
-  Offered --> Accepted : ClaimMode Open — claimCommitment
-  Requested --> Accepted : ClaimMode Open — claimCommitment
-  Offered --> Accepted : ApprovalGated — acceptClaim consumes the stored PendingClaim
-  Requested --> Accepted : ApprovalGated — acceptClaim
-  Offered --> Cancelled : cancelCommitment (creator or steward)
-  Requested --> Cancelled : cancelCommitment (creator or steward)
-  Offered --> Expired : expireCommitment (permissionless, past due)
-  Requested --> Expired : expireCommitment
+  Draft --> Offered : create · Offer
+  Draft --> Requested : create · Request
+  Offered --> Accepted : accepted (creator)
+  Requested --> Accepted : accepted (claimant)
+  Offered --> Cancelled : cancel
+  Requested --> Cancelled : cancel
+  Offered --> Expired : expire
+  Requested --> Expired : expire
   class Draft appOnly
 ```
+
+Exact gates for these four calls (D13b is authoritative): `createCommitment` by a pool member for their own Offer/Request; **cancel** is `cancelCommitment(id, reasonCID)` by the **creator or steward** before acceptance; **expire** is `expireCommitment(id)`, **permissionless** once past the due date or cycle end; and acceptance is `claimCommitment` under `ClaimMode.Open` or `acceptClaim` under `ApprovalGated`.
 
 An approval-gated `claimCommitment` stores a PendingClaim and leaves the on-chain state untouched; `declineClaim` clears only that claimant; acceptance consumes the stored terms, derives provider and providerGarden, and commits units exactly once. Competing pending claims resolve by supersession — the full decline/accept/supersede choreography is D11.
 
@@ -811,7 +811,7 @@ G$ transfers.
 ```mermaid
 erDiagram
   SETTLEMENT_CONFIGURATION ||--o{ SETTLEMENT_MESSAGE : "local-chain transport configuration"
-  SETTLEMENT_CONFIGURATION ||--o{ SETTLEMENT_EXECUTION : "executor-chain configuration"
+  SETTLEMENT_CONFIGURATION ||--o{ SETTLEMENT_EXECUTION : "executor chain config"
   SETTLEMENT_ACCOUNT ||--o| SETTLEMENT_GARDEN_ROUTE : "source identity maps to Celo route"
   SETTLEMENT_ACCOUNT ||--o{ DISBURSEMENT : "owning source garden"
   SETTLEMENT_GARDEN_ROUTE ||--o{ DISBURSEMENT : "executor garden route"
@@ -880,7 +880,7 @@ erDiagram
     BigInt amount "exact-net recipient promise"
     Int failureCode "bounded authenticated failure"
     String reasonCID "cancellation reason"
-    DisbursementState cancelledFromState "Queued or Failed; distinguishes the two Cancelled origins"
+    DisbursementState cancelledFromState "cancel origin"
     Int attempt "current logical attempt"
     String executionKey "current key"
   }
@@ -968,20 +968,20 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  subgraph SRC["Emitted on Arbitrum and Celo"]
+  subgraph SRC["1 · Events"]
     EV1["CommitmentPoolingModule events"]
     EV2["CommitmentRegister events<br/>ClassRegistered · UnitsCommitted<br/>UnitsReleased · UnitsFulfilled"]
     EV3["SettlementModule events"]
     EV4["CeloSettlementExecutor events"]
   end
 
-  subgraph H["Envio handlers — explicit event fields only"]
+  subgraph H["2 · Envio handlers"]
     HMERGE["create-if-not-exists merge<br/>an out-of-order event never drops a row"]
     HUNITS["integer unit deltas<br/>converge in any arrival order"]
     HIDX["direct index lookup<br/>claim requests by chainId-commitmentId"]
   end
 
-  subgraph OUT["Read model (D7, D7b)"]
+  subgraph OUT["3 · Read model"]
     E1["Pooling entities"]
     E2["Settlement entities"]
   end
@@ -999,7 +999,7 @@ flowchart TB
   HMERGE --> E2
   NOSCAN -.->|"invariant on every handler"| H
 
-  subgraph MIG["One-time Garden.id cut-over"]
+  subgraph MIG["Garden.id cut-over"]
     M1["Garden.id: address"] --> M2["full replay + backfill<br/>every relationship becomes chainId-*"]
     M2 --> M3["shared-query cutover<br/>no mixed-ID period"]
   end
@@ -1164,14 +1164,14 @@ sequenceDiagram
   CE-->>IDX: AcknowledgmentDeferred(QuoteFailed / FeeReserveLow / SendFailed)
   ANY->>CE: quote + retryAcknowledgment{value: exact CELO fee}(executionKey)
   CE->>CR: resend the stored outcome
-  Note over CE,SAFE: caller-funded, never consumes the reserve;<br/>the Safe route is not called again
+  Note over CE,SAFE: caller-funded, never consumes the reserve ·<br/>the Safe route is not called again
   end
 
   rect rgb(244, 239, 230)
   Note over OP,IDX: 3 · requeue — an authenticated failure earns a new attempt
   OP->>SM: requeue(disbursementId)
   SM-->>IDX: DisbursementRequeued (attempt incremented)
-  Note over OP,SM: only after an authenticated failure; one member at a time;<br/>an immutable failed batch is never requeued as a batch
+  Note over OP,SM: only after an authenticated failure · one member at a time ·<br/>an immutable failed batch is never requeued as a batch
   end
 
   Note over SM,CE: a submitted-but-slow message is not a deferral and needs no retry.<br/>Delay alone never cancels, never creates an attempt, and never pays twice
@@ -1227,12 +1227,6 @@ flowchart LR
     X["Cancelled"]
   end
 
-  subgraph EXTRA["Extra derivation input"]
-    T["client delay timer<br/>over the Dispatched timestamp"]
-    CELO["Celo executor events<br/>SettlementExecutionStored · AcknowledgmentSent"]
-    ORIG["cancelledFromState<br/>Queued or Failed"]
-  end
-
   subgraph UI["Rendered to the member (W2)"]
     S1["support-queued<br/>“support is queued”"]
     S2["support-en-route<br/>“support on its way”"]
@@ -1245,28 +1239,23 @@ flowchart LR
     S9["support-cancelled-failed<br/>“closed after a failed attempt”"]
   end
 
-  Q --> S1
-  D --> S2
-  D --> S3
-  T -.->|"time only — no state change"| S3
-  D --> S4
-  CELO -.->|"execution stored"| S4
-  CELO -.->|"acknowledgment sent, not yet received"| S5
-  D --> S5
-  C --> S6
-  F --> S7
-  X --> S8
-  X --> S9
-  ORIG -.->|"selects which cancellation copy"| S8
-  ORIG -.->|"selects which cancellation copy"| S9
+  Q -->|"stored"| S1
+  D -->|"stored"| S2
+  D -->|"client delay timer only —<br/>no state change, no authority change"| S3
+  D -->|"SettlementExecutionStored"| S4
+  D -->|"AcknowledgmentSent, not yet received"| S5
+  C -->|"authenticated success only"| S6
+  F -->|"authenticated failure"| S7
+  X -->|"cancelledFromState = Queued"| S8
+  X -->|"cancelledFromState = Failed"| S9
 
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
   classDef derived fill:#f6ecdc,stroke:#b98a3e,stroke-width:2px,color:#2a2722
   class Q,D,C,F,X,S1,S2,S6,S7,S8,S9 planned
-  class T,CELO,ORIG,S3,S4,S5 derived
+  class S3,S4,S5 derived
 ```
 
-Amber marks everything derived rather than stored. `support-executed` and `support-confirming` share the same member-facing sentence deliberately: the member does not need to distinguish "the Celo transfer happened" from "we are waiting for the receipt", only that arrival is not yet certified. Settlement-record-first precedence applies throughout — the settlement record, never the commitment state, determines which of the nine renders.
+Amber marks everything derived rather than stored; the arrow label is the derivation input. `support-executed` and `support-confirming` share the same member-facing sentence deliberately: the member does not need to distinguish "the Celo transfer happened" from "we are waiting for the receipt", only that arrival is not yet certified. Settlement-record-first precedence applies throughout — the settlement record, never the commitment state, determines which of the nine renders.
 
 ## D11. Approval-gated claim request, decline, acceptance, and supersession
 
@@ -1508,7 +1497,7 @@ Two other rules the picture encodes: every chain gate is a *rehearsal-then-mainn
 
 ```mermaid
 flowchart TB
-  subgraph C1["PR chain 1 — resolver and schema preparation"]
+  subgraph C1["PR chain 1"]
     A1["Commit pre-change generated baselines<br/>AssessmentResolver · WorkApprovalResolver · GardenToken"]
     A2["Rehearse the in-place AssessmentResolver upgrade<br/>on Arbitrum Sepolia"]
     A3["Deploy CommunityTestimonyResolver<br/>register AssessmentV3 · set v3 UID · verify v2/v3 parity"]
@@ -1516,7 +1505,7 @@ flowchart TB
     A1 --> A2 --> A3 --> A4
   end
 
-  subgraph C2["PR chain 2 — module, register, schema finalization"]
+  subgraph C2["PR chain 2"]
     B1["Deploy CommitmentRegister + CommitmentPoolingModule proxies<br/>initialized PAUSED"]
     B2["Wire module-side references<br/>reconcile the exact Testimony record, activate its module last"]
     B3["setSchemaUIDs — four non-zero, pairwise-distinct values"]
@@ -1524,7 +1513,7 @@ flowchart TB
     B1 --> B2 --> B3 --> B4
   end
 
-  subgraph C3["PR chain 3 — upgrades, then and only then unpause"]
+  subgraph C3["PR chain 3"]
     D1["Upgrade GardenToken (§6.3)<br/>and WorkApprovalResolver (§6.5)"]
     D2["Establish BOTH reverse links<br/>setCommitmentPoolingModule · setCommitmentModule"]
     D3["Verify updater preservation, post-upgrade storage/ownership,<br/>and both-direction wiring — while still paused"]

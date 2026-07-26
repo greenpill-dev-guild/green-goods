@@ -654,3 +654,64 @@ This is a consistency correction to the already-locked “do not invent an unpub
 boundary. It creates no new decision-register or Linear entry and changes no product code. No
 dependency installation, codegen, deployment, broadcast, transaction, authority mutation,
 Linear/source-document write, staging, commit, or push is part of this correction.
+
+## 25. Architecture visual coherency pass — 2026-07-25
+
+The 12 hand-drawn story SVGs were already reviewed and are unchanged. This pass covers the
+Architecture tab, which is generated wholly from `diagrams.md`, plus the gallery builder.
+
+**Alignment.** Four diagrams drew a caller the permission table forbids, and in every case D13b was
+correct and the sequence/state diagram was the outlier: D9 attributed `queueFunding` to a garden
+steward (protocol steward or module owner only) and `retryAcknowledgment` to a steward (it is
+permissionless); D11 attributed `expireCommitment` to the steward (permissionless) and dropped the
+mandatory `reasonCID` from the cancel call; D6a allowed only the creator to cancel before acceptance
+(creator or steward). D6.0 made `Ended` terminal while the spec and D6c both allow `raiseDispute`
+from `Expired`, breaking D6's own stated guarantee that the acts never disagree with the overview.
+D9 emitted `AcknowledgmentDeferred` on delivery delay, which is not one of the four bounded
+`AcknowledgmentDeferralCode` values. D13b gained seven missing sensitive rows — settlement-account
+registration, recovery update, member-delivery gate, dispatcher, fee floor, Celo acknowledgment
+fees, and both resolver-config families — and now separates the four timelocked setters from the
+owner-direct ones; "timelock" previously appeared zero times in the file. Five settlement events
+(`SettlementCommandRetried`, `DisbursementRequeued`, `DuplicateAcknowledgmentIgnored`,
+`StaleAcknowledgmentIgnored`, `AcknowledgmentSent`) and the register's indexer edges were drawn
+nowhere and now are. ERD corrections: Garden-to-pool cardinality allowed no pool-less garden,
+`resolutionCode` carried 4 of its 5 values, `COMMITMENT_EVENT` was missing `units`, and D7b was
+missing the recovery-owner set, allowance/permissions hashes, `cancelledFromState`, the
+acknowledgment pair, and `previousPeer*`.
+
+**Status vocabulary.** The visual status contract gains a documented third treatment — solid green
+stroke on paper fill — for an existing live surface carrying a planned pooling delta. D1 and D1b
+previously classed the shipped client, editorial website, Admin, and Envio read model as Planned,
+which contradicted the story assets labelling those same rails Built at the action level. D1 also
+classed the protocol Safe as Built while D8 and D12 call its receipt evidence pending. A label
+glossary fixes one name per component; `waiting_for_hat` replaces the invented
+`WaitingForMembership`; D8 gains status styling and distinct arrow styles for value, message, and
+ownership edges.
+
+**Decomposition and coverage.** D2, D7, and D9 are split with decimal sub-numbers, so nothing
+existing is renamed and every current D-reference stays valid. Five specified-but-undrawn surfaces
+are added: D7d indexer pipeline and the `Garden.id` cut-over, D10b settlement status derivation
+(five stored states to nine rendered), D11b claim-request state machine, D15 deployment and upgrade
+topology, and D16 error taxonomy. Every diagram-bearing section now carries a reading guide; the
+list previously skipped exactly the dense ones. The coverage matrix gained rows for D3 and D8, lost
+a duplicated D7 row, and its dangling `settlement-spec.md` §3.2/§3.3 and `contract-spec.md` §6.3
+anchors now resolve.
+
+**Gallery.** The Story nav linked to a `#story-baseline` section that does not exist while the real
+`story-use-cases` section had no nav entry; both are fixed and the builder now asserts nav/body
+parity in both directions. `h4` sub-blocks gained anchors and nav entries, and `diagramLabel` now
+agrees with `previewLabel` so sibling sub-blocks get distinct accessible names. `visual-assets.md`
+documents the real two-step publish path — build, then prerender, then publish `SHAREABLE_OUT` —
+because an artifact containing `<pre class="mermaid">` cannot be shared publicly.
+
+**Proof.** Builder assertions pass at 26 Architecture sections, 32 Architecture Mermaid blocks, and
+33 total. The prerender reports `render status: ready (rendered 33, failed 0)`. Three Mermaid syntax
+faults introduced during the pass were found and fixed by that render gate: a `;` inside `Note` text
+terminates the statement. A screen-space text-collision sweep over all 33 rendered diagrams found
+and fixed colliding subgraph titles in D7d and D15, heavy edge crossing in D10b, and overlapping
+edge labels in D1, D6a, and D7b; one residual minor label adjacency remains in D6a, which is legible.
+
+Out of boundary, reported not edited: the stale `settlement-spec.md` §3.2/§3.3 references in
+`acceptance-matrix.md:78`, `prototypes.md:6`, `wireframes.md:519`, and `settlement-spec.md:1150`
+itself. No product code, dependency installation, codegen, deployment, broadcast, transaction,
+Safe/Zodiac authority mutation, or Linear write is part of this pass.
