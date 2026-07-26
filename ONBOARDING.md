@@ -18,7 +18,6 @@ Top Skills & Commands:
   /clean            █░░░░░░░░░░░░░░░░░░░   6x/month
   /review           █░░░░░░░░░░░░░░░░░░░   6x/month
   /doctor           █░░░░░░░░░░░░░░░░░░░   5x/month
-  /architecture     █░░░░░░░░░░░░░░░░░░░   4x/month
   /usage            █░░░░░░░░░░░░░░░░░░░   4x/month
 
 Top Browser MCP Usage:
@@ -53,8 +52,7 @@ Intent-triggered (no slash — just describe it in plain English):
 
 Loaded by context (you usually don't pick these manually):
 - [ ] `design` — Warm Earth design language, M3 anatomy, and implementation guidance (`design/implementation.md`).
-- [ ] `posthog-questions` — curated telemetry question library.
-- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing.
+- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing, plus the cross-cutting ontology update protocol (`ontology.md`). The curated PostHog question library lives in `docs/routines/posthog-questions.md`.
 
 (The skill directory itself is the index: `ls .claude/skills/`.)
 

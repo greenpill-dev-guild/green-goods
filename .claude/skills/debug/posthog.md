@@ -102,7 +102,7 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 
 ## Read-side: PostHog lookup during bug debugging
 
-> **Question library**: the canonical curated-question library lives at `.claude/skills/posthog-questions/SKILL.md` (mirrored at `.agents/skills/posthog-questions/SKILL.md`). It covers both the product/quality lens used here and the growth/BD lens used by `growth-pulse`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
+> **Question library**: the canonical curated-question library lives at `docs/routines/posthog-questions.md`. It covers both the product/quality lens used here and the growth/BD lens used by `growth-pulse`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
 
 When you start work on a reported bug, reproduce or probe the failing boundary first, then use PostHog and Sentry for evidence. PostHog answers "how many users/sessions and what path?" Sentry answers "which stack, release, and suspected code path?"
 
@@ -132,25 +132,22 @@ When Sentry connector/API access exists, pair the PostHog result with Sentry iss
 
 Allowed shared Sentry evidence: issue ID/shortlink, title/top-line message, normalized top in-app frame, release/environment, first/last seen, event count, affected-user count, and suspect commit SHA. Private Sentry context stays private: event IDs, trace IDs, request headers, breadcrumbs, local variables, replay/session URLs, raw tags, full stacks, IP/geo, emails, wallets, and user identifiers.
 
-Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers are **private debugging context** — useful to you while triaging, never pasted into a Linear body, Customer Need, PR description, commit message, Discord summary, or any other shared surface. If you need to share evidence with another agent or a human reviewer, share the **PostHog error hash** and the safe-summary fields (error message, affected-session count, first/last seen, app surface, confidence). Anyone with PostHog access can re-fetch the private fields from the hash.
+Sharing evidence with another agent or a human reviewer: share the **PostHog error hash** plus
+the safe-summary fields from § Privacy hard rule below — anyone with PostHog access can re-fetch
+the private fields from the hash. Everything outside that allowlist stays in private debugging
+context, never in a Linear body, Customer Need, PR description, commit message, or Discord
+summary.
 
 ### Signal and Linear routing
 
-- Raw user or telemetry signal goes to Linear Customer Needs using the Customer Signal Handoff
-  structure. Keep it as signal unless a steward accepts the work.
-- Accepted fixes, QA follow-ups, maintenance work, or product investigations go to Linear Issues
-  using the Accepted Product Work structure. Team: Product.
-- Accepted research questions, evidence gathering, or recommendations go to Linear Issues using
-  the Accepted Research Task structure. Team: Research.
-- `.plans` remains the Green Goods execution truth. If a debug handoff or investigation is
-  mirrored from `.plans`, include the `.plans` link and label the Linear issue `source:plans`.
-- Attach to an active bounded project only when the scope clearly matches. Do not route new work
-  into completed/staging umbrella projects such as `Green Goods`, `Coop`, `Network Website`, or
-  `Cookie Jar`; otherwise leave the issue unprojected.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
-- Replay URLs, session IDs, emails, wallet addresses, distinct IDs, reporter identifiers, and
-  private source links stay out of public Linear issue bodies and Customer Need summaries.
+Team routing, project attachment, label namespaces, and the privacy boundary follow
+[`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md) — do not
+restate them here. Debug-specific deltas:
+
+- Raw user or telemetry signal → Linear **Customer Need** using the Customer Signal Handoff
+  structure; keep it as signal unless a steward accepts the work.
+- If a debug handoff or investigation mirrors a `.plans` item, include the `.plans` link and
+  label the Linear issue `source:plans`.
 
 ### Fallback path: `scripts/agents/posthog-query.ts`
 

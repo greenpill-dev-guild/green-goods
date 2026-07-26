@@ -1,127 +1,87 @@
-# Quick Reference — Warm Earth at a Glance
+# Quick Reference — Warm Earth Index
 
-One-page cheat sheet for the most-referenced values. Canonical definitions live in [language.md](./language.md); this file is a scannable index.
+Scannable index of the most-referenced Warm Earth systems. Canonical values (hex, px, ms,
+opacity) live in [language.md](./language.md) and `packages/shared/src/styles/theme.css` —
+this file routes you to the right token by name and does not restate values (restated
+values drift). The admin-operational notes at the bottom are this file's own content.
 
 ---
 
-## 4 Color Roles
+## 4 Color Roles → [language.md § Color Direction](./language.md)
 
-| Role | Volume | Color | Job |
-|------|--------|-------|-----|
-| **Neutral (canvas)** | 80-90% | Warm linen `#FAF8F5` / dark `#1C1917` | Background |
-| **Primary (ink)** | 8-15% | Warm charcoal `#292524` / dark `#F5F5F4` | Body text, headings |
-| **Secondary (stone)** | 3-5% | Earth stone `#78716C` / dark `#A8A29E` | Metadata, borders |
-| **Tertiary (accent)** | 1-3% | Garden green `#1FC16B` | CTAs, active states |
+| Role | Job |
+|------|-----|
+| **Neutral (canvas)** | Background — the overwhelming majority of every surface |
+| **Primary (ink)** | Body text, headings |
+| **Secondary (stone)** | Metadata, borders |
+| **Tertiary (accent green)** | CTAs, active states — scarce by design |
 
 > Codebase label `--color-primary` = **tertiary role** (accent green). Historical name; don't rename.
+> Volume ratios + hex values: language.md § Role Hierarchy. Supporting accents (amber, sky): § Supporting Accents.
 
-**Supporting accents**: Amber `#D97706` (warnings, seasonal), Sky `#3B82F6` (info, evaluation).
+## Radius Scale → [language.md § Shape System](./language.md)
 
----
+| Use | Token | Type |
+|-----|-------|------|
+| Status dots, tiny badges | `rounded` | Fixed |
+| Chips, tags | `rounded-lg` | Fixed |
+| Content inside cards | `rounded-xl` | Concentric |
+| Cards, form inputs | `rounded-2xl` | Concentric |
+| Panels, sheets | `rounded-[1.25rem]` | Concentric |
+| Modals, dialogs | `rounded-3xl` | Concentric |
+| Primary / icon buttons | `rounded-full` | Capsule |
 
-## 7-Step Radius Scale
+Concentricity formula, shape hierarchy, and pitfalls: language.md § Concentricity Rule.
 
-| Use | Radius | Token | Type |
-|-----|--------|-------|------|
-| Status dots, tiny badges | 4px | `rounded` | Fixed |
-| Chips, tags | 8px | `rounded-lg` | Fixed |
-| Content inside cards | 12px | `rounded-xl` | Concentric |
-| Cards, form inputs | 16px | `rounded-2xl` | Concentric |
-| Panels, sheets | 20px | `rounded-[1.25rem]` | Concentric |
-| Modals, dialogs | 24px | `rounded-3xl` | Concentric |
-| Primary / icon buttons | half-h | `rounded-full` | Capsule |
+## 6 Spring Motion Tokens → [language.md § Motion System](./language.md)
 
-**Concentricity rule**: `child_radius = parent_radius − padding`.
+| Token | Use |
+|-------|-----|
+| `--spring-spatial` | Layout, nav, sheets |
+| `--spring-spatial-fast` | Button press, toggles |
+| `--spring-spatial-slow` | Hero transitions, page morphs |
+| `--spring-effects` | Opacity, color, blur |
+| `--spring-effects-fast` | Hover, focus, tooltip |
+| `--spring-effects-slow` | Loaders, progress, pulse |
 
-**Shape hierarchy**: capsule (primary) > squircle (secondary) — shape alone creates emphasis.
+**Never hardcode** `cubic-bezier` or `duration` in component code. Motion schemes: Standard (admin) vs Expressive (hero moments) — language.md § Motion Schemes.
 
----
+## 5 Material Thicknesses → [materials.md](./materials.md)
 
-## 6 Spring Motion Tokens
+Ultrathin (decorative, no text) · Thin (glanceable status) · Regular (default surfaces) ·
+Thick (text-dense, forms) · Solid (fallback, max readability). Tokens:
+`var(--color-material-*)` + `blur(var(--blur-material-*))`; degrades to solid via
+`@media (prefers-contrast: more)`.
 
-| Token | Duration | Use |
-|-------|----------|-----|
-| `--spring-spatial` | 300ms | Layout, nav, sheets |
-| `--spring-spatial-fast` | 200ms | Button press, toggles |
-| `--spring-spatial-slow` | 400ms | Hero transitions, page morphs |
-| `--spring-effects` | 250ms | Opacity, color, blur |
-| `--spring-effects-fast` | 150ms | Hover, focus, tooltip |
-| `--spring-effects-slow` | 500ms | Loaders, progress, pulse |
+## 5 Paradigms → [SKILL.md § Paradigm Selection](./SKILL.md)
 
-**Never hardcode** `cubic-bezier` or `duration` in component code. Motion schemes: Standard (admin) vs Expressive (hero moments, celebrations).
+Command Surface (admin review queue) · Ambient Display (sync status) · Data Landscape
+(assessment history) · Conversational (agent, onboarding) · Ritual (first work, hypercert
+mint). **One paradigm per surface**; declare in a one-line comment at the top of the component.
 
----
+## 4 Disclosure Layers → [interaction.md](./interaction.md)
 
-## 5 Material Thicknesses
+Glance (<1s, always visible) → Scan (hover/focus reveals) → Engage (click/expand) →
+Deep dive (separate surface). Screen-reader requirement: Scan-layer content must also
+appear on `focus-within`, not just `hover`.
 
-| Material | Opacity | Blur | When |
-|----------|---------|------|------|
-| Ultrathin | 20% | 30px | Decorative, ambient — no text |
-| Thin | 40% | 20px | Status, glanceable metrics |
-| Regular | 65% | 12px | Standard surfaces, cards (default) |
-| Thick | 85% | 8px | Text-dense, forms, tables |
-| Solid | 100% | 0 | Fallback, max readability |
+## 7 Hero Moments → [language.md](./language.md)
 
-**Tokens**: `var(--color-material-regular)` + `blur(var(--blur-material-regular))`. Defined in `packages/shared/src/styles/theme.css`. Degrades to solid via `@media (prefers-contrast: more)`.
+Garden creation (Full) · First work submission (High) · Hypercert minting (Full) ·
+Vault deposit (High) · Seasonal transitions / Assessment completion / Role milestone
+(Medium). **Succession-aware**: pioneer gardens = simple, climax = full.
 
----
-
-## 5 Paradigms
-
-| Paradigm | Material | Density | Example |
-|----------|----------|---------|---------|
-| **Command Surface** | Thick / Solid | High — controls visible | Admin review queue |
-| **Ambient Display** | Thin / Ultrathin | Low — glanceable | Sync status, health |
-| **Data Landscape** | Regular | Variable — zoomable | Assessment history, analytics |
-| **Conversational** | Ultrathin / Regular | Sparse — content-forward | Agent, onboarding |
-| **Ritual** | Dramatic | Single-purpose | First work, hypercert mint |
-
-**One paradigm per surface**; mix across a view. Declare in a one-line comment at the top of the component.
-
----
-
-## 4 Disclosure Layers (Jarvis Principle)
-
-| Layer | Time | Shows | How |
-|-------|------|-------|-----|
-| **Glance** | <1s | Title, status dot, one metric | Always visible |
-| **Scan** | 1-3s | Summary, actions, relationships | Hover / focus reveals |
-| **Engage** | 3s+ | Full detail, history, config | Click / expand |
-| **Deep dive** | Intentional | Raw data, audit trail | Separate surface |
-
-Screen-reader requirement: Scan-layer content must also appear on `focus-within`, not just `hover`.
-
----
-
-## 7 Hero Moments
-
-Celebrate these with amplified shape + color + motion + typography + material:
-
-| Moment | Level |
-|--------|-------|
-| Garden creation | Full |
-| First work submission | High |
-| Hypercert minting | Full |
-| Vault deposit | High |
-| Seasonal transitions | Medium |
-| Assessment completion | Medium |
-| Role / capability milestone | Medium |
-
-**Succession-aware**: pioneer gardens = simple, intermediate = moderate, climax = full.
-
----
-
-## 5-Level Z-Layer Stack
+## 5-Level Z-Layer Stack → [spatial.md](./spatial.md)
 
 ```
-Z4: Overlay       modals, command palettes        thick/solid
-Z3: Floating      tooltips, popovers, FABs        regular
-Z2: Surface       cards, panels                   regular
-Z1: Ground        page background                 — (no blur)
-Z0: Substrate     environment / wallpaper         — (never styled)
+Z4 Overlay (modals, palettes) · Z3 Floating (tooltips, FABs) · Z2 Surface (cards)
+Z1 Ground (page background) · Z0 Substrate (never styled)
 ```
 
-Admin canvas recession on bounded sheet open: `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`. Avoid dark scrims for parallel admin sheets; viewport dialogs and PWA sheets may use the shared scrim token.
+## Anti-Patterns → [SKILL.md § Anti-Patterns](./SKILL.md)
+
+The 13 sins (dashboard-itis, spatial-for-spatial's-sake, glass without purpose, …) live in
+one place — SKILL.md. Do not restate them here.
 
 ---
 
@@ -180,28 +140,12 @@ background: rgb(var(--tone-action, var(--g-action)) / 0.06);
 
 For non-blended use, either form works.
 
-## Anti-Patterns (the 13 sins)
-
-1. Dashboard-itis — everything on one flat surface
-2. Spatial for spatial's sake
-3. Glass without purpose
-4. Edge-anchored UI in 2026
-5. Uniform density everywhere
-6. Spatial-only patterns (no keyboard/voice fallback)
-7. Cognitive overload via ultrathin glass over text
-8. Motion without `prefers-reduced-motion` respect
-9. Assuming full vision (depth via blur alone)
-10. Generic AI slop (Inter + purple + white + grid)
-11. Sharp corners at scale (squircles for panes)
-12. Motion without meaning (decorative animation)
-13. Client styling in the cockpit (or vice versa)
-
 ---
 
 ## Related
 
 - [language.md](./language.md) — Full canonical spec
-- [SKILL.md](./SKILL.md) — Philosophy, paradigms, decision tree
+- [SKILL.md](./SKILL.md) — Philosophy, paradigms, decision tree, anti-patterns
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary
 - [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary

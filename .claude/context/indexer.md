@@ -253,6 +253,10 @@ bun run setup-generated  # Rebuild ReScript after codegen
 bun reset
 ```
 
+### Docker hot-reload (`develop.watch`)
+
+The PM2 `indexer` app runs `docker compose -f docker-compose.indexer.yaml up --build --watch`. The compose file declares `develop.watch` rules: edits to `packages/indexer/src/**` and `config.yaml` sync into the container and trigger a fast envio restart (~1-2s); `schema.graphql`, `Dockerfile`, and `package.json` changes trigger a full image rebuild. Test handler files (`*.test.ts`, `__tests__/**`) are excluded from the sync. If the watch loop misbehaves, `bun run dev:indexer` runs the native `envio dev` path (faster but can hit the macOS `system-configuration` crate panic in older Rust toolchains).
+
 ## Troubleshooting
 
 ### Docker Not Running
