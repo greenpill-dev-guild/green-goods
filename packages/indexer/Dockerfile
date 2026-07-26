@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep pnpm on the validated major used by this image and the generated Envio
-# workspace. Upgrading pnpm is a separate compatibility boundary.
-RUN npm install -g pnpm@10
+# Keep pnpm's exact version aligned with packages/indexer/package.json and the
+# generated Envio workspace. Upgrading pnpm is a separate compatibility boundary.
+RUN npm install -g pnpm@10.33.2
 
 # Set working directory
 WORKDIR /app

@@ -6,26 +6,72 @@
 - Execution sub-lane: settlement
 - Owner: Codex
 - Branch signal: `codex/settlement/commitment-pooling`
-- Current state: ready for implementation after the frozen pooling reward/provider interface is available
+- Current state: independent local review/correction complete; blocked for live mirror
+  convergence/re-read and the frozen pooling reward/provider interface; follow `status.json`
 - Linear context: PRD-686 under parent PRD-650
 - Dispatch boundary: this plan handoff does not authorize code changes on its own; implementation requires a separate explicit lane dispatch.
 
 ## Inputs
 
 - Frozen CommitmentPoolingModule Fulfilled reward/provider interface.
-- `settlement-spec.md` exact command/ack tuples, state machine, events, authority boundary, fee model, and no-active-Celo-testnet gate.
+- `settlement-spec.md` exact command/ack tuples, state machine, events, authority boundary,
+  GoodDollar exact-net fee model, and current direct-lane/testnet evidence gate.
+- Existing `packages/contracts/src/registries/LocalCCIPRouter.sol` is the local-router starting
+  point. Extend or adapt it into the paired-router harness; do not create an unrelated parallel
+  CCIP mock that can drift from the repository's existing local transport behavior.
 - Existing `@chainlink/contracts-ccip` dependency plus ENS CCIP fee quoting, sponsored-reserve sending, receiver authentication, and wrong-route test patterns.
-- Official Chainlink CCIP directory reread immediately before implementation/dry-run; the 2026-07-23 snapshot is Arbitrum One selector/router `4949039107694359620` / `0x141fa059441E0ca23ce184B6A78bafD2A517DdE8` and Celo selector/router `1346049177634351622` / `0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62`, but live route evidence wins.
-- Existing Safe/Zodiac patterns; live owner identities, final selectors/caps, audit, broadcasts, and canary remain Release inputs rather than implementation prerequisites.
+- Official Chainlink CCIP directory reread immediately before implementation/dry-run. As of
+  2026-07-24 the directory publishes Arbitrum One↔Celo Mainnet in both directions at v1.5.0,
+  while the exact Arbitrum Sepolia↔Celo Sepolia pair is not listed and Celo's official support
+  page currently lists CCIP only for mainnet. Implementation uses local mock routers, Arbitrum
+  Sepolia endpoint proof, and Celo Sepolia executor/Safe/roles/surrogate rehearsal; a live Celo
+  Sepolia CCIP endpoint requires a fresh official lane/router publication. The current endpoint
+  proof uses a separate ephemeral Arbitrum Sepolia↔Ethereum Sepolia deployment with
+  `DESTINATION_EVM_CHAIN_ID = 11155111`; its artifacts never enter the canonical registry. Value release requires fresh proof
+  that the published mainnet route remains operational and matches the frozen routers,
+  selectors, peers, fee quotes, and code hashes. No Ethereum relay is authorized implicitly.
+- Minimal Safe and Zodiac interfaces are hand-declared locally and official Safe v1.4.1
+  deployment JSON is consumed as pinned data; no new Solidity dependency is required. Any later
+  JavaScript package install requires explicit owner approval. Live owner identities, final
+  selectors/caps, audit, broadcasts, and canary remain Release inputs.
 
 ## Outputs
 
 - Versioned settlement message library shared by both contracts:
   - command `(uint8 version,uint256 settlementId,bool isBatch,uint32 attempt,address executorGarden,uint8 disbursementKind,address[] recipients,uint256[] amounts)`; `isBatch` domain-separates independent disbursement/batch counters; funding commands always encode `protocolGarden` in `executorGarden` and put the target garden Safe only in `recipients`;
   - acknowledgment `(uint8 version,bytes32 executionKey,bytes32 originatingCommandMessageId,bool success,uint8 failureCode)`.
-- Arbitrum UUPS `SettlementModule`: immutable implementation router plus official source CCIP selector, write-once protocol garden/canonical G$, canonical reward/funding derivation, immutable batch membership with a hard ceiling of 24 and a measurement-gated 0–24 configured limit, exact dispatch-only delegate, observable native-fee floor, data-only CCIP dispatch, same-key retry, authenticated acknowledgment receiver, failure/new-attempt recovery, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued.
-- Celo UUPS `CeloSettlementExecutor`: immutable implementation router and canonical G$, exact source authentication, bounded previous-peer grace, zero token amounts, write-once garden → Safe/Roles route binding, and canonical G$ execution in one non-reentrant transaction whose direct Zodiac Roles calls all target G$ and roll back the full batch if any transfer rejects, reverts, or returns false. It also provides idempotent execution outcome, independent acknowledgment retry, observable native-CELO reserve floor, and fail-closed per-transfer, per-batch, and periodic caps.
-- Paused-first deployment simulations, bounded current/previous peer rotation, immutable-router drained-upgrade rehearsal, bytecode/code-hash checks, strict Safe/Zodiac role probes, and deployment-artifact schema. No broadcast or authority mutation.
+- Arbitrum UUPS `SettlementModule`: immutable implementation router, official source CCIP
+  selector, and destination EVM chain ID (`42220` production; `11142220` only for isolated,
+  paused local/mock or component proof and never as CCIP-lane evidence);
+  write-once protocol garden/canonical G$; canonical reward/funding derivation; immutable batch
+  membership with a hard ceiling of 24 and a measurement-gated 0–24 configured limit; exact
+  dispatch-only delegate; observable native-fee floor; data-only CCIP dispatch; same-key retry;
+  authenticated acknowledgment receiver; failure/new-attempt recovery; unbatched-Queued or
+  Failed individual cancellation; and atomic whole-batch cancellation while Queued.
+- Celo UUPS `CeloSettlementExecutor`: immutable implementation router and canonical G$, exact
+  source authentication, bounded previous-peer grace, zero token amounts, write-once garden →
+  Safe/one-Roles-modifier/role-key/native-allowance-key binding, and canonical G$ execution
+  through an atomic bounded adapter. It proves exact net recipient balance, accepts zero-fee
+  or sender-paid fee modes only, caps gross Safe debit, and rolls back the full batch if any
+  quote, transfer, or balance check fails. It also provides idempotent execution outcome,
+  independent acknowledgment retry, observable native-CELO reserve floor, and fail-closed
+  per-transfer, per-batch, per-fee, and periodic caps.
+- The immutable `permissionsConfigHash` commits Safe/Roles/token/selector/condition-tree facts
+  only. Mutable transfer/batch/fee/period caps and live allowance balances are independently
+  evented and verified, so legitimate paused policy updates never stale the hash.
+- Both proxies initialize paused. Source dependency changes are pause-only, reject zero, and emit
+  exact old/new addresses; source unpause requires complete route, active protocol account, and a
+  non-zero fee floor. Executor unpause requires source peer, caps, period policy, and reserve
+  floor. Paused-first deployment simulations, bounded current/previous peer rotation, immutable-router
+  drained-upgrade rehearsal, bytecode/code-hash checks, strict Safe/Zodiac role probes, and a
+  deployment-artifact schema that records local contract/router/selector facts for every
+  component but records a paired remote selector/EVM identity only for a freshly verified
+  supported lane. The production `42161`↔`42220` pair is complete; independent
+  `421614`/`11142220` rehearsal artifacts remain non-ready and must not fabricate a peer seed.
+  No broadcast or authority mutation.
+- A dedicated `settlement-executor --network celo|celo-sepolia` target replaces use of the
+  historical full-core `deploy:celo --update-schemas` command and preserves all existing Celo
+  artifact keys. Protocol and settlement rehearsal gates are role-aware.
 - Exact selector serialization: migrate `networks.json` selectors from unsafe JSON numbers to decimal strings, update every Solidity/TypeScript consumer for exact `uint64`/`bigint` parsing, and prove Ethereum/Sepolia/Arbitrum/Celo round trips with no IEEE-754 coercion.
 - Arbitrum/Celo unit tests and an asynchronous paired-router integration harness.
 - Frozen Arbitrum and Celo event/interface contracts for the independently owned indexer, shared state/API, client, and admin lanes.
@@ -64,15 +110,36 @@
 - Only an authenticated success acknowledgment for the subject's current execution key and
   attempt sets `Confirmed`; timeout/manual-execution eligibility is not payment failure.
 - Source pause blocks new queue/batch/dispatch/command-retry/requeue but permits exact configuration, terminal closeout, fee maintenance, and authenticated acknowledgment receipt. Destination pause rejects new execution without recording a business failure and still permits stored acknowledgment retry.
-- `CeloSettlementExecutor` is a narrowly scoped Zodiac Roles member and never a Safe owner. Its only allowed path is `execTransactionWithRoleReturnData(gDollarToken,0,transferCalldata,Enum.Operation.Call,roleKey,true)` through the exact stored `bytes32 roleKey`; the role grants neither a self-call nor an arbitrary batch target. The executor also rejects a non-reverting ERC-20 `false` return. One non-reentrant outer transaction makes the transfer loop atomic, with per-transfer, per-batch, and periodic caps. Zero policy values fail closed until a human-approved policy is configured while paused.
+- `CeloSettlementExecutor` is a narrowly scoped Zodiac Roles member and never a Safe owner. Its
+  only allowed path is
+  `execTransactionWithRoleReturnData(gDollarToken,0,transferCalldata,SafeOperation.Call,roleKey,true)`
+  through the exact stored role and native `WithinAllowance(allowanceKey)` condition; there is
+  no separate Allowance Module. The role grants neither a self-call nor an arbitrary batch
+  target. Exact-net fee and balance-delta tests include zero-fee, sender-pays, receiver-pays,
+  fee change, token pause/unpause, maximum-fee-bps/absolute-fee limits, ERC-20 false,
+  ERC-777 reentrancy,
+  source-as-recipient, and duplicate-recipient cases.
 - Every commitment reward sources G$ from the owning pool garden's registered Safe (`commitment.garden`; protocol pool → GG protocol Safe). Individual rewards target the provider's same-address Celo AA. Garden rewards target the separate registered `providerGarden` Safe. `ProtocolToGarden` is the only funding route.
 - Native ETH/CELO fee balances, quote, reserve threshold, low-balance state, and withdrawal constraints are observable and tested. Arbitrum command dispatch/retry always spends the module reserve; Celo `AcknowledgmentSent.reserveFunded` distinguishes automatic/sponsored reserve spend from an exact caller-funded retry. LINK fee payment is out of scope.
 - `dispatcher` is a single optional Arbitrum address with dispatch/retry authority only. Protocol garden and canonical G$ have no post-initialization setter. Both contracts preserve their configured native-fee floor on sends and withdrawals.
 - `memberDeliveryEnabled()` remains the canonical AA capability gate; failure keeps member delivery blocked without disabling `ProtocolToGarden`.
+- Shared currently constructs Kernel `0.3.1` accounts. Pimlico's official support matrix lists
+  that implementation on Arbitrum One, Arbitrum Sepolia, and Celo Mainnet, but not on Celo
+  Sepolia; Celo Sepolia lists Kernel `0.2.4`. The workaround has two non-interchangeable tiers:
+  testnet mechanics use an explicit Kernel `0.2.4` account profile on both `421614` and `11142220`
+  with the same EntryPoint/factory/implementation/initializer/passkey/salt and one included
+  sponsored surrogate transfer. That proof is non-production and can never enable member
+  delivery. Production keeps Kernel `0.3.1` and requires exact same-address Arbitrum One/Celo
+  Mainnet derivation, verified EntryPoint/account code hashes, passkey validation, and an active
+  bounded `42220` sponsorship policy. Only a separately human-authorized included sponsored
+  first-use Celo Mainnet canonical-G$ transfer, with UserOperation and transaction receipts,
+  EntryPoint event, deployed code, and exact balance deltas, can enable member delivery. The
+  existing unversioned v0.6 registry field stays explicitly legacy; API keys and passkey material
+  never enter evidence artifacts.
 
 ## RED / GREEN
 
-- RED: focused tests fail for tuple compatibility, exact decimal-string selector parsing/round-trip without JS number coercion, disbursement/batch execution-key domain separation, homogeneous batch kind/funding-route enforcement, source/sender/version/token validation, originating-message-to-key binding, per-command destination snapshot and previous-peer forgery/cross-executor retry rejection, write-once canonical configuration, dispatcher scope, observable fee floors, unbatched-Queued/Failed individual cancellation, failed-batch member requeue clearing only the active batch association, atomic Queued-batch cancellation with no partial-member path, disabled/configured/hard batch bounds, same-key duplicate/out-of-order delivery, acknowledgment retry, stale/duplicate acknowledgment, bounded failure codes, fee shortage, pause, previous-peer command acknowledgment back to its exact originating module, UUPS immutable-router cutover with unchanged G$, Safe owner/role separation, direct-G$ role scoping with no executor self-call permission, cap failure, and generated storage layouts.
+- RED: focused tests fail for tuple compatibility, exact decimal-string selector parsing/round-trip without JS number coercion, disbursement/batch execution-key domain separation, homogeneous batch kind/funding-route enforcement, source/sender/version/token validation, originating-message-to-key binding, per-command destination snapshot and previous-peer forgery/cross-executor retry rejection, paused-first initialization, unpaused/zero trust-root rejection, exact old/new dependency events, incomplete-unpause rejection, write-once canonical configuration, dispatcher scope, observable fee floors, unbatched-Queued/Failed individual cancellation, failed-batch member requeue clearing only the active batch association, atomic Queued-batch cancellation with no partial-member path, disabled/configured/hard batch bounds, same-key duplicate/out-of-order delivery, acknowledgment retry, stale/duplicate acknowledgment, bounded failure codes, fee shortage, pause, previous-peer command acknowledgment back to its exact originating module, UUPS immutable-router cutover with unchanged G$, Safe owner/role/native-allowance separation, exact-net GoodDollar fee modes, token pause, proportional/absolute fee policy, and balance deltas, direct-G$ role scoping with no executor self-call permission, cap failure, and compiler-generated storage layouts with concrete slot/offset assertions.
 - GREEN: the same tests pass; a deterministic two-router local harness and separate fork processes prove asynchronous command/ack behavior without broadcasting.
 
 ## Exact Bun commands
@@ -82,6 +149,7 @@ The named test files are intentional RED-first targets.
 - `bun run --filter @green-goods/contracts test:match -- test/unit/Settlement.t.sol`
 - `bun run --filter @green-goods/contracts test:match -- test/unit/CeloSettlementExecutor.t.sol`
 - `bun run --filter @green-goods/contracts test:match -- test/integration/CCIPSettlement.t.sol`
+- `bun run --filter @green-goods/contracts test:match -- test/integration/DualChainSettlement.t.sol`
 - `bun run --filter @green-goods/contracts test:script`
 - `bun run --filter @green-goods/contracts build:full`
 - `bun run --filter @green-goods/contracts lint:check`
@@ -99,5 +167,14 @@ Deployment commands must be added through the existing deploy wrapper and verifi
 - Exact live 2-of-3 owner identities and evidence that `CeloSettlementExecutor` is not an owner.
 - Reviewed live Zodiac selector/cap configuration and code hashes.
 - Current CCIP peer/router/selector/gas configuration, official-directory source/date/block/code-hash evidence, and monitored native fee reserves.
-- No-active-Celo-testnet alternative gate: deterministic local routers, separate forks, paused/no-authority deploy, message-only ping/ack, audit/timelock, human-authorized minimum-value canary, observation, and explicit cap increase.
-- AA/paymaster outcome for member delivery, GoodDollar operating evidence, and explicit human broadcast/canary authorization.
+- Direct-lane/testnet gate: deterministic dual-process local routers; separate pinned
+  Arbitrum/Celo forks; Celo Sepolia fee-aware G$ surrogate and executor/Safe/roles proof;
+  Arbitrum Sepolia endpoint rehearsal clearly labeled non-production-route; any Celo Sepolia
+  CCIP endpoint proof conditional on a fresh official lane/router; exact live bidirectional mainnet lane;
+  paused/no-authority deploy; message-only ping/ack; audit/timelock; human-authorized
+  minimum-value canary; observation; and explicit cap increase.
+- AA/paymaster gate: same-address Kernel `0.2.4` sponsored surrogate-transfer mechanics on
+  Arbitrum Sepolia/Celo Sepolia are recorded as non-enabling test evidence; exact Kernel `0.3.1`
+  Arbitrum One/Celo Mainnet derivation, code/policy/passkey proof and one separately authorized
+  included Celo Mainnet canonical-G$ first-use operation are required before member delivery.
+  GoodDollar operating evidence and explicit human broadcast/canary authorization remain required.

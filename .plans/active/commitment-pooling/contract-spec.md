@@ -31,9 +31,14 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 
 - `CommitmentPoolingModule`: control plane for pools, cycles, commitments, confirmations, disputes, reward records (NET-NEW `packages/contracts/src/modules/CommitmentPooling.sol`).
 - `CommitmentRegister`: non-transferable ERC-1155-style unit accounting companion, functionally controlled by the module (NET-NEW `packages/contracts/src/registries/Commitment.sol`).
-- GardenToken wiring: one new module field, setter, event, gap 37 to 36, live 42161 UUPS upgrade (`packages/contracts/src/tokens/Garden.sol`).
+- GardenToken wiring: one new module field packed after `openMinting` at slot 213 offset 2,
+  setter, event, unchanged 37-slot gap, and live 42161 UUPS upgrade
+  (`packages/contracts/src/tokens/Garden.sol`).
 - WorkApprovalResolver bridge: optional non-blocking module hook on approval (`packages/contracts/src/resolvers/WorkApproval.sol`).
-- Exactly two new EAS schema registrations: assessment v3 and community testimony, each with a new resolver, registered via the standalone badge-schemas path (register #14, register #26).
+- Exactly two new EAS schema registrations: assessment v3 resolves through an in-place upgrade
+  of the existing `AssessmentResolver`; community testimony uses one net-new resolver. Both
+  register through the standalone badge-schemas path (register #14, register #26, register #53
+  as amended by register #54).
 - Deployment plumbing: `DeployHelper.sol` result fields, `DeploymentBase.sol` helpers, artifact keys, storage-layout baselines.
 - Envio indexer plan: two new contract blocks, ten new pooling entities, one handler module; count stats and exact-label unit summaries derive from module and register events alone.
 - Hypercert cut-over: `bundleKind` discriminator, fulfilled-commitment bundling, on-chain allocation-class bps at cycle open with app-computed allowlists.
@@ -78,12 +83,13 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 | `ICommitmentRegister` | register interface | NET-NEW `packages/contracts/src/interfaces/ICommitmentRegister.sol` |
 | GardenToken wiring | module field + setter + mint callback | `packages/contracts/src/tokens/Garden.sol:27-34` (module fields), `181-227` (setter block), `421-456` (phase-2 integration callbacks) |
 | WorkApprovalResolver bridge | approval hook into module | `packages/contracts/src/resolvers/WorkApproval.sol:115-185` |
-| `AssessmentV3Resolver` | v3 authorship + baseline/delta validation | NET-NEW `packages/contracts/src/resolvers/AssessmentV3.sol` |
+| `AssessmentResolver` upgrade | existing resolver gains v3-schema authorship + baseline/delta validation while continuing to resolve v2 | EXISTING UUPS `packages/contracts/src/resolvers/Assessment.sol` |
 | `CommunityTestimonyResolver` | Community-Hat-gated testimony validation | NET-NEW `packages/contracts/src/resolvers/CommunityTestimony.sol` |
 | Schema structs | decode layouts for the two new schemas | `packages/contracts/src/Schemas.sol` (append) |
 | Schema config | canonical field lists, new keys only | `packages/contracts/config/schemas.json` (append keys `assessmentV3`, `communityTestimony`) |
 | Deploy plumbing | CREATE2 proxies, wiring, artifacts | `packages/contracts/test/helpers/DeploymentBase.sol:257-338` (`_deployCorePart2`), `341-385` (`_wireModules`), `718-759` (`_deployCookieJarModule` template); `packages/contracts/script/DeployHelper.sol:42-72,276-347` |
-| Standalone schema deploy | two registrations + resolver deploys + artifact merge | NET-NEW `packages/contracts/script/DeployCommitmentSchemas.s.sol` + `packages/contracts/script/deploy/commitment-schemas.ts` (template: badge-schemas pair) |
+| AssessmentResolver upgrade workflow | existing proxy implementation upgrade, v2-state preservation, and v3 setter activation | EXISTING `packages/contracts/script/upgrade.ts assessment-resolver` UUPS path; never performed by a deploy/schema script |
+| Standalone schema deploy | two resumable additive registrations + CommunityTestimonyResolver deploy + append-only artifact merge | NET-NEW `packages/contracts/script/DeployCommitmentSchemas.s.sol` + `packages/contracts/script/deploy/commitment-schemas.ts` (template: badge-schemas pair) |
 | Indexer | entities + handlers for pools, cycles, commitments, units | `packages/indexer/config.yaml`, `packages/indexer/schema.graphql`, NET-NEW `packages/indexer/src/handlers/commitmentPool.ts` |
 | Shared substrate | types, ABIs, hooks, job kinds (consumed by the UI/UX spec) | `packages/shared/src/types/job-queue.ts` (today exactly two kinds, `reports/corrections-log.md` §6) |
 
@@ -164,7 +170,10 @@ One UUPS module that owns the whole commitment-pooling control plane: durable po
 - Drive the three state machines exactly as tabled in section 5, emitting one event per hard transition.
 - Hold commitment records: requirement fields, confirmer rule (address[] + threshold N), assessment UID ref, declared reward, claim mode, due date, unit label + target quantity, required approved-work count, reserved counterparty-pool fields.
 - Enforce Hats-based permissions per function (gating table below) via the garden-scoped operator check copied from `packages/contracts/src/modules/Hypercerts.sol:282-287`.
-- Verify EAS attestations (work, approval, assessment) via `_eas.getAttestation` when linking or syncing, with schema UID checks (zero-bypass convention matching `packages/contracts/src/resolvers/Work.sol:59-66`).
+- Verify EAS attestations (work, approval, assessment) via `_eas.getAttestation` when linking or
+  syncing. Operational pooling never inherits the legacy resolver zero-bypass: all four module
+  schema UIDs are non-zero and pairwise distinct before unpause, and every linked attestation must
+  match its exact configured UID.
 - Import and type the existing concrete `ActionRegistry` from `packages/contracts/src/registries/Action.sol` (the repo has no `IActionRegistry`). Validate every action-bound domain with its deployed ABI: `actionToOwner(actionUID) != address(0)` proves registration and `getAction(actionUID).domain` must equal the positional domain. UID `0` remains valid because `ActionRegistry.registerAction` allocates from `_nextActionUID++` (`packages/contracts/src/registries/Action.sol:185-188`).
 - Call the `CommitmentRegister` for every unit-count change (commit, release, fulfill).
 
@@ -243,9 +252,20 @@ interface ICommitmentPoolingModule {
 
     enum ClaimMode { Open, ApprovalGated }
 
-    enum DisputeResolution { RestorePrevious, Fulfilled, Cancelled, Expired }
+      enum DisputeResolution { RestorePrevious, Fulfilled, Cancelled, Expired }
 
-    enum RewardRail { None, ArbitrumExternal, CeloSettlement }
+      enum RewardRail { None, ArbitrumExternal, CeloSettlement }
+
+      enum ModuleDependency {
+          GardenToken,
+          HatsModule,
+          ActionRegistry,
+          CommitmentRegister,
+          WorkApprovalResolver,
+          EAS
+      }
+
+      enum ModuleSchemaKind { Work, WorkApproval, LegacyAssessment, AssessmentV3 }
 
     /// @notice Allocation-class snapshot for Hypercert cut-over. Must sum to
     ///         exactly 10_000 bps (Yield.sol InvalidSplitRatio precedent).
@@ -318,6 +338,7 @@ interface ICommitmentPoolingModule {
         address providerGarden;          // EAS recipient and provider-role scope
         // RESERVED post-MVP garden-to-garden (L3); never written in MVP:
         uint256 counterpartyPoolId;
+        address counterpartyGardenAccount;
     }
 
     struct PendingClaim {
@@ -471,22 +492,37 @@ interface ICommitmentPoolingModule {
         string reasonCID
     );
     /// @notice Payout executed on existing rails and recorded here (register #18).
-    event RewardPaid(
-        uint256 indexed commitmentId,
+      event RewardPaid(
+          uint256 indexed commitmentId,
         address indexed source,
         address indexed recipient,
         address token,
         uint256 amount,
         bytes32 payoutRef,
-        address recordedBy
-    );
+          address recordedBy
+      );
+      event ModuleDependencyUpdated(
+          ModuleDependency indexed dependency,
+          address indexed previousAddress,
+          address indexed newAddress
+      );
+      event ModuleSchemaUIDUpdated(
+          ModuleSchemaKind indexed schemaKind,
+          bytes32 previousUID,
+          bytes32 newUID
+      );
+      event ModulePauseStatusChanged(bool previousPaused, bool paused);
 
     // ═════════════════════════════ Errors ════════════════════════════
 
     error UnauthorizedCaller(address caller);
     error NotPoolSteward(address caller, uint256 poolId);
-    error ModulePaused();
-    error ZeroAddress();
+      error ModulePaused();
+      error ModuleMustBePaused();
+      error ModuleNotReady();
+      error ZeroAddress();
+      error SchemaUIDRequired(ModuleSchemaKind schemaKind);
+      error SchemaUIDCollision(bytes32 uid);
     error PoolExists(address garden);
     error UnknownPool(uint256 poolId);
     error PoolNotInState(uint256 poolId, PoolState actual);
@@ -506,8 +542,9 @@ interface ICommitmentPoolingModule {
     error SelfCounterparty(); // creator cannot claim their own commitment
     error SelfConfirmation(); // provider cannot confirm own fulfillment (WorkApproval SelfAttestation precedent)
     error NotConfirmer(address caller);
-    error AlreadyConfirmed(address confirmer);
-    error InvalidConfirmerRule();
+      error AlreadyConfirmed(address confirmer);
+      error InvalidConfirmerRule();
+      error TooManyConfirmers(uint256 supplied, uint256 maximum);
     error InvalidWorkAttestation(bytes32 workUID);
     error InvalidApprovalAttestation(bytes32 approvalUID);
     error InvalidAssessmentAttestation(bytes32 assessmentUID);
@@ -523,8 +560,10 @@ interface ICommitmentPoolingModule {
     error RewardNotDeclared(uint256 commitmentId);
     error RewardRailMismatch(uint256 commitmentId, RewardRail expected, RewardRail actual);
     error InvalidRewardConfiguration();
-    error ReasonRequired();
-    error InvalidDomains();
+      error ReasonRequired();
+      error UnitLabelRequired();
+      error TargetUnitsRequired();
+      error InvalidDomains();
     error DuplicateDomain(uint8 domain);
     error InvalidDomainActionScope();
     error UnknownAction(uint256 actionUID);
@@ -713,9 +752,13 @@ interface ICommitmentPoolingModule {
     function getConfirmers(uint256 commitmentId) external view returns (address[] memory);
     function workCommitmentOf(bytes32 workUID) external view returns (uint256 commitmentId);
     function isApprovalCounted(bytes32 approvalUID) external view returns (bool);
+    function MAX_CONFIRMERS() external pure returns (uint256);
+    function paused() external view returns (bool);
 
     // ══════════════════════ Admin (module owner) ═════════════════════
 
+    /// @notice Initializes with paused == true. Configuration is completed
+    ///         through the paused-only setters before the first unpause.
     function initialize(address owner_) external;
     function setGardenToken(address gardenToken) external;
     function setHatsModule(address hatsModule) external;
@@ -729,13 +772,26 @@ interface ICommitmentPoolingModule {
         bytes32 legacyAssessmentUID,
         bytes32 assessmentV3UID
     ) external;
+    /// @notice Pausing is always available to the owner. Unpause requires all
+    ///         six dependencies plus four non-zero, pairwise-distinct schema
+    ///         UIDs and otherwise reverts ModuleNotReady.
     function setPaused(bool paused) external;
 }
 ```
 
 #### Permission matrix (the gating table)
 
-Consolidated view of every mutating entry point across both contracts plus the two new resolvers; the per-function doc comments in the interface above remain the enforcement detail. Role legend: **steward** = pool steward via `_requirePoolSteward` (garden operator/owner through hatsModule, module owner fallback; the protocol pool resolves to root-garden hats). **member** = wearer of any of the six garden role hats (`IHatsModule.GardenRole`) in the relevant garden. Pause interplay: module pause blocks operational mutations but never `setPaused`, owner configuration setters, `cancelCommitment`, `expireCommitment`, or `resolveDispute`; pool-level Paused additionally blocks new commitments, claims, Ready submissions, and confirmations on that pool only.
+Consolidated view of every mutating entry point across both pooling contracts, the upgraded
+existing `AssessmentResolver`, and the net-new `CommunityTestimonyResolver`; the per-function doc
+comments in the interface above remain the enforcement detail. Role legend: **steward** = pool
+steward via `_requirePoolSteward` (garden operator/owner through hatsModule, module owner fallback;
+the protocol pool resolves to root-garden hats). **member** = wearer of any of the six garden role
+hats (`IHatsModule.GardenRole`) in the relevant garden. Pause interplay: the initializer sets
+`paused = true`. Module pause blocks operational mutations but never `setPaused`,
+`cancelCommitment`, `expireCommitment`, or `resolveDispute`; owner dependency/schema setters are
+callable **only while paused**. `setPaused(false)` fails closed until all six dependency addresses
+and all four non-zero, pairwise-distinct schema UIDs are configured. Pool-level Paused additionally
+blocks new commitments, claims, Ready submissions, and confirmations on that pool only.
 
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
@@ -748,7 +804,7 @@ Consolidated view of every mutating entry point across both contracts plus the t
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation bps sum == 10_000 and become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + OperatorCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; OperatorCaptured must set `onBehalfOf`; domains unique/max 4; every action exists/matches domain; DomainImpact requires 1–4 actions with a non-zero `requiredApprovedWorkCounts[i]` per action; SupportService/OperatorCaptured/SeasonCampaign may explicitly use evidence-only (empty or all-zero counts) |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + OperatorCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; OperatorCaptured must set `onBehalfOf`; domains unique/max 4; every action exists/matches domain; DomainImpact requires 1–4 actions with a non-zero `requiredApprovedWorkCounts[i]` per action; SupportService/OperatorCaptured/SeasonCampaign may explicitly use evidence-only (empty or all-zero counts) |
 | Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token, while non-zero amount requires a non-None rail and non-zero source/token |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; claimant != creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext and re-validates eligibility |
@@ -768,11 +824,14 @@ Consolidated view of every mutating entry point across both contracts plus the t
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
 | Dispute | `resolveDispute` | steward | RestorePrevious or terminal resolution; Expired cannot become Fulfilled; allowed while module paused |
 | Reward | `recordRewardPaid` | steward | state Fulfilled; `reward.rail == ArbitrumExternal`; single record per commitment in MVP. `CeloSettlement` reverts and is owned exclusively by SettlementModule |
-| Module admin | `setGardenToken` / `setHatsModule` / `setActionRegistry` / `setCommitmentRegister` / `setWorkApprovalResolver` / `setEAS` / `setSchemaUIDs` / `setPaused` | module owner | zero addresses rejected except documented pre-wiring module links |
+| Module dependency/schema admin | `setGardenToken` / `setHatsModule` / `setActionRegistry` / `setCommitmentRegister` / `setWorkApprovalResolver` / `setEAS` / `setSchemaUIDs` | module owner | module must be paused; dependency addresses reject zero; schema UIDs reject zero and pairwise collision; every accepted change emits old/new configuration facts |
+| Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); provider open-commitment-cap guard (§6.2) |
-| Register admin | `setModule` | register owner (protocol multisig) | — |
-| Upgrades | `_authorizeUpgrade` on module, register, and both new resolvers | respective owner (protocol multisig) | UUPS convention repo-wide |
+| Register admin | `setModule` | register owner (protocol multisig) | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner (protocol multisig) | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
+| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | CommunityTestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new CommunityTestimonyResolver | respective owner (protocol multisig) | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
 EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the access-control picture:
 
@@ -785,10 +844,29 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 
 #### Behavior notes an implementer must not miss
 
-- **Confirmer rule storage**: `confirmers` persists in `commitmentConfirmers`; empty means Offer counterparty or Request creator, threshold 1. At acceptance, a named group is de-duplicated and the resolved provider is excluded. The module persists and emits the resolved group; acceptance reverts `InvalidConfirmerRule` when the threshold exceeds remaining eligible addresses. The named group is data, not a hat.
+- **Confirmer rule storage and loop bound**: `MAX_CONFIRMERS = 32`. `createCommitment` and
+  `setConfirmerRule` reject `confirmers.length > MAX_CONFIRMERS` with
+  `TooManyConfirmers(supplied, maximum)` before class registration, commitment storage, or event
+  emission. Empty means Offer counterparty or Request creator, threshold 1. At acceptance, the
+  now-bounded named group is de-duplicated and the resolved provider is excluded. The module
+  persists and emits the resolved group; acceptance reverts `InvalidConfirmerRule` when the
+  threshold exceeds remaining eligible addresses. The named group is data, not a hat.
 - **Provider identity (one formula everywhere)**: acceptance stores `provider = direction == Offer ? creator : counterparty`. For an Individual claim, DomainImpact Work attester must equal this stored provider. For a Garden claim, Work attester must be a gardener/operator of `providerGarden`. The same stored `provider` is the `CommitmentRegister` account, open-commitment-count subject, self-confirmation exclusion, and recipient recorded by the existing Arbitrum-rail `recordRewardPaid` path. Celo G$ settlement is deliberately different: Individual rewards target the provider's same-address Celo AA, while Garden rewards target the registered `providerGarden` Celo Safe; both source from the owning pool `commitment.garden` Safe. `counterparty` remains the accepted recipient for an Offer and accepted provider for a Request; no lane may substitute claimant or `msg.sender` for the stored provider.
 - **Self-checks**: `claimCommitment` reverts `SelfCounterparty` when claimant == creator. `confirmFulfillment` reverts `SelfConfirmation` when msg.sender equals the stored provider, mirroring `packages/contracts/src/resolvers/WorkApproval.sol:153-156`.
-- **Register coupling**: `createCommitment` registers the class with immutable quota `targetUnits`. A pool steward configures the non-zero per-pool provider open-commitment cap through the module forwarder before `markPoolReady`; the register itself remains module-only. Acceptance calls `commitUnits(commitmentId, commitment.provider, targetUnits)`, which increments that provider's open commitment count by exactly one regardless of `targetUnits`. Cancel/expiry release only from Accepted/ReadyForConfirmation (or a Disputed record whose prior state held units), always against `commitment.provider`, and decrement the count once; Offered/Requested never release. Fulfillment converts only still-committed units for `commitment.provider` and decrements the count once. Raising or restoring a dispute preserves whether the pre-dispute state held the slot; no dispute path double-increments or double-decrements. Every path changes the register at most once.
+- **Register coupling**: `createCommitment` rejects an empty exact `unitLabel` or zero
+  `targetUnits`, then registers the class with immutable quota `targetUnits` and accounting state
+  `Registered`. A pool steward configures the non-zero per-pool provider open-commitment cap
+  through the module forwarder before `markPoolReady`; the register itself remains module-only.
+  Acceptance calls `commitUnits(commitmentId, commitment.provider, targetUnits)`. The register
+  accepts only the full non-zero quota from `Registered`, changes the class to `Committed`, and
+  increments that provider's open commitment count exactly once. Cancel/expiry release only from
+  Accepted/ReadyForConfirmation (or a Disputed record whose prior state held units), always
+  against `commitment.provider`; `releaseUnits` accepts only the full live committed balance from
+  `Committed`, changes the class to `Released`, and decrements once. Fulfillment applies the same
+  full-balance guard, changes the class to `Fulfilled`, and decrements once. `Released` and
+  `Fulfilled` are terminal register states, so a module upgrade or erroneous repeat call cannot
+  reacquire or release the slot. Offered/Requested never release. Raising or restoring a dispute
+  makes no register call and preserves the pre-dispute slot state.
 - **Canonical claim identity + traceability**: creation-time `claimType` is immutable eligibility; `claimCommitment` reverts `ClaimTypeMismatch` when runtime `kind` differs. Individual: `claimant = requestedBy = msg.sender`. Garden: `claimant = gardenContext`, `requestedBy = msg.sender`, after operator/owner authorization. The module stores `{claimant, requestedBy, kind, gardenContext, requestedAt, active}` keyed by `(commitmentId, canonical claimant)` and rejects an active duplicate. `acceptClaim`/`declineClaim` consume that key. Envio marks accepted and sibling requests without an arbitrary scan.
 - **Provider anchor**: acceptance stores `providerGarden` (Offer: pool garden; Request: accepted claimant's validated gardenContext) and emits both `provider` and `providerGarden` in `CommitmentAccepted`. DomainImpact Work must use a required action and the provider-authorship rule above; Work and assessment EAS recipients equal `providerGarden`, including protocol-pool commitments that remain owned by the root pool.
 - **Reward binding**: `RewardRail.None` is valid only with zero source/token/amount; a non-zero reward requires either `ArbitrumExternal` or `CeloSettlement` plus non-zero source/token/amount. `recordRewardPaid` is the existing Arbitrum-rail record only. It accepts only `commitmentId` and `payoutRef`, requires Fulfilled, `reward.rail == ArbitrumExternal`, `rewardPaid == false`, and a declared non-zero source/token/amount, then emits the stored source, stored provider recipient, stored token/amount, payout ref, and `recordedBy = msg.sender`. The caller never supplies an earned-reward route or value. `CeloSettlement` reverts from this function; it never sets `rewardPaid`. `SettlementModule` requires that exact rail, token equal to canonical Celo G$, and source equal to the owning pool's registered Celo Safe, then derives the Individual-AA or Garden-Safe beneficiary under `settlement-spec.md`. The explicit rail makes recording both payout paths for one commitment impossible.
@@ -796,15 +874,27 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 - **Domain/action scope**: `domains.length <= 4`; each entry uses the existing 0–3 enum and is unique. `requiredActionUIDs` is empty or has the same length as `domains`; `requiredApprovedWorkCounts` is empty or has the same length as `requiredActionUIDs` (amendment 2026-07-18). `DomainImpact` requires matching non-empty arrays. For every supplied action UID, including UID `0`, `actionRegistry.actionToOwner(uid) != address(0)` and `uint8(actionRegistry.getAction(uid).domain) == domains[i]`; array length, not a zero sentinel, distinguishes unbound commitments. SupportService, SeasonCampaign, and OperatorCaptured may remain unclassified (`[]`) or carry optional multi-domain tags without action UIDs; if they do carry action UIDs, the same existence/domain checks apply.
 - **approvedUnits math**: computed on-chain as `targetUnits * Σ min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ requiredApprovedWorkCounts` (integer floor; approvals beyond one requirement's quota never add units) and emitted in `ApprovedWorkCounted` so the indexer never re-derives fractional units. A single requirement degenerates to the previous `targetUnits * approvedWorkCount / requiredApprovedWorkCount` formula (amendment 2026-07-18).
 - **ReadyForConfirmation gates**: DomainImpact creation requires a non-zero required count for every bound action; SupportService, OperatorCaptured, and SeasonCampaign may choose evidence-only (no work requirement). Work-gated auto-flip is evaluated after any requirement counter changes and after `attachAssessment`, and happens only when every non-zero requirement is met and `requiresAssessment == false || assessmentUID != 0`; this makes both approval-first and assessment-first ordering reachable. Evidence-only `submitForConfirmation` enforces the same assessment predicate and rejects DomainImpact. Steward override remains the only bypass and always emits its reason.
-- **Pause semantics**: module pause blocks operational entry points, but owner setters and `setPaused(false)` remain callable; cancel, expire, and dispute resolution remain available for safe wind-down. Pool-level Paused blocks new commitments, claims, Ready submissions, and confirmations only; browse, evidence/linkage, cancellation/expiry, and dispute recovery remain available. `PoolPaused` carries the mandatory reason CID and `PoolResumed` clears the indexed reason.
+- **Pause/configuration semantics**: initialization is paused-first. Dependency and schema setters
+  reject unpaused calls with `ModuleMustBePaused`, reject zero/colliding values before storage
+  mutation, and emit `ModuleDependencyUpdated` or one `ModuleSchemaUIDUpdated` per changed UID.
+  The initializer emits `ModulePauseStatusChanged(false, true)` so replay starts from an explicit
+  fail-closed state. Exact repeats are no-ops. `setPaused(false)` revalidates the complete non-zero/distinct
+  dependency/schema set and otherwise reverts `ModuleNotReady`; every real pause transition emits
+  `ModulePauseStatusChanged`. While paused, operational entry points stay blocked, but cancel,
+  expire, and dispute resolution remain available for safe wind-down. Pool-level Paused blocks
+  new commitments, claims, Ready submissions, and confirmations only; browse, evidence/linkage,
+  cancellation/expiry, and dispute recovery remain available. `PoolPaused` carries the mandatory
+  reason CID and `PoolResumed` clears the indexed reason.
 - **Cycle binding**: `cycleId == 0` is the only cycle-less sentinel. Any non-zero cycle must exist and belong to `params.poolId`. Member-created commitments require an Open cycle; steward-seeded SeasonCampaign/OperatorCaptured commitments permit Seeded or Open. Cancelled, Reconciled, Composted, or cross-pool cycles always revert before class registration.
 - **onWorkApproved must never revert** for unrecognized state: the EAS approval succeeds regardless (approval flow is `critical` path per repo criticality matrix).
 
 #### Acceptance criteria
 
 - Every transition in the section 5 tables has exactly one emitting function or a documented derivation; no silent state changes.
-- `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol` covers pool/cycle invariants (including cross-pool/terminal-cycle rejection), one open Season plus concurrent Campaigns, charter/open-commitment-cap onchain readiness, allocation validation and locking at `openCycle`, mandatory pause reason, domains/actions including UID `0`, DomainImpact per-action non-zero approval counts, assessment gating on every non-override Ready path, claim-type mismatch, canonical Garden claimant versus `requestedBy`, direction-aware provider/counterparty resolution, provider exclusion, exact cancel/expiry/dispute unit and count effects, provider-account unit mutations, derived reward facts, provider-garden Work/assessment validation, and sync dedupe. App/shared tests cover the additional current non-revoked Baseline preflight before offering `markPoolReady`.
-- Storage layout test asserts 23 named entries + 27 gap (pattern: `packages/contracts/test/StorageLayout.t.sol`), and `script/check-storage-layout.sh` gains a `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry (list at `packages/contracts/script/check-storage-layout.sh:23-33`).
+- `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol` covers pool/cycle invariants (including cross-pool/terminal-cycle rejection), one open Season plus concurrent Campaigns, charter/open-commitment-cap onchain readiness, allocation validation and locking at `openCycle`, paused-first initialization, unpaused-setter rejection, complete unpause readiness, zero/colliding schema rejection, old/new configuration events, mandatory pause reason, domains/actions including UID `0`, DomainImpact per-action non-zero approval counts, assessment gating on every non-override Ready path, claim-type mismatch, canonical Garden claimant versus `requestedBy`, direction-aware provider/counterparty resolution, provider exclusion, `MAX_CONFIRMERS`, max-plus-one rejection before mutation, duplicate-heavy/provider-filtered confirmer resolution, exact cancel/expiry/dispute unit and count effects, provider-account unit mutations, derived reward facts, provider-garden Work/assessment validation, and sync dedupe. App/shared tests cover the additional current non-revoked Baseline preflight before offering `markPoolReady`.
+- The compiler-generated baseline and concrete slot/offset assertions prove the expected
+  23-feature-slot layout and reserved gap; arithmetic alone is not proof. The Bun-wrapped
+  storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
 
 ### 6.2 `CommitmentRegister`
@@ -861,48 +951,67 @@ pragma solidity ^0.8.25;
 interface ICommitmentRegister {
     // ═════════════════════════════ Types ═════════════════════════════
 
+    enum AccountingState {
+        Registered,
+        Committed,
+        Released,
+        Fulfilled
+    }
+
     struct CommitmentClass {
         uint256 poolId;
+        uint256 cycleId;         // 0 = cycle-less; emitted so indexers never infer it
         string unitLabel;
         uint256 quota;           // LIMITING: hard cap on committed units for this class
         uint256 totalCommitted;  // live open exposure for this class
         uint256 totalFulfilled;
+        AccountingState accountingState; // exact single-shot slot lifecycle
         bool exists;
     }
 
     // ═════════════════════════════ Events ════════════════════════════
 
     event ModuleUpdated(address indexed oldModule, address indexed newModule);
-    event ClassRegistered(uint256 indexed classId, uint256 indexed poolId, string unitLabel, uint256 quota);
+    event ClassRegistered(uint256 indexed classId, uint256 indexed poolId, uint256 cycleId, string unitLabel, uint256 quota);
     event ProviderOpenCommitmentCapUpdated(uint256 indexed poolId, uint256 cap);
-    event UnitsCommitted(uint256 indexed classId, address indexed account, uint256 units, uint256 totalCommitted);
-    event UnitsReleased(uint256 indexed classId, address indexed account, uint256 units, uint256 totalCommitted);
-    event UnitsFulfilled(uint256 indexed classId, address indexed account, uint256 units, uint256 totalFulfilled);
+    event UnitsCommitted(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted);
+    event UnitsReleased(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted);
+    event UnitsFulfilled(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalFulfilled);
 
     // ═════════════════════════════ Errors ════════════════════════════
 
-    error NotModule(address caller);
-    error ZeroAddress();
+      error NotModule(address caller);
+      error ModuleMustBePaused(address currentModule);
+      error ZeroAddress();
+    error UnitLabelRequired();
+    error QuotaRequired();
+    error OpenCommitmentCapRequired(uint256 poolId);
     error ClassAlreadyRegistered(uint256 classId);
     error UnknownClass(uint256 classId);
+    error ClassAccountingStateMismatch(uint256 classId, AccountingState expected, AccountingState actual);
+    error InvalidUnitAmount(uint256 classId, uint256 requested, uint256 expected);
     error QuotaExceeded(uint256 classId, uint256 requested, uint256 available);
     error OpenCommitmentCapExceeded(uint256 poolId, address account, uint256 requestedCount, uint256 availableCount);
     error InsufficientCommitted(uint256 classId, address account, uint256 requested, uint256 available);
 
     // ══════════════════════ Mutations (onlyModule) ═══════════════════
 
-    function registerClass(uint256 classId, uint256 poolId, string calldata unitLabel, uint256 quota) external;
+    function registerClass(uint256 classId, uint256 poolId, uint256 cycleId, string calldata unitLabel, uint256 quota) external;
+    /// @notice Sets the non-zero concurrent commitment-count cap for a pool.
+    ///         An authorized zero value reverts OpenCommitmentCapRequired(poolId)
+    ///         before event emission or storage mutation.
     function setProviderOpenCommitmentCap(uint256 poolId, uint256 cap) external;
 
-    /// @notice Acceptance: records committed units against the exact class
-    ///         quota and consumes one provider open-commitment slot.
+    /// @notice Acceptance: from Registered only, records the full non-zero
+    ///         class quota and consumes one provider open-commitment slot.
     function commitUnits(uint256 classId, address account, uint256 units) external;
 
-    /// @notice Cancel/expire: releases committed units and one open slot.
+    /// @notice Cancel/expire: from Committed only, releases the full non-zero
+    ///         committed balance and one open slot, then becomes terminal.
     function releaseUnits(uint256 classId, address account, uint256 units) external;
 
-    /// @notice Fulfillment: converts committed units into fulfilled balance
-    ///         and releases one open slot (all-or-nothing per commitment in MVP).
+    /// @notice Fulfillment: from Committed only, converts the full non-zero
+    ///         committed balance and releases one open slot, then becomes terminal.
     function fulfillUnits(uint256 classId, address account, uint256 units) external;
 
     // ══════════════════════ Views ════════════════════════════════════
@@ -923,37 +1032,77 @@ interface ICommitmentRegister {
 }
 ```
 
-Scaffold: `UUPSUpgradeable + OwnableUpgradeable`, `_disableInitializers()`, initializer takes `(owner, module)` where module may be zero and set later during wiring (template `packages/contracts/src/modules/CookieJar.sol:74-115`).
+Scaffold: `UUPSUpgradeable + OwnableUpgradeable`, `_disableInitializers()`, initializer takes
+`(owner, module)` where module may be zero and set later during wiring (template
+`packages/contracts/src/modules/CookieJar.sol:74-115`). `setModule` rejects a zero replacement.
+The initial zero → non-zero wiring is the only pre-pause exception; after wiring, replacement
+requires `ICommitmentPoolingModule(currentModule).paused() == true` and emits
+`ModuleUpdated(oldModule, newModule)`.
 
 #### Acceptance criteria
 
 - No function in the compiled ABI moves balance between two non-module accounts; a dedicated test asserts the ABI contains no `transfer`/`approve` selector.
-- `registerClass` fixes quota to the commitment's `targetUnits`; there is no post-creation quota mutation. Open-commitment-cap reverts are covered by unit tests; `providerOpenCommitmentCapOf` exposes readiness configuration and `openCommitmentCountOf` matches the number of accepted commitments whose committed balance has not been released or fulfilled.
-- Acceptance consumes one slot regardless of `targetUnits`; fulfillment, cancellation, and expiry release it exactly once. `Accepted`/`ReadyForConfirmation` disputes preserve the slot, while a dispute raised from already-released `Expired` does not recreate one. RestorePrevious changes no count.
+- `createCommitment` and `registerClass` both reject empty unit labels and zero targets/quotas.
+  `registerClass` fixes quota to the commitment's `targetUnits` and starts in `Registered`; there is
+  no post-creation quota mutation.
+- `commitUnits` accepts only `Registered -> Committed` with `units == quota > 0`.
+  `releaseUnits` and `fulfillUnits` accept only `Committed -> Released|Fulfilled` with
+  `units == committedOf(account, classId) == quota > 0`. Direct repeat, partial, zero, wrong-account,
+  reactivation-after-release, and release-after-fulfillment calls all revert before changing
+  balances or `providerOpenCommitmentCount`.
+- After pool/steward resolution, the module forwarder rejects `cap == 0` with
+  `OpenCommitmentCapRequired(poolId)` before calling the register. For an authorized module
+  caller, the register independently rejects zero with the same error before event emission or
+  storage mutation; an unauthorized caller still fails `NotModule` first. Unit tests cover both
+  boundaries. `providerOpenCommitmentCapOf` exposes readiness configuration and
+  `openCommitmentCountOf` matches the number of classes still in `Committed` for that
+  pool/provider. Acceptance consumes one slot; fulfillment, cancellation, and expiry release it
+  exactly once. `Accepted`/`ReadyForConfirmation` disputes preserve the slot, while a dispute
+  raised from already-released `Expired` does not recreate one. RestorePrevious changes no count.
 - Register mutations revert `NotModule` for every caller except the wired module.
-- Storage layout test (6 named + 44 gap) and `check-storage-layout.sh` entry `CommitmentRegister:src/registries/Commitment.sol` added.
+- Register-module recovery is auditable and pause-bounded: zero replacement rejects, initial
+  wiring succeeds once, an unpaused replacement rejects, and a paused replacement emits the exact
+  old/new module addresses without mutating any class, balance, or provider count.
+- The compiler-generated layout baseline and concrete slot/offset assertions prove the planned
+  six-feature-slot layout and reserved gap; `AccountingState` lives inside the mapped
+  `CommitmentClass` value and adds no top-level storage slot. A `named + gap == 50` arithmetic
+  assertion is not
+  accepted as storage proof. Add the feature entry through the Bun-wrapped storage-layout gate.
 - Transferable-voucher attachment documented: a reviewer can point at the classId, the reserved settlementAdapter field, and the fulfilled balances and see the 1:1 wrap path without register changes.
 
 ### 6.3 GardenToken wiring (live UUPS upgrade)
 
 #### Changes to `packages/contracts/src/tokens/Garden.sol`
 
-1. New module field after `communityToken` (module fields block, lines 27-34): `ICommitmentPoolingModule public commitmentPoolingModule;`
+1. Append `ICommitmentPoolingModule public commitmentPoolingModule;` immediately after
+   `openMinting` and immediately before `__gap`. It must compile at slot 213 offset 2; inserting
+   it in the earlier module-fields block would shift live fields and is forbidden.
 2. New setter + event in the setter block (lines 181-227 pattern):
    `setCommitmentPoolingModule(address)` onlyOwner, emitting `CommitmentPoolingModuleUpdated(oldModule, newModule)`.
 3. Mint callback in `_initializeIntegrationsAndAccount` (lines 421-456), after the CookieJar block, same graceful shape as lines 423-430: `if (address(commitmentPoolingModule) != address(0)) { try commitmentPoolingModule.onGardenMinted(gardenAccount) returns (uint256) { } catch { } }`. Garden mint MUST NOT revert on module failure.
-4. **Gap 37 to 36** with comment rewrite. Current comment (`packages/contracts/src/tokens/Garden.sol:56-62`) reserves 37 slots against 13 used; the new comment reads 14 used slots (adds `commitmentPoolingModule` to the enumerated list) and `uint256[36] private __gap;`.
+4. **Gap remains 37.** `transferRestriction` occupies slot 213 offset 0 and `openMinting`
+   occupies offset 1; the address fits in the remaining bytes at offset 2. The generated layout,
+   not named-field arithmetic, is authoritative, and `uint256[37] private __gap;` is unchanged.
 
 #### Live-chain implication
 
-GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d02276593` (`packages/contracts/deployments/42161-latest.json:14`) holding real garden state for 13 live gardens. The upgrade appends one variable in gap space (safe append) and shrinks the gap by exactly one, preserving total slot count. Required proof chain before broadcast:
+GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d02276593` (`packages/contracts/deployments/42161-latest.json:14`) holding real garden state for 13 live gardens. The upgrade appends one packed variable after all existing fields without consuming a gap slot. Required proof chain before broadcast:
 
-- `script/check-storage-layout.sh` passes against the regenerated baseline (`--update` run committed in the same PR; GardenToken entry already exists at `packages/contracts/script/check-storage-layout.sh:24`).
-- `packages/contracts/test/StorageLayout.t.sol` gains assertions for the new field position and updated gap. Known drift, do not silently fix beyond this contract: the existing GardenToken comments there still describe an old 7-named/43-gap layout (`packages/contracts/test/StorageLayout.t.sol:31-35,59-69`) while the source has 13 used + 37 gap; the upgrade PR corrects the GardenToken numbers it touches and logs the tautology-shaped gap tests as debt (section 12).
+- `bun run --filter @green-goods/contracts check:storage-layout` passes against the reviewed
+  pre-change GardenToken baseline; only an explicit `--update` action may refresh it.
+- `packages/contracts/test/StorageLayout.t.sol` asserts slot 213 offset 2, preservation of every
+  old slot/offset, and the unchanged 37-slot gap. Named-field arithmetic is not accepted.
 - Upgrade preserves state test extended (`testGardenTokenUpgradePreservesState`, `packages/contracts/test/StorageLayout.t.sol:270-289`) to set and survive `commitmentPoolingModule`.
 - Broadcast via the named root `contracts:*` scripts only (keystore + sender encoding per root CLAUDE.md; never raw forge, `.claude/rules/contracts.md`).
 
-Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): `gardenToken.setCommitmentPoolingModule(module)`, then `registerPool(rootGarden, Protocol)` by the module owner, then `registerPool(garden, Garden)` backfill for the 13 live gardens (steward or module owner per call).
+Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): after both the
+`GardenToken` and `WorkApprovalResolver` upgrades, call
+`gardenToken.setCommitmentPoolingModule(module)` and
+`workApprovalResolver.setCommitmentModule(module)`; verify both reverse links, updater
+preservation, storage, ownership, and every chain-2/chain-3 readiness fact while the pooling
+module remains paused; then call `module.setPaused(false)`, register the protocol pool on the
+root garden, backfill `registerPool(garden, Garden)` for the 13 live gardens, and run the
+operational smoke.
 
 ### 6.4 EAS schema work: exactly two registrations (register #14)
 
@@ -961,7 +1110,15 @@ No commitment schema exists or will exist. The two registrations are assessment 
 
 #### 6.4.1 Assessment v3 schema
 
-Deployed v2 stays untouched and readable: UID `0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93`, string `string title,string description,string assessmentConfigCID,uint8 domain,uint256 startDate,uint256 endDate,string location` (`packages/contracts/deployments/42161-latest.json:47-48`). Schemas are immutable (`reports/corrections-log.md` H2), so v3 is a fresh UID following the same thin-schema + config-CID pattern, appending only what resolvers and indexed consumers need (`reports/corrections-log.md` §3).
+The registered v2 schema stays immutable and readable in EAS: UID
+`0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93`, string
+`string title,string description,string assessmentConfigCID,uint8 domain,uint256 startDate,uint256 endDate,string location`
+(`packages/contracts/deployments/42161-latest.json:47-48`). The live Arbitrum resolver currently
+reports a zero v2 UID; the upgrade sequence must first pin this verified artifact UID and prove
+the registered schema record, resolver address, owner, and old state before adding v3. Schemas
+are immutable (`reports/corrections-log.md` H2), so v3 is a fresh UID following the same
+thin-schema + config-CID pattern, appending only what resolvers and indexed consumers need
+(`reports/corrections-log.md` §3).
 
 Proposed canonical v3 string (v2's seven fields first, three appended):
 
@@ -992,33 +1149,48 @@ Struct appended to `packages/contracts/src/Schemas.sol` as `CommunityTestimonySc
 
 #### 6.4.3 Resolvers
 
-Both NET-NEW, following the four resolver conventions verbatim from `packages/contracts/src/resolvers/{Work,WorkApproval,Assessment}.sol`: validation-order doc comment (`Work.sol:78-84`), flat-tuple decode with explanatory comment (`Work.sol:90-95`), `setSchemaUID` zero-bypass for the deployment window (`Work.sol:59-66`), `onRevoke` returns false, 48-slot-style gap with used-slot comment (`WorkApproval.sol:47-53`), UUPS + Ownable + `_disableInitializers`.
+`AssessmentV3` is the **schema name only**. The live `AssessmentResolver` UUPS proxy at the
+existing `assessmentResolver` deployment address is upgraded in place; there is no
+`AssessmentV3Resolver`, second Assessment proxy, compatibility alias, or resolver migration.
+The upgraded implementation continues to recognize the existing `schemaUID` as v2 and appends
+one `assessmentV3SchemaUID` storage field. `CommunityTestimonyResolver` is NET-NEW.
 
-The external/configuration ABI is frozen below. `onAttest` and `onRevoke` remain the inherited internal `SchemaResolver` overrides; EAS is their only caller. Constructors hold EAS as an immutable exactly like the existing resolvers, while all mutable configuration is owner-gated and observable.
+Both implementations follow the resolver conventions in
+`packages/contracts/src/resolvers/{Work,WorkApproval,Assessment}.sol`: validation-order doc
+comments, flat-tuple decode, `onRevoke` returning false, UUPS + Ownable, and
+implementation-constructor `_disableInitializers()`. `onAttest` and `onRevoke` remain the
+inherited internal `SchemaResolver` overrides; EAS is their only caller. Constructors hold EAS
+as an immutable exactly like the existing resolvers, while mutable configuration is
+owner-gated and observable.
 
 ```solidity
-interface IAssessmentV3ResolverConfig {
-    event SchemaUIDUpdated(bytes32 indexed oldUID, bytes32 indexed newUID);
-    event LegacySchemaUIDUpdated(bytes32 indexed oldUID, bytes32 indexed newUID);
+interface IAssessmentResolverConfig {
+    // Existing SchemaUIDUpdated(bytes32 schemaUID) and setSchemaUID(bytes32)
+    // remain the v2 configuration surface unchanged.
+    event AssessmentV3SchemaUIDUpdated(bytes32 indexed oldUID, bytes32 indexed newUID);
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
+    event KarmaGAPModuleDisabled(address indexed oldModule);
 
-    error NotAuthorizedAttester(address attester, address garden);
+    // Existing v2 errors keep their selectors unchanged.
+    error NotAuthorizedAttester();
     error TitleRequired();
     error ConfigCIDRequired();
     error InvalidDomain(uint8 domain);
+    error AssessmentV2SchemaUIDRequired();
+    error AssessmentV3SchemaUIDRequired();
+    error SchemaUIDCollision(bytes32 uid);
     error InvalidAssessmentKind(uint8 kind);
     error BaselineRequired();
     error BaselineForbidden();
     error InvalidBaseline(bytes32 baselineUID);
     error BaselineGardenMismatch(bytes32 baselineUID, address expectedGarden, address actualGarden);
 
-    // implementation constructor: constructor(address eas)
-    function initialize(address owner_) external;
-    function setSchemaUID(bytes32 uid) external;
-    function setLegacySchemaUID(bytes32 uid) external;
+    function initialize(address owner_) external; // existing initializer; never re-run on upgrade
+    function setSchemaUID(bytes32 uid) external; // existing v2 setter/signature
+    function setAssessmentV3SchemaUID(bytes32 uid) external;
     function setKarmaGAPModule(address module) external; // zero disables the optional hook
-    function schemaUID() external view returns (bytes32);
-    function legacySchemaUID() external view returns (bytes32);
+    function schemaUID() external view returns (bytes32); // existing v2 UID
+    function assessmentV3SchemaUID() external view returns (bytes32);
     function karmaGAPModule() external view returns (address);
     function isPayable() external pure returns (bool);
 }
@@ -1031,58 +1203,188 @@ interface ICommunityTestimonyResolverConfig {
     error TestimonyRequired();
     error InvalidCommitment(uint256 commitmentId);
     error CommitmentGardenMismatch(uint256 commitmentId, address expectedGarden, address actualGarden);
+    error InvalidSchema(); // existing CommonErrors.sol selector
+    error SchemaUIDRequired();
+    error SchemaUIDConflict(bytes32 currentUID, bytes32 requestedUID);
+    error CommitmentModuleRequired();
 
     // implementation constructor: constructor(address eas)
     function initialize(address owner_) external;
-    function setSchemaUID(bytes32 uid) external;
-    function setCommitmentModule(address module) external; // zero disables optional reference validation
+    function setSchemaUID(bytes32 uid) external; // non-zero; zero -> pin, exact -> no-op, conflict -> revert
+    function setCommitmentModule(address module) external; // non-zero and schema UID already pinned
     function schemaUID() external view returns (bytes32);
     function commitmentModule() external view returns (address);
     function isPayable() external pure returns (bool);
 }
 ```
 
-For both implementations: constructor calls `_disableInitializers`; `initialize` rejects zero owner, calls `__Ownable_init`, and transfers ownership; `_authorizeUpgrade` is `onlyOwner`; schema UID zero-bypass is allowed only before standalone registration and the post-deploy verifier rejects zero. `AssessmentV3Resolver.setLegacySchemaUID` rejects zero after initialization because Delta validation cannot be safe without the deployed v2 UID. Every setter emits the exact old/new event above.
+For `CommunityTestimonyResolver`, the constructor calls `_disableInitializers`; `initialize`
+rejects zero owner, calls `__Ownable_init`, and transfers ownership; `_authorizeUpgrade` is
+`onlyOwner`. Its NET-NEW schema path has no compatibility wildcard: validation requires the
+attestation schema to equal the stored non-zero UID. `setSchemaUID` rejects zero, pins the first
+non-zero UID, treats the exact value as a no-op without another event, and reverts
+`SchemaUIDConflict(currentUID, requestedUID)` for any different non-zero value. The upgraded
+Assessment implementation has no new initializer: it preserves owner, EAS immutable,
+`karmaGAPModule`, and v2 `schemaUID`, and uses
+an owner-only `setAssessmentV3SchemaUID` after the additive registration. That setter rejects
+zero, a zero v2 UID, or equality with the v2 UID and emits the exact old/new event above. The existing
+`setSchemaUID` selector/event remain unchanged and retain the v2 deployment-window zero value,
+but after a non-zero v3 UID is configured it rejects both zero and equality with v3. Thus the
+legacy zero-bypass exists only before v3 activation, never while either live v3 schema can call
+the resolver. Post-deploy verification rejects either UID being zero and proves the two UIDs
+are distinct.
 
-**`AssessmentV3Resolver`** (NET-NEW `packages/contracts/src/resolvers/AssessmentV3.sol`), validation order:
+**Upgraded `AssessmentResolver`** (`packages/contracts/src/resolvers/Assessment.sol`), validation order:
 
-1. Schema UID check (zero-bypass).
-2. Decode v3 tuple.
+1. Schema dispatch: a non-zero `assessmentV3SchemaUID` match decodes v3; otherwise
+   `schemaUID == 0 || attestation.schema == schemaUID` decodes and validates the existing v2
+   tuple exactly as today; every other schema reverts. This preserves the existing v2
+   deployment-window zero-bypass without creating a v3 bypass. The v3 setter cannot activate
+   while v2 is zero, and the v2 setter cannot return to zero after v3 activation. Post-deploy
+   both UIDs are non-zero and distinct.
+2. Decode the selected v2 or v3 tuple.
 3. IDENTITY by kind (register #7): Baseline requires `accessControl.isEvaluator || accessControl.isOperator` (exact parity with today's `packages/contracts/src/resolvers/Assessment.sol:114-121`, preserving operator analog capture); Delta and Technical require `accessControl.isEvaluator` only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:25`).
 4. REQUIRED FIELDS: title, assessmentConfigCID non-empty; domain <= 3 (`Assessment.sol:124-136` parity).
-5. KIND VALIDATION: assessmentKind <= 2; Delta requires baselineUID != 0 and `_eas.getAttestation(baselineUID)` returning an attestation whose schema is the v2 or v3 UID and whose recipient equals `attestation.recipient`; Baseline/Technical require baselineUID == 0.
+5. KIND VALIDATION for v3 only: assessmentKind <= 2; Delta requires baselineUID != 0 and `_eas.getAttestation(baselineUID)` returning an attestation whose schema is `schemaUID` (v2) or `assessmentV3SchemaUID` and whose recipient equals `attestation.recipient`; Baseline/Technical require baselineUID == 0. Existing v2 attestations retain their current evaluator-or-operator rule and seven-field validation without fabricating v3 fields.
 6. GAP INTEGRATION: same optional KarmaGAP milestone try/catch as v2 (`Assessment.sol:138-141,150-167`), reusing `createMilestone`.
 
-Storage: `karmaGAPModule`, `schemaUID`, `legacySchemaUID` (v2 UID for baseline cross-checks) = 3 used slots, `uint256[47] __gap` (50 total).
+Storage append: existing slots 1–2 remain `karmaGAPModule`, `schemaUID`; slot 3 becomes
+`assessmentV3SchemaUID`; `uint256[48] __gap` becomes `uint256[47] __gap` (50 total). The
+upgrade proof must assert the live proxy owner, v2 UID, and KarmaGAP address are byte-identical
+before/after and that both v2 and v3 attestations resolve through the same proxy.
 
 **`CommunityTestimonyResolver`** (NET-NEW `packages/contracts/src/resolvers/CommunityTestimony.sol`), validation order:
 
-1. Schema UID check (zero-bypass).
-2. Decode tuple.
-3. IDENTITY: `accessControl.isCommunity(attestation.attester)` only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:42-45`). Community Hat becomes a real attestation gate for the first time (today it only gates GreenWill genesis eligibility, `reports/corrections-log.md` H6).
-4. REQUIRED FIELDS: testimonyCID non-empty.
-5. COMMITMENT CHECK (optional module ref, zero-bypass): when `commitmentModule != address(0)` and `commitmentId != 0`, verify `module.getCommitment(commitmentId)` exists and its pool's garden equals `attestation.recipient`.
+1. ACTIVATION CHECK: require `commitmentModule != address(0)` or revert
+   `CommitmentModuleRequired`. The setter cannot make the module non-zero until the schema UID is
+   pinned, so every pre-activation call fails closed.
+2. SCHEMA UID CHECK: require non-zero `schemaUID` and exact equality with
+   `attestation.schema`; there is no zero-UID wildcard.
+3. Decode tuple.
+4. IDENTITY: `accessControl.isCommunity(attestation.attester)` only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:42-45`). Community Hat becomes a real attestation gate for the first time (today it only gates GreenWill genesis eligibility, `reports/corrections-log.md` H6).
+5. REQUIRED FIELDS: testimonyCID non-empty.
+6. COMMITMENT CHECK: when `commitmentId != 0`, verify
+   `module.getCommitment(commitmentId)` exists and its pool's garden equals
+   `attestation.recipient`.
 
 Storage: `schemaUID`, `commitmentModule` = 2 used slots, `uint256[48] __gap` (matches `Assessment.sol:39-44` accounting style).
+
+`setCommitmentModule` rejects zero and rejects configuration while `schemaUID == bytes32(0)`;
+successful changes emit old/new. A non-zero replacement remains available only for catastrophic
+module-proxy recovery and is owner/timelock-controlled; post-deploy verification proves the target
+has expected `ICommitmentPoolingModule` bytecode/interface and that its EAS/schema wiring points
+back to this resolver. The normal UUPS upgrade path preserves the module proxy address and never
+uses this recovery setter.
 
 #### 6.4.4 Registration path (standalone, register #26; first PR chain of the August track)
 
 Never use `--update-schemas`: that mode reloads the three legacy resolvers and re-registers ALL legacy schemas, overwriting every schema artifact key (`packages/contracts/script/Deploy.s.sol:122-151`, `_registerSchemas` at `packages/contracts/test/helpers/DeploymentBase.sol:955-990`). Additive registration goes through the badge-schemas standalone precedent instead:
 
-- NET-NEW `packages/contracts/script/DeployCommitmentSchemas.s.sol` (template `packages/contracts/script/DeployBadgeSchema.s.sol:15-73`): deploys the two resolver UUPS proxies (CREATE2 + ERC1967Proxy, `_deployAssessmentResolver` shape at `packages/contracts/test/helpers/DeploymentBase.sol:913-953`), registers both schemas with `SchemaRegistry.register(schemaString, resolverAddr, false)` against `eas.schemaRegistry` `0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB` (`packages/contracts/deployments/42161-latest.json:10`), calls `AssessmentV3Resolver.setSchemaUID`, `setLegacySchemaUID(deployment.schemas.assessmentSchemaUID)`, and `setKarmaGAPModule(deployment.karmaGAPModule)`, calls `CommunityTestimonyResolver.setSchemaUID` and `setCommitmentModule(deployment.commitmentPoolingModule)` (zero only when schema PR lands before module PR; PR chain 2 must wire it before any testimony), then writes `deployments/{chainId}-commitment-schemas.json`.
+- The existing Assessment proxy upgrade is a separate, earlier phase through
+  `packages/contracts/script/upgrade.ts assessment-resolver`. It follows the repository UUPS
+  sequence: layout/rollback proof -> pure simulation -> persisted transaction plan -> separately
+  authorized broadcast -> post-upgrade implementation-slot, owner, v2 UID, KarmaGAP, and
+  initializer-lock verification. A deploy or schema-registration target never upgrades that
+  proxy.
+- NET-NEW `packages/contracts/script/DeployCommitmentSchemas.s.sol` (template
+  `packages/contracts/script/DeployBadgeSchema.s.sol:15-73`) has two explicit modes. The default
+  preparation mode verifies that the existing `assessmentResolver` proxy is already on the
+  approved v3-capable implementation and that its owner, v2 UID, and KarmaGAP state match the
+  post-upgrade evidence. It deploys/reconciles only the NET-NEW `CommunityTestimonyResolver`
+  implementation + proxy and the AssessmentV3 registration against the existing Assessment
+  proxy. From the exact schema bytes, predicted resolver proxy, and `revocable == false`, it derives
+  and one-way pins the deterministic Community Testimony UID while `commitmentModule` remains zero.
+  Preparation does not call `SchemaRegistry.register`; because registration is permissionless, it
+  accepts only an empty record or the already-exact deterministic record and rejects anything else.
+  Either state remains inactive while the module is zero. The named
+  `--finalize-community-testimony` mode runs only after module/register deployment. It reads the
+  module proxy from the verified chain deployment artifact (there is no caller-supplied module
+  override), verifies its bytecode/interface and owner boundary, proves the resolver's pinned UID
+  equals the deterministic expected UID, registers/reconciles the exact Community Testimony record,
+  and only then reconciles
+  `CommunityTestimonyResolver.setCommitmentModule(nonZeroModule)` as the final activation action.
+  An exact registered record may therefore exist briefly while the resolver is intentionally
+  inactive; no attestation succeeds until the verified module is activated last.
+- Resolver deployment is transaction/artifact-recovery safe, not only schema registration. The
+  preparation mode derives versioned CREATE2 salts and predicts both implementation and proxy from
+  exact creation/init code before sending. Absent code permits one deployment. Existing code is reused
+  only when implementation bytecode hash, proxy ERC-1967 implementation, initializer lock, owner,
+  EAS, and schema/module state match exactly. Preparation reconciles schema UID zero to the exact
+  expected UID only while module is zero; exact UID/module-zero is the prepared state. A fully
+  finalized retry may reuse exact UID + exact registry record + the exact artifact-sourced module.
+  Module-nonzero with a zero UID, or module-nonzero with an absent/mismatched registry record, fails
+  closed as an out-of-order state. Finalization accepts only three ordered recovery states:
+  expected UID + empty record + zero module; expected UID + exact record + zero module; or expected
+  UID + exact record + exact verified module. Any other state fails closed. If deployment succeeds
+  but result persistence or append-only merge fails, a retry reads the same predicted addresses and
+  reconstructs the missing result artifact without another deployment transaction.
+- Both registrations are transaction/artifact-recovery safe. Before sending, the script computes
+  `expectedUID = keccak256(abi.encodePacked(schemaString, resolver, false))` and reads
+  `SchemaRegistry.getSchema(expectedUID)`. An empty record permits one `register` call whose
+  returned UID must equal `expectedUID`. An existing record is reused only when its UID, schema
+  bytes, resolver, and `revocable == false` match exactly; any mismatch fails closed. Schema UID
+  setters use read-before-set reconciliation: zero sets `expectedUID`, the exact existing value
+  skips the transaction, and any other non-zero value fails closed. Community Testimony's UID is
+  pinned during preparation; its registry record is reconciled during finalization before module
+  activation. The preparation result may persist the predicted UID as recovery metadata, but the
+  canonical latest/schema artifact exposes the Community Testimony schema keys only after exact
+  record reconciliation and final activation. The append-only artifact merge uses `expectedUID` in
+  every path. A retry after an on-chain success but local persistence failure therefore reconstructs
+  the same artifact without a duplicate deployment/registration/setter transaction or an
+  `AlreadyExists` revert.
 - NET-NEW `packages/contracts/script/deploy/commitment-schemas.ts` (template `packages/contracts/script/deploy/badge-schemas.ts:76-168`): wraps the forge script with keystore handling and merges the result into `deployments/{chainId}-latest.json` under NEW keys only, exactly like `mergeIntoDeployment` (`badge-schemas.ts:128-168`).
-- Artifact keys added (v2 keys untouched): `assessmentV3SchemaUID`, `assessmentV3Schema`, `assessmentV3Name`, `assessmentV3Description`, `communityTestimonySchemaUID`, `communityTestimonySchema`, `communityTestimonyName`, `communityTestimonyDescription`, plus top-level `assessmentV3Resolver` and `communityTestimonyResolver` addresses.
+- Artifact keys added (v2 keys and existing top-level `assessmentResolver` untouched):
+  `assessmentV3SchemaUID`, `assessmentV3Schema`, `assessmentV3Name`,
+  `assessmentV3Description`, `communityTestimonySchemaUID`,
+  `communityTestimonySchema`, `communityTestimonyName`,
+  `communityTestimonyDescription`, plus top-level `communityTestimonyResolver`. There is no
+  `assessmentV3Resolver` artifact key.
 - `packages/contracts/config/schemas.json` gains sibling keys `assessmentV3` and `communityTestimony` (name, description, revocable false, fields array) so `_generateSchemaString` and its bun utility keep producing canonical strings (`packages/contracts/script/DeployHelper.sol:416-462`). The deployed `assessment` key is never edited.
-- `packages/contracts/script/validate-resolver-eas.mjs` and `validate-eas-immutables.mjs` extended to cover the two new schema/resolver pairs.
-- Invocation: `bun script/deploy.ts commitment-schemas --network <chain> --broadcast` wired into the existing deploy CLI dispatch next to `badge-schemas`.
+- `packages/contracts/script/validate-resolver-eas.mjs` and
+  `validate-eas-immutables.mjs` are extended to prove both assessment schema UIDs point to the
+  same existing Assessment proxy and Community Testimony points to its new resolver.
+- Invocations, wired into the existing deploy CLI dispatch next to `badge-schemas`:
+
+  ```sh
+  bun script/deploy.ts commitment-schemas --network <chain> --broadcast
+  bun script/deploy.ts commitment-schemas --network <chain> --finalize-community-testimony --broadcast
+  ```
+
+  The first command is preparation; the second runs only after the verified module/register
+  deployment. Both broadcasts remain
+  separately authorized release operations; implementation/review lanes run their corresponding
+  dry-run modes only.
 
 #### Acceptance criteria
 
 - Both schema strings byte-match between `config/schemas.json`-generated output and the registered on-chain schema record.
 - v2 assessment attestations keep resolving and the v2 artifact keys are byte-identical before and after the merge.
-- `bun run --filter @green-goods/contracts test:match -- test/unit/AssessmentV3Resolver.t.sol` covers baseline by operator (passes), delta by operator (reverts), invalid kind/domain, forbidden/missing/foreign baselineUID, setter events, zero-bypass deployment window, initializer lock, and owner-only upgrade/configuration.
-- `bun run --filter @green-goods/contracts test:match -- test/unit/CommunityTestimonyResolver.t.sol` covers testimony by non-community, empty testimony, commitmentId pointing at another garden's pool when the module is wired, module-zero bypass, setter events, initializer lock, and owner-only upgrade/configuration.
-- Sepolia registration precedes Arbitrum (release-age gate posture of `assertSepoliaGate`, `packages/contracts/script/deploy/badge-schemas.ts:77-81`).
+- Deployment-script tests cover absent/exact/mismatched implementation and proxy code; recovery
+  when resolver deployment succeeded but its result/deployment artifact is absent; first
+  registration; exact-existing reconciliation; zero/exact/conflicting schema setter state; exact
+  finalization-module reconciliation; the ordered Community Testimony states UID pin -> exact
+  registry reconciliation -> module activation; rejection of module-before-UID,
+  module-before-record, and mismatched records; and recovery when registration, UID pinning, module
+  activation, or artifact persistence succeeds independently for AssessmentV3 and Community
+  Testimony.
+- `bun run --filter @green-goods/contracts test:match -- test/unit/AssessmentResolver.t.sol`
+  covers the upgrade and dual-schema dispatch: pre-upgrade v2 state preservation; v2
+  attestation parity after upgrade; v3 baseline by operator (passes); v3 delta by operator
+  (reverts); invalid kind/domain; forbidden/missing/foreign baselineUID; setter event;
+  v3 activation while v2 is zero; attempts to zero/collide either UID after v3 activation;
+  implementation initializer lock; owner-only upgrade/configuration; and rejection of an
+  unrelated schema.
+- `bun run --filter @green-goods/contracts test:match -- test/unit/CommunityTestimonyResolver.t.sol`
+  covers testimony by non-community, empty testimony, commitmentId pointing at another
+  garden's pool, fail-closed zero module for both `commitmentId == 0` and `commitmentId != 0`,
+  exact-schema enforcement with no zero-UID wildcard, zero UID rejection, first UID pin and event,
+  exact UID no-op without an event, conflicting UID rejection, zero-module setter rejection,
+  module-before-UID rejection, registered-exact-schema inactivity while module is zero, verified
+  non-zero activation/recovery replacement, initializer lock, and owner-only
+  upgrade/configuration.
+- Arbitrum Sepolia registration/rehearsal precedes Arbitrum One (release-age gate posture of
+  `assertSepoliaGate`, `packages/contracts/script/deploy/badge-schemas.ts:77-81`, extended for
+  the distinct `421614` target rather than reusing `11155111`).
 - Registered before cycle 1 opens so baselines exist for seeding (register #26).
 
 ### 6.5 WorkApprovalResolver bridge (upgrade)
@@ -1121,6 +1423,9 @@ Acceptance criteria: approval with module unset behaves byte-identically to toda
 - Call sites appended to `_deployCorePart2` after HypercertsModule (`DeploymentBase.sol:257-338` numbering continues at step 15c).
 - `_wireModules` additions (`DeploymentBase.sol:341-385`):
   `commitmentRegister.setModule(module)`; `module.setGardenToken(gardenToken)`; `module.setHatsModule(hatsModule)`; `module.setActionRegistry(actionRegistry)`; `module.setCommitmentRegister(register)`; `module.setWorkApprovalResolver(workApprovalResolver)`; `module.setEAS(eas)`; `module.setSchemaUIDs(work, workApproval, legacyAssessment, assessmentV3)`; `gardenToken.setCommitmentPoolingModule(module)`; `workApprovalResolver.setCommitmentModule(module)`.
+  The module is initialized paused; wiring verifies every emitted old/new configuration fact and
+  calls `module.setPaused(false)` only after all dependency addresses, all four non-zero/distinct
+  UIDs, reverse links, register module, and deployed bytecode match the transaction plan.
 
 ### 7.2 Artifacts
 
@@ -1132,34 +1437,147 @@ Acceptance criteria: approval with module unset behaves byte-identically to toda
 
 Deployment artifacts are the source of truth for addresses; pre-broadcast zero/missing addresses mean pending broadcast, post-broadcast they are blockers (root CLAUDE.md contract deployment rules).
 
-1. PR chain 1 (schemas): deploy resolvers + register the two schemas on Sepolia, then Arbitrum. Merge artifact keys.
-2. PR chain 2 (module + register): deploy `CommitmentRegister` + `CommitmentPoolingModule` proxies, wire module-side references, run `setSchemaUIDs` with the chain's artifact values.
-3. PR chain 3 (upgrades): upgrade GardenToken implementation (6.3) and WorkApprovalResolver implementation (6.5); `setCommitmentPoolingModule` / `setCommitmentModule`; register protocol pool on the root garden (`deployments/42161-latest.json:40-43`); backfill `registerPool` for the 13 live gardens.
-4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump `start_block` (8.1).
+Arbitrum Sepolia is not interchangeable with Ethereum Sepolia for protocol dependencies. The
+official EAS repository publishes `421614` EAS
+`0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE` and SchemaRegistry
+`0x45CB6Fa0870a8Af06796Ac15915619a0f22cd475`; the rehearsal consumes those addresses only after
+chain-local bytecode/code-hash verification. Hats still has no official `421614` deployment in
+the reviewed primary source, so the implementation lane adds a Bun-wrapped, version-pinned
+test Hats bootstrap/dry-run path with constructor/configuration inputs and persisted code hashes.
+It must never copy any `11155111` address into `421614` without proving the same contract exists
+there. Unit/local/fork tests may use existing mocks, but a live rehearsal is blocked until every
+chain-local dependency fact passes.
+
+1. PR chain 1 (resolver/schema preparation): first commit pre-change generated baselines for
+   AssessmentResolver, WorkApprovalResolver, and GardenToken. On Arbitrum Sepolia (`421614`),
+   where no canonical Green Goods Assessment proxy is currently recorded, deterministically
+   deploy the current v2 resolver/proxy, register and pin its non-zero v2 UID, record the
+   pre-upgrade state, then rehearse the in-place upgrade. On Arbitrum One, read the live
+   `schemaUID()` first; the verified 2026-07-24 value is zero, so the owner must set the existing
+   v2 artifact UID before `setAssessmentV3SchemaUID`. Then deploy only
+   CommunityTestimonyResolver, register AssessmentV3 against the same Assessment proxy, set its
+   v3 UID, derive and one-way pin the Community Testimony UID while its module is zero, and verify
+   v2/v3 parity. Community Testimony remains inactive at this step; its deterministic registry
+   record is either absent or already exact because permissionless pre-registration is accepted
+   only under exact reconciliation.
+2. PR chain 2 (module + register + schema finalization): deploy `CommitmentRegister` +
+   `CommitmentPoolingModule` proxies, wire module-side references, verify the Community Testimony
+   resolver's pinned UID, register/reconcile the exact Community Testimony record while its module
+   is still zero, activate the verified non-zero module proxy last, and run `setSchemaUIDs` with the
+   chain's final non-zero, pairwise-distinct artifact values while the pooling module is paused.
+   Verify dependency/schema events and module-side wiring, and keep the pooling module paused
+   through PR chain 3. Repeat the exact sequence on Arbitrum One only after Arbitrum Sepolia
+   evidence passes. Ethereum
+   Sepolia (`11155111`) remains a legacy regression lane and does not substitute for the
+   protocol's target-chain rehearsal.
+3. PR chain 3 (upgrades): upgrade GardenToken implementation (6.3) and
+   WorkApprovalResolver implementation (6.5); `setCommitmentPoolingModule` /
+   `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and
+   both-direction wiring; unpause the pooling module only after those reverse links and every
+   chain-2 readiness fact pass; then register the protocol pool on the root garden
+   (`deployments/42161-latest.json:40-43`) and backfill `registerPool` for the 13 live gardens.
+4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump
+   `start_block` (8.1).
+
+### 7.4 Storage-layout and UUPS proof gate
+
+The storage gate covers every contract introduced or upgraded by Commitment Pooling:
+`CommitmentPoolingModule`, `CommitmentRegister`, `SettlementModule`,
+`CeloSettlementExecutor`, `CommunityTestimonyResolver`, `AssessmentResolver`, `GardenToken`,
+and `WorkApprovalResolver`.
+
+- The implementation first fixes `script/check-storage-layout.sh`: check mode exits non-zero
+  when a baseline is absent or differs, never writes, and corrects/removes the stale
+  `DeploymentRegistry:src/DeploymentRegistry.sol` entry. Baseline regeneration is available
+  only through an explicit `--update` action.
+- `packages/contracts/package.json` gains
+  `bun run --filter @green-goods/contracts check:storage-layout`; that Bun target is the only
+  supported entry point and encapsulates every Forge inspection. Raw `forge` remains forbidden.
+- Generated compiler layout is compared by fully qualified contract name, slot, offset, type,
+  and label. `StorageLayout.t.sol` adds concrete `vm.load`/getter upgrade-preservation
+  assertions for every appended field; arithmetic such as “named + gap == 50” is not accepted
+  as slot proof.
+- Each live UUPS upgrade test initializes representative pre-upgrade state, upgrades through
+  the real proxy authorization path, asserts all old fields/owner/immutable dependencies are
+  unchanged, and exercises rollback to the prior implementation in simulation.
+- Assessment is specifically 2+48 → 3+47; GardenToken appends at slot 213 offset 2 and retains
+  its 37-slot gap; WorkApprovalResolver is 2+48 → 3+47. New contracts commit their
+  compiler-generated baseline before any deploy dry-run. Any prose feature-slot/gap count for a
+  new contract is an expected design value only until the generated baseline confirms it.
+- The deployment wrapper runs the read-only layout check before prediction or broadcast, and
+  post-deploy verification confirms ERC-1967 implementation, proxy owner/admin boundary,
+  initializer lock, bytecode hash, and persisted artifact address. A missing address before
+  broadcast remains pending; a missing proof path or a post-broadcast zero/mismatch is a
+  blocker.
 
 The runnable command contract is exact:
 
 ```sh
-# From packages/contracts. These targets are added by this lane.
-bun script/deploy.ts commitment-schemas --network sepolia --dry-run --pure-simulation
-bun script/deploy.ts commitment-pooling --network sepolia --dry-run --pure-simulation
-bun script/upgrade.ts commitment-pooling --network sepolia --dry-run --pure-simulation
-bun script/deploy.ts commitment-schemas --network arbitrum --dry-run --pure-simulation
-bun script/deploy.ts commitment-pooling --network arbitrum --dry-run --pure-simulation
+# From packages/contracts. Phase A: the existing Assessment proxy is the only action that can run
+# before its upgrade is authorized. Pure simulation and the sender-bound transaction plan do not
+# claim that a later invocation can observe their ephemeral state.
+bun script/upgrade.ts assessment-resolver --network arbitrum-sepolia --dry-run --pure-simulation
+bun script/upgrade.ts assessment-resolver --network arbitrum-sepolia --tx-plan --sender <verified-421614-assessment-owner>
+
+# Phase B: only after the separately authorized Assessment upgrade receipt and post-upgrade
+# verifier pass. This chain-connected preparation dry-run observes the upgraded live proxy.
+bun script/deploy.ts commitment-schemas --network arbitrum-sepolia --dry-run
+
+# Phase C: only after the separately authorized schema-preparation broadcast and artifact verifier
+# pass. The module/register deploy dry-run observes the prepared resolver artifact.
+bun script/deploy.ts commitment-pooling --network arbitrum-sepolia --dry-run
+
+# Phase D: only after the separately authorized module/register broadcast and post-deploy verifier
+# pass. Finalization reads that verified artifact; the grouped upgrade is separately simulated and
+# planned with a sender equal to the live owner of both existing proxies.
+bun script/deploy.ts commitment-schemas --network arbitrum-sepolia --finalize-community-testimony --dry-run
+bun script/upgrade.ts commitment-pooling --network arbitrum-sepolia --dry-run --pure-simulation
+bun script/upgrade.ts commitment-pooling --network arbitrum-sepolia --tx-plan --sender <verified-421614-pooling-upgrade-owner>
+
+# Arbitrum One repeats the same four phases only after every Arbitrum Sepolia phase and
+# post-deploy verifier passes.
+bun script/upgrade.ts assessment-resolver --network arbitrum --dry-run --pure-simulation
+bun script/upgrade.ts assessment-resolver --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+bun script/deploy.ts commitment-schemas --network arbitrum --dry-run
+bun script/deploy.ts commitment-pooling --network arbitrum --dry-run
+bun script/deploy.ts commitment-schemas --network arbitrum --finalize-community-testimony --dry-run
 bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-simulation
+bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
 
 # One-shot backfill stays in the plan hub, not scripts/. It reads the deployment
 # artifact, prints the root + 13 garden calls, and writes no state in dry-run mode.
 bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
-# Post-broadcast only, after separately authorized broadcasts and config address replacement.
-bun run verify:post-deploy:sepolia
-bun run verify:post-deploy:indexer:sepolia
+# Post-broadcast targets below are also created by this lane. They run only after separately
+# authorized broadcasts and config address replacement.
+bun run verify:post-deploy:arbitrum-sepolia
+bun run verify:post-deploy:indexer:arbitrum-sepolia
 bun run verify:post-deploy:arbitrum
 bun run verify:post-deploy:indexer:arbitrum
 ```
 
-`upgrade.ts commitment-pooling` upgrades exactly GardenToken and WorkApprovalResolver, verifies implementation slots and storage baselines, wires both module setters, and merges no schema keys. `backfill-pools.ts` persists a resumable result artifact at `.plans/active/commitment-pooling/artifacts/{chainId}-pool-backfill.json` keyed by garden; dry-run produces a simulation artifact under `.generated/runtime` only, while an explicitly authorized broadcast records tx hash, receipt block, and resulting poolId per garden. Deploy dry-runs write simulation output only; broadcasts merge only the named append-only keys. All invocations use bun wrappers; never raw forge (`.claude/rules/contracts.md`).
+`upgrade.ts assessment-resolver` is the only Assessment proxy-upgrade path. The
+`--sender` value on every transaction plan is mandatory and must equal the live proxy `owner()`;
+the `421614` value is read from and checked against that chain's v2 bootstrap artifact, while the
+verified `42161` owner is pinned above. A mismatch or missing sender fails before plan persistence.
+Both angle-bracketed `421614` senders are mandatory future artifact inputs, not optional
+placeholders or inferred defaults. The grouped pooling upgrade additionally verifies that
+GardenToken and WorkApprovalResolver have the same live owner before persisting one transaction
+plan; differing owners require separately named targets and plans rather than an inferred sender.
+Each chain-connected command above is illegal until the preceding stage's separately authorized
+receipt, post-action verification, and persisted artifact pass. No dry-run relies on state from a
+separate pure-simulation process. The complete sequence is rehearsed first on deterministic local
+chains and Arbitrum Sepolia. `--finalize-community-testimony` requires the verified
+module/register artifact, never accepts an address override, and proves the pinned UID plus exact
+registry record before activating the verified module last. `upgrade.ts commitment-pooling`
+upgrades exactly GardenToken and
+WorkApprovalResolver, verifies implementation slots and storage baselines, wires both module
+setters, and merges no schema keys. `backfill-pools.ts` persists a resumable result artifact at
+`.plans/active/commitment-pooling/artifacts/{chainId}-pool-backfill.json` keyed by garden; dry-run
+produces a simulation artifact under `.generated/runtime` only, while an explicitly authorized
+broadcast records tx hash, receipt block, and resulting poolId per garden. Deploy dry-runs write
+simulation output only; broadcasts merge only the named append-only keys. All invocations use bun
+wrappers; never raw forge (`.claude/rules/contracts.md`).
 
 ## 8. Indexer plan
 
@@ -1206,17 +1624,24 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CommitmentDisputed(uint256 indexed commitmentId, address indexed raiser, uint8 previousState, string reasonCID)
       - event: DisputeResolved(uint256 indexed commitmentId, uint8 resolution, uint8 finalState, string reasonCID)
       - event: RewardPaid(uint256 indexed commitmentId, address indexed source, address indexed recipient, address token, uint256 amount, bytes32 payoutRef, address recordedBy)
+      - event: ModuleDependencyUpdated(uint8 indexed dependency, address indexed previousAddress, address indexed newAddress)
+      - event: ModuleSchemaUIDUpdated(uint8 indexed schemaKind, bytes32 previousUID, bytes32 newUID)
+      - event: ModulePauseStatusChanged(bool previousPaused, bool paused)
   - name: CommitmentRegister
     handler: src/EventHandlers.ts
     events:
-      - event: ClassRegistered(uint256 indexed classId, uint256 indexed poolId, string unitLabel, uint256 quota)
+      - event: ModuleUpdated(address indexed oldModule, address indexed newModule)
       - event: ProviderOpenCommitmentCapUpdated(uint256 indexed poolId, uint256 cap)
-      - event: UnitsCommitted(uint256 indexed classId, address indexed account, uint256 units, uint256 totalCommitted)
-      - event: UnitsReleased(uint256 indexed classId, address indexed account, uint256 units, uint256 totalCommitted)
-      - event: UnitsFulfilled(uint256 indexed classId, address indexed account, uint256 units, uint256 totalFulfilled)
+      - event: ClassRegistered(uint256 indexed classId, uint256 indexed poolId, uint256 cycleId, string unitLabel, uint256 quota)
+      - event: UnitsCommitted(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
+      - event: UnitsReleased(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
+      - event: UnitsFulfilled(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalFulfilled)
 ```
 
-Network entries for both `42161` and `11155111` start with the zero-address placeholder until broadcast, exactly like OctantVault today (`packages/indexer/config.yaml:81-82,104-105`), then swap to artifact addresses.
+Pooling network entries are `42161` and `421614`; both start with zero-address placeholders until
+broadcast and then swap to verified artifact addresses. Existing `11155111` blocks remain
+untouched as a legacy regression lane and receive no pooling block unless Green Goods separately
+decides to deploy the pooling contracts there.
 
 ### 8.2 `schema.graphql` additions
 
@@ -1239,7 +1664,9 @@ enum CommitmentClaimMode { UNKNOWN OPEN APPROVAL_GATED }
 enum CommitmentRewardRail { UNKNOWN NONE ARBITRUM_EXTERNAL CELO_SETTLEMENT }
 enum CommitmentClaimRequestState { PENDING ACCEPTED DECLINED SUPERSEDED }
 enum CommitmentUnitScope { POOL CYCLE }
-enum CommitmentEventType {
+  enum CommitmentEventType {
+    MODULE_UPDATED
+    MODULE_DEPENDENCY_UPDATED MODULE_SCHEMA_UID_UPDATED MODULE_PAUSE_STATUS_CHANGED
   POOL_REGISTERED POOL_CHARTER_UPDATED POOL_READY POOL_OPENED POOL_PAUSED
   POOL_RESUMED POOL_CLOSED POOL_COMPOSTED POOL_REOPENED
   CLASS_REGISTERED PROVIDER_OPEN_COMMITMENT_CAP_UPDATED
@@ -1457,14 +1884,17 @@ type CommitmentClaimRequestIndex {
 type CommitmentEvent {
   id: ID! # chainId-txHash-logIndex
   chainId: Int!
-  poolId: BigInt!
-  poolEntityId: String! # relationship: chainId-poolId
+  poolId: BigInt # null for pool-less module/register configuration events
+  poolEntityId: String # relationship: chainId-poolId; null with poolId
   cycleId: BigInt
   cycleEntityId: String # relationship: chainId-cycleId
   commitmentId: BigInt
   commitmentEntityId: String # relationship: chainId-commitmentId
   eventType: CommitmentEventType!
   actor: String # only an explicit event actor; never inferred from transaction.from
+  configurationKey: Int # dependency/schema enum ordinal; null for ModuleUpdated/pause
+  previousValue: String # normalized address/bytes32/bool configuration value
+  newValue: String # normalized address/bytes32/bool configuration value
   units: BigInt
   data: String # reason / CID / payoutRef payload where the event carries one
   txHash: String!
@@ -1492,17 +1922,34 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 - **Dedup counters**: pool/cycle counters increment exactly the way `holderCount`/`grantCount` do in `packages/indexer/src/handlers/greenWill.ts:66-88` (read existing entity, branch on prior existence, never double-count).
 - **Idempotency**: same-tx replay and already-exists guards as `packages/indexer/src/handlers/hypercerts.ts:38-42,71-75`.
 - **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, zero allocation/counters, and event timestamps. Commitment placeholders use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional relations/provider/reward/dispute fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts but never resets already-applied monotonic counters or terminal state. Tests exercise each placeholder merge.
-- **ID helpers**: add `getGardenId(chainId, garden)`, `getCommitmentPoolId(chainId, poolId)`, `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`, `getCommitmentClaimRequestId(chainId, commitmentId, claimant)`, `getCommitmentUnitSummaryId(chainId, scope, scopeId, unitLabelHash)`, `getCommitmentProviderExposureId(chainId, poolId, provider)`, `getNeedCommitmentIndexId(chainId, needUID)`, and `getCommitmentEventId(chainId, txHash, logIndex)` to `packages/indexer/src/handlers/helpers.ts`, re-exported through `packages/indexer/src/handlers/shared.ts`. Unit-summary IDs are `${chainId}-${scope}-${scopeId}-${keccak256(exactUtf8(unitLabel))}`; exposure IDs are `${chainId}-${poolId}-${lowercaseProvider}`. Raw numeric IDs and addresses remain display/filter attributes only; every cross-entity pointer uses the corresponding `*EntityId`/`gardenId` composite field.
+- **ID helpers**: add `getGardenId(chainId, garden)`, `getCommitmentPoolId(chainId, poolId)`, `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`, `getCommitmentClaimRequestId(chainId, commitmentId, claimant)`, `getCommitmentUnitSummaryId(chainId, scope, scopeId, unitLabelHash)`, `getCommitmentProviderExposureId(chainId, poolId, provider)`, `getNeedCommitmentIndexId(chainId, needUID)`, and `getCommitmentEventId(chainId, txHash, logIndex)` to `packages/indexer/src/handlers/helpers.ts`, re-exported through `packages/indexer/src/handlers/shared.ts`. The one canonical label hash is `viem.keccak256(viem.stringToBytes(unitLabel))`; implementation adds direct `viem: "2.55.0"` to `packages/indexer/package.json`, matching the root pin, instead of relying on Envio `2.32.12`'s bundled viem `2.21.0`. Adding that direct dependency requires explicit repository-owner approval at implementation time; this plan does not authorize an install. It hashes the exact JavaScript string's UTF-8 bytes with no trim, case fold, Unicode normalization, locale transform, or ABI encoding. Unit-summary IDs are `${chainId}-${scope}-${scopeId}-${unitLabelHash}`; exposure IDs are `${chainId}-${poolId}-${lowercaseProvider}`. Raw numeric IDs and addresses remain display/filter attributes only; every cross-entity pointer uses the corresponding `*EntityId`/`gardenId` composite field.
 - **Creation payload completeness**: `CommitmentCreated` initializes `domains`, `requiredActionUIDs`, `requiredApprovedWorkCounts`, `requiresAssessment`, `metadataCID`, and `needUID` directly, and seeds one `CommitmentRequirement` row per bound action (amendment 2026-07-18). Handlers must not backfill these immutable facts from RPC reads or assume defaults that differ from the event.
+  - **Pool-less authority/configuration audit**: `ModuleUpdated`,
+    `ModuleDependencyUpdated`, `ModuleSchemaUIDUpdated`, and `ModulePauseStatusChanged` each create
+    exactly one replay-idempotent `CommitmentEvent` with the matching event type, nullable
+    `configurationKey`, normalized `previousValue`/`newValue`, and null
+    pool/cycle/commitment relationships. Address and bytes32 values use lowercase canonical hex;
+    booleans use `false`/`true`. These events mutate no pool, cycle, commitment, unit-summary, or
+    provider-exposure row, and never use a synthetic pool `0` or `transaction.from`.
 - **Claim request lifecycle**: `ClaimRequested` upserts `${chainId}-${commitmentId}-${claimant}` as `PENDING` from emitted canonical claimant, `requestedBy`, kind, context, and requestedAt, then appends that ID once to `CommitmentClaimRequestIndex(${chainId}-${commitmentId}).requestIds`. `ClaimDeclined` loads the canonical claimant key and marks it `DECLINED`. `CommitmentAccepted` carries claimant/counterparty/provider/providerGarden, marks the matching claimant `ACCEPTED`, and marks other pending requests `SUPERSEDED`. Garden requests remain one row per GardenAccount even when different operators submit, while `requestedBy` preserves the actor. This intentionally avoids `getWhere` and database-wide scans.
 - **Address normalization**: `normalizeAddress` for every address field (`helpers.ts:68-70`). Generic `CommitmentEvent.actor` is nullable and is populated only from an explicit actor parameter; never infer account-abstraction identity from `transaction.from`.
 - **Approved-unit delta**: `ApprovedWorkCounted.approvedUnits` replaces the commitment's cumulative value. The handler asserts `new cumulative == prior cumulative + delta`, writes `approvedWorkCounts[requirementIndex]` plus the matching `CommitmentRequirement.approvedCount`, and increments only the exact-label pool/cycle `CommitmentUnitSummary.approvedUnits` by emitted `newlyApprovedUnits`. An exact event replay changes nothing; cumulative event values are never summed.
-- **Register events and count safety**: `UnitsCommitted` increments `CommitmentPool.openCommitmentCount`, the applicable cycle count, and `CommitmentProviderExposure.openCommitmentCount` by exactly one regardless of `units`; `UnitsReleased` and `UnitsFulfilled` decrement those counts once. The same events update only the matching exact-label `CommitmentUnitSummary`: commit increments expected/open units, release decrements open units, and fulfill decrements open plus increments fulfilled. `hours` and `Hours` never share an ID. Handler tests cover two same-label commitments, one differently cased label, replay idempotency, and dispute flows producing no register event/count change until a real release or fulfillment occurs.
+- **Register events and count safety**: the three unit events carry `poolId`, `cycleId`, and the
+  exact stored `unitLabel`; handlers never need a Commitment lookup or RPC call to choose their
+  keys. `UnitsCommitted` increments `CommitmentPool.openCommitmentCount` and
+  `CommitmentProviderExposure.openCommitmentCount` by exactly one regardless of `units`;
+  `UnitsReleased` and `UnitsFulfilled` decrement them once. When `cycleId != 0`, the same delta
+  applies to that cycle; `cycleId == 0` creates no cycle-scoped row. The events update only the
+  matching exact-label `CommitmentUnitSummary`: commit increments expected/open units, release
+  decrements open units, and fulfill decrements open plus increments fulfilled. `hours` and
+  `Hours` never share an ID. Tests process each unit event before `CommitmentCreated` and prove
+  the self-describing keys still converge, alongside same-label, case-distinct, replay,
+  cancellation/expiry, fulfillment, and dispute fixtures.
 - **Need lineage**: non-zero `CommitmentCreated.needUID` appends the composite commitment/cycle IDs once to `NeedCommitmentIndex`; Fulfilled appends the commitment to `fulfilledCommitmentEntityIds`; commitment-bundled Hypercert handling appends its composite Hypercert ID. UID zero creates no index row. This is reference indexing from Green Goods events/metadata, not EAS indexing.
 
 **Existing Garden ID migration (required, not a compatibility footnote).** Before these handlers ship, change `Garden.id` from the legacy lowercase address to `${chainId}-${lowercaseAddress}` and update every foreign key, helper, generated operation, handler lookup, shared query, fixture, and consumer. Exact relationship additions are: `GardenDomains.gardenId`; `GardenVault.gardenId`; `GardenVaultIndex.gardenId`; `VaultAddressIndex.gardenId`; `VaultDeposit.gardenId`; `VaultEvent.gardenId`; `YieldAllocation.gardenId`; `Hypercert.gardenId`; `CampaignCookieJar.sourceGardenIds`; and `Gardener.firstGardenId`/`gardenIds`, plus the new commitment/settlement fields above. Existing raw `garden`, `sourceGardens`, `firstGarden`, and `gardens` addresses remain filter/display attributes, never relationship keys. There is no mixed-ID period: deploy the schema/handlers together, perform a full Envio replay for every configured chain, run the shared query cutover against the replayed dataset, then switch consumers. Acceptance proves Arbitrum and Sepolia copies of the same address remain distinct and no raw-address Garden lookup remains.
 
-**Generated-config preservation.** Extend both `packages/contracts/script/utils/envio-integration.ts` and `packages/indexer/scripts/check-indexing-boundary.mjs` allowlists for `CommitmentPoolingModule`, `CommitmentRegister`, and `SettlementModule`. A regression fixture must run the deployment-artifact updater twice and prove all three contract blocks and exact event signatures survive unchanged; unknown EAS or Celo token blocks must still fail the boundary check.
+**Generated-config preservation.** Extend both `packages/contracts/script/utils/envio-integration.ts` and `packages/indexer/scripts/check-indexing-boundary.mjs` allowlists for `CommitmentPoolingModule`, `CommitmentRegister`, `SettlementModule`, and `CeloSettlementExecutor`. A regression fixture must run the deployment-artifact updater twice and prove all four contract blocks and exact event signatures survive unchanged; unknown EAS or Celo token blocks must still fail the boundary check.
 
 Run `bun codegen` in `packages/indexer` after the schema/config edits and before writing handler code (`.claude/rules/indexer.md`). Codegen acceptance includes a typed `CommitmentClaimRequestIndex` store, then the handler test must prove two pending requests become one `ACCEPTED` plus one `SUPERSEDED` without a database-wide scan.
 
@@ -1570,25 +2017,53 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
 
 ## 10. Package-Level Backlog
 
-Each block below is shaped as a package-level implementation surface with acceptance criteria and validation hints. Historical PRD-671..681 child issue labels roll up to the parent trackers named in `plan.todo.md`; do not create or update child Linear issues unless Afo explicitly expands the Linear footprint. Feature dependency order is contracts -> indexer/shared (coordinated after the event freeze; shared GREEN waits for generated queries) -> client/admin/docs.
+Each block below is shaped as a package-level implementation surface with acceptance criteria and
+validation hints. Current thin lane mirrors are PRD-721 contracts, PRD-722 indexer, PRD-723
+state/API, PRD-724 client, PRD-725 admin, PRD-726 editorial, PRD-727 docs, and PRD-728
+docs-guides. PRD-671..681 remain historical labels only. Feature dependency order is contracts ->
+indexer/shared (coordinated after the event freeze; shared GREEN waits for generated queries) ->
+client/admin/docs.
 
 ### `packages/contracts` PR chain 1: schemas and resolvers (FIRST, register #26)
 
-Deliverables: `AssessmentV3Schema` + `CommunityTestimonySchema` structs in `src/Schemas.sol`; `src/resolvers/AssessmentV3.sol` + `src/resolvers/CommunityTestimony.sol`; `config/schemas.json` keys `assessmentV3` + `communityTestimony`; `script/DeployCommitmentSchemas.s.sol` + `script/deploy/commitment-schemas.ts` + deploy CLI wiring; validate-script extensions; resolver unit tests; storage-layout entries + baselines.
+Deliverables: `AssessmentV3Schema` + `CommunityTestimonySchema` structs in `src/Schemas.sol`;
+an in-place `src/resolvers/Assessment.sol` UUPS upgrade plus NET-NEW
+`src/resolvers/CommunityTestimony.sol`; `config/schemas.json` keys `assessmentV3` +
+`communityTestimony`; the existing `script/upgrade.ts assessment-resolver` UUPS target;
+`script/DeployCommitmentSchemas.s.sol` +
+`script/deploy/commitment-schemas.ts` registration/deploy wiring; validate-script extensions;
+dual-schema Assessment upgrade tests, Community Testimony tests, and storage-layout baselines.
 
-Acceptance: 6.4 acceptance criteria pass; Sepolia registration broadcast, then Arbitrum; artifact keys merged with v2 keys byte-identical; `bun run test` green in `packages/contracts`.
+Acceptance: 6.4 acceptance criteria pass; Arbitrum Sepolia upgrade/registration rehearsal,
+including AssessmentV3 registration and Community resolver deployment; Community Testimony
+UID is pinned while its module remains zero, an empty or already-exact permissionless registry
+record is proven, and activation remains pending until PR chain 2 supplies and verifies the
+module. The existing
+Assessment proxy address, owner, v2 UID, and v2 artifact keys remain byte-identical; no
+`assessmentV3Resolver` is emitted; `bun run test` green in `packages/contracts`.
 
 ### `packages/contracts` PR chain 2: module + register
 
 Deliverables: `src/modules/CommitmentPooling.sol`, `src/registries/Commitment.sol`, both interfaces, unit + fork tests, `DeploymentBase.sol` deploy helpers + wiring, `DeployHelper.sol` result fields + serialization, storage-layout entries + baselines + `StorageLayout.t.sol` additions.
 
-Acceptance: 6.1 and 6.2 acceptance criteria pass; deployed to Sepolia and smoke-tested with a scripted offer -> fulfilled pass; Arbitrum broadcast gated on chain-3 readiness.
+Acceptance: 6.1 and 6.2 acceptance criteria pass; Arbitrum Sepolia full-stack dry-run deploys
+the module/register, verifies the Community resolver's one-way pinned UID, reconciles the exact
+Community Testimony record while the resolver is inactive, activates the verified non-zero module
+last, sets final module schema UIDs, verifies module-side configuration, and leaves the pooling
+module paused. Operational smoke remains blocked until PR chain 3 installs and verifies both
+reverse links. Arbitrum One broadcast remains gated on chain-3 readiness and separate human
+authorization.
 
 ### `packages/contracts` PR chain 3: live upgrades + backfill
 
 Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, 13-garden pool backfill.
 
-Acceptance: storage-layout gates green pre-broadcast; post-broadcast artifact shows both new addresses and non-zero pool count; a live approval on an existing garden emits `ApprovedWorkCounted` for a linked work.
+Acceptance: storage-layout gates green pre-broadcast; GardenToken and WorkApprovalResolver are
+upgraded and both reverse links are verified while pooling remains paused; unpause succeeds only
+after every chain-2 and chain-3 readiness fact passes; protocol/root and live-garden pools are then
+registered; a scripted offer -> fulfilled smoke passes; the post-broadcast artifact shows both new
+addresses and non-zero pool count; and a live approval on an existing garden emits
+`ApprovedWorkCounted` for a linked work.
 
 ### `packages/indexer`
 
@@ -1629,12 +2104,17 @@ Exit criteria: specs, handoffs, acceptance sources, machine state, and generated
 
 ### Native phase 2: Build — closes 2026-07-31
 
-Goal: implement and verify the scoped product lanes during the remaining July build window, then broadcast the non-value pooling/register/schema tier by July 31 only after its narrower evidence gate and explicit human authorization pass. Build completion alone is not authorization or a public-live claim.
+Goal: implement and verify the scoped product lanes during the remaining July build window, then
+broadcast and activate the non-value pooling/register/schema tier by July 31 only after its complete
+three-PR-chain dependency sequence, narrower evidence gate, and explicit human authorization pass.
+Build completion alone is not authorization or a public-live claim.
 Exit criteria, in dependency order:
 
 1. Schemas registered on Sepolia + Arbitrum with resolvers live (PR chain 1); baselines attestable before cycle 1 opens.
-2. Module + register deployed, wired, storage baselines committed (PR chain 2).
-3. GardenToken + WorkApprovalResolver upgraded on 42161; protocol pool + 13 garden pools registered (PR chain 3).
+2. Module + register deployed with module-side wiring verified, storage baselines committed, and
+   pooling still paused (PR chain 2).
+3. GardenToken + WorkApprovalResolver upgraded on 42161; reverse links verified; pooling unpaused;
+   protocol pool + 13 garden pools registered; operational smoke passed (PR chain 3).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, hooks, five offline queue job kinds plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
 6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, reward, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
@@ -1665,15 +2145,23 @@ Carried verbatim from the session-plan skeleton (1-6), plus findings from this p
 
 1. **On-chain vs derived state weight.** The module carries more transition logic than the repo's thin-module convention (modules today mostly wire external protocols). Decision register #6 accepts this deliberately; reviewers should challenge any FURTHER on-chain state before it lands, not the tabled set.
 2. **EAS -> module bridge coupling.** The resolver -> module hook has GAP precedent (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`) but couples the approval path (criticality: critical) to a new module. Mitigations specced: optional address, try/catch, never-revert no-op semantics, sync fallback, mock-revert test. The bridge and trust model are named in 6.5; any change to linkage authority is a spec change.
-3. **Schema key versioning.** `assessmentV3*` keys sit beside untouched `assessment*` (v2) keys. Consumers must select by key, never by "latest". A future v4 repeats the pattern; nothing may ever rewrite an existing key (the `--update-schemas` overwrite hazard, `packages/contracts/script/Deploy.s.sol:122-151`).
-4. **Storage-layout script drift** (DO-NOT-SILENTLY-FIX). `script/check-storage-layout.sh:23-33` never gained CookieJarModule, HypercertsModule, GardensModule, OctantModule, YieldResolver, or UnifiedPowerRegistry. This spec adds ONLY its own two contracts plus touches to already-listed GardenToken/WorkApprovalResolver; the missing-module backfill is separate debt (log to the docs-freshness/debt Linear issue).
+3. **Schema key versioning.** `assessmentV3*` keys sit beside untouched `assessment*` (v2)
+keys, while both UIDs resolve through the existing `assessmentResolver` proxy. Consumers must
+select by schema key/UID, never by "latest" or by a fictitious resolver address. A future v4
+repeats the schema-key pattern; nothing may ever rewrite an existing key (the
+`--update-schemas` overwrite hazard, `packages/contracts/script/Deploy.s.sol:122-151`).
+4. **Storage-layout script drift** (DO-NOT-SILENTLY-FIX). `script/check-storage-layout.sh:23-33` never gained CookieJarModule, HypercertsModule, GardensModule, OctantModule, YieldResolver, or UnifiedPowerRegistry. This feature adds entries only for its new contracts and the existing AssessmentResolver, GardenToken, and WorkApprovalResolver upgrades named in §7.4; the unrelated missing-module backfill is separate debt (log to the docs-freshness/debt Linear issue).
 5. **"Campaign" naming collision** (DO-NOT-SILENTLY-FIX). `CycleType.Campaign` collides conceptually with the existing `CampaignCookieJar` indexer entity (`packages/indexer/schema.graphql:259-280`) and the admin Cookies workspace. They are different things (a cycle type vs a funding jar). Copy, docs, and glossary entries must always say "campaign cycle" vs "campaign cookie jar"; do not rename either side in code.
 6. **Testimony "never averaged" is off-chain law only.** The schema deliberately has no score field, but nothing on-chain stops a future consumer from scoring testimony. Enforcement lives in indexer/app review (no aggregation of testimony into numbers) and the banned-vocab/design gates. Flag any PR that counts testimony.
 7. **StorageLayout.t.sol GardenToken drift** (DO-NOT-SILENTLY-FIX beyond the touched contract). Comments and gap tests describe a 7-named/43-gap layout (`packages/contracts/test/StorageLayout.t.sol:31-35,59-69`) while the source is 13 used + 37 gap (`packages/contracts/src/tokens/Garden.sol:56-62`); the gap tests are arithmetic tautologies (`expectedNamed + expectedGap == 50`). PR chain 3 corrects the GardenToken numbers it touches and must add real slot assertions for the new field; the tautology pattern across other contracts is logged debt.
 8. **Expiry timing with cycle fallback.** `expireCommitment` with `dueDate == 0` reads the cycle's endTime; commitments that are cycle-less AND dueDate-less can never expire (only cancel). Accepted for MVP; seeding UX should require one of the two.
 9. **Protocol-pool individual claims.** ClaimType.Individual accepts any role hat in any registered garden via a caller-supplied `gardenContext`. This is broad by design (protocol commitments are curated + default ApprovalGated per register #19); if farming appears, tighten eligibility in the module without schema impact. Sarafu-precedent reclamation posture applies (suspend via pool pause, dispute, cancel).
 10. **GraphQL `PoolType` collision.** Existing enum at `packages/indexer/schema.graphql:29-32` is kept for signal pools; all new enums are `Commitment*`-namespaced. Do not "clean up" the old enum in this workstream.
-11. **Partial fulfillment is out of MVP.** Units convert all-or-nothing at Fulfilled. If gardens need partial credit mid-cycle, that is a module v1.1 (`fulfillUnits` already takes a units argument, so the register is ready).
+11. **Partial fulfillment is out of MVP.** Units convert all-or-nothing at Fulfilled. The MVP
+    register deliberately requires the full committed balance and then enters terminal
+    `Fulfilled`; its units argument does not imply partial-fulfillment readiness. A module v1.1
+    must separately specify remaining-slot semantics, register transitions, events, and indexer
+    deltas before permitting partial conversion.
 12. **Register upgrade authority.** The register is UUPS-owned by the multisig while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 
 ---

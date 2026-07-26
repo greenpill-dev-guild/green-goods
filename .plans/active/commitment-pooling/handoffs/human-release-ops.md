@@ -8,11 +8,15 @@
 - Current state: blocked
 - Linear context: PRD-731
 
-This handoff never authorizes an agent broadcast. The non-value pooling/register/schema tier and value-bearing CCIP settlement tier have separate evidence and authorization.
+This handoff never authorizes an agent broadcast. The non-value core-upgrade/deployment tier and
+value-bearing CCIP settlement tier have separate evidence and authorization.
 
 ## Outputs
 
-- A signed non-value-tier readiness checklist for the pooling module, `CommitmentRegister`, and two schemas.
+- A signed non-value-tier readiness checklist covering the ordered
+  `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
+  and `GardenToken`/`WorkApprovalResolver` upgrades, reverse wiring, pooling unpause, and pool
+  backfill.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff, bytecode/proxy/admin/peer verification, exact indexer update, pause state, and rollback owner.
 - For the value tier: live official-directory route evidence, message-only ping/ack, calibrated delivery/acknowledgment service windows, native ETH/CELO fee-reserve health, audited Safe/Zodiac bounds, matching measured batch limits, a manual-execution runbook, minimum-value canary, observation record, and one authenticated-acknowledgment G$ exit proof.
@@ -35,32 +39,68 @@ This handoff never authorizes an agent broadcast. The non-value pooling/register
 | CCIP router/peer/gas/fee-reserve health | Afolabi Aiyeloja | settlement implementer |
 | Protocol multisig/timelock | Afolabi Aiyeloja | protocol signers |
 | Garden Safe recovery/Zodiac Roles/caps | Afolabi Aiyeloja | settlement operator + named garden delegate |
-| No-active-Celo-testnet alternative gate | Afolabi Aiyeloja | QA/release operator + auditor |
+| Direct CCIP lane + dual-chain testnet evidence gate | Afolabi Aiyeloja | QA/release operator + auditor |
 | Garden-ID replay/cutover/rollback | Afolabi Aiyeloja | indexer implementer |
 | Message-only ping/ack and capped G$ canary | Afolabi Aiyeloja | settlement operator + QA witness |
+| EntryPoint v0.7; Kernel `0.2.4` dual-testnet mechanics; Kernel `0.3.1` Arbitrum One/Celo Mainnet production derivation; bounded `42220` policy; passkey account; and included sponsored Celo Mainnet user-op evidence | Afolabi Aiyeloja | shared/wallet implementer + QA witness |
 
 A replacement owner must be named in PRD-686/PRD-731 and this handoff before execution.
 
 ## Phases
 
-1. **Non-value tier**: after its narrower evidence and explicit authorization, broadcast only the pooling module, non-transferable register, and two schemas.
+1. **Non-value tier**: execute the following dependency-ordered stages only after the full
+   non-value evidence gate passes. Each stage needs its own explicit human authorization,
+   signer/owner verification, transaction receipt, persisted artifact, post-action verifier, and
+   rollback checkpoint before the next stage:
+   1. **Resolver/schema preparation**: upgrade the existing `AssessmentResolver` proxy in place;
+      preserve and verify its v2 schema UID; deploy only the net-new
+      `CommunityTestimonyResolver`; register AssessmentV3 against the upgraded existing
+      Assessment resolver; set the v3 and Community Testimony UIDs while Community Testimony's
+      module remains zero; and prove v2/v3 compatibility.
+   2. **Module/register/schema finalization**: deploy the non-transferable
+      `CommitmentRegister` and `CommitmentPoolingModule` proxies paused; wire and verify their
+      dependencies; reconcile the exact Community Testimony registry record; activate its
+      verified module only after its UID and record are exact; set the final non-zero,
+      pairwise-distinct schema UIDs; verify dependency/schema/ownership/proxy state; and keep the
+      pooling module paused through the integration upgrades.
+   3. **Integration upgrades and backfill**: upgrade the existing `GardenToken` and
+      `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
+      `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
+      both-direction wiring, and rollback state while pooling remains paused; unpause only after
+      every stage-2 and stage-3 readiness fact passes; then register the protocol pool on the root
+      garden and backfill `registerPool` for the verified live-garden set.
+   Rehearse the exact sequence on local and Arbitrum Sepolia before separately authorizing
+   Arbitrum One. Ethereum Sepolia remains a legacy regression lane and is not target-chain proof.
 2. **Value candidate preparation**: deploy both CCIP peers paused and with no Safe role/value authority; verify bytecode, proxy/admin, live official-directory router/selector/lane, peer, version, measured gas, code hashes, source/executor pause state, zero-or-matching batch limits, and fee monitoring.
 3. **Message-only canary**: authorize ping/ack only after audit/timelock review. No G$ authority exists yet.
-4. **Safe authority**: verify exact 2-of-3 owners; `CeloSettlementExecutor` is not an owner; install only the audited Zodiac Roles v2 `bytes32 roleKey`, canonical-G$ `transfer` condition tree, and transfer/batch/period caps. Probe one allowed call plus denied target, selector, recipient-policy, and over-cap calls.
+4. **Safe authority**: verify the deterministic Safe factory/singleton/initializer/salt
+   evidence and exact 2-of-3 owners; `CeloSettlementExecutor` is not an owner; install one
+   audited Zodiac Roles v2 modifier with the exact `bytes32 roleKey`, native
+   `WithinAllowance(allowanceKey)`, canonical-G$ `transfer` condition tree, and
+   transfer/batch/period gross-debit caps plus absolute/BPS fee limits. Probe zero-fee and
+   sender-pays exact-net paths plus denied receiver-pays, source-as-recipient, target, selector,
+   recipient-policy, fee-policy, and over-cap calls.
 5. **Minimum-value canary**: separately authorize one capped Fulfilled-commitment command. Observe Arbitrum dispatch, Celo execution, Celo acknowledgment, Arbitrum Confirmed, indexer convergence, and UI “support arrived.”
 6. **Observation/cap decision**: keep caps unchanged until the recorded observation window passes and the accountable owner explicitly authorizes any increase.
 
-## No-active-Celo-testnet alternative gate
+## Direct-lane and dual-chain testnet evidence gate
 
-The prior two-week Celo-testnet requirement is not satisfiable while no active Celo CCIP testnet exists. It is replaced, not waived, by:
+Celo Sepolia is active. Chainlink's official directory currently publishes the direct
+Arbitrum One↔Celo Mainnet route in both directions at v1.5.0, but does not list the exact
+Arbitrum Sepolia↔Celo Sepolia pair. The prior “no active Celo testnet” statement was
+inaccurate. It is replaced, not waived, by:
 
-1. deterministic two-router local command/ack tests;
-2. separate Arbitrum/Celo fork processes;
-3. paused mainnet candidate deployment with no Safe authority;
-4. message-only ping/ack;
-5. external audit, timelock, peer/code-hash checks, and Safe/Zodiac review;
-6. a human-authorized minimum-value canary;
-7. a recorded observation period before cap increases.
+1. deterministic dual-process local command/ack tests;
+2. separate pinned Arbitrum/Celo fork processes;
+3. Celo Sepolia Safe/Zodiac rehearsal with a test-only fee-aware G$ surrogate;
+4. an ephemeral Arbitrum Sepolia↔Ethereum Sepolia CCIP rehearsal labeled as endpoint proof, not
+   exact-route proof, whose artifacts never merge into the canonical registry;
+   Celo Sepolia adds CCIP endpoint proof only if a fresh official lane/router is published;
+5. a fresh official-directory and onchain check proving the currently published bidirectional
+   Arbitrum One↔Celo Mainnet route remains operational before value authority;
+6. paused mainnet candidates, message-only ping/ack, external audit, timelock, peer/code-hash
+   checks, and Safe/Zodiac review;
+7. a human-authorized minimum-value canary and recorded observation period before cap increases.
 
 ## Exact Bun commands
 
@@ -77,7 +117,13 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 
 ## Non-value-tier unblock evidence
 
-- Full relevant tests, schema/module/register dry runs, post-deploy verifier, storage/upgrade/rollback proof, and named rollback owner pass.
+- Full relevant tests; resolver/schema, module/register/finalization, integration-upgrade/wiring,
+  post-wiring unpause, and pool-backfill dry runs; post-action verifiers;
+  storage/upgrade/rollback proof; and named rollback owners pass for all three ordered stages.
+- Every tx-plan sender equals the relevant live proxy `owner()`; grouped upgrades prove their
+  ownership preconditions before plan persistence. The stage record contains the exact
+  implementation/proxy/admin addresses, schema UIDs, dependency wiring, transaction receipts,
+  persisted artifact changes, and post-action verification needed to begin the next stage.
 - Reviewed artifacts remain non-custodial and non-transferable.
 - Afolabi Aiyeloja records explicit artifact/window authorization.
 
@@ -93,9 +139,22 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 - Delivery-delay and acknowledgment-delay windows are recorded from current official finality guidance plus measured canary evidence. CCIP Explorer/manual-execution guidance is documented; neither eligibility nor manual execution mutates Green Goods state or confirms arrival.
 - Destination gas is measured at the worst accepted atomic batch; the record does not assume unused destination gas is refunded.
 - Local two-router and separate-fork evidence covers duplicate/out-of-order command delivery, disbursement/batch key separation, homogeneous batches, same-key peer binding, acknowledgment retry to the stored receiver/version, bounded deferral codes, atomic queued-batch cancellation, failure/new-attempt, pause, and rotation.
-- Source and executor batch limits match; zero disables batches without disabling one-recipient commands. Every Safe proves exact recovery owners, executor-not-owner, audited Zodiac Roles v2 `bytes32` key/conditions, and non-zero transfer/aggregate/period caps.
+- Source and executor batch limits match; zero disables batches without disabling one-recipient
+  commands. Every Safe proves exact recovery owners, executor-not-owner, audited Zodiac Roles v2
+  `bytes32` key/conditions, non-zero transfer/aggregate/period caps, and separately approved
+  non-zero `maxFeeBps`/`maxFeeAmount` compatible with the observed G$ fee mode.
 - Message-only ping/ack succeeds before any Safe authority.
-- AA/paymaster proof supports member delivery; failure keeps member delivery disabled without blocking ProtocolToGarden.
+- Pimlico's current matrix supports Kernel `0.3.1` on Arbitrum One and Celo Mainnet, but not on
+  Celo Sepolia; Celo Sepolia supports Kernel `0.2.4`. Record the explicit Kernel `0.2.4`
+  same-address profile and one included sponsored surrogate transfer on both Arbitrum Sepolia and
+  Celo Sepolia as non-production mechanics evidence only. That evidence never enables member
+  delivery. Production enablement requires exact Kernel `0.3.1` same-address Arbitrum One/Celo
+  Mainnet derivation, the pinned v0.7 EntryPoint and verified account factory/implementation code
+  hashes, passkey validation, an active `42220` policy bounded to the canonical-G$ call, and one
+  separately human-authorized included sponsored first-use Celo Mainnet canonical-G$ transfer.
+  The evidence contains UserOperation and transaction receipts, EntryPoint event, deployed-account
+  code, exact token balance deltas, and observation block/time, but no API key or passkey material.
+  Failure keeps member delivery disabled without blocking `ProtocolToGarden`.
 - Afolabi Aiyeloja separately authorizes Safe authority, the minimum-value canary, and any later cap increase.
 
 ## Acceptance

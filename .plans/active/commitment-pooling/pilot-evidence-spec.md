@@ -3,7 +3,7 @@
 - **Status**: STRUCTURE-APPROVED · OPERATIONAL-ASSIGNMENT-GATED
 - **Execution sub-lane**: `settlement_evidence`
 - **Accountable owner**: Afolabi Aiyeloja
-- **Linear mirror**: PRD-735 under PRD-650
+- **Linear mirror**: COM-11 (formerly PRD-735) under PRD-650
 - **Operational checkpoint**: 2026-09-30
 - **Last updated**: 2026-07-23
 
@@ -388,7 +388,7 @@ and values below:
 | Publication | Separated evidence, context, safeguard/privacy, and publication rights | Name internal decision and partner/public publication owners and record conflict backups |
 
 Assignments must be dated before outcome interpretation. Thresholds must be dated before the
-comparison-cycle outcomes are reviewed. Until these records are complete, PRD-735 and the
+comparison-cycle outcomes are reviewed. Until these records are complete, COM-11 and the
 `settlement_evidence` lane remain blocked and receive no `agent:*` label.
 
 ## 11. September evidence packet

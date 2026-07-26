@@ -15,6 +15,12 @@
 > `Oracle-verified`, and operator-execution statement below is also historical. Decision Log
 > `#46` and `settlement-spec.md` replace that transport with message-only CCIP command +
 > authenticated acknowledgment. Do not apply the old settlement payloads to Linear.
+>
+> **Readiness supersession (2026-07-24/25):** registers `#54`–`#60` amend `#53`; `#60` is the current
+> correction set.
+> AssessmentV3 is only a schema name on the upgraded existing `AssessmentResolver`; current
+> settlement uses the dual-chain CCIP/direct-lane, exact-net G$, native Roles allowance, and
+> deterministic Safe gates. This archive is not a source for the next Linear sync.
 
 **Prepared**: 2026-07-10 (RESR-57 external-brief wave) · **amended 2026-07-11** (pilot-alignment wave, decision #24)
 **Why this exists**: historical audit trail for the writes applied on 2026-07-11. **Do not execute or re-apply any payload below.** Current execution truth is the repo source set plus the live Linear re-read summarized in the reconciliation addendum.

@@ -6,7 +6,7 @@
 - Machine lane: none; human-owned definition and evidence surface
 - Accountable owner: Afolabi Aiyeloja
 - Current state: structural design approved; blocked on operational assignments through the September 30 operational checkpoint
-- Linear target: reread and update the existing thin Product issue PRD-735 under PRD-650; do not create a duplicate or add an `agent:*` label
+- Linear target: reread and update the existing thin issue COM-11 under PRD-650 (formerly Product PRD-735; moved to the Community team 2026-07-24); do not create a duplicate or add an `agent:*` label
 
 ## Inputs
 
@@ -59,7 +59,7 @@ the smallest exact read-only evidence-reproduction command before dispatch.
 - The privacy owner, research publication threshold, exact retention/deletion rules, and incident response are recorded.
 - The packet owner, reproducibility reviewer, calculation artifact, private safeguarding store, and publication owners are named.
 - Thresholds and stop conditions are dated before outcome interpretation; any retrospective choice is labeled exploratory.
-- The thin Product issue exists under PRD-650, has a September 30 due date, and has no `agent:*` label.
+- The thin Community issue (COM-11) exists under PRD-650, has a September 30 due date, and has no `agent:*` label.
 - The repository and live Linear issue are reread after the update and agree.
 
 ## Out of scope

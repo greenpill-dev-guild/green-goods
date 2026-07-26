@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as yaml from "js-yaml";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
@@ -620,6 +621,40 @@ function validateStageStructure(stage, failures) {
         } else if (child !== "status.json" && !readFileSync(childPath, "utf8").includes(ARCHIVE_DOCUMENT_MARKER)) {
           failures.push(`${childPath}: archived plan documents must include the archived-record marker`);
         }
+      }
+    }
+  }
+}
+
+function markdownFilesUnder(directory) {
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory).flatMap((entry) => {
+    const entryPath = join(directory, entry);
+    const stats = statSync(entryPath);
+    if (stats.isDirectory()) {
+      return markdownFilesUnder(entryPath);
+    }
+    return stats.isFile() && entry.endsWith(".md") ? [entryPath] : [];
+  });
+}
+
+function validateFencedYaml(failures) {
+  const yamlFence = /^```ya?ml[^\S\r\n]*\r?\n([\s\S]*?)^```[^\S\r\n]*$/gim;
+
+  for (const markdownPath of markdownFilesUnder(PLANS_ROOT)) {
+    const source = readFileSync(markdownPath, "utf8");
+    for (const match of source.matchAll(yamlFence)) {
+      try {
+        yaml.load(match[1]);
+      } catch (error) {
+        const fenceLine = source.slice(0, match.index).split(/\r?\n/).length;
+        const yamlLine = Number.isInteger(error?.mark?.line) ? error.mark.line : 0;
+        const line = fenceLine + yamlLine + 1;
+        const reason = error?.reason || error?.message || String(error);
+        failures.push(`${markdownPath}:${line}: invalid fenced YAML: ${reason}`);
       }
     }
   }
@@ -2233,6 +2268,7 @@ function validate() {
   for (const stage of VALIDATION_STAGES) {
     validateStageStructure(stage, failures);
   }
+  validateFencedYaml(failures);
 
   const records = VALIDATION_STAGES.flatMap((stage) => featureRecords(stage));
   const knownSlugs = new Set(records.map((record) => record.status.feature.slug));
