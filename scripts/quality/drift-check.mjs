@@ -106,6 +106,9 @@ export const scopes = {
       command: ["bun", "run", "check:ontology"],
       route: "review",
       severity: "medium",
+      // check-ontology.mjs exits 2 for infrastructure faults (missing or
+      // unparseable sidecar/baseline/anchor) — distinct from semantic drift.
+      infraExitCode: 2,
     },
   ],
 };
@@ -178,6 +181,7 @@ export function checksForScope(scope) {
 }
 
 export function statusForCheck(check, exitCode, output) {
+  if (check.infraExitCode !== undefined && exitCode === check.infraExitCode) return "error";
   if (exitCode !== 0) return "fail";
   if (check.warningPattern?.test(output)) return "warn";
   return "pass";
@@ -200,7 +204,9 @@ export function checkResultFromOutput(check, { exitCode = 0, stdout = "", stderr
         ? `${check.label} passed.`
         : status === "warn"
           ? `${check.label} reported warnings.`
-          : `${check.label} failed.`,
+          : status === "error"
+            ? `${check.label} could not run (tooling/infrastructure fault).`
+            : `${check.label} failed.`,
     output_tail: outputTail,
     duration_ms: durationMs,
     route: check.route,
@@ -294,7 +300,14 @@ export function printText(report) {
 
   console.log("## Checks");
   for (const check of report.checks) {
-    const marker = check.status === "pass" ? "PASS" : check.status === "warn" ? "WARN" : "FAIL";
+    const marker =
+      check.status === "pass"
+        ? "PASS"
+        : check.status === "warn"
+          ? "WARN"
+          : check.status === "error"
+            ? "ERROR"
+            : "FAIL";
     console.log(`- [${marker}] ${check.category}/${check.id}: ${check.command}`);
   }
 
