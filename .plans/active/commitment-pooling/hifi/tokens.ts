@@ -550,9 +550,9 @@ export const HIFI_CSS = `
 .hf .acard .ahead .at{font-weight:700;font-size:13.5px;flex:none}
 .hf .acard .ahead .ax{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .hf .acard .ahead .ax > *{flex:none}
-.hf .arow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--ln);min-height:40px;flex-wrap:wrap}
+.hf .arow{display:flex;align-items:center;gap:10px 10px;padding:8px 2px;border-bottom:1px solid var(--ln);min-height:40px;flex-wrap:wrap;align-content:center;row-gap:8px}
 .hf .arow > *{flex:none}
-.hf .arow > .grow{flex:1 1 auto}
+.hf .arow > .grow{flex:1 1 auto;min-width:0}
 .hf .arow:last-child{border-bottom:0}
 
 /* admin buttons: denser */
