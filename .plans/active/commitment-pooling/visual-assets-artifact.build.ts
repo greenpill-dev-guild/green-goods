@@ -522,7 +522,7 @@ section{scroll-margin-top:6.5rem;}
 <header class="top">
   <div class="mast">
     <h1>Commitment Pooling — Visual Asset Gallery</h1>
-    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs · rebuilt 2026-07-22 (count-safe architecture; September 30 parallel closures; six protocol functions)</p>
+    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs + 32 architecture diagrams · rebuilt 2026-07-25 (architecture reconciled to the frozen specs; D2/D7/D9 split; D7d, D10b, D11b, D15, D16 added)</p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Gallery sections">
     <button id="tab-story" role="tab" aria-selected="true" aria-controls="pane-story" tabindex="0" data-tab="story">The story</button>
