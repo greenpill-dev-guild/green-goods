@@ -102,9 +102,10 @@ The `docs/` directory contains a Docusaurus site with product documentation, use
 
 - System architecture (diagrams): `docs/docs/builders/architecture.mdx`
 - Domain glossary: `docs/docs/reference/glossary-community.md`
+- Canonical machine-readable ontology (entities, vocabularies, EAS schemas, constraints, state machines; CI-gated by `bun run check:ontology`, update protocol in `.claude/context/ontology.md`): `packages/shared/src/ontology/green-goods-ontology.json` → generated reference `docs/docs/reference/ontology.generated.mdx`
 - Impact model & Eight Forms of Capital: `docs/docs/reference/design-research.md`
 - Action domains, goals & schema registry: `docs/docs/builders/specs/v1-0.mdx`
-- Entity matrix (⚠️ intentional draft — `unlisted`, `feature_status: Planned`; a vocabulary aid, not a canonical contract): `docs/docs/builders/integrations/entity-matrix.mdx`
+- Entity matrix (generated from the ontology sidecar via `bun run ontology:generate`; unlisted — cells stay a draft vocabulary aid until each integration ships, not a canonical contract): `docs/docs/builders/integrations/entity-matrix.mdx`
 
 Package-specific context files (`.claude/context/*.md`) include additional documentation references relevant to each package.
 

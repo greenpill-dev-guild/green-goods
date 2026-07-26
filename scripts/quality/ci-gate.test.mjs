@@ -27,7 +27,26 @@ test("contract source changes include every contract consumer", () => {
     "Client",
     "Contracts",
     "Indexer",
+    "Ontology",
     "Shared",
+  ]);
+});
+
+test("ontology-scoped changes require the ontology workflow", () => {
+  assert.deepEqual(expectedWorkflowNames(["packages/shared/src/ontology/green-goods-ontology.json"]), [
+    "Admin",
+    "Agent",
+    "Client",
+    "Design",
+    "Ontology",
+  ]);
+  assert.deepEqual(expectedWorkflowNames(["docs/docs/reference/glossary-community.md"]), ["Docs", "Ontology"]);
+  assert.deepEqual(expectedWorkflowNames(["packages/indexer/schema.graphql"]), ["Indexer", "Ontology"]);
+  assert.deepEqual(expectedWorkflowNames(["scripts/data/ontology-drift-baseline.json"]), ["Ontology"]);
+  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-pooling/contract-spec.md"]), ["Ontology"]);
+  assert.deepEqual(expectedWorkflowNames(["packages/contracts/script/DeployBadgeSchema.s.sol"]), [
+    "Contracts",
+    "Ontology",
   ]);
 });
 
