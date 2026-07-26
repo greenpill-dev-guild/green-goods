@@ -62,9 +62,9 @@ ${acard(
 const W12_HOTS: HifiDef["hots"] = {
   "w12.tab-protocol": { l: "Protocol pool tab", to: "screen:W12@protocol", info: "The root protocol pool view." },
   "w12.tab-garden": { l: "This garden tab", to: "screen:W12@current-garden", info: "This garden's pool scope only." },
-  "w12.accept": { l: "Accept a garden claim", to: "screen:W2", info: "Protocol steward accepts stored terms; providerGarden derives, then the accepted promise opens (CS:733)." },
+  "w12.accept": { l: "Accept a garden claim", to: "screen:W25@accepted", info: "Protocol steward accepts stored terms; providerGarden derives and the claimant garden sees it accepted (CS:733)." },
   "w12.decline": { l: "Decline a garden claim", info: "Declines this garden claim with a required reason while leaving other pending requests intact (CS:734)." },
-  "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
+  "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10@garden-ready", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
   "w12.no-ranking": { l: "Garden scope boundary", info: "No other-garden rows or command/ack controls render here; all-garden operations live in W24 (UX:314)." },
 };
 
@@ -75,7 +75,7 @@ const W12_HOTS: HifiDef["hots"] = {
 const W21_STATES = [
   ["queue", "Disbursement queue"], ["unregistered", "No account yet"],
   ["failed-recovery", "Failed — recovery"], ["gate-status", "Delivery gate"],
-  ["close-delivery-confirm", "Close delivery — confirm"],
+  ["close-delivery-confirm", "Close delivery — confirm"], ["protocol-queue", "Protocol queue — garden beneficiary"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -84,12 +84,12 @@ type W21State = (typeof W21_STATES)[number][0];
 // review, so the amounts are plausible values instead.
 const w21Rows = () =>
   dtable(
-    ["Settlement · attempt", "Recipient", "Amount", "State", ""],
+    ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
     [
-      ["104 · attempt 0", "Maria", `<span class="num">20 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
-      ["103 · attempt 1", "João", `<span class="num">15 G$</span>`, chip("Failed — route rejected", "err"), `${hot("w21.requeue", btn("Source follow-up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close delivery", { kind: "ghost", sm: true }))}`],
-      ["102 · attempt 0", "Ana", `<span class="num">12 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack details", { kind: "ghost", sm: true }))],
-      ["101 · attempt 0", "Kwame", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
+      ["104 · attempt 0", "Maria", "Reward — member", `<span class="num">20 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
+      ["103 · attempt 1", "João", "Reward — member", `<span class="num">15 G$</span>`, chip("Failed — route rejected", "err"), `${hot("w21.requeue", btn("Source follow-up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close delivery", { kind: "ghost", sm: true }))}`],
+      ["102 · attempt 0", "Ana", "Reward — member", `<span class="num">12 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack details", { kind: "ghost", sm: true }))],
+      ["101 · attempt 0", "Kwame", "Reward — member", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
     ],
     "Rocinha settlement disbursement queue",
   );
@@ -121,6 +121,34 @@ function w21(state: W21State): string {
         closeHot: "w21.close-dismiss",
       }),
     );
+
+  if (state === "protocol-queue") {
+    // The protocol pool's own queue. Every other row in this artifact pays an
+    // individual; here the beneficiary is a garden's Celo Safe, which is what
+    // a garden-claimed protocol commitment settles to (AM:43).
+    const rows = dtable(
+      ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
+      [
+        ["105 · attempt 0", "Awka Hub — garden Safe", "Reward — garden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
+        ["98 · attempt 0", "Leila", "Reward — member", `<span class="num">10 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
+      ],
+      "Protocol pool settlement queue",
+    );
+    const header = pageHeader({
+      title: "Settlement",
+      eyebrow: "Protocol · Celo",
+      description: "The protocol pool's Celo settlement account — garden-beneficiary rewards sit beside member ones.",
+    });
+    return deskWin(
+      "admin.greengoods.app/dashboard/community/pools/settlement",
+      adminCanvas("community", "community", {
+        screenId: "W21",
+        garden: "Rocinha",
+        header,
+        body: acard("Settlement (Celo) — protocol pool", `${rows}${banner("Source is the GG protocol Safe; a garden beneficiary is the providing garden's registered Celo Safe, never its Arbitrum account.", "stone")}`),
+      }),
+    );
+  }
 
   let inner: string;
   switch (state) {
@@ -173,6 +201,7 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
+  "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "Sends the data-only command for the garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe." },
   "w21.setup": { l: "Review registration requirements", to: "screen:W21", info: "Read-only prerequisite summary. Production governance deploys and verifies the Safe/Zodiac route separately; this surface later registers the already-deployed account." },
   "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
   "w21.dispatch": { l: "Dispatch", to: "screen:W22", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
@@ -192,7 +221,7 @@ const W21_HOTS: HifiDef["hots"] = {
 const W22_STATES = [
   ["ready", "Queued"], ["dispatched", "Dispatched"], ["delivery-delayed", "Delivery delayed"], ["executed", "Celo executed"],
   ["acknowledgment-pending", "Acknowledgment pending"], ["outcome", "Confirmed / failed"], ["role-guard", "Route gate"],
-  ["cancel-batch-confirm", "Cancel batch — confirm"],
+  ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Garden-beneficiary command"],
 ] as const;
 type W22State = (typeof W22_STATES)[number][0];
 
@@ -228,6 +257,29 @@ function w22(state: W22State): string {
         closeHot: "w22.cancel-dismiss",
       }),
     );
+
+  if (state === "garden-command") {
+    const header = pageHeader({
+      title: "Settlement 105",
+      eyebrow: "Command/ack console",
+      description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment.",
+    });
+    return deskWin(
+      "admin.greengoods.app/dashboard/community/pools/settlement/command",
+      adminCanvas("community", "community", {
+        screenId: "W22",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Command",
+          `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 1)}
+${banner("Dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges — arrival is not proven until that acknowledgment lands.", "stone")}
+${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
+<div class="actrow" style="justify-content:flex-end">${hot("w22.garden-open-ops", btn("Open Operations", { kind: "sec", icon: "external-link-line" }))}</div>`,
+        ),
+      }),
+    );
+  }
 
   // Status first. On every one of these states the operator's question is "what
   // changed, and what can I do?" — and every state used to open with the same
@@ -303,10 +355,11 @@ ${w22Members}${routeDetails}`;
 }
 
 const W22_HOTS: HifiDef["hots"] = {
+  "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The cross-garden funds board is where a garden-beneficiary delivery is watched to arrival; it is deployer-gated." },
   "w22.route-gate": { l: "Open route gate", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },
   "w22.cancel-dismiss": { l: "Keep batch queued", to: "screen:W22", info: "Closes the confirmation with the batch untouched." },
-  "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.2)." },
+  "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.1.3)." },
   "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
   "w22.open-command-explorer": { l: "Open command in CCIP Explorer", to: "screen:W22@delivery-delayed", info: "The command message ID opens transport status. This prototype advances to the derived delayed example." },
   "w22.manual-execution-guide": { l: "Manual-execution guidance", info: "Manual execution is an external CCIP recovery procedure and appears only when CCIP Explorer reports the message eligible; it never marks payment complete." },
@@ -451,7 +504,7 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
   "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Reconcile + compost", to: "screen:W7@reconciled", info: "closeCycle → certificate mint → compostCycle; aggregates roll into pool history (WF:714)." },
+  "w26.compost": { l: "Reconcile + compost", to: "screen:W7@cycle-composted", info: "closeCycle → certificate mint → compostCycle; aggregates roll into pool history (WF:714). Lands on the composted-season console, where §6.2 first offers Close pool." },
 };
 
 // ---------------------------------------------------------------------------

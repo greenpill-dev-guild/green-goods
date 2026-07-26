@@ -541,18 +541,20 @@ export const HIFI_CSS = `
 .hf .scopechips .sc-chip.on{color:var(--tone-ink,var(--act));background:var(--tone-soft,var(--gr-bg));box-shadow:none}
 .hf .actrow > *{flex:none}
 /* The kit chip dot-modifier uses class "dot", which collides with the artifact's
-   own journey-nav .dot rule (width:8px) and squishes dotted chips to 8px (text
-   overflows). Restore auto width on the admin/editorial surfaces. */
-.hf.s-admin .ch,.hf.s-public .ch{width:auto}
+   own journey-nav .dot rule (width:8px) and squishes dotted chips to 8px, so the
+   label overflows and the next chip lands on top of it. Surface-agnostic on
+   purpose: this was scoped to two surfaces, so renaming one silently dropped the
+   fix, and the client surface never had it at all. */
+.hf .ch{width:auto}
 /* flow form column — a step form sits directly on the route card (no card-on-card) */
 .hf .flowform{max-width:640px;display:flex;flex-direction:column;gap:11px}
 .hf .acard .ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hf .acard .ahead .at{font-weight:700;font-size:13.5px;flex:none}
 .hf .acard .ahead .ax{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .hf .acard .ahead .ax > *{flex:none}
-.hf .arow{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--ln);min-height:40px;flex-wrap:wrap}
+.hf .arow{display:flex;align-items:center;gap:10px 10px;padding:8px 2px;border-bottom:1px solid var(--ln);min-height:40px;flex-wrap:wrap;align-content:center;row-gap:8px}
 .hf .arow > *{flex:none}
-.hf .arow > .grow{flex:1 1 auto}
+.hf .arow > .grow{flex:1 1 auto;min-width:0}
 .hf .arow:last-child{border-bottom:0}
 
 /* admin buttons: denser */
@@ -603,9 +605,12 @@ export const HIFI_CSS = `
 /* Flow dialog — ActionFlowShell inside AdminDialog variant="flow" +
    ADMIN_FLOW_DIALOG_CLASS. Pinned header (context + title, right padding
    reserved for the close button), a labelled vertical step rail on desktop, a
-   centred reading column, and a pinned footer that owns Back / Cancel /
-   Continue. Drawing these flows as bare route pages is what left every admin
-   multi-step form with no way back and no way out. */
+   centred reading column, and a pinned footer matching the shipping callers:
+   ONE leading button that morphs (Cancel on step one, Back after) beside the
+   primary; the dialog X is the constant exit, and the left slot mirrors the
+   real footer's progress/status slot (empty — no in-flight state is drawn).
+   Drawing these flows as bare route pages is what left every admin multi-step
+   form with no way back and no way out. */
 .hf .adlg.flow{width:min(880px,calc(100% - 40px));height:85%;max-height:85%}
 .hf .adlg.flow .dlg-head{flex-direction:column;align-items:stretch;gap:1px;position:relative;padding-right:62px}
 .hf .adlg.flow .dlg-head .eyebrow{font:600 11px inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
