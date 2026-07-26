@@ -17,6 +17,7 @@ const config: KnipConfig = {
       entry: [
         "src/index.ts",
         "src/components/index.ts",
+        "src/ontology/index.ts",
         "src/hooks/index.ts",
         "src/modules/index.ts",
         "src/providers/index.ts",
