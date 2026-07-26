@@ -158,6 +158,11 @@ export function parseTsReadonlyArray(source, symbol) {
   return [...match[1].matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
 }
 
+export function extractQuotedConstant(source, symbol) {
+  const match = new RegExp(`${symbol}\\s*=\\s*"([^"]*)"`).exec(stripCode(source));
+  return match ? match[1] : null;
+}
+
 export function parseTsPropertyUnion(source, container, property) {
   const match = new RegExp(`interface ${container}\\s*(?:extends [^{]+)?\\{([\\s\\S]*?)\\n\\}`).exec(stripCode(source));
   if (!match) return null;
@@ -266,9 +271,18 @@ export function reconcileBaseline(findings, baseline, today) {
   const entries = baseline.entries ?? [];
 
   const seenIds = new Set();
+  const seenSubjects = new Set();
   for (const entry of entries) {
     if (seenIds.has(entry.id)) errors.push(`baseline: duplicate entry id "${entry.id}"`);
     seenIds.add(entry.id);
+    // Two entries sharing guard+subject would shadow each other in the
+    // reconciliation maps (last one wins; the first is never detail-checked
+    // and never reported stale) — reject the shape outright.
+    const subjectKey = `${entry.guard}\n${entry.subject}`;
+    if (seenSubjects.has(subjectKey)) {
+      errors.push(`baseline: duplicate guard+subject "${entry.guard} ${entry.subject}" (entry ${entry.id})`);
+    }
+    seenSubjects.add(subjectKey);
     if (!entry.owner) errors.push(`baseline ${entry.id}: missing owner`);
     if (!entry.note || entry.note.length < 12) {
       errors.push(`baseline ${entry.id}: note must be at least 12 characters`);
@@ -433,6 +447,12 @@ export function checkSidecarIntegrity(ontology, fileExists) {
     }
   }
 
+  for (const [key, schema] of Object.entries(ontology.schemas)) {
+    if (schema.check === "existence-only" && !schema.source_symbol) {
+      errors.push(`schema ${key}: existence-only check requires source_symbol`);
+    }
+  }
+
   for (const row of ontology.integration_matrix.rows) {
     const [kind, id] = row.ref.split(":");
     if (kind === "entity" && !entityIds.has(id)) errors.push(`matrix row ${row.ref}: unknown entity`);
@@ -564,16 +584,26 @@ function runGuards(ontology) {
           schemaChecked += 1;
           const declSource = sourceOf(schema.source);
           if (declSource !== null) {
-            const expectedSchemaString = schema.fields.map((f) => `${f.type} ${f.name}`).join(",");
-            const squash = (text) => text.replace(/\s+/g, "");
-            if (!squash(declSource).includes(squash(expectedSchemaString))) {
-              findings.push({
-                guard: "eas-schemas",
-                subject: `schema:${key}`,
-                file: schema.source,
-                detail: `schema string "${expectedSchemaString}" not found in source`,
-                message: `schema ${key} deviates from its registration source`,
-              });
+            // Exact equality against the full quoted registration constant —
+            // an infix test would let fields ADDED around the declared list
+            // (which change the schema UID) pass silently.
+            const quoted = extractQuotedConstant(declSource, schema.source_symbol);
+            if (quoted === null) {
+              fatal.push(
+                `schema ${key}: could not extract quoted constant ${schema.source_symbol} from ${schema.source}`
+              );
+            } else {
+              const expectedSchemaString = schema.fields.map((f) => `${f.type} ${f.name}`).join(",");
+              const squash = (text) => text.replace(/\s+/g, "");
+              if (squash(quoted) !== squash(expectedSchemaString)) {
+                findings.push({
+                  guard: "eas-schemas",
+                  subject: `schema:${key}`,
+                  file: schema.source,
+                  detail: `registration string expected "${expectedSchemaString}" found "${quoted}"`,
+                  message: `schema ${key} deviates from its registration source`,
+                });
+              }
             }
           }
           continue;
@@ -778,9 +808,10 @@ function runGuards(ontology) {
     arrivalWatched += 1;
     const abs = path.join(REPO_ROOT, vocabulary.planned_anchor.file);
     if (!existsSync(abs)) continue;
-    const source = readFileSync(abs, "utf8");
-    // Bare-symbol probe: arrival must trip even if the vocabulary lands as a
-    // type alias or constant set rather than an enum.
+    // Bare-symbol probe on the comment-stripped source: arrival must trip even
+    // if the vocabulary lands as a type alias or constant set rather than an
+    // enum, but a commented-out mention must not trip it.
+    const source = stripCode(readFileSync(abs, "utf8"));
     if (new RegExp(`\\b${vocabulary.planned_anchor.symbol}\\b`).test(source)) {
       errors.push(
         `[spec-arrival] vocabulary "${vocabulary.id}" is now implemented at ${vocabulary.planned_anchor.file} — flip status to "live", declare representations, and regenerate the docs artifacts`

@@ -7,6 +7,7 @@ import {
   collectAnchorFiles,
   compareMembers,
   evalNumericToken,
+  extractQuotedConstant,
   normalizeDocText,
   parseCapitalsNote,
   parseGlossaryTable,
@@ -198,6 +199,20 @@ export const ACTION_DOMAINS: readonly ActionDomain[] = [
 ] as const;
 `;
   assert.deepEqual(parseTsReadonlyArray(source, "ACTION_DOMAINS"), ["solar", "waste"]);
+});
+
+test("extractQuotedConstant reads a multi-line Solidity constant in full", () => {
+  const source = `
+contract DeployBadgeSchema {
+    string internal constant GREEN_GOODS_BADGE_SCHEMA =
+        "string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier";
+}
+`;
+  assert.equal(
+    extractQuotedConstant(source, "GREEN_GOODS_BADGE_SCHEMA"),
+    "string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier"
+  );
+  assert.equal(extractQuotedConstant(source, "MISSING_CONSTANT"), null);
 });
 
 test("parseTsPropertyUnion is line-anchored so substatus cannot satisfy status", () => {
@@ -394,6 +409,12 @@ test("reconcileBaseline enforces entry hygiene", () => {
   assert.ok(result.errors.some((e) => e.includes("expired on 2026-01-01")));
   assert.ok(result.errors.some((e) => e.includes(`more than ${BASELINE_MAX_DAYS} days`)));
   assert.ok(result.errors.some((e) => e.includes("at least 12 characters")));
+});
+
+test("reconcileBaseline rejects duplicate guard+subject entries", () => {
+  const shadow = { ...entry, id: "different-id" };
+  const result = reconcileBaseline([finding], { entries: [entry, shadow] }, today);
+  assert.ok(result.errors.some((e) => e.includes("duplicate guard+subject")));
 });
 
 test("reconcileBaseline warns inside the 30-day expiry window", () => {

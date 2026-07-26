@@ -121,6 +121,8 @@ export interface OntologySchema {
   source?: string;
   spec_source?: string;
   check?: "existence-only";
+  /** Constant name holding the registration schema string (existence-only). */
+  source_symbol?: string;
   name: string;
   revocable: boolean;
   resolver?: string | null;
