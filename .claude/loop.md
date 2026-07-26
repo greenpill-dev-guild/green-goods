@@ -15,13 +15,17 @@ cd $CLAUDE_PROJECT_DIR && bun run check:codex-guidance 2>&1 | tail -5
 
 ## 2. Stale References
 
-Grep the `.claude/` directory (and `CLAUDE.md`/`AGENTS.md`/`ONBOARDING.md`) for these known-retired names. Check BOTH the path form (`skills/<name>`) AND the prose forms — backtick names like `` `ui` ``, "<name> skill", "skill `<name>`", and subfile refs like `ops/migration` — the prose forms are how stale references actually survive sweeps. Report any matches outside of archive/retirement notices:
-- Retired domain skills: `react`, `testing`, `web3`, `data-layer`, `indexer`, `contracts`, `ops`, `ui` (as skill references — their content lives in `.claude/context/*.md` and `design/implementation.md`)
-- Folded into review/audit: `principles`, `architecture`, `audit-then-ship`, `drift` (as skill references)
-- Removed meta-infrastructure: `registry/skills.json`, `skills/index.md`, `check:claude-guidance`, `check-skill-frontmatter`
-- Removed agents: `cracked-coder`, `oracle`
-- Older retirements: `error-handling-patterns`, `skill-bundles.json`, `hooks.json`, `skills:sync`
-- Round-2 retirements (2026-07-25): `agent-output-gate` (hook + script), `context/docs.md`, `context/intent.md` (folded into `context/product.md`)
+The mechanical retired-name sweep (exact tokens, retired skill paths, slash
+forms) is code, not prose: `RETIRED_PATTERNS` in
+`scripts/quality/check-guidance-links.mjs`, run by step 1 above and by the
+`guidance` CI job. Do not re-add name lists here — new retirements go into that
+array in the same commit that retires the surface.
+
+Here, grep only the prose forms code cannot match without false positives:
+"<name> skill" phrasings and bare backticked names used as skill references —
+`react`, `testing`, `web3`, `data-layer`, `indexer`, `contracts`, `ops`, `ui`,
+`principles`, `architecture`, `drift`, `oracle`. Report matches outside
+archive/retirement notices.
 
 ## 3. Build Health
 ```!

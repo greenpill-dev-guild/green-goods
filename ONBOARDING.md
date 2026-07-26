@@ -18,7 +18,6 @@ Top Skills & Commands:
   /clean            █░░░░░░░░░░░░░░░░░░░   6x/month
   /review           █░░░░░░░░░░░░░░░░░░░   6x/month
   /doctor           █░░░░░░░░░░░░░░░░░░░   5x/month
-  /architecture     █░░░░░░░░░░░░░░░░░░░   4x/month
   /usage            █░░░░░░░░░░░░░░░░░░░   4x/month
 
 Top Browser MCP Usage:
