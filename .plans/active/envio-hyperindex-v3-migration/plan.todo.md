@@ -16,7 +16,7 @@
 | Requirement | Planned Step | Status |
 |-------------|--------------|--------|
 | Refresh plan and Linear tracking | Phase 0 | Complete |
-| Correct PR #649 scope and base | Phase 1 | Blocked: local scope is correct, but PR #649's head is an unwritable fork branch |
+| Correct PR #649 scope and base | Phase 1 | Complete: base retargeted to `develop`, corrected branch published to the fork head |
 | Migrate to Envio 3.2.1 | Phase 2 | Complete |
 | Prove behavior and replay preservation | Phase 3 | Complete: token-backed runtime, catch-up, and non-empty GraphQL proof captured |
 | Pass the review/ship gate | Phase 3 | Partial: full tests, lint, and pinned build pass; `bun format:check` remains blocked by two develop-baseline plan files |
@@ -32,10 +32,11 @@
 
 ## Phase 1: Correct PR #649
 
-- [ ] Retarget PR #649 from `main` to `develop`. **Blocked**: #649's head is
-      `moose-code:chore/upgrade-envio-3.2.1` (fork, `push: false`), so its diff cannot be updated
-      from this repo. Needs a human decision — fork owner pushes, or a new `origin` branch + PR
-      targeting `develop` supersedes #649.
+- [x] Retarget PR #649 from `main` to `develop`. Afo retargeted the base on 2026-07-27. The head
+      is the fork branch `moose-code:chore/upgrade-envio-3.2.1`; the direct fork repo grants
+      `push: false`, but the PR has `maintainer_can_modify: true`, so a base-repo maintainer
+      published the corrected branch as a fast-forward (`0fb3f72d..ec1cb087`). No force push, and
+      no superseding `origin` branch was created. PR #649 is now `MERGEABLE` with 58 changed files.
 - [x] Remove nested package-level Envio skill copies.
 - [x] Remove unrelated shared changes.
 - [x] Keep only migration-required indexer, workflow, CI, docs, and canonical-guidance changes.
