@@ -160,7 +160,11 @@ Before opening a new Issue or appending a comment, query Linear for an existing 
 ```
 Linear query (read-only):
   team = Product, type = Issue, state in [Backlog, Todo, In Progress],
-  labels include protocol:green-goods + activity:qa + ai:routine,
+  labels include green-goods + qa,   // bare child names; do NOT require an
+                                     // ai:* child here — the Codex hand-off
+                                     // swaps routine->codex, and matching on
+                                     // it would miss the delegated Issue and
+                                     // open a duplicate
   title contains <category marker>
 ```
 
@@ -190,8 +194,10 @@ if no open Linear Issue matching the canonical labels + category marker:
     team        = Product
     project     = (none — unprojected)
     title       = "<category marker>: <one-line summary>"
-    labels      = protocol:green-goods, activity:qa, ai:routine,
-                  package:<inferred> (when applicable)
+    labels      = "green-goods", "qa", "routine",
+                  <package child, e.g. "indexer"> (when applicable)
+                  // bare child names or IDs only — save_issue rejects the
+                  // group:child display form, and one bad entry rejects all
     status      = Backlog (exploratory) or Todo (well-scoped)
     body        = <findings>
 else:

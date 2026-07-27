@@ -575,12 +575,14 @@ Determine if @mention is needed by counting **this routine's own** open Issues a
 # list_issues' `label` param is single-value: query by ai:routine, then narrow
 # on each result's labels[] for the source-origin and activity clauses below.
 raw_signal_count = count Issues on team=Product where:
-                     labels include ai:routine AND activity:maintenance, AND
+                     labels include maintenance (bare child names; do not require
+                       an ai:* child — delegation swaps it), AND
                      labels include at least one of source:discord / source:telegram / source:drive, AND
                      state == Backlog
                    # raw signals captured as tracking Issues, awaiting a promotion decision
 accepted_count   = count Issues on team=Product where:
-                     labels include ai:routine AND activity:qa, AND
+                     labels include qa (bare child names; do not require
+                       an ai:* child — delegation swaps it), AND
                      labels include at least one of source:discord / source:telegram / source:drive, AND
                      state in [Backlog, Todo]
                    # accepted bugs awaiting work
