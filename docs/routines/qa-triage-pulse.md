@@ -150,7 +150,7 @@ For each extracted item:
 Linear requires every Customer Need to link to an Issue. For each non-duplicate item:
 
 1. **First, create the Backlog tracking Issue** on the Product team. Title: prefix with `[tracking]`, then use an action-verb-led one-line distillation (e.g., "[tracking] Investigate PWA install hang on Android" rather than "Install hangs"). Body: Summary + Surface + Suggested fix + Source + safe evidence — no Reproduction/Expected/Actual sections at this routine stage.
-   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`.
+   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
 

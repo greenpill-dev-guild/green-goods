@@ -83,6 +83,8 @@ Issues created from Customer Needs (whether accepted bugs or lightweight trackin
 | `source:*` | `source:discord`, `source:telegram`, `source:drive` | n/a (multi-value family — used as provenance flags) | **Always** on every Issue this routine creates, one per origin (Discord→`source:discord`, Telegram→`source:telegram`, Drive→`source:drive`). This stamp is what scopes the Phase 7 triage count to this routine's own writes, so it is non-optional. Never on the Customer Need — Needs carry no labels. |
 | `ai:*` | `ai:routine` (default) · `ai:codex` (Codex-ready accepted bugs) | **yes** | Issue. Default `ai:routine`; swap to `ai:codex` when the accepted bug clears the Codex-ready bar (see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar. The `/qa-triage` skill applies the same rule on human promotion. |
 
+Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+
 ### Workflow state
 
 - Customer Needs have no workflow state — they're body-only records linked to an Issue.

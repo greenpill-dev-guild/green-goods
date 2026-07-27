@@ -208,7 +208,7 @@ The status update carries the routine's health read: `onTrack` on a healthy/quie
 
 ### Linear anomaly Issue body
 
-When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `ai:routine`. **Codex hand-off:** swap `ai:routine`→`ai:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Body:
+When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `ai:routine`. **Codex hand-off:** swap `ai:routine`→`ai:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing. Body:
 
 ```markdown
 ## Anomaly type

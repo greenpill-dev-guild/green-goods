@@ -38,7 +38,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary.
+- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
 
 ## Threshold philosophy
 
