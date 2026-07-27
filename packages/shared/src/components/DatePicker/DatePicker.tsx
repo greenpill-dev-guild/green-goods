@@ -136,7 +136,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           </label>
         )}
 
-        <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Root open={open} onOpenChange={setOpen} modal>
           <Popover.Trigger asChild>
             <button
               ref={ref}
@@ -165,8 +165,10 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
 
           <Popover.Portal>
             <Popover.Content
+              data-component="DatePickerPopover"
               align="start"
               sideOffset={4}
+              style={{ zIndex: "calc(var(--z-modal) + 1)" }}
               className={cn(
                 "z-overlay rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",

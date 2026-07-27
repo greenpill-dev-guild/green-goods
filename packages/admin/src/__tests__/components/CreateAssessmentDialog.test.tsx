@@ -97,6 +97,7 @@ const authContextValue: AuthContextType = {
 function renderCreateAssessment() {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
+  queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
   queryClient.setQueryData(
     queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
@@ -174,6 +175,39 @@ describe("CreateAssessment dialog", () => {
     expect(await screen.findByRole("heading", { name: "Domain & Context" })).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.garden.admin.notFound")).not.toBeInTheDocument();
+  });
+
+  it("keeps the reporting-period calendars interactive above the assessment dialog", async () => {
+    useCreateAssessmentStore.setState({ currentStep: 2 });
+
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Select start date" }));
+    const day = await screen.findByRole("button", { name: /Monday, July 27th, 2026/i });
+    expect(day.closest('[data-component="DatePickerPopover"]')).toHaveStyle({
+      zIndex: "calc(var(--z-modal) + 1)",
+    });
+    fireEvent.click(day);
+
+    expect(useCreateAssessmentStore.getState().form.reportingPeriodStart).toBe("2026-07-27");
+    expect(screen.getByRole("button", { name: /Jul 27, 2026/i })).toHaveAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select end date" }));
+    const endDay = await screen.findByRole("button", { name: /Tuesday, July 28th, 2026/i });
+    endDay.focus();
+    fireEvent.click(endDay);
+
+    expect(useCreateAssessmentStore.getState().form.reportingPeriodEnd).toBe("2026-07-28");
+    expect(screen.getByRole("button", { name: /Jul 28, 2026/i })).toHaveAttribute(
+      "aria-expanded",
+      "false"
+    );
   });
 
   it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {
