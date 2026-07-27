@@ -60,6 +60,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - All routine branches use `claude/<routine-name>/<topic>`.
 - Loop prevention on `pr-review`: filter on `head_branch` starting with `claude/` (NOT on author — routine PRs carry the user's GitHub author per the docs).
 - **Linear is the durable backlog.** GitHub is for PRs and code review only — routines never file GitHub Issues, never write to GitHub Projects, and never apply GitHub Project iteration/Sprints fields. The retired GitHub Project #4 / Bug Board flows (and the `Sprints` field they depended on) are out of scope for any active routine.
+- **Model tier:** every GG routine runs `claude-opus-5` (moved off `claude-opus-4-8[1m]` on 2026-07-26; same token price, better instruction-following and bug-finding). Each spec names its model in frontmatter, and that frontmatter is documentation of the live trigger, not a control surface: changing it does not change the running model, so re-emit the trigger and edit the spec in the same change. The guild-level tiering rationale, including the two routines on `claude-fable-5`, lives in [`greenpill-dev-guild/.github` → `routines/claude/README.md`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md).
 
 ## Scope discipline
 
@@ -200,12 +201,12 @@ The routine resolves team/label/status IDs by name at the start of every run —
 
 ### Output style (all posting routines)
 
-Green Goods routine posts follow the guild house style: bold headers with blank lines between blocks, lead with what needs a human (🔴 first), a thing appears only if it moved or needs attention (never a "quiet" bullet or empty section), metrics folded into the line they describe, one message per channel per run. Cadences in the portfolio table are UTC (the qa-triage-pulse row's "Wed 21:00 UTC" annotation style is the convention).
+Green Goods routine posts follow the guild house style: bold headers with blank lines between blocks, lead with what needs a human (🔴 first), a thing appears only if it moved or needs attention (never a "quiet" bullet or empty section), metrics folded into the line they describe, one message per channel per run. Get short by cutting content rather than compressing prose: drop anything that would not change what a reader does next, then write what remains in complete sentences (no padding, no fragment-and-arrow shorthand). Cadences in the portfolio table are UTC (the qa-triage-pulse row's "Wed 21:00 UTC" annotation style is the convention).
 
 ## Rebuilding a routine
 
 1. Log in to claude.ai/code/routines.
 2. Click **New routine**.
 3. Paste the prompt from the relevant `.md` file (everything after the `# Prompt` heading).
-4. Configure repos, environment, connectors, and triggers as specified in the file's frontmatter.
+4. Configure repos, environment, connectors, triggers, **and the model** as specified in the file's frontmatter. A rebuilt routine left on the platform default silently runs the wrong tier.
 5. Save.

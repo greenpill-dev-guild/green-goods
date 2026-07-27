@@ -26,7 +26,7 @@ connectors:
   - linear  # Linear via the OAuth connector only — no LINEAR_API_KEY is stored (guild rule 2026-07-04); fail closed if unauthenticated
   - posthog  # read-only PostHog connector; primary path for telemetry enrichment
   - vercel  # read-only deploy correlation — surface deploy timing + diff in Customer Need bodies when a recent prod deploy temporally aligns with the report
-model: claude-opus-4-8[1m]
+model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Linear records only, no PRs, no GitHub issues
 ---
 
