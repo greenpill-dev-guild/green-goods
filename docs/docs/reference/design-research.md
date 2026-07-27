@@ -3,7 +3,7 @@ title: Design & Research
 slug: /reference/design-research
 audience: all
 owner: docs
-last_verified: 2026-07-03
+last_verified: 2026-07-10
 feature_status: Live
 source_of_truth:
   - docs/docs/community/operator-guide/creating-a-garden.mdx
@@ -13,6 +13,8 @@ source_of_truth:
 # Design & Research
 
 Design resources, research materials, and product vision documents for Green Goods.
+
+The page and current design practice are **live**. Commitment Pooling and Community Needs & Signals are **planned** until implementation and runtime proof exist. In this page, **reported** means an authorized executor recorded a Celo transaction reference; it does not prove receipt. **Oracle-verified** means the mandatory Chainlink Functions callback verified the finalized Celo receipt, successful Safe/module execution, and the exact canonical-G$ `Transfer` logs from the registered Safe to the expected recipients and amounts. The outer transaction sender may be a scoped Zodiac executor. **Evidence-gated** behavior remains blocked until its named research or operational proof exists.
 
 **Researching impact methodology? Read these four in order.** The [Regenerative Design Framework](/reference/regenerative-design-framework) sets the design lens. The [Glossary](/glossary) defines the four action domains and the entities every record uses. [How It Works](/community/how-it-works) explains the work and approval attestations that count as evidence. [Reporting and GAP](/community/operator-guide/reporting-and-gap) shows how approved work rolls up into reports funders can read. The materials below are the source documents behind that chain.
 
@@ -95,13 +97,17 @@ Green Goods uses a holistic framework for impact measurement:
 
 ### User Personas
 
+The page itself documents the live Green Goods design and research practice. The five scenarios below are **target personas and planned journeys** for Commitment Pooling and Community Needs & Signals; they are research inputs, not claims that those product flows are already available. Live feature documentation remains in the linked operator and gardener guides until implementation ships.
+
+The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; operator pools, triage, and evaluator lineage/export live in admin under `/community`; public funder discovery stays in existing Green Goods browser surfaces. Need kinds are Request, Offer, and Initiative. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). Domains are optional arrays; DomainImpact commitments pair each positional domain with a registered, domain-matching action UID, and UID `0` remains valid.
+
 #### Gardener: Maria
 
 **Who she is**: Community volunteer at a campus garden in Awka, Nigeria. Uses a mid-range Android phone with intermittent mobile data. No prior experience with apps beyond WhatsApp. Paid by the day for solar panel maintenance and tree planting.
 
-**A day in her life**: Maria arrives at the campus garden at 7 AM before her solar panel cleaning shift. She opens Green Goods (which she treats the same as WhatsApp), takes a photo of the panel she is about to clean, adds a short note, and taps submit. The whole thing takes under a minute. By the time she finishes the panel row at 8:15 AM, the submission has synced in the background. She checks at lunch and sees a green checkmark -- her operator approved it.
+**Target journey (planned)**: Maria arrives before her solar-panel cleaning shift. She captures a photo and short voice note; Green Goods saves it even when the connection drops. At the weekly gathering she also offers two hours to help repair the tool shed. The operator records the promise with Maria as its source, the beneficiary confirms it when complete, and any G$ reward is shown as received only after the mandatory Chainlink Functions callback verifies the finalized Celo receipt. G$ remains on Celo, and Maria never bridges a token or holds CELO. If the Celo account-abstraction/paymaster gate fails, member delivery remains unavailable; the garden does not custody a claim for her.
 
-**What success feels like**: "I took the photo, tapped submit, and the money arrived." The app never asked her to think about what blockchain means.
+**What success feels like**: "I shared the work, kept my promise, and can see that the support arrived." The app never asks her to think about chains, attestations, or transaction mechanics.
 
 **What failure feels like**: A spinning loader after she submitted. She closes the app, unsure if her work was captured. She will not reopen it voluntarily -- she will ask her operator in person. If this happens twice, she stops using the app entirely.
 
@@ -113,9 +119,9 @@ Green Goods uses a holistic framework for impact measurement:
 
 **Who he is**: Community coordinator managing a coastal restoration project in Muizenberg, Cape Town. Oversees 20 gardeners across waste collection and food systems actions. Web3-familiar but not a developer. Spends 2-4 hours per week on garden management.
 
-**A day in his life**: David opens the admin dashboard at 9 AM with coffee. He has 12 pending work submissions from yesterday. He scans the photos and notes, batch-approves the 10 that look good, flags 2 for follow-up. At 11 AM he has a funder call -- he pulls an export of this month's verified work counts and assessment scores. In the afternoon he adds a new "beach cleanup" action to the garden and assigns an evaluator to next month's assessment cycle.
+**Target journey (planned)**: David opens admin `/community` before a community gathering. He reviews new Requests, Offers, and Initiatives, acknowledges them with zero or more domains, merges one duplicate with a visible rationale, and prepares a print-legible gathering view. After the group agrees on priorities, he seeds bounded commitments with units, positional domain/action pairs where DomainImpact requires them, evidence, confirmation rules, and rewards. He can review work, membership, reported settlement, and oracle-verified settlement without maintaining a second spreadsheet.
 
-**What success feels like**: "I reviewed everything in 10 minutes and had the report ready before my call." The dashboard feels like a command center, not a chore.
+**What success feels like**: "I turned what the community agreed into clear work without losing anyone's words." The workspace feels like an operating tool, not a protocol console.
 
 **What failure feels like**: Spending an hour on what should have been a batch operation. Or a funder asking for data he cannot export, forcing him to screenshot tables into a slide deck.
 
@@ -127,7 +133,7 @@ Green Goods uses a holistic framework for impact measurement:
 
 **Who she is**: Environmental researcher partnered with AgroforestDAO in Minas Gerais, Brazil. Evaluates garden impact seasonally, not daily. Comfortable with data queries and attestation chains. Needs structured rubrics that map to academic and compliance frameworks.
 
-**A day in her life**: At the end of the growing season, Dr. Chen logs into the evaluator view and reviews the past quarter's approved work across 3 gardens against each garden's assessment baseline. She scores the realized impact across the Eight Forms of Capital rubric with evidence references, exports the data as CSV for her research paper, and verifies the attestation chain to confirm nothing was tampered with since submission.
+**Target journey (planned)**: At season close, Dr. Chen traces a community Need through its linked commitment, approved work, baseline and delta assessment, and testimony. Cross-domain commitments retain optional domain arrays and positional registry-validated action arrays rather than being forced into one category. She exports CSV or JSON evidence lineage and can distinguish evaluator conclusions, operator records, community witness statements, reported transfers, and oracle-verified settlement.
 
 **What success feels like**: "I have a publishable dataset with cryptographic provenance that I can cite in a peer-reviewed journal." The data export maps cleanly to her research methodology.
 
@@ -141,7 +147,7 @@ Green Goods uses a holistic framework for impact measurement:
 
 **Who she is**: Impact fund manager at a mid-size foundation evaluating 20-30 projects per quarter. Comfortable with dashboards and financial reporting tools but does not read Solidity. Needs verified, auditable impact data to justify allocations to her board.
 
-**A day in her life**: Before a quarterly allocation meeting, Amara opens the funder dashboard to compare garden performance across regions. She deposits into an Octant vault for a high-performing garden and purchases a Hypercert from another. She exports a one-page impact summary showing verified work counts, assessment scores, and attestation hashes -- her board requires cryptographic proof, not self-reported metrics.
+**Target journey (planned)**: Before a quarterly allocation meeting, Amara browses recent community Requests, Offers, and Initiatives in existing Green Goods public-browser surfaces without a performance leaderboard. She opens one garden's story, follows the Need → promise → work → proof chain, and supports the garden through the existing direct-donation or endowment path. A receipt-checked FundingAttribution shows the context of her contribution without pretending it created per-Need escrow or gave her control over garden allocation. Reported and oracle-verified G$ settlement remain visibly distinct.
 
 **What success feels like**: "I can show my board exactly where the money went and what it produced, with proof that no one fabricated the numbers." The dashboard gives her confidence that this is not just another NGO spreadsheet.
 
@@ -153,17 +159,17 @@ Green Goods uses a holistic framework for impact measurement:
 
 #### Community Member: Kwame
 
-**Who he is**: Local resident in Nairobi whose neighborhood benefits from a school garden program. Does not do fieldwork himself but cares about what work gets prioritized. Uses a smartphone, tech comfort similar to Maria. Engages through governance, not submissions.
+**Who he is**: Local resident whose neighborhood benefits from a school garden program. He may not do formal fieldwork, but he can name a request, offer a resource, or help organize a shared initiative. He uses a smartphone with tech comfort similar to Maria and usually enters through a garden QR or gathering.
 
-**A day in his life**: Kwame hears from a neighbor that the local garden has a new proposal to add litter cleanup actions alongside the existing tree planting. He opens the app, finds the active conviction vote, and signals his support. He checks back a few days later to see if the proposal passed and whether the new actions are live.
+**Target journey (planned)**: Kwame hears that elders need reliable market rides. He opens the independent Community PWA without signing in, reads the desired outcome, and taps Agree. On his first action he creates a passkey account; the action stays safely queued while the operator confirms membership. Membership persistence remains evidence-gated. Later he sees moderation and progress separately: the Need is acknowledged, a ride commitment is seeded, work is in progress, and neighbors have added testimony.
 
-**What success feels like**: "I had a say in what work happens in my neighborhood, and the result was fair." He does not need to understand the protocol -- just that his voice counted.
+**What success feels like**: "I said what mattered and can see what happened next." He does not need to understand the protocol — only that his words, the garden's response, and the resulting work remain connected.
 
-**What failure feels like**: He cannot find the vote. The UI uses words like "conviction" and "signal pool" that mean nothing to him. Or the outcome feels disconnected from what the community actually wanted.
+**What failure feels like**: His recording disappears, the app cannot explain why his action is waiting, or the final work is disconnected from what the community originally described.
 
-**Frustration points**: Jargon-heavy governance UI, feeling like his vote does not matter, no clear feedback loop showing what changed as a result.
+**Frustration points**: Jargon-heavy governance UI, forced domain classification, unclear membership waiting states, and no visible feedback loop.
 
-**Design implication**: Community governance features must be comprehensible without protocol knowledge. "Conviction voting" needs plain-language framing.
+**Design implication**: Community features must use plain Request / Offer / Initiative language and show a legible need → promise → work → proof thread without protocol vocabulary.
 
 ### Operator Context Profiles
 
@@ -204,7 +210,7 @@ When the Operator archetype is ambiguous, these constraint profiles differentiat
 
 **Why**: Build trust with funders and community.
 
-**How**: On-chain attestations, public data, open source.
+**How**: Named data ownership, public protocol records where appropriate, open source, and precise evidence labels. A reported Celo transaction is not receipt proof; only the mandatory Chainlink Functions callback may produce an oracle-verified settlement state.
 
 ### 5. Community-Governed
 
@@ -237,9 +243,9 @@ When the Operator archetype is ambiguous, these constraint profiles differentiat
 
 ## Case Studies
 
-### Case Studies in Progress
+### Planned Pilot Case Studies
 
-We are documenting real-world deployments and impact stories:
+The pilot intends to document these only after participant approval and verified evidence; this list is not a claim that case studies are complete:
 - Pilot gardens
 - Impact metrics
 - Funder testimonials
@@ -251,18 +257,18 @@ Follow updates on [X](https://x.com/greengoodsapp) and the [Dev Guild Blog](http
 
 ## Product Iterations
 
-### MVP Learnings
+### Pilot Targets — Not Results
 
-**What Worked**:
-- Passkey authentication adoption (90%+ of gardeners)
-- Offline queue reliability (99%+ sync success)
-- Operator validation model (95%+ approval rates)
+These targets are measured from the first instrumented pilot task through **2026-09-30**. Reports must include numerator, denominator, sample size, observation window, excluded states, and qualitative context. They must not expose wallet addresses, join-request identities, or participant identifiers.
 
-**What We Improved**:
-- Reduced submission time: 5 min → 2 min
-- Simplified action creation
-- Enhanced analytics
-- Better mobile performance
+| Target by 2026-09-30 | Measurement contract |
+|---|---|
+| At least 90% passkey onboarding completion | Participating gardeners who complete passkey setup divided by those who start their first authenticated action. |
+| At least 99% eligible offline-job sync success | Eligible queued jobs that reach confirmed submission divided by all eligible jobs that begin a normal send attempt; exclude user-cancelled jobs and time spent in `waiting_for_hat`. A separate retry-recovery cut may use only jobs that entered retry as both numerator population and denominator. |
+| At least 95% operator validation completion without data repair | Eligible triage, seeding, and confirmation tasks completed without a corrective data edit divided by observed eligible tasks. |
+| Median field submission time at or below 2 minutes | Median from first input to locally saved/submitted state, compared with a separately measured pre-pilot baseline. Do not assume a five-minute baseline. |
+
+These targets do not establish product effectiveness on their own. Pair them with comprehension, operator workload, recovery-path observations, and participant correction of the resulting mandate artifacts.
 
 ---
 

@@ -18,7 +18,7 @@ connectors:
   - linear        # Customer Need + Backlog tracking-Issue pre-staging only
   - posthog       # per-surface telemetry cross-reference
   - vercel        # deploy correlation for PostHog-matched items (gated on first_seen)
-model: claude-opus-4-8[1m]
+model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Customer Needs only; no PRs, no Sheet writes, no GitHub Issues
 last_updated: "2026-06-10"
 last_verified: "2026-05-13"
@@ -27,6 +27,8 @@ last_verified: "2026-05-13"
 # Prompt
 
 You are the **qa-triage-pulse** routine for Green Goods. The Build Sync (renamed from Product Sync, June 2026) runs Wednesdays at 10am PST, lasts at most 2 hours, and produces a Gemini-generated `.md` in the team Drive. Your job is to fetch those notes after each sync, extract the bugs/ideas/feedback discussed, cross-reference each against PostHog telemetry, and **pre-stage** them as Linear Customer Need + Backlog tracking-Issue pairs so the interactive [`/qa-triage`](../../.claude/skills/qa-triage/SKILL.md) skill can resume from there without re-extracting.
+
+**Engineering Sync extension (2026-07-18):** the biweekly **Engineering Sync** (Tuesdays ~09:30 PT, alternating weeks) also surfaces bugs, defects, and ideas worth triage. After processing the Build Sync notes, ALSO query Drive for `title contains 'Engineering Sync'` notes modified in the last 7 days. When one exists (on-weeks), run the same extract → PostHog cross-reference → pre-stage pipeline on it, labeling its records `qa-sync:<that meeting's date>`; when none exists (off-weeks), skip silently — never treat the absence as a failure. Dedupe across both sources within the run: an item raised in both syncs pre-stages once, citing both notes.
 
 You do NOT create Todo Issues, append rows to the QA Sheet, push code, open PRs, or create GitHub Issues. The only Issues this routine may create are Backlog tracking Issues required by Linear's Customer Need API. Promotion to Todo, assignee selection, severity, and Sheet writes require human judgment in `/qa-triage`. Your sole role is pre-stage Customer Need + Backlog tracking-Issue pairs → post Discord summary → exit.
 
@@ -68,7 +70,7 @@ Linear's `save_customer_need` API surface accepts `body`, `customer`, `issue`, `
 
 ## PostHog enrichment
 
-Use the curated questions from [`.claude/skills/posthog-questions/SKILL.md`](../../.claude/skills/posthog-questions/SKILL.md). Same privacy boundary as `bug-intake`. Switch to the matching project per item before each query:
+Use the curated questions from [`posthog-questions.md`](./posthog-questions.md). Same privacy boundary as `bug-intake`. Switch to the matching project per item before each query:
 
 - `errors.match-bug-report` with the verbatim quote as `snippet`
 - `errors.recurring` over 30 days for the ≥50-session pattern signal

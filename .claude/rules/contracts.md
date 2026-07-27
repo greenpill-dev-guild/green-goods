@@ -24,3 +24,5 @@ bun script/deploy.ts core --network sepolia --broadcast  # Deploy
 ```
 
 Why: `bun build` runs `build-adaptive.ts` which selects fast vs full mode. Raw `forge build` always does a slow full build (~180s). `bun run test` wraps `forge test` with correct exclusions and env loading.
+
+> Full package context: [.claude/context/contracts.md](../context/contracts.md) (deploy CLI, access control, storage gaps, security checklist).

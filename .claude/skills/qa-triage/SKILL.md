@@ -1,29 +1,23 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Process a build sync QA session (the meeting formerly called product sync) and turn the meeting notes into triaged Linear records + QA-sheet rows. Use this skill whenever the user mentions a QA call, QA sync, build sync, product sync (legacy name), QA session, product review, "triage the QA bugs", "file the bugs from the call", "extract bugs from the sync notes", "update the QA sheet with bugs", processing meeting notes for bugs, or wants to file Linear issues from a recent QA meeting — even if they don't explicitly say "qa-triage". Pulls the latest Gemini notes from Drive (with ~/Downloads fallback), cross-references each item against PostHog telemetry and existing Linear/Sheet records, scope-locks the triage, then writes Linear Customer Needs/Issues with assignees and appends Defects rows to the Green Goods QA Sheet.
+description: Turn build sync QA meeting notes (the meeting formerly called product sync) into triaged Linear records + QA-sheet rows. Fires on any mention of a QA call/sync/session, build sync, product sync (legacy name), or filing/triaging bugs from a recent meeting — even without the word "qa-triage". Pulls the latest Gemini notes from Drive (~/Downloads fallback), cross-references PostHog + existing Linear/Sheet records, scope-locks, then writes Customer Needs/Issues and QA Sheet rows.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
-version: "0.2.0"
-status: active
-packages: ["all"]
-dependencies: ["posthog-questions", "doc-feedback", "debug", "audit-then-ship"]
-last_updated: "2026-06-10"
-last_verified: "2026-05-13"
 ---
 
 # QA Triage Skill
 
 Interactive sibling of the `bug-intake` cron'd routine. Pulls the latest **Build Sync** QA notes from Drive (with `~/Downloads` fallback), extracts bugs, ideas, and feedback, cross-references each item against PostHog telemetry and existing Linear + QA-sheet records, gates the triage with an explicit scope lock, then writes Linear records and appends rows to the **Green Goods v1.1 QA** Sheet.
 
-Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
+Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
 
 ## Activation
 
 | Trigger | Action |
 |---------|--------|
-| `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
+| `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`) |
-| `/qa-triage <slug>` | Resume against `.plans/qa-triage/<slug>/notes.md` from a prior run |
+| `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
@@ -37,14 +31,14 @@ Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for th
   - App `163591` for client PWA + editorial website
   - Admin `262122` for admin cockpit
   - Agent `262124` — not used by this skill
-  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../CLAUDE.md))
+  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../../CLAUDE.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
 - **Vercel MCP** — used for deploy correlation in Phase 3a-bis, gated on PostHog matches. Optional but recommended; without it, items lose the "this bug appeared with commit X by author Y" context.
 - **Codex CLI** at `/Applications/Codex.app/Contents/Resources/codex` — automatic background dispatch on every run unless `--no-codex` is set.
 
 ## Workspace
 
-Per-run workspace: `.plans/qa-triage/<slug>/` (committed to git as the durable record).
+Per-run workspace: `tmp/qa-triage/<slug>/` (gitignored operational scratch).
 
 Contents:
 
@@ -58,11 +52,17 @@ Contents:
 - `schema-bootstrap.csv` — emitted only when the Defects tab needs the 6 new PostHog/Linear columns
 - `report.md` — Phase 7 final summary
 
-Skill-wide config: `.plans/qa-triage/.config.json` — caches resolved Sheet file id, column ordering, and last-verified permissions snapshot so Phase 0 doesn't re-prompt every run.
+Skill-wide cache: `~/.config/qa-triage/cache.json` — stores the resolved Sheet file
+id, column ordering, and last-verified permissions snapshot. User-specific assignment
+patterns live in `~/.config/qa-triage/preferences.json`. Neither file is repository truth.
+
+The durable result is the accepted Linear record plus the QA Sheet row. On a fully
+successful Phase 7, remove only the current run's scratch workspace after printing the
+summary. Keep scratch for dry runs, failures, or incomplete runs so they can be resumed.
 
 ## Phase 0 — Setup (read-only)
 
-> **Fixture-mode short-circuit.** When `--fixture` is set, skip the live-MCP probes in steps 3, 5, and 6 (PostHog reachability, Sheet permission check, full Sheet structure read). Treat the Sheet permissions as tight (already verified), reuse the cached `qa_sheet` block in `.config.json`, and DO NOT populate `test_catalog` on fixture runs — the fixture is synthetic and a stale catalog from a real run would be more useful than a fixture-derived one. Steps 1, 2, 3a (orphan worktree sweep), and 4 (Sheet file-id resolve from cache) still run.
+> **Fixture-mode short-circuit.** When `--fixture` is set, skip the live-MCP probes in steps 3, 5, and 6 (PostHog reachability, Sheet permission check, full Sheet structure read). Treat the Sheet permissions as tight (already verified), reuse the cached `qa_sheet` block in `~/.config/qa-triage/cache.json`, and DO NOT populate `test_catalog` on fixture runs — the fixture is synthetic and a stale catalog from a real run would be more useful than a fixture-derived one. Steps 1, 2, 3a (orphan worktree sweep), and 4 (Sheet file-id resolve from cache) still run.
 
 1. **Resolve workspace slug** from the input file's title or filename stem (lowercase-hyphenated, e.g., `Build Sync — 2026-06-10` → `build-sync-2026-06-10`).
 2. **Resolve Linear handles by name** at the start of every run:
@@ -93,16 +93,16 @@ Skill-wide config: `.plans/qa-triage/.config.json` — caches resolved Sheet fil
    → fall back to: name contains 'QA' ...
    ```
 
-   The known file id is `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo` (owner `afo@greenpill.builders`). On first run, confirm and cache to `.config.json`. If zero hits remain after the chain, continue with `--no-sheet` semantics.
+   The known file id is `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo` (owner `afo@greenpill.builders`). On first run, confirm and cache to `~/.config/qa-triage/cache.json`. If zero hits remain after the chain, continue with `--no-sheet` semantics.
 
-5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state and require `proceed anyway` to continue (default: abort and recommend tightening access). **Skipped in `--fixture` mode** (treat the cached `last_permission_check` in `.config.json` as authoritative).
+5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state and require `proceed anyway` to continue (default: abort and recommend tightening access). **Skipped in `--fixture` mode** (treat the cached `last_permission_check` in `~/.config/qa-triage/cache.json` as authoritative).
 
-6. **Read Sheet structure** via `read_file_content` (**skipped in `--fixture` mode** — rely on the cached `qa_sheet` block in `.config.json`):
+6. **Read Sheet structure** via `read_file_content` (**skipped in `--fixture` mode** — rely on the cached `qa_sheet` block in `~/.config/qa-triage/cache.json`):
    - Confirm tab names match `Public Website`, `PWA iOS`, `PWA Android`, `Admin Dashboard`, `Cross Surface`, `Defects` plus auxiliary `Guide`, `Summary`.
    - Read the `Defects` tab's header row. Detect whether the 6 added columns exist (`PostHog Hash`, `PostHog Sessions 7d`, `PostHog Users 7d`, `PostHog Session ID`, `PostHog Replay URL`, `Linear URL`). If absent, emit `schema-bootstrap.csv` (a single-row CSV with the new column names) to the workspace.
    - Read the `Defects` body and the 5 Test tabs into private context.
-   - **Cache the `Scenario` + `Area` + `Test ID` triple from every Test-tab row** to `.config.json` under a `test_catalog` key. Phase 5's Linked-Test-ID inference uses this catalog to fuzzy-match extracted item descriptions to Scenarios — far more useful than expecting verbatim Test-ID references (e.g., "ADM-005") in conversational meeting notes. Match by keyword overlap between the item one-liner and `Scenario` (case-insensitive, tokenize on whitespace, ≥40% token overlap = match). Empty catalog (test tabs never populated) → Linked-Test-ID stays empty; no failure.
-   - Cache the resolved column order to `.config.json` so subsequent runs skip bootstrap detection.
+   - **Cache the `Scenario` + `Area` + `Test ID` triple from every Test-tab row** to `~/.config/qa-triage/cache.json` under a `test_catalog` key. Phase 5's Linked-Test-ID inference uses this catalog to fuzzy-match extracted item descriptions to Scenarios — far more useful than expecting verbatim Test-ID references (e.g., "ADM-005") in conversational meeting notes. Match by keyword overlap between the item one-liner and `Scenario` (case-insensitive, tokenize on whitespace, ≥40% token overlap = match). Empty catalog (test tabs never populated) → Linked-Test-ID stays empty; no failure.
+   - Cache the resolved column order to `~/.config/qa-triage/cache.json` so subsequent runs skip bootstrap detection.
 
 See [`sheet-schema.md`](./sheet-schema.md) for the canonical Defects and Test-tab schemas.
 
@@ -116,9 +116,9 @@ Lookup order, first match wins:
 
    On `resume`: populate `extraction.md` from the linked Customer Need + Backlog tracking-Issue pairs (one item per pair, using the Need's verbatim source and the Issue's summary / safe evidence blocks), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the pre-staged set as the numbered triage list. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
 
-   The resume path cuts the user's interactive triage to ~5 minutes after a sync. See [`qa-triage-pulse.md`](../../docs/routines/qa-triage-pulse.md) for the routine's contract.
+   The resume path cuts the user's interactive triage to ~5 minutes after a sync. See [`qa-triage-pulse.md`](../../../docs/routines/qa-triage-pulse.md) for the routine's contract.
 
-1. **Explicit argument** — `/qa-triage <path>` resolves the path directly. `/qa-triage <slug>` resolves to `.plans/qa-triage/<slug>/notes.md` if a prior run exists.
+1. **Explicit argument** — `/qa-triage <path>` resolves the path directly. `/qa-triage <slug>` resolves to `tmp/qa-triage/<slug>/notes.md` if an incomplete run exists.
 2. **Drive query** —
 
    ```
@@ -188,7 +188,7 @@ For each item in `extraction.md`, organized in surface buckets:
 
 ### 3a. PostHog enrichment
 
-Call `switch-project` to the matching project (App for PWA/website, Admin for admin; skip for docs/unknown), then run named questions from [`posthog-questions/SKILL.md`](../posthog-questions/SKILL.md):
+Call `switch-project` to the matching project (App for PWA/website, Admin for admin; skip for docs/unknown), then run named questions from [`posthog-questions/SKILL.md`](../../../docs/routines/posthog-questions.md):
 
 - `errors.match-bug-report` with the verbatim quote as `snippet`.
 - `errors.recurring` over 30 days — does the matched error hash cross the ≥50-session threshold?
@@ -250,7 +250,7 @@ Output: `cross-ref.md`, one block per item:
 
 ## Phase 4 — Triage gate (REQUIRED USER GATE)
 
-Mirror [`audit-then-ship`](../audit-then-ship/SKILL.md) Phase 2 exactly. Present the numbered list (extracted items + derived items) with proposed dispositions and ask, verbatim:
+This is a hard scope-lock gate: numbered findings → explicit user lock → act only on locked items. Present the numbered list (extracted items + derived items) with proposed dispositions and ask, verbatim:
 
 > Which items should I file? Reply with numbers (e.g., `1, 3, 5`), `all`, or `none`. For each, append a tag if you want to override: `1:track-only` (Customer Need + lightweight Backlog tracking Issue), `3:defer` (skip this run), `5:duplicate-of-PRD-1234`. Anything outside the listed numbers is out of scope for this run.
 
@@ -309,7 +309,7 @@ Recall `agent:*` is single-value: when delegate (`agent:claude` / `agent:codex`)
 
 **Per-item preference capture (subtle)**:
 
-When the user overrides the proposed assignee or disposition on a specific item, the skill records the *pattern* (not the specific item) to `.plans/qa-triage/.preferences.json`. Examples:
+When the user overrides the proposed assignee or disposition on a specific item, the skill records the *pattern* (not the specific item) to `~/.config/qa-triage/preferences.json`. Examples:
 
 ```json
 {
@@ -325,7 +325,7 @@ The next run reads this file at Phase 0 and uses it to *propose* better defaults
 
 **Sheet payloads**:
 
-- `sheet-rows.csv` — one Defects row per filed item (skip `tracker-known` items). Match the Sheet's actual column order from `.config.json`. Auto-generate `Defect ID` as `D-NNN` from the highest existing ID + 1.
+- `sheet-rows.csv` — one Defects row per filed item (skip `tracker-known` items). Match the Sheet's actual column order from `~/.config/qa-triage/cache.json`. Auto-generate `Defect ID` as `D-NNN` from the highest existing ID + 1.
 - `sheet-test-backfill.csv` — one row per Defects row that has a non-empty `Linked Test ID`, shaped `<tab>,<Test ID>,<Defect ID>`. Phase 6 fills the matching test row's `Defect Link` column **only** — never touches `Result`, `Severity`, `QA Owner`, or any other test column.
 
 Severity defaults for the Defects row:
@@ -349,7 +349,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
    **Linear writes** (via Linear MCP):
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
    - **`save_issue` `labels` is REPLACE, not append** (verified 2026-05-14). When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
-   - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `.plans/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
+   - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
    - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `agent:*` (delegate-to wins).
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
@@ -358,12 +358,12 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
    ```bash
    bun scripts/agents/qa-sheet-append.ts \
-     --defects-csv .plans/qa-triage/<slug>/sheet-rows.csv \
-     --test-backfill-csv .plans/qa-triage/<slug>/sheet-test-backfill.csv \
-     [--bootstrap-csv .plans/qa-triage/<slug>/schema-bootstrap.csv]
+     --defects-csv tmp/qa-triage/<slug>/sheet-rows.csv \
+     --test-backfill-csv tmp/qa-triage/<slug>/sheet-test-backfill.csv \
+     [--bootstrap-csv tmp/qa-triage/<slug>/schema-bootstrap.csv]
    ```
 
-   The script POSTs the CSVs as JSON to an **Apps Script Web App** deployed on the QA workbook (URL cached at `~/.config/qa-triage/webhook.txt`, required shared secret at `~/.config/qa-triage/webhook-secret.txt`, optional local-only admin secret at `~/.config/qa-triage/webhook-admin-secret.txt`). The Apps Script runs under your Google identity and writes directly — no Google Cloud Console, no OAuth client, no service account. Canonical Apps Script source + setup steps live at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer + bootstrap recipe at [`scripts/agents/qa-sheet-webhook-setup.md`](../../scripts/agents/qa-sheet-webhook-setup.md).
+   The script POSTs the CSVs as JSON to an **Apps Script Web App** deployed on the QA workbook (URL cached at `~/.config/qa-triage/webhook.txt`, required shared secret at `~/.config/qa-triage/webhook-secret.txt`, optional local-only admin secret at `~/.config/qa-triage/webhook-admin-secret.txt`). The Apps Script runs under your Google identity and writes directly — no Google Cloud Console, no OAuth client, no service account. Canonical Apps Script source + setup steps live at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer + bootstrap recipe at [`scripts/agents/qa-sheet-webhook-setup.md`](../../../scripts/agents/qa-sheet-webhook-setup.md).
 
    **Fallback (guided paste)** — if the webhook isn't yet configured, the POST fails, or the user passes `--no-sheet`:
    1. Surface `sheet-rows.csv` and `sheet-test-backfill.csv` with workspace paths.
@@ -414,11 +414,14 @@ Write `report.md` and print:
 - Done.
 ```
 
-Then run Codex worktree cleanup for the current run only if dispatched (unless `--dry-run`).
+Then run Codex worktree cleanup for the current run only if dispatched (unless
+`--dry-run`). After all confirmed Linear and Sheet writes succeed, remove only
+`tmp/qa-triage/<slug>/`; for dry runs, failed writes, or incomplete runs, keep it and
+surface the resume path.
 
 ## Privacy boundary — one explicit exception
 
-The canonical boundary from [`bug-intake.md`](../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../posthog-questions/SKILL.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
+The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../../../docs/routines/posthog-questions.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
 
 This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
 
@@ -437,7 +440,7 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 | Overwrite QA-owner-managed columns on Test rows | Only `Defect Link` may be backfilled; `Result`, `Severity`, `QA Owner` are sacred |
 | Edit prior-session Defects rows | Append only; manual edits to existing rows are sacred |
 | Block on Codex failure | Codex is auxiliary — log it and continue with manual prompt fallback |
-| Treat the Drive MCP's natural-language flatten as authoritative for Sheet column order | Cache the actual column order to `.config.json` on first read |
+| Treat the Drive MCP's natural-language flatten as authoritative for Sheet column order | Cache the actual column order to `~/.config/qa-triage/cache.json` on first read |
 | Run without the Sheet permission check | Skipping that check is how session IDs leak |
 | Apply multiple `agent:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label and put the secondary in the body's `## Provenance` / `## Surface` section |
 | Create a Customer Need without an `issue` (or `project`) parameter | Linear API rejects with `Exactly one of projectId or issueId must be defined`. If the extracted item has no actionable Issue, create a lightweight `activity:maintenance` Backlog Issue first as the attach point |
@@ -445,11 +448,9 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 
 ## Related Skills
 
-- [qa-triage-pulse routine](../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
-- [bug-intake routine](../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
-- [`posthog-questions`](../posthog-questions/SKILL.md) — named PostHog questions this skill calls.
-- [`audit-then-ship`](../audit-then-ship/SKILL.md) — source of the Phase 4 scope-lock gate language.
-- [`doc-feedback`](../doc-feedback/SKILL.md) — workspace convention (`.plans/<skill>/<slug>/`) borrowed.
+- [qa-triage-pulse routine](../../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
+- [bug-intake routine](../../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
+- [`posthog-questions`](../../../docs/routines/posthog-questions.md) — named PostHog questions this skill calls.
 - [`debug`](../debug/SKILL.md) — User-Facing Bug Triage Protocol; the assistant borrows the "reproduce before forensics" framing for any item the user wants to investigate before filing.
 
 ## Key principles

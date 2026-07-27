@@ -136,7 +136,7 @@ This starts the unified Storybook that includes stories from all three UI packag
 
 ### Source Maps
 
-Vercel runs `bun run build` only. PostHog source-map upload runs from the GitHub Actions `admin.yml` lane on trusted `main` pushes; its upload credentials are GitHub repository secrets, not Vercel project variables. The admin Vercel project should not carry `GG_ENABLE_SOURCEMAPS` by itself because the current Vite config emits maps only when the Sentry upload path is active.
+Vercel runs `bun run build` only. PostHog source-map upload runs from the GitHub Actions `admin.yml` lane on trusted `main` pushes; its upload credentials are GitHub repository secrets, not Vercel project variables. The admin Vercel project must not carry `GG_ENABLE_SOURCEMAPS`: the flag now makes the production build emit source maps (as `hidden`) and skip the public-map strip, so setting it on Vercel would publish browser source maps. It belongs only to the Actions upload lane, which deletes the maps after uploading them to PostHog.
 
 Set these variables as GitHub repository secrets:
 

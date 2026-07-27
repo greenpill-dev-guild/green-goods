@@ -1,6 +1,6 @@
 ---
 name: loop
-description: Project maintenance loop — guidance consistency, registry drift, stale references, and build health.
+description: Project maintenance loop — guidance consistency, stale references, and build health.
 disable-model-invocation: true
 ---
 
@@ -10,21 +10,24 @@ Run these checks and report a concise summary. Only flag issues, not passing che
 
 ## 1. Guidance Consistency
 ```!
-cd $CLAUDE_PROJECT_DIR && bun run check:claude-guidance 2>&1 | tail -5
+cd $CLAUDE_PROJECT_DIR && bun run check:codex-guidance 2>&1 | tail -5
 ```
 
-## 2. Registry Drift
+## 2. Stale References
 
-Check that `.claude/registry/skills.json` sub_files entries match actual files on disk for each skill directory. Report any files that exist but aren't listed, or listed but don't exist.
+The mechanical retired-name sweep (exact tokens, retired skill paths, slash
+forms) is code, not prose: `RETIRED_PATTERNS` in
+`scripts/quality/check-guidance-links.mjs`, run by step 1 above and by the
+`guidance` CI job. Do not re-add name lists here — new retirements go into that
+array in the same commit that retires the surface.
 
-## 3. Stale References
+Here, grep only the prose forms code cannot match without false positives:
+"<name> skill" phrasings and bare backticked names used as skill references —
+`react`, `testing`, `web3`, `data-layer`, `indexer`, `contracts`, `ops`, `ui`,
+`principles`, `architecture`, `drift`, `oracle`. Report matches outside
+archive/retirement notices.
 
-Grep the `.claude/` directory for these known-retired names. Report any matches outside of archive/retirement notices:
-- `error-handling-patterns`
-- `skill-bundles.json` (outside the removed-registry guard in check script)
-- `hooks.json`
-
-## 4. Build Health
+## 3. Build Health
 ```!
 cd $CLAUDE_PROJECT_DIR && bun lint --quiet 2>&1 | tail -3
 ```
@@ -34,7 +37,6 @@ cd $CLAUDE_PROJECT_DIR && bun lint --quiet 2>&1 | tail -3
 ```
 ## Loop Check — $ARGUMENTS
 - Guidance: [pass | N issues]
-- Registry: [synced | N drift items]
 - Stale refs: [clean | N found]
 - Lint: [pass | N issues]
 ```

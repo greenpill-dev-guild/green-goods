@@ -6,53 +6,30 @@
  *
  * Strategy:
  * - Mock GraphQL responses to simulate pending work data
- * - Use wallet auth injection for authenticated state
+ * - Use the dev mock-auth seam for authenticated state
  * - Test approval UI rendering, button states, and navigation
  *
  * For full infrastructure tests, use: npx playwright test --project=client-full
  */
 
-import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { expect, type Route, test } from "@playwright/test";
+import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
-/**
- * Set up mocked environment with auth and GraphQL mocking.
- */
-async function setupMockedEnvironment(page: import("@playwright/test").Page) {
-  const helper = new ClientTestHelper(page);
-  await helper.injectWalletAuth();
-
-  // Intercept GraphQL requests
-  await page.route("**/v1/graphql", async (route) => {
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ data: {} }),
-    });
-  });
-
-  return helper;
-}
-
 test.describe("Work Approval CI Tests", () => {
+  test.describe.configure({ mode: "serial" });
   test.use({ baseURL: CLIENT_URL });
 
   test.describe("Unauthenticated Access", () => {
-    // Skipped for v1.1.0 — login splash never paints `login-button` in
-    // headless CI shell; tracked for v1.1.1 alongside other client e2e
-    // skips (commit 722ee975).
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("protected pages redirect unauthenticated users to login", async ({ page }) => {
+    test("protected pages redirect unauthenticated users to login", async ({ page }) => {
       // Try to access authenticated page without auth
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await page.waitForURL(/\/home\/login/, { timeout: 15000 });
       expect(page.url()).toContain("/home/login");
     });
 
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("login page renders approval-relevant auth UI", async ({ page }) => {
+    test("login page renders approval-relevant auth UI", async ({ page }) => {
       await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
 
@@ -71,16 +48,11 @@ test.describe("Work Approval CI Tests", () => {
 
   test.describe("Authenticated Navigation", () => {
     test("authenticated user can reach home page", async ({ page }) => {
-      const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+      const helper = await setupAuthenticatedClient(page);
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
+      expect(page.url()).not.toContain("/home/login");
 
       // Home page loaded — should not have critical errors
       const hasAppError = await page
@@ -95,16 +67,11 @@ test.describe("Work Approval CI Tests", () => {
     });
 
     test("work dashboard button is accessible from home page", async ({ page }) => {
-      const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+      const helper = await setupAuthenticatedClient(page);
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
+      expect(page.url()).not.toContain("/home/login");
 
       // Look for the work dashboard trigger
       const dashboardButton = page.locator('[data-testid="work-dashboard-button"]');
@@ -135,27 +102,25 @@ test.describe("Work Approval CI Tests", () => {
 
   test.describe("Error Handling", () => {
     test("app handles indexer unavailability gracefully", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-      await helper.injectWalletAuth();
+      const helper = await setupAuthenticatedClient(page);
 
       // Mock indexer as unavailable
-      await page.route("**/v1/graphql", async (route) => {
+      await page.unroute("**/v1/graphql");
+      await page.unroute("**/api/graphql");
+      const unavailableIndexer = async (route: Route) => {
         return route.fulfill({
           status: 503,
           contentType: "application/json",
           body: JSON.stringify({ errors: [{ message: "Service unavailable" }] }),
         });
-      });
+      };
+      await page.route("**/v1/graphql", unavailableIndexer);
+      await page.route("**/api/graphql", unavailableIndexer);
 
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
+      expect(page.url()).not.toContain("/home/login");
 
       // App should render without crashing, even with failed indexer
       const hasUncaughtError = await page

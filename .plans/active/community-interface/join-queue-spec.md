@@ -1,0 +1,148 @@
+# Community Needs & Signals: Garden Join-Request Queue
+
+**Feature Slug**: `community-interface`
+**Stage**: `active` — architecture selected; RESR-64 operating gate remains
+**Created**: 2026-07-12
+**Companions**: `spec.md` §§7 and 9 (member and Garden-admin placement); `research-plan.md` (RESR-64 operating gate); `status.json` (manual blocker); `../commitment-pooling/plan.todo.md` decision #35 (pool-job consumer).
+**Grounding rule**: Every statement about present code names a `repo/path:line`; all proposed work is marked **NET-NEW**. This is the only canonical join-request design.
+
+---
+
+## 1. Decision and ownership
+
+**NET-NEW decision:** a closed-garden join request is one small, garden-scoped record on the agent service. It is not a protocol permission, an on-chain request registry, or a job-queue item. Community Needs & Signals owns its lifecycle, personal-data rules, and RESR-64 operating gate because its first-action flow creates the same membership wait (`spec.md:245-249`).
+
+Commitment Pooling consumes the result only: its five August pool job kinds enter `waiting_for_hat` before a send and resume when membership is observed (`../commitment-pooling/uiux-spec.md:205-225`). The queue never grants membership.
+
+The open-garden path is separate: `useJoinGarden` reads `openJoining` (`packages/shared/src/hooks/garden/useJoinGarden.ts:58-83`) and sends a sponsored passkey `joinGarden` transaction when it is enabled (`packages/shared/src/hooks/garden/useJoinGarden.ts:285-299`). **NET-NEW:** this queue is only for a closed, non-member garden.
+
+## 2. Thin architecture
+
+```text
+Closed-garden card or Community first action
+  -> passkey account signs one join-request proof
+  -> agent verifies it and stores one Pending row
+  -> authorized operator reads the garden queue in Manage Members
+  -> operator calls existing addGardener(address)
+  -> agent confirms gardener membership, then marks Welcomed
+  -> client observes the Hat and releases waiting_for_hat work
+```
+
+If the service is unavailable, the operator adds the address manually using the existing membership flow; no member permission is lost and no protocol key is introduced.
+
+### 2.1 One encrypted table
+
+**NET-NEW `garden_join_requests` fields:**
+
+| Field | Purpose |
+|---|---|
+| `id`, `gardenAddress`, `kind` | Opaque request ID; public garden scope; `garden_membership` now and `community_membership` reserved for the September consumer after RESR-64 approval |
+| `accountAddressCiphertext`, `accountAddressKey` | Encrypted requested account; keyed digest for lookup, the active-request constraint, and rate limits — raw address is not indexed or logged |
+| `displayNameCiphertext`, `noteCiphertext?`, `declineReasonCiphertext?` | Chosen handoff text only; field-encrypted at rest |
+| `state` | `pending`, `welcomed`, or `declined`; decline requires a reason |
+| `requestedVia` | `closed_garden_card` or `community_first_action` |
+| `requestedAt`, `expiresAt`, `resolvedAt`, `updatedAt`, `revision` | Lifecycle timestamps plus a monotonic compare-and-set revision |
+
+**NET-NEW request indexes:** `UNIQUE(gardenAddress, accountAddressKey) WHERE state = 'pending'`; queue scan `(gardenAddress, state, requestedAt DESC, id DESC)`; member history `(gardenAddress, accountAddressKey, requestedAt DESC)`. The partial constraint permits a re-request immediately after decline without allowing two active requests.
+
+**NET-NEW `join_request_guards` is a tiny hash-only companion table, not a second request store.** It holds `purpose`, `nonceHash`, `accountAddressKey`, `idempotencyKeyHash?`, `requestFingerprint?`, `requestId?`, and `expiresAt` — no address, name, note, reason, or signature. Its constraints are `UNIQUE(nonceHash)` for create and resolve proofs, `UNIQUE(accountAddressKey, idempotencyKeyHash) WHERE idempotencyKeyHash IS NOT NULL`, and an expiry-sweep index. It is deleted at proof expiry (five minutes); a withdrawn request deletes its encrypted row but keeps this guard briefly, so the same proof cannot reopen it.
+
+The agent remains a direct SQLite service (`packages/agent/src/services/db.ts:35-48`) and its schema is initialized in `packages/agent/src/services/db/schema.ts:3-112`. **NET-NEW:** add this table, migration, and narrowly named query helpers there; do not add a second data store.
+
+### 2.2 Lifecycle and retention — proposed, pending RESR-64 approval
+
+| Rule | Proposal |
+|---|---|
+| Pending expiry | Hard-delete an unanswered pending row after **30 days**. It has no fourth visible state; the member can ask again. |
+| Resolved retention | Keep welcomed/declined text for **30 days** after resolution so the member can read the outcome, then hard-delete it. |
+| Member withdrawal | `DELETE` only removes the caller's pending row immediately; it has no on-chain effect. The hash-only guard remains only until proof expiry to reject a replay. |
+| Encryption | Encrypt address, name, note, and reason at rest; the RESR-64 record must name the key owner, rotation, backup, and deletion mechanism before any collection begins. |
+| Analytics | Retain aggregate, non-identifying event counts only; never retain address, note, reason, signature, request ID, or garden ID in analytics. |
+
+These are deliberately proposed defaults, not an assumed operating policy. RESR-64 must accept or replace them before implementation.
+
+## 3. API and proof contract
+
+### 3.1 Shared contracts and routes
+
+Existing browser contracts are framework-free shared types (`packages/shared/src/public-contracts/index.ts:14-74`) and public routes are composed in the agent server (`packages/agent/src/api/server.ts:118-136`). **NET-NEW:** add `join-requests.ts` to that shared contracts surface, including validators, response types, route constants, and error codes. The agent adds one route module; it does not add a second API framework.
+
+**NET-NEW September dual-use:** the current closed-garden client creates only `garden_membership`, which derives `requestedVia: closed_garden_card`. Once RESR-64 accepts the September slice, the Community first-action flow creates `community_membership`, deriving `requestedVia: community_first_action`. Both kinds use the same table, proofs, endpoints, three visible states, retention, and operator flow. Until that gate clears, the agent rejects `community_membership` with `409 kind_not_enabled`; no September UI is implied by this data contract.
+
+| Route | Auth | Request / response behavior |
+|---|---|---|
+| `POST /public/gardens/:garden/join-requests` | Member `JoinRequestV1` proof | Body: garden, account, kind, display name, optional note, nonce, expiry, signature; `Idempotency-Key` header. Returns `201` for new or `200` for the same active request. |
+| `GET /public/gardens/:garden/join-requests/me` | Member `JoinQueueAccessV1` proof in `Authorization` | Returns only the caller's request ID, state, reason when declined, timestamps, and `canAskAgain`. No background polling or stored bearer token. |
+| `GET /public/gardens/:garden/join-requests?state=pending&kind=…&cursor=…&limit=…` | Operator/owner `JoinQueueAccessV1` proof | Returns only that garden's rows plus `nextCursor`. Default 25, maximum 100; cursor encodes `(requestedAt,id)`, never an address. |
+| `POST /public/gardens/:garden/join-requests/:id/resolve` | Operator/owner `JoinQueueAccessV1` proof | Body is either `{ action: "welcome", expectedRevision }` or `{ action: "decline", reason, expectedRevision }`. Welcome returns `202` until a current gardener-role read succeeds, then `200` welcomed; decline is `200`. |
+| `DELETE /public/gardens/:garden/join-requests/me` | Member `JoinQueueAccessV1` proof | Withdraws only a pending request, returns `204`; welcomed/declined history remains readable until its retention window ends. |
+
+The API uses `Cache-Control: no-store`, matching the current response helper (`packages/agent/src/api/http/responses.ts:16-20`). Every protected request sends `Authorization: GG-JoinProof <base64url({ typedData, signature })>`; signatures never appear in query parameters. Browser CORS must add `Authorization` and `DELETE` to the current headers/methods (`packages/agent/src/api/http/public.ts:68-76`).
+
+**NET-NEW response/error contract:** successful detail responses are `{ ok: true, request: { id, kind, state, revision, requestedVia, requestedAt, expiresAt, resolvedAt?, reason?, canAskAgain } }`; list responses add `{ items, nextCursor? }`. Use `400 invalid_request`, `401 invalid_signature`, `403 garden_role_required`, `404 request_not_found`, `409 already_member|idempotency_conflict|kind_not_enabled|resolution_conflict`, `410 request_expired|request_withdrawn`, `429 rate_limited`, `503 chain_reader_unavailable`, and the existing `500 internal_error` shape. No response includes a signature, token, keyed digest, or encrypted field.
+
+**NET-NEW idempotency:** one SQLite transaction first purges expired guards, claims the create nonce and `(accountAddressKey, idempotencyKeyHash)` guard, then checks the active-row constraint. Same key and same `requestFingerprint` returns the prior response; the same key with different fields returns `409 idempotency_conflict`; a guard for a withdrawn row returns `410 request_withdrawn`; a different key while pending returns the current row. The client retries one failed fetch with the same key and proof while the proof remains valid, then asks the member to try again. This is a plain fetch-with-retry, never a sixth offline job kind.
+
+### 3.2 Signature binding — selected path
+
+**NET-NEW `JoinRequestV1` is EIP-712 typed data.** Its domain is `{ name: "Green Goods Garden Join Request", version: "1", chainId, verifyingContract: gardenAddress }`; its exact fields are `account: address`, `garden: address`, `kind: uint8`, `displayNameHash: bytes32`, `noteHash: bytes32`, `nonce: bytes32`, `issuedAt: uint64`, and `expiresAt: uint64`. `displayNameHash` and `noteHash` are `keccak256` over the exact submitted UTF-8 bytes (the absent note is the hash of an empty byte string); `nonce` is 32 random bytes. The agent re-encodes the received UTF-8 fields after validation (name ≤80 characters, note ≤500) and rejects any hash mismatch, future issue time, or expiry beyond five minutes. Address comparisons use normalized `Address` values; the signature is never written to SQLite or logs.
+
+**NET-NEW `JoinQueueAccessV1` is separate EIP-712 typed data.** It binds the same domain plus `account: address`, `garden: address`, `action: uint8` (`read_self|list|resolve|withdraw`), `requestIdHash: bytes32`, `cursorHash: bytes32`, `expectedRevision: uint64`, `nonce: bytes32`, and `expiresAt: uint64`; absent request/cursor values are `bytes32(0)`. Resolve consumes its nonce atomically. Read/list proofs may be replayed only until expiry and only for the exact garden/action/cursor; this avoids a durable browser session or an implicit localStorage transport.
+
+**NET-NEW verification order:**
+
+1. For a passkey smart account, verify through an EIP-6492 universal validator by `eth_call` on the signed `chainId`. This is the primary path: it verifies an undeployed counterfactual account by deploying only within the simulated call, and verifies a deployed smart account through ERC-1271.
+2. If the account has deployed code and the signature is not a valid EIP-6492/1271 proof, reject it — never fall through to an EOA recovery.
+3. Only if the account has no code **and** the signature is not EIP-6492-wrapped, use EOA EIP-712 recovery. A counterfactual passkey client must produce the EIP-6492 form; a code-less plain signature that recovers to another address is rejected.
+
+The current passkey flow creates a Kernel smart account from the WebAuthn credential (`packages/shared/src/workflows/authServices.ts:350-388`), so an EOA-only verifier would fail the first join for a never-transacted passkey account. **NET-NEW:** inject a narrow `JoinQueueChainReader` into the agent API for the configured EIP-6492 universal-validator `eth_call` and current operator/owner/gardener role reads; the current API dependency surface does not provide one (`packages/agent/src/api/http/server.types.ts:35-70`). Its validator address and RPC operator must be accepted in the RESR-64 record and come from a checked-in deployment configuration. This is the only additional server dependency, not a transaction signer or protocol admin key.
+
+The current client treats gardener or operator as garden membership (`packages/shared/src/hooks/garden/useJoinGarden.ts:159-175`). **NET-NEW:** after proof verification but before storage, create checks those current roles through `JoinQueueChainReader`; either role returns `409 already_member` and creates no row. The current admin membership view maps gardeners to `operations.addGardener` (`packages/admin/src/views/Garden/ManageMembers.tsx:31-38`), whose shared operation simulates then calls the Hats module's `grantRole` (`packages/shared/src/hooks/garden/createGardenOperation.ts:221-299`).
+
+**NET-NEW resolution concurrency rule:** before every resolve, the agent reads the gardener role. If it exists, it atomically writes `welcomed` regardless of a prior decline: observed on-chain membership is authoritative. Otherwise, decline is `UPDATE … WHERE state = pending AND revision = expectedRevision`, incrementing `revision`; a stale decline returns `409 resolution_conflict`. Welcome first reuses the existing client transaction, then reads the gardener role again. If it is still absent and the row is pending, return `202`; if it is declined, return `409 resolution_conflict`. If the transaction reports the address already has the gardener role, the admin still calls resolve so the role read can converge the queue.
+
+**NET-NEW reconciliation rule:** `GET …/me` checks that one account's gardener role before responding; the operator list performs the same reads in a bounded batch for its returned page. Any observed gardener is atomically marked `welcomed`. This is how a manually added address converges after an agent outage; it is a read-time check, not an automatic add or a background job. This keeps only the three member-visible states and never reports a false welcome.
+
+## 4. Client and admin behavior
+
+### 4.1 Member
+
+**NET-NEW:** a closed, non-member garden card shows **Ask to join**. The form contains chosen display name and an optional note. A successful create shows **Asked to join**, then **Waiting for a steward**. An explicit **Check update** uses a read proof; the client never triggers a surprise passkey prompt in the background. A decline shows its reason and **Ask again**; withdrawal is available while pending.
+
+The existing Home empty state directs members to seek an open garden or ask an operator to add them (`packages/client/src/views/Home/GardenList.tsx:108-140`). The Profile list filters out closed, non-member gardens and routes shown non-members through self-join (`packages/client/src/views/Profile/GardensList.tsx:38-58`, `packages/client/src/views/Profile/GardensList.tsx:189-211`). **NET-NEW:** those are the two client placements for closed-garden requests.
+
+`waiting_for_hat` starts and ends from observed Hat membership, never from an optimistic queue row. The Community plan already specifies the same zero-retry wait for `need`, `needSignal`, and `testimony` (`spec.md:227-233`).
+
+### 4.2 Operator
+
+**NET-NEW:** add **Waiting to join** as a section of the existing Manage Members dialog in the Garden workspace — never under admin `/community` and never as a route. A row shows chosen name, abbreviated address, requested time, and a note marker; its detail shows the optional note. **Welcome in** calls `addGardener(address)` and waits for the gardener-role read. **Decline** requires a reason and has no on-chain effect.
+
+The existing dialog is the flat role roster and add-member surface (`packages/admin/src/components/Garden/ManageMembersDialog.tsx:37-67`, `packages/admin/src/components/Garden/ManageMembersDialog.tsx:91-129`). **NET-NEW:** an operator sees the usual queue rows plus a calm aggregate banner such as “Some requests were rate-limited recently”; it never reveals throttled addresses or note text.
+
+## 5. Abuse, copy, analytics, and inventory
+
+The browser API already checks allowed origins and derives public rate-limit keys (`packages/agent/src/api/http/public.ts:33-65`; `packages/agent/src/api/public-protection.ts:81-107`). Its conversational `join` limit is three per day (`packages/agent/src/services/rate-limiter.ts:88-93`). **NET-NEW:** the browser route gets a distinct `join_request_create` policy: three creates per account/garden per 24 hours, ten per IP/garden per ten minutes, fifty new requests per garden per 24 hours, and a hard cap of one hundred pending requests per garden. The database cap and active-row constraint remain effective if an in-memory limiter restarts.
+
+**NET-NEW i18n key families:** `app.garden.joinRequest.*` (`askToJoin`, `askedToJoin`, `waitingForSteward`, `checkUpdate`, `askAgain`, `withdraw`) and `admin.garden.joinRequest.*` (`waitingToJoin`, `welcomeIn`, `decline`, `reasonRequired`, `rateLimitedNotice`). Add each in en/es/pt using the copy above; no banned-vocabulary terms.
+
+**NET-NEW analytics:** `join_request_created`, `join_request_create_rejected`, `join_request_status_checked`, `join_request_resolved`, `join_request_withdrawn`, and `join_request_expired`. Properties are counts and enums only: `kind`, `state`, `requestedVia`, `resolution`, `errorClass`, `isCounterfactual`, and `retry`. Never send address, garden, request ID, display name, note, reason, signature, or token.
+
+**NET-NEW inventory delta:** add exactly two user-vocabulary actions using `prototypes.md` §16 conventions: `M-ask-to-join` and `O-welcome/decline`. They remain outside the August 39 until RESR-64 clears implementation.
+
+## 6. Acceptance, exclusions, and RESR-64 decisions
+
+- [ ] A passkey user can submit exactly one signed pending request for a closed garden, retry safely, withdraw while pending, and read their own outcome.
+- [ ] A duplicate create/resolve proof cannot replay within its expiry, including after withdrawal or decline; the same idempotency key returns the same outcome.
+- [ ] The verifier accepts counterfactual passkey accounts through EIP-6492, deployed smart accounts through ERC-1271, and EOAs only through EIP-712 recovery.
+- [ ] An operator/owner can read only their garden's paginated queue, use the existing gardener transaction, and decline with a reason.
+- [ ] Welcome follows an observed gardener role; it releases waiting work without consuming a retry.
+- [ ] Concurrent welcome/decline actions converge on the observed gardener role, and an existing gardener/operator never receives a new request row.
+- [ ] A request manually fulfilled while the agent is unavailable becomes welcomed on the next member or operator queue read.
+- [ ] Pending, resolved, and withdrawn records follow the accepted expiry/deletion policy; no personal request field reaches logs or analytics.
+- [ ] Rate limits, queue cap, and the aggregate operator spam signal are testable.
+- [ ] Every string is added in en/es/pt and avoids the glossary's disallowed copy (`docs/docs/reference/glossary-community.md:102-121`).
+- [ ] API, database, and UI implementation remain blocked until RESR-64 accepts the operating record.
+
+**Out of scope:** public on-chain requests; Linear-as-queue; implicit localStorage transport; a protocol admin key; automatic membership grants; a new pool job kind; a new admin workspace or route; September Community UI; and activation of `community_membership` before RESR-64 accepts it.
+
+**RESR-64 approval questions (maximum 4):** confirm the proposed 30-day retention/expiry policy; name the controller, processor, and encryption/key owner; approve the EIP-6492 universal-validator deployment and RPC operator; and name the incident/support owner for deletion, rate-limit, and role-read failures.

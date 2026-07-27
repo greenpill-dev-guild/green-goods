@@ -12,10 +12,10 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 
 ## Functional Requirements
 
-1. Repair agent guidance drift so `check:claude-guidance` and `check:codex-guidance` can be trusted as current repo signals.
-2. Repair `.plans` command drift so canonical docs and automation prompts point at `node scripts/harness/plan-hub.mjs`, or introduce durable package scripts that hide the raw path.
+1. Repair agent guidance drift so `check:codex-guidance` can be trusted (`check:claude-guidance` retired 2026-07-11) as current repo signals.
+2. Repair `.plans` command drift so canonical docs and skill callers point at `node scripts/harness/plan-hub.mjs`, or introduce durable package scripts that hide the raw path.
 3. Repair package-level contracts guidance drift where docs still describe the removed `GreenGoodsResolver` fan-out architecture.
-4. Refresh ADR-008 and shared package guidance so the accepted fat-barrel strategy has current import rules, public API review expectations, and explicit subpath exceptions.
+4. Refresh `packages/shared/AGENTS.md` and `packages/shared/src/MODULES.md` so the intentional fat-barrel strategy has current import rules, public API review expectations, and explicit subpath exceptions.
 5. Compare Knip and Fallow on the same Green Goods baseline before selecting the recurring static-analysis surface.
 6. Add an env-safe dead-code audit path that does not import client/admin Vite config and does not require local 1Password/Varlock resolution for file-level checks.
 7. Reconcile source-structure guardrails against stable `HEAD` without simply normalizing large files as healthy.
@@ -29,12 +29,11 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 - Stable audit baseline: `develop` / `origin/develop` at `f1ce64a0 fix(client,admin,shared): clear CI false positives`
 - Plan hub validation passed: `node scripts/harness/plan-hub.mjs validate` reported `Validated 18 feature hubs.`
 - Hook location validation passed: `bash .claude/scripts/validate-hook-location.sh`
-- Guidance validation failed: `node .claude/scripts/check-skill-frontmatter.js`
-- `.plans/README.md` still documents `node scripts/plan-hub.mjs`, while the real helper is `scripts/harness/plan-hub.mjs`
+- Guidance validation failed: `node .claude/scripts/check-skill-frontmatter.js` (checker retired 2026-07-11)
+- `.plans/README.md` still documents `node scripts/harness/plan-hub.mjs`, while the real helper is `scripts/harness/plan-hub.mjs`
 - `packages/contracts/AGENTS.md` still references `GreenGoodsResolver`, `src/resolvers/GreenGoods.sol`, and `GreenGoodsResolver.t.sol`; those files are not present in the current resolver/test tree.
-- ADR-008 already accepts the fat explicit shared barrel, but `packages/shared/src/index.ts` is now 1126 lines and the shared hook surface includes 195 `use*.ts(x)` files; the plan should refresh the policy rather than invent a new import architecture.
+- The shared package guide and module map document an intentional explicit root barrel, but `packages/shared/src/index.ts` is now 1126 lines and the shared hook surface includes 195 `use*.ts(x)` files; the plan should refresh the policy rather than invent a new import architecture.
 - `bunx knip --include files --reporter compact` currently fails before analysis because Knip imports client/admin Vite config, which imports Varlock and attempts 1Password resolution for `PINATA_JWT`.
-- Prior `.plans/clean/agent-3-dead-code.md` evidence showed Knip found real dead files, but also produced noisy findings around Solidity deps, Storybook, service workers, Docusaurus CSS, Vite string plugins, runtime barrels, and exported public types.
 - Fallow's current docs describe `dead-code`, `dupes`, `health`, changed-file `audit`, `fix --dry-run`, baseline/regression modes, CI output, boundary violations, circular dependencies, and duplication modes. Source: https://docs.rs/crate/fallow-core/2.34.0
 - Source-structure script exists, but stable `HEAD` still contains several large committed files and stale allowlist entries
 - Current Campaign Cookie Jar WIP surfaces are large across admin and shared (`useCampaignCookieJar.ts` 723 lines; admin `CampaignCookieJarPanel.tsx` 872 lines), while pure model/helper tests exist but deeper read/mutation boundary tests need to be explicit
@@ -44,16 +43,16 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 
 | Pattern | Existing Green Goods Strength | Gap To Close |
 |---|---|---|
-| Shared design concept | `.plans`, audit-then-ship, prompting docs, plan hub | stale command paths and guidance-check drift weaken trust |
+| Shared design concept | `.plans`, the scope-lock rhythm, prompting docs, plan hub | stale command paths and guidance-check drift weaken trust |
 | Ubiquitous language | community glossary, builder glossary, domain types, i18n vocab lint | glossary/domain drift is mostly manually policed |
 | Feedback loops | tests, stories, design gates, hook-location guard, plan validation | some important checks are not consistently part of stable PR/local gates |
 | Deep modules | shared module map, root barrels, domain utilities, typed hooks | several recent flows still land as large orchestration files |
 | Interface-first delegation | `createServer`, shared hooks, model utilities | tests often cover helpers or UI seams before the main behavior boundary |
 | Seams and adapters | agent `createServer` deps, indexer boundary script, Storybook state catalog, contract resolvers/modules | dead-code audit and package guides are not yet reliable seams for cleanup decisions |
-| Dead code | Knip is installed and prior `.plans/clean` work removed high-confidence orphans | no env-safe recurring command or baseline-backed gate exists yet |
+| Dead code | Knip is installed and has repo-specific ignore/configuration knowledge | no env-safe recurring command or baseline-backed gate exists yet |
 | Duplication | the clean skill has a DRY agent and source-structure ratchet catches some large-file drift | no token/semantic clone report is part of local or PR evidence |
 | Health targets | `check:source-structure` ratchets changed file size | no complexity / churn / refactoring-target report is captured for agents |
-| Boundary violations | hook-location guard, indexer boundary, package AGENTS, ADR-003/ADR-008 | no single static-analysis boundary profile for app-to-shared imports or public API rules |
+| Boundary violations | hook-location guard, indexer boundary, package guides, shared module map | no single static-analysis boundary profile for app-to-shared imports or public API rules |
 
 ## Knip vs Fallow Evaluation Criteria
 
@@ -72,7 +71,7 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 
 - Whether this hub should run as one hardening wave or split into smaller child hubs after scope lock.
 - Whether Contracts guidance repair should be completed inside Slice 1 as repo-truth work, or split into a tiny docs-only child branch to avoid reopening the contracts lane.
-- Whether ADR-008 should remain a pure accepted-decision update or gain a follow-up enforcement script for app-package import surfaces.
+- Whether the documented shared API policy needs a follow-up enforcement script for app-package import surfaces.
 - Whether Knip remains the canonical dead-code tool, Fallow replaces it, or Fallow augments Knip for duplication/health/boundary reporting.
 - Whether the chosen dead-code audit should land as a local-only script first or become a required recurring cleanup gate after false positives are triaged.
 - Whether `check:source-structure` should become a required PR gate immediately or first run as drift-watch evidence.
@@ -111,8 +110,8 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 - Mitigation: update the canonical surfaces and avoid creating a parallel protocol.
 - Risk: contracts guidance repair gets misread as authorization for Solidity changes.
 - Mitigation: keep the contracts lane `n/a` and phrase Slice 1 as docs/vocabulary repair only.
-- Risk: shared API policy work fights ADR-008.
-- Mitigation: keep the fat explicit barrel as the accepted baseline; tighten when symbols become public and when subpath imports are allowed.
+- Risk: shared API policy work accidentally replaces the intentional package contract.
+- Mitigation: keep the fat explicit barrel as the documented baseline; tighten when symbols become public and when subpath imports are allowed.
 - Risk: dead-code audit creates noisy false positives or blocks on secret-manager state.
 - Mitigation: first compare Knip and Fallow in report-only mode, then make the chosen file-level audit runnable without Vite/Varlock config before any gate.
 - Risk: Fallow adoption becomes tool churn before it proves better signal than existing Knip evidence.

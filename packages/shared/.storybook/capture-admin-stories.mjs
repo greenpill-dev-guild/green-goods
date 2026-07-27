@@ -12,7 +12,8 @@ const outputDir = resolve(repoRoot, "tmp/storybook-design-assets/screenshots");
 
 // Map each Storybook title to a per-view bucket. Output structure:
 //   screenshots/<bucket>/<theme>/<TitleSlug>/<Variant>.png
-// Buckets reflect the per-view session model in .plans/active/admin-claude-design-export/.
+// Buckets reflect the historical per-view capture model retained in
+// .plans/archive/admin-claude-design-export/.
 const TITLE_BUCKETS = [
   { bucket: "hub", pattern: /^Admin\/Workspaces\/Hub$/ },
   { bucket: "garden", pattern: /^Admin\/Workspaces\/Garden$/ },

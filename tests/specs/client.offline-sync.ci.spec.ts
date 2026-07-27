@@ -6,7 +6,7 @@
  *
  * Strategy:
  * - Use Playwright's context.setOffline() to toggle network state
- * - Use wallet auth injection for authenticated state
+ * - Use the sessionStorage mock-auth seam for authenticated state
  * - Test offline indicator rendering and state transitions
  * - Verify service worker registration
  *
@@ -14,7 +14,7 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
@@ -22,40 +22,17 @@ const CLIENT_URL = TEST_URLS.client;
  * Set up mocked environment with auth and GraphQL mocking.
  */
 async function setupMockedEnvironment(page: import("@playwright/test").Page) {
-  const helper = new ClientTestHelper(page);
-  await helper.injectWalletAuth();
-
-  // Intercept GraphQL requests
-  await page.route("**/v1/graphql", async (route) => {
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ data: {} }),
-    });
-  });
-
-  return helper;
+  return setupAuthenticatedClient(page);
 }
 
 test.describe("Offline Sync CI Tests", () => {
   test.use({ baseURL: CLIENT_URL });
 
   test.describe("Offline Detection", () => {
-    // Skipped for v1.1.0 — same headless-CI auth/SW timing as the other
-    // client e2e tests; tracked for v1.1.1 alongside the smoke skips
-    // (commit 722ee975).
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("shows offline indicator when network is disconnected", async ({ page, context }) => {
+    test("shows offline indicator when network is disconnected", async ({ page, context }) => {
       const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
-
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
 
       // Go offline
       await context.setOffline(true);
@@ -96,43 +73,21 @@ test.describe("Offline Sync CI Tests", () => {
 
     test("hides offline indicator when network reconnects", async ({ page, context }) => {
       const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
-
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
 
       // Go offline
       await context.setOffline(true);
       await page.waitForTimeout(2000);
 
-      // Verify offline indicator appeared
-      const offlineText = page.locator("text=/offline/i").first();
-      const wasOfflineShown = await offlineText.isVisible({ timeout: 3000 }).catch(() => false);
-
-      if (!wasOfflineShown) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — requires live infra (gardens/blockchain)
-        test.skip(true, "Offline indicator not rendered — UI may detect offline differently");
-        return;
-      }
+      const offlineStatus = page.getByRole("status", { name: "App is in offline mode" });
+      await expect(offlineStatus).toBeVisible({ timeout: 10000 });
 
       // Go back online
       await context.setOffline(false);
-      await page.waitForTimeout(3000);
-
-      // Offline indicator should be hidden or show "back online" message
-      const offlineStillVisible = await offlineText.isVisible({ timeout: 2000 }).catch(() => false);
-      const backOnlineMessage = page.locator("text=/back online|connected|online/i").first();
-      const showsBackOnline = await backOnlineMessage
-        .isVisible({ timeout: 2000 })
-        .catch(() => false);
-
-      // Either offline indicator is hidden OR "back online" message appeared
-      expect(!offlineStillVisible || showsBackOnline).toBe(true);
+      await expect(page.getByRole("status", { name: "App is back online" })).toBeVisible({
+        timeout: 10000,
+      });
     });
   });
 
@@ -213,27 +168,11 @@ test.describe("Offline Sync CI Tests", () => {
       context,
     }) => {
       const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
-
-      // Look for work dashboard button
       const dashboardButton = page.locator('[data-testid="work-dashboard-button"]');
-      const isDashboardVisible = await dashboardButton
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
-
-      if (!isDashboardVisible) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — requires live infra (gardens/blockchain)
-        test.skip(true, "Work dashboard button not visible — may require pending work");
-        return;
-      }
+      await expect(dashboardButton).toBeVisible({ timeout: 10000 });
 
       // Verify button is enabled while online
       await expect(dashboardButton).toBeEnabled();
@@ -248,11 +187,7 @@ test.describe("Offline Sync CI Tests", () => {
 
       // Click it — should open the dashboard even offline
       await dashboardButton.click();
-      await page.waitForTimeout(500);
-
-      const modal = page.locator('[data-testid="modal-drawer"], [role="dialog"]');
-      const isModalVisible = await modal.isVisible({ timeout: 3000 }).catch(() => false);
-      expect(isModalVisible).toBe(true);
+      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
 
       // Restore online state
       await context.setOffline(false);

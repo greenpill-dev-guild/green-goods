@@ -35,4 +35,13 @@ describe("service worker registration config", () => {
       isLegacyServiceWorkerRegistration("https://www.greengoods.app/home", "/home", ["/"])
     ).toBe(false);
   });
+
+  it("normalizes long invalid scopes without a backtracking regular expression", () => {
+    const invalidLegacyScope = "http://[invalid";
+    const registrationScope = `${invalidLegacyScope}${"/".repeat(50_000)}`;
+
+    expect(
+      isLegacyServiceWorkerRegistration(registrationScope, "/home", [invalidLegacyScope])
+    ).toBe(true);
+  });
 });

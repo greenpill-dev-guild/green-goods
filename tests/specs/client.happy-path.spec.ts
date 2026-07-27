@@ -11,9 +11,7 @@
  * Strategy:
  * - Mock the indexer GraphQL endpoint with minimal garden + action data so
  *   the journey can run without Docker / blockchain / live data.
- * - Inject wallet auth so /home doesn't bounce to /home/login.
- * - Soft-skip when auth injection doesn't persist (CI realities); the
- *   piece-wise specs cover those paths.
+ * - Use the DevAuthProvider seam plus schema-correct mocked backend data.
  *
  * Sister specs (each covers a single hop in deeper detail):
  * - client.smoke.spec.ts — auth + login UI
@@ -23,77 +21,10 @@
  */
 
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
+import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
-
-const TEST_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-
-const MOCK_GARDEN = {
-  id: "0xgarden0000000000000000000000000000000001",
-  name: "Aiyeloja Family Garden",
-  description: "A test garden for happy-path coverage",
-  chainId: 42161,
-  tokenAddress: "0x1234567890abcdef1234567890abcdef12345678",
-  operators: [TEST_ADDRESS],
-  gardeners: [TEST_ADDRESS],
-  gardenerCount: 1,
-  bannerImage: "",
-  openJoining: true,
-};
-
-const MOCK_ACTION = {
-  uid: "action-uid-1",
-  title: "Plant Trees",
-  description: "Document tree planting activity",
-  startTime: Math.floor(Date.now() / 1000) - 86400,
-  endTime: Math.floor(Date.now() / 1000) + 86400 * 30,
-  media: { minCount: 0, maxCount: 5 },
-};
-
-async function setupMockedEnvironment(page: import("@playwright/test").Page) {
-  const helper = new ClientTestHelper(page);
-  await helper.injectWalletAuth(TEST_ADDRESS);
-
-  await page.route("**/v1/graphql", async (route) => {
-    const postData = route.request().postDataJSON?.() ?? {};
-    const query = typeof postData === "object" ? (postData.query ?? "") : "";
-
-    if (query.includes("Garden")) {
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ data: { Garden: [MOCK_GARDEN] } }),
-      });
-    }
-    if (query.includes("Action")) {
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ data: { Action: [MOCK_ACTION] } }),
-      });
-    }
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ data: {} }),
-    });
-  });
-
-  return helper;
-}
-
-async function authOrSkip(
-  page: import("@playwright/test").Page,
-  helper: ClientTestHelper,
-  skipReason: string
-) {
-  await helper.waitForPageLoad();
-  if (page.url().includes("/home/login")) {
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI; piece-wise specs cover.
-    test.skip(true, skipReason);
-  }
-}
 
 async function expectNoAppError(page: import("@playwright/test").Page) {
   const hasAppError = await page
@@ -120,21 +51,18 @@ test.describe("Client happy path", () => {
     await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
     await expectNoAppError(page);
 
-    // 2. Inject wallet + mocks, navigate to /home
-    const helper = await setupMockedEnvironment(page);
-    await page.goto("/home");
-    await authOrSkip(page, helper, "Auth injection did not persist — expected in headless CI");
+    // 2. Set up the supported client CI seam and navigate to /home.
+    const helper = await setupAuthenticatedClient(page);
+    await page.goto("/home?presentation=pwa");
+    await helper.waitForPageLoad();
+    await expect(page).not.toHaveURL(/\/home\/login/);
     await expectNoAppError(page);
 
-    // 3. Garden detail — navigate via link if present, else direct
-    const gardenLink = page.locator(`a[href*="/home/${MOCK_GARDEN.id}"]`).first();
-    if (await gardenLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await gardenLink.click();
-    } else {
-      await page.goto(`/home/${MOCK_GARDEN.id}`);
-    }
+    // 3. Garden detail
+    await page.goto(`/home/${MOCK_CLIENT_GARDEN.id}?presentation=pwa`);
     await helper.waitForPageLoad();
-    expect(page.url()).toMatch(new RegExp(`/home/${MOCK_GARDEN.id}`));
+    await expect(page).toHaveURL(new RegExp(`/home/${MOCK_CLIENT_GARDEN.id}`));
+    await expect(page.getByRole("heading", { name: MOCK_CLIENT_GARDEN.name })).toBeVisible();
     await expectNoAppError(page);
 
     // 4. Wizard at /home/garden — verify it renders without crash

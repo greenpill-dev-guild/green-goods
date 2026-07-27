@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Security fixes target the active `develop` branch and the latest tagged release line, currently `v1.0.0`. Historical pre-1.0 releases are not maintained unless maintainers explicitly scope a backport.
+Security fixes target the active `develop` branch and the latest tagged release line, currently `v1.2.0`. Historical pre-1.0 releases are not maintained unless maintainers explicitly scope a backport.
 
 ## Reporting a Vulnerability
 

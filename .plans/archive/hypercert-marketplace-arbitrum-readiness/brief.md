@@ -1,11 +1,11 @@
 # Hypercert Marketplace Arbitrum Readiness
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `hypercert-marketplace-arbitrum-readiness`
-**Stage**: `active`
+**Stage**: `archive`
 **Priority**: `p1`
 **Created**: `2026-05-02`
-**Linked follow-up**: `.plans/active/signal-pool-yield-wiring/`
-
 ## Problem
 
 The Arbitrum signal-pool/yield wiring upgrade and migration are complete, but Hypercert marketplace readiness is still not proven. The deployed marketplace adapter is wired into `YieldSplitter` and authorized for `HypercertsModule`, yet both the adapter and module still have zero Hypercert minter/exchange configuration. `bun run contracts:verify:post-deploy:arbitrum` therefore remains red, and admin listing surfaces can imply marketplace capability before the live adapter is configured.
@@ -37,7 +37,7 @@ Out of scope:
 - Reopening or marking complete the completed `signal-pool-yield-wiring` contracts lane.
 - Raw `forge` instructions or ad hoc shell command chains.
 - Inventing Hypercert protocol addresses outside the repo-pinned Hypercert packages and operator confirmation.
-- Full indexer expansion inside this hub; if expansion is required, create or link the named follow-up hub before contracts completion.
+- Full indexer expansion inside this hub; any later expansion requires a newly approved formal plan.
 
 ## Success Signal
 

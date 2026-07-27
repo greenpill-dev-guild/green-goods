@@ -4,7 +4,7 @@ sidebar_label: Spec Engineering
 slug: /builders/agentic/spec-engineering
 audience: developer
 owner: docs
-last_verified: 2026-04-23
+last_verified: 2026-07-11
 feature_status: Live
 source_of_truth:
   - .plans/README.md
@@ -23,29 +23,23 @@ Specification engineering is writing structured documents that both humans and A
 
 ## Specification Types
 
-### Agent Specifications (`.claude/agents/*.md`)
+### Subagent Dispatches (the Agent tool)
 
-Define agent identity, capabilities, and constraints:
+The repo no longer commits agent specification files -- the last two (`cracked-coder` and `oracle`) were retired with the lean-skills consolidation. Specialization now travels in the dispatch itself: a task-scoped prompt to one of Claude Code's built-in subagent types (Explore for read-only search, general-purpose for multi-step work, Plan for implementation strategy).
 
-```yaml
----
-name: cracked-coder
-description: Implements complex features using strict TDD workflow.
-model: opus
-tools: [Read, Glob, Grep, Edit, Write, Bash, Task]
-skills: [testing, react, contracts]
-maxTurns: 50
----
+```text
+Agent tool dispatch:
+  subagent_type: general-purpose
+  description: Migrate vault history hooks
+  prompt: |
+    Work only in packages/shared/src/hooks/vault/**.
+    Task: <bounded task with acceptance criteria>.
+    Validation: bun run test -- <targeted file>; report evidence.
+    This repo runs concurrent agents -- stay in the listed paths and
+    surface unexpected state in your report instead of fixing it.
 ```
 
-The committed repo surface currently keeps two agent specs and routes most specialization through skills instead of extra checked-in agent files:
-
-| Agent | Purpose | Model |
-|-------|---------|-------|
-| `cracked-coder` | Feature implementation with TDD | Opus |
-| `oracle` | Architecture guidance and analysis | Opus |
-
-Retired agent roles such as `code-reviewer`, `triage`, `migration`, and `storybook-author` now live as skill or workflow patterns rather than committed `.claude/agents/*.md` surfaces.
+A good dispatch prompt reads like a mini-spec: bounded paths, explicit acceptance criteria, named validation commands, and the report shape expected back. Durable knowledge (patterns, invariants, conventions) stays in `CLAUDE.md`, `AGENTS.md`, and `.claude/context/*.md` -- the dispatch only carries what is unique to the task.
 
 ### Feature Specifications (`.plans/active/<feature-slug>/spec.md`)
 
@@ -99,7 +93,7 @@ Specs must define what is NOT in scope to prevent agents from over-engineering:
 
 ```markdown
 ## Out of Scope
-- Visual design changes (handled by the `ui` or design workflow, not a separate committed agent spec)
+- Visual design changes (handled by the `design` skill's direction + implementation docs)
 - Contract modifications (requires separate spec + security review)
 - i18n for languages other than en/es/pt
 ```
@@ -151,7 +145,7 @@ Skills are specialized instruction sets loaded by agents. Each skill has:
 - **Constraints** -- What to avoid
 - **Verification** -- How to confirm correct application
 
-The project currently has 19 active top-level skill directories, with additional historical wrappers under `_archived/`, covering domains from `testing` to `ui` to `web3`.
+The project keeps 10 skills -- `review`, `ship`, `status`, `plan`, `debug`, `clean`, `audit`, `qa-triage`, `doc-feedback`, and `design` -- reserved for procedures and integrations with real orchestration. Domain knowledge that used to live in skills (`testing`, `react`, `web3`, `contracts`, the PostHog question library, ...) moved to `.claude/context/*.md` and `docs/`, so specs reference documentation rather than skill files for patterns.
 
 ## Spec Review Checklist
 
@@ -168,7 +162,7 @@ Before handing a spec to an agent:
 
 ## Governance
 
-Specs are version-controlled alongside the code they describe. The Claude guidance check (`node .claude/scripts/check-skill-frontmatter.js`) validates skill frontmatter, the skills registry, command routes, bundles, and retired guidance surfaces. It does not prove that specs semantically agree with every rule, so specs still need source-backed evidence and explicit acceptance criteria.
+Specs are version-controlled alongside the code they describe. The standalone guidance checker and skills registry were retired with the lean-skills consolidation -- the filesystem plus `SKILL.md` frontmatter is the registry, `bun run check:codex-guidance` keeps Codex guidance in parity, and the `.claude/loop.md` maintenance loop greps for stale references to retired surfaces. None of that proves a spec semantically agrees with the code it describes, so specs still need source-backed evidence and explicit acceptance criteria.
 
 <NextBestAction
   title="Next best action"

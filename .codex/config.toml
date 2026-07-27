@@ -1,4 +1,3 @@
-model = "gpt-5.5"
 project_doc_fallback_filenames = ["CLAUDE.md"]
 project_doc_max_bytes = 40960
 

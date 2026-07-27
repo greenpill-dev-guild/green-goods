@@ -44,5 +44,6 @@ this file is the operational contract for skills that create records.
 
 Reference this file (`.claude/context/linear-routing-rules.md`) instead of
 restating the rules. Keep inline only what is genuinely skill-specific — e.g.
-`audit`'s severity→record-category table, `architecture`'s `activity:*` label
-pairings, `debug`'s Customer-Need body shape.
+`audit`'s severity→record-category table, `debug`'s Customer-Need body shape.
+When creating or rewriting a Linear *project* description (not an issue),
+follow the companion shape in `.claude/context/linear-project-template.md`.

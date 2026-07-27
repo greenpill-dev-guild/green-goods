@@ -1,5 +1,7 @@
 # Resend Email Signup Migration Evaluation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Release Gates
 
 1. Correctness: valid subscription requests create/update a Resend contact with source, locale

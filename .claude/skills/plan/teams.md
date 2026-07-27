@@ -325,16 +325,16 @@ Spawn a codex-driving teammate with this prompt:
 
   bash .claude/scripts/dispatch-codex-lane.sh \
     --lane factory \
-    --base feature/admin-ui-revamp \
+    --base feature/<feature-slug> \
     --phase phase-1a \
-    --prompt-file .plans/active/admin-ui-revamp/handoffs/codex-tasks/factory.md
+    --prompt-file .plans/active/<feature-slug>/handoffs/factory.md
 
 Run it via Bash with run_in_background=true. When it completes, read the JSON
 from stdout, open result_file, and verify status == success and tests_passed == true.
 If status is partial or failed, read the issues array and either re-dispatch with
 a refined prompt or report back to the lead with the blocker.
 
-On success: review the diff in the worktree, merge into feature/admin-ui-revamp
+On success: review the diff in the worktree, merge into feature/<feature-slug>
 with --no-ff, then clean up:
 
   git worktree remove /tmp/gg-codex-factory
@@ -401,7 +401,7 @@ Codex teammates hand prompts to codex via `--prompt-file`. Follow the [Codex Pro
 - Preflight: `.claude/scripts/check-codex-lane-readiness.sh`
 - Output schema: `.codex/output-schema.json`
 - Codex config: `.codex/config.toml`
-- Proven pattern: `.plans/active/admin-ui-revamp/handoffs/orchestration.md`
+- Plan-specific orchestration: the current feature hub's `handoffs/` directory
 
 ---
 

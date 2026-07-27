@@ -10,17 +10,17 @@ const repoRoot = path.resolve(path.dirname(__filename), "../..");
 export const scopes = {
   guidance: [
     {
-      id: "claude-guidance",
-      label: "Claude guidance",
-      command: ["bun", "run", "check:claude-guidance"],
-      route: "audit-then-ship",
-      severity: "medium",
-    },
-    {
       id: "codex-guidance",
       label: "Codex guidance",
       command: ["bun", "run", "check:codex-guidance"],
-      route: "audit-then-ship",
+      route: "review",
+      severity: "medium",
+    },
+    {
+      id: "guidance-links",
+      label: "Guidance links & commands",
+      command: ["node", "scripts/quality/check-guidance-links.mjs"],
+      route: "review",
       severity: "medium",
     },
   ],
@@ -68,7 +68,7 @@ export const scopes = {
       id: "docs-audit",
       label: "Docs audit",
       command: ["bun", "run", "docs:audit:ci"],
-      route: "audit-then-ship",
+      route: "review",
       severity: "medium",
       warningPattern: /docs-audit: [1-9]\d* warning\(s\)\./,
     },
@@ -99,13 +99,25 @@ export const scopes = {
       severity: "high",
     },
   ],
+  ontology: [
+    {
+      id: "ontology",
+      label: "Ontology drift",
+      command: ["bun", "run", "check:ontology"],
+      route: "review",
+      severity: "medium",
+      // check-ontology.mjs exits 2 for infrastructure faults (missing or
+      // unparseable sidecar/baseline/anchor) — distinct from semantic drift.
+      infraExitCode: 2,
+    },
+  ],
 };
 
 export const validScopes = new Set(["all", ...Object.keys(scopes)]);
 
 export function usage(exitCode = 0) {
   const message = [
-    "Usage: node scripts/quality/drift-check.mjs [--scope <all|guidance|plans|design|docs|cleanup|quality>] [--json]",
+    "Usage: node scripts/quality/drift-check.mjs [--scope <all|guidance|plans|design|docs|cleanup|quality|ontology>] [--json]",
     "       node scripts/quality/drift-check.mjs <scope> [--json]",
   ].join("\n");
   if (exitCode === 0) console.log(message);
@@ -169,6 +181,7 @@ export function checksForScope(scope) {
 }
 
 export function statusForCheck(check, exitCode, output) {
+  if (check.infraExitCode !== undefined && exitCode === check.infraExitCode) return "error";
   if (exitCode !== 0) return "fail";
   if (check.warningPattern?.test(output)) return "warn";
   return "pass";
@@ -191,7 +204,9 @@ export function checkResultFromOutput(check, { exitCode = 0, stdout = "", stderr
         ? `${check.label} passed.`
         : status === "warn"
           ? `${check.label} reported warnings.`
-          : `${check.label} failed.`,
+          : status === "error"
+            ? `${check.label} could not run (tooling/infrastructure fault).`
+            : `${check.label} failed.`,
     output_tail: outputTail,
     duration_ms: durationMs,
     route: check.route,
@@ -285,7 +300,14 @@ export function printText(report) {
 
   console.log("## Checks");
   for (const check of report.checks) {
-    const marker = check.status === "pass" ? "PASS" : check.status === "warn" ? "WARN" : "FAIL";
+    const marker =
+      check.status === "pass"
+        ? "PASS"
+        : check.status === "warn"
+          ? "WARN"
+          : check.status === "error"
+            ? "ERROR"
+            : "FAIL";
     console.log(`- [${marker}] ${check.category}/${check.id}: ${check.command}`);
   }
 

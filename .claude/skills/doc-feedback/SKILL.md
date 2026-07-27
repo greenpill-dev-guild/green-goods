@@ -3,12 +3,6 @@ name: doc-feedback
 user-invocable: true
 description: Process review feedback on any Green Goods Google Doc downloaded as `.docx` — `docs/` drafts, research notes, grant proposals, product feedback. Parses comments and tracked-changes into a triage-able markdown record, then walks through addressing each item with a scope-lock gate between phases and an in-repo or out-of-repo address mode (auto-inferred from doc title/filename). Use when the team has finished reviewing a doc and you have (or can produce) a `.docx` export.
 argument-hint: "[<docx-path>] [--mode in-repo|out-of-repo] [--parse-only|--triage|--address]"
-version: "1.1.1"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Doc Feedback Skill
@@ -50,7 +44,7 @@ The path may be absolute, relative, or a `~/Downloads/...` reference. If omitted
 ## Execution Model
 
 - **Phased with a scope-lock gate**: parse → user-approved triage → address. Never edit files in phase 1 or 2.
-- **Source-of-truth is the parsed `feedback.md`** under `.plans/doc-feedback/<slug>/`, not the `.docx`. The `.docx` lives where it was downloaded (usually `~/Downloads/`); do **not** copy it into the repo.
+- **Working source-of-truth is the parsed `feedback.md`** under ignored `tmp/doc-feedback/<slug>/`, not the `.docx`. The `.docx` lives where it was downloaded (usually `~/Downloads/`); do **not** copy it into the repo.
 - **One comment at a time** in phase 3 — read the target file, edit, tick the checklist, move on. No batch sweeps.
 - **Do not auto-commit**. Surface a suggested commit grouping at the end; let the user run `/ship`.
 
@@ -64,7 +58,7 @@ The path may be absolute, relative, or a `~/Downloads/...` reference. If omitted
 
    ```sh
    bun scripts/harness/parse-docx-feedback.ts <docx-path> \
-     --out .plans/doc-feedback/<slug>/feedback.md
+     --out tmp/doc-feedback/<slug>/feedback.md
    ```
 
 4. Read `feedback.md` and surface a one-line summary: doc title (or filename), comment count, inserted-run count, deleted-run count.
@@ -79,8 +73,8 @@ Two steps. Surface both before letting the user answer.
 
 Address mode determines where edits land in Phase 3:
 
-- **in-repo** — edits go into repo files (`docs/`, `.plans/<feature>/`, `.plans/adr/`, etc.)
-- **out-of-repo** — produce `.plans/doc-feedback/<slug>/responses.md` with copy-pasteable replies/edits for the original Google Doc, Mirror, NLnet portal, etc. No repo files touched.
+- **in-repo** — edits go into repo files (`docs/`, a current package guide, or an existing `.plans/{ideas,backlog,active}/<feature>/` hub)
+- **out-of-repo** — produce `tmp/doc-feedback/<slug>/responses.md` with copy-pasteable replies/edits for the original Google Doc, Mirror, NLnet portal, etc. No tracked repo files are touched.
 
 Inference rules, applied in order — first match wins:
 
@@ -102,7 +96,7 @@ Produce a numbered list, one row per **open comment** plus one block summarising
 
 Then ask: **"Which numbers to address, defer, or decline?"** Wait for explicit selection. Do **not** edit anything until the user answers.
 
-Write the user's selection into `.plans/doc-feedback/<slug>/checklist.md` as:
+Write the user's selection into `tmp/doc-feedback/<slug>/checklist.md` as:
 
 ```markdown
 - [ ] [^cid] one-line title — `target/file.mdx` — accept|defer|decline   # in-repo
@@ -133,7 +127,7 @@ When all accepted items are addressed:
 
 The output is a single markdown file the user copies from. **No repo files are edited.**
 
-Append one entry per accepted item to `.plans/doc-feedback/<slug>/responses.md`:
+Append one entry per accepted item to `tmp/doc-feedback/<slug>/responses.md`:
 
 ```markdown
 ## [^cid] — to <author>
@@ -155,7 +149,7 @@ When all accepted items are addressed:
 
 - Surface "ready to paste from `responses.md`" with the file path.
 - For grant portals (NLnet, Octant): note that comment replies usually go in the GDoc, but proposed-edit blocks may need to be pasted into the portal's revision field separately. Don't assume a single destination.
-- Suggest archiving `<slug>/` to `.plans/doc-feedback/done/<slug>/` after the user confirms they've pasted the responses.
+- Delete `tmp/doc-feedback/<slug>/` after the user confirms they have pasted the responses. If a durable decision belongs in the repo, record only the compact outcome in the edited document or an existing formal feature hub.
 
 ## Output Contract
 
@@ -168,12 +162,12 @@ When all accepted items are addressed:
 
 ## Conventions
 
-- **Workspace**: `.plans/doc-feedback/<slug>/` — contains `feedback.md` (parser output) and `checklist.md` (triage decisions). Both checked into git as a record of what came in and how it was processed.
+- **Workspace**: ignored `tmp/doc-feedback/<slug>/` — contains `feedback.md`, `checklist.md`, and optionally `responses.md`. It is transient working state and must not create a new `.plans/` root entry.
 - **Slug collisions**: same slug on a re-review → suffix with `-yyyy-mm-dd` (the date of the .docx, not today).
 - **Resolved comments**: Google Docs drops resolved comments on `.docx` export — what you parse is the open set, by definition. Don't waste cycles inferring resolved-status.
 - **Reply threads**: Word's flat format means replies appear as separate `<w:comment>` entries in arrival order, sharing no thread id. Treat each as standalone unless the body clearly references another.
 - **Multi-paragraph anchors**: a `[^N:` and its closing `]` may span paragraphs. Read the whole quoted-anchor block in `feedback.md` for context.
-- **Don't commit the `.docx`**: keep it in `~/Downloads/` or wherever it landed. The parsed `feedback.md` is the durable record.
+- **Don't commit the `.docx` or parser output**: keep the export where it landed and the parsed files under ignored `tmp/`. Durable outcomes belong in the edited document or an existing formal feature hub, not a parallel feedback archive.
 
 ## Failure Modes
 

@@ -1,5 +1,7 @@
 # Sentry Stack Observability Brief
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 Add Sentry to Green Goods as the stack/root-cause companion to PostHog across the client, admin, and agent surfaces.
 
 PostHog remains the product telemetry system: sessions, funnels, replay, usage patterns, and customer-impact sizing. Sentry owns crash grouping, stack traces, releases, source maps, suspect commits, and agent/API runtime failures. The first rollout keeps both tools active with conservative privacy defaults and no Sentry MCP wiring.

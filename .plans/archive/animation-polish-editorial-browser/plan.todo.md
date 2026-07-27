@@ -1,5 +1,7 @@
 # Animation & Interaction Polish — Editorial Browser + Garden Detail
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `animation-polish-editorial-browser`
 **Stage**: `archive`
 **Status**: `DONE` (QA pass 2 complete; C3 global view-transition followup shipped with Afo approval)
@@ -213,4 +215,4 @@ A synthetic harness was injected into the running homepage to drive `document.st
 - `packages/client/src/views/Public/Fund.tsx`
 - `packages/client/src/views/Public/Actions.tsx`
 - `packages/client/src/views/Public/Cookies.tsx`
-- `.plans/active/animation-polish-editorial-browser/plan.todo.md` + `status.json`
+- `.plans/archive/animation-polish-editorial-browser/plan.todo.md` + `status.json`

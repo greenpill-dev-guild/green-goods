@@ -651,6 +651,6 @@ Decisions made during the Warm Earth synthesis (2026-04-07):
 - [materials.md](./materials.md) — Material thickness system, focus variation, tokens
 - [regenerative.md](./regenerative.md) — Seven principles, succession stages, growth-agnostic design
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
-- [SKILL.md § Appendix](./SKILL.md#appendix--inspiration--frameworks) — Inspiration library, books, designers, studios
+- Warm Earth's sources are recorded in § Philosophy above; the former SKILL.md reading-list appendix (books, designers, studios) was removed in the 2026-07 round-2 consolidation
 - [review-checklist.md](./review-checklist.md) — Unified 4-lens PR review (Regenerative + Spatial + Ecosystem + Compliance)
-- `.plans/active/admin-ui-revamp/artifacts/spatial-architecture.md` — Three-body system applying Warm Earth
+- [`DESIGN.md`](../../../DESIGN.md) — canonical Warm Earth tokens and surface-dialect routing

@@ -4,13 +4,12 @@ sidebar_label: Core Philosophies
 slug: /builders/agentic/core-philosophies
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-07-11
 feature_status: Live
 source_of_truth:
   - CLAUDE.md
   - AGENTS.md
-  - .claude/agents/cracked-coder.md
-  - .claude/agents/oracle.md
+  - .claude/context/shared.md
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -90,7 +89,7 @@ Rather than crafting perfect one-shot prompts, we invest in structuring the repo
 
 - **`CLAUDE.md`** at the root defines commands, architecture, patterns, and constraints in a format agents can parse.
 - **`.claude/context/*.md`** files provide package-specific context (shared hooks, contract patterns, indexer boundaries).
-- **Agent specs** in `.claude/agents/` define the two committed specialist roles: read-only research (`oracle`) and TDD implementation (`cracked-coder`). Review, migration, triage, and documentation work route through skills and workflow prompts.
+- **Skills** in `.claude/skills/` encode the repo's procedures (review, ship, plan, debug, clean, audit, qa-triage, …). Specialist dispatch uses the harness's built-in subagent types with task-scoped prompts rather than committed agent specs — review, migration, triage, and documentation work all route through skills and workflow prompts.
 
 The goal is that context does the heavy lifting, not the prompt.
 

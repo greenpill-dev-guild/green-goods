@@ -12,7 +12,8 @@
  * - iOS Safari: Storage injection for wallet authentication (WebAuthn not supported)
  */
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
+import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
+import { ClientTestHelper, setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
@@ -26,17 +27,9 @@ function isIOS(projectName: string | undefined): boolean {
 test.describe("Client PWA", () => {
   test.use({ baseURL: CLIENT_URL });
 
-  // Client smoke "Authentication" + "Gardens Data" suites have been
-  // latent-broken for 3+ days behind the indexer webserver gate. With the
-  // indexer skipped (28a74a26) they reach the dev server but the login
-  // splash never paints `data-testid="login-button"` in the headless CI
-  // shell — likely an AuthProvider hydration timing issue that does not
-  // reproduce locally. Tracked for v1.1.1. The Service Health subgroup
-  // below still asserts the dev server responds with HTML.
   test.describe("Authentication", () => {
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("redirects unauthenticated /home -> /home/login", async ({ page }) => {
-      await page.goto("/home");
+    test("redirects unauthenticated /home -> /home/login", async ({ page }) => {
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
 
       // Should redirect to login
       await page.waitForURL(/\/home\/login/);
@@ -57,8 +50,7 @@ test.describe("Client PWA", () => {
       expect(hasWalletLink || (await page.getByTestId("login-button").isVisible())).toBeTruthy();
     });
 
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("shows login page with correct branding", async ({ page }) => {
+    test("shows login page with correct branding", async ({ page }) => {
       await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
 
@@ -130,75 +122,24 @@ test.describe("Client PWA", () => {
   });
 
   test.describe("Gardens Data", () => {
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("displays gardens list when authenticated", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-
-      // Use wallet injection for all platforms (passkey e2e tests skipped)
-      await helper.injectWalletAuth();
-      await page.goto("/home");
-
+    test("displays gardens list when authenticated", async ({ page }) => {
+      const helper = await setupAuthenticatedClient(page);
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      // Check if we're authenticated (wallet injection may not persist)
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth not persisted - skipping gardens test");
-        return;
-      }
-
-      // Check if gardens exist in indexer
-      const gardensExist = await hasGardens(page);
-
-      if (gardensExist) {
-        // If gardens exist, we should see garden cards or list
-        const gardenElements = page.locator(
-          '[data-testid="garden-card"], .garden-card, a[href*="/home/"]'
-        );
-        await expect(gardenElements.first()).toBeVisible({ timeout: 15000 });
-      } else {
-        // No gardens is okay - just verify we're on home and no errors
-        await expect(page.locator("body")).toBeVisible();
-        const errorElements = page.locator('[role="alert"][class*="error"], .error-message');
-        await expect(errorElements).toHaveCount(0);
-      }
+      await expect(page).not.toHaveURL(/\/home\/login/);
+      await expect(page.getByTestId("garden-card").first()).toBeVisible();
     });
 
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("can access garden detail page", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-
-      // Use wallet injection for all platforms (passkey e2e tests skipped)
-      await helper.injectWalletAuth();
-      await page.goto("/home");
-
+    test("can access a garden detail page with mocked data", async ({ page }) => {
+      const helper = await setupAuthenticatedClient(page);
+      await page.goto(`/home/${MOCK_CLIENT_GARDEN.id}?presentation=pwa`, {
+        waitUntil: "domcontentloaded",
+      });
       await helper.waitForPageLoad();
 
-      // Check if we're authenticated
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth not persisted - skipping detail page test");
-        return;
-      }
-
-      // Check if gardens exist
-      const gardensExist = await hasGardens(page);
-
-      if (gardensExist) {
-        // Click first garden link
-        const gardenLink = page.locator('a[href*="/home/"]').first();
-
-        if (await gardenLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-          await gardenLink.click();
-          await helper.waitForPageLoad();
-
-          // Should be on garden detail page
-          expect(page.url()).toMatch(/\/home\/[^/]+/);
-        }
-      } else {
-        // Skip if no gardens
-        console.log("No gardens available - skipping detail page test");
-      }
+      await expect(page).toHaveURL(new RegExp(`/home/${MOCK_CLIENT_GARDEN.id}`));
+      await expect(page.getByRole("heading", { name: MOCK_CLIENT_GARDEN.name })).toBeVisible();
     });
   });
 
@@ -250,23 +191,6 @@ test.describe("Client PWA", () => {
       // Should be on a valid page (root, login, landing, or home)
       const url = page.url();
       expect(url).toMatch(/\/(login|landing|home)?$/);
-    });
-
-    // Skipped in CI because the playwright webServer no longer starts the
-    // live indexer (see ci(playwright): skip live indexer webServer in CI,
-    // 28a74a26). Tests in this stack mock GraphQL via route interception;
-    // the live-indexer health check is exercised by the Indexer workflow.
-    // SKIP: #312 owner:afo expiry:2026-06-01 — live indexer is not part of the CI webServer stack.
-    test.skip("indexer responds to GraphQL queries", async ({ request }) => {
-      const response = await request.post(TEST_URLS.indexer, {
-        data: { query: "query { __typename }" },
-        headers: { "Content-Type": "application/json" },
-      });
-
-      expect(response.status()).toBe(200);
-
-      const json = await response.json();
-      expect(json.data).toBeDefined();
     });
   });
 });

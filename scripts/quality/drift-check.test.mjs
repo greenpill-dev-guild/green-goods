@@ -34,7 +34,7 @@ test("warn-only docs audit output becomes a finding", () => {
   assert.equal(report.findings.length, 1);
   assert.equal(report.findings[0].status, "warn");
   assert.equal(report.findings[0].title, "Docs audit drift detected");
-  assert.equal(report.findings[0].recommended_route, "audit-then-ship");
+  assert.equal(report.findings[0].recommended_route, "review");
 });
 
 test("passing checks produce no findings", () => {
@@ -46,7 +46,7 @@ test("passing checks produce no findings", () => {
   });
 
   assert.equal(report.ok, true);
-  assert.equal(report.checks.length, 3);
+  assert.equal(report.checks.length, 2);
   assert.deepEqual(report.findings, []);
 });
 
@@ -106,4 +106,22 @@ test("cleanup is a supported scope", () => {
 
   assert.deepEqual(parsed, { scope: "cleanup", json: true });
   assert.equal(scopes.cleanup.length, 2);
+});
+
+test("infraExitCode maps to a distinct error status instead of fail", () => {
+  const check = {
+    id: "ontology",
+    label: "Ontology drift",
+    command: ["bun", "run", "check:ontology"],
+    route: "review",
+    severity: "medium",
+    infraExitCode: 2,
+  };
+
+  const infra = checkResultFromOutput(check, { exitCode: 2, stderr: "missing sidecar" });
+  assert.equal(infra.status, "error");
+  assert.match(infra.summary, /could not run \(tooling\/infrastructure fault\)\./);
+
+  const drift = checkResultFromOutput(check, { exitCode: 1, stderr: "unlisted drift" });
+  assert.equal(drift.status, "fail");
 });

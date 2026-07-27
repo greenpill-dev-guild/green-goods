@@ -2,28 +2,12 @@
 name: design
 user-invocable: false
 description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
-version: "2.6.0"
 token_version: "2.5.0"
-status: active
-packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-07-03"
-last_verified: "2026-07-03"
-changelog:
-  - "2.6.0 — token_version → 2.5.0. Light mode joins the dual-use contrast discipline (190-pair audit): light garden/actions/home tone primaries deepened to dual-safe steps; new --tone-focus-ring role (action in light, on-surface-accent in dark) adopted by 6 components + --edge-focus; light M3 ladder re-pointed from gray neutrals to the warm linen family (hue ~85); m3-outline strengthened to control-grade both modes; m3-error re-stepped (red-700+white light, light-red+ink dark); state rule codified: -dark for text/icons, -base for fills only, with admin-scope class backstops."
-  - "2.5.0 — token_version → 2.4.0. Deliberate admin dark-mode palette (not a light inversion): warm surface ladder (higher elevation = lighter), ring-forward elevation, dual-use-safe per-view accents (light --tone-primary for on-surface text, deep white-safe --tone-action for fills), raised canvas wash. New § Dark Mode Palette (Admin) in language.md with an AA contrast table; new check:design-tokens dark-parity guard."
-  - "2.4.1 — Added ai-ui-brief.md as the saved reusable prompt contract for UI/CSS/design generation. Removed stale tool-specific references and replaced missing legacy surface-map routing with repo-owned DesignMD + surface dialect routing."
-  - "2.4.0 — Removed project-specific AI-design-tool skills. AI-design platforms change too fast to encode per-platform; the durable contract is platform-agnostic and now lives in this file under § Working with AI Design Tools. ARCHITECTURE.md collapsed from a four-skill stack to a two-skill stack."
-  - "2.3.3 — Added stack-review.md (design-system self-audit protocol, scoped strictly to design/ + ui/). ARCHITECTURE.md synced: version label bumped to 2.3.3, stack-review.md added to the Where-to-look table and Related section. stack-review.md hardened with an explicit scope fence (out-of-scope list: other skills, registry canonical_commands, check-guidance-consistency, ship/plan/debug) after a first-run drift into non-design findings."
-  - "2.3.2 — review-checklist.md § Closing the Loop rewritten to mark each lens's automation as Wired / Partial / Proposed, with evidence. Dropped two broken commands from the Quick wiring reference (`bun --filter @green-goods/shared test-storybook --failOnA11yIssues` and `bun --filter @green-goods/shared chromatic` — neither script exists in `packages/shared/package.json`). Added a Roadmap subsection listing what's needed to move each Proposed row to Wired. No token changes."
-  - "2.3.1 — Spring motion tokens shipped to packages/shared/src/styles/theme.css (previously spec'd as aspirational in language.md; AI tools can now safely emit var(--spring-*)). prompt-contract.md clarifies admin = restrained Warm Earth (not raw M3) and that hero moments are client-only. materials.md stale 'not yet in theme.css' note removed. review-checklist.md references new scripts bun run lint:vocab and bun run check:design-tokens instead of the unwritten biome rule. Registry token_version synced to 2.3.0 (was drifted at 2.2.0)."
-  - "2.3.0 — Added client-prompt-contract.md (closes admin/client asymmetry). Material tokens now implemented in theme.css (no longer aspirational). Added quick-reference.md cheat sheet. Closing-the-loop section added to review-checklist.md. implementation.md split — generative UI stayed, view transitions moved to ui/, progressive immersion folded into SKILL.md, references.md folded into SKILL.md appendix. Registry triggers expanded for finer activation routing. Bumped token_version — coupled ui skill should revisit compliance guidance."
-  - "2.2.0 — Consolidated the legacy implementation token guide into language.md. Reconciled colour model on canvas/ink/stone/green-as-tertiary. Collapsed per-file checklists into review-checklist.md. DESIGN.md rewritten as terse creative brief."
 ---
 
 # Design Skill
 
-Design philosophy and visual direction for building spatial-ready, AI-driven interfaces. This skill shapes *what* to build and *why* — the `ui` skill implements *how* (tooling, tokens, compliance).
+Design philosophy and visual direction for building spatial-ready, AI-driven interfaces. This skill shapes *what* to build and *why* — [implementation.md](./implementation.md) covers *how* (tooling, tokens, compliance).
 
 > **Paradigm**: The Adaptive Surface.
 > **Aesthetic direction**: **Warm Earth** — architectural warmth, handmade precision, garden journal over trading terminal (see root `DESIGN.md`).
@@ -32,25 +16,19 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 ## Route to another skill when…
 
 - You need an at-a-glance map of this skill stack (which file owns which question) → [ARCHITECTURE.md](./ARCHITECTURE.md).
-- You need implementation detail (Tailwind tokens, Radix composition, a11y checks, Storybook, i18n) → **`ui`** skill.
+- You need implementation detail (Tailwind tokens, Radix composition, a11y checks, Storybook, i18n) → [implementation.md](./implementation.md).
 - You are about to feed a design to an AI tool or coding agent → [ai-ui-brief.md](./ai-ui-brief.md) + § Working with AI Design Tools below + the matching prompt contract.
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
 - You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
-- You are doing a **full design-system alignment review** across DesignMD files, tokens, Storybook, admin, client, docs, and agentic guidance → [system-alignment-review.md](./system-alignment-review.md). Use [stack-review.md](./stack-review.md) instead when the target is only the `design/` + `ui/` skill stack.
+- You are doing a **design-system alignment review** — full-repo, or stack-only when the target is just the `design/` skill stack → [system-alignment-review.md](./system-alignment-review.md).
 
-## Version coupling with `ui`
+## Token version
 
-This skill has a `token_version` field in frontmatter that reflects the current Warm Earth token spec in [language.md](./language.md). The `ui` skill has a `design_token_version` field that mirrors it.
+This skill's frontmatter `token_version` reflects the current Warm Earth token spec in [language.md](./language.md); `scripts/design/check-tokens.sh` requires the field and verifies every spec'd token is projected into `theme.css`.
 
-**When `language.md` tokens change** (radii, springs, materials, color roles):
-1. Bump `token_version` on this skill
-2. Bump `design_token_version` on `ui` skill to match
-3. Re-verify `ui/compliance.md` references still align
-4. Note the token delta in both skills' changelogs
-
-If the two versions drift, you have a token consistency bug: the design says one thing, the implementation guidance still references the old. The version field exists to make that drift obvious on `grep`.
+**When `language.md` tokens change** (radii, springs, materials, color roles): bump `token_version` here and re-verify [implementation.md](./implementation.md) references still align.
 
 ## Activation
 
@@ -68,19 +46,17 @@ If the two versions drift, you have a token consistency bug: the design says one
 | **Interaction** | adaptive density, progressive disclosure, multimodal, hover-to-gaze | [interaction.md](./interaction.md) |
 | **Materials** | glass, material, blur, surface, frosted, translucent | [materials.md](./materials.md) |
 | **Generative UI** | UI atoms, intent-driven composition, agent-generated surfaces | [generative-ui.md](./generative-ui.md) |
-| **View Transitions** | view transition API, entity morphing, spatial navigation | [../ui/view-transitions.md](../ui/view-transitions.md) |
+| **View Transitions** | view transition API, entity morphing, spatial navigation | [implementation.md § View Transitions](./implementation.md) |
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
-| **Stack Review** | stack review, audit skill stack, meta-review, design skill stack health | [stack-review.md](./stack-review.md) |
-| **System Alignment Review** | design system alignment, design-system alignment, UI drift, Storybook alignment, admin client docs alignment, full repo design-system review | [system-alignment-review.md](./system-alignment-review.md) |
-| **Inspiration & Frameworks** | inspiration, design books, designers, studios, research | § Appendix below |
+| **System Alignment Review** | design system alignment, UI drift, Storybook alignment, full repo design-system review, stack review, meta-review of the design skill stack | [system-alignment-review.md](./system-alignment-review.md) |
 
 When invoked:
 1. Establish design paradigm and material metaphor before writing code
 2. Apply Inclusive Design lens — every decision raises or lowers barriers
 3. Apply Ecosystem lens for multi-user surfaces — whose experience composes with whose? ([ecosystem.md](./ecosystem.md))
-4. Defer to `ui` skill for TailwindCSS config, Radix primitives, Storybook, i18n, compliance
+4. Defer to [implementation.md](./implementation.md) for TailwindCSS config, Radix primitives, Storybook, i18n, compliance
 5. Run the unified [review-checklist.md](./review-checklist.md) (4 lenses: Regenerative / Spatial / Ecosystem / Compliance) on new components before merging
 
 ---
@@ -205,7 +181,7 @@ What kind of design work?
 │   ├── Choose material metaphor (Glass / Obsidian / Vellum / Holographic / Carbon)
 │   ├── Apply Inclusive Design lens (who gets excluded? what's the fallback?)
 │   ├── Define disclosure layers (glance → scan → engage → deep dive)
-│   └── Implement with ui skill (Pane pattern + adaptive density)
+│   └── Implement per implementation.md (Pane pattern + adaptive density)
 │
 ├─► New component?
 │   ├── What Z-layer? (ground / surface / floating / overlay) → spatial.md
@@ -223,10 +199,10 @@ What kind of design work?
 │   ├── Replace solid backgrounds with materials → materials.md
 │   ├── Add depth via Z-layer model → spatial.md
 │   ├── Add progressive disclosure to dense surfaces → interaction.md
-│   └── Verify inclusive design checks → § Appendix (below)
+│   └── Verify inclusive design checks → review-checklist.md § Lens 2
 │
 ├─► Animation / spatial motion?
-│   ├── View transitions for navigation morph → ../ui/view-transitions.md
+│   ├── View transitions for navigation morph → ./implementation.md § View Transitions
 │   ├── Scroll-linked depth → spatial.md
 │   └── Respect prefers-reduced-motion (MANDATORY)
 │
@@ -234,7 +210,8 @@ What kind of design work?
 │   └── UIAtom composition pattern → generative-ui.md
 │
 └─► Need inspiration or direction?
-    └── § Appendix — Inspiration & Frameworks (below)
+    └── language.md § Philosophy (Sources) — the model already knows the classic
+        design canon; the skill only records what Warm Earth takes from it
 ```
 
 ---
@@ -262,79 +239,17 @@ Tier 3: Spatial (headsets, AR, large displays)
 
 **The bridge**: Each tier is additive. Tier 2 includes everything from Tier 1. Tier 3 includes everything from Tier 2. **Nothing is spatial-only** — that's a core rule from Inclusive Design (see Quad Foundation above).
 
-This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes ([spatial.md](./spatial.md)), container queries ([interaction.md](./interaction.md)), and view transitions ([../ui/view-transitions.md](../ui/view-transitions.md)).
+This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes ([spatial.md](./spatial.md)), container queries ([interaction.md](./interaction.md)), and view transitions ([implementation.md § View Transitions](./implementation.md)).
 
 ---
 
-## Related Skills
+## Related Surfaces
 
-- `ui` — Implementation tooling: TailwindCSS v4, Radix UI, Storybook, i18n, compliance, animation recipes
-- `react` — Component composition, state management, performance optimization
-- `data-layer` — Offline-first patterns, sync state as ambient UI indicators
-- `architecture` — System boundaries that influence surface decomposition
-
----
-
-## Appendix — Inspiration & Frameworks
-
-Folded into this file from the former `references.md` during the 2026-04-17 skill consolidation. This is reading-list depth — use when you need direction, not when you need tokens (see [quick-reference.md](./quick-reference.md) for that).
-
-### Books
-
-| Book | Author | Key Concept |
-|------|--------|-------------|
-| *Laws of UX* | Jon Yablonski | Psychology-backed design heuristics (Fitts's Law, Hick's Law, Miller's Law) |
-| *Refactoring UI* | Adam Wathan, Steve Schoger | Visual design for developers — spacing, hierarchy, color, typography |
-| *The Design of Everyday Things* | Don Norman | Affordances, signifiers, mapping — timeless interaction principles |
-| *Designing Interfaces* (3rd ed.) | Jenifer Tidwell et al. | Pattern library for interaction design |
-| *Designing for Spatial Computing* | O'Reilly (2025) | visionOS principles, gaze+pinch, window management |
-
-### Designers & Studios
-
-| Who | Known For | Follow For |
-|-----|-----------|------------|
-| **Rauno Freiberg** (Vercel) | Spatial web effects, liquid interfaces | Bleeding-edge CSS/motion |
-| **Paco Coursey** (Linear) | Precision minimalism, keyboard-first | Command surface craft |
-| **Lee Robinson** (Vercel) | Developer-facing design systems | Performance-aware design |
-| **Stripe Design** | Glass materials, data-dense elegance | Financial/data UI |
-| **Linear** | GPU-rendered UI, keyboard navigation | Operator tools, control panes |
-| **Apple HIG (Spatial)** | visionOS guidelines | Material system, gaze patterns |
-| **Diagram (Rive)** | Interactive motion design | Cross-platform micro-interactions |
-
-### Inspiration Sources
-
-| Source | Use For |
-|--------|---------|
-| **Godly** | High-end visual direction, animation |
-| **Refero** | Real-world UI patterns by interaction type |
-| **Mobbin** | Mobile/web app flow analysis |
-| **UXArchive** | User flow recordings |
-| **Awwwards** | Boundary-pushing sites with tech breakdowns |
-
-### Tools
-
-| Tool | Use For |
-|------|---------|
-| **Figma** (AI features) | Layout generation, design-to-code |
-| **Rive** | Interactive motion graphics, stateful animations |
-| **Spline** | 3D web experiences, spatial UI prototyping |
-| **Motion** (Framer Motion) | Production React animations, layout gestures |
-| **View Transitions API** | Native morphing navigation — see [../ui/view-transitions.md](../ui/view-transitions.md) |
-
-### Research & Frameworks
-
-| Source | Authority On |
-|--------|-------------|
-| **Nielsen Norman Group** | Research-backed usability, AI UX, spatial interaction |
-| **Growth.Design** | Interactive case studies on product psychology |
-| **Baymard Institute** | E-commerce UX benchmarks |
-| **Material Design 3** | Adaptive tokens, dynamic color, motion |
-| **Material 3 Expressive** (Google I/O 2025) | Spring-based motion tokens, shape morphing, expressive color, hero moments, wavy progress |
-| **Liquid Glass** (Apple WWDC 2025) | Concentricity (3 shape types), functional glass layers, source-anchored interaction, scroll edge effects, symbol-first nav |
-| **Microsoft Inclusive Design** | [inclusive.microsoft.design](https://inclusive.microsoft.design/) — Persona Spectrum, cognitive inclusion |
-| **Rethinking Users** (Youngblood, Chesluk, Haidary) | [rethinkingusers.com](https://www.rethinkingusers.com/) — 15 user archetypes, ecosystem mapping |
-| **EPIC 2023** — Friction & Ease in Complex Systems | Ethnographic frictions, systems phenomena, user ecosystem theory |
+- [implementation.md](./implementation.md) — Implementation tooling: dialogs, component runbook, Storybook, i18n, view transitions
+- `.claude/context/shared.md` — Hooks, stores, error utilities behind the components
+- `.claude/context/client.md` — Offline-first patterns, sync state as ambient UI indicators
+- `review` — boundary/coherence judgment when surface decomposition is in question
 
 ---
 
-> **Note**: This skill was previously named `frontend-design`. The broader scope (ecosystem thinking, inclusive design, bot/docs tone) warranted the simpler name.
+> **Note**: This skill was previously named `frontend-design`. The broader scope (ecosystem thinking, inclusive design, bot/docs tone) warranted the simpler name. The former reading-list appendix (books, designers, inspiration sites, tools) was removed in the 2026-07 round-2 consolidation — it was generic design-industry knowledge the model already has; Warm Earth's actual sources stay recorded in [language.md § Philosophy](./language.md).

@@ -107,7 +107,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /status /clean /doc-feedback' '  planning, debugging: describe the intent (no slash)' '  resume: /status --resume'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /status /audit /clean /qa-triage /doc-feedback' '  planning, debugging: describe the intent (no slash)' '  resume: /status --resume'",
             "once": true
           }
         ]
@@ -117,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import from `@green-goods/shared` barrel only — never deep paths\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors\\n- Critical surfaces require line-by-line review; log-only failure handling is never enough on auth, queue, or contract paths'"
+            "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import only from declared `@green-goods/shared` export paths — never `shared/src` internals\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors\\n- Critical surfaces require line-by-line review; log-only failure handling is never enough on auth, queue, or contract paths'"
           }
         ]
       }
@@ -171,16 +171,6 @@
             "statusMessage": "Checking resolver test coverage..."
           }
         ]
-      },
-      {
-        "matcher": "SendMessage",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/agent-output-gate.sh",
-            "statusMessage": "Validating agent output contract..."
-          }
-        ]
       }
     ],
     "SessionEnd": [
@@ -205,10 +195,7 @@
       }
     ]
   },
-  "worktree": {},
-  "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true
-  },
+  "worktree": { "baseRef": "head" },
   "autoUpdatesChannel": "latest",
   "teammateMode": "in-process"
 }

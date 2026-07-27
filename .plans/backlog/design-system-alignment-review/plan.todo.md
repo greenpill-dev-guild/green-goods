@@ -69,4 +69,4 @@
 - [ ] `bun run lint:vocab`
 - [ ] `cd packages/shared && bun run check:stories`
 - [ ] `cd packages/shared && bun run check:story-quality`
-- [ ] `node scripts/plan-hub.mjs validate`
+- [ ] `node scripts/harness/plan-hub.mjs validate`

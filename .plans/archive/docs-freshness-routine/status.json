@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "docs-freshness-routine",
+    "title": "Docs Freshness Routine",
+    "kind": "quality",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-04-25T08:53:00.019Z",
+    "updated_at": "2026-07-19T22:20:00.000Z",
+    "target_date": null,
+    "archived_at": "2026-07-08T21:30:02.482Z",
+    "archive_reason": "Paused media-refresh routine retained as historical design; no active execution commitment remains.",
+    "resolution": "paused"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a"
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-08T21:30:02.482Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ],
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["docs", "admin", "client"],
+    "work_types": ["maintenance", "review"],
+    "surfaces": ["docs", "packages/admin", "packages/client"],
+    "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T22:34:34.859Z",
+    "parentIssue": "PRD-453",
+    "lanes": {
+      "state_api": {
+        "issue": "PRD-454"
+      }
+    }
+  }
+}

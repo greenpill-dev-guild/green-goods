@@ -2,9 +2,12 @@
 
 Read-only, evidence-first review protocol for checking whether the Green Goods design system is coherent across every surface that consumes it. Starts read-only; does not apply fixes unless the user explicitly asks.
 
-> Different from [stack-review.md](./stack-review.md), which audits only the `design/` + `ui/` skill stack as infrastructure. This file audits the **full repo** alignment — the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
->
 > Different from [review-checklist.md](./review-checklist.md), which runs the 4-lens review on a component PR. That is per-change; this is cross-surface.
+
+Two modes:
+
+- **Full alignment review** (default) — the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
+- **Stack-only mode** (absorbed the former `stack-review.md`) — audits only the `design/` skill stack as infrastructure. See § Stack-only mode below.
 
 ## When to invoke
 
@@ -13,8 +16,17 @@ Read-only, evidence-first review protocol for checking whether the Green Goods d
 - After a DesignMD token revision, to confirm every projection landed.
 - After a prompt-contract revision, to confirm Storybook fixtures and surface DESIGN.md dialects still agree.
 - Before a design-system change goes to a grant, pilot, or external audience, to make sure the story the repo tells matches the story the docs tell.
+- **Stack-only mode**: quarterly design-system health check, after a major skill consolidation ("did we drift?"), when onboarding, or before volunteering to "clean up the design system" — the protocol is the guardrail against over-polish.
 
-Do **not** invoke this for routine component PRs — use [review-checklist.md](./review-checklist.md). Do **not** invoke for design-skill-stack hygiene — use [stack-review.md](./stack-review.md).
+Do **not** invoke this for routine component PRs — use [review-checklist.md](./review-checklist.md).
+
+## Stack-only mode
+
+When the target is only the design skill stack (not the whole repo), restrict the review:
+
+- **In scope**: `.claude/skills/design/**` (every sub-file), Warm Earth token implementation in `packages/shared/src/styles/theme.css` + generated DesignMD artifacts, root `DESIGN.md` + the four surface dialect briefs, and validators `scripts/design/check-tokens.sh` / `check-vocab.sh`. Anything outside — other skills' health, `packages/*/src/**` beyond tokens/contracts/palettes — must not appear in findings even when genuinely broken; route it to `/audit`, `/review`, or the owning skill.
+- **Caps**: Section 1 ≤ 5 items; skip Sections 2–3 (Inferred risks / Missing proof).
+- Everything else (constraints, YAGNI guardrails, refusal condition) applies unchanged.
 
 ## Source of truth
 
@@ -44,16 +56,15 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, presentation-mode loaders, installed-PWA shell, `PwaRuntime` / `AppShell`, bottom `AppBar`.
 7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
 8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
-9. **Agentic design-development guidance** — `.claude/skills/design/**`, `.claude/skills/ui/**`, prompt contracts, defect grammar.
+9. **Agentic design-development guidance** — `.claude/skills/design/**`, prompt contracts, defect grammar.
 10. **Claude and Codex repo instructions** — `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
 
 **Out of scope — do not produce findings here:**
 
-- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `principles`, `status`, etc.) — not this review.
-- `.claude/registry/skills.json` shape beyond the `design` + `ui` entries and their aliases/triggers — route to `/audit`.
+- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `status`, etc.) — not this review.
 - Per-component correctness / a11y / i18n bugs — route to [review-checklist.md](./review-checklist.md).
 - General repo-health (dead code, dependency drift, circular imports) — route to `/audit`.
-- Narrow meta-review of `design/` + `ui/` files only — route to [stack-review.md](./stack-review.md).
+- Narrow meta-review of `design/` files only — use § Stack-only mode above.
 
 If the most broken thing you find is out of scope, say so explicitly and stop — the refusal condition below is the right exit.
 
@@ -64,6 +75,8 @@ HARD CONSTRAINTS — read before producing any finding.
 1. **Read-only by default.** Do not edit, rename, move, or regenerate anything. If the user later says "fix it," confirm scope before touching shared DesignMD sources, theme tokens, stories, or deployment/config permissions. Never modify actual UI components, tokens, stories, design language content beyond routing/registry references, package code, or deployment/config permissions as part of this review.
 
 2. **Evidence or it didn't happen.** Every claim needs `file:line` or a concrete command output. Never paraphrase what a file says — quote it. "Feels inconsistent" is not a finding.
+
+2b. **Check recent history before proposing any restructure.** Run `git log --oneline -15 -- .claude/skills/design/` and read the touched files' diffs. Do not propose undoing a deliberate choice made in the last 30 days; if a recent change already addressed your concern, drop the item.
 
 3. **Run the live validators before claiming drift:**
    ```bash
@@ -85,12 +98,14 @@ HARD CONSTRAINTS — read before producing any finding.
    - "Add a token for X" when the value has one consumer and the spec does not already name it.
    - "Align the dialects" when each dialect is self-declared as intentionally distinct (admin restrained vs client expressive vs docs quiet).
    - "This appears in N files" when it is summary → pointer → full-detail layering, not duplication.
+   - "Consolidate N files" when each serves a distinct loading moment (author vs review vs test; paradigm spec vs decision matrix vs cheat sheet).
+   - "Dedupe this table" when one file is self-declared as derived (e.g. `quick-reference.md`, root `DESIGN.md` as AI-tool brief).
    - "Regenerate artifacts" without first confirming `check:design-generated` actually fails.
    - "Bump token_version" without a concrete token change on disk.
 
 6. **Distinguish broken from aspirational.** *Broken* = a named consumer (developer, AI tool, CI check, surface) hits a wrong outcome because of the drift. *Aspirational* = the system would be more symmetric or complete if we also did X. Only broken goes in Section 1.
 
-7. **Cap yourself at 7 items in Section 1.** This review spans more surfaces than stack-review.md, but more than 7 confirmed drifts means either the repo is on fire (escalate explicitly) or you are over-polishing (tighten).
+7. **Cap yourself at 7 items in Section 1** (5 in stack-only mode). More than that means either the repo is on fire (escalate explicitly) or you are over-polishing (tighten).
 
 ## Output format
 
@@ -127,7 +142,6 @@ Before proposing any fix, surface these as explicit questions — do not resolve
 - Renaming or removing a surface DESIGN.md dialect.
 - Promotion of an aspirational token (e.g., something in `language.md` that has no `theme.css` counterpart) to a runtime token — this can cascade to every consumer.
 - Lint-enforced banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs. Prompt-vocabulary lists are guidance-only.
-- Any change to `.claude/registry/skills.json` sub_files, triggers, or aliases beyond the design-system routing this skill adds.
 
 ## Refusal condition
 
@@ -140,7 +154,6 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - [language.md](./language.md) — implementation guide projected from root DesignMD
 - [ai-ui-brief.md](./ai-ui-brief.md) — reusable AI UI/CSS build brief and reference role map
 - [review-checklist.md](./review-checklist.md) — PR-level 4-lens review (different scope)
-- [stack-review.md](./stack-review.md) — narrow `design/` + `ui/` skill stack self-audit (different scope)
 - [prompt-contract.md](./prompt-contract.md), [client-prompt-contract.md](./client-prompt-contract.md) — AI-tool vocabulary
 - Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD sources
 - `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json` — runtime projections

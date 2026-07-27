@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="settlement-states-title settlement-states-desc">
+  <title id="settlement-states-title">Settlement states where command delivery is not confirmation</title>
+  <desc id="settlement-states-desc">A settlement moves from Queued to Dispatched. A queued unbatched item or whole queued batch may be cancelled before sending. Command delivery retry keeps the same execution key and creates a new command message ID. Celo stores an idempotent execution result, acknowledgment retry resends only that stored outcome, and CCIP returns an authenticated acknowledgment that branches to Confirmed or Failed. Only an authenticated failure permits a new attempt or terminal cancellation. No retry executes G dollars twice and no human verification path exists.</desc>
+  <defs>
+    <marker id="settlement-states-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
+    </marker>
+    <marker id="settlement-states-red-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#A65D57"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
+
+  <!-- title -->
+  <text x="500" y="100" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Settlement states — delivery is not confirmation</text>
+
+  <!-- checking label + leader -->
+  <text x="500" y="300" text-anchor="middle" font-size="16" fill="#6E6857">CCIP command and acknowledgment</text>
+  <text x="500" y="315" text-anchor="middle" font-size="16" fill="#6E6857">execution stored · acknowledgment pending</text>
+  <path d="M 500 322 L 500 378" fill="none" stroke="#988D77" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <!-- Queued -->
+  <rect x="40" y="390" width="120" height="44" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="100" y="417" text-anchor="middle" font-size="20" font-weight="600" fill="#3B372E">Queued</text>
+
+  <path d="M 162 412 L 209 412" fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#settlement-states-arrow)"/>
+
+  <!-- Dispatched -->
+  <rect x="215" y="390" width="130" height="44" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="280" y="417" text-anchor="middle" font-size="20" font-weight="600" fill="#3B372E">Dispatched</text>
+
+  <path d="M 347 412 L 374 412" fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#settlement-states-arrow)"/>
+
+  <!-- Celo outcome stored -->
+  <rect x="380" y="383" width="230" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="495" y="407" text-anchor="middle" font-size="20" font-weight="600" fill="#3B372E">Celo outcome</text>
+  <text x="495" y="425" text-anchor="middle" font-size="15" fill="#6E6857">stored before acknowledgment</text>
+
+  <!-- checking branch arrows (derived state, dashed) -->
+  <path d="M 612 406 C 642 398 670 384 700 368" fill="none" stroke="#988D77" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#settlement-states-arrow)"/>
+  <path d="M 612 418 C 642 426 670 450 700 467" fill="none" stroke="#988D77" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#settlement-states-arrow)"/>
+
+  <!-- Confirmed -->
+  <rect x="706" y="334" width="250" height="74" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="831" y="358" text-anchor="middle" font-size="20" font-weight="600" fill="#24422E">Confirmed ✓</text>
+  <text x="831" y="378" text-anchor="middle" font-size="12.5" fill="#4C6B54"><tspan x="831">authenticated success</tspan><tspan x="831" dy="14">acknowledgment · current key + attempt</tspan></text>
+
+  <!-- Failed -->
+  <rect x="706" y="444" width="250" height="74" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="831" y="468" text-anchor="middle" font-size="20" font-weight="600" fill="#8A4A44">Failed</text>
+  <text x="831" y="488" text-anchor="middle" font-size="12.5" fill="#8A4A44"><tspan x="831">authenticated failure</tspan><tspan x="831" dy="14">acknowledgment · current key + attempt</tspan></text>
+
+  <!-- terminal cancellation boundaries -->
+  <path d="M 100 436 L 100 558" fill="none" stroke="#A65D57" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#settlement-states-red-arrow)"/>
+  <rect x="30" y="565" width="140" height="58" rx="12" fill="#FFFFFF" stroke="#A65D57" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="100" y="589" text-anchor="middle" font-size="16" font-weight="600" fill="#8A4A44">Cancelled</text>
+  <text x="100" y="608" text-anchor="middle" font-size="12.5" fill="#8A4A44">before send · reason</text>
+
+  <path d="M 831 520 L 831 558" fill="none" stroke="#A65D57" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#settlement-states-red-arrow)"/>
+  <rect x="748" y="565" width="166" height="58" rx="12" fill="#FFFFFF" stroke="#A65D57" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="831" y="589" text-anchor="middle" font-size="16" font-weight="600" fill="#8A4A44">Cancelled</text>
+  <text x="831" y="608" text-anchor="middle" font-size="12.5" fill="#8A4A44">after failed · reason</text>
+  <text x="831" y="646" text-anchor="middle" font-size="14" fill="#6E6857">or requeue → new attempt and key</text>
+
+  <!-- same-key command-delivery retry -->
+  <path d="M 330 438 C 330 505 230 505 230 438" fill="none" stroke="#988D77" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#settlement-states-arrow)"/>
+  <text x="280" y="530" text-anchor="middle" font-size="16" fill="#6E6857">command delay: same execution key</text>
+  <text x="280" y="549" text-anchor="middle" font-size="16" fill="#6E6857">new command ID · no duplicate payment</text>
+
+  <!-- stored-outcome acknowledgment retry -->
+  <path d="M 590 445 C 590 600 400 600 400 445" fill="none" stroke="#988D77" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#settlement-states-arrow)"/>
+  <text x="495" y="620" text-anchor="middle" font-size="16" fill="#6E6857">ack delay: resend the stored outcome</text>
+  <text x="495" y="639" text-anchor="middle" font-size="16" fill="#6E6857">the Safe route is never called again</text>
+
+  <!-- annotation -->
+  <text x="500" y="700" text-anchor="middle" font-size="20" font-weight="600" fill="#2A2722">There is no human verification path.</text>
+
+  <!-- legend -->
+  <g>
+    <rect x="250" y="768" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="284" y="781" font-size="17" fill="#2A2722">Planned / gated boundary</text>
+
+    <text x="555" y="781" font-size="18" font-weight="700" fill="#24422E">✓</text>
+    <text x="579" y="781" font-size="17" fill="#2A2722">Authenticated success marker</text>
+  </g>
+
+  <text x="500" y="956" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+</svg>

@@ -20,9 +20,9 @@ import {
   RiUserLine,
   RiWallet3Fill,
 } from "@remixicon/react";
-import React, { forwardRef, memo, useMemo, useState } from "react";
+import { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { FixedSizeList as List } from "react-window";
+import { List, type RowComponentProps } from "react-window";
 import { Button } from "@/components/Actions";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
@@ -126,6 +126,30 @@ const GardenMemberItem = memo(function GardenMemberItem({
   );
 });
 
+type GardenMemberRowData = {
+  members: GardenMember[];
+  garden?: Garden;
+  onSelect: (member: GardenMember) => void;
+};
+
+function GardenMemberRow({
+  ariaAttributes,
+  index,
+  style,
+  members,
+  garden,
+  onSelect,
+}: RowComponentProps<GardenMemberRowData>) {
+  const member = members[index];
+  if (!member) return null;
+
+  return (
+    <div {...ariaAttributes} style={style} className="px-0.5">
+      <GardenMemberItem member={member} garden={garden} onClick={() => onSelect(member)} />
+    </div>
+  );
+}
+
 export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps>(
   ({ members, garden }, ref) => {
     const intl = useIntl();
@@ -167,17 +191,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
       <ul className="flex-1" ref={ref}>
         {members.length ? (
           shouldVirtualize ? (
-            <List height={600} itemCount={members.length} itemSize={64} width={"100%"}>
-              {({ index, style }: { index: number; style: React.CSSProperties }) => (
-                <div style={style} className="px-0.5">
-                  <GardenMemberItem
-                    member={members[index]}
-                    garden={garden}
-                    onClick={() => setSelected(members[index])}
-                  />
-                </div>
-              )}
-            </List>
+            <List
+              defaultHeight={600}
+              rowComponent={GardenMemberRow}
+              rowCount={members.length}
+              rowHeight={64}
+              rowProps={{ members, garden, onSelect: setSelected }}
+              style={{ height: 600, width: "100%" }}
+            />
           ) : (
             <div className="flex flex-col gap-4">
               {members.map((member) => (

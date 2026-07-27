@@ -1,5 +1,7 @@
 # Agent PostHog Observability
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `agent-posthog-observability`
 **Status**: `ARCHIVED - implementation complete; live connector check remains operational follow-up`
 **Created**: `2026-04-25`

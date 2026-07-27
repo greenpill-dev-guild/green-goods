@@ -4,7 +4,7 @@ sidebar_label: Context Engineering
 slug: /builders/agentic/context-engineering
 audience: developer
 owner: docs
-last_verified: 2026-04-23
+last_verified: 2026-07-11
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -13,7 +13,7 @@ source_of_truth:
   - .claude/context/contracts.md
   - .claude/rules/typescript.md
   - .claude/rules/contracts.md
-  - .claude/skills/index.md
+  - .claude/loop.md
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -27,7 +27,7 @@ graph TB
         L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
         L3["Layer 3: context/*.md\nPer-package — shared, contracts, client, etc."]
         L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
-        L5["Layer 5: skills/*\nPer-agent — active skills + archived refs"]
+        L5["Layer 5: skills/*\nProcedural — 10 skills, loaded on trigger"]
     end
 
     L1 --> L2 --> L3 --> L4 --> L5
@@ -44,18 +44,18 @@ as the durable repo-truth planning and execution hub:
 
 ```
 .claude/
-  agents/          # Committed agent specifications (currently cracked-coder and oracle)
   context/         # Package and domain context files
   rules/           # Path-scoped coding rules
-  skills/          # 19 active top-level skill dirs + _archived references
-  registry/        # Skill bundles and activation configs
-  scripts/         # Guidance consistency checks
-  specs/           # Detailed feature specifications
-  evals/           # Agent evaluation criteria
+  skills/          # 10 skills -- the filesystem + SKILL.md frontmatter is the registry
+  scripts/         # Hook helpers and Codex lane dispatch
+  loop.md          # Maintenance loop: guidance consistency, stale references, build health
+  launch.json      # Dev-server launch configs for the browser preview
   settings.json    # Global agent settings and tool execution hooks
 
 .plans/            # Durable feature hub for briefs, specs, plan.todo, status, evals, and handoffs
 ```
+
+Earlier iterations also kept `agents/` (committed agent specs), `registry/` (skill bundles), `evals/`, and a master skill index. The lean-skills consolidation removed them: stronger models need less scaffolding, knowledge lives in documentation referenced from `CLAUDE.md`/`AGENTS.md`, and each fact gets one home.
 
 ## Context Layers
 
@@ -81,6 +81,7 @@ Loaded based on which files the agent is working with:
 | `admin.md` | Editing `packages/admin/` |
 | `agent.md` | Editing `packages/agent/` |
 | `indexer.md` | Editing `packages/indexer/` |
+| `testing.md` | Writing or diagnosing tests (absorbed the old testing skill) |
 | `intent.md` | Making prioritization or UX decisions |
 | `values.md` | Resolving conflicts between constraints |
 | `product.md` | Feature planning and requirements |
@@ -93,10 +94,11 @@ Path-scoped rules loaded conditionally based on the files being edited:
 - `typescript.md` -- Error handling, Address type, barrel imports
 - `react-patterns.md` -- Hook patterns, component conventions
 - `frontend-design.md` -- UI primitives, theme tokens, accessibility
+- `indexer.md` -- Envio handler conventions
 
-### Layer 5: Skills (Loaded Per-Agent)
+### Layer 5: Skills (Loaded on Trigger)
 
-Each agent's specification lists the skills it needs. Skills provide detailed how-to instructions for specific domains.
+Skills are procedural: they encode workflows with real orchestration (review passes, the pre-merge gate, QA triage pipelines) rather than domain knowledge. A skill loads when its `SKILL.md` frontmatter description matches the task -- there is no separate index or registry file; the filesystem is the registry. Domain knowledge that used to live in skills (`testing`, `react`, `web3`, `contracts`, ...) moved into `context/*.md` and `docs/`, referenced from `CLAUDE.md` and `AGENTS.md`, so each fact has one home.
 
 ## Session Continuity
 
@@ -131,13 +133,13 @@ This enables context recovery after compaction or session handoff.
 
 ## Guidance Governance
 
-A Claude guidance check validates skill frontmatter, the skills registry, command aliases, command bundles, retired guidance surfaces, and a small set of forbidden guidance patterns:
+The standalone skill-frontmatter checker and the skills registry it validated were retired with the lean-skills consolidation -- the filesystem plus each skill's `SKILL.md` frontmatter is now the registry, with no version/changelog ceremony to keep in sync. Two guardrails remain:
 
 ```bash
-node .claude/scripts/check-skill-frontmatter.js
+bun run check:codex-guidance   # AGENTS.md guides and documented commands stay real
 ```
 
-This runs in CI to catch structural drift in Claude-owned guidance surfaces. It is not a semantic proof that every guidance file agrees with every other file.
+plus the `.claude/loop.md` maintenance loop, which runs the Codex guidance check, greps `.claude/`, `CLAUDE.md`, and `AGENTS.md` for references to retired surfaces (removed skills, the old registry, retired agent definitions), and spot-checks lint health. These are structural guardrails, not a semantic proof that every guidance file agrees with every other file -- routine review and human review catch semantic drift.
 
 ## Design Principles
 
@@ -145,7 +147,7 @@ This runs in CI to catch structural drift in Claude-owned guidance surfaces. It 
 2. **Single source of truth** -- Each fact lives in one place, referenced from others
 3. **Machine-readable structure** -- Use frontmatter, tables, and consistent headers
 4. **Version controlled** -- All context files are committed to the repository
-5. **Testable consistency** -- CI validates that guidance registries and surface lists stay aligned
+5. **Checked drift** -- `check:codex-guidance` and the maintenance loop catch stale references and parity drift
 
 <NextBestAction
   title="Next best action"

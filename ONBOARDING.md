@@ -18,7 +18,6 @@ Top Skills & Commands:
   /clean            █░░░░░░░░░░░░░░░░░░░   6x/month
   /review           █░░░░░░░░░░░░░░░░░░░   6x/month
   /doctor           █░░░░░░░░░░░░░░░░░░░   5x/month
-  /architecture     █░░░░░░░░░░░░░░░░░░░   4x/month
   /usage            █░░░░░░░░░░░░░░░░░░░   4x/month
 
 Top Browser MCP Usage:
@@ -33,7 +32,7 @@ Top Browser MCP Usage:
 ### Local Setup
 - [ ] Follow the [Developer Getting Started guide](https://docs.greengoods.app/builders/getting-started) (`npm run setup`, then `bun run dev`).
 - [ ] Read `CLAUDE.md` and `AGENTS.md` at the repo root before pairing with Claude — they encode invariants Claude will assume you know.
-- [ ] Skim `.claude/context/<package>/` for whichever package you'll touch first.
+- [ ] Skim `.claude/context/<package>.md` for whichever package you'll touch first.
 
 ### MCP Servers to Activate
 - [ ] **brave-browser-mcp** — Brave-only browser MCP / extension access that lets Claude read and drive a live Brave tab. Heavy use here for admin UI review: reading rendered `data-component`/`data-region`/`data-workspace` attributes on the running admin app (see `.claude/skills/design/defect-grammar.md` for the workflow). Install the Claude browser extension in Brave, sign in, grant tab access, and use the project `.mcp.json` Brave DevTools MCP entry when live browser debugging is needed. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge for Green Goods browser proof.
@@ -41,20 +40,21 @@ Top Browser MCP Usage:
 ### Skills to Know About
 Slash-invokable (type the command):
 - [ ] `/status` — Branch-first orientation when you sit down or return to a branch (read-only, ~30-60s). Start here.
-- [ ] `/review [package|PR|file]` — Diff-scoped review before merge. Positional arg scopes the review (`/review admin`, `/review #123`).
+- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`).
+- [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
 - [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
-- [ ] `/ship` — Pre-merge gate: format, lint, test, build, conventional-commit, vocab/design-token lint.
-- [ ] `/architecture` and `/audit` — Internal lenses. `/architecture` for boundary/placement calls inside planning or review; `/audit` as a follow-up when broader drift shows up.
+- [ ] `/qa-triage` and `/doc-feedback` — Build Sync QA notes → Linear records + QA-sheet rows; Google-Doc review feedback processing.
 
 Intent-triggered (no slash — just describe it in plain English):
 - [ ] `plan` — Fires on "plan this", "break down X", "coordinate a team", or cross-package work. Plans land in `.plans/active/<feature-name>/plan.todo.md`.
 - [ ] `debug` — Fires when you describe a bug, paste a stack trace, or report a failing test.
+- [ ] `ship` — Pre-merge gate (format, lint, test, build, conventional-commit, vocab/design-token lint); fires on ship/merge-readiness intent.
 
 Loaded by context (you usually don't pick these manually):
-- [ ] `design` + `ui` — Warm Earth design language, M3 anatomy, Tailwind v4 + Radix + Storybook.
-- [ ] Package skills — `react`, `contracts`, `indexer`, `data-layer`, `testing`, `web3`.
+- [ ] `design` — Warm Earth design language, M3 anatomy, and implementation guidance (`design/implementation.md`).
+- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing, plus the cross-cutting ontology update protocol (`ontology.md`). The curated PostHog question library lives in `docs/routines/posthog-questions.md`.
 
-(Full skill index: `.claude/skills/index.md`.)
+(The skill directory itself is the index: `ls .claude/skills/`.)
 
 ## Team Tips
 
@@ -69,13 +69,13 @@ These complement (not duplicate) `CLAUDE.md` — they're things that aren't alre
 
 ## Working with agents here
 
-Green Goods runs at agentic velocity; these few habits keep that safe. They were validated over the May AI-native-workflow pilot (templates in `.plans/archive/ai-native-dev-workflow/`) and complement — not duplicate — `CLAUDE.md`.
+Green Goods runs at agentic velocity; these few habits keep that safe and complement — not duplicate — `CLAUDE.md`.
 
 - **Run `bun run drift:check` before broad or parallel agent dispatch.** It repeatedly caught skill-mirror / docs / README / lint drift before it compounded. Don't fan out agents while guidance drift is unresolved.
 - **Scope-lock before runtime edits.** For audits and cleanups, agree the exact change set with a human first and preserve unrelated dirty work — this prevents over-broad redesigns.
 - **Get an adversarial review before you commit to an approach,** not after. A second, stronger perspective catches theater and wrong assumptions more cheaply than a passing self-test.
 - **Evidence, not assertion.** Record copy-runnable validation commands and explicit proof limits. "Should work" is not proof.
-- **Fill a data-contract map** when a change touches schemas / public contracts / persistent stores / shared types / API shapes, and a **route/access matrix** when it touches routes / auth / role gates / shells (templates in the archived hub). Skip both when the change touches neither — don't add ceremony.
+- **Record affected data contracts** when a change touches schemas, public contracts, persistent stores, shared types, or API shapes; record route and access changes when it touches routes, auth, role gates, or shells. Keep that evidence in the current plan/spec or handoff. Skip both when the change touches neither.
 - **Match process to scope.** Broad or parallel agent work earns the pre-agent checklist; single-file, sequential work just proceeds (see `CLAUDE.md` § Subagent Discipline).
 
 ## Get Started

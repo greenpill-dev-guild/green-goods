@@ -1,5 +1,7 @@
 # Client PWA Native Feel Remediation Evaluation
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Acceptance Criteria
 
 - Transactional PWA toasts render through localized helpers in English, Spanish, and Portuguese call paths.

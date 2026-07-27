@@ -2,18 +2,67 @@
 
 ## Status
 
-- Machine lane: `qa_pass_2`
+- Machine lane: qa_pass_2
 - Owner: Codex
-- Branch: `codex/qa-pass-2/commitment-pooling`
-- Current state: blocked on `qa_pass_1`
-- Branch trigger: `claude/qa-pass-1/commitment-pooling`
+- Branch signal: codex/qa-pass-2/commitment-pooling
+- Branch trigger: claude/qa-pass-1/commitment-pooling
+- Current state: manually blocked on QA Pass 1 defect disposition and completed PRD-727
+  post-QA documentation polish
+- Linear context: PRD-730 (QA pass 2 lane) under parent PRD-650. Register #37 reversed the earlier no-QA-child rule.
 
-## Scope When Unblocked
+## Inputs
 
-- Regression QA after Claude QA Pass 1.
-- Re-check contracts/indexer/shared integration edges, validation evidence, and out-of-scope guardrails.
+- QA Pass 1 evidence and defect disposition
+- Final contracts/indexer/shared/UI handoffs and completed PRD-727 documentation-polish handoff
+- Updated status.json and plan-hub proof
+- Authenticated Brave/real-device evidence references
 
-## Validation
+## Outputs
 
-- Run targeted validation needed for touched packages.
-- Escalate to repo quick gate or ship gate only when the requested release/merge readiness requires it.
+- Regression review of contracts -> indexer -> shared -> app boundaries.
+- Re-run evidence for corrected defects and unchanged guardrails.
+- Status/handoff/dispatch consistency report and final remaining-blocker list.
+- Repo Quick Gate only after targeted lane proofs are green.
+
+## Acceptance
+
+- Exact ABI/event/config signatures match across specs, generated types, handlers, and shared types.
+- Composite Garden IDs, nullable actors, claim supersession, command/ack message states, same-key idempotency, acknowledgment retry, and member-delivery gating retain coverage.
+- QA Pass 1 defects are fixed and re-proven or explicitly accepted by the user.
+- PRD-727 documentation, screenshots, accessible names, translations, recovery instructions, and
+  planned/live claims are re-read against the QA-tested product and pass their exact commands.
+- Execution sub-lane mirrors replace aggregate implementation issues without duplicates; QA stays on canonical QA issues; blocked, human, and follow-on lanes carry no `agent:*` label and cannot dispatch.
+- Browser evidence remains authenticated Brave and real device where required.
+- No result collapses visible defects or external blockers into a pass.
+
+## RED / GREEN or proof limit
+
+- RED: a fixed QA1 defect still reproduces, any boundary/signature/dispatch invariant differs, or an exact regression command fails.
+- GREEN: every accepted QA1 fix is re-proven, all exact commands pass, and status/dispatch/lane-issue evidence agrees with the final artifacts.
+- Proof limit: QA Pass 2 introduces no behavior. If an external path cannot be rerun, preserve the earlier evidence and record staleness; do not substitute isolated browser or test-only proof or call the path GREEN.
+
+## Exact Bun commands
+
+- bun run --filter @green-goods/contracts test
+- bun run --filter @green-goods/indexer test
+- bun run --filter @green-goods/shared typecheck
+- bun run --filter @green-goods/client test
+- bun run --filter @green-goods/admin test
+- bun run docs:audit
+- bun run build:docs
+- bun run lint:vocab
+- node scripts/dev/ci-local.js --quick
+- node scripts/harness/plan-hub.mjs validate
+- node scripts/harness/plan-hub.mjs list --agent codex --lane qa_pass_2 --stage active --json
+
+## Out of scope
+
+- New features, scope expansion, contract broadcasts, defect fixes inside the QA lane, isolated browser proof labeled authenticated, manual settlement confirmation, garden-held member claims, or branch ship/merge claims without the explicit Ship Gate.
+
+## Unblock evidence
+
+- qa_pass_1 is GREEN with defects dispositioned.
+- PRD-727 is complete and its live Linear mirror plus source handoff are re-read.
+- All retested lane commands pass.
+- Authenticated Brave/real-device evidence is current or its proof limit is explicit.
+- Plan-hub validation and dispatch listing agree with status.json before QA Pass 2 can turn GREEN.

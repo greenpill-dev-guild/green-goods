@@ -3,7 +3,7 @@
 # Exit 0 if clean, non-zero if violations found.
 # Checks:
 #   1. Tautological assertions: expect(true), expect(false), || true
-#   2. Ungoverned test skips: .skip without governance comment
+#   2. Ungoverned or expired test skips
 #   3. Type-safety bypasses: @ts-nocheck in test files
 
 set -euo pipefail
@@ -70,8 +70,8 @@ else
 fi
 echo ""
 
-# ── Check 2: Ungoverned test skips ──────────────────────────────
-echo "--- Check 2: Ungoverned test skips ---"
+# ── Check 2: Governed, non-expired test skips ───────────────────
+echo "--- Check 2: Governed, non-expired test skips ---"
 # Find lines with .skip( or test.skip or it.skip or describe.skip
 # Then exclude lines that have a governance comment on the same line OR
 # on the 1-2 lines immediately above: // SKIP:.*#\d+.*owner.*expiry
@@ -81,31 +81,35 @@ RAW_SKIPS=$(grep -rn \
   "${ALL_PATHS[@]}" 2>/dev/null \
   | grep -vE "$EXCLUDE_PATTERN" || true)
 
-# Filter: for each skip line, check if it or its preceding 2 lines have a governance comment
+# Filter: for each skip line, require a governance comment and future expiry.
 SKIP_LINES=""
+EXPIRED_SKIP_LINES=""
+CURRENT_DATE="$(date -u +%F)"
 while IFS= read -r line; do
   [ -z "$line" ] && continue
   # Extract file path and line number
   FILE=$(echo "$line" | cut -d: -f1)
   LINENO_VAL=$(echo "$line" | cut -d: -f2)
-  # Check same line for inline governance comment
-  if echo "$line" | grep -qE '//\s*SKIP:.*#[0-9]+.*owner.*expiry'; then
-    continue
-  fi
-  # Check preceding 3 lines in the source file for governance comment.
+  # Check this line plus the preceding 3 lines for a governance comment.
   # The governance pattern may span multiple comment lines, e.g.:
   #   // SKIP: #312 — reason text
   #   // Owner: team / Expiry: 2026-03-17
   # So we check if the window contains SKIP + issue number AND owner AND expiry.
   START=$((LINENO_VAL - 3))
   [ "$START" -lt 1 ] && START=1
-  CONTEXT=$(sed -n "${START},$((LINENO_VAL - 1))p" "$FILE" 2>/dev/null || true)
-  if echo "$CONTEXT" | grep -qE '//\s*SKIP:.*#[0-9]+' && \
-     echo "$CONTEXT" | grep -qiE '[Oo]wner' && \
-     echo "$CONTEXT" | grep -qiE '[Ee]xpiry'; then
+  CONTEXT="$(sed -n "${START},$((LINENO_VAL - 1))p" "$FILE" 2>/dev/null || true)
+${line}"
+  if ! echo "$CONTEXT" | grep -qE '//\s*SKIP:.*#[0-9]+' || \
+     ! echo "$CONTEXT" | grep -qiE '[Oo]wner' || \
+     ! echo "$CONTEXT" | grep -qiE '[Ee]xpiry'; then
+    SKIP_LINES="${SKIP_LINES}${line}"$'\n'
     continue
   fi
-  SKIP_LINES="${SKIP_LINES}${line}"$'\n'
+
+  EXPIRY_DATE=$(echo "$CONTEXT" | sed -nE 's/.*[Ee]xpiry[[:space:]]*:[[:space:]]*([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/p' | head -1)
+  if [ -z "$EXPIRY_DATE" ] || [[ "$EXPIRY_DATE" < "$CURRENT_DATE" ]]; then
+    EXPIRED_SKIP_LINES="${EXPIRED_SKIP_LINES}${line} (expiry: ${EXPIRY_DATE:-missing})"$'\n'
+  fi
 done <<< "$RAW_SKIPS"
 # Trim trailing newline
 SKIP_LINES=$(echo "$SKIP_LINES" | sed '/^$/d')
@@ -117,6 +121,17 @@ if [ -n "$SKIP_LINES" ]; then
   VIOLATIONS=$((VIOLATIONS + $(echo "$SKIP_LINES" | wc -l)))
 else
   echo "PASS: No ungoverned test skips found."
+fi
+echo ""
+
+EXPIRED_SKIP_LINES=$(echo "$EXPIRED_SKIP_LINES" | sed '/^$/d')
+if [ -n "$EXPIRED_SKIP_LINES" ]; then
+  echo "FAIL: Found test skips with missing or expired expiry dates (today: $CURRENT_DATE):"
+  echo "$EXPIRED_SKIP_LINES"
+  echo ""
+  VIOLATIONS=$((VIOLATIONS + $(echo "$EXPIRED_SKIP_LINES" | wc -l)))
+else
+  echo "PASS: All governed test skips have a future expiry date."
 fi
 echo ""
 

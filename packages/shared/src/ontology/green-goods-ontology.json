@@ -1,0 +1,1754 @@
+{
+  "version": 1,
+  "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates every section against the code and docs anchors declared inline; bun run ontology:generate renders docs/docs/reference/ontology.generated.mdx and docs/docs/builders/integrations/entity-matrix.mdx from it. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
+  "meta": {
+    "last_verified": "2026-07-25",
+    "excluded_from_v1": [
+      "Impact-axes taxonomy — canon is maintained outside the repo; this public file carries only the four production action domains.",
+      "ModuleDependency and ModuleSchemaKind from the commitment-pooling spec — module wiring plumbing, not domain vocabulary."
+    ]
+  },
+  "consumers": [
+    { "path": "scripts/quality/check-ontology.mjs", "reads": "all sections" },
+    {
+      "path": "scripts/quality/ontology-render.mjs",
+      "reads": "entities, personas, vocabularies, schemas, constraints, state_machines, integration_matrix, known_issues"
+    },
+    {
+      "path": "docs/docs/reference/ontology.generated.mdx",
+      "reads": "generated from all sections (do not edit; run bun run ontology:generate)"
+    },
+    {
+      "path": "docs/docs/builders/integrations/entity-matrix.mdx",
+      "reads": "generated from integration_matrix (do not edit; run bun run ontology:generate)"
+    },
+    {
+      "path": "docs/docs/reference/glossary-community.md",
+      "reads": "entities + personas + capital ordering (human-readable canon; drift-locked by the docs-glossary guard)"
+    },
+    { "path": ".claude/context/ontology.md", "reads": "referenced, not parsed" }
+  ],
+  "entities": [
+    {
+      "id": "garden",
+      "display": "Garden",
+      "status": "live",
+      "definition": "A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata.",
+      "layers": {
+        "solidity": [
+          "packages/contracts/src/tokens/Garden.sol",
+          "packages/contracts/src/accounts/Garden.sol"
+        ],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "Garden" },
+        "shared": ["packages/shared/src/types/domain.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "relationships": [
+        { "to": "vault", "kind": "has-many", "note": "one vault per (garden, asset)" },
+        { "to": "hat", "kind": "has-tree", "note": "one six-role hat tree per garden" }
+      ]
+    },
+    {
+      "id": "action",
+      "display": "Action",
+      "status": "live",
+      "definition": "A documented activity a gardener can perform — the unit of work template (e.g. \"Plant native species\", \"Remove invasive growth\").",
+      "layers": {
+        "solidity": ["packages/contracts/src/registries/Action.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "Action" },
+        "shared": ["packages/shared/src/types/domain.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "enabled-by-domain-mask",
+          "note": "gardens enable action domains via bitmask"
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "display": "Work",
+      "status": "live",
+      "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation.",
+      "layers": {
+        "solidity": ["packages/contracts/src/resolvers/Work.sol"],
+        "shared": ["packages/shared/src/types/domain.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "indexer_note": "Not indexed by Envio — work attestations are queried from EAS (easscan) per the indexing boundary.",
+      "relationships": [
+        { "to": "action", "kind": "instance-of" },
+        {
+          "to": "garden",
+          "kind": "performed-in",
+          "note": "attestation recipient is the garden account"
+        }
+      ]
+    },
+    {
+      "id": "assessment",
+      "display": "Assessment",
+      "status": "live",
+      "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval).",
+      "layers": {
+        "solidity": ["packages/contracts/src/resolvers/Assessment.sol"],
+        "shared": ["packages/shared/src/types/domain.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "indexer_note": "Not indexed by Envio — assessment attestations are queried from EAS (easscan) per the indexing boundary.",
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "frames",
+          "note": "sets the targets later Work is measured against"
+        }
+      ]
+    },
+    {
+      "id": "hypercert",
+      "display": "Hypercert",
+      "status": "live",
+      "definition": "An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit.",
+      "layers": {
+        "solidity": ["packages/contracts/src/modules/Hypercerts.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "Hypercert" },
+        "shared": ["packages/shared/src/types/hypercerts.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "relationships": [
+        { "to": "work", "kind": "bundles", "note": "via attestation UIDs in hidden metadata" },
+        { "to": "garden", "kind": "minted-for" }
+      ]
+    },
+    {
+      "id": "vault",
+      "display": "Vault",
+      "status": "live",
+      "definition": "The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios.",
+      "layers": {
+        "solidity": ["packages/contracts/src/modules/Octant.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "GardenVault" },
+        "shared": ["packages/shared/src/types/vaults.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "relationships": [{ "to": "garden", "kind": "treasury-of" }]
+    },
+    {
+      "id": "cookie-jar",
+      "display": "Cookie Jar",
+      "status": "live",
+      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap.",
+      "layers": {
+        "solidity": ["packages/contracts/src/modules/CookieJar.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CampaignCookieJar" },
+        "shared": ["packages/shared/src/types/cookie-jar.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "indexer_note": "Only shared campaign jars are indexed; per-garden jars stay on-chain reads per the indexing boundary.",
+      "relationships": [{ "to": "garden", "kind": "discretionary-fund-of" }]
+    },
+    {
+      "id": "attestation",
+      "display": "Attestation",
+      "status": "live",
+      "definition": "An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims.",
+      "layers": {
+        "solidity": ["packages/contracts/src/Schemas.sol"],
+        "shared": ["packages/shared/src/types/eas-responses.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "indexer_note": "EAS attestations are deliberately outside the Envio boundary; queried from easscan.",
+      "relationships": [
+        { "to": "work", "kind": "records" },
+        { "to": "assessment", "kind": "records" }
+      ]
+    },
+    {
+      "id": "hat",
+      "display": "Hat",
+      "status": "live",
+      "definition": "A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest.",
+      "layers": {
+        "solidity": [
+          "packages/contracts/src/modules/Hats.sol",
+          "packages/contracts/src/interfaces/IHatsModule.sol"
+        ],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "Garden" },
+        "shared": ["packages/shared/src/utils/blockchain/garden-roles.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "indexer_note": "Role membership is flattened onto Garden role arrays (gardeners/operators/evaluators/owners/funders/communities).",
+      "relationships": [{ "to": "garden", "kind": "authority-in" }]
+    },
+    {
+      "id": "season",
+      "display": "Season",
+      "status": "live",
+      "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
+      "layers": {
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "note": "No dedicated on-chain or typed representation today; the commitment-pooling Cycle (type Season) becomes its first formal representation.",
+      "relationships": [{ "to": "commitment-cycle", "kind": "formalized-by", "note": "spec" }]
+    },
+    {
+      "id": "commitment-pool",
+      "display": "Commitment Pool",
+      "status": "spec",
+      "definition": "A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "relationships": [{ "to": "garden", "kind": "anchored-to" }]
+    },
+    {
+      "id": "commitment-cycle",
+      "display": "Commitment Cycle",
+      "status": "spec",
+      "definition": "A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "relationships": [{ "to": "commitment-pool", "kind": "run-of" }]
+    },
+    {
+      "id": "commitment",
+      "display": "Commitment",
+      "status": "spec",
+      "definition": "A module-native promise record (offer or request) with direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "relationships": [
+        { "to": "commitment-pool", "kind": "registered-in" },
+        { "to": "commitment-cycle", "kind": "optionally-scoped-to" },
+        { "to": "work", "kind": "fulfilled-by", "note": "operator-curated workUID linkage" }
+      ]
+    }
+  ],
+  "personas": [
+    {
+      "id": "gardener",
+      "display": "Gardener",
+      "hat": "gardener",
+      "definition": "A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits."
+    },
+    {
+      "id": "operator",
+      "display": "Operator",
+      "hat": "operator",
+      "definition": "A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats."
+    },
+    {
+      "id": "evaluator",
+      "display": "Evaluator",
+      "hat": "evaluator",
+      "definition": "A person who verifies submitted Work, makes Assessments, and attests impact. Often domain experts (botanists, soil scientists, community elders)."
+    },
+    {
+      "id": "funder",
+      "display": "Funder",
+      "hat": "funder",
+      "definition": "A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits."
+    },
+    {
+      "id": "community-member",
+      "display": "Community Member",
+      "hat": "community",
+      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows."
+    }
+  ],
+  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Operator surfaces.",
+  "vocabularies": [
+    {
+      "id": "capital",
+      "status": "live",
+      "definition": "Eight Forms of Capital used to tag actions and assessments by the kind of value they create.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": [
+          "SOCIAL",
+          "MATERIAL",
+          "FINANCIAL",
+          "LIVING",
+          "INTELLECTUAL",
+          "EXPERIENTIAL",
+          "SPIRITUAL",
+          "CULTURAL"
+        ]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/registries/Action.sol",
+          "symbol": "Capital",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": [
+            "SOCIAL",
+            "MATERIAL",
+            "FINANCIAL",
+            "LIVING",
+            "INTELLECTUAL",
+            "EXPERIENTIAL",
+            "SPIRITUAL",
+            "CULTURAL"
+          ]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "Capital",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": [
+            "SOCIAL",
+            "MATERIAL",
+            "FINANCIAL",
+            "LIVING",
+            "INTELLECTUAL",
+            "EXPERIENTIAL",
+            "SPIRITUAL",
+            "CULTURAL",
+            "UNKNOWN"
+          ],
+          "note": "UNKNOWN is the indexer's permanent fallback sentinel for unmapped on-chain values — declared, not drift."
+        },
+        {
+          "id": "shared-enum",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "Capital",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": [
+            "SOCIAL",
+            "MATERIAL",
+            "FINANCIAL",
+            "LIVING",
+            "INTELLECTUAL",
+            "EXPERIENTIAL",
+            "SPIRITUAL",
+            "CULTURAL"
+          ],
+          "values": [0, 1, 2, 3, 4, 5, 6, 7]
+        },
+        {
+          "id": "capital-type",
+          "layer": "shared",
+          "file": "packages/shared/src/types/hypercerts.ts",
+          "symbol": "CapitalType",
+          "extract": "ts-union",
+          "ordered": true,
+          "members": [
+            "social",
+            "material",
+            "financial",
+            "living",
+            "intellectual",
+            "experiential",
+            "spiritual",
+            "cultural"
+          ],
+          "note": "Ordered deliberately: the union is declared here in canonical machine order because index-based bridges between Capital and CapitalType lists are a live bug risk. The current file deviates (living-first presentational order) — baselined until reordered or a mapping function lands."
+        }
+      ],
+      "mappings": [
+        {
+          "id": "capital-enum-to-capital-type",
+          "from": "shared-enum",
+          "to": "capital-type",
+          "kind": "explicit",
+          "total_from": true,
+          "bijective": true,
+          "pairs": {
+            "SOCIAL": "social",
+            "MATERIAL": "material",
+            "FINANCIAL": "financial",
+            "LIVING": "living",
+            "INTELLECTUAL": "intellectual",
+            "EXPERIENTIAL": "experiential",
+            "SPIRITUAL": "spiritual",
+            "CULTURAL": "cultural"
+          },
+          "code_anchor": null,
+          "note": "No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn."
+        }
+      ]
+    },
+    {
+      "id": "domain",
+      "status": "live",
+      "definition": "Category of regenerative work — where the work happens. Four production domains; a domain is neither an outcome nor a capital.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["SOLAR", "AGRO", "EDU", "WASTE"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/registries/Action.sol",
+          "symbol": "Domain",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["SOLAR", "AGRO", "EDU", "WASTE"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "Domain",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["SOLAR", "AGRO", "EDU", "WASTE", "UNKNOWN"],
+          "note": "UNKNOWN is the indexer's permanent fallback sentinel — declared, not drift."
+        },
+        {
+          "id": "shared-enum",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "Domain",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": ["SOLAR", "AGRO", "EDU", "WASTE"],
+          "values": [0, 1, 2, 3]
+        },
+        {
+          "id": "action-domain",
+          "layer": "shared",
+          "file": "packages/shared/src/types/hypercerts.ts",
+          "symbol": "ActionDomain",
+          "extract": "ts-union",
+          "ordered": false,
+          "members": ["solar", "waste", "agroforestry", "education", "mutual_credit"],
+          "note": "Long-form lowercase spellings used in hypercert metadata. mutual_credit is a product concept ahead of the on-chain enum (deferred Domain 5) — declared, not drift."
+        },
+        {
+          "id": "slug-prefix",
+          "layer": "shared",
+          "file": "packages/shared/src/hooks/action/useActionForm.ts",
+          "symbol": "DOMAIN_SLUG_PREFIX",
+          "extract": "ts-object-values",
+          "ordered": true,
+          "members": ["solar", "agro", "edu", "waste"],
+          "note": "Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*)."
+        }
+      ],
+      "mappings": [
+        {
+          "id": "domain-to-action-domain",
+          "from": "solidity",
+          "to": "action-domain",
+          "kind": "explicit",
+          "total_from": true,
+          "bijective": false,
+          "unmapped_to": ["mutual_credit"],
+          "pairs": {
+            "SOLAR": "solar",
+            "AGRO": "agroforestry",
+            "EDU": "education",
+            "WASTE": "waste"
+          },
+          "code_anchor": "packages/shared/src/modules/data/hypercerts-filters.ts"
+        },
+        {
+          "id": "action-domain-vs-slug-prefix",
+          "from": "action-domain",
+          "to": "slug-prefix",
+          "kind": "identity",
+          "total_from": false,
+          "unmapped_from": ["mutual_credit"],
+          "note": "The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined."
+        }
+      ]
+    },
+    {
+      "id": "garden-role",
+      "status": "live",
+      "definition": "The six per-garden Hats roles that gate every protocol permission.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Gardener", "Evaluator", "Operator", "Owner", "Funder", "Community"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/IHatsModule.sol",
+          "symbol": "GardenRole",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["Gardener", "Evaluator", "Operator", "Owner", "Funder", "Community"]
+        },
+        {
+          "id": "shared-ids",
+          "layer": "shared",
+          "file": "packages/shared/src/utils/blockchain/garden-roles.ts",
+          "symbol": "GARDEN_ROLE_IDS",
+          "extract": "ts-object-keys",
+          "ordered": true,
+          "members": ["gardener", "evaluator", "operator", "owner", "funder", "community"],
+          "values": [0, 1, 2, 3, 4, 5],
+          "note": "Key order and numeric ids must track the Solidity enum exactly — these ids go into contract calls."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "transfer-restriction",
+      "status": "live",
+      "definition": "Garden NFT transfer mode.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Unrestricted", "OwnerOnly", "Locked"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/tokens/Garden.sol",
+          "symbol": "TransferRestriction",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["Unrestricted", "OwnerOnly", "Locked"]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "badge-rule",
+      "status": "live",
+      "definition": "GreenWill badge eligibility rule kinds, proven from on-chain state at claim time.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "Hat", "WorkAttestation", "VaultShares"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/registries/GreenWill.sol",
+          "symbol": "BadgeRule",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "Hat", "WorkAttestation", "VaultShares"]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "ens-name-type",
+      "status": "live",
+      "definition": "Kind of *.greengoods.eth subname being registered.",
+      "canonical": { "ordered": true, "value_scheme": "index", "members": ["Gardener", "Garden"] },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/registries/ENS.sol",
+          "symbol": "NameType",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["Gardener", "Garden"]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "weight-scheme",
+      "status": "live",
+      "definition": "Conviction-voting weight scheme selected immutably at garden mint.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Linear", "Exponential", "Power"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/IGardensModule.sol",
+          "symbol": "WeightScheme",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["Linear", "Exponential", "Power"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "WeightScheme",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["LINEAR", "EXPONENTIAL", "POWER"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/gardens-community.ts",
+          "symbol": "WeightScheme",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": ["Linear", "Exponential", "Power"],
+          "values": [0, 1, 2],
+          "note": "Genuine raw uint8 decode path (Number(weightSchemeRaw) as WeightScheme) — ordering is load-bearing and correct."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "signal-pool-type",
+      "status": "live",
+      "definition": "Kind of Gardens V2 conviction signal pool attached to a garden. Distinct from the commitment-pooling PoolType (Garden/Protocol) — same Solidity identifier, different vocabulary; never merge them.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["ActionSignal", "HypercertSignal"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/IGardensModule.sol",
+          "symbol": "PoolType",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["ActionSignal", "HypercertSignal"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "PoolType",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["ACTION_SIGNAL", "HYPERCERT_SIGNAL"],
+          "note": "Currently {HYPERCERT, ACTION} — inverted vs chain and referenced by zero entity fields (dead surface). Baselined; fix direction is deletion or correction alongside the shared enum."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/gardens-community.ts",
+          "symbol": "PoolType",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": ["ActionSignal", "HypercertSignal"],
+          "values": [0, 1],
+          "note": "Currently {Hypercert = 0, Action = 1} — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "vault-event-type",
+      "status": "live",
+      "definition": "Vault history event kinds recorded by the indexer.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "none",
+        "members": ["DEPOSIT", "WITHDRAW", "HARVEST", "EMERGENCY_PAUSED"]
+      },
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "VaultEventType",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["DEPOSIT", "WITHDRAW", "HARVEST", "EMERGENCY_PAUSED"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/vaults.ts",
+          "symbol": "VaultEventType",
+          "extract": "ts-union",
+          "ordered": false,
+          "members": ["DEPOSIT", "WITHDRAW", "HARVEST", "EMERGENCY_PAUSED"]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "hypercert-status",
+      "status": "live",
+      "definition": "Lifecycle status of an indexed hypercert.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "none",
+        "members": ["ACTIVE", "CLAIMED", "SOLD", "UNKNOWN"]
+      },
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "HypercertStatus",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["ACTIVE", "CLAIMED", "SOLD", "UNKNOWN"],
+          "note": "SOLD is declared but never assigned by any handler (marketplace is outside the indexing boundary)."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/hypercerts.ts",
+          "symbol": "HypercertStatus",
+          "extract": "ts-union",
+          "ordered": false,
+          "members": ["active", "claimed", "sold", "unknown"]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "work-display-status",
+      "status": "live",
+      "definition": "Canonical display status for work items across the UI — protocol states plus client-derived offline/sync states.",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": [
+          "approved",
+          "rejected",
+          "pending",
+          "syncing",
+          "uploading",
+          "sync_failed",
+          "offline"
+        ]
+      },
+      "representations": [
+        {
+          "id": "shared-union",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "WorkDisplayStatus",
+          "extract": "ts-union",
+          "ordered": false,
+          "members": [
+            "approved",
+            "rejected",
+            "pending",
+            "syncing",
+            "uploading",
+            "sync_failed",
+            "offline"
+          ]
+        },
+        {
+          "id": "enhanced-work-approval",
+          "layer": "shared",
+          "file": "packages/shared/src/hooks/work/useWorkApprovals.ts",
+          "symbol": "EnhancedWorkApproval",
+          "extract": "ts-property-union",
+          "property": "status",
+          "ordered": false,
+          "members": [
+            "approved",
+            "rejected",
+            "pending",
+            "syncing",
+            "uploading",
+            "sync_failed",
+            "offline"
+          ],
+          "note": "Declared as the canonical union; the current file carries a divergent five-value list (failed instead of sync_failed; missing uploading/offline) — baselined."
+        },
+        {
+          "id": "offline-work-item",
+          "layer": "shared",
+          "file": "packages/shared/src/types/offline.ts",
+          "symbol": "OfflineWorkItem",
+          "extract": "ts-property-union",
+          "property": "status",
+          "ordered": false,
+          "members": [
+            "approved",
+            "rejected",
+            "pending",
+            "syncing",
+            "uploading",
+            "sync_failed",
+            "offline"
+          ],
+          "note": "Declared as the canonical union; the current file carries a divergent four-value list — baselined pending status-union consolidation."
+        },
+        {
+          "id": "hypercert-sync-status",
+          "layer": "shared",
+          "file": "packages/shared/src/hooks/hypercerts/useHypercerts.ts",
+          "symbol": "HypercertSyncStatus",
+          "extract": "ts-union",
+          "ordered": false,
+          "members": [
+            "approved",
+            "rejected",
+            "pending",
+            "syncing",
+            "uploading",
+            "sync_failed",
+            "offline"
+          ],
+          "note": "Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "cynefin-phase",
+      "status": "live",
+      "definition": "Cynefin complexity phase classifying an assessment's operating environment.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"]
+      },
+      "representations": [
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "CynefinPhase",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": ["CLEAR", "COMPLICATED", "COMPLEX", "CHAOTIC"],
+          "values": [0, 1, 2, 3]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "confidence",
+      "status": "live",
+      "definition": "Four-value verification confidence carried on work approvals (on-chain uint8, bounded to 3).",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["NONE", "LOW", "MEDIUM", "HIGH"]
+      },
+      "representations": [
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "Confidence",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": ["NONE", "LOW", "MEDIUM", "HIGH"],
+          "values": [0, 1, 2, 3]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "verification-method",
+      "status": "live",
+      "definition": "Verification method bitmask flags on work approvals (uint8, bounded to 15).",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "explicit",
+        "members": ["HUMAN", "IOT", "ONCHAIN", "AGENT"]
+      },
+      "representations": [
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/domain.ts",
+          "symbol": "VerificationMethod",
+          "extract": "ts-numeric-enum",
+          "ordered": true,
+          "members": ["HUMAN", "IOT", "ONCHAIN", "AGENT"],
+          "values": [1, 2, 4, 8],
+          "note": "Bitmask members declared with shift expressions (1 << n) in source; the extractor evaluates them."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "action-type",
+      "status": "live",
+      "definition": "Action archetype tags used in hypercert metadata and filtering.",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": [
+          "hub_session",
+          "workshop",
+          "node_deployment",
+          "cleanup",
+          "recycling",
+          "composting",
+          "planting",
+          "nursery",
+          "maintenance",
+          "training",
+          "certification",
+          "commitment",
+          "exchange"
+        ]
+      },
+      "representations": [
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/hypercerts.ts",
+          "symbol": "ActionType",
+          "extract": "ts-union",
+          "ordered": false,
+          "members": [
+            "hub_session",
+            "workshop",
+            "node_deployment",
+            "cleanup",
+            "recycling",
+            "composting",
+            "planting",
+            "nursery",
+            "maintenance",
+            "training",
+            "certification",
+            "commitment",
+            "exchange"
+          ]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "job-kind",
+      "status": "live",
+      "definition": "Offline job-queue mutation kinds (the write-ahead ledger's vocabulary).",
+      "canonical": { "ordered": false, "value_scheme": "none", "members": ["work", "approval"] },
+      "representations": [
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/types/job-queue.ts",
+          "symbol": "JobKindMap",
+          "extract": "ts-interface-keys",
+          "ordered": false,
+          "members": ["work", "approval"]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "commitment-pool-type",
+      "status": "spec",
+      "definition": "Commitment-pooling pool anchor kind. Name-collides with the live Gardens V2 signal-pool PoolType — the sidecar keeps them as separate vocabularies on purpose.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": { "ordered": true, "value_scheme": "index", "members": ["Garden", "Protocol"] },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "PoolType"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "pool-state",
+      "status": "spec",
+      "definition": "Commitment pool lifecycle — every state is on-chain.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "NotReady", "Ready", "Open", "Paused", "Closed", "Composted"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "PoolState"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "cycle-type",
+      "status": "spec",
+      "definition": "Cycle kinds: one open Season per pool; Campaigns may overlap.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": { "ordered": true, "value_scheme": "index", "members": ["Season", "Campaign"] },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CycleType"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "cycle-state",
+      "status": "spec",
+      "definition": "On-chain cycle states; Draft lives in app IndexedDB and InProgress/Reviewing are derived from events.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "Seeded", "Open", "Reconciled", "Composted", "Cancelled"]
+      },
+      "derived_members": ["Draft", "InProgress", "Reviewing"],
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CycleState"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-direction",
+      "status": "spec",
+      "definition": "Whether a commitment offers capacity or requests it; drives the direction-aware default confirmer.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": { "ordered": true, "value_scheme": "index", "members": ["Offer", "Request"] },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CommitmentDirection"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-type",
+      "status": "spec",
+      "definition": "Commitment archetypes; DomainImpact keeps the full Work → WorkApproval path, the others confirm via counterparty.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["DomainImpact", "SupportService", "SeasonCampaign", "StewardCaptured"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CommitmentType"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-state",
+      "status": "spec",
+      "definition": "On-chain commitment states; Draft is app-side and Active/EvidenceSubmitted/PartiallyApproved/Reconciled are derived from module events.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": [
+          "None",
+          "Offered",
+          "Requested",
+          "Accepted",
+          "ReadyForConfirmation",
+          "Fulfilled",
+          "Cancelled",
+          "Expired",
+          "Disputed"
+        ]
+      },
+      "derived_members": [
+        "Draft",
+        "Active",
+        "EvidenceSubmitted",
+        "PartiallyApproved",
+        "Reconciled"
+      ],
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CommitmentState"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "claim-type",
+      "status": "spec",
+      "definition": "Immutable claimant-eligibility class set at commitment creation; runtime claim kind must equal it.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Garden", "Individual"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "ClaimType"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "claim-mode",
+      "status": "spec",
+      "definition": "Whether claiming transitions immediately (Open) or awaits operator acceptance (ApprovalGated).",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Open", "ApprovalGated"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "ClaimMode"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "dispute-resolution",
+      "status": "spec",
+      "definition": "Steward-only dispute outcomes; RestorePrevious replays the stored pre-dispute state.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["RestorePrevious", "Fulfilled", "Cancelled", "Expired"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "DisputeResolution"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "reward-rail",
+      "status": "spec",
+      "definition": "Reward reference rail: ArbitrumExternal records operator-paid jar/treasury rewards; CeloSettlement is consumed only by the SettlementModule.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "ArbitrumExternal", "CeloSettlement"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "RewardRail"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "accounting-state",
+      "status": "spec",
+      "definition": "CommitmentRegister unit-class accounting states (non-transferable, ERC-1155-style).",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Registered", "Committed", "Released", "Fulfilled"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentRegister.sol",
+        "symbol": "AccountingState"
+      },
+      "representations": [],
+      "mappings": []
+    }
+  ],
+  "schemas": {
+    "assessment": {
+      "status": "live",
+      "source": "packages/contracts/config/schemas.json",
+      "name": "Green Goods Assessment v2",
+      "revocable": false,
+      "resolver": "packages/contracts/src/resolvers/Assessment.sol",
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "description", "type": "string" },
+        { "name": "assessmentConfigCID", "type": "string" },
+        { "name": "domain", "type": "uint8" },
+        { "name": "startDate", "type": "uint256" },
+        { "name": "endDate", "type": "uint256" },
+        { "name": "location", "type": "string" }
+      ]
+    },
+    "work": {
+      "status": "live",
+      "source": "packages/contracts/config/schemas.json",
+      "name": "Green Goods Work Submission",
+      "revocable": false,
+      "resolver": "packages/contracts/src/resolvers/Work.sol",
+      "fields": [
+        { "name": "actionUID", "type": "uint256" },
+        { "name": "title", "type": "string" },
+        { "name": "feedback", "type": "string" },
+        { "name": "metadata", "type": "string" },
+        { "name": "media", "type": "string[]" }
+      ]
+    },
+    "workApproval": {
+      "status": "live",
+      "source": "packages/contracts/config/schemas.json",
+      "name": "Green Goods Work Approval",
+      "revocable": false,
+      "resolver": "packages/contracts/src/resolvers/WorkApproval.sol",
+      "fields": [
+        { "name": "actionUID", "type": "uint256" },
+        { "name": "workUID", "type": "bytes32" },
+        { "name": "approved", "type": "bool" },
+        { "name": "feedback", "type": "string" },
+        { "name": "confidence", "type": "uint8" },
+        { "name": "verificationMethod", "type": "uint8" },
+        { "name": "reviewNotesCID", "type": "string" }
+      ]
+    },
+    "badge": {
+      "status": "live",
+      "check": "existence-only",
+      "source": "packages/contracts/script/DeployBadgeSchema.s.sol",
+      "source_symbol": "GREEN_GOODS_BADGE_SCHEMA",
+      "name": "GreenGoodsBadge",
+      "revocable": true,
+      "resolver": null,
+      "note": "Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver.",
+      "fields": [
+        { "name": "badgeType", "type": "string" },
+        { "name": "recipient", "type": "address" },
+        { "name": "earnedAt", "type": "uint40" },
+        { "name": "evidenceUri", "type": "string" },
+        { "name": "tier", "type": "uint8" }
+      ]
+    },
+    "assessmentV3": {
+      "status": "spec",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "name": "Green Goods Assessment v3",
+      "revocable": false,
+      "note": "Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exactly two new EAS registrations in the commitment-pooling track.",
+      "fields": [
+        { "name": "title", "type": "string" },
+        { "name": "description", "type": "string" },
+        { "name": "assessmentConfigCID", "type": "string" },
+        { "name": "domain", "type": "uint8" },
+        { "name": "startDate", "type": "uint256" },
+        { "name": "endDate", "type": "uint256" },
+        { "name": "location", "type": "string" },
+        { "name": "assessmentKind", "type": "uint8" },
+        { "name": "cycleId", "type": "uint256" },
+        { "name": "baselineUID", "type": "bytes32" }
+      ]
+    },
+    "communityTestimony": {
+      "status": "spec",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "name": "Green Goods Community Testimony",
+      "revocable": false,
+      "note": "Community-Hat-gated testimony attached to a commitment; the second of exactly two new EAS registrations.",
+      "fields": [
+        { "name": "commitmentId", "type": "uint256" },
+        { "name": "title", "type": "string" },
+        { "name": "testimonyCID", "type": "string" }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "domain-closed-set",
+      "kind": "closed-set",
+      "status": "live",
+      "statement": "Action domains form a closed four-member set; resolvers reject domain values above 3 and garden domain masks are validated as 4-bit.",
+      "enforced_at": [
+        { "file": "packages/contracts/src/registries/Action.sol", "lines": "28-34" },
+        { "file": "packages/contracts/src/resolvers/Assessment.sol", "lines": "134-136" }
+      ],
+      "holes": []
+    },
+    {
+      "id": "work-attester-role",
+      "kind": "domain-range",
+      "status": "live",
+      "statement": "A Work attestation's attester must be a gardener or operator of the recipient garden, and the referenced action must exist, be started, not be expired, and belong to a domain enabled on that garden.",
+      "enforced_at": [{ "file": "packages/contracts/src/resolvers/Work.sol", "lines": "87-139" }],
+      "holes": []
+    },
+    {
+      "id": "approval-operator-only",
+      "kind": "domain-range",
+      "status": "live",
+      "statement": "Only an operator of the garden may attest a Work Approval, and the approval's actionUID and recipient must match the referenced Work attestation.",
+      "enforced_at": [
+        { "file": "packages/contracts/src/resolvers/WorkApproval.sol", "lines": "115-177" }
+      ],
+      "holes": []
+    },
+    {
+      "id": "approval-no-self-attestation",
+      "kind": "disjoint",
+      "status": "live",
+      "statement": "The approver and the work attester must be different accounts — self-approval reverts.",
+      "enforced_at": [
+        { "file": "packages/contracts/src/resolvers/WorkApproval.sol", "lines": "153-156" }
+      ],
+      "holes": []
+    },
+    {
+      "id": "assessment-author-role",
+      "kind": "domain-range",
+      "status": "live",
+      "statement": "An Assessment attester must be an evaluator or operator of the recipient garden.",
+      "enforced_at": [
+        { "file": "packages/contracts/src/resolvers/Assessment.sol", "lines": "118-122" }
+      ],
+      "holes": []
+    },
+    {
+      "id": "yield-split-sum",
+      "kind": "sum",
+      "status": "live",
+      "statement": "The three-way yield split (CookieJar / Hypercert fractions / Juicebox) must sum to exactly 10000 bps.",
+      "enforced_at": [{ "file": "packages/contracts/src/resolvers/Yield.sol", "lines": "107,373" }],
+      "holes": []
+    },
+    {
+      "id": "garden-nft-transfer-restriction",
+      "kind": "non-transferable",
+      "status": "live",
+      "statement": "Garden NFT transfers obey the TransferRestriction mode (Unrestricted / OwnerOnly / Locked); minting is always allowed.",
+      "enforced_at": [
+        { "file": "packages/contracts/src/tokens/Garden.sol", "lines": "43-48,513-518" }
+      ],
+      "holes": []
+    },
+    {
+      "id": "resolver-schema-pinning",
+      "kind": "existence",
+      "status": "live",
+      "statement": "Each core resolver validates that incoming attestations use its pinned schema UID.",
+      "enforced_at": [
+        { "file": "packages/contracts/src/resolvers/Work.sol", "lines": "87-95" },
+        { "file": "packages/contracts/src/resolvers/WorkApproval.sol", "lines": "115-123" },
+        { "file": "packages/contracts/src/resolvers/Assessment.sol", "lines": "98-106" }
+      ],
+      "holes": [
+        {
+          "statement": "Schema validation is skipped while the stored schemaUID is zero (the deployment window) — a documented gap the commitment-pooling spec explicitly refuses to inherit (its module deploys fail-closed).",
+          "anchors": [
+            { "file": "packages/contracts/src/resolvers/Work.sol", "lines": "60-62" },
+            { "file": "packages/contracts/src/resolvers/WorkApproval.sol", "lines": "81-83" },
+            { "file": "packages/contracts/src/resolvers/Assessment.sol", "lines": "71-73" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pooling-allocation-bps-sum",
+      "kind": "sum",
+      "status": "spec",
+      "statement": "The six-role allocation snapshot stored at cycle open must sum to exactly 10000 bps and is immutable for the cycle.",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "pooling-provider-confirmation-disjoint",
+      "kind": "disjoint",
+      "status": "spec",
+      "statement": "A commitment's unit provider is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator).",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "pooling-one-open-season",
+      "kind": "functional",
+      "status": "spec",
+      "statement": "A pool may have at most one open Season at a time (O(1) openSeasonCycleId guard); Campaigns may overlap freely.",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "commitment-register-non-transferable",
+      "kind": "non-transferable",
+      "status": "spec",
+      "statement": "CommitmentRegister unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module.",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    }
+  ],
+  "state_machines": [
+    {
+      "id": "work-display-status",
+      "status": "live",
+      "vocabulary": "work-display-status",
+      "note": "The union in types/domain.ts documents itself as the single source of truth: pending/approved/rejected reflect protocol state; syncing/uploading/sync_failed/offline are client-derived from the offline job queue.",
+      "states": [
+        { "name": "pending", "storage": "protocol" },
+        { "name": "approved", "storage": "protocol" },
+        { "name": "rejected", "storage": "protocol" },
+        { "name": "syncing", "storage": "client-derived" },
+        { "name": "uploading", "storage": "client-derived" },
+        { "name": "sync_failed", "storage": "client-derived" },
+        { "name": "offline", "storage": "client-derived" }
+      ],
+      "transitions": []
+    },
+    {
+      "id": "commitment-pool",
+      "status": "spec",
+      "vocabulary": "pool-state",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "note": "Every pool state is on-chain; transitions are rare operator-console actions.",
+      "states": [
+        { "name": "NotReady", "storage": "on-chain" },
+        { "name": "Ready", "storage": "on-chain" },
+        { "name": "Open", "storage": "on-chain" },
+        { "name": "Paused", "storage": "on-chain" },
+        { "name": "Closed", "storage": "on-chain" },
+        { "name": "Composted", "storage": "on-chain" }
+      ],
+      "transitions": [
+        {
+          "from": "(create)",
+          "to": "NotReady",
+          "layer": "on-chain",
+          "mechanism": "onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered"
+        },
+        {
+          "from": "NotReady",
+          "to": "Ready",
+          "layer": "on-chain",
+          "mechanism": "markPoolReady — requires non-empty charter CID and a non-zero provider open-commitment cap → PoolReady"
+        },
+        {
+          "from": "Ready",
+          "to": "Open",
+          "layer": "on-chain",
+          "mechanism": "openPool → PoolOpened"
+        },
+        {
+          "from": "Open",
+          "to": "Paused",
+          "layer": "on-chain",
+          "mechanism": "pausePool with mandatory reasonCID → PoolPaused; resumePool returns to Open"
+        },
+        {
+          "from": "Open | Paused",
+          "to": "Closed",
+          "layer": "on-chain",
+          "mechanism": "closePool → PoolClosed"
+        },
+        {
+          "from": "Closed",
+          "to": "Composted",
+          "layer": "on-chain",
+          "mechanism": "compostPool → PoolComposted"
+        },
+        {
+          "from": "Composted",
+          "to": "Ready | Open",
+          "layer": "on-chain",
+          "mechanism": "reopenPool(toOpen) → PoolReopened"
+        }
+      ]
+    },
+    {
+      "id": "commitment-cycle",
+      "status": "spec",
+      "vocabulary": "cycle-state",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "note": "One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Succession between cycles is derived by pool ordering — no on-chain predecessor pointer.",
+      "states": [
+        { "name": "Draft", "storage": "off-chain" },
+        { "name": "Seeded", "storage": "on-chain" },
+        { "name": "Open", "storage": "on-chain" },
+        { "name": "InProgress", "storage": "derived" },
+        { "name": "Reviewing", "storage": "derived" },
+        { "name": "Reconciled", "storage": "on-chain" },
+        { "name": "Composted", "storage": "on-chain" },
+        { "name": "Cancelled", "storage": "on-chain" }
+      ],
+      "transitions": [
+        {
+          "from": "Draft",
+          "to": "Seeded",
+          "layer": "on-chain",
+          "mechanism": "seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet"
+        },
+        {
+          "from": "Seeded",
+          "to": "Open",
+          "layer": "on-chain",
+          "mechanism": "openCycle(cycleId, allocation) — six-role bps must sum to 10000, stored immutably → CycleOpened"
+        },
+        {
+          "from": "Open",
+          "to": "InProgress",
+          "layer": "derived",
+          "mechanism": "first CommitmentAccepted for the cycle OR block time ≥ startTime"
+        },
+        {
+          "from": "InProgress",
+          "to": "Reviewing",
+          "layer": "derived",
+          "mechanism": "block time > endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back"
+        },
+        {
+          "from": "Reviewing",
+          "to": "Reconciled",
+          "layer": "on-chain",
+          "mechanism": "closeCycle (the reconcile act) → CycleClosed; commitment-level Reconciled derives from this event"
+        },
+        {
+          "from": "Reconciled",
+          "to": "Composted",
+          "layer": "on-chain",
+          "mechanism": "compostCycle → CycleComposted"
+        },
+        {
+          "from": "Seeded | Open",
+          "to": "Cancelled",
+          "layer": "on-chain",
+          "mechanism": "cancelCycle(reasonCID) → CycleCancelled; Draft is discarded off-chain"
+        }
+      ]
+    },
+    {
+      "id": "commitment",
+      "status": "spec",
+      "vocabulary": "commitment-state",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "note": "Direction-aware fulfillment: the party receiving the provider's work confirms by default (Offer → recipient, Request → creator); provider self-confirmation is blocked everywhere; disputes restore an explicitly stored prior state.",
+      "states": [
+        { "name": "Draft", "storage": "off-chain" },
+        { "name": "Offered", "storage": "on-chain" },
+        { "name": "Requested", "storage": "on-chain" },
+        { "name": "Accepted", "storage": "on-chain" },
+        { "name": "Active", "storage": "derived" },
+        { "name": "EvidenceSubmitted", "storage": "derived" },
+        { "name": "PartiallyApproved", "storage": "derived" },
+        { "name": "ReadyForConfirmation", "storage": "on-chain" },
+        { "name": "Fulfilled", "storage": "on-chain" },
+        { "name": "Reconciled", "storage": "derived" },
+        { "name": "Cancelled", "storage": "on-chain" },
+        { "name": "Expired", "storage": "on-chain" },
+        { "name": "Disputed", "storage": "on-chain" }
+      ],
+      "transitions": [
+        {
+          "from": "Draft",
+          "to": "Offered | Requested",
+          "layer": "on-chain",
+          "mechanism": "createCommitment → CommitmentCreated (direction sets the initial state)"
+        },
+        {
+          "from": "Offered | Requested",
+          "to": "Accepted",
+          "layer": "on-chain",
+          "mechanism": "claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for operator acceptClaim) → CommitmentAccepted; register records committed units"
+        },
+        {
+          "from": "Accepted",
+          "to": "Active",
+          "layer": "derived",
+          "mechanism": "first WorkLinked or EvidenceAttached after acceptance"
+        },
+        {
+          "from": "Active",
+          "to": "EvidenceSubmitted",
+          "layer": "derived",
+          "mechanism": "any EvidenceAttached or WorkLinked event"
+        },
+        {
+          "from": "EvidenceSubmitted",
+          "to": "PartiallyApproved",
+          "layer": "derived",
+          "mechanism": "ApprovedWorkCounted with some requirement counters below their required counts"
+        },
+        {
+          "from": "…",
+          "to": "ReadyForConfirmation",
+          "layer": "on-chain",
+          "mechanism": "automatic once every per-action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason"
+        },
+        {
+          "from": "ReadyForConfirmation",
+          "to": "Fulfilled",
+          "layer": "on-chain",
+          "mechanism": "confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; provider excluded from every path"
+        },
+        {
+          "from": "Fulfilled",
+          "to": "Reconciled",
+          "layer": "derived",
+          "mechanism": "CycleClosed for the commitment's cycle (or PoolClosed when cycle-less)"
+        },
+        {
+          "from": "…",
+          "to": "Cancelled",
+          "layer": "on-chain",
+          "mechanism": "cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units"
+        },
+        {
+          "from": "…",
+          "to": "Expired",
+          "layer": "on-chain",
+          "mechanism": "expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units"
+        },
+        {
+          "from": "Accepted | ReadyForConfirmation | Expired",
+          "to": "Disputed",
+          "layer": "on-chain",
+          "mechanism": "raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed"
+        },
+        {
+          "from": "Disputed",
+          "to": "previous | Fulfilled | Cancelled | Expired",
+          "layer": "on-chain",
+          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled"
+        }
+      ]
+    }
+  ],
+  "integration_matrix": {
+    "protocols": [
+      "Karma GAP",
+      "Hypercerts",
+      "Octant",
+      "Gardens V2",
+      "Hats Protocol",
+      "Silvi",
+      "Cookie Jar",
+      "Unlock",
+      "ENS",
+      "Lido",
+      "FTC"
+    ],
+    "rows": [
+      {
+        "ref": "entity:garden",
+        "label": "Garden",
+        "cells": {
+          "Karma GAP": "Project",
+          "Hypercerts": "Hypercert Holder",
+          "Octant": "Vault Owner",
+          "Gardens V2": "Community",
+          "Hats Protocol": "Top Hat",
+          "Silvi": "Project",
+          "Cookie Jar": "Jar"
+        }
+      },
+      {
+        "ref": "entity:assessment",
+        "label": "Assessment",
+        "cells": { "Karma GAP": "Project Milestone", "Hypercerts": "Hypercert Data" }
+      },
+      {
+        "ref": "entity:action",
+        "label": "Action",
+        "cells": { "Karma GAP": "Partial Project Update", "Hypercerts": "Hypercert Data" }
+      },
+      {
+        "ref": "entity:work",
+        "label": "Work",
+        "cells": { "Karma GAP": "Partial Project Update", "Hypercerts": "Hypercert Data" }
+      },
+      {
+        "ref": "schema:workApproval",
+        "label": "Work Approval",
+        "cells": { "Karma GAP": "Partial Project Update", "Hypercerts": "Hypercert Data" }
+      },
+      {
+        "ref": "persona:operator",
+        "label": "Garden Operator",
+        "cells": {
+          "Karma GAP": "Project Owner",
+          "Hypercerts": "Creator",
+          "Octant": "Vault Admin, TAM Operator",
+          "Gardens V2": "Council Member",
+          "Hats Protocol": "Operator Hat"
+        }
+      },
+      {
+        "ref": "persona:gardener",
+        "label": "Gardener",
+        "cells": {
+          "Karma GAP": "Project Member",
+          "Hypercerts": "Creator",
+          "Octant": "TAM Proposer",
+          "Gardens V2": "Community Member",
+          "Hats Protocol": "Gardener Hat"
+        }
+      },
+      {
+        "ref": "persona:community-member",
+        "label": "Community Member",
+        "cells": {
+          "Karma GAP": "Project Explorer",
+          "Hypercerts": "Evaluator",
+          "Octant": "TAM Voter",
+          "Gardens V2": "Community Member",
+          "Hats Protocol": "Community Member"
+        }
+      },
+      {
+        "ref": "concept:funder-evaluator",
+        "label": "Funder/Evaluator",
+        "note": "Merges the canonical Funder and Evaluator personas — row kept for continuity with the original matrix.",
+        "cells": {
+          "Karma GAP": "Grant Evaluator",
+          "Hypercerts": "Funder",
+          "Octant": "Vault Depositor",
+          "Gardens V2": "Community Funder",
+          "Hats Protocol": "Garden Supporter"
+        }
+      },
+      {
+        "ref": "concept:data-scientist-researcher",
+        "label": "Data Scientist/Researcher",
+        "note": "Not one of the five canonical personas; retained as an integration-facing archetype.",
+        "cells": {
+          "Karma GAP": "Grant Evaluator",
+          "Hypercerts": "Evaluator",
+          "Gardens V2": "Community Explorer",
+          "Hats Protocol": "Garden Analyst"
+        }
+      },
+      {
+        "ref": "concept:impact",
+        "label": "Impact",
+        "cells": { "Hypercerts": "Hypercert Token" }
+      },
+      {
+        "ref": "concept:badges",
+        "label": "Badges",
+        "note": "GreenWill badges.",
+        "cells": { "Unlock": "Unlock NFT" }
+      }
+    ]
+  },
+  "pattern_watches": [
+    {
+      "id": "action-domains-collision",
+      "file": "packages/shared/src/hooks/action/useActionForm.ts",
+      "pattern": "\\bconst ACTION_DOMAINS\\b",
+      "expect": "absent",
+      "note": "A module-local numeric ACTION_DOMAINS shadows the exported string vocabulary in types/hypercerts.ts; converge on one exported domain list."
+    },
+    {
+      "id": "parsedomain-unknown-coercion",
+      "file": "packages/shared/src/modules/data/greengoods.ts",
+      "pattern": "\\?\\?\\s*Domain\\.SOLAR",
+      "expect": "absent",
+      "note": "parseDomain silently coerces UNKNOWN/unrecognized indexer domains into Domain.SOLAR; unknown values must surface instead of masquerading as SOLAR."
+    }
+  ],
+  "known_issues": [
+    {
+      "id": "report-orphan-term",
+      "statement": "v1-0.mdx §16.1 defines a \"Report\" entity (aggregated bundle of approved work for grants/Hypercert minting) that is absent from the canonical entity set, the ERD, and the code. Formalize or retire the term when the reporting feature is actually designed — it overlaps Hypercert bundling today.",
+      "anchors": ["docs/docs/builders/specs/v1-0.mdx"]
+    },
+    {
+      "id": "erd-stale-assessment-fields",
+      "statement": "The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID).",
+      "anchors": ["docs/docs/builders/architecture/erd.mdx"]
+    },
+    {
+      "id": "missing-capital-mapping-fn",
+      "statement": "No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ.",
+      "anchors": ["packages/shared/src/types/domain.ts", "packages/shared/src/types/hypercerts.ts"]
+    }
+  ]
+}

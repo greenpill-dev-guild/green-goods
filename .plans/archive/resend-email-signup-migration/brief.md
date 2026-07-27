@@ -1,7 +1,9 @@
 # Resend Email Signup Migration
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `resend-email-signup-migration`
-**Stage**: `active`
+**Stage**: `archive`
 **Priority**: `p2`
 **Created**: `2026-06-15T19:04:43.563Z`
 **Linear Issue**: PRD-598

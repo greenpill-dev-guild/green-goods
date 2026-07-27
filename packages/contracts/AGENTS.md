@@ -374,8 +374,8 @@ bun script/deploy.ts core --network sepolia
 # Deploy for real
 bun script/deploy.ts core --network sepolia --broadcast
 
-# Update schemas only
-bun script/deploy.ts core --network sepolia --broadcast --update-schemas
+# Register an approved new schema through its standalone deploy path.
+# Bulk --update-schemas remains prohibited.
 
 # Or use npm scripts
 bun deploy:testnet     # Sepolia
@@ -471,7 +471,14 @@ For new contract work, deployment artifacts move through phases:
 ### Mainnet Additional Requirements (All Blocking)
 
 - External security audit completed — no unresolved critical/high findings
-- Multisig ownership configured (Gnosis Safe, 3-of-5 minimum)
+- Protocol UUPS/admin ownership configured on a Gnosis Safe with a 3-of-5 minimum. This
+  rule governs protocol upgrade and administrative authority; it is not the threshold for
+  a garden's bounded operational settlement Safe.
+- A per-garden Celo settlement Safe may use the Commitment Pooling pilot's exact 2-of-3
+  recovery exception only when all three named owner roles, the scoped Roles/Allowance
+  selectors and caps, owner/executor separation, the recovery configuration hash, and live
+  post-deploy verification satisfy `settlement-spec.md`. The exception grants no protocol
+  upgrade authority and does not weaken the 3-of-5 protocol rule.
 - Timelock delay: 48h mainnet, 24h testnet
 - Minimum 2 weeks testnet operation before mainnet
 - Rollback procedures documented and tested
@@ -537,9 +544,15 @@ function testGardenToken_revertsOnUnauthorizedMint() public {}
 
 ### 1. Schema Immutability
 
-**NEVER modify `config/schemas.json`** — This creates duplicate schemas on-chain.
+`config/schemas.json` is append-only for approved immutable production schema additions.
 
-For testing, create `schemas.test.json` instead.
+- Existing schema definitions and artifact keys are immutable: never edit, rename, reorder, or
+  remove them.
+- Every approved addition uses a unique artifact key and a standalone registration path; do not
+  use the bulk `--update-schemas` flow.
+- Before registration, require human review plus dry-run and fresh-chain proof. After broadcast,
+  verify the persisted artifact, schema UID, and dependent configuration.
+- Tests use `schemas.test.json`; never add test-only schemas to `config/schemas.json`.
 
 ### 2. Custom Errors
 

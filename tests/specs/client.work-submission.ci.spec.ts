@@ -1,203 +1,84 @@
 /**
  * Client Work Submission CI Tests
  *
- * Lightweight CI-runnable tests that validate work submission UI flows
- * WITHOUT requiring real auth, blockchain, or indexer infrastructure.
- *
- * Strategy:
- * - Mock GraphQL responses via page.route() to provide garden/action data
- * - Use the dev mock-auth seam (DevAuthProvider) for authenticated state
- * - Test form rendering, validation, and navigation — not actual transactions
- *
- * For full infrastructure tests, use: npx playwright test --project=client-full
+ * Lightweight CI-runnable tests for the authenticated work wizard. The suite
+ * deliberately mocks its indexer, EAS, and RPC boundaries rather than relying
+ * on a live wallet or local Envio stack.
  */
 
 import { expect, test } from "@playwright/test";
-import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
-
-// Mock data for gardens and actions
-const MOCK_GARDEN = {
-  id: "garden-1",
-  name: "Test Community Garden",
-  description: "A test garden for CI",
-  chainId: 11155111,
-  tokenAddress: "0x1234567890abcdef1234567890abcdef12345678",
-  operators: ["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"],
-  gardenerCount: 3,
-  bannerImage: "",
-};
-
-const MOCK_ACTION = {
-  uid: "action-uid-1",
-  title: "Plant Trees",
-  description: "Document tree planting activity",
-  startTime: Math.floor(Date.now() / 1000) - 86400,
-  endTime: Math.floor(Date.now() / 1000) + 86400 * 30,
-  media: { minCount: 0, maxCount: 5 },
-};
-
-/**
- * Set up GraphQL mocking and auth injection for all tests.
- */
-async function setupMockedEnvironment(page: import("@playwright/test").Page) {
-  const helper = new ClientTestHelper(page);
-  // Dev mock-auth seam (DevAuthProvider) — reliable in the Vite dev server the
-  // Playwright webServer runs, unlike the legacy wagmi-storage injection.
-  await helper.enableMockAuth("user");
-
-  // Intercept GraphQL requests to the indexer and return mock data
-  await page.route("**/v1/graphql", async (route) => {
-    const postData = route.request().postDataJSON?.() ?? {};
-    const query = typeof postData === "object" ? (postData.query ?? "") : "";
-
-    // Match garden queries
-    if (query.includes("Garden")) {
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          data: { Garden: [MOCK_GARDEN] },
-        }),
-      });
-    }
-
-    // Match action queries
-    if (query.includes("Action")) {
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          data: { Action: [MOCK_ACTION] },
-        }),
-      });
-    }
-
-    // Default: return empty data for any other query
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ data: {} }),
-    });
-  });
-
-  return helper;
-}
+const ONE_PIXEL_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mNk+M/wHwAF/gL+ZSkdJwAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 test.describe("Work Submission CI Tests", () => {
+  test.describe.configure({ mode: "serial" });
   test.use({ baseURL: CLIENT_URL });
 
   test.describe("Login Page Accessibility", () => {
-    // Skipped for v1.1.0 — login splash never paints `login-button` in
-    // headless CI shell; tracked for v1.1.1.
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
+    // Real-login splash behavior remains a separate headless CI debt. The
+    // authenticated specs below use the supported DevAuthProvider seam.
+    // SKIP: #564 owner:afo expiry:2026-08-12 — real-login splash needs its own headless fixture
     test.skip("login page loads and shows auth options", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa");
+      await page.goto("/home/login?presentation=pwa", { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("domcontentloaded");
 
-      // Login page should render with primary auth button
-      const loginButton = page.getByTestId("login-button");
-      await expect(loginButton).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
     });
   });
 
   test.describe("Home Page with Mocked Data", () => {
     test("renders home page with garden list when authenticated", async ({ page }) => {
-      const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+      const helper = await setupAuthenticatedClient(page);
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      // Dev mock-auth (DevAuthProvider) authenticates synchronously in the Vite
-      // dev server, so /home must not redirect to login (PRD-564).
       expect(page.url()).not.toContain("/home/login");
-
-      // Home page loaded — verify no critical errors
-      const hasAppError = await page
-        .locator('text="Unexpected Application Error"')
-        .isVisible({ timeout: 2000 })
-        .catch(() => false);
-      expect(hasAppError).toBe(false);
+      await expect(page.getByTestId("garden-card").first()).toBeVisible();
     });
 
-    // Skipped for v1.1.0 — relies on /home/login redirect timing that fails in
-    // headless CI shell; tracked for v1.1.1.
-    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("navigates to login when not authenticated", async ({ page }) => {
-      // Without auth injection, /home should redirect to /home/login
-      await page.goto("/home");
+    test("navigates to login when not authenticated", async ({ page }) => {
+      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await page.waitForURL(/\/home\/login/, { timeout: 15000 });
       expect(page.url()).toContain("/home/login");
     });
   });
 
-  test.describe("Work Form Validation (via Component Tests)", () => {
-    test("work submission form rejects empty required fields", async ({ page }) => {
-      const helper = await setupMockedEnvironment(page);
-      await page.goto("/home");
+  test.describe("Work Form Validation", () => {
+    test("blocks progress when required action details are empty", async ({ page }) => {
+      const helper = await setupAuthenticatedClient(page);
+      await page.goto("/home/garden?presentation=pwa", { waitUntil: "domcontentloaded" });
       await helper.waitForPageLoad();
 
-      // Dev mock-auth (DevAuthProvider) authenticates synchronously; no login
-      // redirect expected (PRD-564). Downstream skips below are data-shape gaps.
-      expect(page.url()).not.toContain("/home/login");
-
-      // Navigate to a garden if garden cards are visible
-      const gardenCard = page.locator('[data-testid="garden-card"], a[href*="/home/"]').first();
-      const isGardenVisible = await gardenCard.isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (!isGardenVisible) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — requires live infra (gardens/blockchain)
-        test.skip(true, "No garden cards rendered — mock data may not match current schema");
-        return;
-      }
-
-      await gardenCard.click();
-      await page.waitForTimeout(2000);
-
-      // Find an action card to start submission
-      const actionCard = page.locator('[data-testid="action-card"]').first();
-      const isActionVisible = await actionCard.isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (!isActionVisible) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — requires live infra (gardens/blockchain)
-        test.skip(true, "No action cards rendered — mock data may not match current schema");
-        return;
-      }
+      const actionCard = page.getByTestId("action-card").first();
+      const gardenCard = page.getByTestId("garden-card").first();
+      await expect(actionCard).toBeVisible();
+      await expect(gardenCard).toBeVisible();
 
       await actionCard.click();
-      await page.waitForTimeout(1000);
+      await gardenCard.click();
 
-      // Try submitting empty form
-      const submitButton = page.getByRole("button", { name: /submit/i });
-      const isSubmitVisible = await submitButton.isVisible({ timeout: 5000 }).catch(() => false);
+      const startButton = page.getByRole("button", { name: "Start Gardening" });
+      await expect(startButton).toBeEnabled();
+      await startButton.click();
 
-      if (!isSubmitVisible) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — requires live infra (gardens/blockchain)
-        test.skip(true, "Submit button not found — form structure may differ");
-        return;
-      }
+      await page.locator("#work-media-upload").setInputFiles({
+        name: "planting-proof.png",
+        mimeType: "image/png",
+        buffer: ONE_PIXEL_PNG,
+      });
 
-      await submitButton.click();
-      await page.waitForTimeout(1000);
+      const detailsButton = page.getByRole("button", { name: "Add Details" });
+      await expect(detailsButton).toBeEnabled({ timeout: 15000 });
+      await detailsButton.click();
 
-      // At least one validation signal should be present:
-      // 1. Error text visible
-      // 2. Input with aria-invalid
-      // 3. Submit button disabled
-      const validationError = page.getByText(/required|please enter|cannot be empty/i);
-      const invalidInput = page.locator('[aria-invalid="true"]');
-
-      const hasErrorText = await validationError
-        .first()
-        .isVisible({ timeout: 3000 })
-        .catch(() => false);
-      const hasInvalidInput = await invalidInput
-        .first()
-        .isVisible({ timeout: 2000 })
-        .catch(() => false);
-      const isSubmitDisabled = await submitButton.isDisabled();
-
-      expect(hasErrorText || hasInvalidInput || isSubmitDisabled).toBe(true);
+      await expect(page.getByText("Seedlings Planted", { exact: true })).toBeVisible();
+      const reviewButton = page.getByRole("button", { name: "Review Work" });
+      await expect(reviewButton).toBeDisabled();
     });
   });
 });

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "admin-claude-design-export",
+    "title": "Admin Claude Design Export",
+    "kind": "research",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-05-03T00:00:00.000Z",
+    "updated_at": "2026-07-19T22:10:00.000Z",
+    "target_date": null,
+    "archived_at": "2026-07-19T22:10:00.000Z",
+    "archive_reason": "Superseded design-export reference; current admin guidance and captures now own the workflow.",
+    "resolution": "superseded"
+  },
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["admin", "shared"],
+    "work_types": ["research", "review"],
+    "surfaces": ["packages/admin", "packages/shared/.storybook"],
+    "depends_on_features": []
+  },
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "skipped"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a"
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "skipped"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "skipped"
+    }
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-19T22:10:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "archived",
+      "branch": null,
+      "note": "Superseded design-export reference; current admin guidance and captures now own the workflow."
+    }
+  ]
+}

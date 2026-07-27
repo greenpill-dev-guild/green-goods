@@ -1,7 +1,9 @@
 # Client PWA Native Feel Remediation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `client-pwa-audit`
-**Stage**: `active`
+**Stage**: `archive`
 **Status**: `DONE`
 **Last Updated**: `2026-05-10`
 **Target**: unset; when chosen, update this file and `status.json.workflow.target_date`.

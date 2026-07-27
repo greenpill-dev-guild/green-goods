@@ -4,8 +4,6 @@
  * Pinning tests for the percent ↔ points translation that drives every
  * WeightAllocator save. Silently-wrong math here = silently-wrong on-chain
  * votes (the file's own header is explicit about that).
- *
- * Cleanup item A1 from .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
  */
 
 import { describe, expect, it } from "vitest";

@@ -8,11 +8,11 @@ This backlog hub was created from a read-only software-fundamentals audit on 202
 
 Start with repo-truth repair, then do the static-analysis tool evaluation before changing gates:
 
-1. Fix `bun run check:claude-guidance` failures.
+1. (`check:claude-guidance` retired 2026-07-11 with the lean-skills consolidation — validate guidance with `bun run check:codex-guidance` instead.)
 2. Confirm `bun run check:codex-guidance`.
-3. Correct stale `.plans` plan-hub command references or add durable package scripts.
+3. Remove retired `.plans` plan-hub command references and preserve `node scripts/harness/plan-hub.mjs` as the canonical helper path.
 4. Repair contracts package guidance drift around the removed `GreenGoodsResolver` vocabulary without touching Solidity behavior.
-5. Refresh ADR-008 and `packages/shared/AGENTS.md` so shared root-barrel and documented subpath import rules match the current repo.
+5. Refresh `packages/shared/AGENTS.md` and `packages/shared/src/MODULES.md` so shared root-barrel and documented subpath import rules match the current repo.
 6. Run the Knip vs Fallow comparison from `eval.md` in report-only mode and write `reports/knip-vs-fallow-evaluation.md`.
 7. Add or adjust the chosen dead-code/static-health audit path so it does not import Varlock-backed Vite configs.
 8. Validate with `node scripts/harness/plan-hub.mjs validate`.
@@ -22,7 +22,7 @@ Start with repo-truth repair, then do the static-analysis tool evaluation before
 - Do not touch contracts or deployments.
 - Contracts package guide updates are allowed only as docs/vocabulary repair unless a child hub explicitly reopens Contracts.
 - Do not redesign Campaign Cookie Jar while doing boundary hardening.
-- Preserve ADR-008's accepted fat-barrel strategy; tighten review rules instead of replacing the import architecture.
+- Preserve the documented fat-barrel strategy; tighten review rules instead of replacing the import architecture.
 - Treat Knip and Fallow output as triage evidence first. Do not delete files in the same slice that merely makes the audit runnable.
 - Do not add Fallow as a dependency or CI gate until the same-baseline report recommends it.
 - Do not run autofix except as `--dry-run` unless the human scope-locks the exact deletion class.

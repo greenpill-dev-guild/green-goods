@@ -35,6 +35,10 @@ function formatAxis(v: number): string {
 
 const axisTick = {fontSize: 11, fill: "var(--ifm-font-color-secondary)"};
 
+export function formatConfidenceBandData(bands: readonly MonteCarloYearBand[]) {
+  return bands.map((band) => ({...band, year: `Y${band.year}`}));
+}
+
 export function RevenueProjectionChart({
   projectionData,
   visibleStreams,
@@ -73,7 +77,9 @@ export function RevenueProjectionChart({
             tickLine={false}
           />
           <Tooltip
-            formatter={(value: number) => usdFormatter.format(value)}
+            formatter={(value: number | undefined) =>
+              value == null ? "—" : usdFormatter.format(value)
+            }
             contentStyle={{
               background: "var(--ifm-background-color)",
               border: "1px solid var(--ifm-color-emphasis-200)",
@@ -123,10 +129,7 @@ export function RevenueProjectionChart({
 }
 
 function ConfidenceBands({bands}: {bands: MonteCarloYearBand[]}) {
-  const data = useMemo(
-    () => bands.map((b) => ({year: `Y${b.year}`, ...b})),
-    [bands],
-  );
+  const data = useMemo(() => formatConfidenceBandData(bands), [bands]);
 
   return (
     <div style={{marginTop: "0.75rem"}}>
@@ -146,9 +149,9 @@ function ConfidenceBands({bands}: {bands: MonteCarloYearBand[]}) {
           <XAxis dataKey="year" tick={axisTick} axisLine={false} tickLine={false} />
           <YAxis tickFormatter={formatAxis} tick={axisTick} width={52} axisLine={false} tickLine={false} />
           <Tooltip
-            formatter={(value: number, name: string) => [
-              usdFormatter.format(value),
-              name,
+            formatter={(value: number | undefined, name: string | undefined) => [
+              value == null ? "—" : usdFormatter.format(value),
+              name ?? "",
             ]}
             contentStyle={{
               background: "var(--ifm-background-color)",

@@ -1,11 +1,13 @@
 # Resend Email Signup Migration Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Linear Issue**: PRD-598
 **Linear Project**: Green Goods Public Website & Docs Polish
 **Linear Source**: source:plans
 **Feature Slug**: `resend-email-signup-migration`
-**Stage**: `active`
-**Status**: `ACTIVE`
+**Stage**: `archive`
+**Status**: `ARCHIVED - COMPLETED`
 **Created**: `2026-06-15T19:04:43.563Z`
 **Last Updated**: `2026-06-15T19:12:00Z`
 

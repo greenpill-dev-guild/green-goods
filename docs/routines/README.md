@@ -9,13 +9,13 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
 | `bug-intake.md` | active | M/W/F 04:00 | `#bug-report` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
-| `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
+| `health-watch.md` | active | Mon/Wed/Fri 14:30 UTC (= 07:30 PT; reduced from daily 2026-07-18) | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#growth` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
-| `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
-| `release-prep.md` | **spec only — not scheduled** | (drafted for monthly release kickoff; no live trigger yet) | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
-| `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
+| `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`) from Build Sync notes **plus the biweekly Engineering Sync notes** (2026-07-18 extension; off-weeks skip silently); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
+| `release-prep.md` | active (2026-07-18) | Weekdays 16:00 UTC, **self-gating**: full brief posts 3 days before the Linear release project's target date (or on target-moved / Monday cadence-slip / any manual run); other runs exit quietly. Routine id: `trig_01FA23vPDQ1aYaBbZwdJ8gb1` | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
+| `pr-review.md` | active | event-driven (PR opened / ready_for_review) | **Linear comment** on the issue(s) referenced in the PR body (OAuth connector, no stored tokens — steward decision 2026-07-18); PRs with **no Linear reference** get one `#engineering` flag line | one idempotent review comment per referenced Linear issue; never writes GitHub |
 
-That's it — four scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). (`release-prep.md` is drafted but has no live trigger yet, so it is not counted among the scheduled cadences.) Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
+That's it — five scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
 ## Connector Matrix
 
@@ -25,8 +25,8 @@ That's it — four scheduled cadences plus one event-driven, all cloud routines 
 | `health-watch` | Google Calendar, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = client-side `$exception` spike detection + error correlation · Sentry = release regression and agent/API crash context · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Build Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
-| `release-prep` | GitHub (read-only) | GitHub = open PRs + commit range (`main..develop`) + existing releases/tags. No Linear/Drive/PostHog — a pure readiness draft; reads the release runbook live from the checkout. |
-| `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
+| `release-prep` | GitHub (read-only), Linear (read-only) | GitHub = open PRs + commit range (`main..develop`) + existing releases/tags · Linear = the active release project's targetDate drives the self-gating window (brief posts at target − 3 days). No Drive/PostHog — a pure readiness draft; reads the release runbook live from the checkout. |
+| `pr-review` | Vercel, Linear (OAuth, the posting surface), Sentry | Vercel = preview deployment status + Lighthouse delta (commentary, not an invariant) · Linear = where the review posts (one idempotent comment per issue referenced in the PR body; no stored GitHub token by steward decision) · Sentry = open-issue context on touched surfaces. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
 
@@ -39,7 +39,7 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 | `#growth` (DISCORD_GROWTH_CHANNEL_ID) | growth-pulse (weekly digest highlights) | growth / funnel / retention / action-template pulse |
 | `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors) |
 | `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse cross-post (when grant-relevant) | grant relevance only |
-| inline on PR | pr-review | review surface |
+| Linear comment (referenced issue) | pr-review | review surface — one idempotent comment per issue the PR body references; `#engineering` gets a one-line flag when a PR references no Linear issue |
 
 `#engineering` is health-watch's home channel (operational health status — indexer / Vercel / contracts / agent uptime / client errors). Other code-local engineering signals still come from the user reading PRs and Linear, not from a routine.
 
@@ -52,7 +52,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
 - `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from the Wednesday Build Sync (signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. Silent on quiet weeks.
 
-`pr-review` posts inline on the PR; the GitHub mention surface is already explicit and no Discord ping is needed. Healthy weekly heartbeats with zero anomalies = no @mention.
+`pr-review` posts its review to Linear (the referenced issue), never to GitHub — in-PR commentary is CodeRabbit's and Codex's lane; its only Discord output is the `#engineering` missing-issue flag line. Healthy weekly heartbeats with zero anomalies = no @mention.
 
 ## Conventions
 
@@ -60,6 +60,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - All routine branches use `claude/<routine-name>/<topic>`.
 - Loop prevention on `pr-review`: filter on `head_branch` starting with `claude/` (NOT on author — routine PRs carry the user's GitHub author per the docs).
 - **Linear is the durable backlog.** GitHub is for PRs and code review only — routines never file GitHub Issues, never write to GitHub Projects, and never apply GitHub Project iteration/Sprints fields. The retired GitHub Project #4 / Bug Board flows (and the `Sprints` field they depended on) are out of scope for any active routine.
+- **Model tier:** every GG routine runs `claude-opus-5` (moved off `claude-opus-4-8[1m]` on 2026-07-26; same token price, better instruction-following and bug-finding). Each spec names its model in frontmatter, and that frontmatter is documentation of the live trigger, not a control surface: changing it does not change the running model, so re-emit the trigger and edit the spec in the same change. The guild-level tiering rationale, including the two routines on `claude-fable-5`, lives in [`greenpill-dev-guild/.github` → `routines/claude/README.md`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md).
 
 ## Scope discipline
 
@@ -166,14 +167,18 @@ cannot cross-wire the two browser apps.
 
 Frontend source-map ownership is split today: PostHog source-map uploads run from GitHub
 Actions with `POSTHOG_CLI_TOKEN` plus the app-specific PostHog environment ID, while Vite
-currently emits maps only when `SENTRY_AUTH_TOKEN` is present. `GG_ENABLE_SOURCEMAPS` is an
-upload-lane flag, not a durable Vercel project variable. Keep client Sentry integration
+emits maps whenever `GG_ENABLE_SOURCEMAPS=true` (the upload lane sets it) or the Sentry
+upload path is active. `GG_ENABLE_SOURCEMAPS` is an upload-lane flag, not a durable Vercel
+project variable — the app build only strips public `.map` files when it is unset, so setting
+it on a Vercel project would publish browser source maps. Keep client Sentry integration
 variables only where Sentry upload or log-drain integration is intentionally enabled, and do
 not keep orphaned source-map flags on admin.
 
 Active routines are Sentry-ready, not Sentry-dependent: when a Sentry connector/API surface is available, include Sentry safe-summary evidence beside PostHog evidence. When it is unavailable, continue without it. Do not add Sentry MCP entries or routine API-key fallbacks unless the user explicitly asks.
 
 ## Linear environment
+
+The workspace has five teams as of 2026-07-14 (Product `PRD`, Research `RESR`, Community `COM`, Growth `GROW`, Marketing `MAR`; charters in [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams)). **Green Goods routines write only to the Product team** — the funding pipeline lives on Growth (guild grant-scout's turf), marketing briefs on Marketing, cohort work on Community.
 
 Three routines write to Linear:
 
@@ -190,20 +195,18 @@ Three routines write to Linear:
 
 ### Auth
 
-All three routines share the same auth surface. The cloud routine env exposes Linear access via:
+All routines reach Linear through the **native Linear OAuth connector wired into the cloud routine environment — no `LINEAR_API_KEY` is stored** (standing guild rule as of 2026-07-04; the connector can lapse between runs and is re-authorized by a human, never replaced with a key). If the connector is unauthenticated or unreachable, the routine **fails closed**: it surfaces the failure in its Discord summary and skips Linear writes — it never scans or writes blind.
 
-| Variable / surface | Description |
-|---|---|
-| `LINEAR_API_KEY` | Personal API key with read/write access — fallback when no connector is configured |
-| Linear connector | Native Linear connector wired into the cloud routine environment |
-| Linear MCP | Linear MCP server exposed to the routine |
+The routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in its daily Discord summary instead of skipping records silently.
 
-Whichever surface is wired up, the routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in its daily Discord summary instead of skipping records silently.
+### Output style (all posting routines)
+
+Green Goods routine posts follow the guild house style: bold headers with blank lines between blocks, lead with what needs a human (🔴 first), a thing appears only if it moved or needs attention (never a "quiet" bullet or empty section), metrics folded into the line they describe, one message per channel per run. Get short by cutting content rather than compressing prose: drop anything that would not change what a reader does next, then write what remains in complete sentences (no padding, no fragment-and-arrow shorthand). Cadences in the portfolio table are UTC (the qa-triage-pulse row's "Wed 21:00 UTC" annotation style is the convention).
 
 ## Rebuilding a routine
 
 1. Log in to claude.ai/code/routines.
 2. Click **New routine**.
 3. Paste the prompt from the relevant `.md` file (everything after the `# Prompt` heading).
-4. Configure repos, environment, connectors, and triggers as specified in the file's frontmatter.
+4. Configure repos, environment, connectors, triggers, **and the model** as specified in the file's frontmatter. A rebuilt routine left on the platform default silently runs the wrong tier.
 5. Save.

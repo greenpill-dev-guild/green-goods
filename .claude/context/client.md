@@ -93,6 +93,14 @@ const handleSubmit = async () => {
 };
 ```
 
+### Draft Persistence
+
+Work/garden drafts persist to the `green-goods-drafts` IndexedDB via shared hooks:
+
+- `useDrafts` — CRUD over work-submission drafts; integrates with `useWorkFlowStore`
+- `useDraftAutoSave` — writes a draft when the user **exits** the flow (explicit exit, not on every change)
+- `useDraftResume` — resumes a draft from URL params; detects "meaningful" drafts to prompt continue
+
 ### Media URL Management (MANDATORY)
 
 **Never create orphan blob URLs:**
@@ -135,6 +143,13 @@ const {
   eoaAddress,         // Wallet mode only
 } = useAuth();
 ```
+
+**Auth stacks** — the two `useAuth()` modes map to different SDKs:
+
+| Mode | Stack | Account | Active address field |
+|------|-------|---------|----------------------|
+| `wallet` | Reown AppKit + Wagmi | EOA | `eoaAddress` |
+| `passkey` | Pimlico | ERC-4337 smart account | `smartAccountAddress` |
 
 ### Auth Mode Branching
 
@@ -217,6 +232,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 - `popover="hint"` — Tooltips, simple hints
 - `popover="auto"` — Dropdowns, menus
 - Radix Dialog — Forms, confirmations, multi-step flows
+
+### Presentation mode (PWA vs website)
+
+The client renders different chrome depending on whether it runs as an installed PWA or a browser tab — bottom `AppBar` + `/home` entry for PWA, hamburger `SiteHeader` + `/` entry for website. On localhost, append `?presentation=pwa|website|auto` to override auto-detection; the choice caches in **per-tab** sessionStorage so each tab keeps its mode after redirects. The dev stack opens both modes in adjacent tabs by default. Source: `packages/shared/src/utils/app/pwa.ts:getClientPresentationMode`.
 
 ## Anti-Patterns
 

@@ -3,12 +3,6 @@ name: ship
 user-invocable: false
 description: Pre-merge gate — validates the branch is safe to push/merge. Format + lint + test + build + conventional-commit + branch safety + vocab/design-token lint when applicable. Absorbs verification-before-completion and finishing-a-development-branch — evidence before claims, always.
 argument-hint: "[--dry-run] [--no-commit] [--pr]"
-version: "1.0.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-04-17"
-last_verified: "2026-04-17"
 ---
 
 # Ship Skill
@@ -40,24 +34,16 @@ or prove the branch is ready. Those requests use QA Speed Mode from `CLAUDE.md`.
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If the full Ship Gate ([`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)) didn't run cleanly in this invocation, do not say the branch is ready.
+If the full Ship Gate ([`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)) didn't run cleanly in this invocation, do not say the branch is ready. "Should", "probably", a green run from an hour ago, or "just the lint was enough" do not count — caches go stale, tests get flaky, and lint ≠ compile ≠ test.
 
 This iron law applies to ship/PR/commit/merge/release readiness claims. It does
 not require every narrow QA-speed fix to run the full pipeline before handoff;
 QA-speed handoffs must clearly say which targeted proof ran and must not claim
 the branch is ready to ship.
 
-Red flags that mean STOP:
-- Using "should", "probably", "seems to" about validation state
-- Expressing satisfaction before the full pipeline exits 0
-- Trusting a prior run — caches go stale, tests get flaky
-- "Just the lint was enough" — lint ≠ compile ≠ test
-
 ---
 
 ## Pipeline
-
-Run in this order. Stop at first FAIL (except where noted). Report exit code and last 5 lines of output for each stage.
 
 ### 1. Pre-flight safety
 
@@ -78,57 +64,26 @@ git diff --stat origin/main...HEAD | tail -5  # Size of the change
 
 **Linear linkage check** (note, do not abort):
 - If branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), Linear's GitHub integration will auto-link the PR to the Issue and auto-transition status (Backlog → In Progress on PR open, → Done on merge). No manual linking needed.
-- If branch does NOT match the convention (e.g., `chore/...`, `codex/...`, `fix/...`), Linear will surface the PR but will not auto-link to an Issue. In PR-creation mode, prompt the user for the related Linear ID and include `Refs PRD-NNN` (or `Refs RESR-NNN`) on its own line in the PR body — Linear's mention-detection picks it up.
+- If the branch does NOT match the convention (e.g., `chore/...`, `codex/...`, `fix/...`), Linear will surface the PR but will not auto-link to an Issue. In PR-creation mode, prompt the user for the related Linear ID and include `Refs PRD-NNN` (or `Refs RESR-NNN`) on its own line in the PR body — Linear's mention-detection picks it up.
 - If the user declines a Linear ID for a non-matching branch, accept and proceed — some branches (chore, dependabot, infra) legitimately have no Linear Issue.
 
-### 2. Format
+### 2. Validation gate
 
-```bash
-bun format 2>&1 | tail -5
-```
+Run the **Ship Gate** exactly as defined in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) — the core
+pipeline plus every conditional addition matching the touched surfaces. That file is the single
+definition of the gate commands; never restate or improvise stages here.
 
-If the formatter modifies files, stage the modifications automatically (`git add -u` for files already tracked and modified). Re-run if needed.
+Ship-specific handling on top of the shared definition:
 
-### 3. Lint
+- Run stages in the file's order; stop at the first FAIL and report exit code plus the last
+  relevant lines of output per stage.
+- If `bun format` modifies files, stage the modifications automatically (`git add -u` for
+  files already tracked and modified) and re-run the stage.
+- Gather touched paths with `git diff --name-only origin/main...HEAD` plus
+  `git diff --name-only --cached` to decide which conditional additions apply.
 
-```bash
-bun lint 2>&1 | tail -10
-```
-
-Exit code 0 = PASS. Non-zero = FAIL. Never proceed on FAIL.
-
-### 4. Tests
-
-```bash
-bun run test 2>&1 | tail -20
-```
-
-**CRITICAL**: Use `bun run test` (vitest via package.json), NEVER `bun test` (bun's built-in runner ignores vitest config). The project hook blocks `bun test`, but double-check.
-
-Report: N passing / N failing / N skipped. Any failure = abort.
-
-### 5. Build
-
-```bash
-bun build 2>&1 | tail -15
-```
-
-Respects the monorepo dependency order (contracts → shared → indexer → client/admin/agent). Any non-zero exit = abort.
-
-### 6. Scope-specific lints (conditional)
-
-Run these only if the changed files match:
-
-| Condition | Command |
-|-----------|---------|
-| Changed files under `packages/shared/src/styles/theme.css` or `.claude/skills/design/language.md` | `bun run check:design-tokens` |
-| Changed files include `*.i18n.ts`, `packages/*/locales/*.json`, or `packages/admin/src/**` or `packages/client/src/**` | `bun run lint:vocab` |
-| Changed files under `packages/contracts/src/resolvers/` | Check storage gap via existing PostToolUse hook output |
-| Changed files under `packages/contracts/src/` | Remind to run `bun run test:fork` if protocol behavior changed |
-
-Gather touched paths with `git diff --name-only origin/main...HEAD` + `git diff --name-only --cached`.
-
-### 7. Commit-message check (if commits exist ahead of main)
+### 3. Commit-message check (if commits exist ahead of main)
 
 ```bash
 git log origin/main..HEAD --format='%s'
@@ -217,32 +172,19 @@ Use this exact shape. Tables and short sentences — no prose.
 
 | Don't | Why |
 |-------|-----|
-| Claim "ready to ship" without running the pipeline this invocation | Violates the iron law |
-| Skip stages because "they were green an hour ago" | Caches and state change |
-| Run `bun test` instead of `bun run test` | Bypasses vitest config; hook blocks but double-check |
 | Auto-push to main/master | Hard blocker — refuse |
-| Commit `.env`, credentials, or binaries > 5MB | Safety check — refuse |
 | Force-push anywhere without explicit user permission | Destructive action — confirm first |
+| Commit `.env`, credentials, or binaries > 5MB | Safety check — refuse |
 | Amend commits not authored in this branch | Destroys prior-author attribution |
 | Treat "get this to QA/staging" as ship readiness | QA Speed Mode uses targeted proof; ship runs only for explicit commit/PR/merge/release readiness |
 | Turn every ship check into a PR | Not all work needs a PR; match scope to request |
 
 ---
 
-## Related Skills
+## Related Surfaces
 
-- `ops/git-workflow` — branch strategy and commit conventions
-- `ops/ci-cd` — what CI runs after push
+- `CLAUDE.md § Git Workflow` — branch strategy and commit conventions
+- `.claude/context/validation-pipeline.md` — the single definition of the gate commands
 - `review` — pre-merge code review that complements the ship flow
-- `testing` — test discipline referenced by the pipeline
+- `.claude/context/testing.md` — test discipline referenced by the pipeline
 - `clean` — large-scale cleanup before shipping big diffs
-
----
-
-## Key principles
-
-- **Evidence before claims** — no shortcuts
-- **Fail fast** — stop at the first failing stage, don't run downstream
-- **Scope-aware** — only run design-tokens / vocab / contracts-fork where applicable
-- **Match action to request** — use the ship flow for validation, `--pr` for PR, `--dry-run` when exploring
-- **Refuse unsafe operations** — branching onto main, secrets in diff, force-push to main

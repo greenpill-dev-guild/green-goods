@@ -3,19 +3,13 @@ name: debug
 user-invocable: false
 description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
-version: "1.1.2"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Debug Skill
 
 Systematic debugging: find root causes before fixes, verify with evidence before completion.
 
-**References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for complex investigation, `cracked-coder` for fixes.
+**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 ---
 
@@ -65,18 +59,14 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 
 `/debug`, `/debug --mode incident_hotfix`, `/debug --mode tdd_bugfix`, and `/debug --panic` are no longer advertised. If explicitly typed, honor them — but normal flow is passive activation.
 
-## Progress Tracking (REQUIRED)
-
-Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
-
 ---
 
 ## Safety Rules
 
-- Non-destructive recovery only
+- Non-destructive recovery only — never `git checkout -- .`, repo deletion, or forced resets in debug flow
 - Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
 - Use a safety branch for experiments: `git switch -c debug/incident-$(date +%Y%m%d-%H%M%S)`
-- Never use destructive reset/reclone patterns in debug flow
+- In docs and examples, prefer `node -e 'fetch(...)'` over `curl`/`wget` (blocked in this environment)
 
 ## Core Principle
 
@@ -88,17 +78,13 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 
 ## Part 1: Root Cause Investigation
 
-### Phase 1: Gather Evidence
+### Phase 1: Choose the entrypoint
 
-**DO NOT attempt any fixes yet.**
+**DO NOT attempt any fixes yet.** Reproduce with exact steps, read the full error, check `git log --oneline -20` for recent changes — then route:
 
-1. **Read error messages thoroughly**
-2. **Reproduce consistently** — exact steps
-3. **Check recent changes**: `git log --oneline -20`
-4. **Choose the right entrypoint**:
-   - External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
-   - User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
-   - Data/API/contract symptom: trace data flow backward from the failing output.
+- External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
+- User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
+- Data/API/contract symptom: trace data flow backward from the failing output.
 
 ### User-Facing Bug Triage Protocol
 
@@ -182,147 +168,28 @@ geometry. Start at the failing output and trace backward through the data path.
 
 ### Phase 2: Hypothesis Testing
 
-1. **Form specific hypothesis**
-   - ✅ "Error occurs because X calls Y with null"
-   - ❌ "Something is wrong with the API"
-
-2. **Test minimally** — ONE variable at a time
-
-3. **If 3+ fixes fail: STOP**
-   - Question the architecture
-   - Reassess understanding
-   - Ask for help
+Form one specific hypothesis ("X calls Y with null", not "something is wrong with the API"), test one variable at a time. After 3 failed fixes, STOP fixing — question the architecture and your assumptions before trying a fourth.
 
 ---
 
-## Part 2: Escalation to cracked-coder
+## Part 2: Fix Sizing
 
-| Fix Type | Criteria | Action |
-|----------|----------|--------|
-| **Simple** | <10 lines, single file | Fix directly |
-| **Complex** | >10 lines, multi-file, needs tests | Escalate to cracked-coder |
-| **Architectural** | Pattern change, refactor | cracked-coder + planning |
-
-### Handoff Format
-
-```markdown
-## Debug → cracked-coder Handoff
-
-### Root Cause
-[What you found]
-
-### Location
-[File:line where issue originates]
-
-### Evidence
-[Commands/logs that prove the cause]
-
-### Suggested Fix
-[Your recommendation]
-```
+Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex or architectural fixes (multi-file, pattern change, needs new tests) go through plan mode first — present root cause + evidence + smallest fix, get approval, then implement.
 
 ---
 
 ## Part 3: Verification Before Completion
 
-### Mandatory Verification
-
-| Claim | Command |
-|-------|---------|
-| "Tests pass" | `bun run test` (NOT `bun test` — see CLAUDE.md) |
-| "Build succeeds" | `bun build` |
-| "Linting clean" | `bun lint` |
-| "Types correct" | `bun run tsc --noEmit` |
-
-### Suspicious Language
-
-If you say these, STOP and verify first:
-- "should work"
-- "I think"
-- "probably"
-- "seems to"
+CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun build`, `bun lint`, `npx tsc --noEmit` in the touched package.
 
 ---
 
-## Part 4: Green Goods Debugging
+## Part 4: Green Goods Reference
 
-### Offline Sync Issues
-- Check `useJobQueue` for stuck jobs
-- IndexedDB: Brave DevTools > Application > IndexedDB > `jobQueueDB`
-- Service Worker registration: Brave DevTools > Application > Service Workers
-- Job queue stats: `jobQueue.getStats(userAddress)` in console
-- Event bus monitoring: subscribe to `"job:failed"` events
-
-### Contract Issues
-
-```bash
-# Compile and check artifacts
-cd packages/contracts && bun build
-
-# Inspect deployment addresses
-cat deployments/11155111-latest.json | jq '.gardenToken'
-
-# Verbose test output (traces all calls) through bun wrapper
-cd packages/contracts && bun run test -- --match-test "testFailing" -vvvv
-
-# Quick production-readiness gate for contract-touching fixes
-bun run verify:contracts:fast
-
-# Decode transaction calldata
-cast decode-function "functionName(uint256)" 0xcalldata
-
-# Check on-chain state
-cast call <contract> "functionName()" --rpc-url $RPC
-```
-
-### Frontend Debugging Tools
-
-| Tool | Purpose | How to Access |
-|------|---------|---------------|
-| **React DevTools** | Component tree, props, state, re-renders | Browser extension → Components tab |
-| **React Profiler** | Render timing, commit frequency | Browser extension → Profiler tab |
-| **TanStack Query DevTools** | Query cache, stale state, refetch triggers | Auto-included in dev mode |
-| **Redux DevTools** | Zustand store inspection (with `devtools` middleware) | Browser extension |
-| **Vite Debug** | Build issues, dependency resolution | `DEBUG=vite:* bun dev` |
-| **Network tab** | GraphQL queries, IPFS uploads, RPC calls | Brave DevTools → Network |
-
-### Indexer Debugging
-
-```bash
-# View Docker container logs
-cd packages/indexer && bun run dev:docker:logs
-
-# Check Hasura GraphQL console (runs on port 8080)
-open http://localhost:8080/console
-
-# Test a GraphQL query directly
-node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ Garden { id name } }\"})}).then(r=>r.text()).then(console.log)'
-
-# Restart indexer containers
-bun run dev:docker:down && bun run dev:docker
-```
-
-### Build & Type Debugging
-
-```bash
-# TypeScript errors without emitting
-cd packages/shared && npx tsc --noEmit
-
-# Check specific package types
-cd packages/client && npx tsc --noEmit
-
-# Vite build with verbose output
-cd packages/client && DEBUG=vite:* bun build
-
-# Check bundle analysis
-cd packages/client && npx vite-bundle-visualizer
-```
-
-### Hook Issues
-
-```bash
-bash .claude/scripts/validate-hook-location.sh
-```
+The by-domain command reference (offline sync, contracts, frontend devtools, indexer, build/type)
+and the end-to-end pipeline trace (IndexedDB → job queue → IPFS → contract → indexer → GraphQL
+cache) live in [health-diagnostics.md](./health-diagnostics.md) — load it when you need commands,
+not routing. Hook-location complaints: `bash .claude/scripts/validate-hook-location.sh`.
 
 ### Common Debug Scenarios
 
@@ -334,125 +201,6 @@ bash .claude/scripts/validate-hook-location.sh
 | Indexer missing events | Contract address mismatch in config | Compare `deployments/*.json` with `config.yaml` |
 | Storage quota errors | Too many offline photos | Check `getStorageQuota()` |
 | Service worker not updating | Aggressive caching | Check `Cache-Control` headers for `/sw.js` |
-
----
-
-## Part 5: Distributed Debugging (End-to-End Pipeline)
-
-For tracing issues through the full offline → blockchain → indexer pipeline:
-
-### Work Submission Pipeline
-
-```
-IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Event → GraphQL Cache
-```
-
-### Step-by-Step Trace
-
-#### Layer 1: Client (IndexedDB → Job Queue)
-
-```bash
-# Check IndexedDB for stuck drafts
-# Brave DevTools > Application > IndexedDB > green-goods-drafts
-
-# Check job queue state
-# Console: jobQueue.getStats(userAddress)
-
-# Monitor job events
-# Console: jobQueueEventBus.subscribe("job:*", console.log)
-```
-
-| Symptom | Layer | Check |
-|---------|-------|-------|
-| Draft not saving | IndexedDB | Storage quota: `navigator.storage.estimate()` |
-| Job stuck in `pending` | Job Queue | Is the user online? Check `navigator.onLine` |
-| Job stuck in `processing` | Job Queue | Check for thrown errors in IPFS/contract call |
-| Job `failed` repeatedly | IPFS or Chain | Check `job.error` and `job.retryCount` |
-
-#### Layer 2: IPFS Upload
-
-```bash
-# Check if media uploaded successfully
-# Job payload should contain a CID after upload
-
-# Verify CID is retrievable
-node -e 'fetch(\"https://w3s.link/ipfs/<CID>\").then(r => console.log(r.status))'
-
-# Check Storacha service health
-# Look for 4xx/5xx in Network tab for storacha requests
-```
-
-#### Layer 3: Blockchain Transaction
-
-```bash
-# Decode the transaction that was sent
-cast tx <txHash> --rpc-url $RPC
-
-# Check if transaction reverted and why
-cast run <txHash> --rpc-url $RPC
-
-# Verify contract state after tx
-cast call <gardenAddress> "getWork(bytes32)" <workUID> --rpc-url $RPC
-
-# Check gas estimation (may fail before tx is sent)
-cast estimate <gardenAddress> "submitWork(bytes32,string)" <args> --rpc-url $RPC
-```
-
-#### Layer 4: Indexer Processing
-
-```bash
-# Check if event was emitted
-cast receipt <txHash> --rpc-url $RPC | grep -A5 "logs"
-
-# Check indexer lag — how far behind is it?
-# Compare latest indexed block vs chain head
-INDEXED=$(node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ _metadata { lastProcessedBlock } }\"})}).then(r=>r.json()).then(x=>console.log(x.data._metadata.lastProcessedBlock))')
-CHAIN_HEAD=$(cast block-number --rpc-url $RPC)
-echo \"Indexer lag: $((CHAIN_HEAD - INDEXED)) blocks\"
-
-# Check if entity exists in indexer
-node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ Work(where: {id: {_eq: \\\"<workId>\\\"}}) { id status } }\"})}).then(r=>r.text()).then(console.log)'
-```
-
-#### Layer 5: Frontend Cache
-
-```bash
-# Force refetch in TanStack Query DevTools
-# Or invalidate programmatically:
-# queryClient.invalidateQueries({ queryKey: queryKeys.work.all })
-
-# Check if the query key matches what the indexer returns
-# TanStack Query DevTools > Queries tab > check cache content
-```
-
-### Cross-Layer Diagnostic Script
-
-```bash
-# Full pipeline health check
-echo "=== Pipeline Health ==="
-
-# 1. Chain connectivity
-echo -n "Chain: "; cast block-number --rpc-url $RPC && echo "OK" || echo "UNREACHABLE"
-
-# 2. Contract deployed
-echo -n "Contract: "; cast call $GARDEN_ADDRESS "name()(string)" --rpc-url $RPC && echo "OK" || echo "MISSING"
-
-# 3. Indexer running
-echo -n \"Indexer: \"; node -e 'fetch(\"http://localhost:8080/healthz\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo \"OK\" || echo \"DOWN\"
-
-# 4. Frontend GraphQL reachable
-echo -n \"GraphQL: \"; node -e 'fetch(\"http://localhost:8080/v1/graphql\", {method:\"POST\", headers:{\"Content-Type\":\"application/json\"}, body: JSON.stringify({query:\"{ __typename }\"})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo \"OK\" || echo \"UNREACHABLE\"
-```
-
----
-
-## Three-Strike Protocol
-
-After 3 failed fixes:
-1. **STOP fixing**
-2. **Document what you tried**
-3. **Question assumptions**
-4. **Consider alternatives**
 
 ---
 
@@ -479,9 +227,9 @@ After debugging provide:
 
 ## Reference Files
 
+- **[health-diagnostics.md](./health-diagnostics.md)** -- Domain command reference + end-to-end pipeline trace, service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
 - **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
 - **[posthog.md](./posthog.md)** -- PostHog + Sentry setup, event/error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog/Sentry↔Linear privacy boundary.
-- **[health-diagnostics.md](./health-diagnostics.md)** -- Service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
 
 ## Linear Routing
 
@@ -495,17 +243,8 @@ Debug-specific deltas, applied after a bug is reproduced and root-caused:
 - Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
 - The PostHog/Sentry↔Linear privacy specifics live in [posthog.md](./posthog.md).
 
-## Anti-Patterns
-
-- **Guessing without reproduction** — never change code before reproducing the issue
-- **Using destructive recovery commands** — avoid `git checkout -- .`, repo deletion, and forced resets in debug workflows
-- **Claiming success without evidence** — always attach commands and outputs for build/test verification
-- **Skipping dependency order checks** — contracts/indexer/shared/app drift can hide root cause
-- **Using blocked network commands in docs** — prefer `node -e fetch(...)` examples over `curl`/`wget`
-
 ## Related Skills
 
-- `react` (error-handling sub-file) — Error categorization and handling strategies
-- `testing` — Writing regression tests after fixing bugs
-- `debug` (monitoring sub-file) — Production diagnostics and error tracking
-- `react` (performance sub-file) — Performance profiling for performance bugs
+- `review` — post-fix review of the change (regressions, gaps, validation)
+- [docs/routines/posthog-questions.md](../../../docs/routines/posthog-questions.md) — curated telemetry question library when scale/impact context is needed
+- Error-handling and testing invariants live in `.claude/context/shared.md` and `.claude/context/testing.md`

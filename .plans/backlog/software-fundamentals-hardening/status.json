@@ -96,7 +96,7 @@
       "lane": "system",
       "status": "scope_expanded",
       "branch": null,
-      "note": "Expanded the backlog hub with contracts guidance repair, ADR-008/shared API policy refresh, Knip dead-code audit reliability, and more concrete Campaign Cookie Jar boundary targets from the transcript audit."
+      "note": "Expanded the backlog hub with contracts guidance repair, shared API policy refresh, Knip dead-code audit reliability, and more concrete Campaign Cookie Jar boundary targets from the transcript audit."
     },
     {
       "timestamp": "2026-05-01T05:09:04Z",

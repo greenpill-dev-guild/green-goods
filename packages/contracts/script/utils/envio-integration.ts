@@ -237,7 +237,7 @@ export class EnvioIntegration {
         }
       }
 
-      // Load current Envio config with schema: 'failsafe' to preserve strings
+      // Preserve YAML 1.2 scalar semantics when reading Envio configuration.
       const envioConfig = yaml.load(fs.readFileSync(this.envioConfigPath, "utf8"), {
         schema: yaml.CORE_SCHEMA,
       }) as EnvioConfig;
@@ -329,7 +329,7 @@ export class EnvioIntegration {
         yaml.dump(envioConfig, {
           lineWidth: -1,
           sortKeys: false,
-          quotingType: '"',
+          quoteStyle: "double",
           noRefs: true,
         }),
       );

@@ -1,5 +1,7 @@
 # AI-Native Developer Workflow Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Week 1 - Scaffold The Operating Hub
 
 - [x] Validate this hub with `node scripts/harness/plan-hub.mjs validate`.

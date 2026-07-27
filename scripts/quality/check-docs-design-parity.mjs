@@ -15,7 +15,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const REPO_ROOT = process.cwd();
 const DESIGN_PATH = join(REPO_ROOT, "docs/DESIGN.md");
@@ -44,7 +44,7 @@ function readFrontMatter(path) {
   if (!match) {
     throw new Error(`Missing YAML front matter in ${path}`);
   }
-  return yaml.load(match[1]);
+  return yaml.load(match[1], { schema: yaml.YAML11_SCHEMA });
 }
 
 function pluck(record, dottedPath) {

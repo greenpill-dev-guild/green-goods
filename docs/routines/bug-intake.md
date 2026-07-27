@@ -21,13 +21,12 @@ env-vars:
   - SENTRY_CLIENT_PROJECT
   - SENTRY_ADMIN_PROJECT
   - SENTRY_AGENT_PROJECT
-  - LINEAR_API_KEY  # personal API key OR Linear MCP/connector access; cloud env wires whichever the harness exposes
 connectors:
   - google-drive
-  - linear  # use whichever Linear surface the harness provides (MCP, native connector, or LINEAR_API_KEY)
+  - linear  # Linear via the OAuth connector only — no LINEAR_API_KEY is stored (guild rule 2026-07-04); fail closed if unauthenticated
   - posthog  # read-only PostHog connector; primary path for telemetry enrichment
   - vercel  # read-only deploy correlation — surface deploy timing + diff in Customer Need bodies when a recent prod deploy temporally aligns with the report
-model: claude-opus-4-8[1m]
+model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Linear records only, no PRs, no GitHub issues
 ---
 
@@ -46,7 +45,7 @@ You do NOT create GitHub issues — GitHub is for PRs and code review only, not 
   - `DISCORD_BUGS_CHANNEL_ID` is the dedicated `#bug-report` channel. Phase 1 reads from it. Phase 6 posts per-capture bug acks here.
   - `DISCORD_PRODUCT_CHANNEL_ID` is the `#product` channel. Phase 6 posts per-capture **idea** acks here. Phase 7 daily summary posts here.
 - Telegram source: forum-topics in the Green Goods chat. The agent reads two Fly secrets — `TELEGRAM_BUGS_TOPIC` and `TELEGRAM_IDEAS_TOPIC`, each holding `<chat_id>_<thread_id>` — and tags captured rows with `inferred_type=bug|idea` accordingly. The routine queries `/api/messages?inferred_type=bug|idea` and never hardcodes thread or chat ids. Adding a new topic type later means a one-line code change in the agent's `CAPTURE_TYPE_ENV_VARS` map plus the new Fly secret.
-- Linear access is whatever the cloud environment exposes (`LINEAR_API_KEY`, the Linear connector, or the Linear MCP server). Use it to look up team/project/label IDs at run time — **never hardcode IDs**. If the lookup fails, log the failure, skip Linear writes, and surface the failure in the Discord summary so the user can fix the wiring.
+- Linear access is the **OAuth Linear connector only** — no API key exists in this environment (standing guild rule). Use it to look up team/project/label IDs at run time — **never hardcode IDs**. If the connector is unauthenticated or a lookup fails, fail closed: log the failure, skip Linear writes, and surface the failure in the Discord summary so the user can re-authorize the connector.
 
 ## Linear surface
 

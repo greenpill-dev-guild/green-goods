@@ -13,12 +13,37 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as yaml from "js-yaml";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
 const STAGES = ["ideas", "backlog", "active"];
 const MOVE_STAGES = [...STAGES, "archive"];
+const VALIDATION_STAGES = [...STAGES, "archive"];
+const ALLOWED_PLAN_ROOT_ENTRIES = new Set(["README.md", "_templates", ...VALIDATION_STAGES]);
+const REQUIRED_LINK_ROLES = ["brief", "spec", "plan", "eval"];
+const ARCHIVE_DOCUMENT_MARKER = "> **Archived record:** implementation is closed.";
+const ARCHIVE_STATUS_KEYS = new Set([
+  "version",
+  "feature",
+  "workflow",
+  "links",
+  "linear",
+  "taxonomy",
+  "lanes",
+  "history",
+]);
+const ARCHIVE_LINEAR_KEYS = new Set([
+  "syncDirection",
+  "laneSyncMode",
+  "lastSyncedAt",
+  "issue",
+  "parentIssue",
+  "project",
+  "initiative",
+  "lanes",
+]);
 const STAGE_TO_STATUS = {
   ideas: "idea",
   backlog: "backlog",
@@ -38,6 +63,14 @@ const VALID_LANE_STATUSES = new Set([
   "completed",
 ]);
 const DONE_LANE_STATUSES = new Set(["passed", "completed", "n/a", "skipped"]);
+const VALID_ARCHIVE_RESOLUTIONS = new Set([
+  "completed",
+  "closed",
+  "closed_stale",
+  "superseded",
+  "paused",
+  "cancelled",
+]);
 const IMPLEMENTATION_LANES = new Set(["ui", "state_api", "contracts"]);
 const TDD_TERMINAL_STATUSES = new Set(["passed", "completed"]);
 const VALID_TDD_MODES = new Set(["required", "not_applicable", "proof_limit", "legacy_unrecorded"]);
@@ -103,6 +136,21 @@ const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
 const LINEAR_BASE_LABELS = ["protocol:green-goods", "source:plans"];
 const LINEAR_PARENT_ACTIVITY_LABEL = "activity:architecture";
 const LINEAR_LANE_SKIP_STATUSES = new Set(["n/a", "skipped", "passed", "completed"]);
+const EXECUTION_SUB_LANE_NAME = /^[a-z][a-z0-9_]*$/;
+const EXECUTION_SUB_LANE_OWNERS = new Set(["codex", "claude", "human"]);
+const EXECUTION_SUB_LANE_PACKAGE_LABELS = {
+  contracts: "package:contracts",
+  settlement: "package:contracts",
+  indexer: "package:indexer",
+  state_api: "package:shared",
+  ui_client: "package:client",
+  ui_admin: "package:admin",
+  editorial: "package:docs",
+  docs: "package:docs",
+  docs_guides: "package:docs",
+  walkthrough_videos: "package:docs",
+  community: "package:client",
+};
 const LANE_DISPLAY_NAMES = {
   ui: "UI",
   state_api: "State/API",
@@ -130,13 +178,15 @@ const LANE_PACKAGE_TRACK_PRIORITIES = {
 function usage() {
   console.log(`Usage:
   node scripts/harness/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
-  node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active|archive>
+  node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active|archive> [--reason "closeout reason"] [--resolution <completed|closed|closed_stale|superseded|paused|cancelled>]
   node scripts/harness/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
   node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
   node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
   node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> [--json]
-  node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--lane state-api=PRD-125] [--lane-sync-mode <lane_issues|parent_only>] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
+  node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--execution-lane contracts=PRD-125] [--lane-sync-mode <lane_issues|parent_only>] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
   node scripts/harness/plan-hub.mjs summary [--initiative <initiative>] [--track <track>] [--json]
+  node scripts/harness/plan-hub.mjs stale [--days 14] [--json]
+  node scripts/harness/plan-hub.mjs compact-archive
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
   node scripts/harness/plan-hub.mjs validate`);
 }
@@ -218,7 +268,7 @@ function sleep(ms) {
 
 function titleFromSlug(slug) {
   return slug
-    .split("-")
+    .split(/[-_]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
@@ -273,6 +323,119 @@ function applyTemplate(relativePath, destinationDir, replacements) {
   }
 
   writeFileSync(destination, contents);
+}
+
+function ensureActiveHandoffFiles(destinationDir, replacements) {
+  mkdirSync(join(destinationDir, "handoffs"), { recursive: true });
+  for (const relativePath of [
+    join("handoffs", "README.md"),
+    join("handoffs", "claude-ui.md"),
+    join("handoffs", "codex-state-api.md"),
+    join("handoffs", "codex-contracts.md"),
+    join("handoffs", "claude-qa-pass-1.md"),
+    join("handoffs", "codex-qa-pass-2.md"),
+  ]) {
+    if (!existsSync(join(destinationDir, relativePath))) {
+      applyTemplate(relativePath, destinationDir, replacements);
+    }
+  }
+}
+
+function archiveEntryNames(status) {
+  return new Set([
+    "status.json",
+    ...Object.values(status.links || {}).filter((value) => typeof value === "string" && value.length > 0),
+  ]);
+}
+
+function compactArchiveFeature(destinationDir, status) {
+  const allowedEntries = archiveEntryNames(status);
+  for (const entry of readdirSync(destinationDir)) {
+    if (!allowedEntries.has(entry)) {
+      rmSync(join(destinationDir, entry), { recursive: true, force: true });
+    }
+  }
+}
+
+function markArchivedDocuments(destinationDir, status) {
+  const slug = status.feature.slug;
+  for (const relativePath of Object.values(status.links)) {
+    const documentPath = join(destinationDir, relativePath);
+    if (!relativePath.endsWith(".md") || !existsSync(documentPath)) {
+      continue;
+    }
+
+    let contents = readFileSync(documentPath, "utf8")
+      .replaceAll(`.plans/active/${slug}`, `.plans/archive/${slug}`)
+      .replaceAll(`.plans/backlog/${slug}`, `.plans/archive/${slug}`)
+      .replaceAll(`.plans/ideas/${slug}`, `.plans/archive/${slug}`);
+    if (!contents.includes(ARCHIVE_DOCUMENT_MARKER)) {
+      const firstLineEnd = contents.indexOf("\n");
+      contents =
+        firstLineEnd === -1
+          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.\n`
+          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
+    }
+    writeFileSync(documentPath, contents);
+  }
+}
+
+function compactArchiveStatus(status) {
+  const slug = status.feature.slug;
+  const archivedAt = status.workflow.archived_at || status.workflow.updated_at;
+  const archiveEvent = [...(status.history || [])].reverse().find((entry) => entry.status === "moved_to_archive");
+
+  status.workflow = {
+    overall_status: "done",
+    priority: status.workflow.priority,
+    created_at: status.workflow.created_at,
+    updated_at: status.workflow.updated_at,
+    target_date: status.workflow.target_date ?? null,
+    archived_at: archivedAt,
+    archive_reason: status.workflow.archive_reason,
+    resolution: status.workflow.resolution,
+  };
+  status.taxonomy.surfaces = status.taxonomy.surfaces.map((surface) =>
+    surface === `.plans/active/${slug}` || surface === `.plans/backlog/${slug}` || surface === `.plans/ideas/${slug}`
+      ? `.plans/archive/${slug}`
+      : surface,
+  );
+  status.lanes = Object.fromEntries(
+    Object.entries(status.lanes).map(([laneName, lane]) => [
+      laneName,
+      {
+        owner: lane.owner,
+        status: lane.status,
+      },
+    ]),
+  );
+  status.history = [
+    archiveEvent || {
+      timestamp: archivedAt,
+      actor: "human",
+      lane: "system",
+      status: "archived",
+      branch: null,
+      note: status.workflow.archive_reason,
+    },
+  ];
+  if (status.linear && typeof status.linear === "object" && !Array.isArray(status.linear)) {
+    const compactLinear = Object.fromEntries(
+      Object.entries(status.linear).filter(([key, value]) => ARCHIVE_LINEAR_KEYS.has(key) && value !== undefined),
+    );
+    if (compactLinear.lanes && typeof compactLinear.lanes === "object" && !Array.isArray(compactLinear.lanes)) {
+      compactLinear.lanes = Object.fromEntries(
+        Object.entries(compactLinear.lanes).map(([laneName, lane]) => [laneName, { issue: lane?.issue ?? null }]),
+      );
+    }
+    status.linear = compactLinear;
+  }
+  for (const key of Object.keys(status)) {
+    if (!ARCHIVE_STATUS_KEYS.has(key)) {
+      delete status[key];
+    }
+  }
+  return status;
 }
 
 function readFeatureStatus(featureDirPath) {
@@ -411,7 +574,91 @@ function featureRecords(stage) {
 }
 
 function formalFeatureSlugs() {
-  return new Set(STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
+  return new Set(VALIDATION_STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
+}
+
+function validatePlanRootStructure(failures) {
+  if (!existsSync(PLANS_ROOT)) {
+    failures.push(`${PLANS_ROOT}: missing plan hub`);
+    return;
+  }
+
+  for (const entry of readdirSync(PLANS_ROOT)) {
+    if (!ALLOWED_PLAN_ROOT_ENTRIES.has(entry)) {
+      failures.push(
+        `${join(PLANS_ROOT, entry)}: unsupported plan-hub root entry; expected README.md, _templates, or a lifecycle stage`,
+      );
+    }
+  }
+}
+
+function validateStageStructure(stage, failures) {
+  const stageDir = planStageDir(stage);
+  if (!existsSync(stageDir)) {
+    return;
+  }
+
+  for (const entry of readdirSync(stageDir)) {
+    const entryPath = join(stageDir, entry);
+    if (!statSync(entryPath).isDirectory()) {
+      failures.push(`${entryPath}: unsupported loose file; plan stages contain feature directories only`);
+      continue;
+    }
+
+    if (!existsSync(statusPathForDir(entryPath))) {
+      failures.push(`${entryPath}: missing status.json`);
+      continue;
+    }
+
+    if (stage === "archive") {
+      const { status } = readFeatureStatus(entryPath);
+      const allowedEntries = archiveEntryNames(status);
+      for (const child of readdirSync(entryPath)) {
+        const childPath = join(entryPath, child);
+        if (!allowedEntries.has(child)) {
+          failures.push(`${childPath}: archived hubs retain only status.json and their four linked plan documents`);
+        } else if (!statSync(childPath).isFile()) {
+          failures.push(`${childPath}: archived plan documents must be top-level files`);
+        } else if (child !== "status.json" && !readFileSync(childPath, "utf8").includes(ARCHIVE_DOCUMENT_MARKER)) {
+          failures.push(`${childPath}: archived plan documents must include the archived-record marker`);
+        }
+      }
+    }
+  }
+}
+
+function markdownFilesUnder(directory) {
+  if (!existsSync(directory)) {
+    return [];
+  }
+
+  return readdirSync(directory).flatMap((entry) => {
+    const entryPath = join(directory, entry);
+    const stats = statSync(entryPath);
+    if (stats.isDirectory()) {
+      return markdownFilesUnder(entryPath);
+    }
+    return stats.isFile() && entry.endsWith(".md") ? [entryPath] : [];
+  });
+}
+
+function validateFencedYaml(failures) {
+  const yamlFence = /^```ya?ml[^\S\r\n]*\r?\n([\s\S]*?)^```[^\S\r\n]*$/gim;
+
+  for (const markdownPath of markdownFilesUnder(PLANS_ROOT)) {
+    const source = readFileSync(markdownPath, "utf8");
+    for (const match of source.matchAll(yamlFence)) {
+      try {
+        yaml.load(match[1]);
+      } catch (error) {
+        const fenceLine = source.slice(0, match.index).split(/\r?\n/).length;
+        const yamlLine = Number.isInteger(error?.mark?.line) ? error.mark.line : 0;
+        const line = fenceLine + yamlLine + 1;
+        const reason = error?.reason || error?.message || String(error);
+        failures.push(`${markdownPath}:${line}: invalid fenced YAML: ${reason}`);
+      }
+    }
+  }
 }
 
 function valuesForFlag(flags, key) {
@@ -497,6 +744,21 @@ function linearLabelsForStatus(status, activityLabel, laneName = null) {
   return uniqueSorted([...LINEAR_BASE_LABELS, activityLabel, ...packageLabels]);
 }
 
+function linearLabelsForExecutionSubLane(status, laneName, lane) {
+  const packageLabel = isResearchOnly(status) ? null : EXECUTION_SUB_LANE_PACKAGE_LABELS[laneName];
+  const agentLabel = lane.status === "ready" && (lane.owner === "codex" || lane.owner === "claude")
+    ? `agent:${lane.owner}`
+    : null;
+  return uniqueSorted([...LINEAR_BASE_LABELS, "activity:build", packageLabel, agentLabel]);
+}
+
+function linearLabelsForCanonicalLane(status, activityLabel, laneName, lane) {
+  const agentLabel = lane.status === "ready" && (lane.owner === "codex" || lane.owner === "claude")
+    ? `agent:${lane.owner}`
+    : null;
+  return uniqueSorted([...linearLabelsForStatus(status, activityLabel, laneName), agentLabel]);
+}
+
 function linearPriorityForStatus(status) {
   switch (status.workflow.priority) {
     case "p0":
@@ -521,6 +783,17 @@ function linearStateForStage(stage) {
 
 function linearStateForLane(status, lane) {
   if (lane.status === "in_progress") {
+    return "In Progress";
+  }
+
+  return linearStateForStage(status.feature.stage);
+}
+
+function linearStateForParent(status, laneSyncMode) {
+  if (
+    laneSyncMode === "parent_only" &&
+    Object.values(status.lanes || {}).some((lane) => lane?.status === "in_progress")
+  ) {
     return "In Progress";
   }
 
@@ -574,6 +847,96 @@ function buildLinearLaneDescription(status, laneName, lane) {
   ].join("\n");
 }
 
+function buildLinearExecutionSubLaneDescription(status, laneName, lane) {
+  const source = planRelativeDir(status);
+  return [
+    `Source: \`${source}status.json#execution_sub_lanes.${laneName}\``,
+    `Handoff: \`${source}${lane.handoff}\``,
+    `Owner/status: \`${lane.owner}\` / \`${lane.status}\``,
+  ].join("\n");
+}
+
+function buildLinearSchedule(status, laneLinear) {
+  const milestoneKey = hasText(laneLinear?.milestone) ? laneLinear.milestone.trim() : null;
+  return {
+    milestone: milestoneKey
+      ? {
+          key: milestoneKey,
+          targetDate: status.linear?.milestones?.[milestoneKey] ?? null,
+        }
+      : null,
+    dueDate: hasText(laneLinear?.dueDate) ? laneLinear.dueDate.trim() : null,
+  };
+}
+
+function executionSubLanesForLinear(status) {
+  const subLanes = status.execution_sub_lanes;
+  if (!subLanes || typeof subLanes !== "object" || Array.isArray(subLanes)) {
+    return [];
+  }
+
+  return Object.entries(subLanes).filter(([, lane]) => lane?.linear?.sync === true);
+}
+
+// Resolve a lane's depends_on (execution sub-lane names, or the qa_pass_* canonical
+// lane names) to the Linear issue identifiers that should be set as `blockedBy`
+// relations. Machine-lane aggregate names (e.g. "ui") are intentionally NOT expanded
+// here: they map to several sub-lanes and would over-constrain the QA gate, so
+// qa_pass_1's leaf blockers stay a curated manual set. Emitted in the sync manifest as
+// `blockedByIssues` so an applier keeps the live Linear dependency graph in step with
+// status.json depends_on as lanes are added or re-pointed.
+function resolveBlockedByIssues(status, dependsOn) {
+  if (!Array.isArray(dependsOn) || dependsOn.length === 0) {
+    return [];
+  }
+  const subLanes =
+    status.execution_sub_lanes &&
+    typeof status.execution_sub_lanes === "object" &&
+    !Array.isArray(status.execution_sub_lanes)
+      ? status.execution_sub_lanes
+      : {};
+  const canonicalLanes =
+    status.linear?.lanes && typeof status.linear.lanes === "object" ? status.linear.lanes : {};
+  const issues = [];
+  const seen = new Set();
+  for (const dependency of dependsOn) {
+    const issue =
+      normalizedLinearIssue(subLanes[dependency]?.linear?.issue) ||
+      normalizedLinearIssue(canonicalLanes[dependency]?.issue);
+    if (issue && !seen.has(issue)) {
+      seen.add(issue);
+      issues.push(issue);
+    }
+  }
+  return issues;
+}
+
+function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team, priority) {
+  const linear = lane.linear;
+  const issue = normalizedLinearIssue(linear.issue);
+  const parentIssue = normalizedLinearIssue(linear.parentIssue);
+  return {
+    lane: laneName,
+    machineLane: lane.machine_lane ?? null,
+    action: issue ? "update" : "create",
+    issue,
+    parentId: parentIssue,
+    parentRef: parentIssue ? null : null,
+    title: `${titleFromSlug(laneName)}: ${status.feature.title}`,
+    team,
+    state: linearStateForLane(status, lane),
+    priority,
+    labels: linearLabelsForExecutionSubLane(status, laneName, lane),
+    project,
+    description: buildLinearExecutionSubLaneDescription(status, laneName, lane),
+    branch: lane.branch || null,
+    handoff: lane.handoff,
+    dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
+    blockedByIssues: resolveBlockedByIssues(status, lane.depends_on),
+    ...buildLinearSchedule(status, linear),
+  };
+}
+
 function linearLaneIsActionable(status, laneName) {
   if (status.feature.stage !== "active") {
     return false;
@@ -618,17 +981,23 @@ function buildLinearSyncManifest(status) {
     issue: parentIssue,
     title: `plan: ${normalized.feature.title}`,
     team,
-    state: linearStateForStage(normalized.feature.stage),
+    state: linearStateForParent(normalized, laneSyncMode),
     priority,
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
     description: buildLinearParentDescription(normalized, laneSyncMode),
   };
 
-  const lanes = laneSyncMode === "parent_only"
+  const executionSubLanes = executionSubLanesForLinear(normalized);
+  const canonicalLaneNames = executionSubLanes.length > 0
+    ? ["qa_pass_1", "qa_pass_2"]
+    : Object.keys(LANE_BRANCHES);
+  const canonicalLanes = laneSyncMode === "parent_only"
     ? []
-    : Object.keys(LANE_BRANCHES)
-      .filter((laneName) => linearLaneIsActionable(normalized, laneName))
+    : canonicalLaneNames
+      .filter((laneName) =>
+        linearLaneIsActionable(normalized, laneName) ||
+        (executionSubLanes.length > 0 && normalizedLinearIssue(linear?.lanes?.[laneName]?.issue)))
       .map((laneName) => {
         const lane = normalized.lanes[laneName];
         const issue = linearLaneIssue(linear, laneName);
@@ -646,18 +1015,26 @@ function buildLinearSyncManifest(status) {
           team,
           state: linearStateForLane(normalized, lane),
           priority,
-          labels: linearLabelsForStatus(
+          labels: linearLabelsForCanonicalLane(
             normalized,
             laneName === "qa_pass_1" || laneName === "qa_pass_2" ? "activity:qa" : "activity:build",
             laneName,
+            lane,
           ),
           project,
           description: buildLinearLaneDescription(normalized, laneName, lane),
           branch: lane.branch || null,
           handoff: lane.handoff,
           dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
+          blockedByIssues: resolveBlockedByIssues(normalized, lane.depends_on),
+          ...buildLinearSchedule(normalized, linear?.lanes?.[laneName]),
         };
       });
+  const executionLanes = laneSyncMode === "parent_only"
+    ? []
+    : executionSubLanes.map(([laneName, lane]) =>
+      buildExecutionSubLaneLinearRecord(normalized, laneName, lane, project, team, priority));
+  const lanes = [...executionLanes, ...canonicalLanes];
 
   return {
     version: 1,
@@ -673,11 +1050,57 @@ function buildLinearSyncManifest(status) {
       project,
       initiative: normalizedLinearIssue(linear.initiative),
     },
+    schedule: {
+      milestones: linear.milestones || {},
+      operationalCheckpoints: linear.operationalCheckpoints || {},
+    },
     laneSyncMode,
     parent,
     lanes,
     warnings,
   };
+}
+
+function isDateOnly(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function validateLinearDateMap(value, path, errors) {
+  if (value === undefined || value === null) {
+    return;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    errors.push(`${path} must be an object when present`);
+    return;
+  }
+
+  for (const [key, date] of Object.entries(value)) {
+    if (!EXECUTION_SUB_LANE_NAME.test(key)) {
+      errors.push(`${path} has invalid key "${key}"`);
+    }
+    if (!isDateOnly(date)) {
+      errors.push(`${path}.${key} must be a YYYY-MM-DD date`);
+    }
+  }
+}
+
+function validateLinearSchedule(status, laneLinear, path, errors) {
+  if (laneLinear.milestone !== undefined && laneLinear.milestone !== null) {
+    if (!hasText(laneLinear.milestone)) {
+      errors.push(`${path}.milestone must be a string or null`);
+    } else if (!Object.hasOwn(status.linear?.milestones || {}, laneLinear.milestone)) {
+      errors.push(`${path}.milestone must reference linear.milestones.${laneLinear.milestone}`);
+    }
+  }
+
+  if (laneLinear.dueDate !== undefined && laneLinear.dueDate !== null && !isDateOnly(laneLinear.dueDate)) {
+    errors.push(`${path}.dueDate must be a YYYY-MM-DD date or null`);
+  }
 }
 
 function validateLinear(status, errors) {
@@ -713,6 +1136,9 @@ function validateLinear(status, errors) {
     }
   }
 
+  validateLinearDateMap(linear.milestones, "linear.milestones", errors);
+  validateLinearDateMap(linear.operationalCheckpoints, "linear.operationalCheckpoints", errors);
+
   if (linear.lanes === undefined || linear.lanes === null) {
     return;
   }
@@ -733,8 +1159,163 @@ function validateLinear(status, errors) {
       continue;
     }
 
+    const extraLaneLinearKeys = Object.keys(laneLinear).filter(
+      (key) => !["issue", "milestone", "dueDate"].includes(key),
+    );
+    if (extraLaneLinearKeys.length > 0) {
+      errors.push(`linear.lanes.${laneName} has unsupported fields: ${extraLaneLinearKeys.join(", ")}`);
+    }
+
     if (laneLinear.issue !== undefined && laneLinear.issue !== null && typeof laneLinear.issue !== "string") {
       errors.push(`linear.lanes.${laneName}.issue must be a string or null`);
+    }
+    validateLinearSchedule(status, laneLinear, `linear.lanes.${laneName}`, errors);
+  }
+}
+
+function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
+  const subLanes = status.execution_sub_lanes;
+  if (subLanes === undefined || subLanes === null) {
+    return;
+  }
+
+  if (typeof subLanes !== "object" || Array.isArray(subLanes)) {
+    errors.push("execution_sub_lanes must be an object when present");
+    return;
+  }
+
+  const names = new Set(Object.keys(subLanes));
+  const canonicalParent = canonicalLinearParentIssue(status.linear || {});
+  const issueOwners = new Map();
+  for (const [laneName, laneLinear] of Object.entries(status.linear?.lanes || {})) {
+    const issue = normalizedLinearIssue(laneLinear?.issue);
+    if (issue) {
+      const previousOwner = issueOwners.get(issue);
+      if (previousOwner) {
+        errors.push(`linear.lanes.${laneName}.issue duplicates ${issue} already used by ${previousOwner}`);
+      } else {
+        issueOwners.set(issue, `linear.lanes.${laneName}`);
+      }
+    }
+  }
+  for (const [laneName, lane] of Object.entries(subLanes)) {
+    if (!EXECUTION_SUB_LANE_NAME.test(laneName)) {
+      errors.push(`execution_sub_lanes has invalid name "${laneName}"`);
+    }
+    if (!lane || typeof lane !== "object" || Array.isArray(lane)) {
+      errors.push(`execution_sub_lanes.${laneName} must be an object`);
+      continue;
+    }
+    if (lane.machine_lane !== null && !Object.hasOwn(LANE_BRANCHES, lane.machine_lane)) {
+      errors.push(`execution_sub_lanes.${laneName}.machine_lane must reference a canonical machine lane or null`);
+    }
+    if (!EXECUTION_SUB_LANE_OWNERS.has(lane.owner)) {
+      errors.push(`execution_sub_lanes.${laneName}.owner must be codex, claude, or human`);
+    }
+    if (!VALID_LANE_STATUSES.has(lane.status)) {
+      errors.push(`execution_sub_lanes.${laneName}.status is invalid`);
+    }
+    if (lane.linear && lane.status === "ready" && lane.owner === "human") {
+      errors.push(`execution_sub_lanes.${laneName} cannot be ready with a human owner`);
+    }
+    if (lane.linear && lane.status === "blocked" && !hasText(lane.blocked_reason)) {
+      errors.push(`execution_sub_lanes.${laneName}.blocked_reason is required for blocked status`);
+    }
+    if (lane.depends_on === undefined && lane.linear) {
+      errors.push(`execution_sub_lanes.${laneName}.depends_on must be an array of lane names`);
+    } else if (
+      lane.depends_on !== undefined &&
+      (!Array.isArray(lane.depends_on) || lane.depends_on.some((dependency) => !hasText(dependency)))
+    ) {
+      errors.push(`execution_sub_lanes.${laneName}.depends_on must be an array of lane names`);
+    } else if (Array.isArray(lane.depends_on)) {
+      const unknownDependencies = lane.depends_on.filter(
+        (dependency) => !names.has(dependency) && !Object.hasOwn(LANE_BRANCHES, dependency),
+      );
+      if (unknownDependencies.length > 0) {
+        errors.push(
+          `execution_sub_lanes.${laneName}.depends_on references unknown lanes: ${unknownDependencies.join(", ")}`,
+        );
+      }
+    }
+    if (lane.handoff !== null && lane.handoff !== undefined && !hasText(lane.handoff)) {
+      errors.push(`execution_sub_lanes.${laneName}.handoff must be a path or null`);
+    } else if (
+      hasText(lane.handoff) &&
+      stage === "active" &&
+      !existsSync(join(featureDirPath, lane.handoff))
+    ) {
+      errors.push(`execution_sub_lanes.${laneName} handoff file is missing: ${lane.handoff}`);
+    }
+
+    if (
+      lane.linear_issues !== undefined &&
+      (!Array.isArray(lane.linear_issues) || lane.linear_issues.some((issue) => !hasText(issue)))
+    ) {
+      errors.push(`execution_sub_lanes.${laneName}.linear_issues must be an array of issue identifiers`);
+    }
+
+    if (lane.linear === undefined || lane.linear === null) {
+      continue;
+    }
+    if (typeof lane.linear !== "object" || Array.isArray(lane.linear)) {
+      errors.push(`execution_sub_lanes.${laneName}.linear must be an object`);
+      continue;
+    }
+    const extraLinearKeys = Object.keys(lane.linear).filter(
+      (key) => !["sync", "issue", "parentIssue", "milestone", "dueDate"].includes(key),
+    );
+    if (extraLinearKeys.length > 0) {
+      errors.push(`execution_sub_lanes.${laneName}.linear has unsupported fields: ${extraLinearKeys.join(", ")}`);
+    }
+    if (typeof lane.linear.sync !== "boolean") {
+      errors.push(`execution_sub_lanes.${laneName}.linear.sync must be boolean`);
+    }
+    for (const field of ["issue", "parentIssue"]) {
+      if (!Object.hasOwn(lane.linear, field)) {
+        errors.push(`execution_sub_lanes.${laneName}.linear.${field} is required and may be null`);
+      } else if (lane.linear[field] !== null && !hasText(lane.linear[field])) {
+        errors.push(`execution_sub_lanes.${laneName}.linear.${field} must be a string or null`);
+      }
+    }
+    validateLinearSchedule(status, lane.linear, `execution_sub_lanes.${laneName}.linear`, errors);
+    const issue = normalizedLinearIssue(lane.linear.issue);
+    const parentIssue = normalizedLinearIssue(lane.linear.parentIssue);
+    if (Array.isArray(lane.linear_issues)) {
+      const compatibilityIssues = new Set(lane.linear_issues.map(normalizedLinearIssue).filter(Boolean));
+      if (issue && !compatibilityIssues.has(issue)) {
+        errors.push(`execution_sub_lanes.${laneName}.linear_issues must include linear.issue ${issue}`);
+      }
+      if (parentIssue && !compatibilityIssues.has(parentIssue)) {
+        errors.push(`execution_sub_lanes.${laneName}.linear_issues must include linear.parentIssue ${parentIssue}`);
+      }
+    }
+    if (lane.linear.sync === true && parentIssue) {
+      if (!canonicalParent) {
+        errors.push(
+          `execution_sub_lanes.${laneName}.linear.parentIssue cannot be set without a canonical linear.parentIssue`,
+        );
+      } else if (parentIssue !== canonicalParent) {
+        errors.push(
+          `execution_sub_lanes.${laneName}.linear.parentIssue must match canonical parent ${canonicalParent} or be null`,
+        );
+      }
+    }
+    if (issue && issue === canonicalParent) {
+      errors.push(`execution_sub_lanes.${laneName}.linear.issue cannot reuse the canonical parent issue`);
+    }
+    if (issue) {
+      const previousOwner = issueOwners.get(issue);
+      if (previousOwner) {
+        errors.push(
+          `execution_sub_lanes.${laneName}.linear.issue duplicates ${issue} already used by ${previousOwner}`,
+        );
+      } else {
+        issueOwners.set(issue, `execution_sub_lanes.${laneName}`);
+      }
+    }
+    if (lane.linear.sync === true && !hasText(lane.handoff)) {
+      errors.push(`execution_sub_lanes.${laneName}.handoff is required when linear.sync is true`);
     }
   }
 }
@@ -1012,50 +1593,126 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
     errors.push(`workflow.priority must be one of ${Array.from(VALID_PRIORITIES).join(", ")}`);
   }
 
+  if (!status.links || typeof status.links !== "object" || Array.isArray(status.links)) {
+    errors.push("links is required");
+  } else {
+    for (const role of REQUIRED_LINK_ROLES) {
+      if (typeof status.links[role] !== "string" || status.links[role].length === 0) {
+        errors.push(`links.${role} is required`);
+      }
+    }
+
+    if (stage === "archive") {
+      const nestedLinks = Object.values(status.links).filter(
+        (link) => typeof link === "string" && (link.includes("/") || link.includes("\\")),
+      );
+      if (nestedLinks.length > 0) {
+        errors.push(`archive links must reference top-level files: ${nestedLinks.join(", ")}`);
+      }
+    }
+  }
+
+  if (stage === "archive") {
+    if (status.workflow.overall_status !== "done") {
+      errors.push('archive workflow.overall_status must be "done"');
+    }
+    if (!hasText(status.workflow.archived_at) || Number.isNaN(Date.parse(status.workflow.archived_at))) {
+      errors.push("archive workflow.archived_at must be an ISO date");
+    }
+    if (!hasText(status.workflow.archive_reason)) {
+      errors.push("archive workflow.archive_reason is required");
+    }
+    if (!VALID_ARCHIVE_RESOLUTIONS.has(status.workflow.resolution)) {
+      errors.push(
+        `archive workflow.resolution must be one of ${Array.from(VALID_ARCHIVE_RESOLUTIONS).join(", ")}`,
+      );
+    }
+    if (
+      status.workflow.resolution === "completed" &&
+      Object.values(status.lanes).some((lane) => !DONE_LANE_STATUSES.has(lane.status))
+    ) {
+      errors.push("archive resolution completed requires every lane to be terminal");
+    }
+    if (status.notes !== undefined) {
+      errors.push("archive status must fold notes into the final plan or archive_reason");
+    }
+    const extraStatusKeys = Object.keys(status).filter((key) => !ARCHIVE_STATUS_KEYS.has(key));
+    if (extraStatusKeys.length > 0) {
+      errors.push(`archive status has noncanonical fields: ${extraStatusKeys.join(", ")}`);
+    }
+    const extraLinearKeys = Object.keys(status.linear || {}).filter((key) => !ARCHIVE_LINEAR_KEYS.has(key));
+    if (extraLinearKeys.length > 0) {
+      errors.push(`archive Linear metadata has noncanonical fields: ${extraLinearKeys.join(", ")}`);
+    }
+    if ((status.history || []).length > 1) {
+      errors.push("archive status history must contain only the final archive event");
+    }
+    for (const [laneName, lane] of Object.entries(status.lanes)) {
+      const extraKeys = Object.keys(lane).filter((key) => key !== "owner" && key !== "status");
+      if (extraKeys.length > 0) {
+        errors.push(`archive lane "${laneName}" has operational fields: ${extraKeys.join(", ")}`);
+      }
+    }
+    if (/\.plans\/(active|backlog|ideas)\//.test(JSON.stringify(status))) {
+      errors.push("archive status must not reference live plan paths");
+    }
+  }
+
   validateTaxonomy(status, knownSlugs, errors);
   validateLinear(status, errors);
+  validateExecutionSubLanes(status, featureDirPath, stage, errors);
 
-  for (const requiredLane of Object.keys(LANE_BRANCHES)) {
-    if (!status.lanes[requiredLane]) {
-      errors.push(`missing lane "${requiredLane}"`);
-      continue;
+  if (stage !== "archive") {
+    for (const requiredLane of Object.keys(LANE_BRANCHES)) {
+      if (!status.lanes[requiredLane]) {
+        errors.push(`missing lane "${requiredLane}"`);
+        continue;
+      }
+
+      const lane = status.lanes[requiredLane];
+      if (!VALID_LANE_STATUSES.has(lane.status)) {
+        errors.push(`lane "${requiredLane}" has invalid status "${lane.status}"`);
+      }
+
+      const expectedBranch = LANE_BRANCHES[requiredLane](slug);
+      if (lane.branch !== expectedBranch) {
+        errors.push(`lane "${requiredLane}" branch must be "${expectedBranch}"`);
+      }
     }
 
-    const lane = status.lanes[requiredLane];
-    if (!VALID_LANE_STATUSES.has(lane.status)) {
-      errors.push(`lane "${requiredLane}" has invalid status "${lane.status}"`);
-    }
-
-    const expectedBranch = LANE_BRANCHES[requiredLane](slug);
-    if (lane.branch !== expectedBranch) {
-      errors.push(`lane "${requiredLane}" branch must be "${expectedBranch}"`);
-    }
-  }
-
-  if (status.lanes.qa_pass_2?.branch_trigger !== LANE_BRANCHES.qa_pass_1(slug)) {
-    errors.push(`qa_pass_2.branch_trigger must be "${LANE_BRANCHES.qa_pass_1(slug)}"`);
-  }
-
-  for (const linkKey of Object.keys(status.links)) {
-    const linkPath = join(featureDirPath, status.links[linkKey]);
-    if (!existsSync(linkPath)) {
-      errors.push(`missing linked file "${status.links[linkKey]}"`);
+    if (status.lanes.qa_pass_2?.branch_trigger !== LANE_BRANCHES.qa_pass_1(slug)) {
+      errors.push(`qa_pass_2.branch_trigger must be "${LANE_BRANCHES.qa_pass_1(slug)}"`);
     }
   }
 
-  for (const [laneName, lane] of Object.entries(status.lanes)) {
-    if (typeof lane.handoff !== "string" || lane.handoff.length === 0) {
-      errors.push(`lane "${laneName}" is missing a handoff path`);
-      continue;
+  if (status.links && typeof status.links === "object" && !Array.isArray(status.links)) {
+    for (const linkKey of Object.keys(status.links)) {
+      const linkPath = join(featureDirPath, status.links[linkKey]);
+      if (!existsSync(linkPath)) {
+        errors.push(`missing linked file "${status.links[linkKey]}"`);
+      }
     }
+  }
 
-    if (!lane.handoff.startsWith("handoffs/")) {
-      errors.push(`lane "${laneName}" handoff must live under handoffs/`);
-    } else if (requiresHandoffFile(status) && !existsSync(join(featureDirPath, lane.handoff))) {
-      errors.push(`lane "${laneName}" handoff file is missing: ${lane.handoff}`);
+  if (stage !== "archive") {
+    for (const [laneName, lane] of Object.entries(status.lanes)) {
+      if (typeof lane.handoff !== "string" || lane.handoff.length === 0) {
+        errors.push(`lane "${laneName}" is missing a handoff path`);
+        continue;
+      }
+
+      if (!lane.handoff.startsWith("handoffs/")) {
+        errors.push(`lane "${laneName}" handoff must live under handoffs/`);
+      } else if (
+        stage === "active" &&
+        requiresHandoffFile(status) &&
+        !existsSync(join(featureDirPath, lane.handoff))
+      ) {
+        errors.push(`lane "${laneName}" handoff file is missing: ${lane.handoff}`);
+      }
+
+      validateLaneTdd(status, laneName, lane, stage, errors);
     }
-
-    validateLaneTdd(status, laneName, lane, stage, errors);
   }
 
   return errors;
@@ -1074,9 +1731,6 @@ function scaffoldFeature(slug, flags) {
   }
 
   mkdirSync(targetDir, { recursive: true });
-  mkdirSync(join(targetDir, "handoffs"), { recursive: true });
-  mkdirSync(join(targetDir, "reports"), { recursive: true });
-  mkdirSync(join(targetDir, "artifacts"), { recursive: true });
 
   const replacements = {
     FEATURE_SLUG: slug,
@@ -1091,12 +1745,9 @@ function scaffoldFeature(slug, flags) {
   applyTemplate("plan.todo.md", targetDir, replacements);
   applyTemplate("eval.md", targetDir, replacements);
   applyTemplate("status.json", targetDir, replacements);
-  applyTemplate(join("handoffs", "README.md"), targetDir, replacements);
-  applyTemplate(join("handoffs", "claude-ui.md"), targetDir, replacements);
-  applyTemplate(join("handoffs", "codex-state-api.md"), targetDir, replacements);
-  applyTemplate(join("handoffs", "codex-contracts.md"), targetDir, replacements);
-  applyTemplate(join("handoffs", "claude-qa-pass-1.md"), targetDir, replacements);
-  applyTemplate(join("handoffs", "codex-qa-pass-2.md"), targetDir, replacements);
+  if (stage === "active") {
+    ensureActiveHandoffFiles(targetDir, replacements);
+  }
 
   const statusFile = statusPathForDir(targetDir);
   const status = loadJson(statusFile);
@@ -1118,6 +1769,11 @@ function moveFeature(flags) {
   const slug = requireFlag(flags, "feature");
   const toStage = requireFlag(flags, "to");
   assertMoveStage(toStage);
+  if (toStage === "archive" && flags.resolution && !VALID_ARCHIVE_RESOLUTIONS.has(flags.resolution)) {
+    fail(
+      `Invalid archive resolution "${flags.resolution}". Expected one of: ${Array.from(VALID_ARCHIVE_RESOLUTIONS).join(", ")}`,
+    );
+  }
 
   const found = findFeature(slug);
   if (found.stage === toStage) {
@@ -1129,11 +1785,18 @@ function moveFeature(flags) {
     fail(`Destination already exists: ${destinationDir}`);
   }
 
-  renameSync(found.dir, destinationDir);
-  const { path, status } = readFeatureStatus(destinationDir);
+  const { status } = readFeatureStatus(found.dir);
+  const movedAt = nowIso();
   status.feature.stage = toStage;
   status.workflow.overall_status = STAGE_TO_STATUS[toStage];
-  status.workflow.updated_at = nowIso();
+  status.workflow.updated_at = movedAt;
+  if (toStage === "archive") {
+    const allLanesDone = Object.values(status.lanes).every((lane) => DONE_LANE_STATUSES.has(lane.status));
+    const resolution = flags.resolution || (allLanesDone ? "completed" : "closed");
+    status.workflow.archived_at = movedAt;
+    status.workflow.archive_reason = flags.reason || (allLanesDone ? "Completed and archived." : "Closed and archived.");
+    status.workflow.resolution = resolution;
+  }
   status.history.push(
     historyEntry({
       actor: "human",
@@ -1143,7 +1806,31 @@ function moveFeature(flags) {
     }),
   );
   refreshLaneStatuses(status);
-  saveJson(path, status);
+
+  if (toStage === "archive") {
+    const errors = validateFeatureStatus(compactArchiveStatus(structuredClone(status)), found.dir, toStage);
+    if (errors.length > 0) {
+      fail(errors.join("\n"));
+    }
+  }
+
+  mkdirSync(planStageDir(toStage), { recursive: true });
+  renameSync(found.dir, destinationDir);
+  if (toStage === "active") {
+    ensureActiveHandoffFiles(destinationDir, {
+      FEATURE_SLUG: slug,
+      FEATURE_TITLE: status.feature.title,
+      STAGE: toStage,
+      DATE: movedAt,
+      WORKFLOW_STATUS: STAGE_TO_STATUS[toStage],
+    });
+  }
+  if (toStage === "archive") {
+    compactArchiveFeature(destinationDir, status);
+    compactArchiveStatus(status);
+    markArchivedDocuments(destinationDir, status);
+  }
+  saveJson(statusPathForDir(destinationDir), status);
 
   console.log(`Moved ${slug} to .plans/${toStage}/`);
   if (toStage === "backlog" || toStage === "active") {
@@ -1211,6 +1898,83 @@ function summary(flags) {
     });
 
   printFeatureSummary(matches, Boolean(flags.json));
+}
+
+function stale(flags) {
+  const days = flags.days === undefined ? 14 : Number(flags.days);
+  if (!Number.isFinite(days) || days <= 0) {
+    fail("--days must be a positive number");
+  }
+
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const matches = STAGES.flatMap((stage) => featureRecords(stage))
+    .map((record) => {
+      const updatedAt = Date.parse(record.status.workflow.updated_at);
+      return {
+        slug: record.status.feature.slug,
+        title: record.status.feature.title,
+        stage: record.status.feature.stage,
+        priority: record.status.workflow.priority,
+        overall_status: record.status.workflow.overall_status,
+        updated_at: record.status.workflow.updated_at,
+        age_days: Number.isNaN(updatedAt) ? null : Math.floor((Date.now() - updatedAt) / (24 * 60 * 60 * 1000)),
+        path: record.dir,
+        updatedAt,
+      };
+    })
+    .filter((record) => Number.isNaN(record.updatedAt) || record.updatedAt < cutoff)
+    .sort((left, right) => (left.updatedAt || 0) - (right.updatedAt || 0));
+
+  const output = matches.map(({ updatedAt: _updatedAt, ...record }) => record);
+  if (flags.json) {
+    console.log(JSON.stringify(output, null, 2));
+    return;
+  }
+
+  if (output.length === 0) {
+    console.log(`No live plan hubs are older than ${days} days.`);
+    return;
+  }
+
+  for (const record of output) {
+    console.log(
+      `${record.slug} | ${record.stage} | ${record.priority} | ${record.age_days ?? "invalid-date"}d | ${record.updated_at} | ${record.path}`,
+    );
+  }
+}
+
+function compactArchive() {
+  const records = featureRecords("archive");
+  const failures = [];
+  const knownSlugs = formalFeatureSlugs();
+
+  for (const record of records) {
+    const errors = validateFeatureStatus(record.status, record.dir, "archive", knownSlugs).filter(
+      (error) =>
+        !error.startsWith("archive status must fold notes") &&
+        !error.startsWith("archive status has noncanonical fields") &&
+        !error.startsWith("archive Linear metadata has noncanonical fields") &&
+        !error.startsWith("archive status history must contain") &&
+        !error.startsWith("archive lane ") &&
+        !error.startsWith("archive status must not reference live plan paths"),
+    );
+    for (const error of errors) {
+      failures.push(`${record.dir}: ${error}`);
+    }
+  }
+
+  if (failures.length > 0) {
+    fail(failures.join("\n"));
+  }
+
+  for (const record of records) {
+    const status = compactArchiveStatus(record.status);
+    compactArchiveFeature(record.dir, status);
+    markArchivedDocuments(record.dir, status);
+    saveJson(statusPathForDir(record.dir), status);
+  }
+
+  console.log(`Compacted ${records.length} archived feature hub${records.length === 1 ? "" : "s"}.`);
 }
 
 function setLane(flags) {
@@ -1363,17 +2127,40 @@ function parseLaneIssueSpec(spec) {
   return { laneName, issue };
 }
 
+function parseExecutionLaneIssueSpec(spec) {
+  if (typeof spec !== "string" || !spec.includes("=")) {
+    fail(`Invalid --execution-lane value "${spec}". Expected <sub-lane>=<Linear issue>.`);
+  }
+
+  const [rawLane, ...issueParts] = spec.split("=");
+  const laneName = rawLane.trim();
+  const issue = issueParts.join("=").trim();
+  if (!EXECUTION_SUB_LANE_NAME.test(laneName) || !hasText(issue)) {
+    fail(`Invalid --execution-lane value "${spec}". Expected <sub-lane>=<Linear issue>.`);
+  }
+
+  return { laneName, issue };
+}
+
 function recordLinear(flags) {
   const slug = requireFlag(flags, "feature");
   const actor = flags.actor || "human";
   const parentIssue = normalizedLinearIssue(flags.parent);
   const laneIssues = valuesForFlag(flags, "lane").map(parseLaneIssueSpec);
+  const executionLaneIssues = valuesForFlag(flags, "execution-lane").map(parseExecutionLaneIssueSpec);
   const laneSyncMode = normalizeLinearLaneSyncMode(flags["lane-sync-mode"]);
   const project = normalizedLinearIssue(flags.project);
   const initiative = normalizedLinearIssue(flags.initiative);
 
-  if (!parentIssue && laneIssues.length === 0 && !laneSyncMode && !project && !initiative) {
-    fail("record-linear requires --parent, --lane, --lane-sync-mode, --project, or --initiative.");
+  if (
+    !parentIssue &&
+    laneIssues.length === 0 &&
+    executionLaneIssues.length === 0 &&
+    !laneSyncMode &&
+    !project &&
+    !initiative
+  ) {
+    fail("record-linear requires --parent, --lane, --execution-lane, --lane-sync-mode, --project, or --initiative.");
   }
 
   const found = findFeature(slug);
@@ -1386,7 +2173,7 @@ function recordLinear(flags) {
     const hasLegacyParentAlias = !normalizedLinearIssue(linear.parentIssue) && normalizedLinearIssue(linear.issue);
     const effectiveLaneSyncMode = laneSyncMode || linearLaneSyncMode(linear);
 
-    if (laneIssues.length > 0 && effectiveLaneSyncMode === "parent_only") {
+    if ((laneIssues.length > 0 || executionLaneIssues.length > 0) && effectiveLaneSyncMode === "parent_only") {
       validationErrors = [
         "record-linear cannot record lane issue IDs while linear.laneSyncMode is parent_only. Pass --lane-sync-mode lane_issues only after explicitly expanding the Linear footprint.",
       ];
@@ -1420,6 +2207,29 @@ function recordLinear(flags) {
         ...(linear.lanes[laneName] && typeof linear.lanes[laneName] === "object" ? linear.lanes[laneName] : {}),
         issue,
       };
+    }
+
+    for (const { laneName, issue } of executionLaneIssues) {
+      const lane = status.execution_sub_lanes?.[laneName];
+      if (!lane) {
+        validationErrors = [`record-linear cannot find execution sub-lane "${laneName}".`];
+        return;
+      }
+      const previousIssue = normalizedLinearIssue(lane.linear?.issue);
+      lane.linear = {
+        ...(lane.linear && typeof lane.linear === "object" && !Array.isArray(lane.linear) ? lane.linear : {}),
+        issue,
+      };
+      const parentIssue = normalizedLinearIssue(lane.linear.parentIssue);
+      const retainedCompatibilityIssues = Array.isArray(lane.linear_issues)
+        ? lane.linear_issues
+            .map(normalizedLinearIssue)
+            .filter(
+              (candidate) =>
+                candidate && candidate !== previousIssue && candidate !== issue && candidate !== parentIssue,
+            )
+        : [];
+      lane.linear_issues = [...new Set([issue, parentIssue, ...retainedCompatibilityIssues].filter(Boolean))];
     }
 
     status.linear = linear;
@@ -1466,7 +2276,13 @@ function checkBranch(flags) {
 function validate() {
   const failures = [];
   let checked = 0;
-  const records = STAGES.flatMap((stage) => featureRecords(stage));
+  validatePlanRootStructure(failures);
+  for (const stage of VALIDATION_STAGES) {
+    validateStageStructure(stage, failures);
+  }
+  validateFencedYaml(failures);
+
+  const records = VALIDATION_STAGES.flatMap((stage) => featureRecords(stage));
   const knownSlugs = new Set(records.map((record) => record.status.feature.slug));
 
   for (const record of records) {
@@ -1523,6 +2339,12 @@ switch (command) {
     break;
   case "summary":
     summary(flags);
+    break;
+  case "stale":
+    stale(flags);
+    break;
+  case "compact-archive":
+    compactArchive();
     break;
   case "check-branch":
     checkBranch(flags);
