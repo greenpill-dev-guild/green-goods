@@ -789,6 +789,17 @@ function linearStateForLane(status, lane) {
   return linearStateForStage(status.feature.stage);
 }
 
+function linearStateForParent(status, laneSyncMode) {
+  if (
+    laneSyncMode === "parent_only" &&
+    Object.values(status.lanes || {}).some((lane) => lane?.status === "in_progress")
+  ) {
+    return "In Progress";
+  }
+
+  return linearStateForStage(status.feature.stage);
+}
+
 function planRelativeDir(status) {
   return `.plans/${status.feature.stage}/${status.feature.slug}/`;
 }
@@ -970,7 +981,7 @@ function buildLinearSyncManifest(status) {
     issue: parentIssue,
     title: `plan: ${normalized.feature.title}`,
     team,
-    state: linearStateForStage(normalized.feature.stage),
+    state: linearStateForParent(normalized, laneSyncMode),
     priority,
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,

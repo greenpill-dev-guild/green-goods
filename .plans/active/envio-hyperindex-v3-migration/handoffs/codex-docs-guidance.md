@@ -6,20 +6,20 @@
 
 ## Objective
 
-Update all durable developer guidance to match the installed Envio v3 runtime.
+Update only durable developer guidance required to operate the installed Envio 3.2.1 runtime.
 
 ## Required Work
 
 - Update package docs and builder docs that mention Envio version, codegen, generated setup, Docker flow, tests, and CI.
 - Update environment docs if v3 adds or renames indexer env keys.
-- Update canonical `.claude` indexer context/skill guidance first.
-- Indexer guidance lives in `.claude/context/indexer.md`; the `.agents/skills` symlink shares skills automatically (`skills:sync` retired).
-- Do not hand-edit `.agents/skills` at all — it is a symlink to `.claude/skills`; edit the canonical tree and the symlink reflects it automatically.
+- Update canonical `.claude` indexer guidance only where the migration changes real commands or
+  runtime contracts.
+- Do not create package-local Envio skill copies.
+- Do not hand-edit `.agents/skills`; it is a symlink to `.claude/skills`.
 
 ## Validation
 
 ```bash
-bun run check:skills
 node scripts/quality/check-codex-docs.js
 bun run build:docs
 bun run docs:audit:ci

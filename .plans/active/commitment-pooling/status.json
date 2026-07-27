@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-27T04:41:47.021Z"
+    "updated_at": "2026-07-27T17:43:53.472Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -57,7 +57,7 @@
         "milestone": "release"
       }
     },
-    "lastSyncedAt": "2026-07-27T04:41:47.021Z",
+    "lastSyncedAt": "2026-07-27T17:43:53.471Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
@@ -95,7 +95,9 @@
       "docs/docs",
       ".plans/active/community-interface"
     ],
-    "depends_on_features": []
+    "depends_on_features": [
+      "envio-hyperindex-v3-migration"
+    ]
   },
   "notes": [
     "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md register #28.",
@@ -146,7 +148,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Approved prerequisite order: do not dispatch PRD-721 until corrected PR #649 completes the Envio 3.2.1 migration, the Steward contract/live-hat work in PRD-747/748 and the deferred GreenWill broadcast in PRD-575 are complete, and Afo closes the final PRD-649 architecture fine-comb.",
+      "blocked_reason": "Approved prerequisite order: do not dispatch PRD-721 until PRD-557 lands corrected PR #649 with Envio 3.2.1 proof, the Steward contract/live-hat work in PRD-747/748 and the deferred GreenWill broadcast in PRD-575 are complete, and Afo closes the final PRD-649 architecture fine-comb.",
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -288,7 +290,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Approved prerequisite order: corrected PR #649 and its Envio 3.2.1 proof first; then PRD-747/748 Steward contract/live-hat work and PRD-575 GreenWill broadcast; then Afo's final PRD-649 architecture fine-comb. PRD-721 stays Todo and cannot dispatch before all four gates close.",
+      "blocked_reason": "Approved prerequisite order: PRD-557 lands corrected PR #649 and its Envio 3.2.1 proof first; then PRD-747/748 Steward contract/live-hat work and PRD-575 GreenWill broadcast; then Afo's final PRD-649 architecture fine-comb. PRD-721 stays Todo and cannot dispatch before all four gates close.",
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -334,7 +336,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
-      "blocked_reason": "Two-phase gate: the independent local spec review is complete; pooling-core handlers may start only after corrected PR #649 (envio@3.2.1) lands, live mirror convergence/re-read completes, and pooling events freeze. Settlement handlers wait for settlement events. Full GREEN requires both slices, generated query freeze, and the Garden-ID replay/cutover/rollback proof.",
+      "blocked_reason": "Two-phase gate: the independent local spec review is complete; pooling-core handlers may start only after PRD-557 lands corrected PR #649 (envio@3.2.1), live mirror convergence/re-read completes, and pooling events freeze. Settlement handlers wait for settlement events. Full GREEN requires both slices, generated query freeze, and the Garden-ID replay/cutover/rollback proof.",
       "branch": "codex/indexer/commitment-pooling",
       "depends_on": [
         "contracts"
@@ -819,6 +821,22 @@
     },
     {
       "timestamp": "2026-07-27T04:41:47.021Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-27T08:25:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "refreshed",
+      "branch": null,
+      "note": "PRD-557 was restored as the explicit Envio 3.2.1 foundation tracker and linked to active plan hub envio-hyperindex-v3-migration. It owns corrected PR #649 and blocks PRD-721 and PRD-722; PRD-722 remains the later Commitment Pooling indexer lane. No implementation, install, merge, deployment, or reindex was authorized by this tracker refresh."
+    },
+    {
+      "timestamp": "2026-07-27T17:43:53.472Z",
       "actor": "codex",
       "lane": "system",
       "status": "linear_recorded",

@@ -654,12 +654,14 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
       laneSyncMode: "parent_only",
       lastSyncedAt: "2026-07-06T00:00:00.000Z",
     };
+    status.lanes.ui.status = "in_progress";
     writeStatus(root, "active", "parent-only-linear", status);
 
     const sync = runPlanHub(root, ["linear-sync", "--feature", "parent-only-linear", "--json"]);
     assert.equal(sync.status, 0, sync.stderr);
     const manifest = JSON.parse(sync.stdout);
     assert.equal(manifest.parent.issue, "PRD-900");
+    assert.equal(manifest.parent.state, "In Progress");
     assert.match(manifest.parent.description, /intentionally does not create or update lane issues/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
