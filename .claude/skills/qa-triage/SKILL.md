@@ -68,7 +68,7 @@ summary. Keep scratch for dry runs, failures, or incomplete runs so they can be 
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
-   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `agent:claude`, `agent:codex`, `agent:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
+   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `ai:claude`, `ai:codex`, `ai:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
 3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. **Skipped in `--fixture` mode.**
 
@@ -278,7 +278,7 @@ For each locked item, draft payloads using [`linear-templates.md`](./linear-temp
 
 Linear enforces three constraints the skill's older design didn't account for. Apply these before drafting labels and Customer Needs:
 
-1. **`agent:*` is single-value-per-Issue.** Only ONE of `agent:claude`, `agent:codex`, `agent:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `agent:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `agent:routine` / the originating agent.
+1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
 
 2. **`package:*` is single-value-per-Issue.** Only ONE `package:*` may be applied. When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the body's `## Surface` section with a one-line note explaining the constraint.
 
@@ -300,12 +300,12 @@ Title shape for track-only Issues: prefix `[tracking]`, then use an action-verb-
 
 Single bulk prompt up front, then surface only the items where the proposed assignee differs from the default — never ask 27 separate questions.
 
-> Default assignee for all N filed Issues: (a) Afo, (b) `agent:claude`, (c) unassigned, (d) other engineer (name).
-> Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:agent:claude, 18:unassigned` or `confirm` to accept the default for everything.
+> Default assignee for all N filed Issues: (a) Afo, (b) `ai:claude`, (c) unassigned, (d) other engineer (name).
+> Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:ai:claude, 18:unassigned` or `confirm` to accept the default for everything.
 
-Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `agent:claude`). The user sees only items that need a decision, not the whole list.
+Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is `ai:claude`). The user sees only items that need a decision, not the whole list.
 
-Recall `agent:*` is single-value: when delegate (`agent:claude` / `agent:codex`) is chosen, the originating agent is implicit and goes in the body's `## Provenance` section. The interactive skill running in Claude Code is the origin by default.
+Recall `ai:*` is single-value: when delegate (`ai:claude` / `ai:codex`) is chosen, the originating agent is implicit and goes in the body's `## Provenance` section. The interactive skill running in Claude Code is the origin by default.
 
 **Per-item preference capture (subtle)**:
 
@@ -350,7 +350,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
    - **`save_issue` `labels` is REPLACE, not append** (verified 2026-05-14). When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
-   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `agent:*` (delegate-to wins).
+   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `ai:*` (delegate-to wins).
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
 
@@ -409,7 +409,7 @@ Write `report.md` and print:
 <status: dispatched (worktree path, result file) | prompt emitted (path) | skipped | failed>
 
 ### Next step
-- Spawn implementation sessions for `agent:claude`-labelled Issues, or
+- Spawn implementation sessions for `ai:claude`-labelled Issues, or
 - Sync with the team on the deferred items, or
 - Done.
 ```
@@ -442,7 +442,7 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 | Block on Codex failure | Codex is auxiliary — log it and continue with manual prompt fallback |
 | Treat the Drive MCP's natural-language flatten as authoritative for Sheet column order | Cache the actual column order to `~/.config/qa-triage/cache.json` on first read |
 | Run without the Sheet permission check | Skipping that check is how session IDs leak |
-| Apply multiple `agent:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label and put the secondary in the body's `## Provenance` / `## Surface` section |
+| Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families; the API silently drops the second label OR rejects the write entirely. Pick the most actionable label and put the secondary in the body's `## Provenance` / `## Surface` section |
 | Create a Customer Need without an `issue` (or `project`) parameter | Linear API rejects with `Exactly one of projectId or issueId must be defined`. If the extracted item has no actionable Issue, create a lightweight `activity:maintenance` Backlog Issue first as the attach point |
 | Request workspace-level label-group config changes from inside the skill | The single-value-per-group constraint is a workspace setting in Linear. Changing it (to multi-value) is a config decision for the workspace owner, not a skill change. Document the constraint and work within it |
 
