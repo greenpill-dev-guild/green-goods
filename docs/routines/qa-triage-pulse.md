@@ -18,7 +18,7 @@ connectors:
   - linear        # Customer Need + Backlog tracking-Issue pre-staging only
   - posthog       # per-surface telemetry cross-reference
   - vercel        # deploy correlation for PostHog-matched items (gated on first_seen)
-model: claude-opus-4-8[1m]
+model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Customer Needs only; no PRs, no Sheet writes, no GitHub Issues
 last_updated: "2026-06-10"
 last_verified: "2026-05-13"
