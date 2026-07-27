@@ -43,6 +43,10 @@ const ALLOWED_CONTRACT_EVENTS = {
 };
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
+const REQUIRED_CHAIN_BOUNDARIES = new Map([
+  [42161, { startBlock: 433_713_812, endBlock: undefined }],
+  [11155111, { startBlock: 10_243_363, endBlock: undefined }],
+]);
 
 const DISALLOWED_SCHEMA_ENTITIES = [
   "GardenHatTree",
@@ -133,15 +137,92 @@ async function main() {
     }
   }
 
-  const networks = Array.isArray(config?.networks) ? config.networks : [];
-  for (const network of networks) {
-    const networkId = network?.id ?? "unknown";
-    const networkContracts = Array.isArray(network?.contracts) ? network.contracts : [];
+  const chains = Array.isArray(config?.chains) ? config.chains : [];
+  if (chains.length !== REQUIRED_CHAIN_BOUNDARIES.size) {
+    errors.push(
+      `Expected ${REQUIRED_CHAIN_BOUNDARIES.size} configured chains, found ${chains.length}`
+    );
+  }
 
-    for (const networkContract of networkContracts) {
-      const name = String(networkContract?.name || "");
+  for (const chain of chains) {
+    const chainId = Number(chain?.id);
+    const requiredBoundary = REQUIRED_CHAIN_BOUNDARIES.get(chainId);
+    const chainContracts = Array.isArray(chain?.contracts) ? chain.contracts : [];
+
+    if (!requiredBoundary) {
+      errors.push(`Unexpected chain in config.yaml: ${chain?.id ?? "unknown"}`);
+      continue;
+    }
+
+    if (Number(chain?.start_block) !== requiredBoundary.startBlock) {
+      errors.push(
+        `Chain ${chainId} start_block changed: expected ${requiredBoundary.startBlock}, found ${chain?.start_block ?? "missing"}`
+      );
+    }
+
+    if (chain?.end_block !== requiredBoundary.endBlock) {
+      errors.push(
+        `Chain ${chainId} end_block changed: expected none, found ${chain.end_block}`
+      );
+    }
+
+    for (const chainContract of chainContracts) {
+      const name = String(chainContract?.name || "");
       if (!ALLOWED_CONTRACTS.has(name)) {
-        errors.push(`Network ${networkId} includes disallowed contract: ${name}`);
+        errors.push(`Chain ${chainId} includes disallowed contract: ${name}`);
+      }
+    }
+
+    const octantVault = chainContracts.find((contract) => contract?.name === "OctantVault");
+    if (!octantVault) {
+      errors.push(`Chain ${chainId} is missing the dynamic OctantVault contract`);
+    } else if (Object.hasOwn(octantVault, "address")) {
+      errors.push(`Chain ${chainId} OctantVault must omit address for dynamic registration`);
+    }
+
+    const gardenAccount = chainContracts.find((contract) => contract?.name === "GardenAccount");
+    if (!gardenAccount?.address) {
+      errors.push(`Chain ${chainId} is missing the seeded GardenAccount implementation address`);
+    }
+
+    const greenWill = chainContracts.find((contract) => contract?.name === "GreenWill");
+    if (chainId === 42161 && !greenWill?.address) {
+      errors.push("Chain 42161 is missing the GreenWill deployment address");
+    }
+    if (chainId === 11155111 && greenWill) {
+      errors.push("Chain 11155111 must omit undeployed GreenWill");
+    }
+  }
+
+  for (const requiredChainId of REQUIRED_CHAIN_BOUNDARIES.keys()) {
+    if (!chains.some((chain) => Number(chain?.id) === requiredChainId)) {
+      errors.push(`Missing required chain in config.yaml: ${requiredChainId}`);
+    }
+  }
+
+  if (Object.hasOwn(config ?? {}, "networks")) {
+    errors.push("config.yaml still uses the removed V2 networks key");
+  }
+
+  if (Object.hasOwn(config ?? {}, "output")) {
+    errors.push("config.yaml still uses the removed V2 output key");
+  }
+
+  if (Object.hasOwn(config ?? {}, "preRegisterDynamicContracts")) {
+    errors.push("config.yaml still uses the removed V2 preRegisterDynamicContracts key");
+  }
+
+  for (const contract of contracts) {
+    if (Object.hasOwn(contract ?? {}, "preRegisterDynamicContracts")) {
+      errors.push(
+        `Contract ${String(contract?.name || "unknown")} still uses preRegisterDynamicContracts`
+      );
+    }
+    for (const eventEntry of Array.isArray(contract?.events) ? contract.events : []) {
+      if (Object.hasOwn(eventEntry ?? {}, "preRegisterDynamicContracts")) {
+        errors.push(
+          `Event ${String(eventEntry?.event || "unknown")} still uses preRegisterDynamicContracts`
+        );
       }
     }
   }
@@ -175,7 +256,7 @@ async function main() {
   }
 
   console.log(
-    `Indexing boundary check passed: ${contracts.length} contracts validated, ${networks.length} networks validated.`
+    `Indexing boundary check passed: ${contracts.length} contracts validated, ${chains.length} chains validated with preserved block boundaries.`
   );
 }
 

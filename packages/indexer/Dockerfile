@@ -1,7 +1,7 @@
-# Dockerfile for Green Goods Indexer
-# This allows running the indexer in Docker on macOS to avoid system-configuration crate panics
+# Dockerfile for the Green Goods Envio v3 indexer.
+# The build context is the repository root so the checked-in Bun lockfile is authoritative.
 
-FROM node:22-slim
+FROM oven/bun:1.3.14-slim
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,35 +10,14 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep pnpm's exact version aligned with packages/indexer/package.json and the
-# generated Envio workspace. Upgrading pnpm is a separate compatibility boundary.
-RUN npm install -g pnpm@10.33.2
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package.json ./
-COPY generated/package.json ./generated/
-
-# Install root dependencies
-RUN pnpm install --ignore-scripts
-
-# Copy the rest of the source
 COPY . .
 
-# Make scripts executable
-RUN chmod +x scripts/*.sh
+RUN bun install --frozen-lockfile
+RUN bun run --cwd packages/indexer codegen
 
-# Install generated dependencies
-WORKDIR /app/generated
-RUN pnpm install
-
-# Build ReScript code
-RUN pnpm exec rescript build
-
-# Back to root
-WORKDIR /app
+WORKDIR /app/packages/indexer
 
 # Expose ports
 # 9898: Envio dev server
@@ -48,9 +27,5 @@ EXPOSE 9898
 HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=10 \
     CMD curl -f http://localhost:9898/healthz || exit 1
 
-# Use entrypoint to fix ReScript module paths at runtime
-ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
-
-# Use start instead of dev to avoid Docker-in-Docker issues
-# The external docker-compose provides postgres and hasura
-CMD ["pnpm", "exec", "envio", "start"]
+# The external docker-compose provides Postgres and Hasura.
+CMD ["bun", "run", "start"]

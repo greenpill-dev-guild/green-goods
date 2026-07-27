@@ -27,12 +27,16 @@ When updating a relationship, ALWAYS update BOTH sides. If Garden gains a Garden
 
 Events may arrive out of order. Update handlers must create the entity if it doesn't exist yet, not fail silently.
 
-## Rule: Always Use Docker Commands on macOS
+## Rule: Use the Envio v3 Bun Entry Point
 
-Use `bun dev:docker` (not `bun dev`) on macOS. The Envio indexer requires Docker Compose for local development.
+Use `bun run dev` for the standard Envio v3 local runtime. The Bun-first script reads the
+repository-root `.env` and launches Envio through the supported system Node 22 runtime selected by
+`scripts/dev/node-cli.js`. Envio manages PostgreSQL and Hasura through Docker. Use `bun run
+dev:docker` only when validating the package's self-contained Docker image.
 
 ## Rule: Run Codegen After Schema Changes
 
-After modifying `schema.graphql` or `config.yaml`, run `bun codegen` before writing handler code. Generated types will be stale otherwise.
+After modifying `schema.graphql` or `config.yaml`, run `bun run codegen` before writing handler
+code. Generated types will be stale otherwise.
 
 > Full package context: [.claude/context/indexer.md](../context/indexer.md) (Envio patterns, EAS boundary, Docker workflow).

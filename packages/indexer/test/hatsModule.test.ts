@@ -1,11 +1,5 @@
 import assert from "assert";
-import { createRequire } from "module";
-
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, HatsModule, GardenToken } = TestHelpers;
+import { Addresses, createTestIndexer, GardenToken, HatsModule } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -32,7 +26,7 @@ function mockEvent(
 }
 
 function seedGarden(mockDb: any, gardenAddress: string) {
-  return mockDb.entities.Garden.set({
+  mockDb.Garden.set({
     id: gardenAddress,
     chainId: CHAIN_ID,
     tokenAddress: addr(1),
@@ -52,6 +46,7 @@ function seedGarden(mockDb: any, gardenAddress: string) {
     createdAt: 1000,
     gapProjectUID: undefined,
   });
+  return mockDb;
 }
 
 // ============================================================================
@@ -60,7 +55,7 @@ function seedGarden(mockDb: any, gardenAddress: string) {
 
 describe("HatsModule.RoleGranted", () => {
   it("grants Gardener role (role=0)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -71,7 +66,7 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.ok(garden.gardeners.includes(account.toLowerCase()));
@@ -79,7 +74,7 @@ describe("HatsModule.RoleGranted", () => {
   });
 
   it("grants Evaluator role (role=1)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -90,14 +85,14 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.ok(garden.evaluators.includes(account.toLowerCase()));
   });
 
   it("grants Operator role (role=2)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -108,14 +103,14 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.ok(garden.operators.includes(account.toLowerCase()));
   });
 
   it("grants Owner role (role=3)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -126,14 +121,14 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.ok(garden.owners.includes(account.toLowerCase()));
   });
 
   it("grants Funder role (role=4)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -144,14 +139,14 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.ok(garden.funders.includes(account.toLowerCase()));
   });
 
   it("grants Community role (role=5)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -162,14 +157,14 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.ok(garden.communities.includes(account.toLowerCase()));
   });
 
   it("does not add duplicate addresses to role arrays", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event1 = HatsModule.RoleGranted.createMockEvent({
@@ -190,14 +185,14 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event: event2, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.equal(garden.operators.length, 1);
   });
 
   it("creates default garden when garden not found", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
     const account = addr(20);
 
@@ -209,7 +204,7 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(gardenAddress);
+    const garden = await mockDb.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.initialized, false);
@@ -217,7 +212,7 @@ describe("HatsModule.RoleGranted", () => {
   });
 
   it("ignores unknown role numbers (no change)", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const event = HatsModule.RoleGranted.createMockEvent({
@@ -228,7 +223,7 @@ describe("HatsModule.RoleGranted", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
     assert.deepEqual(garden.gardeners, []);
@@ -246,7 +241,7 @@ describe("HatsModule.RoleGranted", () => {
 
 describe("HatsModule.RoleGranted — Gardener entity", () => {
   it("creates a new Gardener entity on first garden join", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
@@ -258,7 +253,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
-    const gardener = mockDb.entities.Gardener.get(gardenerId);
+    const gardener = await mockDb.Gardener.get(gardenerId);
 
     assert.ok(gardener);
     assert.equal(gardener.chainId, CHAIN_ID);
@@ -270,7 +265,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
   });
 
   it("adds second garden to existing Gardener", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     mockDb = seedGarden(mockDb, addr(11));
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
@@ -293,7 +288,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     });
     mockDb = await HatsModule.RoleGranted.processEvent({ event: event2, mockDb });
 
-    const gardener = mockDb.entities.Gardener.get(gardenerId);
+    const gardener = await mockDb.Gardener.get(gardenerId);
     assert.ok(gardener);
     assert.equal(gardener.gardens.length, 2);
     assert.ok(gardener.gardens.includes(addr(10)));
@@ -302,7 +297,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
   });
 
   it("does not duplicate garden in Gardener.gardens", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
@@ -323,13 +318,13 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     });
     mockDb = await HatsModule.RoleGranted.processEvent({ event: event2, mockDb });
 
-    const gardener = mockDb.entities.Gardener.get(gardenerId);
+    const gardener = await mockDb.Gardener.get(gardenerId);
     assert.ok(gardener);
     assert.equal(gardener.gardens.length, 1);
   });
 
   it("does not create Gardener entity for non-gardener roles", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
 
@@ -341,7 +336,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
     });
     mockDb = await HatsModule.RoleGranted.processEvent({ event, mockDb });
 
-    const gardener = mockDb.entities.Gardener.get(gardenerId);
+    const gardener = await mockDb.Gardener.get(gardenerId);
     assert.equal(gardener, undefined);
   });
 });
@@ -352,7 +347,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
 
 describe("HatsModule.RoleRevoked", () => {
   it("revokes Gardener role", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     // Grant first
@@ -373,13 +368,13 @@ describe("HatsModule.RoleRevoked", () => {
     });
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
 
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
     assert.equal(garden.gardeners.includes(account.toLowerCase()), false);
   });
 
   it("revokes Evaluator role", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
@@ -398,13 +393,13 @@ describe("HatsModule.RoleRevoked", () => {
     });
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
 
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
     assert.equal(garden.evaluators.length, 0);
   });
 
   it("revokes Owner role", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
@@ -423,13 +418,13 @@ describe("HatsModule.RoleRevoked", () => {
     });
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
 
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
     assert.equal(garden.owners.length, 0);
   });
 
   it("revokes Funder role", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
@@ -448,13 +443,13 @@ describe("HatsModule.RoleRevoked", () => {
     });
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
 
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
     assert.equal(garden.funders.length, 0);
   });
 
   it("revokes Community role", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     const account = addr(20);
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
@@ -473,13 +468,13 @@ describe("HatsModule.RoleRevoked", () => {
     });
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
 
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
     assert.equal(garden.communities.length, 0);
   });
 
   it("does nothing when garden not found", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
 
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
@@ -490,12 +485,12 @@ describe("HatsModule.RoleRevoked", () => {
 
     // Should not throw
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
-    const garden = mockDb.entities.Garden.get(addr(10));
+    const garden = await mockDb.Garden.get(addr(10));
     assert.equal(garden, undefined);
   });
 
   it("removes garden from Gardener.gardens on gardener role revoke", async () => {
-    let mockDb = seedGarden(MockDb.createMockDb(), addr(10));
+    let mockDb = seedGarden(createTestIndexer(), addr(10));
     mockDb = seedGarden(mockDb, addr(11));
     const account = addr(20);
     const gardenerId = `${CHAIN_ID}-${account.toLowerCase()}`;
@@ -526,7 +521,7 @@ describe("HatsModule.RoleRevoked", () => {
     });
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
 
-    const gardener = mockDb.entities.Gardener.get(gardenerId);
+    const gardener = await mockDb.Gardener.get(gardenerId);
     assert.ok(gardener);
     assert.equal(gardener.gardens.length, 1);
     assert.ok(gardener.gardens.includes(addr(11)));

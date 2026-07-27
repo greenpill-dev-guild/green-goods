@@ -270,13 +270,6 @@ function checkTools() {
       add("pass", "Docker available", commandVersion("docker"), "", { check: "tool:docker" });
     }
 
-    if (!commandExists("pnpm")) {
-      add("warn", "pnpm not found", "Only required for native generated-indexer package work.", "", {
-        check: "tool:pnpm",
-      });
-    } else {
-      add("pass", "pnpm available", commandVersion("pnpm"), "", { check: "tool:pnpm" });
-    }
   }
 
   if (options.profile === "contracts") {
@@ -632,42 +625,50 @@ function checkEnv() {
 function checkIndexerGenerated() {
   if (options.profile !== "full" && options.profile !== "prod-mirror") return;
 
-  const generatedDir = path.join(projectRoot, "packages/indexer/generated");
-  const generatedSrc = path.join(generatedDir, "src");
-  const generatedModules = path.join(generatedDir, "node_modules");
+  const indexerDir = path.join(projectRoot, "packages/indexer");
+  const generatedTypes = path.join(indexerDir, ".envio/types.d.ts");
+  const typeReference = path.join(indexerDir, "envio-env.d.ts");
+  const envioPackage = path.join(indexerDir, "node_modules/envio");
 
-  if (!fs.existsSync(generatedDir)) {
+  if (!fs.existsSync(generatedTypes)) {
     add(
       "fail",
-      "Indexer generated folder missing",
-      "Needed for indexer tests and full-stack Docker builds.",
-      "Run cd packages/indexer && bun run codegen && bun run setup-generated.",
-      { check: "indexer:generated" }
+      "Indexer v3 generated types missing",
+      "packages/indexer/.envio/types.d.ts is needed for strict handler and test types.",
+      "Run bun run --cwd packages/indexer codegen.",
+      { check: "indexer:generated-types" }
     );
-    return;
-  }
-
-  if (fs.existsSync(generatedSrc)) {
-    add("pass", "Indexer generated source exists", "packages/indexer/generated/src", "", {
-      check: "indexer:generated-src",
-    });
   } else {
-    add("fail", "Indexer generated source missing", "", "Run cd packages/indexer && bun run codegen.", {
-      check: "indexer:generated-src",
+    add("pass", "Indexer v3 generated types exist", "packages/indexer/.envio/types.d.ts", "", {
+      check: "indexer:generated-types",
     });
   }
 
-  if (fs.existsSync(generatedModules)) {
-    add("pass", "Indexer generated dependencies installed", "packages/indexer/generated/node_modules", "", {
-      check: "indexer:generated-deps",
+  if (fs.existsSync(typeReference)) {
+    add("pass", "Indexer v3 type reference exists", "packages/indexer/envio-env.d.ts", "", {
+      check: "indexer:type-reference",
     });
   } else {
     add(
-      "warn",
-      "Indexer generated dependencies missing",
-      "Needed for native indexer tests.",
-      "Run cd packages/indexer && bun run setup-generated.",
-      { check: "indexer:generated-deps" }
+      "fail",
+      "Indexer v3 type reference missing",
+      "envio-env.d.ts must link the generated module augmentation.",
+      "Run bun run --cwd packages/indexer codegen.",
+      { check: "indexer:type-reference" }
+    );
+  }
+
+  if (fs.existsSync(envioPackage)) {
+    add("pass", "Envio package installed", "packages/indexer/node_modules/envio", "", {
+      check: "indexer:dependency",
+    });
+  } else {
+    add(
+      "fail",
+      "Envio package missing",
+      "The root Bun install has not materialized the indexer dependency.",
+      "Run bun install --frozen-lockfile from the repository root.",
+      { check: "indexer:dependency" }
     );
   }
 }
@@ -737,11 +738,11 @@ function printText() {
 
   console.log("\nRole readiness");
   console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/3004.");
-  console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
+  console.log("- Full-stack/indexer: frontend QA plus Docker and Envio v3 generated types.");
   console.log("- Contracts: frontend QA plus Foundry.");
   console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT.");
   console.log("- Production-backed local dev: frontend QA against Arbitrum 42161 and production APIs.");
-  console.log("- Production local mirror: production-backed local dev plus Docker and indexer generated files.");
+  console.log("- Production local mirror: production-backed local dev plus Docker and Envio v3 generated types.");
 
   console.log("\nSecret policy");
   console.log("- `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`).");

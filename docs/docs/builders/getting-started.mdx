@@ -120,11 +120,11 @@ Environment files are materialized separately by `bun run env:sync` (which runs 
 | Role | Required local state | First command |
 | --- | --- | --- |
 | Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003/3004 available | `bun run dev:doctor -- --profile web` |
-| Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
+| Full-stack / indexer | Frontend QA plus Docker and Envio v3 declarations from `bun run --cwd packages/indexer codegen` | `bun run dev:doctor -- --profile full` |
 | Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
 | Upload-capable QA | Frontend QA plus `VITE_API_BASE_URL` and `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
 | Production-backed local review | Frontend QA plus production Arbitrum/indexer/agent env overlay | `bun run dev:prod:health` |
-| Production local indexer mirror | Production-backed review plus Docker and `packages/indexer/generated` | `bun run dev:prod:mirror:health` |
+| Production local indexer mirror | Production-backed review plus Docker and generated `packages/indexer/.envio/` declarations | `bun run dev:prod:mirror:health` |
 
 Run `bun run dev:doctor -- --profile web|full|contracts|upload|prod|prod-mirror` any time you need a non-mutating check of the current machine. It reports missing tools, Docker state, Pinata readiness, passkey RP ID posture, indexer generated state, stale environment keys, and port conflicts without printing secret values. Add `--json` for machine-readable output in CI, containers, or agent workflows.
 

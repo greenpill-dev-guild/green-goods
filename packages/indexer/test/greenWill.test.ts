@@ -1,11 +1,5 @@
 import assert from "assert";
-import { createRequire } from "module";
-
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, GreenWill } = TestHelpers;
+import { Addresses, createTestIndexer, GreenWill } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -43,7 +37,7 @@ const LOCK = addr(13);
 
 describe("GreenWill.BadgeClassConfigured", () => {
   it("stores badge definitions with chain-scoped ids", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = GreenWill.BadgeClassConfigured.createMockEvent({
       badgeId: BADGE_ID,
@@ -58,7 +52,7 @@ describe("GreenWill.BadgeClassConfigured", () => {
     });
 
     const result = await GreenWill.BadgeClassConfigured.processEvent({ event, mockDb });
-    const definition = result.entities.GreenWillBadgeDefinition.get(
+    const definition = await result.GreenWillBadgeDefinition.get(
       `${CHAIN_ID}-${BADGE_ID.toLowerCase()}`
     );
 
@@ -77,7 +71,7 @@ describe("GreenWill.BadgeClassConfigured", () => {
 
 describe("GreenWill.BadgeIssued", () => {
   it("materializes canonical ownership and grant history", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
 
     const configureEvent = GreenWill.BadgeClassConfigured.createMockEvent({
       badgeId: BADGE_ID,
@@ -105,11 +99,11 @@ describe("GreenWill.BadgeIssued", () => {
     });
     const result = await GreenWill.BadgeIssued.processEvent({ event: issueEvent, mockDb });
 
-    const ownership = result.entities.GreenWillBadgeOwnership.get(
+    const ownership = await result.GreenWillBadgeOwnership.get(
       `${CHAIN_ID}-${BADGE_ID.toLowerCase()}-${OWNER.toLowerCase()}`
     );
-    const grant = result.entities.GreenWillBadgeGrant.get(`${CHAIN_ID}-${txHash(101)}-2`);
-    const definition = result.entities.GreenWillBadgeDefinition.get(
+    const grant = await result.GreenWillBadgeGrant.get(`${CHAIN_ID}-${txHash(101)}-2`);
+    const definition = await result.GreenWillBadgeDefinition.get(
       `${CHAIN_ID}-${BADGE_ID.toLowerCase()}`
     );
 

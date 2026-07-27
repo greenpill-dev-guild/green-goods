@@ -13,7 +13,7 @@ responsible for protocol entities, not for EAS attestations.
 - `bun run test`
 - `bun run build`
 - `bun run codegen`
-- `bun run setup-generated`
+- `bun run dev`
 
 ## Non-Negotiables
 
@@ -22,16 +22,20 @@ responsible for protocol entities, not for EAS attestations.
 - Use composite IDs that include `chainId` to avoid cross-chain collisions.
 - When relationships change, update both sides.
 - Keep TypeScript `strict` and `noImplicitAny` enabled for handwritten `src/` and `test/` code; do not weaken compiler flags to accommodate generated types.
-- After schema or config changes, regenerate and rebuild generated code before trusting tests.
+- After schema or config changes, regenerate `.envio/` types before trusting tests.
+- Envio v3 registrations use `indexer.onEvent` and `indexer.contractRegister`; do not restore
+  generated-v2 imports, `MockDb`, ReScript setup, or package-local pnpm workflows.
+- `envio dev` preserves the local database. Use `bun run dev:restart` only when a destructive
+  local replay is explicitly intended and authorized.
 
 ## Codex Notes
 
 - On macOS, local development usually relies on Docker-based scripts, but validation still needs
   boundary checks, tests, and a TypeScript build.
 - Indexer changes often fail later than app changes if codegen is skipped. Run codegen first when
-  touching `schema.graphql`, `config.yaml`, or generated types.
+  touching `schema.graphql`, `config.yaml`, or `.envio/` types.
 
 ## Validation
 
-- Schema/config changes: `bun run codegen && bun run setup-generated`
+- Schema/config changes: `bun run codegen && bun run build`
 - Package loop: `bun run check:indexing-boundary && bun run test && bun run build`

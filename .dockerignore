@@ -17,7 +17,10 @@
 !packages/contracts/deployments/
 !packages/contracts/deployments/**
 !packages/indexer/
-!packages/indexer/package.json
+!packages/indexer/**
+packages/indexer/.envio/
+packages/indexer/generated/
+packages/indexer/node_modules/
 !packages/shared/
 !packages/shared/package.json
 !packages/shared/src/

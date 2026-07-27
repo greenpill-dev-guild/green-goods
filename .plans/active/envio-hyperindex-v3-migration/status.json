@@ -10,7 +10,7 @@
     "overall_status": "in_progress",
     "priority": "p1",
     "created_at": "2026-05-24T22:48:40.215Z",
-    "updated_at": "2026-07-27T17:43:52.479Z"
+    "updated_at": "2026-07-27T22:45:15.421Z"
   },
   "links": {
     "brief": "brief.md",
@@ -40,7 +40,14 @@
     "Current develop baseline is envio@2.32.12; the locked target is envio@3.2.1.",
     "Correct PR #649 before merge: retarget to develop, remove package-local Envio skill copies and unrelated shared changes, and keep root workflows Bun-first.",
     "Contracts, Commitment Pooling handlers, client, admin, and unrelated shared behavior are out of scope.",
-    "Dependency installation still requires explicit approval in the implementation session.",
+    "Afo authorized the frozen root Bun install in the implementation session; it passed without changing bun.lock.",
+    "Codegen, strict build, lint, 190 isolated indexer tests, dynamic registration, replay determinism plus the same-store repeated-range guard, block boundaries, docs, and plan validation are green.",
+    "2026-07-27 QA pass 1: ENVIO_API_TOKEN was added, so token-backed runtime proof now PASSES — healthz 200, Arbitrum caught up to head with isReady true, Sepolia 99.98%, 21 GardenAccount + 39 OctantVault dynamic registrations, and a non-empty representative Garden query. Stopped with SIGINT only; the envio-postgres-data volume was preserved.",
+    "2026-07-27 QA pass 1 verdict was REQUEST_CHANGES. The corrective pass resolved findings 1 and 3-6: retained event sequences are batched, Mocha has bounded 30s v3 headroom, full `bun run test` passes with 190 indexer tests under repository parallel load, clean/stop are database-safe, all Envio CLI entries remain Bun-first while selecting a supported system Node 22 runtime and loading the root-only env, Claude guidance is v3-current, and the false doctor:fix surfaces are removed. `VITE_CHAIN_ID=11155111 bun run build` and lint also pass.",
+    "The remaining review-gate failure is `bun format:check` on two out-of-scope plan status files already present on develop. `bun run agentic:check` also exposes unrelated CLAUDE.md authenticated-browser policy drift; PRD-557 does not modify those baseline files.",
+    "A final runtime RED/GREEN caught and corrected an Envio/Bun incompatibility: forcing `envio dev` through Bun caused handler initialization-cycle failures. The Bun-first script now delegates Envio to the repository Node 22 launcher; healthz, both ready chains, exact block boundaries, and a non-empty Garden query pass on the preserved local database.",
+    "PR #649 cannot be updated from this repo: its head is the fork branch moose-code:chore/upgrade-envio-3.2.1 with push: false, and the local branch has no origin upstream. Landing needs a human decision between a fork-owner push and a superseding origin branch/PR targeting develop.",
+    "PR push and retarget remain held pending the blockers above and that ownership decision.",
     "Landing the corrected PR completes the repository foundation; hosted deployment and reindex remain later authorized release operations."
   ],
   "lanes": {
@@ -73,16 +80,16 @@
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test; bun run --cwd packages/indexer dev (forced Bun runtime smoke)",
+          "evidence": "QA pass 1 reproduced 10s indexer timeouts; the first same-store replay test proved Envio rejects an already-processed range; forcing the Envio runtime through Bun resumed storage but failed handler auto-load with an indexer initialization-cycle ReferenceError."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test:indexer && bun run test && VITE_CHAIN_ID=11155111 bun run build; bun run --cwd packages/indexer dev (Node 22 runtime smoke)",
+          "evidence": "190 indexer tests and the full repository test gate pass; pinned build passes; retained events are batched; repeated-range rejection preserves the snapshot; the Bun-first Node 22 launcher resumes the existing DB with healthz 200, both chains ready, exact boundaries, and a non-empty Garden query."
         },
-        "note": "The state/API lane owns the direct envio@2.32.12 to envio@3.2.1 migration and PR #649 correction. Focused behavior tests provide RED/GREEN proof; generation, boundary, build, tests, replay, runtime, and GraphQL evidence are final gates."
+        "note": "Corrective QA resolved findings 1 and 3-6 plus the final Bun-runtime incompatibility. Publication still waits on out-of-scope develop formatting drift, independent review, and the fork-owned PR decision."
       },
       "skill_tags": ["indexer", "ops", "testing"]
     },
@@ -130,7 +137,8 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
+      "verdict": "request_changes",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/envio-hyperindex-v3-migration",
@@ -190,6 +198,38 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-27T20:25:07.823Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/envio-hyperindex-v3-migration",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-07-27T22:40:00.000Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "reviewed",
+      "branch": "chore/upgrade-envio-3.2.1",
+      "note": "QA pass 1: token-backed runtime proof now passes (Arbitrum caught up to head, isReady true, non-empty Garden query, 21 GardenAccount + 39 OctantVault dynamic registrations, SIGINT-only stop with volume preserved). Verdict REQUEST_CHANGES on six findings, led by a reproducible Ship Gate `bun run test` failure from per-event indexer cycles in test/v3.ts. No commit, push, PR retarget, or Linear write performed. PR #649 is additionally unwritable because its head is an external fork branch."
+    },
+    {
+      "timestamp": "2026-07-27T22:35:31.405Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/envio-hyperindex-v3-migration",
+      "note": "Corrective QA pass resolved findings 1 and 3-6. Publication still waits on out-of-scope develop formatting drift, independent review, and the fork-owned PR branch decision."
+    },
+    {
+      "timestamp": "2026-07-27T22:45:15.422Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/envio-hyperindex-v3-migration",
+      "note": "Corrective QA resolved findings 1 and 3-6 plus the final Bun-runtime incompatibility. Publication still waits on out-of-scope develop formatting drift, independent review, and the fork-owned PR decision."
     }
   ]
 }

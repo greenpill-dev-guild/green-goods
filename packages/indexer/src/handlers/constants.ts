@@ -1,5 +1,9 @@
-import { Capital, PoolType, WeightScheme } from "../../generated";
-import type { Domain_t } from "../../generated/src/db/Enums.gen";
+import type { Enum } from "envio";
+
+type Capital = Enum<"Capital">;
+type Domain = Enum<"Domain">;
+type PoolType = Enum<"PoolType">;
+type WeightScheme = Enum<"WeightScheme">;
 
 // ============================================================================
 // CONSTANTS
@@ -24,7 +28,7 @@ export const CAPITAL_TYPE_MAP: Record<number, Capital> = {
  * Maps numeric domain type values from the smart contract to Domain enum string values.
  * These values correspond to the Domain enum in the ActionRegistry contract.
  */
-export const DOMAIN_TYPE_MAP: Record<number, Domain_t> = {
+export const DOMAIN_TYPE_MAP: Record<number, Domain> = {
   0: "SOLAR",
   1: "AGRO",
   2: "EDU",

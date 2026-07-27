@@ -4,14 +4,14 @@
  *
  * Usage: node scripts/ci-local.js [options]
  *   --skip-contracts  Skip contracts tests (requires Foundry)
- *   --skip-indexer    Skip indexer tests (requires codegen setup)
+ *   --skip-indexer    Skip indexer tests (requires Envio v3 codegen)
  *   --skip-build      Skip build step
  *   --skip-docs       Skip docs build (catches broken links)
  *   --skip-lighthouse Skip Lighthouse performance tests
  *   --only-lint       Only run lint and format checks
  *   --quick           Skip contracts, indexer, build, docs, and lighthouse (fast feedback)
  *   --lighthouse      Run Lighthouse tests (included by default, use --skip-lighthouse to skip)
- *   --generate-indexer  Run indexer codegen if generated files are missing
+ *   --generate-indexer  Run indexer codegen if generated types are missing
  *
  * This script mimics what GitHub Actions CI runs.
  */
@@ -274,15 +274,14 @@ async function main() {
   }
 
   if (!config.skipIndexer) {
-    const indexerGeneratedPath = resolve(projectRoot, "packages/indexer/generated/src");
+    const indexerGeneratedPath = resolve(projectRoot, "packages/indexer/.envio/types.d.ts");
     if (!existsSync(indexerGeneratedPath)) {
       if (config.generateIndexer) {
         printSection("Indexer Code Generation");
         await runStep("Indexer codegen", "bun run codegen", resolve(projectRoot, "packages/indexer"));
-        await runStep("Indexer setup-generated", "bun run setup-generated", resolve(projectRoot, "packages/indexer"));
       } else {
         printWarning(
-          "Indexer generated files not found. Use --skip-indexer, --generate-indexer, or run: cd packages/indexer && bun run codegen && bun run setup-generated"
+          "Indexer v3 types not found. Use --skip-indexer, --generate-indexer, or run: bun run --cwd packages/indexer codegen"
         );
         config.skipIndexer = true;
       }

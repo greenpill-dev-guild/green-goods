@@ -12,9 +12,11 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "strict": false,
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "types": ["node", "mocha"]
   },
-  "include": ["src", "test"]
+  "include": ["envio-env.d.ts", "src", "test"]
 }

@@ -16,11 +16,12 @@
 | Requirement | Planned Step | Status |
 |-------------|--------------|--------|
 | Refresh plan and Linear tracking | Phase 0 | Complete |
-| Correct PR #649 scope and base | Phase 1 | Pending |
-| Migrate to Envio 3.2.1 | Phase 2 | Pending |
-| Prove behavior and replay preservation | Phase 3 | Pending |
+| Correct PR #649 scope and base | Phase 1 | Blocked: local scope is correct, but PR #649's head is an unwritable fork branch |
+| Migrate to Envio 3.2.1 | Phase 2 | Complete |
+| Prove behavior and replay preservation | Phase 3 | Complete: token-backed runtime, catch-up, and non-empty GraphQL proof captured |
+| Pass the review/ship gate | Phase 3 | Partial: full tests, lint, and pinned build pass; `bun format:check` remains blocked by two develop-baseline plan files |
 | Land foundation before Commitment Pooling | Phase 4 | Pending |
-| Defer hosted deployment honestly | Phase 4 | Pending |
+| Defer hosted deployment honestly | Phase 4 | Complete |
 
 ## Phase 0: Tracker Convergence
 
@@ -31,31 +32,50 @@
 
 ## Phase 1: Correct PR #649
 
-- [ ] Retarget PR #649 from `main` to `develop`.
-- [ ] Remove nested package-level Envio skill copies.
-- [ ] Remove unrelated shared changes.
-- [ ] Keep only migration-required indexer, workflow, CI, docs, and canonical-guidance changes.
-- [ ] Keep root workflows Bun-first; allow pnpm only inside generated Envio internals.
-- [ ] Keep Commitment Pooling entities and handlers out of this PR.
+- [ ] Retarget PR #649 from `main` to `develop`. **Blocked**: #649's head is
+      `moose-code:chore/upgrade-envio-3.2.1` (fork, `push: false`), so its diff cannot be updated
+      from this repo. Needs a human decision — fork owner pushes, or a new `origin` branch + PR
+      targeting `develop` supersedes #649.
+- [x] Remove nested package-level Envio skill copies.
+- [x] Remove unrelated shared changes.
+- [x] Keep only migration-required indexer, workflow, CI, docs, and canonical-guidance changes.
+- [x] Keep root workflows Bun-first; Envio v3 requires no generated nested pnpm install.
+- [x] Keep Commitment Pooling entities and handlers out of this PR.
 
 ## Phase 2: Complete the 3.2.1 Migration
 
-- [ ] Move config, handlers, dynamic registration, tests, runtime, Docker, CI, and doctor checks
+- [x] Move config, handlers, dynamic registration, tests, runtime, Docker, CI, and doctor checks
   from v2 to supported Envio 3.2.1 patterns.
-- [ ] Remove obsolete generated ReScript setup only where v3 replacement proof exists.
-- [ ] Preserve GardenAccount and OctantVault dynamic discovery.
-- [ ] Preserve all existing entity IDs, relationships, chain IDs, event behavior, and GraphQL shape.
-- [ ] Record any unavoidable schema/nullability delta before merge.
+- [x] Remove obsolete generated ReScript setup only where v3 replacement proof exists.
+- [x] Preserve GardenAccount and OctantVault dynamic discovery.
+- [x] Preserve all existing entity IDs, relationships, chain IDs, event behavior, and GraphQL shape.
+- [x] Record that there is no intentional schema/nullability delta; `schema.graphql` is unchanged.
 
 ## Phase 3: Prove the Foundation
 
-- [ ] Obtain explicit dependency-install authorization before installing or regenerating.
-- [ ] Run codegen from the checked-in lockfile.
-- [ ] Run the indexer boundary, build, and test commands.
-- [ ] Prove migration/replay idempotence and configured block-boundary preservation.
-- [ ] Start the local runtime and verify GraphQL reachability plus one representative query.
-- [ ] Run migration-required docs and guidance checks.
-- [ ] Record reindex, DB compatibility, hosted configuration, rollback, and approval ownership.
+- [x] Obtain explicit dependency-install authorization before installing or regenerating.
+- [x] Run codegen from the checked-in lockfile.
+- [x] Run the indexer boundary, build, and test commands.
+- [x] Prove configured block-boundary preservation, deterministic clean replay, and the
+      same-store repeated-range guard without entity mutation.
+- [x] Start the local runtime and verify GraphQL reachability plus one representative query.
+      (Token-backed 2026-07-27: healthz 200, Arbitrum caught up to head with `isReady: true`,
+      21 GardenAccount + 39 OctantVault dynamic registrations, non-empty `Garden` result.)
+- [x] Run migration-required docs and guidance checks.
+- [x] Record reindex, DB compatibility, hosted configuration, rollback, and approval ownership.
+
+## Phase 3b: Clear QA pass 1 blockers
+
+- [x] Fix indexer test timeouts under the repo-parallel Ship Gate: batch events per `process()`
+      call in `test/v3.ts` (as `replay.test.ts` already does) and/or raise the mocha timeout.
+- [x] Stop mapping `clean` (and reconsider `stop`) to the database-deleting `envio stop`.
+- [x] Pin a compatible runtime for the bare `envio` scripts so `bun run dev` works when the
+      machine's default Node is older than 20.10.
+- [x] Update `.claude/context/indexer.md` and `.claude/rules/indexer.md` to the v3 API and remove
+      the now-destructive `bun stop` port-conflict advice.
+- [x] Drop the false `doctor:fix`/`indexer:fix` surfaces and correct `indexer-deploy.mdx`.
+- [ ] Resolve the develop-baseline formatting drift in the two plan `status.json` files separately
+      from PRD-557 so `bun format:check` can pass without widening this PR.
 
 ## Phase 4: Land and Hand Off
 

@@ -85,7 +85,6 @@
     "dev:indexer": "APP_ENV=development bun run --cwd packages/indexer dev",
     "dev:tunnel": "node scripts/dev/tunnel.js",
     "indexer:doctor": "cd packages/indexer && bun run doctor",
-    "indexer:fix": "cd packages/indexer && bun run doctor:fix",
     "indexer:check-boundary": "cd packages/indexer && bun run check:indexing-boundary",
     "indexer:db:up": "cd packages/indexer && bun run db:up",
     "indexer:db:down": "cd packages/indexer && bun run db:down",

@@ -119,8 +119,8 @@ const indexerYaml = await fs.readFile(path.resolve(repoRoot, "packages/indexer/c
 const indexerConfig = yaml.load(indexerYaml, { schema: yaml.CORE_SCHEMA });
 
 const indexerAddress = (chainId, contractName) => {
-  const network = indexerConfig.networks?.find((item) => Number(item.id) === Number(chainId));
-  const contract = network?.contracts?.find((item) => item.name === contractName);
+  const chain = indexerConfig.chains?.find((item) => Number(item.id) === Number(chainId));
+  const contract = chain?.contracts?.find((item) => item.name === contractName);
   return contract?.address ?? null;
 };
 

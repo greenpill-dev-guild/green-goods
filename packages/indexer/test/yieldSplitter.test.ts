@@ -1,11 +1,5 @@
 import assert from "assert";
-import { createRequire } from "module";
-
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, YieldSplitter } = TestHelpers;
+import { Addresses, createTestIndexer, YieldSplitter } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -37,7 +31,7 @@ function mockEvent(
 
 describe("YieldSplitter.YieldSplit", () => {
   it("creates YieldAllocation with all fields", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const garden = addr(30);
     const asset = addr(31);
     const tx = txHash(200);
@@ -53,7 +47,7 @@ describe("YieldSplitter.YieldSplit", () => {
     });
 
     const result = await YieldSplitter.YieldSplit.processEvent({ event, mockDb });
-    const allocation = result.entities.YieldAllocation.get(`${CHAIN_ID}-${tx}-3`);
+    const allocation = await result.YieldAllocation.get(`${CHAIN_ID}-${tx}-3`);
 
     assert.ok(allocation);
     assert.equal(allocation.chainId, CHAIN_ID);
@@ -68,7 +62,7 @@ describe("YieldSplitter.YieldSplit", () => {
   });
 
   it("normalizes addresses to lowercase", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const tx = txHash(200);
 
     const event = YieldSplitter.YieldSplit.createMockEvent({
@@ -82,7 +76,7 @@ describe("YieldSplitter.YieldSplit", () => {
     });
 
     const result = await YieldSplitter.YieldSplit.processEvent({ event, mockDb });
-    const allocation = result.entities.YieldAllocation.get(`${CHAIN_ID}-${tx}-1`);
+    const allocation = await result.YieldAllocation.get(`${CHAIN_ID}-${tx}-1`);
 
     assert.ok(allocation);
     assert.equal(allocation.garden, "0xabcdef1234567890abcdef1234567890abcdef12");
@@ -90,7 +84,7 @@ describe("YieldSplitter.YieldSplit", () => {
   });
 
   it("handles zero amounts", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const tx = txHash(200);
 
     const event = YieldSplitter.YieldSplit.createMockEvent({
@@ -104,14 +98,14 @@ describe("YieldSplitter.YieldSplit", () => {
     });
 
     const result = await YieldSplitter.YieldSplit.processEvent({ event, mockDb });
-    const allocation = result.entities.YieldAllocation.get(`${CHAIN_ID}-${tx}-1`);
+    const allocation = await result.YieldAllocation.get(`${CHAIN_ID}-${tx}-1`);
 
     assert.ok(allocation);
     assert.equal(allocation.totalAmount, 0n);
   });
 
   it("creates unique IDs per transaction + logIndex", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx = txHash(200);
 
     const event1 = YieldSplitter.YieldSplit.createMockEvent({
@@ -136,8 +130,8 @@ describe("YieldSplitter.YieldSplit", () => {
     });
     mockDb = await YieldSplitter.YieldSplit.processEvent({ event: event2, mockDb });
 
-    const allocation1 = mockDb.entities.YieldAllocation.get(`${CHAIN_ID}-${tx}-1`);
-    const allocation2 = mockDb.entities.YieldAllocation.get(`${CHAIN_ID}-${tx}-2`);
+    const allocation1 = await mockDb.YieldAllocation.get(`${CHAIN_ID}-${tx}-1`);
+    const allocation2 = await mockDb.YieldAllocation.get(`${CHAIN_ID}-${tx}-2`);
 
     assert.ok(allocation1);
     assert.ok(allocation2);
@@ -146,7 +140,7 @@ describe("YieldSplitter.YieldSplit", () => {
   });
 
   it("creates separate allocations per transaction", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx1 = txHash(200);
     const tx2 = txHash(300);
 
@@ -172,8 +166,8 @@ describe("YieldSplitter.YieldSplit", () => {
     });
     mockDb = await YieldSplitter.YieldSplit.processEvent({ event: event2, mockDb });
 
-    const allocation1 = mockDb.entities.YieldAllocation.get(`${CHAIN_ID}-${tx1}-1`);
-    const allocation2 = mockDb.entities.YieldAllocation.get(`${CHAIN_ID}-${tx2}-1`);
+    const allocation1 = await mockDb.YieldAllocation.get(`${CHAIN_ID}-${tx1}-1`);
+    const allocation2 = await mockDb.YieldAllocation.get(`${CHAIN_ID}-${tx2}-1`);
 
     assert.ok(allocation1);
     assert.ok(allocation2);

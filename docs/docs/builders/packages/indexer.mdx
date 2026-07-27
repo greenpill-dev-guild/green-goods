@@ -4,7 +4,7 @@ sidebar_label: Indexer
 slug: /builders/packages/indexer
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-07-27
 feature_status: Live
 source_of_truth:
   - packages/indexer/AGENTS.md
@@ -30,7 +30,7 @@ graph LR
     end
 
     Chain["Blockchain\nArbitrum / Sepolia"] --> Events
-    Events --> Envio["Envio Indexer\nv2.32.3"]
+    Events --> Envio["Envio Indexer\nv3.2.1"]
     Envio -->|handlers| PG[("PostgreSQL")]
     PG -->|query| GQL["GraphQL API"]
     GQL -->|fetch| Client["Client PWA"]
@@ -41,22 +41,24 @@ The indexer package runs the Envio indexing pipeline for Green Goods protocol ev
 
 ## Current chain coverage
 
-`packages/indexer/config.yaml` currently defines indexed networks for:
+`packages/indexer/config.yaml` currently defines indexed chains for:
 
 | Chain | Chain ID | Notes |
 | --- | --- | --- |
 | Arbitrum | 42161 | Production mainnet indexer configuration |
 | Sepolia | 11155111 | Testnet/development indexer configuration |
 
-Celo may have contract deployment artifacts, but it is not currently listed as an indexed network in `config.yaml`.
+Celo may have contract deployment artifacts, but it is not currently listed as an indexed chain in `config.yaml`.
 
 ## Builder contract
 
 - Keep EAS attestation reads out of the indexer; use shared EAS data modules for work, approval, and assessment attestations.
 - Every persisted entity must include `chainId`.
 - Use composite IDs that include `chainId` to avoid cross-chain collisions.
-- When schema or config changes, regenerate and rebuild generated code before trusting tests.
+- When schema or config changes, regenerate `.envio/` declarations and rebuild before trusting tests.
 - Update both sides of relationships when entity links change.
+- Preserve GardenAccount and OctantVault factory discovery through `indexer.contractRegister`.
+- Keep local replay explicit: `envio dev` preserves the database, while `envio dev --restart` resets it.
 
 ## Commands
 
@@ -68,7 +70,6 @@ bun run build
 
 # After schema/config changes:
 bun run codegen
-bun run setup-generated
 ```
 
 <NextBestAction
