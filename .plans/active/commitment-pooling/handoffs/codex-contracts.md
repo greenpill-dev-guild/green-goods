@@ -6,11 +6,16 @@
 - Execution sub-lane: contracts
 - Owner: Codex
 - Branch signal: codex/contracts/commitment-pooling
-- Current state: follow status.json; this handoff does not self-dispatch
+- Current state: blocked; this handoff does not self-dispatch
 - Linear context: PRD-721 (contracts lane) under parent PRD-650; PRD-671/672 are historical labels
 
 ## Inputs
 
+- Corrected and merged GitHub PR #649 with Envio `3.2.1` generation/build/test/migration proof.
+- Completed PRD-747/748 Steward contract/live-hat work and the maintainer-authorized PRD-575
+  GreenWill broadcast, pointer verification, and low-stakes smoke.
+- Afo's completed PRD-649 architecture fine-comb with every resulting correction reconciled into
+  the contract/event/indexer/state/API boundaries.
 - contract-spec.md, especially sections 5-8
 - acceptance-matrix.md for canonical identity, permissions, payout, and final state proof
 - packages/contracts/AGENTS.md and the approved append-only schema policy
@@ -36,7 +41,7 @@
 - Disputes store pre-dispute state and RestorePrevious restores it. An expired commitment can never resolve Fulfilled.
 - A pool permits one open Season and concurrent Campaigns through bounded O(1) checks.
 - Creating a commitment with a cycle requires that cycle to belong to the same pool and still accept commitments. Cycle-less commitments remain explicit.
-- DomainImpact requires 1–4 registered domain/action pairs, every positional `requiredApprovedWorkCounts[i]` quota to be met by provider/provider-garden-valid Work links, and any declared assessment before non-override Ready. Approval-first and assessment-first ordering both reach Ready because `attachAssessment` re-evaluates all completed Work quotas. SupportService, OperatorCaptured, and SeasonCampaign require evidence plus any declared assessment; every non-override Ready path has its assessment gate.
+- DomainImpact requires 1–4 registered domain/action pairs, every positional `requiredApprovedWorkCounts[i]` quota to be met by provider/provider-garden-valid Work links, and any declared assessment before non-override Ready. Approval-first and assessment-first ordering both reach Ready because `attachAssessment` re-evaluates all completed Work quotas. SupportService, StewardCaptured, and SeasonCampaign require evidence plus any declared assessment; every non-override Ready path has its assessment gate.
 - The onchain Ready predicate requires a charter and non-zero register provider open-commitment cap. A current, non-revoked Baseline assessment is an app/shared/admin preflight and is never added to the contract predicate. `pausePool` requires a reason CID and blocks only the operational mutations enumerated in contract-spec §6.1.
 - `CommitmentPoolingModule` initializes paused. All six dependency setters and `setSchemaUIDs`
   require pause, reject zero/collision before mutation, and emit exact old/new facts; unpause
@@ -195,7 +200,10 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Unblock evidence
 
-- status.json marks the contracts lane ready and the user dispatches it.
+- GitHub PR #649 is corrected, merged, and proven on Envio `3.2.1`.
+- PRD-747, PRD-748, and PRD-575 have complete live upgrade/broadcast verification.
+- Afo explicitly closes the PRD-649 final architecture fine-comb.
+- status.json then marks the contracts lane ready and the user explicitly dispatches it.
 - Corrected handoff and exact count-cap contract interface/event tables are present.
 - Standalone schema-registration and isolated deployment targets have dry-run acceptance defined.
 - The two Arbitrum Sepolia post-deploy verifier targets are created by this lane before any

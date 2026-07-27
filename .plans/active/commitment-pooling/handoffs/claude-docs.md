@@ -3,21 +3,26 @@
 ## Status
 
 - Execution sub-lane: docs
-- Machine lane: ui
+- Machine lane: none; post-QA communication lane
 - Owner: Claude
 - Branch signal: claude/docs/commitment-pooling
-- Current state: manually blocked on the Wave 2 source-convergence gate in `status.json`; architecture/glossary work is independent of product implementation once explicitly unblocked
+- Current state: blocked until QA Pass 1 completes
 - Linear context: PRD-727 (docs lane) under parent PRD-650
 
 ## Inputs
 
+- QA Pass 1 evidence, defect disposition, and verified staging source SHA
 - Corrected contract, settlement, UI, diagrams, and external-communications artifacts
 - Existing docs architecture/glossary/reference pages
+- The former docs-guides scope: operator/gardener task guides and authenticated product screenshots
 - `acceptance-matrix.md` §3 public claims matrix and vocabulary rules
 
 ## Outputs
 
 - Architecture, glossary, data-boundary, and settlement documentation aligned to the frozen specs.
+- Operator seeding/claims/settlement and gardener promise/evidence/confirmation/reward guides
+  replayed against the QA-tested product, with authenticated screenshots, alt text, captions,
+  version/date, and source provenance.
 - Explicit built, planned, dispatched, confirming, confirmed, and evidence-gated labels.
 - Links to the lane issue and parent roadmap records without dispatching historical child issues.
 - Updated anchors and validated docs build.
@@ -34,6 +39,8 @@
 - AA failure is documented as blocked member delivery and never creates a garden-held member claim.
 - Unsupported outcome numbers are framed as pilot targets with source/date/measurement method.
 - Vocabulary and links are current.
+- Guide steps match current routes, accessible names, translations, and recovery behavior; no
+  prototype frame is presented as shipped product.
 
 ## RED / GREEN or proof limit
 
@@ -52,10 +59,13 @@
 
 ## Out of scope
 
-- Product implementation, speculative screenshots, claiming planned behavior is live, manual settlement confirmation, garden-held member claims, new Linear children, or altering the canonical synthesis.
+- Product implementation, speculative screenshots, walkthrough-video production, claiming planned
+  behavior is live, manual settlement confirmation, garden-held member claims, new Linear
+  children, or altering the canonical synthesis.
 
 ## Unblock evidence
 
-- Owning spec language is internally consistent.
+- QA Pass 1 is GREEN with defects dispositioned and the tested source SHA recorded.
+- Owning spec language is internally consistent with the QA-tested product.
 - Proof-limit evidence names every changed page and its owning source.
 - All exact Bun commands pass; any unavailable link or external claim is reported rather than waived.

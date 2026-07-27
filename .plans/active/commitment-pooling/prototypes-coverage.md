@@ -50,7 +50,7 @@ than the fixture: the neighbour-to-neighbour **offer** (Maria → João, 6 hours
 the **request** (Ana asks, João provides, Ana confirms — 1 ride), and the
 evidence-only **service offer** (Maria provides, João confirms — 1 repair
 session), the Campaign-scoped request, the steward-recorded
-**OperatorCaptured** promise, plus the
+**StewardCaptured** promise, plus the
 **garden-provided** protocol commitment (Awka Hub provides, protocol stewards
 confirm — 1 survey). A request that renders offer copy mid-flow is a fiction
 break, not a styling detail: direction, title, unit and cast all differ.
@@ -59,7 +59,7 @@ break, not a styling detail: direction, title, unit and cast all differ.
 
 - `W2a` is guided-flow-covered: evidence composition is shown before evidence-submitted outcomes.
 - `W16`'s states are walked by the editorial flow and `W5`'s by the wallet-drawer flow; only their error/loading states stay Screen-library-only because they are exhaustive drawer/editorial state references rather than consequential flow transitions.
-- SB-5 walks the complete “Not yet” dispute lifecycle once. Request, Campaign-request, service-offer, and OperatorCaptured variants remain Screen-library cast fixtures of that same call path so reviewers can verify identity and retry continuity without duplicating the journey.
+- SB-5 walks the complete “Not yet” dispute lifecycle once. Request, Campaign-request, service-offer, and StewardCaptured variants remain Screen-library cast fixtures of that same call path so reviewers can verify identity and retry continuity without duplicating the journey.
 - Guided flows own the primary transitions and consequential intermediate states, including the actionable open-pool empty state. Screen library owns exhaustive loading, non-action empty, validation, recovery, and alternate states.
 
 ## Cross-cutting recovery coverage

@@ -153,7 +153,7 @@ Route `/home/:id/pool/:commitmentId`.
 │ ←  Prune the north beds                      │
 │ (Offer)(AGRO)(Accepted)  6 hours · due Aug 12│  chips + units + due
 │ anyone in this garden may take this up       │  claim-mode helper line
-│ (recorded by your steward on your behalf)    │  OperatorCaptured chip only
+│ (recorded by your steward on your behalf)    │  StewardCaptured chip only
 ├──────────────────────────────────────────────┤
 │ Timeline                                     │  {StateTimeline} NET-NEW
 │ ● Offered      — Maria · Jul 2               │
@@ -313,7 +313,7 @@ NOT YET — SEND FAILED
 Evidence band variants — the two delivery styles read differently (audit 2026-07-18):
 
 ```text
-DomainImpact — the approved work IS the evidence   SupportService / OperatorCaptured
+DomainImpact — the approved work IS the evidence   SupportService / StewardCaptured
 ┌──────────────────────────────────────────────┐   ┌──────────────────────────────┐
 │ Delivery so far                              │   │ Evidence                     │
 │ ≡ Pruning session   (Approved ✓)             │   │ ≡ photo — after the workshop │

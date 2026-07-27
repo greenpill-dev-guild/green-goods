@@ -6,13 +6,14 @@
 - Owner: Codex
 - Branch signal: codex/qa-pass-2/commitment-pooling
 - Branch trigger: claude/qa-pass-1/commitment-pooling
-- Current state: blocked on qa_pass_1
+- Current state: manually blocked on QA Pass 1 defect disposition and completed PRD-727
+  post-QA documentation polish
 - Linear context: PRD-730 (QA pass 2 lane) under parent PRD-650. Register #37 reversed the earlier no-QA-child rule.
 
 ## Inputs
 
 - QA Pass 1 evidence and defect disposition
-- Final contracts/indexer/shared/UI/docs handoffs
+- Final contracts/indexer/shared/UI handoffs and completed PRD-727 documentation-polish handoff
 - Updated status.json and plan-hub proof
 - Authenticated Brave/real-device evidence references
 
@@ -28,6 +29,8 @@
 - Exact ABI/event/config signatures match across specs, generated types, handlers, and shared types.
 - Composite Garden IDs, nullable actors, claim supersession, command/ack message states, same-key idempotency, acknowledgment retry, and member-delivery gating retain coverage.
 - QA Pass 1 defects are fixed and re-proven or explicitly accepted by the user.
+- PRD-727 documentation, screenshots, accessible names, translations, recovery instructions, and
+  planned/live claims are re-read against the QA-tested product and pass their exact commands.
 - Execution sub-lane mirrors replace aggregate implementation issues without duplicates; QA stays on canonical QA issues; blocked, human, and follow-on lanes carry no `agent:*` label and cannot dispatch.
 - Browser evidence remains authenticated Brave and real device where required.
 - No result collapses visible defects or external blockers into a pass.
@@ -59,6 +62,7 @@
 ## Unblock evidence
 
 - qa_pass_1 is GREEN with defects dispositioned.
+- PRD-727 is complete and its live Linear mirror plus source handoff are re-read.
 - All retested lane commands pass.
 - Authenticated Brave/real-device evidence is current or its proof limit is explicit.
 - Plan-hub validation and dispatch listing agree with status.json before QA Pass 2 can turn GREEN.

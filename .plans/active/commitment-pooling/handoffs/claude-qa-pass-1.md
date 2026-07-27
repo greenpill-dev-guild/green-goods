@@ -10,7 +10,9 @@
 
 ## Inputs
 
-- GREEN contracts, indexer, shared, and required August UI handoffs (`ui_client`, `ui_admin`, `editorial`, `docs`, `docs_guides`); September Community is excluded
+- GREEN contracts, indexer, shared, and runtime UI handoffs (`ui_client`, `ui_admin`, `editorial`);
+  post-QA documentation and walkthrough videos are intentionally excluded
+- Verified `develop` source SHA and exact staging deployment URLs
 - Settlement external-gate evidence or an explicit proof-limit record
 - Authenticated Brave access, real-device PWA access, and `acceptance-matrix.md`
 
@@ -30,7 +32,8 @@
   hard ceiling of 24. Immutable failed batches, unbatched per-member recovery, same-key command
   retry, independent acknowledgment retry, and authenticated-only confirmation are visible and
   coherent.
-- Public/editorial/docs claims distinguish planned, dispatched, confirming, and confirmed behavior.
+- Public/editorial claims distinguish planned, dispatched, confirming, and confirmed behavior;
+  documentation mismatches become inputs to the post-QA PRD-727 polish lane.
 - Accessible names, focus order, touch targets, contrast, screen-reader announcements, reduced motion, and en/es/pt are checked.
 
 ## RED / GREEN or proof limit
@@ -61,7 +64,8 @@ Run the targeted commands named in each GREEN handoff, then:
 
 ## Unblock evidence
 
-- Required August implementation handoffs are GREEN; the independent September Community handoff is not an August dependency.
+- Required runtime implementation handoffs are GREEN; post-QA docs, walkthrough videos, and the
+  independent September Community handoff are not QA Pass 1 dependencies.
 - Settlement gate record names official direct-lane availability, CCIP peers/fees,
   exact-net GoodDollar behavior, Safe/Zodiac bounds, AA, separate Arbitrum/Celo
   local/fork/testnet proof, and any proof limits. Celo Sepolia executor/Safe/roles/surrogate

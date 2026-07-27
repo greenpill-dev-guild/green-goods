@@ -9,7 +9,7 @@
 //      admin quiet-checkmark, chain-phrasing placement (September lo-fi stays
 //      exempt only from dialect-specific phrasing checks)
 // Hotspot `info` strings are spec commentary (may cite enum names like
-// OperatorCaptured) — they are not screen copy and are never scanned.
+// StewardCaptured) — they are not screen copy and are never scanned.
 
 import type { SB as RawSB, Scene } from "./journeys";
 import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
@@ -59,7 +59,7 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   attachEvidence: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "EvidenceSubmitted" },
   linkWork: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachAssessment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation", kinds: ["DomainImpact"] },
-  submitForConfirmation: { key: "commitment", allowed: ["EvidenceSubmitted"], next: "ReadyForConfirmation", kinds: ["SupportService", "SeasonCampaign", "OperatorCaptured"] },
+  submitForConfirmation: { key: "commitment", allowed: ["EvidenceSubmitted"], next: "ReadyForConfirmation", kinds: ["SupportService", "SeasonCampaign", "StewardCaptured"] },
   markReadyForConfirmation: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation" },
   confirmFulfillment: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
   confirmFulfillmentAsFallback: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },

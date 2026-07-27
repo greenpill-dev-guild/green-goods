@@ -77,7 +77,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 4 | EAS bridge: WorkApprovalResolver try/catch hook (GAP precedent) + operator `syncApprovedWork` fallback; approvals count only for pre-linked workUIDs | Automatic state without blocking attestations; operator-curated linkage is the trust model. |
 | 5 | Protocol pool = root garden (tokenId 1) pool, poolType PROTOCOL, cross-garden claim reach | Reuses existing custody and hats; no new identity machinery. |
 | 6 | Per-commitment claim mode (open vs approval-gated) set at seeding; declared reward carries an explicit rail. `ArbitrumExternal` uses operator-recorded `RewardPaid`; `CeloSettlement` uses the separate CCIP settlement module; `None` has zero reward fields. The core module never custodies funds and the two payout records are mutually exclusive. | Zero CookieJar contract changes in August; custody stays where it is. Rail discriminator clarified by review on 2026-07-23. |
-| 7 | Lightweight evidence object (IPFS CID via module event) for SupportService/OperatorCaptured; Offer recipient or Request creator confirms by default, named groups exclude the accepted provider, and “Not yet” raises a dispute; DomainImpact keeps full MDR | One direction-aware human loop for low-stakes mutual aid without provider self-confirmation; full approval rigor where impact is claimed. |
+| 7 | Lightweight evidence object (IPFS CID via module event) for SupportService/StewardCaptured; Offer recipient or Request creator confirms by default, named groups exclude the accepted provider, and “Not yet” raises a dispute; DomainImpact keeps full MDR | One direction-aware human loop for low-stakes mutual aid without provider self-confirmation; full approval rigor where impact is claimed. |
 | 8 | v3 authorship split: baseline = evaluator or operator; delta/re-assessment = Evaluator Hat only; testimony = Community Hat only | Preserves analog capture while keeping the two-voice evaluation model clean. |
 | 9 | Surfaces: PWA Garden tab + WalletDrawer pools panel; admin Garden workspace + Community workspace Pools mode + Hub queue; editorial GardenDialog + /impact; September `packages/community` as an independent PWA at `community.greengoods.app` (local port 3010) after shared runtime/auth/offline/shell foundations are extracted | Q&A decisions 9, 10, 21, 3; WalletDrawer already reserves the commitments tab and `/community` is the canonical admin operational workspace. |
 | 10 | Clean room: Grassroots Economics paper + public docs only, never AGPL Sarafu source | RESR-57 D3 + non-AGPL constraint. |
@@ -127,7 +127,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     SettlementModule acknowledgment state. The module never custodies funds, the rails cannot
     both record one commitment, and CookieJar remains unchanged.
 19. Claim mode per commitment: open-claim or approval-gated, set at seeding; protocol pool defaults approval-gated, garden campaigns default open-claim.
-20. Meta evidence: lightweight evidence object (IPFS CID via module event, offline-queueable) for SupportService/OperatorCaptured; direction-aware eligible-party confirmation is the review and Not yet raises a dispute; DomainImpact keeps the full MDR path.
+20. Meta evidence: lightweight evidence object (IPFS CID via module event, offline-queueable) for SupportService/StewardCaptured; direction-aware eligible-party confirmation is the review and Not yet raises a dispute; DomainImpact keeps the full MDR path.
 21. Editorial: extend the GardenDialog with the pool story and add /impact aggregates; no new public routes.
 22. August docs workstreams: glossary + architecture freshness plus operator and gardener guides; no Document B docs page; no spec promotion.
 23. Linear tracking: August build workstreams now roll up to PRD-650 and the consolidated parent trackers; historical child issue IDs remain labels, not dispatch targets. PRD-649 closes when the contract spec merges; PRD-651 stays gated; July and September trackers sit flat with milestones.
@@ -291,6 +291,15 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     dependency version, generated artifact, or lockfile. No dependency installation, codegen,
     deploy, broadcast, authority mutation, Linear/source-document write, staging, commit, or push
     is authorized or performed by this entry.
+61. Source-convergence decisions (2026-07-26, Afo authorization): the former unshipped
+    captured-promise enum name is replaced everywhere in active planning, prototypes, and
+    ontology with `StewardCaptured`, without a compatibility alias; human-facing prose uses
+    “steward-recorded promise.” Corrected and merged PR #649 (`envio@3.2.1`) is a hard prerequisite
+    for PRD-722. That correction removes package-local Envio skill copies and the unrelated shared
+    passkey test, retains only migration-required indexer changes, and keeps root commands and the
+    test plan Bun-first while allowing the generated workspace's pinned pnpm where Envio requires
+    it. Historical v2 audit entries remain dated evidence rather than current implementation
+    instructions.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
@@ -336,8 +345,8 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | Editorial: GardenDialog pool story + /impact aggregates | `editorial` | [PRD-726](https://linear.app/greenpill-dev-guild/issue/PRD-726) (historical PRD-678) | ⏳ |
 | Hypercert cut-over: fulfilled-commitment bundling + allocation presets (split ownership: shared metadata composer + selectors = `state_api`; `bundleKind`/`commitmentIds`/`needUIDs` entity fields = `indexer`; allocation step UI = `ui_admin`) | `state_api` + `indexer` + `ui_admin` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722), [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723), [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-679 split) | ⏳ |
 | G$ split-state settlement: SettlementModule + Celo Safes + multi-chain app | `settlement` | [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) | ⏳ |
-| Docs: glossary + architecture freshness | `docs` | [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) (historical PRD-680) | ⏳ |
-| Docs: operator seeding guide + gardener promises guide | `docs_guides` | [PRD-728](https://linear.app/greenpill-dev-guild/issue/PRD-728) (historical PRD-681) | ⏳ |
+| Post-QA documentation polish: glossary, architecture, data boundaries, rollout language, operator/gardener task guides, screenshots, and recovery states | `docs` | [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) (historical PRD-680/681 scope consolidated after QA Pass 1) | ⏳ |
+| Final client PWA, admin, and editorial walkthrough videos with captions/transcripts and source-SHA provenance | `walkthrough_videos` | [PRD-728](https://linear.app/greenpill-dev-guild/issue/PRD-728) (repurposed from the pre-QA docs-guides lane after QA Pass 2) | ⏳ |
 | External brief, audience notes, GTM/community rollout, and factual review | `docs` + `july_dry_run` | [RESR-57](https://linear.app/greenpill-dev-guild/issue/RESR-57), [RESR-58](https://linear.app/greenpill-dev-guild/issue/RESR-58), [COM-3](https://linear.app/greenpill-dev-guild/issue/COM-3) | ⏳ |
 | July: methodology/metrics pulse (proto-commitment #1; RESR-53 canceled 2026-07-06, folded into the unified instrument) | `july_dry_run` | [COM-7](https://linear.app/greenpill-dev-guild/issue/COM-7) (historical label: RESR-62) | ⏳ |
 | July: commitment-scoping surveys + mandate artifacts (gates August seeding) | `july_dry_run` | [COM-7](https://linear.app/greenpill-dev-guild/issue/COM-7) (historical label: RESR-62) | ⏳ |
@@ -365,22 +374,25 @@ Focus cohort (Decision Log #23, named 2026-07-10; readiness stays evidence-gated
 - [ ] (c) Activations defined and run under RESR-62; at least one full proto-commitment loop per focus garden (canceled RESR-63 is historical only)
 - [ ] Proto-commitment loop table maintained in **COM-7 § Proto-commitment rehearsal** — one row per focus garden plus a Garden-4 placeholder; rewards via Cookie Jar or treasury only (no G$ in the dry run). *(Was a standalone Linear project doc, "July dry run — proto-commitment tracking"; folded into COM-7 and retired 2026-07-20 — its mandate rows duplicated COM-7's own readiness matrix, and only the loop's column shape was unique.)*
 
-### Track B: Build phase (the hard implementation commitment)
+### Track B: Approved convergence-to-release sequence
 
-Sequencing (dependency order is contracts -> indexer/shared -> client/admin/docs; PRD-722 freezes the entity/query contract early while PRD-723 builds only interface-independent shared foundations, and shared GREEN waits for indexer codegen/query proof):
+This order supersedes the earlier implementation-first list. The only parallel work before the
+backend freezes is specification, diagram, journey, and prototype review; product UI implementation
+does not begin against moving contracts or indexer queries.
 
-1. [ ] PRD-721 contracts lane, PR chain 1: schemas/resolvers first so baselines exist before cycle 1
-2. [ ] PRD-721 contracts lane, PR chain 2: deploy module + register, finalize schemas, verify module-side wiring, and keep pooling paused
-3. [ ] PRD-721 contracts lane, PR chain 3: upgrade GardenToken + WorkApprovalResolver, verify both reverse links while paused, unpause only after the complete readiness gate, then register/backfill pools and pass the operational smoke
-4. [ ] PRD-722 indexer starts from PRD-721's frozen events, freezes entity/query ownership for PRD-723, adds Envio block-preservation proof, migrates Garden IDs to `chainId-address`, keeps audit actor nullable unless explicit, and completes codegen/build before downstream GREEN
-5. [ ] PRD-723 shared substrate starts from PRD-721 interfaces in parallel where safe; final GREEN requires the PRD-722 generated entity/query contract and composite-ID cutover proof; blocks all app lanes
-6. [ ] In parallel after PRD-723: PRD-724 client, PRD-725 admin Garden/Community Pools/Hypercert UI, PRD-726 editorial
-7. [ ] PRD-727 docs (`docs`) can start after source convergence; PRD-728 screenshot guides (`docs_guides`) stay blocked until client/admin settlement surfaces exist
-8. [ ] Human-authorized tiered broadcast step (`handoffs/human-release-ops.md`): by July 31, the pooling module/register/two schemas and their required three-PR-chain activation sequence complete full tests, paused deployment/schema finalization, GardenToken/WorkApprovalResolver upgrade and reverse-wiring proof, post-wiring unpause verification, pool backfill, post-deploy verification, and upgrade/rollback proof. Broadcast and activation occur during Build only with explicit human authorization under the narrower non-custodial/non-transferable gate. `SettlementModule`/`CeloSettlementExecutor`/Safes remain blocked until the Release phase and their audit, timelock, published-mainnet-route + dual-chain testnet evidence gate, Safe/CCIP/AA evidence, live value proof, and separate authorization are complete.
-9. [ ] Cycle 1 opens: operator-curated seeding from the July mandate artifacts
-10. [ ] PRD-686 settlement implementation: after PRD-721 interface freeze, build the versioned message library, Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, paused-first deployment/Safe verification tooling, bounded Zodiac Roles/caps, immutable batch membership with hard ceiling 24 and a measurement-gated configured limit, per-member reconciliation, paired-router asynchronous harness, immutable-router cutover rehearsal, native-fee monitoring, command/ack/recipient index model, and queued/dispatched/delayed/executed-ack-pending/confirmed/failed selectors. External Safe identities/live selectors, approved policy values, audit/timelock, broadcasts, and canary stay in Release.
-11. [ ] Human-owned settlement exit proof (`handoffs/human-release-ops.md`): after the alternative gate and explicit authorization, one Fulfilled commitment produces a command, the registered Safe executes canonical G$ on Celo, the executor sends an authenticated acknowledgment, Arbitrum records `Confirmed`, and UI shows “support arrived”; AA failure blocks this member leg but not the protocol → garden funding route
-12. [ ] Credit follow-on remains blocked unless explicitly unblocked after pooling + settlement interfaces freeze
+1. [ ] **Envio foundation first:** correct and merge GitHub PR #649; prove Envio `3.2.1` generation, build, tests, migration/replay, block preservation, and root Bun-first workflow without package-local skill copies or unrelated shared changes.
+2. [ ] **Clear the existing contract environment:** complete PRD-747 HatsModule Steward upgrade, PRD-748 live-hat relabel operation, and PRD-575 GreenWill fork/dry-run/authorized Arbitrum broadcast/post-upgrade smoke. PRD-749's visible en/es/pt terminology sweep must be complete before product UI implementation.
+3. [ ] **Final architecture fine-comb:** Afo reviews the diagrams and specifications under PRD-649; every correction is reconciled across contracts, events, indexer entities, state/API, handoffs, prototypes, the canonical Google Doc, and Linear. Freeze the ABI/event/schema/query boundaries before PRD-721 dispatch.
+4. [ ] **Commitment Pooling backend build:** execute PRD-721's three contract PR chains, then PRD-722 against frozen events; PRD-723 may build interface-independent foundations in parallel but reaches GREEN only after generated indexer queries, Garden-ID replay/cutover, and settlement selectors are proven. UI work in this stage is review/prototype refinement only.
+5. [ ] **Human-authorized core activation:** pass local/fork/testnet, storage, upgrade/rollback, deploy-dry-run, and post-deploy gates; broadcast the approved non-value module/register/schema tier; persist and verify artifacts; update Envio deployment configuration; deploy/reindex; and re-read live entities/queries. Value-bearing settlement remains behind its separate audit/timelock/Safe/CCIP/AA/canary authorization.
+6. [ ] **Existing admin/UI foundation:** resolve PRD-737 and the explicitly scoped admin-console/output defects and polish against verified live backend data. Do not turn this into a redesign or absorb the new Commitment Pooling feature implementation.
+7. [ ] **Runtime interface implementation:** build PRD-724 client PWA, PRD-725 admin, and PRD-726 editorial surfaces against the frozen ABI, generated queries, and verified deployment output; settlement-only slices wait for the value-tier selectors and evidence.
+8. [ ] **Develop/staging integration:** merge completed lanes in dependency order onto `develop`, verify the exact staging deployment URLs and source SHA, run targeted lane proof plus the Repo Quick Gate, and begin broad QA only from the verified staging build.
+9. [ ] **QA Pass 1 / deep QA (PRD-729):** run full human-flow, authenticated Brave, real-device PWA, offline/recovery, contract-indexer consistency, accessibility, locale, permissions, and regression review. Route defects back to their owning lanes and re-merge fixes to `develop`.
+10. [ ] **Post-QA documentation polish (PRD-727):** after QA Pass 1, reconcile architecture/glossary/reference prose, operator and gardener task guides, screenshots, accessible names, recovery instructions, translations, and every planned/live claim against the QA-tested product.
+11. [ ] **QA Pass 2 / release certification (PRD-730):** retest every QA1 correction and the polished documentation, run boundary checks and the full Ship Gate, and freeze the verified `develop` snapshot only when staging is green and no unaccepted release blocker remains.
+12. [ ] **Walkthrough-video completion (PRD-728):** after QA Pass 2, record, edit, caption, transcribe, privacy-review, and replay the approved client PWA, admin, editorial, member, Garden Steward, evaluator, and operational walkthroughs against the final source SHA.
+13. [ ] **Cycle 1 and separately authorized value operations:** open Cycle 1 from the approved mandate artifacts only when its readiness gate passes. Settlement broadcast/canary/exit proof remains human-owned and independently authorized; one Fulfilled commitment may read Confirmed only after the authenticated acknowledgment. Credit follow-on stays blocked unless explicitly unblocked after pooling and settlement interfaces freeze.
 
 ### Track C: September community interface
 
@@ -471,15 +483,19 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Public surfaces only; aggregate-only data; small-community thresholds
 - [ ] Write `handoffs/claude-editorial.md`
 
-### Docs glossary + architecture freshness (`claude/docs/commitment-pooling`): PRD-727 (historical label PRD-680)
+### Post-QA documentation polish (`claude/docs/commitment-pooling`): PRD-727 (historical labels PRD-680/681)
 
-- [ ] Glossary anchors preserved; vocab lint green
+- [ ] Start only after QA Pass 1; reconcile architecture, glossary, task guides, screenshots,
+      accessible names, translations, recovery states, and planned/live claims
+- [ ] Glossary anchors preserved; docs build and vocab lint green
 - [ ] Write `handoffs/claude-docs.md`
 
-### Docs operator/gardener guides (`claude/docs-guides/commitment-pooling`): PRD-728 (historical label PRD-681)
+### Walkthrough videos (`claude/walkthrough-videos/commitment-pooling`): PRD-728
 
-- [ ] Wait for shipped client/admin settlement surfaces before screenshot capture
-- [ ] Write `handoffs/claude-docs-guides.md`
+- [ ] Start only after QA Pass 2 and PRD-727 completion
+- [ ] Record final client PWA, admin, editorial, member, Garden Steward, evaluator, and operations
+      walkthroughs with captions/transcripts, privacy review, source SHA, and final path replay
+- [ ] Write `handoffs/claude-walkthrough-videos.md`
 
 ### QA Pass 1 (`claude/qa-pass-1/commitment-pooling`)
 

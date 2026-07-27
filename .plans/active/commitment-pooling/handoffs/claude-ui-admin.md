@@ -6,7 +6,9 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: claude/ui-admin/commitment-pooling
-- Current state: two-phase — core admin waits for core state_api; settlement controls wait for settlement selectors
+- Current state: prototype/journey review may continue; feature implementation waits for core
+  state_api, verified non-value deployment/indexer output, and completion of the scoped existing
+  admin-console fixes and polish led by PRD-737; settlement controls wait for settlement selectors
 - Linear context: PRD-725 (admin UI lane) under parent PRD-650; PRD-682 is Community context
 
 ## Inputs
@@ -78,7 +80,10 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 
 ## Unblock evidence
 
-- Core admin dispatch requires core state_api GREEN. Settlement batching/CCIP/Safe controls remain blocked until settlement selectors are GREEN; core GREEN is not full settlement GREEN.
+- Core admin dispatch requires core state_api GREEN, verified non-value deployment and live
+  indexer read-back, and completion of the scoped existing-admin fixes/polish. Settlement
+  batching/CCIP/Safe controls remain blocked until settlement selectors are GREEN; core GREEN is
+  not full settlement GREEN.
 - /community placement and corrected admin wireframes are recorded.
 - RED proof precedes implementation.
 - GREEN includes targeted tests, build, and authenticated Brave proof for seeding, claims, dispute recovery, batching, command dispatch, execution/acknowledgment status, failure, fee/delivery delay, and each distinct retry action.

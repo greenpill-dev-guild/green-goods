@@ -6,7 +6,8 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: claude/ui-client/commitment-pooling
-- Current state: blocked on state_api
+- Current state: prototype/journey review may continue; implementation waits for state_api,
+  verified non-value deployment/indexer output, and the existing admin/UI foundation cleanup
 - Linear context: PRD-724 (client UI lane) under parent PRD-650
 
 ## Inputs
@@ -74,7 +75,9 @@ Both named client test files do not exist yet; they are intentional to-be-create
 
 ## Unblock evidence
 
-- Core pooling dispatch requires core state_api GREEN and exports the documented core selectors/jobs; it does not wait for settlement. W23, reward-status rows, and Celo transfer remain blocked until settlement state_api GREEN.
+- Core pooling dispatch requires core state_api GREEN, the verified non-value deployment and live
+  indexer read-back, plus the scoped existing-admin/UI foundation cleanup. W23, reward-status
+  rows, and Celo transfer remain blocked until settlement state_api GREEN.
 - Corrected client wireframes and copy/state matrix are final.
 - RED evidence exists before implementation.
 - GREEN requires targeted tests, build, authenticated Brave, and a real-device PWA pass including offline restart and member-delivery-disabled behavior.

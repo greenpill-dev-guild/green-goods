@@ -99,9 +99,14 @@
 | Indexer replay | operator | full composite Garden-ID replay, cutover, rollback rehearsal | `indexer` + `release_ops` | dry run, snapshot, replay, shared-query check, rollback record |
 | Release | protocol release owner | authorized broadcasts, post-checks, peer/fee/Safe health, message-only ping/ack, one capped real exit proof | `release_ops` | signed checklist in `handoffs/human-release-ops.md` |
 
-## 5. August versus September gate
+## 5. Runtime, post-QA documentation, and September gates
 
-August UI GREEN aggregates `ui_client`, `ui_admin`, `editorial`, `docs`, and `docs_guides` for the shipped August scope. The September `community` PWA records its own GREEN later and is not an August QA dependency. Membership persistence is conditional within Community and remains excluded until RESR-64; it does not block the non-membership Community core.
+Runtime UI GREEN aggregates `ui_client`, `ui_admin`, and `editorial` before QA Pass 1.
+Post-QA `docs` polish follows QA Pass 1 and must complete before QA Pass 2. Final
+`walkthrough_videos` follow QA Pass 2 and do not block release certification. The September
+`community` PWA records its own GREEN later and is not a dependency of these gates. Membership
+persistence is conditional within Community and remains excluded until RESR-64; it does not block
+the non-membership Community core.
 
 ## 6. Pilot operational measurement definitions
 

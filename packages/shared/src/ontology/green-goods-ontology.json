@@ -1020,7 +1020,7 @@
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
-        "members": ["DomainImpact", "SupportService", "SeasonCampaign", "OperatorCaptured"]
+        "members": ["DomainImpact", "SupportService", "SeasonCampaign", "StewardCaptured"]
       },
       "planned_anchor": {
         "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",

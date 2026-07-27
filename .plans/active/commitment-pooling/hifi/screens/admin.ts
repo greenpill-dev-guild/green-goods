@@ -863,7 +863,7 @@ const W8_HOTS: HifiDef["hots"] = {
   "w8.back-capture": { l: "Back to capture kind", to: "screen:W9@capture-kind", info: "Steps back to the capture kind without discarding the chosen member." },
   "w8.cancel": { l: "Cancel seeding", to: "screen:W8@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard." },
   "w8.cancel-capture": { l: "Cancel capture", to: "screen:W9@discard", info: "The capture flow's own discard guard — Keep editing returns to the capture flow, not the seed console." },
-  "w8.record": { l: "Record the captured promise", to: "screen:W7", info: "OperatorCaptured create — the member stays the social source; the steward is recorded as recordedBy (CS:730)." },
+  "w8.record": { l: "Record the captured promise", to: "screen:W7", info: "StewardCaptured create — the member stays the social source; the steward is recorded as recordedBy (CS:730)." },
   "w8.keep-editing": { l: "Keep editing", to: "screen:W8", info: "Returns to the flow with entered values intact." },
   "w8.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow and drops the unsaved seeded promise." },
   "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — season/campaign and steward-captured kinds are created only here (UX:150).", calls: ["createCommitment"] },

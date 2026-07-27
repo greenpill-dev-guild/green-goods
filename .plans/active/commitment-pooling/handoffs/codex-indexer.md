@@ -6,9 +6,9 @@
 - Execution sub-lane: indexer
 - Owner: Codex
 - Branch signal: codex/indexer/commitment-pooling
-- Current state: independent local review/correction complete; core pooling remains blocked on
-  live mirror convergence/re-read plus frozen pooling events; settlement indexing also waits for
-  frozen settlement events
+- Current state: blocked; corrected-and-merged PR #649 and its Envio `3.2.1` proof come first,
+  then core pooling indexing waits for the final architecture freeze and frozen PRD-721 events.
+  Settlement indexing separately waits for frozen settlement events.
 - Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
 
 ## Inputs
@@ -45,8 +45,10 @@
   `peerConfigured = false`, and no cross-chain relationship output unless a fresh official
   directory/API read publishes the exact lane/router. Mutable configuration remains event-owned,
   and any missing/rounded/mismatched required seed fails preservation.
-- The lane remains on Envio `2.32.12`; it reads that pinned version's config schema before
-  selecting ordered/unordered multichain behavior and records the choice in `config.yaml`.
+- Corrected and merged PR #649 is a hard prerequisite. The lane targets Envio `3.2.1`, re-reads
+  that version's config schema, and must not copy the v2-only `unordered_multichain_mode` flag.
+  Root commands and the PR test plan remain Bun-first; generated Envio/ReScript internals may use
+  the package-local pnpm pin where the tool requires it.
   Configuration rows seed from generated verified deployment constants on the first relevant
   protocol event; no imaginary deployment-block callback is assumed. Celo Sepolia uses
   `rpc_config` because HyperSync coverage is not assumed.
@@ -140,7 +142,9 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 
 ## Unblock evidence
 
-- Core dispatch requires only pooling event signatures frozen and identical between contract-spec and Envio config. Settlement handlers use the frozen Arbitrum command/ack and Celo executor signatures in settlement-spec; core GREEN must not be reported as full settlement GREEN.
+- Corrected PR #649 is merged and its generation, build, tests, migration/replay, and block
+  preservation proof pass before Commitment Pooling adds entities or handlers.
+- Core dispatch then requires pooling event signatures frozen and identical between contract-spec and Envio config. Settlement handlers use the frozen Arbitrum command/ack and Celo executor signatures in settlement-spec; core GREEN must not be reported as full settlement GREEN.
 - Garden replay procedure, pre-replay snapshot, switch criterion, rollback package, and accountable owner Afolabi Aiyeloja are named. The implementer produces the rehearsal; `human-release-ops.md` owns the authorized live cutover.
 - Updater/boundary allowlist changes and preservation fixture are part of the lane.
 - RED fixture evidence is recorded; final GREEN includes codegen, generated build, boundary check, targeted handlers, and package build.

@@ -36,7 +36,7 @@ export type CommitmentLifecycle =
   | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
   | "Expired" | "Disputed" | "Reconciled";
-export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "OperatorCaptured";
+export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "StewardCaptured";
 export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
 export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
 // Exact settlement-spec DisbursementState spelling. `None` is a sentinel and

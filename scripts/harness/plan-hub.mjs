@@ -148,6 +148,7 @@ const EXECUTION_SUB_LANE_PACKAGE_LABELS = {
   editorial: "package:docs",
   docs: "package:docs",
   docs_guides: "package:docs",
+  walkthrough_videos: "package:docs",
   community: "package:client",
 };
 const LANE_DISPLAY_NAMES = {
