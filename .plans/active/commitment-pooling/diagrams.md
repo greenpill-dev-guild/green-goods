@@ -13,7 +13,7 @@
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 29 assets, not a table of contents for this file: 23 named D-diagram sections (D1–D16, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **32 Architecture Mermaid blocks** below, because four sections are drawn as an overview plus zoom-in sub-blocks — D2 (overview + three acts), D6 (overview + three acts), D7 (entity map + two field blocks), and D9 (healthy path + idempotency + retries) — D13 adds a capability-separation mini-diagram, and D13b is a semantic table rather than Mermaid. **Every D-section has exactly one row** — D3 and D8 were previously missing, and the commitment-pooling ERD was previously counted twice.
+This is the cross-hub inventory of 29 assets, not a table of contents for this file: 23 named D-diagram sections (D1–D16, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **34 Architecture Mermaid blocks** below, because five sections are drawn as an overview plus zoom-in sub-blocks — D2 (overview + three acts), D6 (overview + three acts), D7 (entity map + two field blocks), D9 (healthy path + idempotency + retries), and D16 (the error, where it manifests, how the person responds) — D13 adds a capability-separation mini-diagram, and D13b is a semantic table rather than Mermaid. **Every D-section has exactly one row** — D3 and D8 were previously missing, and the commitment-pooling ERD was previously counted twice.
 
 **Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling: `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one, which is what gives D2/D6/D7/D9 their overview-plus-zoom shape and what the 26-section / 32-block assertions count. Promoting them to `###` would convert 14 sub-blocks into sections and dismantle the anchor and nav design. markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives. The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
 
@@ -47,7 +47,9 @@ This is the cross-hub inventory of 29 assets, not a table of contents for this f
 | 26 | Settlement status derivation (5 stored, 9 rendered) | member, client, QA | Which member-visible states are stored, which are derived, and which has no on-chain counterpart? | `settlement-spec.md` §3.1.2; CP `uiux-spec.md` §5.9 | Ready: D10b | Added 2026-07-25; the derivation was a single prose row | Mermaid parse + W2 state cross-read |
 | 27 | Claim-request state machine | contracts, indexer, client | What are the four request states and which resolution code ends each one? | CP `contract-spec.md` §5.3, §8.2 | Ready: D11b | Added 2026-07-25; D11 is a sequence, not a machine | Mermaid parse + resolutionCode cross-read |
 | 28 | Deployment and upgrade topology | contracts, release ops, security | In what order do the PR chains run, how long does pooling stay paused, and where can it roll back? | CP `contract-spec.md` §7.3–7.4; `settlement-spec.md` §7.1 | Ready: D15 | Added 2026-07-25; previously prose only, and the ordering had already drifted once (corrections-log §23) | Mermaid parse + activation-order cross-read |
-| 29 | Error taxonomy and recovery map | client, admin, QA | Where does each error family surface, and what recovery may that surface offer? | CP `contract-spec.md` §5.5, §6.2; `settlement-spec.md` §3.1.2 | Ready: D16 | Added 2026-07-25; FailureCode crosses the chain boundary and had no traced path | Mermaid parse + surface/recovery cross-read |
+| 29 | Error taxonomy and recovery map | client, admin, QA | Where does each error family surface, and what recovery may that surface offer? | CP `contract-spec.md` §5.5, §6.2; `settlement-spec.md` §3.1.2 | Ready: D16.0 families + D16.1 surfaces + D16.2 recovery | Added 2026-07-25; split 2026-07-27 into the error, where it manifests, and how the person responds — the combined graph buried the recovery column | Mermaid parse + surface/recovery cross-read |
+
+**Keep subgraph titles short.** Mermaid wraps a cluster title at a fixed width (~200 px) but reserves height for a single line, so a longer title's second line renders *on top of* the nodes inside its own cluster. D1, D1b, D10b, and D16.0 each shipped that way once. Keep every `subgraph … ["…"]` label to roughly **22 characters** and let the reading guide carry the qualifier — that is why the boundary clusters in D1b read "Application boundary" rather than "Application boundary — queues intent, authorizes nothing". The gallery's render audit checks every cluster label against every node box and is the gate for this.
 
 **Visual status contract**: three treatments, and only three.
 
@@ -121,7 +123,7 @@ flowchart TB
     ADMIN["Admin<br/>steward pools · evaluator export · Operations"]
     DOCS["Docs site (Docusaurus)<br/>builder + user reference"]
   end
-  subgraph arb["Arbitrum — control and proof"]
+  subgraph arb["Arbitrum protocol layer"]
     MOD["CommitmentPoolingModule + Register"]
     SET["SettlementModule"]
     EAS["EAS + Green Goods resolvers"]
@@ -180,36 +182,32 @@ Notes:
 
 ## D1b. Contract/module topology and trust boundaries
 
-**How to read this**: four trust boundaries, one job each. The application boundary queues intent but authorizes nothing. The Arbitrum boundary owns source state. Envio restates explicit events from both Green Goods contracts. The Celo executor moves value under a reviewed Safe + Zodiac scope, stores its idempotent outcome, then uses CCIP to acknowledge it.
+**How to read this**: four trust boundaries, one job each — the application boundary queues intent and authorizes nothing, the Arbitrum boundary owns source state, Envio restates explicit events from both Green Goods contracts, and the Celo executor moves value under a reviewed Safe + Zodiac scope, stores its idempotent outcome, then uses CCIP to acknowledge it. Two presentation choices worth naming: **both Work-rail resolvers are drawn** — `WorkResolver` validates the Work attestation itself and `WorkApprovalResolver` validates the approval and carries the non-blocking bridge into the pooling module — and **the four Community resolvers are drawn as one group**, because each validates exactly one schema and they share a single status and trust position. The boundary rules below still name each one individually.
 
 ```mermaid
 flowchart TB
-  subgraph APP["Application boundary — queues intent, authorizes nothing"]
+  subgraph APP["Application boundary"]
     CPJOBS["CP offline jobs (planned)<br/>commitment · claim · evidence · workLink · confirmation"]
     EASJOBS["Community offline EAS jobs (planned)<br/>need · needSignal · testimony"]
     EASACTIONS["Online EAS actions (planned)<br/>NeedStatus · FundingAttribution"]
     TRANSFER["Online Celo wallet action (planned)<br/>canonical G$ send · never queued"]
   end
-  subgraph ARB["Arbitrum trust boundary — authorizes and counts"]
+  subgraph ARB["Arbitrum trust boundary"]
     HATS["HatsModule<br/>membership and scoped roles"]
     GT["GardenToken<br/>optional non-blocking pool hook"]
     CPM["CommitmentPoolingModule<br/>state + access + EAS checks"]
     REG["CommitmentRegister<br/>onlyModule unit accounting"]
     SM["SettlementModule<br/>immutable route/source/executor scope"]
+    WR["WorkResolver<br/>validates the Work attestation"]
     WAR["WorkApprovalResolver<br/>non-blocking approval hook"]
     EAS["EAS + SchemaRegistry"]
-    subgraph RESV["Community EAS resolvers (Sept)"]
-      NR["NeedResolver"]
-      NSR["NeedSignalResolver"]
-      NSTR["NeedStatusResolver"]
-      FAR["FundingAttributionResolver"]
-    end
+    RESV["Community EAS resolvers (Sept)<br/>one resolver per schema:<br/>Need · NeedSignal · NeedStatus<br/>FundingAttribution"]
     V3["AssessmentResolver (existing UUPS, upgraded)<br/>v2 preserved · AssessmentV3 schema added"]
     CTR["CommunityTestimonyResolver (planned)<br/>Community Hat only"]
     TL["Deployment timelock<br/>gates route, batch limit,<br/>dispatcher, and fee-floor changes"]
   end
   ENV["Envio read model — indexing boundary<br/>only Green Goods contract events"]
-  subgraph CELO["Celo trust boundary — moves value under scope"]
+  subgraph CELO["Celo trust boundary"]
     SAFE["2-of-3 recovery Safes<br/>owners != Roles executors"]
     GD["Canonical G$ transfers"]
   end
@@ -225,12 +223,10 @@ flowchart TB
   GT -->|"try/catch"| CPM
   CPM --> REG
   CPM --> EAS
+  EAS --> WR
   EAS --> WAR
   WAR -->|"try/catch"| CPM
-  EAS --> NR
-  EAS --> NSR
-  EAS --> NSTR
-  EAS --> FAR
+  EAS --> RESV
   EAS --> V3
   EAS --> CTR
   CPM -->|"events"| ENV
@@ -247,15 +243,15 @@ flowchart TB
   classDef built fill:#edf3e8,stroke:#50784a,stroke-width:2px,color:#2a2722
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
   classDef existingPlannedDelta fill:#fbf8f2,stroke:#50784a,stroke-width:2px,color:#2a2722
-  class HATS,GT,WAR,EAS,GD built
-  class CPJOBS,EASJOBS,EASACTIONS,TRANSFER,CPM,REG,SM,NR,NSR,NSTR,FAR,CTR,SAFE,CCIP,CE,TL planned
+  class HATS,GT,WR,WAR,EAS,GD built
+  class CPJOBS,EASJOBS,EASACTIONS,TRANSFER,CPM,REG,SM,RESV,CTR,SAFE,CCIP,CE,TL planned
   class V3,ENV existingPlannedDelta
 ```
 
 Boundary rules:
 
 - **Application**: drafts and queued jobs are intent, never authority — every write is re-validated on-chain; nothing trusts a client claim.
-- **Arbitrum**: HatsModule decides who may act; the pooling module owns state machines and EAS checks; the register counts units only for the module; the settlement module records value authorization but never custodies or calls Celo. Each Community resolver validates exactly one schema — **NeedResolver** (Need records), **NeedSignalResolver** (member signals on a Need), **NeedStatusResolver** (steward status updates), **FundingAttributionResolver** (receipt-checked funding references). Attestation authorship rules are not drawn here — D13b carries them.
+- **Arbitrum**: HatsModule decides who may act; the pooling module owns state machines and EAS checks; the register counts units only for the module; the settlement module records value authorization but never custodies or calls Celo. The existing Work rail is validated by two live resolvers — **WorkResolver** (the Work attestation: garden membership, registered active Action, enabled domain, required metadata) and **WorkApprovalResolver** (the separate approval attestation, plus the try/catch bridge into the pooling module). Each Community resolver validates exactly one schema — **NeedResolver** (Need records), **NeedSignalResolver** (member signals on a Need), **NeedStatusResolver** (steward status updates), **FundingAttributionResolver** (receipt-checked funding references); the diagram groups those four into one node because they are identical in status and trust position. Attestation authorship rules are not drawn here — D13b carries them.
 - **Deployment timelock**: four settlement configuration changes — `setCcipRoute`, `setBatchSizeLimit`, `setDispatcher`, `setFeeReserveMinimum` — are reachable only through the timelock, and all four additionally require the module to be paused. Dependency wiring, `setPaused`, and `_authorizeUpgrade` are owner-direct with no timelock. D13b is the exact gate for each.
 - **Envio**: restates emitted events into the read model — explicit fields only, no actor inference from `transaction.from`.
 - **Celo + CCIP**: the executor validates its immutable source chain/sender and empty token amounts, then calls only the typed canonical-G$ route. Recovery owners are never executor owners. An authenticated Celo acknowledgment, not a human report or timeout, finalizes Arbitrum state.
@@ -782,7 +778,7 @@ erDiagram
     Int requestedAt "event timestamp"
     CommitmentClaimRequestState state "PENDING ACCEPTED DECLINED SUPERSEDED"
     String reasonCID "decline only"
-    String resolutionCode "CLAIM_ACCEPTED CLAIM_DECLINED COMMITMENT_ACCEPTED COMMITMENT_CANCELLED COMMITMENT_EXPIRED"
+    String resolutionCode "five codes — enumerated in D11b"
     Int resolvedAt "nullable"
   }
 
@@ -1219,32 +1215,32 @@ sequenceDiagram
 
 ## D10. Disbursement state machine (all module-native, on-chain)
 
-**How to read this**: five stored states, and the one rule that governs all of them — **delivery is not confirmation**. `Dispatched` self-loops for every kind of waiting (command retry, delivery delay, Celo executed with the acknowledgment still pending), and only an authenticated acknowledgment for the current key and attempt leaves it. Cancellation is reachable from `Queued` or an authenticated `Failed`, never from `Dispatched` — lateness alone is not a terminal outcome. D10b maps these five onto the nine states a member actually sees.
+**How to read this**: five stored states, and the one rule that governs all of them — **delivery is not confirmation**. `Dispatched` self-loops for every kind of waiting (command retry, delivery delay, Celo executed with the acknowledgment still pending), and only an authenticated acknowledgment for the current key and attempt leaves it. Cancellation is reachable from `Queued` or an authenticated `Failed`, never from `Dispatched` — lateness alone is not a terminal outcome. The diagram carries states and transitions only; the exact function names, arguments, and batch rules are in the table directly below it. D10b maps these five onto the nine states a member actually sees.
 
 ```mermaid
 stateDiagram-v2
   direction LR
-  [*] --> Queued : queueDisbursement / queueFunding — canonical facts
-  Queued --> Dispatched : dispatch command (executionKey + messageId)
-  Dispatched --> Dispatched : same-key command retry / delivery delay / Celo executed ack pending
-  Dispatched --> Confirmed : authenticated success acknowledgment for current key/attempt
-  Dispatched --> Failed : authenticated current failure acknowledgment
-  Failed --> Queued : requeue(disbursementId) — one member, attempt++; a failed batch is never requeued as a batch
-  Failed --> Cancelled : cancelDisbursement(disbursementId, reasonCID)
-  Queued --> Cancelled : cancelDisbursement(unbatched disbursementId, reasonCID)
+  [*] --> Queued : queue
+  Queued --> Dispatched : dispatch command
+  Dispatched --> Dispatched : retry · delay · ack pending
+  Dispatched --> Confirmed : authenticated success ack
+  Dispatched --> Failed : authenticated failure ack
+  Failed --> Queued : requeue as a new attempt
+  Queued --> Cancelled : cancel
+  Failed --> Cancelled : cancel
   Confirmed --> [*]
-  Cancelled --> [*] : frees the commitment for a fresh queue
+  Cancelled --> [*]
 ```
 
 **What each state allows**:
 
 | State | What it means | What's allowed next | Who acts |
 |---|---|---|---|
-| Queued | steward has queued canonical eligible facts; nothing dispatched | dispatch through the frozen entrypoint; cancel an unbatched item or cancel the whole immutable batch | resolved settlement steward |
+| Queued | steward has queued canonical eligible facts via `queueDisbursement` / `queueFunding`; nothing dispatched | dispatch through the frozen entrypoint (`executionKey` + `messageId`); `cancelDisbursement(unbatched disbursementId, reasonCID)`, or cancel the whole immutable batch | resolved settlement steward |
 | Dispatched | command sent; execution or acknowledgment may still be pending | wait; retry same command; retry stored acknowledgment from Celo | resolved steward / anyone for destination ack retry |
 | Confirmed | authenticated success acknowledgment for the current key/attempt received | terminal — “support arrived” | Celo executor through CCIP |
-| Failed | authenticated current execution-failure acknowledgment received | requeue **each failed member individually** as a new next attempt, or terminally cancel; the immutable failed batch is never rewritten or requeued as a batch | resolved settlement steward |
-| Cancelled | withdrawn while Queued, or closed after authenticated Failed delivery | terminal for that execution key | resolved settlement steward |
+| Failed | authenticated current execution-failure acknowledgment received | `requeue(disbursementId)` — **each failed member individually**, `attempt++`, as a new next attempt — or terminally cancel; the immutable failed batch is never rewritten or requeued as a batch | resolved settlement steward |
+| Cancelled | withdrawn while Queued, or closed after authenticated Failed delivery, via `cancelDisbursement(disbursementId, reasonCID)` | terminal for that execution key; the commitment is freed for a fresh queue | resolved settlement steward |
 
 For a Queued batch, the `Queued -> Cancelled` transition is
 `cancelBatch(batchId, reasonCID)`: one atomic transition over the immutable member
@@ -1255,7 +1251,7 @@ A failed Celo leg never changes Commitment Pooling state. `SettlementExecutionSt
 
 ## D10b. Settlement status the member sees (5 stored, 9 rendered)
 
-**How to read this**: the chain stores five states; the member surface renders nine. This is the map between them, and the reason the two vocabularies never contradict each other. Read the middle column as the *extra input* that splits one stored state into several rendered ones — Celo executor events and a delay timer. Two facts matter most: **`support-delayed` has no on-chain counterpart at all** — it is a client-side timer over the `Dispatched` timestamp and it changes no authority, no state, and no eligibility — and **only an authenticated success acknowledgment produces "support arrived"**. Nothing a human observes, and no elapsed time, can move a member into the arrived state.
+**How to read this**: the chain stores five states; the member surface (W2) renders nine. This is the map between them, and the reason the two vocabularies never contradict each other. Read the middle column as the *extra input* that splits one stored state into several rendered ones — Celo executor events and a delay timer. Two facts matter most: **`support-delayed` has no on-chain counterpart at all** — it is a client-side timer over the `Dispatched` timestamp and it changes no authority, no state, and no eligibility — and **only an authenticated success acknowledgment produces "support arrived"**. Nothing a human observes, and no elapsed time, can move a member into the arrived state.
 
 ```mermaid
 flowchart LR
@@ -1267,7 +1263,7 @@ flowchart LR
     X["Cancelled"]
   end
 
-  subgraph UI["Rendered to the member (W2)"]
+  subgraph UI["Rendered to the member"]
     S1["support-queued<br/>“support is queued”"]
     S2["support-en-route<br/>“support on its way”"]
     S3["support-delayed<br/>“taking longer than usual”"]
@@ -1343,33 +1339,34 @@ There is no numeric sentinel or database-wide query. A later request after a dec
 
 ## D11b. Claim-request state machine
 
-**How to read this**: D11 is the choreography between people; this is the machine each individual request runs. One request per claimant, four states, and every terminal state carries a `resolutionCode` so the member sees *why* it ended rather than just that it did. The distinction the copy depends on is inside `SUPERSEDED`: `COMMITMENT_ACCEPTED` means someone else got it, while `COMMITMENT_CANCELLED` / `COMMITMENT_EXPIRED` mean the commitment itself went away. Only `DECLINED` carries a steward-authored `reasonCID`.
+**How to read this**: D11 is the choreography between people; this is the machine each individual request runs. One request per claimant, four states. A `PENDING` row holds its own stored terms and moves no commitment state. Every terminal state carries a `resolutionCode` so the member sees *why* it ended rather than just that it did — the machine below shows the shape, and the table under it names the code and the sentence each one produces.
 
 Note the state a claim request never has: there is no "withdrawn". A claimant does not retract a request — it resolves when the steward acts or when the commitment ends.
 
 ```mermaid
 stateDiagram-v2
   direction LR
-  PENDING: PENDING (stored terms, commitment state unchanged)
-  ACCEPTED: ACCEPTED (resolutionCode CLAIM_ACCEPTED)
-  DECLINED: DECLINED (resolutionCode CLAIM_DECLINED + reasonCID)
-  SUPERSEDED: SUPERSEDED (resolutionCode names the cause)
-
-  [*] --> PENDING : claimCommitment — ApprovalGated only
-  PENDING --> ACCEPTED : acceptClaim(id, claimant) — consumes the stored terms exactly once
-  PENDING --> DECLINED : declineClaim(id, claimant, reasonCID) — clears only this claimant
-  PENDING --> SUPERSEDED : another claimant accepted — COMMITMENT_ACCEPTED
-  PENDING --> SUPERSEDED : commitment cancelled before acceptance — COMMITMENT_CANCELLED
-  PENDING --> SUPERSEDED : commitment expired before acceptance — COMMITMENT_EXPIRED
+  [*] --> PENDING : claimCommitment (ApprovalGated only)
+  PENDING --> ACCEPTED : acceptClaim
+  PENDING --> DECLINED : declineClaim
+  PENDING --> SUPERSEDED : commitment accepted, cancelled, or expired
   ACCEPTED --> [*]
-  DECLINED --> [*] : a later request is a fresh PENDING row, never a reopen
+  DECLINED --> [*]
   SUPERSEDED --> [*]
 
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
   class PENDING,ACCEPTED,DECLINED,SUPERSEDED planned
 ```
 
-Supersession is written by the indexer, not the contract: acceptance, cancellation, and expiry each load the request IDs through `CommitmentClaimRequestIndex` and mark every still-`PENDING` sibling in one bounded pass. `ClaimMode.Open` commitments never create a row here — the claim is immediate and the commitment moves straight to `Accepted` (D2.1).
+| End state | `resolutionCode` | What the member is told |
+|---|---|---|
+| `ACCEPTED` | `CLAIM_ACCEPTED` | this request was taken up; `acceptClaim` consumed the stored terms exactly once |
+| `DECLINED` | `CLAIM_DECLINED` + steward `reasonCID` | the steward declined this request, with a reason; only this claimant is cleared |
+| `SUPERSEDED` | `COMMITMENT_ACCEPTED` | someone else was accepted |
+| `SUPERSEDED` | `COMMITMENT_CANCELLED` | the commitment was withdrawn before acceptance |
+| `SUPERSEDED` | `COMMITMENT_EXPIRED` | the commitment passed its due date before acceptance |
+
+A `DECLINED` row is never reopened: a later request from the same claimant is a fresh `PENDING` row with a new timestamp. Supersession is written by the indexer, not the contract: acceptance, cancellation, and expiry each load the request IDs through `CommitmentClaimRequestIndex` and mark every still-`PENDING` sibling in one bounded pass. `ClaimMode.Open` commitments never create a row here — the claim is immediate and the commitment moves straight to `Accepted` (D2.1).
 
 ## D12. Protocol-to-garden funding route
 
@@ -1586,40 +1583,71 @@ Amber marks every step that runs **while pooling is paused** — the whole of ch
 
 ## D16. Error taxonomy — surface and recovery map
 
-**How to read this**: errors reach people, so this maps every error family to the surface that renders it and the recovery that surface must offer. The column that matters is the last one: an error whose recovery is "nothing the member can do" must never be rendered as if it were retryable. `FailureCode` is the only family that crosses the chain boundary — twelve bounded values decided on Celo, carried back through an authenticated acknowledgment, and collapsed into a small number of member-facing sentences on Arbitrum.
+**How to read this**: errors reach people, so this taxonomy answers three questions in order — **what went wrong**, **where does someone meet it**, and **what may they do about it**. Each question gets its own view below, because the single combined graph made the last question — the one that matters most — the hardest to read. The rule the three views exist to protect: an error whose recovery is "nothing the member can do" must never be rendered as if it were retryable.
+
+#### D16.0 The error — five families, grouped by where each one is decided
+
+`FailureCode` is the only family that crosses the chain boundary: twelve bounded values decided on Celo, carried back through an authenticated acknowledgment, and collapsed into a small number of member-facing sentences on Arbitrum.
 
 ```mermaid
-flowchart LR
-  subgraph FAM["Error families"]
-    E1["CommitmentPoolingModule<br/>~40 named errors<br/>state, authorization, EAS validity"]
-    E2["CommitmentRegister<br/>13 named errors<br/>quota, slot, onlyModule"]
-    E3["FailureCode — 12 values<br/>route, recipient, caps, fee, balance delta<br/>DECIDED ON CELO, crosses the boundary"]
-    E4["AcknowledgmentDeferralCode — 4 values<br/>None · QuoteFailed · FeeReserveLow · SendFailed"]
+flowchart TB
+  subgraph ONARB["Raised on Arbitrum"]
+    E1["CommitmentPoolingModule<br/>~40 named errors<br/>state · authorization · EAS validity"]
+    E2["CommitmentRegister<br/>13 named errors<br/>quota · slot · onlyModule"]
+  end
+  subgraph ONCELO["Decided on Celo"]
+    E3["FailureCode — 12 values<br/>route · recipient · caps · fee · balance delta<br/>the only family that crosses the boundary"]
+    E4["AcknowledgmentDeferralCode — 4 values<br/>None · QuoteFailed · FeeReserveLow · SendFailed<br/>the report did not go out; value did not move"]
+  end
+  subgraph INAPP["Raised in the app"]
     E5["Offline job failure<br/>5 attempts, then Exhausted"]
   end
 
-  subgraph SURF["Where it surfaces"]
-    S1["Client PWA<br/>parseContractError + USER_FRIENDLY_ERRORS"]
-    S2["Admin — steward console and Operations"]
-    S3["Member settlement row (D10b)"]
-    S4["Ops only — never member-facing"]
-  end
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  class E1,E2,E3,E4,E5 planned
+```
 
-  subgraph REC["Recovery offered"]
-    R1["Fix the input and resubmit"]
-    R2["Wait — a steward or the protocol must act"]
-    R3["Retry the same job, or discard it"]
-    R4["Requeue as a new attempt, or cancel with a reason"]
-    R6["Retry the stored acknowledgment<br/>permissionless, caller-funded · the Safe is not called again"]
-    R5["Nothing to do — the outcome is terminal and explained"]
-  end
+#### D16.1 Where it manifests — each family reaches exactly one set of surfaces
 
-  E1 --> S1
-  E1 --> S2
-  E2 --> S2
-  E3 --> S3
-  E4 --> S4
-  E5 --> S1
+```mermaid
+flowchart LR
+  F1["CommitmentPoolingModule errors"]
+  F2["CommitmentRegister errors"]
+  F3["FailureCode"]
+  F4["AcknowledgmentDeferralCode"]
+  F5["Offline job failure"]
+
+  S1["Client PWA<br/>parseContractError + USER_FRIENDLY_ERRORS"]
+  S2["Admin — steward console and Operations"]
+  S3["Member settlement row (D10b)"]
+  S4["Ops only — never member-facing"]
+
+  F1 --> S1
+  F1 --> S2
+  F2 --> S2
+  F3 --> S3
+  F4 --> S4
+  F5 --> S1
+
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  class F1,F2,F3,F4,F5,S1,S2,S3,S4 planned
+```
+
+#### D16.2 How the person responds — the recovery each surface may offer
+
+```mermaid
+flowchart LR
+  S1["Client PWA"]
+  S2["Admin — steward console<br/>and Operations"]
+  S3["Member settlement row"]
+  S4["Ops only"]
+
+  R1["Fix the input and resubmit"]
+  R3["Retry the same job, or discard it"]
+  R4["Requeue as a new attempt,<br/>or cancel with a reason"]
+  R2["Wait — a steward or<br/>the protocol must act"]
+  R5["Nothing to do — the outcome<br/>is terminal and explained"]
+  R6["Retry the stored acknowledgment<br/>permissionless, caller-funded ·<br/>the Safe is not called again"]
 
   S1 --> R1
   S1 --> R3
@@ -1630,7 +1658,7 @@ flowchart LR
   S4 --> R6
 
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
-  class E1,E2,E3,E4,E5,S1,S2,S3,S4,R1,R2,R3,R4,R5,R6 planned
+  class S1,S2,S3,S4,R1,R2,R3,R4,R5,R6 planned
 ```
 
 Three rules this taxonomy exists to enforce. A register error is a protocol invariant breach, not member input — it surfaces to the steward, never as "try again" to a gardener. `AcknowledgmentDeferralCode` is operational: it says the *report* did not go out, never that value moved or failed, so it must not appear in member copy at all — **and its recovery is retrying the stored acknowledgment, never requeue**. Requeue is reachable only from an authenticated execution *failure*; offering it after a deferral would invite a second payment attempt for an outcome that is already stored. And a `waiting_for_hat` job (D14) is not an error and consumes no attempt — it never enters this taxonomy.
