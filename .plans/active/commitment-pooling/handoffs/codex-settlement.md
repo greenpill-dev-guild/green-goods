@@ -46,8 +46,10 @@
   write-once protocol garden/canonical G$; canonical reward/funding derivation; immutable batch
   membership with a hard ceiling of 24 and a measurement-gated 0–24 configured limit; exact
   dispatch-only delegate; observable native-fee floor; data-only CCIP dispatch; same-key retry;
-  authenticated acknowledgment receiver; failure/new-attempt recovery; unbatched-Queued or
-  Failed individual cancellation; and atomic whole-batch cancellation while Queued.
+  authenticated acknowledgment receiver; failure/new-attempt recovery; permanent first-and-only
+  commitment reward-disbursement pointers; unbatched-Queued or Failed individual cancellation;
+  and atomic whole-batch cancellation while Queued. Neither cancellation path clears its
+  commitment pointer or permits another queue.
 - Celo UUPS `CeloSettlementExecutor`: immutable implementation router and canonical G$, exact
   source authentication, bounded previous-peer grace, zero token amounts, write-once garden →
   Safe/one-Roles-modifier/role-key/native-allowance-key binding, and canonical G$ execution
@@ -85,7 +87,7 @@
   garden, source, token, kind, and funding route because one command carries one kind.
 - `executionKey = keccak256(abi.encode(sourceChainSelector, sourceSettlementModule, isBatch, settlementId, attempt))`; tests prove same-numbered disbursement and batch subjects cannot collide.
 - Initial dispatch snapshots destination selector, executor, gas, version, and payload hash. A transport retry reuses that exact route/attempt/key/payload and cannot reroute to a replacement executor or execute G$ twice. Acknowledgment sender/selector must match the command snapshot, not merely a globally allowed previous peer, and `originatingCommandMessageId` must be an initial/retry message ID already mapped to that key. A new attempt is allowed only after an authenticated failure acknowledgment and steward requeue; requeue clears the active batch association while the immutable failed Batch retains historical membership.
-- A Failed member may instead be terminally cancelled without a new attempt. An unbatched Queued disbursement may be cancelled individually; a Queued batch may be cancelled only in full through `cancelBatch`, atomically terminalizing its immutable member set. No cancellation is allowed from Dispatched, and every member records whether cancellation came from Queued or Failed.
+- A Failed member may instead be terminally cancelled without a new attempt. An unbatched Queued disbursement may be cancelled individually; a Queued batch may be cancelled only in full through `cancelBatch`, atomically terminalizing its immutable member set. Both paths preserve the permanent commitment pointer; tests prove cancel → permissionless `queueDisbursement` rejection and no fresh disbursement ID. No cancellation is allowed from Dispatched, and every member records whether cancellation came from Queued or Failed.
 - Celo stores the outcome, exact authenticated acknowledgment receiver, original protocol version, and bounded acknowledgment-deferral code before/around acknowledgment delivery. `retryAcknowledgment(executionKey)` cannot touch G$; it always targets the stored originating module with the stored version, not a later active peer/config. Caller-funded send failure reverts atomically, while automatic/sponsored deferral distinguishes quote, reserve, and send failure.
 - Each receiver accepts only its implementation's immutable router, then validates the active or
   unexpired bounded-previous peer, exact chain selector and encoded sender pair, protocol

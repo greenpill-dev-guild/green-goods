@@ -44,7 +44,7 @@ flowchart LR
 What each surface owns:
 
 - **Community PWA** (independent app at `community.greengoods.app` — own manifest, service-worker scope, telemetry, routes): Needs · Create · Profile; offline need/signal/testimony.
-- **Admin**: steward triage, pool/cycle consoles, seeding, evaluator lineage + CSV/JSON export, and the deployer-gated Operations workspace (W24).
+- **Admin**: steward triage, pool/cycle consoles, seeding, evaluator lineage + CSV/JSON export, and the capability-gated Operations workspace (W24).
 - **Client installed PWA**: commitment claim, work, evidence, confirmation, member settlement status, WalletDrawer.
 - **Client editorial website**: garden and impact stories, funder discovery — aggregates only, never rankings.
 - **Shared read model**: auth/passkey, offline status, install/update, EAS Needs + Envio protocol progress joined in shared query composition.
@@ -185,7 +185,7 @@ TIMELINE — EXPANDED DISCLOSURE
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Cancellation placement: while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`, register #34b/MF-2a). The Accepted steward path is locked at W10 `[ Cancel promise… ]` with its own required-reason dialog (register #51/MF-2b).
 - Hi-fi guidance (audit 2026-07-18, drawn above since 2026-07-27): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind the single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
-- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (64 states across the five commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
+- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (69 states across the six commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
 
 ### W2a — Evidence sheet (uiux-spec §5.5)
 
@@ -488,7 +488,7 @@ Flow `{AdminDialog}` at `/garden/pool/capture` with its **own three-step rail** 
 
 ### W10 — Commitment detail dialog (uiux-spec §6.2/§6.7)
 
-Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (15 states; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
+Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (20 states; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
 
 ```text
 ┌── Prune the north beds ──────────────── (Offer)(Ready) ──┐
@@ -517,7 +517,7 @@ FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
 └────────────────────────────────┘       └────────────────────────────────┘
 ```
 
-- Celo G$ settlement (`CeloSettlement`) replaces the external row with the automatic arrangement state below. Indexed Fulfillment creates a separate durable settlement job; there is no second payout-approval control and it cannot expose `Record payout`.
+- Celo G$ settlement (`CeloSettlement`) replaces the external row with the app-driven arrangement states below. Indexed Fulfillment plus the complete source and beneficiary prerequisites makes the reward queue-ready; there is no second payout-approval control and it cannot expose `Record payout`. A signed-in app may create one device-local attempt for `(chainId, commitmentId, userAddress)`, while the permanent onchain commitment pointer coordinates all devices.
 
 ```text
 ┌── Arranging Celo settlement ─────────────────────────────┐
@@ -525,14 +525,29 @@ FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
 │ Payer: Rocinha owning-pool Safe · Celo                   │
 │ Recipient: Maria · same-address AA                       │
 │ Fulfilled ✓ · arranging the derived reward route         │
-│ If retry is needed: [ Retry arrangement ]                │
+│ This device: queued / retrying — no disbursement yet     │
+└──────────────────────────────────────────────────────────┘
+
+┌── Celo settlement not queue-ready ───────────────────────┐
+│ Fulfilled ✓ · no local arrangement attempt created       │
+│ Individual delivery disabled (or source route not ready) │
+│ No retry is shown until indexed eligibility becomes true.│
+└──────────────────────────────────────────────────────────┘
+
+┌── Celo settlement needs attention ───────────────────────┐
+│ Fulfilled ✓ · this device exhausted after 5 attempts     │
+│ The promise stays kept; this is not execution Failed.    │
+│ [ Retry arrangement ]                                    │
 └──────────────────────────────────────────────────────────┘
 ```
 
 For a Garden claim, Recipient is the registered `providerGarden` Safe and the member-AA gate is
 not consulted. For an Individual claim, Recipient is the provider's same-address Celo AA and
-`memberDeliveryEnabled` must be true. An exact existing live disbursement completes the job
-idempotently; an exhausted job leaves the commitment Fulfilled.
+`memberDeliveryEnabled` must be true before any local attempt is created. Every send/retry re-reads
+eligibility and the permanent pointer. An exact existing historical pointer, including one won by
+another device, completes the local attempt idempotently; local exhaustion leaves the commitment
+Fulfilled and is not a global state. A terminal pointer remains the commitment's permanent result
+and is never eligible for another attempt.
 
 - Review additions (audit 2026-07-18): Celo rows follow settlement-record-first precedence (settlement-spec §3.1.2), and the dialog shows the confirmation threshold with named-confirmer status. *Wireframe-only — the hi-fi keeps claims triage on W7 and does not draw an inline pending-claims queue or per-action requirement rows ("Prune 2/2 · Plant 0/1") in this dialog; both are kept here as recorded review intent.*
 
@@ -582,7 +597,7 @@ One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**:
 
 ### W12 — Pools mode inside admin `/community` (uiux-spec §6.8)
 
-Pools view inside the existing admin `/community` workspace, reached through that workspace's tab rail/command palette. **Rescoped 2026-07-18**: the admin stays garden-focused — this mode shows exactly **your garden's pools + the Protocol pool**, never other gardens' pools. (The cross-garden oversight table that used to sit here moved to the deployer-gated Operations workspace, W24.) The Protocol pool is visible to garden stewards because their gardeners claim and fulfill its commitments — surveys, community activations, methodology work.
+Pools view inside the existing admin `/community` workspace, reached through that workspace's tab rail/command palette. **Rescoped 2026-07-18**: the admin stays garden-focused — this mode shows exactly **your garden's pools + the Protocol pool**, never other gardens' pools. (The cross-garden oversight table that used to sit here moved to the capability-gated Operations workspace, W24.) The Protocol pool is visible to garden stewards because their gardeners claim and fulfill its commitments — surveys, community activations, methodology work.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -733,13 +748,13 @@ This commitment-pooling file retains only the shared commitment, confirmation, t
 
 ## 6. Settlement deltas (August, settlement-spec §7)
 
-G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific automatic-arrangement state drawn above.
+G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific app-arrangement states drawn above.
 
-**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders “arranging settlement” while its post-Fulfillment job has not yet reconciled a live row · “support is queued” (Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` automatically arranges the derived reward after indexed Fulfillment and exposes retry only if that separate job fails; `ArbitrumExternal` alone exposes Record payout.
+**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders a no-retry “support cannot be arranged yet” state when indexed eligibility is blocked and no local attempt exists · “arranging settlement” while this device's eligible attempt is queued/retrying and no historical pointer exists · a distinct “couldn't arrange support” state with retry after that local attempt exhausts · “support is queued” (onchain Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated execution failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. A terminal pointer never returns to arranging. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` shows distinct blocked-without-retry, device-local arranging, and locally exhausted retry states; `ArbitrumExternal` alone exposes Record payout.
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
-Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (16 states, incl. the full recovery set).
+Rendered in the hi-fi as its **own garden-scoped canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. This is a detail/recovery exception; W24 remains the primary all-garden execution home. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (17 states, incl. the full recovery set and a typed funding result with no commitment ID).
 
 ```text
 ┌─ Settlement · Garden · Celo ───────────────────────────────────────────┐
@@ -765,7 +780,7 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 
 ### W22 — Command/ack operations console (Operations workspace + per-garden)
 
-A full **canvas route** reached from W21 and from the NEW deployer-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18; only the cancel-batch confirmation is a dialog. **Hi-fi**: [`#screens/W22@ready`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W22@ready) (9 states).
+A full **garden-scoped detail/recovery canvas route** reached from W21 and from the NEW capability-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18; only the cancel-batch confirmation is a dialog. W24 is still the primary all-garden home. **Hi-fi**: [`#screens/W22@ready`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W22@ready) (9 states).
 
 ```text
 ┌── Settlement 104 / attempt 0 — Rocinha ────────────────────────┐
@@ -821,18 +836,18 @@ Gate-failed variant (same frame, no substitute custody flow):
 └──────────────────────────────────────────────┘
 ```
 
-### W24 — Operations workspace (NET-NEW, deployer-gated)
+### W24 — Operations workspace (NET-NEW, capability-gated)
 
-New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · CCIP · Flows** plus a focused **Seed / top up garden** state opened from Flows. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused. **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue) (4 states; the queue renders as a dtable with typed reward/funding rows).
+New admin workspace tab (uiux-spec **§6.11**) with `showOperations = isDeployer || canQueueFunding || canOperateSettlement` and a matching capability-gated route. Controls remain action-gated: the funding form requires current onchain `canQueueFunding = protocol steward || SettlementModule owner`; deployer alone cannot submit it. Stage rail: **Queue · CCIP · Flows** plus focused **Seed / top up garden** and unauthorized funding states opened from Flows. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused. **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue) (5 states; the queue renders as a dtable with typed reward/funding rows).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Operations        ◉ queue (4) · CCIP · flows                           │  deployer-gated tab
+│ Operations        ◉ queue (4) · CCIP · flows                           │  capability-gated
 ├────────────────────────────────────────────────────────────────────────┤
 │ QUEUE — all gardens                                                    │
 │ ≡ Rocinha settlement 104 / attempt 0 (Queued) [ Dispatch ▸ ]           │  ▸ W22
 │ ≡ Awka settlement 103 / attempt 1 (Failed ▸) [ source follow-up ]      │
-│ Fulfilled commitment rewards arrive automatically; treasury rows typed │
+│ Queue-ready rewards arrive by permissionless app submission; rows typed│
 ├────────────────────────────────────────────────────────────────────────┤
 │ CCIP — command/ack health                                              │
 │ Arbitrum native reserve ✓ · Celo native reserve ✓ · peers configured ✓ │
@@ -848,12 +863,13 @@ New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`show
 │ SEED OR TOP UP A GARDEN (focused state)                                │
 │ Garden  ◉ Awka Hub · ○ Muizenberg     Amount [ 500 G$ ]                │
 │ GG protocol Safe → selected registered garden Safe                     │
-│ Outside any commitment; earned rewards queue automatically elsewhere   │
+│ Outside any commitment; earned rewards use the derived app path        │
 │                                      [ Queue seed / top up ]            │
+│ Result: 106 / attempt 0 · Awka Hub · Funding · 500 G$ · Queued         │  no commitment ID
 └────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
 ```
 
-- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module does not record an upstream hop. It also draws the decision boundary: earned protocol-pool rewards enter through the automatic post-Fulfillment `settlement` job; the explicit `queueFunding(garden, amount)` form is only for a non-commitment seed/top-up and remains protocol-steward/module-owner-only.
+- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module does not record an upstream hop. It also draws the decision boundary: earned protocol-pool rewards become queue-ready after Fulfillment and are submitted permissionlessly by a signed-in app; the explicit `queueFunding(garden, amount)` form is only for a non-commitment seed/top-up and remains protocol-steward/module-owner-only. The resulting queue row is typed `Funding` and carries no commitment identity.
 - Garden-claim rewards and the seed/top-up path are Safe-to-Safe and do not depend on `memberDeliveryEnabled`; Individual reward queues and member sends do.
 - The production route authority gate applies to every value-execution control here, as described in W22.
 
@@ -927,7 +943,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 | §6.9 Hub confirm stage | W13 + W13b commitment-context chip |
 | Existing Hub Work approval stage | HUBWORK |
 | §6.6 assessment v3 | W14 |
-| §6.11 Operations workspace (NET-NEW, deployer-gated) | W24 |
+| §6.11 Operations workspace (NET-NEW, capability-gated) | W24 |
 | Protocol-pool claim journey (client) | W25 |
 | Cycle close → allocation → certificate | W26 |
 | §7.1 garden pool story | W15 |

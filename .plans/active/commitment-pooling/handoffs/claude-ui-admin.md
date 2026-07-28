@@ -22,11 +22,16 @@
 ## Outputs
 
 - Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
-- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/CCIP operations live only in the deployer-gated Operations workspace.
-- Fulfilled `CeloSettlement` commitments show automatic arrangement/job recovery, never a second
-  “Queue disbursement” approval. Operations Flows separately provides **Seed / top up garden** for
-  steward-only non-commitment `queueFunding`; the review states that it does not fulfill, reward,
-  or alter a commitment.
+- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools
+  route. Alphabetical all-garden oversight and batch/CCIP operations live in the capability-gated
+  Operations workspace. `showOperations = isDeployer || canQueueFunding || canOperateSettlement`;
+  W21/W22 remain garden-scoped detail/recovery exceptions.
+- Fulfilled `CeloSettlement` commitments show indexed queue readiness, a no-attempt/no-retry
+  blocker, and device-local arrangement recovery, never a second “Queue disbursement” approval.
+  Operations Flows separately provides **Seed / top up garden** only when onchain
+  `canQueueFunding` resolves to protocol steward or SettlementModule owner; deployer alone cannot
+  submit. The review states that it does not fulfill, reward, or alter a commitment, and the
+  resulting queue row is typed `Funding` with no commitment ID.
 - Immutable batch-membership view with the measured configured 0–24 limit and hard ceiling of 24, whole-batch cancellation while Queued, per-member retry/cancel only after authenticated failure, command/execution/acknowledgment states, native ETH/CELO fee floors and low-balance state, active/previous peer expiry, Safe/Roles/cap health, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
 - Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
@@ -55,8 +60,13 @@
 - A Queued batch exposes one blast-radius-confirmed whole-batch cancel action and never a per-member cancel. A rejected batch cannot be edited or requeued wholesale; only Failed members can be requeued or terminally cancelled. The UI preserves the failed attempt/failure code and distinguishes that closeout from an atomic Queued pre-send batch withdrawal or an unbatched Queued cancellation.
 - Dispatch or Celo execution never marks settlement Confirmed. Same-key command retry, stored acknowledgment retry, authenticated failure/new-attempt, derived delivery delay, CCIP manual-execution guidance, command/destination/acknowledgment IDs with Explorer links, and ignored stale/duplicate acknowledgment behavior are legible.
 - Garden rewards remain available to the registered provider-garden Safe when member delivery is
-  disabled; Individual reward arrangement remains blocked. Automatic queue-job failure leaves
-  Fulfilled intact and exposes retry without presenting a new payment approval.
+  disabled; Individual reward arrangement shows a no-retry blocker and creates no attempt.
+  Canonical source/account/route blockers behave the same way. An eligible device-local attempt
+  failure leaves Fulfilled intact and exposes a distinct retry state only while readiness remains
+  true. A terminal settlement keeps its history and never returns to arrangement.
+- Operations route/nav access and every action are tested independently: a protocol steward or
+  module owner can reach and submit funding without deployer role; a deployer with neither
+  funding authority cannot submit it; settlement operators see only their authorized controls.
 - Safe view shows 2-of-3 recovery and separates owners from scoped executors.
 - Account setup never claims to deploy a Safe: it explains the Release-gated Safe/Roles prerequisites and registers only an already-deployed, live-verified route.
 - Loading, empty, offline, waiting, declined, failed, retry, queued, dispatched, executed/acknowledgment-pending, delayed, and Confirmed states have accessible recovery.

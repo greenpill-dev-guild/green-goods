@@ -485,7 +485,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
     verdict: "answered",
     finding:
-      "Yes for commitment-earned rewards; no for discretionary treasury seeding. The protocol pool is the root garden's ordinary commitment pool, so an indexed Fulfilled `CeloSettlement` commitment automatically creates the same durable `settlement` job used by other pools. That job permissionlessly calls fully derived, idempotent `queueDisbursement(commitmentId)`; Fulfillment is the economic approval and never synchronously calls settlement. Garden claims target the registered `providerGarden` Safe without the member-AA gate, while Individual claims require `memberDeliveryEnabled` and target the provider's Celo AA. The narrower steward/module-owner-only `queueFunding(garden, amount)` remains in the initial version solely for non-commitment garden seeds or top-ups. HoA → protocol Safe stays an upstream treasury fact, and PRD-734 remains an external dependency.",
+      "Yes for commitment-earned rewards; no for discretionary treasury seeding. The protocol pool is the root garden's ordinary commitment pool, so an indexed Fulfilled `CeloSettlement` commitment becomes queue-ready only when the full source and beneficiary prerequisite set is true. A signed-in app may then create one per-user/per-device `settlement` attempt; every send/retry re-reads the permanent onchain pointer, which coordinates competing apps globally. The attempt permissionlessly calls fully derived, idempotent `queueDisbursement(commitmentId)`; Fulfillment is the economic approval and never synchronously calls settlement. Garden claims target the active registered `providerGarden` Safe without the member-AA gate, while Individual claims require `memberDeliveryEnabled` and target the provider's Celo AA. The narrower `queueFunding(garden, amount)` remains in the initial version solely for non-commitment garden seeds or top-ups and requires current protocol-steward or SettlementModule-owner authority; deployer alone cannot submit. HoA → protocol Safe stays an upstream treasury fact, and PRD-734 remains an external dependency.",
     riderLabel: "Scope boundary",
     rider:
       "Do not automate `queueFunding` or grant an agent/keeper value authority in this version. Automation follows a canonical commitment; discretionary seeding remains an explicit treasury decision.",
@@ -509,10 +509,18 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
 ];
 
+const openQuestionCounts = OPEN_QUESTIONS.reduce<Record<OpenQuestionVerdict, number>>(
+  (counts, entry) => {
+    counts[entry.verdict] += 1;
+    return counts;
+  },
+  { answered: 0, "answered-gap": 0, decision: 0 },
+);
+
 const openQuestionsSection = `
 <section id="ref-open-questions">
   <h2>Open questions</h2>
-  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — five answered, one answered with an open gap, and one parked as a decision with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
+  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — ${openQuestionCounts.answered} answered, ${openQuestionCounts["answered-gap"]} answered with an open gap, and ${openQuestionCounts.decision} parked as a decision with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
   <div class="qpanel">
     <span class="eyebrow">Audited 2026-07-27</span>
     <ol class="qfindings">

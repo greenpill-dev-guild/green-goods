@@ -34,9 +34,9 @@ const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
   | "pool" | "cycle" | "commitment"
-  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement";
+  | "settlementAccount" | "beneficiarySettlementAccount" | "queueFundingAuthority" | "disbursement";
 const FACT_KEYS = [
-  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement",
+  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "queueFundingAuthority", "disbursement",
 ] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
@@ -97,7 +97,10 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     key: "settlementAccount",
     allowed: ["Active"],
     effects: { disbursement: "Queued" },
-    requires: { beneficiarySettlementAccount: ["Active"] },
+    requires: {
+      beneficiarySettlementAccount: ["Active"],
+      queueFundingAuthority: ["ProtocolSteward", "ModuleOwner"],
+    },
   },
   createBatch: { key: "disbursement", allowed: ["Queued"] },
   dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
@@ -261,7 +264,7 @@ const ADMIN_HERO: [RegExp, string][] = [
 ];
 
 // The contract's reason-taking confirmable acts (CS:795 + pausePool CS:725,
-// cancelCycle CS:104, cancelDisbursement/cancelBatch SS:297-298). Enforced in
+// cancelCycle CS:104, cancelDisbursement/cancelBatch SS §3.1.2). Enforced in
 // BOTH directions: a confirm for one of these must show the reason field, and a
 // confirm for anything else must NOT invent one — a required reason on
 // closePool (which takes none, CS:556) is how the artifact once taught a

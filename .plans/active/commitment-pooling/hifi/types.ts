@@ -39,6 +39,7 @@ export type CommitmentLifecycle =
 export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "StewardCaptured";
 export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
 export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
+export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
 // Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
 // never renders as product copy, but keeping it here prevents account readiness
 // or another local concept from being folded into the contract lifecycle.
@@ -53,6 +54,7 @@ export type StateFacts = {
   kind?: CommitmentKind;
   settlementAccount?: SettlementAccountState;
   beneficiarySettlementAccount?: BeneficiarySettlementAccountState;
+  queueFundingAuthority?: QueueFundingAuthority;
   disbursement?: DisbursementLifecycle;
 };
 

@@ -21,13 +21,17 @@
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
 - Six offline job kinds: five member-created field kinds (`commitment`, `claim`, `evidence`,
-  `workLink`, `confirmation`) plus the system-created `settlement` follow-up.
+  `workLink`, `confirmation`) plus a signed-in app's per-user, per-device `settlement` attempt.
 - Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward rail/source/token/amount, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
-- The app creates `settlement { commitmentId, gardenAddress }` only after the indexer exposes an
-  eligible Fulfilled `CeloSettlement` commitment without a live disbursement. Its executor
-  permissionlessly calls `queueDisbursement(commitmentId)`, treats that commitment's exact existing
-  live pointer as idempotent success, and never mutates or rolls back Fulfilled on exhaustion.
+- The app creates `settlement { chainId, commitmentId, gardenAddress, userAddress }` at most once
+  in the current device's IndexedDB for that composite key, and only after the indexer exposes the
+  complete queue-ready conjunction with no historical pointer. The executor re-reads eligibility
+  and the permanent pointer before every send/retry, then permissionlessly calls
+  `queueDisbursement(commitmentId)`. An exact existing pointer is idempotent success; a
+  `CommitmentAlreadyDisbursed` race triggers refetch and reconciliation
+  to the winning pointer; any terminal pointer suppresses the local attempt. Exhaustion is local
+  device state only and never mutates or rolls back Fulfilled. No agent/keeper job is created.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
   Kernel `0.2.4` on both testnets for same-address mechanics evidence and Kernel `0.3.1` on
   Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
@@ -42,7 +46,7 @@
 - Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and canonical per-commitment `approvedUnits`; one `requirementIndex` can credit only its matching domain/action position.
 - Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
 - Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles require fulfilled lineage.
-- Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
+- Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then the no-pointer arrangement layer: bounded queue-readiness blocker with no job/retry, this device's attempt queued/retrying, or this device's still-eligible attempt exhausted with explicit retry. `memberDeliveryEnabled == false` is an Individual-only blocker; Garden rewards never consult that gate. Source module pause, owning-account activity, canonical reward rail/source/token/amount, beneficiary readiness, and historical pointer are all part of the no-pointer readiness result. `isBatch` remains an explicit command/key domain fact; source/executor batch matching, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate dispatch capabilities.
 - Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
 - Exported shared API with no client/admin hooks.
 
@@ -51,13 +55,16 @@
 - All hooks live in @green-goods/shared and use centralized queryKeys.
 - Mutations use the shared error pattern and event-driven invalidation.
 - Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer. Only
-  the five field kinds enter `waiting_for_hat`; the system `settlement` job is driven by indexed
-  eligibility and reconciles the derived live pointer.
+  the five field kinds enter `waiting_for_hat`; the per-device `settlement` attempt is keyed by
+  `(chainId, commitmentId, userAddress)`, starts only when the complete indexed readiness
+  conjunction is true, re-checks readiness + pointer before every send/retry, reconciles an exact
+  competing pointer, and never recreates an attempt for any terminal pointer. Blocked readiness
+  creates no attempt and exposes no retry.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
-- Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
+- Settlement selectors never merge a device-local attempt's queued/retrying/exhausted states with onchain Queued or authenticated execution Failed, never merge a no-attempt readiness blocker with local exhaustion, never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, keep every terminal pointer ineligible for attempt creation, never hide historical settlement state when member delivery is later disabled, and never offer a new Individual attempt or retry while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
   `RewardPaid`; `CeloSettlement` can surface only SettlementModule state; `None` has neither.
 - Celo reward eligibility distinguishes beneficiary kind: Garden targets the active registered

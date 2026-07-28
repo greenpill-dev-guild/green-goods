@@ -29,17 +29,22 @@
 - Pool readiness checklist exposes charter, qualifying baseline, and provider open-commitment cap; Paused exposes its reason while leaving only the contract-authorized recovery actions available.
 - Pool and cycle summaries show state counts and exact-label unit groups; `promiseKeptRate` is the only cross-commitment percentage. `hours` and `Hours` remain visibly separate, and active progress never adds unlike units.
 - Direction-aware confirmation UI: Offer recipient; Request creator; provider never shown as eligible.
-- G$ reward status begins with the automatic post-Fulfillment “arranging settlement” job state.
-  Individual reward delivery and online send remain gated by member-delivery readiness; Garden
-  reward rows may proceed Safe-to-Safe without that gate.
+- G$ reward status begins with indexed queue readiness. A blocked prerequisite renders a calm
+  no-attempt/no-retry state; an eligible signed-in app may then create a device-local
+  “arranging settlement” attempt. The UI distinguishes that attempt's queued/retrying state from
+  local exhaustion and exposes retry only after re-reading readiness + the permanent pointer,
+  without changing Fulfilled. Individual reward delivery and online send remain gated by
+  member-delivery readiness; Garden reward rows may proceed Safe-to-Safe without that gate.
 - Accessible mobile/PWA states and en/es/pt copy.
 
 ## Acceptance
 
 - The five field job kinds work offline, survive restart, expose waiting/retry/failure, and do not duplicate submissions.
-- The sixth offline `settlement` job is system-created from indexed eligible Fulfillment, never
-  waits for a member Hat, reconciles an exact live disbursement as success, and leaves Fulfilled
-  untouched on failure.
+- The sixth offline `settlement` kind is an app-created attempt keyed locally by
+  `(chainId, commitmentId, userAddress)`, never waits for a member Hat, starts only from the full
+  indexed queue-ready conjunction, and re-reads readiness + permanent pointer before every
+  send/retry. It reconciles an exact competing pointer as success, suppresses every terminal
+  pointer, and leaves Fulfilled untouched on local failure.
 - DomainImpact creation rejects unequal positional arrays, duplicate domains, missing actions, domain/action mismatches, and zero required counts; successful jobs preserve the complete ordered `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]` payload through restart and retry. Per-action progress remains attached to `requirementIndex`, and the commitment uses canonical state/API `approvedUnits`.
 - The pool renders at most one open Season plus every concurrently open Campaign; scope controls label Season/Campaign/all-current state counts and exact-label summaries, and member creation binds one explicit cycle or cycle-less context.
 - Decline changes only the selected request and leaves peers Pending; acceptance consumes stored terms and renders every other pending indexed request Superseded; a new request never mutates or retries the old record.
@@ -50,7 +55,16 @@
 - Reward presentation follows the declared rail: an external payout record never appears as a
   Celo settlement, and a `CeloSettlement` declaration never exposes the external
   `recordRewardPaid` path.
-- Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders “confirming arrival”; only Confirmed renders “support arrived”; authenticated failure renders “still arranging support”; Cancelled renders different locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
+- Before an onchain row exists, a readiness blocker renders with no attempt or retry; this
+  device's eligible attempt renders “arranging settlement” while queued or retrying and a
+  distinct “couldn't arrange support” state with retry only after eligibility + pointer are
+  rechecked. Onchain
+  Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds
+  “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders
+  “confirming arrival”; only Confirmed renders “support arrived”; authenticated execution failure
+  remains distinct from the job-exhausted state; Cancelled renders different locked copy for
+  Queued versus Failed origin and can never return to arranging. Existing settlement history
+  always outranks the member-delivery availability gate.
 - AA failure shows delivery unavailable with a calm recovery explanation; it never offers a garden-custody claim path.
 - Every flow includes loading, empty, offline, pending, declined, superseded, failed, retry, and terminal states where applicable.
 - Controls have accessible names, logical focus order, 44px targets, sufficient contrast, and reduced-motion behavior.

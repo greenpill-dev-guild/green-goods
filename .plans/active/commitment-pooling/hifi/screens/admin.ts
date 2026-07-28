@@ -925,13 +925,19 @@ const W9_HOTS: HifiDef["hots"] = {
 
 const W10_STATES = [
   ["detail", "Detail"], ["fulfilled", "Fulfilled — reward unpaid"],
-  ["record-payout", "Record payout"], ["queue-settlement", "Celo settlement arrangement"],
+  ["record-payout", "Record payout"],
+  ["queue-settlement-pending", "Celo settlement arranging"],
+  ["queue-settlement-blocked", "Celo settlement not queue-ready"],
+  ["queue-settlement-failed", "Celo settlement arrangement failed"],
+  ["queue-settlement", "Celo reward queued"],
   ["fallback-confirm", "Fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
   ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel promise"], ["not-found", "Not found"],
   ["garden-ready", "Garden-provided — ready"], ["garden-fulfilled", "Garden-provided — fulfilled"],
-  ["queue-settlement-garden", "Garden reward arrangement"],
+  ["queue-settlement-garden-pending", "Garden reward arranging"],
+  ["queue-settlement-garden-failed", "Garden reward arrangement failed"],
+  ["queue-settlement-garden", "Garden reward queued"],
 ] as const;
 type W10State = (typeof W10_STATES)[number][0];
 
@@ -954,11 +960,16 @@ const w10Behind = () =>
 const W10_TITLE: Record<W10State, string> = {
   detail: "Prune the north beds", fulfilled: "Prune the north beds",
   accepted: "Repair tool handles", "record-payout": "Record payout",
-  "queue-settlement": "Arranging Celo settlement",
+  "queue-settlement-pending": "Arranging Celo settlement",
+  "queue-settlement-blocked": "Celo settlement not queue-ready",
+  "queue-settlement-failed": "Celo settlement needs attention",
+  "queue-settlement": "Celo reward queued",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
   "attach-assessment": "Attach assessment", "mark-ready-override": "Mark service ready with override",
   "garden-ready": "Methodology survey", "garden-fulfilled": "Methodology survey",
-  "queue-settlement-garden": "Garden reward arrangement",
+  "queue-settlement-garden-pending": "Arranging garden reward",
+  "queue-settlement-garden-failed": "Garden reward needs attention",
+  "queue-settlement-garden": "Garden reward queued",
   cancel: "Cancel this service promise", "not-found": "Promise unavailable",
 };
 
@@ -972,8 +983,20 @@ function w10(state: W10State): string {
       body = `${kv("Reward rail", "External payout record")}${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the external reward moved outside the app — no value moves here. Celo G$ rewards are delivered by the settlement queue instead.", "stone")}`;
       actions = `${dismiss()}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
       break;
+    case "queue-settlement-pending":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${kv("Arrangement attempt", "Queued on this device · submitting")}${banner("Fulfillment is already complete. This signed-in app is submitting the permissionless queue call from canonical indexed facts. Every retry first checks the permanent commitment pointer; no onchain disbursement exists yet and there is no second payout approval.", "stone")}`;
+      actions = dismiss("Close");
+      break;
+    case "queue-settlement-blocked":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Queue readiness", "Blocked — no local attempt created")}${kv("Reason", "Individual delivery is disabled")}${banner("The promise remains Fulfilled. The app shows the indexed blocker and creates no arrangement attempt while the member-delivery gate or any canonical source fact is not queue-ready. Garden rewards and explicit garden funding are unaffected.", "stone", "error-warning-line")}`;
+      actions = dismiss("Close");
+      break;
+    case "queue-settlement-failed":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Arrangement attempt", "Couldn't submit after 5 attempts on this device")}${kv("Reason", "RPC submission failed before a transaction was accepted")}${banner("The promise remains Fulfilled. Retry restarts only this app's local attempt after re-reading the permanent pointer and current eligibility; it cannot reconfirm the promise or create a second reward after any terminal settlement.", "stone", "error-warning-line")}`;
+      actions = `${dismiss("Close")}${hot("w10.retry-settlement", btn("Retry arrangement", { kind: "pri", icon: "refresh-line" }))}`;
+      break;
     case "queue-settlement":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${kv("Settlement job", "Queued automatically after Fulfilled")}${banner("Fulfillment is the reward approval. The app's separate settlement job derives the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit; there is no second payout approval. Individual delivery waits for the member-AA gate. Record payout is unavailable for this rail.", "stone")}`;
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${kv("Arrangement attempt", "Complete · disbursement #104 queued")}${banner("The app submitted the permissionless call from the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. The permanent commitment pointer is the global coordination point and prevents any second reward queue, including after terminal cancellation.", "stone")}`;
       actions = `${dismiss("Close")}${hot("w10.queue-settlement-confirm", btn("View queued reward", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
@@ -1024,7 +1047,7 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · arranged automatically after Fulfilled")}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · app-arranged once queue-ready")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
@@ -1033,12 +1056,27 @@ ${kv("Protocol pool → Awka Hub", "1 survey")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "2 of 2 protocol stewards · Jul 12")}${kv("Provider garden", "Awka Hub — its gardeners worked and proved it")}
 ${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · arranging")}
-${banner("Fulfillment automatically created the separate settlement job. A garden-provided promise settles to the providing garden's own Celo Safe without the member-AA gate — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
+${banner("Fulfillment made this reward queue-ready. A signed-in app can create a device-local arrangement attempt, while the permanent commitment pointer coordinates every app globally. A garden-provided promise settles to the providing garden's own Celo Safe without the member-AA gate — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
       actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("View arrangement", { kind: "pri" }))}`;
       break;
+    case "queue-settlement-garden-pending":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Arrangement attempt", "Queued on this device · submitting")}${banner(
+        "Fulfillment is complete. This signed-in app is submitting the permissionless Safe-to-Safe queue call without consulting memberDeliveryEnabled; no onchain disbursement exists yet.",
+        "stone",
+      )}`;
+      actions = dismiss("Close");
+      break;
+    case "queue-settlement-garden-failed":
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Arrangement attempt", "Couldn't submit after 5 attempts on this device")}${kv("Reason", "RPC submission failed before a transaction was accepted")}${banner(
+        "The garden's promise remains Fulfilled. Retry restarts only this app's local attempt after re-reading the permanent pointer and current eligibility; terminal cancellation remains terminal.",
+        "stone",
+        "error-warning-line",
+      )}`;
+      actions = `${dismiss("Close")}${hot("w10.retry-settlement-garden", btn("Retry arrangement", { kind: "pri", icon: "refresh-line" }))}`;
+      break;
     case "queue-settlement-garden":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Settlement job", "Queued automatically after Fulfilled")}${banner(
-        "The job derives the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$; memberDeliveryEnabled is not consulted for this Safe-to-Safe reward.",
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Settlement job", "Complete · disbursement #105 queued")}${banner(
+        "The app submitted the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$; memberDeliveryEnabled was not consulted, and the permanent pointer prevents a second reward queue.",
         "stone",
       )}`;
       actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden-confirm", btn("Open queued reward", { kind: "pri" }))}`;
@@ -1089,6 +1127,11 @@ const W10_HOTS: HifiDef["hots"] = {
     to: "screen:W21",
     info: "CeloSettlement only: indexed Fulfillment created the separate settlement job, which permissionlessly derived the active owning-pool Safe source and canonical G$ delivery facts.",
   },
+  "w10.retry-settlement": {
+    l: "Retry arrangement",
+    to: "screen:W10@queue-settlement-pending",
+    info: "Re-checks indexed queue readiness and the permanent pointer before restarting only this device's exhausted attempt. Fulfilled stays unchanged, and a competing exact pointer reconciles instead of queueing twice.",
+  },
   "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "confirmFulfillmentAsFallback stores the steward's required reason; the member timeline renders the override marker.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
@@ -1103,11 +1146,16 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.cancel": { l: "Cancel promise (steward)", to: "screen:W10@cancel", info: "MF-2b: steward cancel of an Accepted (or §4.1 Paused) promise — cancelCommitment (CS:745; AM:36-37)." },
   "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@support-cancelled", info: "Accepted → Cancelled with a recorded reason; units release; the member result keeps the SupportService cast and its reason (CS:745).", calls: ["cancelCommitment"] },
   "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743).", calls: ["confirmFulfillment"] },
-  "w10.queue-settlement-garden": { l: "View arrangement", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; Fulfillment created the separate settlement job automatically, and Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
+  "w10.queue-settlement-garden": { l: "View arrangement", to: "screen:W10@queue-settlement-garden-pending", info: "CeloSettlement rail on a garden-claimed commitment; Fulfillment plus complete indexed prerequisites made the reward queue-ready for a signed-in app attempt, and Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
+  "w10.retry-settlement-garden": {
+    l: "Retry garden reward arrangement",
+    to: "screen:W10@queue-settlement-garden-pending",
+    info: "Restarts only the exhausted Safe-to-Safe arrangement job. It does not consult the member-AA gate or reopen a terminal settlement.",
+  },
   "w10.queue-settlement-garden-confirm": {
     l: "Open queued reward",
     to: "screen:W21@protocol-queue",
-    info: "The app's permissionless queue job already derived the GG protocol source Safe and the providing garden's Celo Safe. Garden rewards do not depend on the member-AA gate (AM:43 · SS:516).",
+    info: "The app's permissionless queue job already derived the GG protocol source Safe and the providing garden's Celo Safe. Garden rewards do not depend on the member-AA gate (AM:43 · SS §3.1.3).",
   },
   "w10.dismiss": { l: "Close dialog", to: "screen:W10", info: "Closes without applying the pending steward action." },
   "w10.retry": { l: "Retry promise read", to: "screen:W10", info: "Retries the promise read; the sentinel state never renders as a lifecycle chip." },
@@ -1410,7 +1458,12 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
 const w10Facts = (state: W10State): StateFacts | undefined => {
   if (state === "not-found") return undefined;
   const context = { pool: "Open" as const, cycle: "Open" as const };
-  if (["fulfilled", "record-payout", "queue-settlement", "garden-fulfilled", "queue-settlement-garden"].includes(state))
+  if ([
+    "fulfilled", "record-payout",
+    "queue-settlement-pending", "queue-settlement-blocked", "queue-settlement-failed", "queue-settlement",
+    "garden-fulfilled",
+    "queue-settlement-garden-pending", "queue-settlement-garden-failed", "queue-settlement-garden",
+  ].includes(state))
     return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
   if (["detail", "fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
     return { ...context, commitment: "ReadyForConfirmation", kind: "DomainImpact" };

@@ -371,6 +371,8 @@ const W2_STATES = [
   ["active", "Active"], ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
   ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
+  ["support-arrangement-blocked", "Support not queue-ready"],
+  ["support-arranging", "Support arranging"], ["support-arrangement-failed", "Support arrangement failed"],
   ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
   ["support-executed", "Celo executed"], ["support-confirming", "Confirming arrival"],
   ["support-arrived", "Support arrived"], ["support-failed", "Support failed"],
@@ -384,7 +386,10 @@ const W2_STATES = [
   ["captured-fulfilled", "Recorded — fulfilled"],
   ["captured-disputed", "Recorded — steward review"],
   ["withdraw-confirm", "Withdraw — confirm"], ["withdrawn", "Withdrawn (yours)"],
-  ["garden-provider", "Your garden provides"], ["garden-support-arrived", "Support reached your garden"],
+  ["garden-provider", "Your garden provides"],
+  ["garden-support-arranging", "Garden support arranging"],
+  ["garden-support-arrangement-failed", "Garden support arrangement failed"],
+  ["garden-support-arrived", "Support reached your garden"],
   ["request-active", "Request — helper working"], ["campaign-request-active", "Campaign request — helper working"],
   ["campaign-request-evidence-queued", "Campaign request — evidence queued"],
   ["campaign-request-evidence-submitted", "Campaign request — evidence in"],
@@ -413,6 +418,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
   fulfilled: "Fulfilled", "reward-released": "Fulfilled",
+  "support-arrangement-blocked": "Fulfilled",
+  "support-arranging": "Fulfilled", "support-arrangement-failed": "Fulfilled",
   "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
   "support-executed": "Fulfilled", "support-confirming": "Fulfilled", "support-arrived": "Fulfilled",
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
@@ -423,7 +430,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   "captured-confirmation-pending": "Ready to confirm",
   "captured-fulfilled": "Fulfilled", "captured-disputed": "Under review",
   "withdraw-confirm": "Offered", withdrawn: "Withdrawn",
-  "garden-provider": "Accepted", "garden-support-arrived": "Fulfilled",
+  "garden-provider": "Accepted", "garden-support-arranging": "Fulfilled",
+  "garden-support-arrangement-failed": "Fulfilled", "garden-support-arrived": "Fulfilled",
   "request-active": "Active", "campaign-request-active": "Active",
   "campaign-request-evidence-queued": "Active", "campaign-request-evidence-submitted": "Evidence in",
   "campaign-request-ready-pending": "Evidence in", "campaign-request-ready-confirmer": "Ready to confirm",
@@ -463,7 +471,10 @@ const W2_CAPTURED = new Set<string>([
   "captured-fulfilled", "captured-disputed",
 ]);
 const W2_WORK = new Set<W2State>(["accepted", "active", "evidence-submitted", "partially-approved"]);
-const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
+const W2_GARDEN = new Set<string>([
+  "garden-provider", "garden-support-arranging",
+  "garden-support-arrangement-failed", "garden-support-arrived",
+]);
 type PromiseCast = "offer" | "request" | "campaign-request" | "support" | "captured" | "garden";
 const w2Cast = (state: W2State): PromiseCast =>
   W2_GARDEN.has(state) ? "garden"
@@ -506,10 +517,10 @@ const W2_IDENTITY: Record<PromiseCast, { title: string; meta: string; chips: str
 };
 
 function w2RewardRow(state: W2State): string {
-  const gardenBeneficiary = state === "garden-provider" || state === "garden-support-arrived";
+  const gardenBeneficiary = W2_GARDEN.has(state);
   const settlementReward = state.startsWith("support-") || gardenBeneficiary;
   const rewardMeta = gardenBeneficiary
-    ? "25 G$ to Awka Hub's Celo account"
+    ? "25 G$ to Awka Hub's registered Celo Safe"
     : settlementReward
       ? "20 G$ from the garden's Celo account"
       : "20 DAI from the garden jar";
@@ -528,6 +539,12 @@ function w2RewardRow(state: W2State): string {
       return line("It reached the garden's own Celo account ↗ — the reference is in Details.", "Arrived", "ok");
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
+    case "support-arrangement-blocked":
+      return line("Support cannot be arranged yet because individual delivery is unavailable. No retry is needed; your promise stays fulfilled.", "Not available yet", "warn");
+    case "support-arranging":
+      return line("Your promise is fulfilled. This app is arranging the queue-ready Celo route from this device.", "Arranging", "warn");
+    case "support-arrangement-failed":
+      return `${line("A temporary connection failed five times on this device. Your promise stays fulfilled.", "Needs retry", "warn")}<div class="brow">${hot("w2.retry-settlement", btn("Try arrangement again", { kind: "sec", sm: true, icon: "refresh-line" }))}</div>`;
     case "support-queued":
       return line("Support is queued (G$).", "Queued");
     case "support-en-route":
@@ -546,6 +563,10 @@ function w2RewardRow(state: W2State): string {
       return line("This support was withdrawn before it was sent — your promise and its record stay intact.", "Withdrawn", "warn");
     case "support-cancelled-failed":
       return line("This support was closed after delivery could not complete — your promise and its record stay intact.", "Closed", "warn");
+    case "garden-support-arranging":
+      return line("Your garden kept the promise. The app is arranging support to its Celo Safe.", "Arranging", "warn");
+    case "garden-support-arrangement-failed":
+      return `${line("A temporary connection failed five times on this device. The garden's promise stays fulfilled.", "Needs retry", "warn")}<div class="brow">${hot("w2.retry-garden-settlement", btn("Try arrangement again", { kind: "sec", sm: true, icon: "refresh-line" }))}</div>`;
     default:
       return line("Reference only — no value is held by the app.", "Pending");
   }
@@ -555,9 +576,11 @@ function w2RewardRow(state: W2State): string {
 // left is where the support is. Kept as one set so the state chip, the lead
 // band, and the timeline can never disagree about whether the promise is done.
 const W2_SETTLED = new Set<W2State>([
-  "reward-released", "support-queued", "support-en-route", "support-delayed",
+  "reward-released", "support-arrangement-blocked", "support-arranging", "support-arrangement-failed",
+  "support-queued", "support-en-route", "support-delayed",
   "support-executed", "support-confirming", "support-arrived", "support-failed",
   "support-cancelled-queued", "support-cancelled-failed",
+  "garden-support-arranging", "garden-support-arrangement-failed", "garden-support-arrived",
 ]);
 
 type Moment = { label: string; meta?: string; open?: boolean; warn?: boolean; note?: string };
@@ -661,7 +684,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       { label: "Requested", meta: "protocol pool · Jul 2" },
       { label: "Accepted", meta: "Awka Hub took this up · asked by you · Jul 5", open: true },
     ];
-  if (state === "garden-support-arrived")
+  if (W2_GARDEN.has(state))
     return [
       { label: "Requested", meta: "protocol pool · Jul 2" },
       { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
@@ -793,7 +816,11 @@ function w2(state: W2State): string {
   // where the support is. Offering "Add evidence" here contradicted both the
   // state chip and the reward row, and §5.3 gates evidence attach to
   // Active / EvidenceSubmitted / PartiallyApproved anyway.
-  if (W2_SETTLED.has(state))
+  if (W2_GARDEN.has(state) && W2_SETTLED.has(state))
+    band = card(
+      `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by the protocol stewards on Jul 12. The support is going to the garden's registered Celo Safe.</div>`,
+    );
+  else if (W2_SETTLED.has(state))
     band = card(`<div class="t-title">Promise kept</div><div class="t-meta">Confirmed by João · Jul 12 — the season's count already grew.</div>`);
   else switch (state) {
     case "request-active":
@@ -943,11 +970,6 @@ function w2(state: W2State): string {
     case "garden-provider":
       band = card(
         `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The protocol stewards confirm it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
-      );
-      break;
-    case "garden-support-arrived":
-      band = card(
-        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by the protocol stewards on Jul 12. The support went to the garden's own account.</div>`,
       );
       break;
     case "withdrawn":
@@ -1101,6 +1123,8 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145).", calls: ["cancelCommitment"] },
   "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
+  "w2.retry-settlement": { l: "Try reward arrangement again", to: "screen:W2@support-arranging", info: "Re-checks indexed queue readiness and the permanent pointer before restarting only this device's exhausted attempt. The promise stays Fulfilled, and terminal settlement history cannot be reopened." },
+  "w2.retry-garden-settlement": { l: "Try garden reward arrangement again", to: "screen:W2@garden-support-arranging", info: "Re-checks indexed Garden-route readiness and the permanent pointer before restarting only this device's exhausted Safe-to-Safe attempt; it never consults the member-delivery gate or reopens terminal history." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },
   "w2.retry": { l: "Try again", info: "Read-surface recovery — retries the commitment read (loading/not-found/read-error; never a “None” chip) (UX:51-52 · AM:12)." },
