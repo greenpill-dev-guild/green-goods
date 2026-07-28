@@ -747,14 +747,14 @@ function linearLabelsForStatus(status, activityLabel, laneName = null) {
 function linearLabelsForExecutionSubLane(status, laneName, lane) {
   const packageLabel = isResearchOnly(status) ? null : EXECUTION_SUB_LANE_PACKAGE_LABELS[laneName];
   const agentLabel = lane.status === "ready" && (lane.owner === "codex" || lane.owner === "claude")
-    ? `agent:${lane.owner}`
+    ? `ai:${lane.owner}`
     : null;
   return uniqueSorted([...LINEAR_BASE_LABELS, "activity:build", packageLabel, agentLabel]);
 }
 
 function linearLabelsForCanonicalLane(status, activityLabel, laneName, lane) {
   const agentLabel = lane.status === "ready" && (lane.owner === "codex" || lane.owner === "claude")
-    ? `agent:${lane.owner}`
+    ? `ai:${lane.owner}`
     : null;
   return uniqueSorted([...linearLabelsForStatus(status, activityLabel, laneName), agentLabel]);
 }

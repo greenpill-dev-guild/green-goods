@@ -31,7 +31,7 @@ this file is the operational contract for skills that create records.
    any project whose status is Completed. Otherwise leave the issue
    unprojected and correctly labeled.
 5. **Label namespaces.** Use only `protocol:*`, `package:*`, `activity:*`,
-   `funding:*`, `source:*`, `agent:*`. Retired families (`area:*`, `work:*`,
+   `funding:*`, `source:*`, `ai:*`. Retired families (`area:*`, `work:*`,
    `task:*`, `automation:*`, `health:*`, `grant:*`) must not be reintroduced.
 6. **Privacy boundary.** Keep private, security-sensitive, exploit-enabling,
    replay, session, wallet, email, and user-identifying details out of public
