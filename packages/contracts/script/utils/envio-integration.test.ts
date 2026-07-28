@@ -141,6 +141,25 @@ describe("applyDeploymentToEnvioChains", () => {
     expect(chains.find((chain) => chain.id === SEPOLIA)).toEqual(sepolia);
   });
 
+  it("seeds an address-less OctantVault entry when adding a brand-new chain", () => {
+    // Regression: a new chain previously omitted OctantVault entirely, because upsertContract
+    // skips dynamic contracts and there was no existing entry to preserve. Without the entry,
+    // OctantModule.VaultCreated has nothing to register and vault events are never indexed.
+    const chains = applyDeploymentToEnvioChains({
+      chains: [],
+      chainId: SEPOLIA,
+      deployment: { actionRegistry: ADDRESS.actionRegistry, gardenToken: ADDRESS.gardenToken },
+      gardenAccountAddress: ADDRESS.gardenAccount,
+      fallbackStartBlock: 10_243_363,
+    });
+
+    const vault = chains
+      .find((chain) => chain.id === SEPOLIA)
+      ?.contracts.find((contract) => contract.name === "OctantVault");
+    expect(vault).toBeDefined();
+    expect(vault).not.toHaveProperty("address");
+  });
+
   it("appends an unconfigured chain using the fallback start block", () => {
     const chains = applyDeploymentToEnvioChains({
       chains: [existingArbitrumChain()],

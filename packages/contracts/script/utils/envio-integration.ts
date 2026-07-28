@@ -131,6 +131,13 @@ export function applyDeploymentToEnvioChains({
     contractsByName.set(name, { name, address: String(address) });
   };
 
+  // Seed address-less entries for dynamically registered contracts. Without this a newly
+  // configured chain would omit OctantVault entirely, so OctantModule.VaultCreated would have
+  // nothing to register against and vault events would never be indexed on that chain.
+  for (const name of DYNAMICALLY_REGISTERED_CONTRACTS) {
+    if (!contractsByName.has(name)) contractsByName.set(name, { name });
+  }
+
   upsertContract("ActionRegistry", deployment.actionRegistry);
   upsertContract("GardenToken", deployment.gardenToken);
   upsertContract("GardenAccount", gardenAccountAddress);
@@ -355,6 +362,9 @@ export class EnvioIntegration {
         gardenAccountAddress,
         fallbackStartBlock: this.getStartBlock(chainId),
       });
+
+      const startBlock =
+        envioConfig.chains.find((chain) => chain.id === targetChainId)?.start_block ?? this.getStartBlock(chainId);
 
       console.log(
         hadChain
