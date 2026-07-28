@@ -71,20 +71,8 @@
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
-    "tracks": [
-      "contracts",
-      "indexer",
-      "shared",
-      "client",
-      "client-pwa",
-      "admin",
-      "docs"
-    ],
-    "work_types": [
-      "research",
-      "implementation",
-      "qa"
-    ],
+    "tracks": ["contracts", "indexer", "shared", "client", "client-pwa", "admin", "docs"],
+    "work_types": ["research", "implementation", "qa"],
     "surfaces": [
       "packages/contracts",
       "packages/indexer",
@@ -95,9 +83,7 @@
       "docs/docs",
       ".plans/active/community-interface"
     ],
-    "depends_on_features": [
-      "envio-hyperindex-v3-migration"
-    ]
+    "depends_on_features": ["envio-hyperindex-v3-migration"]
   },
   "notes": [
     "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md register #28.",
@@ -153,9 +139,7 @@
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "handoff_note": "The handoff is specification-complete but intentionally non-dispatchable until the approved Envio -> contract cleanup -> architecture-freeze sequence completes. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
-      "linear_issues": [
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -169,24 +153,18 @@
         },
         "note": ""
       },
-      "skill_tags": [
-        "contracts"
-      ]
+      "skill_tags": ["contracts"]
     },
     "state_api": {
       "owner": "codex",
       "status": "blocked",
       "branch": "codex/state-api/commitment-pooling",
-      "depends_on": [
-        "contracts"
-      ],
+      "depends_on": ["contracts"],
       "manual_blocked": true,
       "blocked_reason": "Two-phase gate: interface-independent shared core may start after the pooling ABI freezes; settlement selectors wait for the settlement ABI; final GREEN requires the agreed indexer entity/query contract plus codegen/build proof.",
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Machine lane aggregates indexer plus shared state/API. Core-start and full-GREEN gates are distinct in codex-state-api.md; GREEN includes evidence/v3/dispute/Hypercert outputs and settlement capability reads.",
-      "linear_issues": [
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -200,12 +178,7 @@
         },
         "note": ""
       },
-      "skill_tags": [
-        "indexer",
-        "react",
-        "tanstack-query",
-        "data-layer"
-      ]
+      "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
     },
     "ui": {
       "owner": "claude",
@@ -214,15 +187,10 @@
       "manual_blocked": true,
       "blocked_reason": "Manual product-UI gate: prototype/spec review may continue while contracts and indexer build, but implementation waits for the frozen state/API contract, the authorized non-value broadcast plus live indexer deployment/read-back, and the scoped admin-foundation fixes. Settlement slices still wait for settlement. Post-QA documentation and walkthrough videos are separate non-machine lanes.",
       "branch": "claude/ui/commitment-pooling",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "The machine UI lane aggregates runtime client, admin, and editorial implementation only. Documentation polish starts after QA Pass 1, walkthrough videos finish after QA Pass 2, and September Community remains a separate follow-on.",
-      "linear_issues": [
-        "PRD-650",
-        "PRD-682"
-      ],
+      "linear_issues": ["PRD-650", "PRD-682"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -236,37 +204,22 @@
         },
         "note": ""
       },
-      "skill_tags": [
-        "ui",
-        "react",
-        "design"
-      ]
+      "skill_tags": ["ui", "react", "design"]
     },
     "qa_pass_1": {
-      "linear_issues": [
-        "PRD-729"
-      ],
+      "linear_issues": ["PRD-729"],
       "owner": "claude",
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
       "blocked_reason": "Manual gate: unlock only after required execution sub-lane handoffs exist, including settlement exit-proof evidence or an explicit proof-limit note.",
       "branch": "claude/qa-pass-1/commitment-pooling",
-      "depends_on": [
-        "ui",
-        "state_api",
-        "contracts"
-      ],
+      "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
-      "linear_issues": [
-        "PRD-730"
-      ],
+      "linear_issues": ["PRD-730"],
       "owner": "codex",
       "status": "blocked",
       "ready_when_dependencies_met": true,
@@ -274,14 +227,9 @@
       "blocked_reason": "Release-certification QA starts only after QA Pass 1 defects are dispositioned and the post-QA documentation-polish lane PRD-727 is complete and re-read.",
       "branch": "codex/qa-pass-2/commitment-pooling",
       "branch_trigger": "claude/qa-pass-1/commitment-pooling",
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     }
   },
   "execution_sub_lanes": {
@@ -300,10 +248,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-721",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-721", "PRD-650"],
       "acceptance": "Canonical claimant/requestedBy identity and immutable claim type; cycle/pool/accepting checks; allocation omitted from seedCycle and atomically validated/stored/emitted by openCycle; onchain charter/provider-open-commitment-cap readiness with Baseline kept as app preflight; pooling module initializes paused, dependency/schema setters are pause-only and old/new event-audited, all six dependencies plus four non-zero pairwise-distinct schema UIDs are required before unpause, and operational schema matching has no zero bypass; register initial wiring is one-shot and later module replacement requires the current module paused; named confirmer input is capped at 32 before mutation with max-plus-one/duplicate/provider-filter proof; empty unit labels and zero targets rejected; OpenCommitmentCapRequired(poolId) rejects an authorized zero cap at both module and register boundaries before event/storage mutation; per-class Registered -> Committed -> Released|Fulfilled accounting with only full non-zero quota/live-balance mutations, so one count slot is acquired on acceptance and released once on fulfillment/accepted cancellation/accepted expiry while disputes preserve slot state; positional DomainImpact requirements and requirementIndex accounting; exact pause/cancel/link permissions; pre-dispute restoration; bounded Season/Campaign checks; per-commitment unit accounting; count-cap ABI/events/errors/views with no aliases; self-describing unit events carry pool/cycle/exact label and cycle zero creates no cycle summary; AssessmentV3 as a schema name on the existing AssessmentResolver proxy, whose implementation upgrades only through upgrade.ts assessment-resolver while schema deployment verifies the upgrade and deterministically reconciles an empty or exact existing EAS record after partial persistence failure; v2 schema behavior and storage stay preserved; live Arbitrum v2 UID is pinned from the verified artifact before v3 activation; Arbitrum Sepolia deploys/pins current v2 before upgrade rehearsal; append-only CommunityTestimonyResolver registration with no zero-UID wildcard, one-way deterministic UID pinning while module is zero, empty-or-exact permissionless record proof, exact registry reconciliation before verified module activation, explicit UID-conflict and module-before-UID rejection, ordered retry-state enforcement, and unconditional zero-module fail-closed behavior; compiler-generated fail-closed storage baselines and concrete slot/offset upgrade safety; GardenToken appends at slot 213 offset 2 and keeps its 37-slot gap; isolated dry-run artifact path."
     },
     "settlement": {
@@ -314,9 +259,7 @@
       "blocked_reason": "The independent local settlement review/correction pass is complete. Live Linear/source-document convergence and re-read are still required before settlement implementation. Exact value release is additionally blocked until the currently published bidirectional Arbitrum One↔Celo mainnet route is freshly verified and all live Safe/Zodiac/G$/AA, audit, timelock, canary, and human-authorization evidence passes.",
       "ready_when_dependencies_met": true,
       "branch": "codex/settlement/commitment-pooling",
-      "depends_on": [
-        "contracts"
-      ],
+      "depends_on": ["contracts"],
       "handoff": "handoffs/codex-settlement.md",
       "linear": {
         "sync": true,
@@ -324,10 +267,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-686",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-686", "PRD-650"],
       "acceptance": "Pre-broadcast CCIP settlement GREEN: both proxies initialize paused; source dependency changes reject zero/unpaused calls and emit exact old/new addresses; source unpause requires a complete route, active protocol account, and non-zero fee floor; executor unpause requires source peer, caps, period policy, and reserve floor; exact versioned command/ack tuples with isBatch execution-key domain separation and per-command destination selector/executor/gas/version/payload snapshot; retries cannot cross executor peers; acknowledgments bind to the command snapshot and an initial/retry message ID already mapped to the same key; explicit reward rails make core ArbitrumExternal payout recording and CeloSettlement mutually exclusive; all CCIP selectors serialize as decimal strings and parse exactly to uint64/bigint without JS number coercion, while verified deployment artifacts persist the paired remote EVM chain ID only for a freshly verified supported lane; production 42161↔42220 is the required full pair, while independent 421614/11142220 component rehearsals remain paused and cannot seed route readiness or cross-chain relationships; bounded FailureCode enum; compiler-generated Arbitrum/Celo storage + frozen interfaces; immutable Arbitrum source selector and destination EVM chain ID; write-once protocol garden/canonical G$; immutable permissionsConfigHash excludes mutable caps, policy, spend, and allowance balances; UUPS implementations with one immutable router each and unchanged immutable G$ across Celo router upgrades; message-only CCIP; same-key idempotent command retries; independent acknowledgment retry to the stored originating module/version; bounded active/previous peer grace with unresolved retiring-peer commands keeping the lane paused; paused/drained router-upgrade rehearsal; official-directory router/selector/lane/code-hash evidence with non-zero config; one dispatch/retry-only delegate; observable native ETH/CELO fee floors and low-balance state; exact-net canonical G$ delivery verified from source and recipient balance deltas, with sender-pays fees bounded and non-zero receiver-pays fees failing closed; token-pause failure and ERC777/SuperToken callbacks contained by CEI, reentrancy protection, bounded subcalls, and non-reverting negative acknowledgments; unbatched-Queued or Failed individual cancellation with origin preserved plus atomic whole-batch cancellation while Queued and no partial-member path; failed batch members requeue as unbatched attempts while the old Batch preserves membership; individual rewards use same-address EntryPoint v0.7 AA with two explicit account profiles: Kernel 0.2.4 on Arbitrum Sepolia/Celo Sepolia proves same-address sponsored surrogate-transfer mechanics but cannot enable delivery, while Kernel 0.3.1 on Arbitrum One/Celo Mainnet requires exact derivation, pinned EntryPoint/account code hashes, passkey validation, bounded 42220 policy, and one separately authorized included sponsored Celo Mainnet canonical-G$ first-use operation proven by UserOperation/transaction receipts, EntryPoint event, deployed code, and exact balance deltas before memberDeliveryEnabled; Garden rewards use the registered providerGarden Safe; commitment rewards always source from the owning pool Safe; ProtocolToGarden is the only funding route; immutable batch membership with hard ceiling 24 and a measured 0–24 configured limit; deterministic Safe v1.4.1 deployment recipe using locally declared minimal Safe/Zodiac ABIs; one Zodiac Roles modifier using its native bytes32 allowance key and no separate Allowance Module; dedicated executor-only Celo deploy target and role-aware rehearsal gate; ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof remains outside canonical artifacts; both-chain protocol-event indexing with no raw G$ indexing; exact pilot recovery and executor as Zodiac Roles member, never Safe owner, with direct canonical-G$ calls through the exact bytes32 role key and no self-call authority. External Safe details, approved policy values, audit/timelock, direct-lane availability, broadcasts, and canary are release_ops blockers."
     },
     "indexer": {
@@ -338,9 +278,7 @@
       "manual_blocked": true,
       "blocked_reason": "Two-phase gate: the independent local spec review is complete; pooling-core handlers may start only after PRD-557 lands corrected PR #649 (envio@3.2.1), live mirror convergence/re-read completes, and pooling events freeze. Settlement handlers wait for settlement events. Full GREEN requires both slices, generated query freeze, and the Garden-ID replay/cutover/rollback proof.",
       "branch": "codex/indexer/commitment-pooling",
-      "depends_on": [
-        "contracts"
-      ],
+      "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
       "linear": {
         "sync": true,
@@ -348,10 +286,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-722",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-722", "PRD-650"],
       "acceptance": "Corrected and merged PR #649 is a hard prerequisite and supplies the Envio 3.2.1 baseline without package-local skill copies, unrelated shared changes, or root pnpm workflow drift; two-phase core/full event/entity coverage; claimant plus requestedBy, positional DomainImpact requirements, requirementIndex, per-action approvedWorkCounts and per-commitment approvedUnits; exact-label POOL/CYCLE CommitmentUnitSummary rows keyed by viem keccak256(stringToBytes(unitLabel)) with no normalization; count-only CommitmentProviderExposure whose key is carried by self-describing unit events and whose counter changes only from UnitsCommitted, UnitsReleased, and UnitsFulfilled; cycleId zero creates no cycle row; register module plus pooling dependency/schema/pause events are pool-less indexed audits with generic key/previous/new values and no accounting mutation; no mixed-label pool/cycle unit fields; promiseKeptRate as the sole cross-commitment percentage; pause reason; immutable CycleOpened allocation; chain-role SettlementConfiguration with nullable remote selector/remoteEvmChainId/peer until an exact lane is verified, nullable source-only memberDeliveryEnabled, write-once protocolGarden/gDollarToken, event-owned source hatsModule/commitmentPoolingModule, and exact router/peer/pause/batch-limit/executor-cap/fee-policy/dispatcher/fee-readiness facts; only production 42161↔42220 seeds a complete pair, independent 421614/11142220 component rows preserve local facts with remoteEvmChainId null and peerConfigured false, and source-chain-linked Celo SettlementGardenRoute rows plus execution/message directions require the non-null seeded remote EVM chain rather than selector inference or local Celo context; Arbitrum command/ack message rows plus all fourteen bounded CeloSettlementExecutor event rows, with Celo execution carrying self-describing isBatch/settlementId/attempt facts for inverted replay order; queued/dispatched/executed-ack-pending/confirmed/failed/cancelled-by-origin/delayed distinctions; replay-idempotent BatchCancelled handling that atomically terminalizes the immutable member set with no partial queued-batch state; no raw G$ transfer indexing; v3 schema revalidation, first-configuration-event metadata seeds, and explicit 11142220 rpc_config; canonical pooling blocks on 42161/421614 with 11155111 unchanged legacy; fulfilled-commitment Hypercert lineage; Envio updater/boundary preservation for all four Green Goods contracts; Garden.id replay rehearsal; nullable explicit-event-only audit actor; chain-composite relationships; create-if-absent/idempotent replay; entity/query freeze; codegen, setup-generated, build, and indexed event-sequence proof."
     },
     "state_api": {
@@ -362,10 +297,7 @@
       "manual_blocked": true,
       "blocked_reason": "Core-start after pooling ABI freeze is allowed for interface-independent shared work. Full GREEN waits for pooling + settlement ABIs and indexer entity/query/codegen/build proof.",
       "branch": "codex/state-api/commitment-pooling",
-      "depends_on": [
-        "contracts",
-        "indexer"
-      ],
+      "depends_on": ["contracts", "indexer"],
       "handoff": "handoffs/codex-state-api.md",
       "linear": {
         "sync": true,
@@ -373,10 +305,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-723",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-723", "PRD-650"],
       "acceptance": "Two-phase core/full shared types, query keys, hooks, missing-evidence/readiness outputs, canonical claimant/requestedBy identity, positional DomainImpact requirement arrays and per-commitment approvedUnits, state-count and exact-label unit-summary selectors with case-sensitive labels, promiseKeptRate as the sole cross-commitment percentage, five complete-ABI offline job payloads with membership waiting that consumes no retry, online accept/decline/assessment/Ready/override mutations, positive-only confirmation plus online raiseDispute, immutable open-cycle allocation selectors, explicit 421614/11142220 Pimlico endpoints and a typed fail-closed account-profile registry with Kernel 0.2.4 on both testnets and Kernel 0.3.1 on Arbitrum One/Celo Mainnet, same-address profile assertions, testnet evidence that cannot enable production member delivery, an AA-gated online wallet transfer, confirmed/cancelled-by-origin/failed/executed-ack-pending/dispatched/delayed/queued settlement precedence before the no-disbursement memberDeliveryEnabled guard, exact router/peer/dispatcher/fee readiness, unbatched-Queued/Failed individual cancellation mutations plus one atomic Queued-batch cancellation mutation with no partial-member affordance, composite-ID queries, and mutation invalidation flow."
     },
     "ui_client": {
@@ -387,9 +316,7 @@
       "manual_blocked": false,
       "blocked_reason": "Prototype and journey review may continue, but product implementation waits for state_api GREEN, the authorized non-value contract broadcast, verified live indexer deployment/read-back, and the scoped admin-foundation cleanup. W6 survives only as a compatibility alias to W5. W23, settlement reward rows, and Celo transfer additionally wait for settlement/state_api full GREEN.",
       "branch": "claude/ui-client/commitment-pooling",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
       "linear": {
         "sync": true,
@@ -397,10 +324,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-724",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-724", "PRD-650"],
       "acceptance": "Garden pool routes, direction-aware eligible confirmation, Not yet -> online raiseDispute, equal positional domains[]/requiredActionUIDs[]/requiredApprovedWorkCounts[] creation arrays, requirementIndex-bound per-action progress and per-commitment approvedUnits, state counts plus exact-label unit groups with promiseKeptRate as the only cross-commitment percentage, offline membership waiting/recovery states, and queued/dispatched/executed-ack-pending/confirmed/failed/delayed reward rows with member delivery hidden when disabled."
     },
     "ui_admin": {
@@ -411,9 +335,7 @@
       "manual_blocked": false,
       "blocked_reason": "Prototype and journey review may continue, but Commitment Pooling admin implementation waits for state_api GREEN, the authorized non-value contract broadcast, verified live indexer deployment/read-back, and completion of the scoped existing-admin fixes and polish led by PRD-737. Batch/CCIP/Safe and all-garden controls additionally wait for settlement/state_api full GREEN.",
       "branch": "claude/ui-admin/commitment-pooling",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
       "linear": {
         "sync": true,
@@ -421,11 +343,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-725",
-        "PRD-650",
-        "PRD-682"
-      ],
+      "linear_issues": ["PRD-725", "PRD-650", "PRD-682"],
       "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, deployer-gated Operations cross-garden mode, positional DomainImpact creation/per-commitment progress, provider open-commitment cap readiness, state-count and exact-label unit summaries with no mixed-label arithmetic, percent-to-bps allocation encoded atomically at open, stored claim acceptance/decline/supersession, dispute restoration, immutable-batch per-member reconciliation, native fee reserves, command/ack message state, same-key retry, acknowledgment retry, and failure/new-attempt controls."
     },
     "editorial": {
@@ -436,9 +354,7 @@
       "manual_blocked": false,
       "blocked_reason": "Prototype/copy review may continue, but implementation waits for state_api aggregate/read-model GREEN, the authorized non-value broadcast plus verified live indexer output, the admin/UI foundation cleanup, a public planned/live copy freeze, and partner confirmation for the Foundation-pilot mechanism and receiving-address claims.",
       "branch": "claude/editorial/commitment-pooling",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
       "linear": {
         "sync": true,
@@ -446,10 +362,7 @@
         "parentIssue": "PRD-650",
         "milestone": "build"
       },
-      "linear_issues": [
-        "PRD-726",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-726", "PRD-650"],
       "acceptance": "Public garden pool story and /impact promise aggregates render only indexer-backed aggregates and approved EAS/shared joined reads; no per-person lists, wallet addresses, rankings, funding-ordering, or unsupported percentage claims; dispatched or executed-ack-pending settlement never reads as arrived and confirmed stays distinct from community narrative and evaluator conclusions; pre-launch surfaces use planned/readiness language rather than live counts; en/es/pt copy with accessible public-browser proof across readiness, live, dispatched, confirming, confirmed, empty, and error states; targeted client tests, client build, and lint:vocab pass."
     },
     "docs": {
@@ -460,9 +373,7 @@
       "manual_blocked": false,
       "blocked_reason": "Post-QA documentation polish starts only after QA Pass 1 completes. It absorbs architecture/glossary freshness plus the screenshot-based operator and gardener guides so the prose describes the QA-tested product rather than prototypes.",
       "branch": "claude/docs/commitment-pooling",
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/claude-docs.md",
       "linear": {
         "sync": true,
@@ -470,10 +381,7 @@
         "parentIssue": "PRD-650",
         "milestone": "release"
       },
-      "linear_issues": [
-        "PRD-727",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-727", "PRD-650"],
       "acceptance": "After QA Pass 1: reconcile architecture, glossary, data boundaries, rollout language, operator/gardener task guides, accessible names, en/es/pt screenshots, recovery states, and every planned/live claim against the QA-tested client/admin/editorial surfaces; authenticated Brave capture, step replay, docs:audit, build:docs, lint:vocab, design checks, and anchor checks pass before QA Pass 2."
     },
     "walkthrough_videos": {
@@ -483,10 +391,7 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/walkthrough-videos/commitment-pooling",
-      "depends_on": [
-        "qa_pass_2",
-        "docs"
-      ],
+      "depends_on": ["qa_pass_2", "docs"],
       "handoff": "handoffs/claude-walkthrough-videos.md",
       "linear": {
         "sync": true,
@@ -494,10 +399,7 @@
         "parentIssue": "PRD-650",
         "milestone": "release"
       },
-      "linear_issues": [
-        "PRD-728",
-        "PRD-650"
-      ],
+      "linear_issues": ["PRD-728", "PRD-650"],
       "blocked_reason": "Walkthrough videos are the final communication artifact and begin only after release-certification QA Pass 2 and the post-QA documentation polish are complete.",
       "acceptance": "Record, edit, caption, and publish the approved app walkthrough set only from the QA-certified authenticated client PWA, admin console, and editorial surfaces; cover the core member, Garden Steward, evaluator, and operational journeys; show recovery and settlement-status distinctions without exposing secrets or unsupported live claims; include version/date/source SHA and accessible captions/transcripts; re-run each recorded path against the final build before completion."
     },
@@ -515,10 +417,7 @@
         "milestone": null,
         "dueDate": "2026-07-31"
       },
-      "linear_issues": [
-        "COM-7",
-        "COM-3"
-      ],
+      "linear_issues": ["COM-7", "COM-3"],
       "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 § Proto-commitment rehearsal (folded in from the retired 'July dry run — proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62)."
     },
     "release_ops": {
@@ -529,11 +428,7 @@
       "manual_blocked": true,
       "blocked_reason": "Human-only tiered broadcast gate. The non-value pooling/register/schema tier requires the complete three-PR-chain activation sequence: resolver/schema preparation; paused module/register deployment and schema finalization; paused GardenToken/WorkApprovalResolver upgrades with both reverse links verified; post-wiring unpause; pool registration/backfill; full tests, dry-runs, post-deploy verification, upgrade/rollback proof, and separate authorization. Settlement/value release separately requires audit, timelock, dual-chain local/fork/testnet proof, fresh verification of the currently published bidirectional Arbitrum One↔Celo mainnet CCIP route, CCIP peer/fee health, Safe/Zodiac/G$/AA evidence, replay rollback rehearsal, message-only ping/ack, a capped value canary, observation, and its own authorization.",
       "branch": null,
-      "depends_on": [
-        "contracts",
-        "settlement",
-        "indexer"
-      ],
+      "depends_on": ["contracts", "settlement", "indexer"],
       "handoff": "handoffs/human-release-ops.md",
       "linear": {
         "sync": true,
@@ -541,9 +436,7 @@
         "parentIssue": null,
         "milestone": "release"
       },
-      "linear_issues": [
-        "PRD-731"
-      ],
+      "linear_issues": ["PRD-731"],
       "acceptance": "The non-value pooling/register/schema tier broadcasts and activates only after its complete three-PR-chain dependency sequence, narrower evidence gate, and explicit human authorization: PR chain 2 leaves pooling paused; PR chain 3 upgrades GardenToken/WorkApprovalResolver, verifies both reverse links, unpauses, then registers/backfills pools and passes operational smoke. The value SettlementModule/CeloSettlementExecutor/Safe tier remains separately authorized. Every broadcast includes post-deploy checks and named evidence owners; Release adds Garden-ID replay/cutover, paused peer pairing, message-only ping/ack, audited Zodiac bounds, a minimum-value canary, observation, and one authenticated-acknowledgment Celo G$ exit proof."
     },
     "community": {
@@ -554,9 +447,7 @@
       "manual_blocked": false,
       "blocked_reason": "Wait for shared foundation/state_api and the Community core gates. RESR-64 blocks only the membership-persistence slice, not the non-membership Community PWA core.",
       "branch": "claude/community/commitment-pooling",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-community.md",
       "linear": {
         "sync": true,
@@ -565,9 +456,7 @@
         "milestone": null,
         "dueDate": "2026-09-30"
       },
-      "linear_issues": [
-        "PRD-682"
-      ],
+      "linear_issues": ["PRD-682"],
       "acceptance": "September Community core after the August substrate lands; membership persistence remains excluded until RESR-64, without blocking view/signal/testimony/confirmation core."
     },
     "settlement_evidence": {
@@ -579,10 +468,7 @@
       "ready_when_dependencies_met": false,
       "blocked_reason": "Operational-assignment gate: pilot-evidence-spec.md now locks the same-garden cohort/baseline method, claim-specific source hierarchy, two-key threshold model, qualitative method, layered safeguarding/repair, privacy tiers, reproducible first-cycle process, and separated approval rights. Named source/access/evidence owners, exact garden cohorts and history sources, garden-specific primary measures and numeric thresholds, collection/storage/retention details, safeguarding response paths, reproducibility artifacts, and publication owners remain required before agent assignment or outcome interpretation. Due 2026-09-30 as an operational checkpoint, not a native project phase.",
       "branch": null,
-      "depends_on": [
-        "settlement",
-        "community"
-      ],
+      "depends_on": ["settlement", "community"],
       "handoff": "handoffs/human-settlement-evidence.md",
       "linear": {
         "sync": true,
@@ -591,10 +477,7 @@
         "milestone": "follow_on_hardening",
         "dueDate": "2026-09-30"
       },
-      "linear_issues": [
-        "COM-11",
-        "PRD-650"
-      ],
+      "linear_issues": ["COM-11", "PRD-650"],
       "acceptance": "The approved pilot-evidence-spec.md structure remains fixed; every operational assignment in section 10.3 is dated; each garden has a defensible cohort/baseline, one primary measure, declared secondary measures, denominator/window, and pre-outcome thresholds; designated sources and owners are current; safeguarding/privacy blocks are cleared; a second reviewer reproduces the aggregates; and the September internal decision record plus any separately approved partner/public output stays within its claim and privacy tier before any agent label, implementation dispatch, or strengthened-capacity claim."
     }
   },
