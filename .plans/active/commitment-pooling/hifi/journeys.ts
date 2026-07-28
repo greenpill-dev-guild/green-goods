@@ -215,7 +215,7 @@ export const SBS: SB[] = [
   { f: "W2", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], ev: "the member's promise shows the external-reward row: '20 DAI from the garden jar · pending'", cite: "WF:159" },
   { f: "W13", hot: { h: "w13.row", l: "open the confirm row" }, who: "David", st: "ReadyForConfirmation", ev: "Hub Confirm stage — where you are named or fallback-eligible", cite: "WF:433" },
   { f: "W10", hot: null, st: "ReadyForConfirmation", ev: "the promise opens still awaiting its named confirmations — the reward is declared but not yet recordable", cite: "UX:318" },
-  { f: "W10@fulfilled", hot: null, st: "Fulfilled", ev: "confirmFulfillment (ordinary named path — provider excluded)", cite: "CS:743" },
+  { f: "W10@fulfilled", hot: null, st: "Fulfilled", ev: "confirmFulfillment (ordinary named path — every frozen team member excluded)", cite: "CS §6.1" },
   { f: "W10@fulfilled", hot: { h: "w10.record-payout", l: "Record payout" }, ev: "ArbitrumExternal permits AdminConfirmDialog to capture the rail reference → recordRewardPaid → RewardPaid", cite: "CS:749", note: "register #34h — the dry run runs this with a real minimal Cookie Jar withdrawal" },
   { f: "W10@record-payout", hot: { h: "w10.payout-confirm", l: "Record payout" }, st: "Payout confirmation", ev: "the steward reviews the declared reward and records the executed rail reference", cite: "UX:302" },
   { f: "W2@reward-released", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], ev: "the member row flips to 'reward released' — quiet admin confirmation only, celebration already fired client-side", cite: "UX:143,202" },
@@ -238,7 +238,7 @@ export const SBS: SB[] = [
 ]},
 { id: "sb12", n: 12, title: "Dispatch queued support and close the loop", persona: "Steward + protocol executor", scen: "S8/S9 · pre-broadcast proof", reviewVisible: true, reviewGroup: "admin", steps: [
   { f: "W21", hot: null, st: "Queued deliveries", ev: "the garden queue separates eligible delivery actions from the production route evidence that still gates value", cite: "SS §3" },
-  { f: "W10@queue-settlement", hot: { h: "w10.queue-settlement-confirm", l: "Queue disbursement" }, ev: "CeloSettlement snapshots the owning-pool Safe payer, canonical G$ recipient and amount, route, version, and gas limit", cite: "SS §3" },
+  { f: "W10@queue-settlement", hot: { h: "w10.queue-settlement-confirm", l: "Queue disbursement" }, ev: "CeloSettlement snapshots one child from the frozen provider-garden payout plan: canonical G$ recipient and amount, route, version, and gas limit", cite: "SS §3" },
   { f: "W21", hot: { h: "w21.create-batch", l: "Create batch" }, ev: "the queued deliveries enter the optional homogeneous batch review before membership becomes immutable", cite: "SS §3" },
   { f: "W21@batch-create", hot: { h: "w21.create-batch-confirm", l: "Create batch" }, st: "Homogeneous selection", ev: "createBatch checks the shared source, route, version, and gas limit, then stores one immutable member snapshot", cite: "SS §3.1.2" },
   { f: "W21@batch-created", hot: { h: "w21.open-batch-command", l: "Open batch command" }, st: "Queued batch", ev: "batch #12 exists with two immutable members; its execution key is still created only when dispatch begins", cite: "SS §3.1.2" },
@@ -262,17 +262,19 @@ export const SBS: SB[] = [
   { f: "W12", hot: { h: "w12.confirm-row", l: "confirmations queue" }, surface: "admin", echo: true, ev: "protocol confirmations queue mirrors the Hub Confirm grammar", cite: "WF:417" },
   { f: "W10@garden-ready", hot: null, st: "ReadyForConfirmation", surface: "admin", echo: true, ev: "the protocol stewards verify it — the providing garden is excluded from confirming its own promise", cite: "UX:318 · CS:743", br: [{ l: "Where the G$ goes next", to: "sb19:0" }] },
 ]},
-// The money leg: what a garden-claimed protocol promise actually pays, and to
-// whom. Everything else in the artifact pays an individual.
-{ id: "sb19", n: 19, title: "Send a garden's G$ to its own Safe", persona: "Protocol steward", scen: "S14 · settlement", reviewVisible: true, reviewGroup: "admin", steps: [
+// The money leg: a provider garden turns declared support into one conserved
+// plan, then pays the credited contributors from its own Safe.
+{ id: "sb19", n: 19, title: "Pay a garden team from its Safe", persona: "Garden steward", scen: "S14 · settlement", reviewVisible: true, reviewGroup: "admin", steps: [
   { f: "W21@gate-status", hot: null, st: "gate enabled", ev: "member delivery is enabled and the route is registered — the precondition for queueing anything at all", cite: "SS §3.1" },
   { f: "W10@garden-ready", hot: { h: "w10.garden-confirm", l: "Confirm — promise kept" }, st: "ReadyForConfirmation", ev: "confirmFulfillment by a named protocol steward; no reason is stored on the ordinary path", cite: "CS:743" },
-  { f: "W10@garden-fulfilled", hot: { h: "w10.queue-settlement-garden", l: "Queue disbursement…" }, st: "Fulfilled", ev: "the CeloSettlement rail replaces Record payout — the two rails are exclusive", cite: "AM §2" },
-  { f: "W10@queue-settlement-garden", hot: { h: "w10.queue-settlement-garden-confirm", l: "Queue disbursement" }, ev: "payer = the GG protocol Safe (the owning pool); beneficiary = Awka Hub's registered Celo Safe, never its Arbitrum account", cite: "AM:43 · SS:516" },
-  { f: "W21@protocol-queue", hot: { h: "w21.dispatch-garden", l: "Dispatch" }, st: "Queued", ev: "the queue shows the garden reward beside a member one — the Kind column is what tells them apart", cite: "SS §3.1" },
-  { f: "W22@garden-command", hot: { h: "w22.garden-open-ops", l: "Open Operations" }, st: "Dispatched", ev: "data-only command, zero token amounts; Celo moves the G$ and acknowledges back", cite: "SS §3" },
-  { f: "W24@flows", hot: null, marks: ["w24.queue-funding"], st: "Confirmed", ev: "the cross-garden board shows the corridor: GG protocol Safe → garden Safes, with this delivery confirmed; the funding top-up route stays behind its integration gate", cite: "SS:291" },
-  { f: "W2@garden-support-arrived", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], st: "Confirmed", ev: "the garden's members see it: the support reached Awka Hub's own account, not a personal wallet", cite: "SS §5" },
+  { f: "W10@garden-fulfilled", hot: { h: "w10.queue-settlement-garden", l: "Set contributor payout" }, st: "Fulfilled", ev: "the CeloSettlement rail replaces Record payout and starts from recognition weights — the two rails are exclusive", cite: "AM §2 · SS §3" },
+  { f: "W10@queue-settlement-garden", hot: { h: "w10.queue-settlement-garden-confirm", l: "Save draft" }, ev: "payer = Awka Hub's provider garden Safe; the complete recognition vector is hash-bound and payment weights derive from the saved amount vector", cite: "SS §3" },
+  { f: "W21@payout-plan", hot: { h: "w21.finalize-plan", l: "Finalize payout plan" }, st: "Draft", ev: "finalization verifies recognition/payment snapshots, canonical recipients, and explicit retention plus contributor children equals declared support", cite: "SS §3.1" },
+  { f: "W21@payout-finalized", hot: { h: "w21.dispatch-plan", l: "Dispatch" }, st: "Pending · finalized", ev: "the plan is immutable before any child dispatch; an all-retained zero-child plan would already be Complete without CCIP", cite: "SS §3.1" },
+  { f: "W22@dispatched", hot: null, st: "Dispatched", ev: "data-only command, zero token amounts; Celo moves the G$ and acknowledges back", cite: "SS §3" },
+  { f: "W21@payout-partial", hot: null, st: "Partial", ev: "one contributor arrived, one remains pending, and one failed; the stable parent pointer, successful child, and recognition record remain final", cite: "SS §3.1" },
+  { f: "W24@flows", hot: null, marks: ["w24.queue-funding"], st: "Independent funding route", ev: "the cross-garden board may separately show GG protocol Safe → Awka Hub funding; that transfer never substitutes for contributor payout", cite: "SS §3" },
+  { f: "W2@garden-support-arrived", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], st: "Partial / Complete", ev: "each member sees their own recognition and payout child while the garden-retained amount stays explicit", cite: "SS §5" },
 ]},
 // The public surface has its own reader: a neighbour or funder who never signs
 // in. This flow walks what they can see as a pool matures — and the moment the
@@ -406,6 +408,19 @@ export const SBS: SB[] = [
   { f: "W7@paused", hot: { h: "w7.cancel-cycle-paused", l: "Cancel season…" }, st: "Variant rewind · Pool Paused · cycle Open", ev: "the cancel variant starts from the same paused open season and does not imply a resume", cite: "CS:130", note: "This variant rewinds to the paused open season shown at the start of the chapter." },
   { f: "W7@paused-cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-paused-confirm", l: "Cancel season" }, st: "Pool Paused · reason required", ev: "cancelCycle changes only the cycle and stores the member-visible reason", cite: "CS:130 · UX:77" },
   { f: "W1@paused-cancelled-cycle", hot: null, surface: "pwa", echo: true, st: "Pool Paused · cycle Cancelled", ev: "members see both truths together: the season was cancelled and the pool remains paused", cite: "UX:60,77" },
+]},
+{ id: "sb33", n: 33, title: "Recognize and pay a commitment team", persona: "Lead gardener + contributors + steward", scen: "S1 · group commitment", reviewVisible: true, reviewGroup: "admin", steps: [
+  { f: "W3@step-anchors", hot: null, surface: "pwa", echo: true, st: "Repeatable requirements", ev: "the creator adds every required action; no four-item product rule narrows the commitment", cite: "WF W3 · CS §3" },
+  { f: "W2@fulfilled", hot: { h: "w2.open-team", l: "See team and contributions" }, surface: "pwa", echo: true, st: "Fulfilled · roster frozen", ev: "one accountable lead and every credited contributor remain visible on the fulfilled promise", cite: "UX Appendix C" },
+  { f: "W2b@frozen", hot: { h: "w2b.preview", l: "Preview recognition" }, surface: "pwa", echo: true, st: "Roster frozen", ev: "approved work and evidence determine who is credited before shares are calculated", cite: "CS §8" },
+  { f: "W2b@recognition", hot: null, surface: "pwa", echo: true, st: "Recognition preview", ev: "the Hypercert gardener class gives the commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution", cite: "CS §8", br: [{ l: "No eligible contributor → W26 blocks; no lead fallback", to: "screen:W26@recognition-blocked" }] },
+  { f: "W10@fulfilled", hot: { h: "w10.allocate-contributors", l: "Set recognition and payment" }, st: "Fulfilled · payment unplanned", ev: "the steward opens payment planning without changing the recognition record", cite: "SS group-settlement amendment" },
+  { f: "W10@contributor-allocation", hot: { h: "w10.save-contributor-allocation", l: "Save draft" }, st: "Draft payout plan", ev: "payment defaults to recognition, amount-derived weights keep the vector consistent, garden retention is explicit, and any divergence needs a reason", cite: "SS §3" },
+  { f: "W21@payout-plan", hot: { h: "w21.finalize-plan", l: "Finalize payout plan" }, st: "Draft parent plan", ev: "the steward verifies recognition/payment hashes and retained-plus-child conservation before freezing the plan", cite: "SS §3" },
+  { f: "W21@payout-finalized", hot: { h: "w21.dispatch-plan", l: "Dispatch one child payout" }, st: "Finalized parent plan", ev: "the garden Safe pays each contributor through a separate child delivery only after explicit finalization", cite: "SS §3" },
+  { f: "W22@dispatched", hot: null, st: "Dispatched", ev: "the contributor command carries only the finalized child facts; the parent pointer remains stable", cite: "SS §3" },
+  { f: "W21@payout-partial", hot: null, st: "Partial · 2 of 3 arrived", ev: "one failed child never reverses fulfillment, recognition, or successful contributor receipts", cite: "SS §3" },
+  { f: "W23@contributor-receipt", hot: null, surface: "pwa", echo: true, st: "Contributor payout arrived", ev: "the member receipt distinguishes Hypercert recognition from the garden-funded payment", cite: "UX Appendix C" },
 ]},
 { id: "sb14", n: 14, title: "Turn a neighbor's need into a seeded promise", persona: "Neighbour (Kwame) + steward", scen: "S10 · September", reviewVisible: false, reviewGroup: "admin", steps: [
   { f: "C3", hot: { m: "What is your community trying to solve?", l: "Describe the problem by voice or text" }, who: "Kwame", surface: "community", ev: "kind-free Need · words captured by voice or typing · Request/Offer belongs to commitment seeding", cite: "CI-WF:96" },

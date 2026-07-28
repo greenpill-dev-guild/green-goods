@@ -43,6 +43,7 @@ export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" |
 // never renders as product copy, but keeping it here prevents account readiness
 // or another local concept from being folded into the contract lifecycle.
 export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" | "Failed";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
 // only declare the entities that its controls act on.
@@ -54,6 +55,7 @@ export type StateFacts = {
   settlementAccount?: SettlementAccountState;
   beneficiarySettlementAccount?: BeneficiarySettlementAccountState;
   disbursement?: DisbursementLifecycle;
+  payoutPlan?: PayoutPlanLifecycle;
 };
 
 export type ContractCall =
@@ -64,6 +66,7 @@ export type ContractCall =
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
+  | "createCommitmentPayoutPlan" | "setContributorPayouts" | "finalizeCommitmentPayoutPlan"
   | "queueDisbursement" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 

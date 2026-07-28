@@ -744,6 +744,13 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       `${moments.length} ${moments.length === 1 ? "moment" : "moments"}`,
       timeline(moments) + `<div class="t-meta">Recorded on Arbitrum · every steward record shows its reason here.</div>`,
     ) +
+    disclosure(
+      "People",
+      cast === "garden" ? "garden team · 3 credited" : "1 lead · 2 contributors",
+      cast === "garden"
+        ? `${listRow({ icon: "group-line", primary: "Awka Hub", meta: "Accountable provider garden" })}${listRow({ icon: "user-line", primary: "Leila", meta: "Lead · credited contributor" })}${listRow({ icon: "group-line", primary: "Amara · Chidi", meta: "Contributors · credited from approved work" })}${hot("w2.open-team", btn("See team and contributions", { kind: "ghost", sm: true }))}`
+        : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · João", meta: "Contributors · credited from approved work" })}${hot("w2.open-team", btn("See team and contributions", { kind: "ghost", sm: true }))}`,
+    ) +
     (preAcceptance
       ? ""
       : disclosure(
@@ -1080,6 +1087,7 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
 
 const W2_HOTS: HifiDef["hots"] = {
   "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-active", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
+  "w2.open-team": { l: "See team and contributions", to: "screen:W2b@frozen", info: "Opens the fulfilled commitment's frozen contributor roster and contribution record without implying that every participant receives an equal share." },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
   "w2.add-evidence-request": { l: "Add request evidence", to: "screen:W2a@compose-request", info: "Keeps Ana's request and João's provider role intact while opening the shared evidence composer." },
   "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@compose-campaign-request", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
@@ -1104,6 +1112,39 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },
   "w2.retry": { l: "Try again", info: "Read-surface recovery — retries the commitment read (loading/not-found/read-error; never a “None” chip) (UX:51-52 · AM:12)." },
+};
+
+// ---------------------------------------------------------------------------
+// W2b — commitment team and contribution record (uiux-spec Appendix C)
+// ---------------------------------------------------------------------------
+
+const W2B_STATES = [
+  ["forming", "Team forming"], ["frozen", "Roster frozen"], ["recognition", "Recognition preview"],
+] as const;
+type W2bState = (typeof W2B_STATES)[number][0];
+
+function w2b(state: W2bState): string {
+  const frozen = state !== "forming";
+  const body = state === "recognition"
+    ? `${banner("Each fulfilled commitment receives an equal budget. Within it, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
+${card(`${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("João", "25% · evidence + follow-through")}`)}
+${banner("This is the Hypercert gardener-share preview. No eligible contributor means W26 blocks rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct member amounts with a reason.", "amber")}`
+    : `${card(
+        `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead · accepted the commitment", chipHtml: chip("Lead", "offer") })}
+${listRow({ icon: "user-line", primary: "Ana", meta: "Contributor · approved pruning work", chipHtml: chip("Credited", "ok") })}
+${listRow({ icon: "user-line", primary: "João", meta: "Contributor · evidence and delivery follow-through", chipHtml: chip("Credited", "ok") })}`,
+        { cls: "flat" },
+      )}
+${frozen
+  ? banner("Roster frozen atomically when the commitment entered Ready for confirmation. Later edits need the steward correction path and a reason.", "stone", "shield-check-line")
+  : `${banner("One person stays accountable. Add collaborators now; only people tied to approved work or evidence become credited contributors.", "stone")}${hot("w2b.add", btn("Add contributor", { kind: "sec", full: true, icon: "add-line" }))}`}
+${hot("w2b.preview", btn("Preview recognition", { kind: "pri", full: true }))}`;
+  return phoneFrame(`${hdr("Team and contributions", { back: true })}${pagepad(body)}<div style="flex:1"></div>`, { appBar: false });
+}
+
+const W2B_HOTS: HifiDef["hots"] = {
+  "w2b.add": { l: "Add contributor", info: "Adds a garden member while the roster is still forming; the accountable lead remains unchanged." },
+  "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Shows the 20% equal-participation plus 80% verified-contribution Hypercert weights, their zero-eligible block, and their relationship to the later payment default." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1202,9 +1243,15 @@ function w3(state: W3State): string {
       break;
     case "step-anchors":
       body = `${w3Head("Make an offer", 2)}${pagepad(
-        sectionTitle("What kind of garden work?"),
-        `<div class="t-meta">Garden-work offers anchor to the garden's actions so approvals know what to look for.</div>`,
-        radio([{ label: "Prune", meta: "AGRO · trees and beds", on: true }, { label: "Plant", meta: "AGRO · seedlings and starts" }]),
+        sectionTitle("What does this promise require?", chip("2 requirements")),
+        `<div class="t-meta">Add every action the group expects to complete. Each row carries its own count and contribution evidence.</div>`,
+        card(
+          listRow({ icon: "leaf-line", primary: "Prune × 2", meta: "AGRO · trees and beds", chipHtml: chip("Required", "ok") }) +
+            listRow({ icon: "plant-line", primary: "Plant × 12", meta: "AGRO · seedlings and starts", chipHtml: chip("Required", "ok") }) +
+            hot("w3.add-action", btn("Add another requirement", { kind: "ghost", sm: true, icon: "add-line" })),
+          { cls: "flat" },
+        ),
+        `<div class="t-meta">There is no four-item product rule. The implementation cap is set only after contract gas and indexer benchmarks.</div>`,
         hot("w3.continue-anchors", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
@@ -1255,7 +1302,7 @@ function w3(state: W3State): string {
             hot("w3.add-action", btn("Add an action", { kind: "ghost", sm: true, icon: "add-line" })),
           { cls: "flat" },
         ),
-        `<div class="t-meta">Anchor this promise to the garden's actions — up to four, each with a count of 1 or more.</div>`,
+        `<div class="t-meta">Each requirement needs a count of 1 or more. Add as many as the commitment genuinely needs; the measured implementation cap is not presented as a planning rule.</div>`,
         btn("Continue", { kind: "pri", full: true, disabled: true }),
       )}`;
       break;
@@ -1287,7 +1334,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.submit-request": { l: "Ask for this help", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
-  "w3.add-action": { l: "Add an action", info: "DomainImpact requirements builder: 1–4 rows, each count ≥ 1, equal lengths, positional domain match, registry existence; a running summary chip sits in the header. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
+  "w3.add-action": { l: "Add an action", info: "Repeatable DomainImpact requirements: each row binds a registered action to a count ≥ 1, and domains are derived tags that may repeat. Four rows are visible initially; Add action continues to the measured MAX_REQUIREMENTS. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1469,7 +1516,7 @@ const W4_HOTS: HifiDef["hots"] = {
   "w4.not-yet-send-request": { l: "Send request dispute to stewards", to: "screen:W2@request-disputed", info: "raiseDispute preserves the request's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
   "w4.not-yet-send-campaign-request": { l: "Send Campaign request dispute to stewards", to: "screen:W2@campaign-request-disputed", info: "raiseDispute preserves the Campaign request's exact pre-dispute state and scope.", calls: ["raiseDispute"] },
   "w4.not-yet-send-captured": { l: "Send recorded-promise dispute to stewards", to: "screen:W2@captured-disputed", info: "raiseDispute preserves the StewardCaptured kind and member source.", calls: ["raiseDispute"] },
-  "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; the accepted provider is excluded before threshold validation (UX:280)." },
+  "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; every frozen team member is excluded before threshold validation (UX:280 · Appendix C)." },
   "w4.provider-note": { l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
   "w4.done": { l: "Back to the pool", to: "screen:W2@fulfilled", info: "The Commitment Fulfilled hero (High) fires on sync completion, not enqueue; reduced-motion shows a static celebratory frame (UX:169,201,204)." },
   "w4.done-support": { l: "Back to the pool", to: "screen:W2@support-fulfilled", info: "Returns to the same SupportService offer after its fulfillment syncs." },
@@ -1592,6 +1639,7 @@ const mk = <T extends readonly (readonly [string, string])[]>(
 export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1, w1Facts), hots: W1_HOTS },
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts), hots: W2_HOTS },
+  { ...mk("W2b", "W2b · Team and contributions", W2B_STATES, w2b), hots: W2B_HOTS },
   { ...mk("W2a", "W2a · Evidence sheet", [
     ["compose", "Compose"], ["compose-request", "Compose — a request"],
     ["compose-campaign-request", "Compose — Campaign request"],

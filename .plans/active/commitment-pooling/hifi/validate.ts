@@ -34,9 +34,9 @@ const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
   | "pool" | "cycle" | "commitment"
-  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement";
+  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement",
+  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
@@ -84,6 +84,24 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
   cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
+  createCommitmentPayoutPlan: {
+    key: "commitment",
+    allowed: ["Fulfilled"],
+    effects: { payoutPlan: "Draft" },
+    requires: { settlementAccount: ["Active"] },
+  },
+  setContributorPayouts: {
+    key: "payoutPlan",
+    allowed: ["Draft"],
+    effects: { disbursement: "Queued" },
+    requires: { settlementAccount: ["Active"] },
+  },
+  finalizeCommitmentPayoutPlan: {
+    key: "payoutPlan",
+    allowed: ["Draft"],
+    next: "Pending",
+    requires: { settlementAccount: ["Active"] },
+  },
   queueDisbursement: {
     key: "commitment",
     allowed: ["Fulfilled"],

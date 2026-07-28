@@ -34,14 +34,19 @@
 ## Acceptance
 
 - Empty confirmer rules resolve to Offer recipient or Request creator; named inputs are bounded by
-  `MAX_CONFIRMERS = 32` before mutation; the unit provider is excluded from ordinary, named-group,
-  and fallback confirmation. RED covers 32, 33, duplicate-heavy, provider-filtered, and
-  threshold-after-filtering cases.
+  `MAX_CONFIRMERS = 32` before mutation; every active contributor is excluded from ordinary,
+  named-group, and fallback confirmation. RED covers 32, 33, duplicate-heavy,
+  contributor-filtered, and threshold-after-filtering cases.
 - Pending claims store canonical claimant, authenticated requestedBy, immutable claim type, provider garden context, requested time, and active state. Runtime kind must equal the creation-time claim type. Acceptance consumes the canonical claimant-keyed terms; decline clears only that request; terminal pre-acceptance cancel/expiry are emitted for deterministic indexed supersession.
 - Disputes store pre-dispute state and RestorePrevious restores it. An expired commitment can never resolve Fulfilled.
 - A pool permits one open Season and concurrent Campaigns through bounded O(1) checks.
 - Creating a commitment with a cycle requires that cycle to belong to the same pool and still accept commitments. Cycle-less commitments remain explicit.
-- DomainImpact requires 1–4 registered domain/action pairs, every positional `requiredApprovedWorkCounts[i]` quota to be met by provider/provider-garden-valid Work links, and any declared assessment before non-override Ready. Approval-first and assessment-first ordering both reach Ready because `attachAssessment` re-evaluates all completed Work quotas. SupportService, StewardCaptured, and SeasonCampaign require evidence plus any declared assessment; every non-override Ready path has its assessment gate.
+- DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable registered action/count requirements. Actions
+  may share a domain, every non-zero quota must be met by contributor/provider-garden-valid Work
+  links, and any declared assessment must exist before non-override Ready. Approval-first and
+  assessment-first ordering both reach Ready because `attachAssessment` re-evaluates all completed
+  requirements. SupportService, StewardCaptured, and SeasonCampaign require evidence plus any
+  declared assessment; every non-override Ready path has its assessment gate.
 - The onchain Ready predicate requires a charter and non-zero register provider open-commitment cap. A current, non-revoked Baseline assessment is an app/shared/admin preflight and is never added to the contract predicate. `pausePool` requires a reason CID and blocks only the operational mutations enumerated in contract-spec §6.1.
 - `CommitmentPoolingModule` initializes paused. All six dependency setters and `setSchemaUIDs`
   require pause, reject zero/collision before mutation, and emit exact old/new facts; unpause
@@ -52,13 +57,18 @@
   the register's replacement guard calls that selector; interface/implementation ABI proof must
   fail before deployment if it is absent.
 - `seedCycle` stores no allocation. `openCycle(cycleId, AllocationBps allocation)` validates all six fields sum to 10,000, stores the immutable cycle snapshot, and emits that snapshot in `CycleOpened`.
-- DomainImpact creation stores equal-length positional `domains`, `requiredActionUIDs`, and `requiredApprovedWorkCounts` arrays (1–4, every required count non-zero). Every Work approval carries a `requirementIndex`, validates the matching domain/action pair, and increments only `approvedWorkCounts[requirementIndex]`; Ready requires every position to meet its requirement.
-- Provider is stored once at acceptance (`Offer -> creator`, `Request -> counterparty`) and is the
-  only unit account, open-commitment-count subject, Arbitrum-rail `RewardPaid` recipient, and
-  self-confirmation exclusion. Individual DomainImpact Work equals provider; Garden claims use a
-  gardener/operator of `providerGarden`; UID 0 remains valid through the concrete ActionRegistry
-  ABI. Celo G$ beneficiary/source derivation belongs exclusively to `SettlementModule`:
-  Individual → provider AA, Garden → registered `providerGarden` Safe, payer → owning-pool Safe.
+- DomainImpact creation stores repeatable `CommitmentRequirement { actionUID, requiredCount }` rows
+  (1–`MAX_REQUIREMENTS`, every required count non-zero). Every Work approval carries a
+  `requirementIndex`, validates the matching registered action and contributor attribution, and
+  increments only that requirement's approved count; Ready requires every row to meet its quota.
+  Domain tags are derived from ActionRegistry and may repeat across rows.
+- The accountable lead is stored once at acceptance (`Offer -> creator`, `Request -> counterparty`)
+  and is the only unit account and open-commitment-count subject. The active contributor roster
+  begins with that lead, preserves Work/evidence attribution, freezes before confirmation, and is
+  wholly excluded from confirmation. Garden claims use gardeners/operators of `providerGarden`;
+  UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
+  exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
+  retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
 - `DeclaredReward` carries `RewardRail { None, ArbitrumExternal, CeloSettlement }`. Zero reward
   requires `None` plus zero source/token/amount; `recordRewardPaid` accepts only
   `ArbitrumExternal`, so a Celo settlement declaration cannot also be recorded on the external
@@ -209,3 +219,10 @@ every conflicting state. Broadcast remains outside this handoff.
 - The two Arbitrum Sepolia post-deploy verifier targets are created by this lane before any
   broadcast, alongside the `421614` network record.
 - RED proof is recorded before implementation; GREEN cannot be claimed without the same test passing plus storage/deploy evidence.
+
+## Binding architecture amendment — 2026-07-28
+
+- Replace the single-provider fulfillment model with one accountable `leadProvider` plus a contributor roster. Only the lead consumes the non-transferable register slot; every roster member is excluded from confirmation.
+- Accept repeatable `CommitmentRequirementInput` rows containing only `actionUID` and `requiredCount`; derive stored `domain` and `approvedCount` inside the module. There is no four-requirement product rule; set `MAX_REQUIREMENTS` only from the named gas/indexer benchmark.
+- Freeze the roster atomically on the transition to `ReadyForConfirmation`. Emit contributor, work/evidence attribution, and recognition inputs needed by the indexer.
+- The gardener Hypercert class uses equal fulfilled-commitment budgets, then 20% equal participation among eligible contributors plus 80% verified contribution with deterministic rounding. Zero eligible contributors block certificate expansion; there is no lead fallback. Recognition is not a payment transfer.

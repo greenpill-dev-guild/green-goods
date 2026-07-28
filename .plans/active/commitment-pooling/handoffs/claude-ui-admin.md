@@ -27,12 +27,15 @@
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
 - Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
   reward fields, `ArbitrumExternal` explains the later record-only payout action, and
-  `CeloSettlement` requires the owning-pool Safe/canonical-G$ readiness without exposing
-  `recordRewardPaid`. It also enforces cycle/pool and DomainImpact positional array shape, shows
+  `CeloSettlement` requires provider-garden Safe/canonical-G$ readiness without exposing
+  `recordRewardPaid`. It also enforces cycle/pool and repeatable DomainImpact requirements, shows
   the app-preflight Baseline alongside the onchain charter/provider-open-commitment-cap blockers,
   supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready
   submission/authorized override.
-- DomainImpact creation uses 1–4 ordered domain/action requirement rows, encodes equal-length `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]`, and renders `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` plus canonical per-commitment `approvedUnits`.
+- DomainImpact creation uses 1–`MAX_REQUIREMENTS` ordered `{ actionUID, requiredCount }` rows,
+  derives domain tags through ActionRegistry, permits actions in the same domain, and renders
+  `approvedCount / requiredCount` plus canonical per-commitment `approvedUnits`. The UI starts
+  with four rows and adds more; it never presents four as the product maximum.
 - Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
 - Cycle seeding carries no allocation. The open-cycle step accepts percentages, converts all six fields to basis points, requires an exact 10,000 total, and submits the complete allocation atomically through `openCycle(cycleId, allocation)`.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
@@ -87,3 +90,10 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 - /community placement and corrected admin wireframes are recorded.
 - RED proof precedes implementation.
 - GREEN includes targeted tests, build, and authenticated Brave proof for seeding, claims, dispute recovery, batching, command dispatch, execution/acknowledgment status, failure, fee/delivery delay, and each distinct retry action.
+
+## Binding architecture amendment — 2026-07-28
+
+- Seeding and detail surfaces expose the accountable lead, contributor policy/roster, repeatable requirements, and roster freeze.
+- Recognition review shows the canonical equal-commitment then 20/80 gardener formula. The payment editor starts from those weights, makes garden retention explicit, and requires a reason only when a steward changes the member weights.
+- Settlement separates Save draft from Finalize payout plan. It shows recognition/payment hashes, amount-derived weights, reasoned divergence, all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent pointer.
+- Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

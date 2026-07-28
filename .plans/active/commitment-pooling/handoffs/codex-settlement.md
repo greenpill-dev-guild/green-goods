@@ -119,7 +119,12 @@
   fee change, token pause/unpause, maximum-fee-bps/absolute-fee limits, ERC-20 false,
   ERC-777 reentrancy,
   source-as-recipient, and duplicate-recipient cases.
-- Every commitment reward sources G$ from the owning pool garden's registered Safe (`commitment.garden`; protocol pool → GG protocol Safe). Individual rewards target the provider's same-address Celo AA. Garden rewards target the separate registered `providerGarden` Safe. `ProtocolToGarden` is the only funding route.
+- Every fulfilled commitment payout plan sources G$ from the registered `providerGarden` Safe.
+  Its explicit retained amount plus contributor child disbursements conserves declared support;
+  each non-zero eligible contributor target is derived from the frozen plan. If protocol support
+  must reach that garden first, `ProtocolToGarden` is the separate and only funding route from the
+  protocol Safe to the provider garden Safe. Funding and contributor payout never share a command
+  or masquerade as one another.
 - Native ETH/CELO fee balances, quote, reserve threshold, low-balance state, and withdrawal constraints are observable and tested. Arbitrum command dispatch/retry always spends the module reserve; Celo `AcknowledgmentSent.reserveFunded` distinguishes automatic/sponsored reserve spend from an exact caller-funded retry. LINK fee payment is out of scope.
 - `dispatcher` is a single optional Arbitrum address with dispatch/retry authority only. Protocol garden and canonical G$ have no post-initialization setter. Both contracts preserve their configured native-fee floor on sends and withdrawals.
 - `memberDeliveryEnabled()` remains the canonical AA capability gate; failure keeps member delivery blocked without disabling `ProtocolToGarden`.
@@ -178,3 +183,11 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   Arbitrum One/Celo Mainnet derivation, code/policy/passkey proof and one separately authorized
   included Celo Mainnet canonical-G$ first-use operation are required before member delivery.
   GoodDollar operating evidence and explicit human broadcast/canary authorization remain required.
+
+## Binding architecture amendment — 2026-07-28
+
+- The provider garden Safe is the payer for member allocation. Protocol-to-garden funding remains a separate parent transfer and must not be conflated with contributor payout.
+- Add one stable `CommitmentPayoutPlan`: creation validates the complete sorted recognition vector against its snapshot hash. Atomic full-vector amount edits derive payment weights; callers never author recognition and payment weights independently, and a divergence requires a stored reason.
+- Explicit finalization verifies declared amount = garden-retained amount + all contributor child amounts and freezes the plan before dispatch. Each non-zero contributor amount becomes a separate `ContributorReward` disbursement; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
+- Parent status is derived from finalization and children as Draft / Pending / Partial / Complete / Failed. Child or batch cancellation never clears `payoutPlanOfCommitment`, so a second plan cannot bypass the audit trail.
+- A failed child never reverses commitment fulfillment, recognition, or successful siblings. No garden-held member claim, custody voucher, manual arrival flag, or arbitrary Safe execution is introduced.

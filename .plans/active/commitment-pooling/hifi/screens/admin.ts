@@ -820,7 +820,7 @@ ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone
   { label: "Celo G$ settlement", meta: "queue delivery after fulfilment" },
 ], { interactive: true, name: "reward-rail" })))}
 ${field("External reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`)}
-${banner("One rail only. External payout records are recorded here after the fact; Celo G$ rewards are queued for delivery from the owning-pool account.", "stone")}`;
+${banner("One rail only. External payouts are recorded here after the fact; Celo G$ support becomes a conserved provider-garden payout plan after fulfilment.", "stone")}`;
       next = hot("w8.continue-reward", btn("Continue", { kind: "pri" }));
       break;
     case "step5":
@@ -925,6 +925,7 @@ const W9_HOTS: HifiDef["hots"] = {
 
 const W10_STATES = [
   ["detail", "Detail"], ["fulfilled", "Fulfilled — reward unpaid"],
+  ["contributor-allocation", "Contributor allocation"],
   ["record-payout", "Record payout"], ["queue-settlement", "Queue Celo settlement"],
   ["fallback-confirm", "Fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
@@ -953,6 +954,7 @@ const w10Behind = () =>
 
 const W10_TITLE: Record<W10State, string> = {
   detail: "Prune the north beds", fulfilled: "Prune the north beds",
+  "contributor-allocation": "Contributor recognition and payment",
   accepted: "Repair tool handles", "record-payout": "Record payout",
   "queue-settlement": "Queue Celo settlement",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
@@ -968,16 +970,26 @@ function w10(state: W10State): string {
   let body: string;
   let actions: string;
   switch (state) {
+    case "contributor-allocation":
+      body = `${cmChips(chip("Fulfilled", "ok", { dot: true }), chip("Team commitment", "ink"))}
+${banner("Start from the Hypercert gardener-share weights. Recognition remains an impact record; this editor prepares how the garden will pay its members.", "stone", "information-line")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "100 G$ · operations and follow-up")}${kv("Available to contributors", "400 G$")}
+${acard("Contributor split", `${kv("Maria · lead", "160 G$ · 40% recognition")}${kv("Ana", "140 G$ · 35% recognition")}${kv("João", "100 G$ · 25% recognition")}`)}
+${field("Reason for changes (required only if weights change)", input("No correction — uses recognition weights"))}
+${banner("The garden Safe is the payer. Save keeps this editable as a draft; a separate Finalize action verifies both vector hashes and conservation before any child can dispatch.", "amber")}
+<div class="actrow">${hot("w10.all-retained-preview", btn("Preview all-retained case", { kind: "ghost", sm: true }))}</div>`;
+      actions = `${dismiss("Close")}${hot("w10.save-contributor-allocation", btn("Save draft", { kind: "pri" }))}`;
+      break;
     case "record-payout":
       body = `${kv("Reward rail", "External payout record")}${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the external reward moved outside the app — no value moves here. Celo G$ rewards are delivered by the settlement queue instead.", "stone")}`;
       actions = `${dismiss()}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
       break;
     case "queue-settlement":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${banner("Queueing snapshots the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. Record payout is unavailable for this rail.", "stone")}`;
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "500 G$")}${kv("Payer", "Rocinha provider garden Safe · Celo")}${kv("Garden retains", "100 G$")}${kv("Child payout", "Maria · 160 G$ · same-address AA")}${banner("Queueing snapshots the frozen payout plan, provider-garden source, child recipient and amount, route, version, and gas limit. Record payout is unavailable for this rail.", "stone")}`;
       actions = `${dismiss()}${hot("w10.queue-settlement-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
-      body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — the provider's own address is blocked, always. The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
+      body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — every frozen team address is blocked. The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.fallback-confirm", btn("Confirm as fallback", { kind: "pri" }))}`;
       break;
     case "raise-dispute":
@@ -1024,7 +1036,7 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo account · unqueued")}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · provider-garden payout plan · unqueued")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
@@ -1032,16 +1044,16 @@ ${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's
 ${kv("Protocol pool → Awka Hub", "1 survey")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "2 of 2 protocol stewards · Jul 12")}${kv("Provider garden", "Awka Hub — its gardeners worked and proved it")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo account · unqueued")}
-${banner("A garden-provided promise settles to the providing garden's own Celo account — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
-      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Queue disbursement…", { kind: "pri" }))}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · contributor allocation required")}
+${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-garden Safe retains the declared garden amount and pays contributors; any protocol-to-garden funding is a separate route.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Create payout draft…", { kind: "pri" }))}`;
       break;
     case "queue-settlement-garden":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${banner(
-        "Queueing snapshots the canonical G$ amount, the owning-pool source, the recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$.",
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "25 G$")}${kv("Payer", "Awka Hub · provider garden Safe")}${kv("Garden retains", "5 G$")}${kv("Contributor children", "Maria 12 G$ · João 8 G$")}${banner(
+        "Saving creates an editable draft and derives payment weights from these amounts. Finalization separately verifies recognition, conservation, and canonical recipients before any child can dispatch.",
         "stone",
       )}`;
-      actions = `${dismiss()}${hot("w10.queue-settlement-garden-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
+      actions = `${dismiss()}${hot("w10.queue-settlement-garden-confirm", btn("Save draft", { kind: "pri" }))}`;
       break;
     case "not-found":
       body = emptyState(
@@ -1060,9 +1072,10 @@ ${banner("A garden-provided promise settles to the providing garden's own Celo a
 ${kv("Maria → João", "6 hours · due Aug 12")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "João · Jul 12 · 2 of 2")}${kv("Provider", "Maria — cannot confirm")}
-${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid")}
-${banner("The reward moved, or will move, outside the app. Recording it here stores the rail reference only.", "stone")}`;
-      actions = `${dismiss("Close")}${hot("w10.record-payout", btn("Record payout", { kind: "pri" }))}`;
+${kv("Team", "Maria · lead; Ana and João · contributors")}${kv("Recognition", "40% · 35% · 25% from approved contribution")}
+${kv("Declared support", "500 G$ · garden account")}${kv("Payment", "plan not yet saved")}
+${banner("The garden receives the commitment support, retains an explicit amount, then pays contributors through child deliveries.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.record-payout", btn("Record external payout", { kind: "ghost" }))}${hot("w10.allocate-contributors", btn("Set recognition and payment…", { kind: "pri" }))}`;
       break;
     default:
       body = `${cmChips(chip("Offer", "offer"), chip("Ready", "warn", { dot: true }))}
@@ -1082,16 +1095,19 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
 }
 
 const W10_HOTS: HifiDef["hots"] = {
+  "w10.allocate-contributors": { l: "Set recognition and payment", to: "screen:W10@contributor-allocation", info: "Opens the steward editor with Hypercert recognition weights as the default payment weights." },
+  "w10.save-contributor-allocation": { l: "Save payout draft", to: "screen:W21@payout-plan", info: "Atomically stores the complete amount vector and garden retention, derives payment weights, and keeps the plan editable until explicit finalization." },
+  "w10.all-retained-preview": { l: "Preview all-retained case", to: "screen:W21@payout-retained", info: "Shows the zero-child path: finalization completes the plan without CCIP or a self-transfer." },
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
   "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
   "w10.queue-settlement-confirm": {
     l: "Queue disbursement",
     to: "screen:W21",
-    info: "CeloSettlement only: queueDisbursement snapshots the active owning-pool Safe source and canonical G$ delivery facts.",
+    info: "CeloSettlement only: queueDisbursement snapshots one child from the frozen provider-garden payout plan and its canonical G$ delivery facts.",
     calls: ["queueDisbursement"],
     facts: { commitment: "Fulfilled", settlementAccount: "Active", beneficiarySettlementAccount: "NotRequired" },
   },
-  "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
+  "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — a steward on the frozen commitment team is blocked on-chain (CS §6.1)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "confirmFulfillmentAsFallback stores the steward's required reason; the member timeline renders the override marker.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
   "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143).", calls: ["raiseDispute"] },
@@ -1104,14 +1120,14 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.override-confirm": { l: "Mark ready (confirm)", to: "screen:W2@support-ready-confirmer", info: "Records the override reason; the member timeline keeps the service identity and shows the steward marked it ready (UX:294).", calls: ["markReadyForConfirmation"] },
   "w10.cancel": { l: "Cancel promise (steward)", to: "screen:W10@cancel", info: "MF-2b: steward cancel of an Accepted (or §4.1 Paused) promise — cancelCommitment (CS:745; AM:36-37)." },
   "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@support-cancelled", info: "Accepted → Cancelled with a recorded reason; units release; the member result keeps the SupportService cast and its reason (CS:745).", calls: ["cancelCommitment"] },
-  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743).", calls: ["confirmFulfillment"] },
-  "w10.queue-settlement-garden": { l: "Queue disbursement", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
+  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. Every frozen member of the providing garden's delivery team is excluded (CS §6.1).", calls: ["confirmFulfillment"] },
+  "w10.queue-settlement-garden": { l: "Set contributor payout", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; recognition weights seed a provider-garden-funded payout plan, while Record payout remains unavailable (SS §3)." },
   "w10.queue-settlement-garden-confirm": {
-    l: "Queue disbursement (confirm)",
-    to: "screen:W21@protocol-queue",
-    info: "queueDisbursement takes no reason. Both the GG protocol source Safe and the providing garden's Celo Safe are active before this action is offered (AM:43 · SS:516).",
-    calls: ["queueDisbursement"],
-    facts: { commitment: "Fulfilled", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+    l: "Save payout draft",
+    to: "screen:W21@payout-plan",
+    info: "Creates a provider-garden payout plan bound to the complete recognition vector/hash, then atomically stores contributor amounts. Payment weights are derived and any recognition divergence requires a reason; finalization remains separate (SS §3.1.3).",
+    calls: ["createCommitmentPayoutPlan", "setContributorPayouts"],
+    facts: { commitment: "Fulfilled", settlementAccount: "Active" },
   },
   "w10.dismiss": { l: "Close dialog", to: "screen:W10", info: "Closes without applying the pending steward action." },
   "w10.retry": { l: "Retry promise read", to: "screen:W10", info: "Retries the promise read; the sentinel state never renders as a lifecycle chip." },
@@ -1124,6 +1140,7 @@ const W10_HOTS: HifiDef["hots"] = {
 
 const W11_STATES = [
   ["presets", "Presets"], ["invalid-sum", "Invalid sum"], ["guard", "Pool is Ready — open it?"],
+  ["recognition-policy", "Gardener recognition policy"],
   ["campaign-allocation", "Campaign · allocation"], ["campaign-open", "Campaign · open"],
   ["discard", "Discard changes?"], ["campaign-discard", "Campaign · discard changes?"],
 ] as const;
@@ -1183,6 +1200,23 @@ function w11(state: W11State): string {
     );
   }
 
+  if (state === "recognition-policy")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+      flowDialog(w7Behind("ready"), "garden", {
+        context: W11_CONTEXT(state),
+        title: "Gardener recognition",
+        steps: [{ title: "Policy", desc: "how the gardener class is shared" }],
+        current: 0,
+        body: `${banner("Every fulfilled commitment receives an equal commitment budget inside the gardener class. Within each commitment, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
+${kv("Commitment budget", "equal across fulfilled commitments")}${kv("Within each commitment", "20% equal participation · 80% verified contribution")}
+${kv("No eligible contributors", "certificate expansion blocked · no lead fallback")}${kv("Repair", "proof link + steward reason + before/after audit")}
+${banner("Recognition weights are the default for payment, but do not themselves move funds.", "amber")}`,
+        cancelHot: "w11.cancel",
+        next: hot("w11.recognition-done", btn("Use this policy", { kind: "pri" })),
+      }),
+    );
+
   const bad = state === "invalid-sum";
   const rows = [
     ["Gardeners", bad ? "64" : "60"], ["Treasury", "15"], ["Steward", "10"],
@@ -1217,6 +1251,7 @@ ${banner("Treasury is at the 15% guidance floor. This split is locked when the c
 }
 
 const W11_HOTS: HifiDef["hots"] = {
+  "w11.recognition-done": { l: "Use recognition policy", to: "screen:W11", info: "Returns to the six-class allocation with the canonical within-gardener policy attached to the cycle." },
   "w11.presets": { l: "Allocation presets", info: "Presets prefill an editable percent editor; the protocol allocation class renders as “steward” (Decision Log #28c)." },
   "w11.continue": { l: "Continue to open", to: "screen:W11@guard", info: "Allocation → the open step, which carries the Ready-pool guard prompt." },
   "w11.back": { l: "Back to allocation", to: "screen:W11", info: "Steps back to the six-role split with the entered values retained." },
@@ -1414,7 +1449,7 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
 const w10Facts = (state: W10State): StateFacts | undefined => {
   if (state === "not-found") return undefined;
   const context = { pool: "Open" as const, cycle: "Open" as const };
-  if (["fulfilled", "record-payout", "queue-settlement", "garden-fulfilled", "queue-settlement-garden"].includes(state))
+  if (["fulfilled", "contributor-allocation", "record-payout", "queue-settlement", "garden-fulfilled", "queue-settlement-garden"].includes(state))
     return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
   if (["detail", "fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
     return { ...context, commitment: "ReadyForConfirmation", kind: "DomainImpact" };

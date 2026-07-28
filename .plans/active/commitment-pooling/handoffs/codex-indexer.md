@@ -148,3 +148,10 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 - Garden replay procedure, pre-replay snapshot, switch criterion, rollback package, and accountable owner Afolabi Aiyeloja are named. The implementer produces the rehearsal; `human-release-ops.md` owns the authorized live cutover.
 - Updater/boundary allowlist changes and preservation fixture are part of the lane.
 - RED fixture evidence is recorded; final GREEN includes codegen, generated build, boundary check, targeted handlers, and package build.
+
+## Binding architecture amendment — 2026-07-28
+
+- Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence attribution without positional-domain assumptions. `CommitmentEvidenceAttributionIndex` owns the stable IDs loaded on fulfillment; no handler scan is permitted.
+- Materialize the recognition inputs and deterministic gardener-share output: equal budget per fulfilled commitment, then 20% equal participation among eligible contributors plus 80% verified contribution. Zero eligible contributors produce a blocking W26 review item, never a lead fallback.
+- Index `CommitmentPayoutPlan` and `ContributorPayout`, linking every child disbursement to its stable parent commitment and garden payer. Verify recognition/payment snapshot hashes from emitted vectors, keep payment weights amount-derived, and derive parent status from explicit finalization plus child states; do not infer payment from Hypercert weights or raw token transfers.
+- Migration/replay fixtures must include solo lead, multi-person team, roster freeze at `ReadyForConfirmation`, zero-eligible recognition blocking plus proof-linked repair, reasoned payment correction, all-retained zero-child finalization, stable pointer after child/batch cancellation, partial payout, retry, and complete payout.

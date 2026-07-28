@@ -30,9 +30,9 @@
 ## Acceptance
 
 - Commitments are module-native; EAS carries only the named schemas and Envio never indexes EAS.
-- G$ remains on Celo. The only modeled funding top-up is protocol → garden; commitment rewards
-  separately spend from the fulfilled commitment's owning-pool Safe to the derived member AA or
-  provider-Garden Safe recipient.
+- G$ remains on Celo. The only modeled funding top-up is protocol → garden. A fulfilled
+  commitment instead creates a conserved payout plan paid by its provider garden Safe: the
+  explicit garden-retained amount plus contributor child disbursements equals declared support.
 - Dispatched and Celo-executed/acknowledgment-pending are not arrived; only an authenticated
   success acknowledgment for the subject's current execution key and attempt is Confirmed.
 - Safe recovery owners and Roles executors are described separately.
@@ -69,3 +69,10 @@
 - Owning spec language is internally consistent with the QA-tested product.
 - Proof-limit evidence names every changed page and its owning source.
 - All exact Bun commands pass; any unavailable link or external claim is reported rather than waived.
+
+## Binding documentation amendment — 2026-07-28
+
+- Document commitments as one accountable lead plus optional contributors, repeatable requirements, roster freeze, and all-team confirmation exclusion.
+- Explain the gardener Hypercert formula in plain language: equal commitment budgets, then 20% equal participation among eligible contributors plus 80% verified contribution; zero eligible contributors block instead of defaulting to the lead.
+- Explain that the garden Safe pays members through child disbursements, garden retention is explicit, recognition is hash-bound, payment weights derive from amounts, corrections require reasons, and explicit finalization precedes dispatch. Include the zero-child all-retained completion and stable parent-pointer rules.
+- Preserve planned/live and proof labels: this architecture is specified and prototyped, not shipped or deployed.

@@ -153,7 +153,7 @@ Route `/home/:id/pool/:commitmentId`. `{AppBar}` hidden (Appendix B §5.1) — t
 │ ⚠ Recorded by your steward on your behalf.   │  StewardCaptured banner, not a
 │   The promise stays yours.                   │  chip (fixed phrasing, §13 Q2)
 ├──────────────────────────────────────────────┤
-│ João is on it — work is underway             │  one state lead band
+│ Lead: João · 3 contributors — work underway  │  accountability + team
 │ Reward: 20 DAI from the garden jar · pending │  declared-reward row (register #18)
 ├──────────────────────────────────────────────┤
 │ ▸ Timeline (4)                               │  {StateTimeline} disclosure
@@ -161,6 +161,7 @@ Route `/home/:id/pool/:commitmentId`. `{AppBar}` hidden (Appendix B §5.1) — t
 │ ▸ Work for this promise (1)                  │  DomainImpact only — submit-work
 │                                              │  and link-work actions live
 │                                              │  inside (Appendix B §5.3)
+│ ▸ Team and contributions (3)              ▸ │  opens W2b
 │ ▸ Details                                    │  UIDs · addresses · "recorded
 │                                              │  on Arbitrum" live here only
 ├──────────────────────────────────────────────┤
@@ -196,6 +197,7 @@ COMPOSE                              QUEUED
 ┌──────────────────────────────┐     ┌────────────────────────────────┐
 │ Add evidence                 │     │ Evidence queued                │
 │ ◉ Photo  ○ Link  ○ Note      │     │ ≡ North beds after   (Queued) │
+│ Credit  [ João, Ana       ▾ ] │     │ Credited: João · Ana          │
 │ Saved on this device until   │     │ It will send when you're back │
 │ it sends.                    │     │ online.              [ Done ] │
 │          [ Attach evidence ] │     └────────────────────────────────┘
@@ -209,6 +211,36 @@ UPLOAD FAILED — PER-ROW RECOVERY
 │ Nothing is dropped; retry only the failed row. │
 │                                       [ Done ] │
 └────────────────────────────────────────────────┘
+```
+
+### W2b — Team and contribution sheet (uiux-spec Appendix C)
+
+`{DialogShell}` over W2. The sheet separates accountability, planned assignment, and verified
+credit. Solo commitments use the same frame with one contributor.
+
+```text
+┌── Team for this promise ────────────────────────────────┐
+│ Accountable lead   João                                │
+│ Team policy        Lead-managed                        │
+│ Roster             Editable until confirmation         │
+├────────────────────────────────────────────────────────┤
+│ Contributors                                           │
+│ ≡ João  Lead · Prune ×2       Work 2 · Evidence 1      │
+│ ≡ Ana   Beds survey ×1        Work 1 · Evidence 0      │
+│ ≡ Kwame Unassigned            No verified credit yet   │
+│                         [ + Add contributor ]           │
+├────────────────────────────────────────────────────────┤
+│ Assignments help coordinate work. Recognition comes    │
+│ from approved Work and confirmed evidence.             │
+│                                          [ Done ]       │
+└────────────────────────────────────────────────────────┘
+
+OPEN TEAM — ELIGIBLE MEMBER             FROZEN
+┌──────────────────────────────┐        ┌──────────────────────────────┐
+│ This team is open to members │        │ Team locked for confirmation │
+│ [ Join this promise ]        │        │ 3 contributors cannot confirm│
+└──────────────────────────────┘        │ this promise.                │
+                                        └──────────────────────────────┘
 ```
 
 ### W3 — Offer / request creation flow (uiux-spec §5.4)
@@ -237,13 +269,13 @@ Step 4 — Review and promise                        │ ○ Plant native seedl�
 ┌──────────────────────────────────────────────┐   │ action-card picker from│
 │ summary card (all fields, incl. the line     │   │ the work-flow intro;   │
 │  "needs: Prune × 2 · Plant × 1")             │   │ per-action counts draw │
-│ [ Make this offer ]                          │   │ as rows (max 4) in the │
-│  → enqueues `commitment` job, returns to W1  │   │ validation state       │
+│ [ Make this offer ]                          │   │ as repeatable rows;    │
+│  → enqueues `commitment` job, returns to W1  │   │ four visible at first  │
 │    with optimistic card + queued badge       │   └────────────────────────┘
 └──────────────────────────────────────────────┘
 ```
 
-- Step 3 ("Anchors") carries the **requirements builder** (amendment 2026-07-18): each row binds one registered action to a per-action approved-work count — `requiredActionUIDs[]` × `requiredApprovedWorkCounts[]`, max 4 rows, every count ≥ 1, running summary chip in the header. The hi-fi's default cast shows the single-anchor pick; the counted multi-row builder is the [`#screens/W3@validation`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W3@validation) state. The review step reads the whole requirement in one line ("needs: Prune × 2 · Plant × 1"). **Hi-fi**: [`#screens/W3@step-anchors`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W3@step-anchors) (9 states).
+- Step 3 ("Anchors") carries the **repeatable requirements builder** (amended 2026-07-28): each row binds one registered action to a required approved-work count. Actions may repeat a domain; domain chips are derived tags. Four rows are visible initially, and **Add requirement** continues until the implementation's measured `MAX_REQUIREMENTS`. The UI never presents four domains as a product cap. The review step reads the whole requirement in one line ("needs: Prune × 2 · Plant × 1").
 - SupportService skips step 3 entirely (evidence + confirmation is its proof).
 - Draft persists in IndexedDB (`WorkDraftRecord` semantics); re-entry offers resume via the existing `DraftDialog` pattern.
 
@@ -259,6 +291,7 @@ Deep-link from W2 into the existing Garden work-submission flow — full-screen 
 │ ≡ 2 photos · pruning session                 │
 │ ≡ Fulfills: Prune the north beds             │
 │   Offer · AGRO · (Promise)                   │
+│ Credited contributor: João                   │
 │                                              │
 │ Everything else is the existing work flow.  │
 │                              [ Submit work ] │
@@ -275,13 +308,13 @@ Submitting carries `meta.commitmentId`; after sync, the work links back to W2 an
 ┌──────────────────────────────────────────────┐
 │ Promise kept?                                │
 │ Prune the north beds — Maria · 6 hours       │
-│ Offer · provider Maria · recipient confirms  │  direction-aware responsibility
+│ Lead Maria · 3 contributors · recipient confirms │ direction-aware responsibility
 │ evidence: 2 items · linked work: 1 approved  │
 ├──────────────────────────────────────────────┤
 │ Confirmations   ▓▓▓▓▓▓▓░░░  2 of 3           │  {ProgressMeter} + text equiv
 │ ≡ João and Ana confirmed              ✓ ✓    │  condensed row (Appendix B §5.6)
 │ ≡ You — your turn                     ○      │  distinct actionable row
-│ Provider Maria cannot confirm this delivery. │  ordinary + fallback protection
+│ Maria, Ana, and Kwame cannot confirm.         │  every contributor excluded
 ├──────────────────────────────────────────────┤
 │ [ Confirm — promise kept ]                   │  enqueues `confirmation` job
 │ [ Not yet — tell the stewards why ]          │  decline → reason field;
@@ -443,7 +476,7 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 ├──────────────────────────────────────────────────────────┤
 │ Step 2 — Requirements                                    │
 │ unit [ hours ▾ ]  target [ 12 ]                          │
-│ This promise needs:            (impact: 1–4 rows)        │
+│ This promise needs:      (repeatable · bounded by MAX)   │
 │ ≡ Prune the north beds   × [ 2 ]  ✕                      │
 │ ≡ Plant native seedlings × [ 1 ]  ✕                      │
 │ [ + Add an action ]     (per-action approved-work counts)│
@@ -452,7 +485,7 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ Step 3 — Who confirms                                    │
 │ confirmers  [ + add address ]  ≡ Maria ✕  ≡ João ✕       │  {AddressGroupField} NET-NEW
 │ threshold   N = [ 2 ] of 2                               │  validates N ≤ group size
-│ Accepted provider is excluded at claim acceptance.       │
+│ Every frozen team member is excluded from confirmation.  │
 │ Claim acceptance fails if N then becomes unreachable.    │
 │ claim mode  ◉ open   ○ steward-reviewed                  │  prefilled by context (register #19)
 ├──────────────────────────────────────────────────────────┤
@@ -520,14 +553,23 @@ FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
 - Celo G$ settlement (`CeloSettlement`) replaces the external row with the rail-specific queue confirmation below — reachable, like Record payout, only from the Fulfilled state. It cannot expose `Record payout`.
 
 ```text
-┌── Queue Celo settlement ─────────────────────────────────┐
-│ Rail: CeloSettlement · reward: 500 G$                    │
-│ Payer: Rocinha owning-pool Safe · Celo                   │
-│ Recipient: Maria · same-address AA                       │
-│ Route/version/gas snapshot when queued                   │
-│                                  [ Queue disbursement ]  │
+┌── Recognition and payment plan ──────────────────────────┐
+│ Rail: CeloSettlement · declared support: 500 G$          │
+│ Payer: provider garden Safe · Celo                       │
+│ Contributor  Recognition  Payment  Amount               │
+│ Maria        50%          50%      200 G$                │
+│ Ana          30%          25%      100 G$   (edited)     │
+│ Kwame        20%          25%      100 G$                │
+│ Kept in garden                         100 G$             │
+│ Reason for difference: equipment costs shifted          │
+│                     [ Save draft ] [ Finalize payout plan ]│
 └──────────────────────────────────────────────────────────┘
 ```
+
+- Finalization verifies the complete recognition vector/hash, derives payment weights from the
+  atomic amount vector, proves `declared = retained + children`, and freezes the plan before any
+  dispatch. If the garden retains all 500 G$, the finalized plan is Complete with zero children,
+  no CCIP message, and no garden self-transfer.
 
 - Review additions (audit 2026-07-18): Celo rows follow settlement-record-first precedence (settlement-spec §3.1.2), and the dialog shows the confirmation threshold with named-confirmer status. *Wireframe-only — the hi-fi keeps claims triage on W7 and does not draw an inline pending-claims queue or per-action requirement rows ("Prune 2/2 · Plant 0/1") in this dialog; both are kept here as recorded review intent.*
 
@@ -567,6 +609,10 @@ One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**:
 │ gardeners [ 60% ] treasury [ 15% ] steward [ 10% ]       │  % fields, all editable
 │ evaluator [  5% ] community [  5% ] funder  [  5% ]      │  after a preset
 │ sum: 100% ✓ · treasury 15% is the floor                  │  hard rule: must equal 100%
+├──────────────────────────────────────────────────────────┤
+│ Gardener recognition                                     │
+│ 20% shared equally · 80% verified contribution           │
+│ Applies within each fulfilled promise; locked at open.   │
 │ At close these shares become the certificate allowlist   │  → W26 wizard
 │                          [ Continue ]                    │  the open action lives on the
 └──────────────────────────────────────────────────────────┘  next step: [ Open pool and
@@ -744,6 +790,7 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 │ Safe celo:0x9a…4f (active) · balance 1,240 G$ · allowance 500 G$/wk    │  wireframe-only detail rows —
 │ recovery: 2-of-3 · scoped executors: 2 · no owner/executor overlap     │  the hi-fi folds account facts
 │ CCIP: Arbitrum/Celo peers configured · native fee reserves monitored    │  behind its account status
+│ Payout plan 18 · Prune north beds · Partial · 100 G$ kept in garden   │
 │ Disbursements                                    [ Create batch ]      │
 │ Settlement/att. │ Recipient │ Kind   │ Amount │ State                  │  6-column dtable rows
 │ ≡ 104 / 0       │ Maria     │ Reward │ 20 G$  │ Queued   [ Dispatch ]  │
@@ -752,6 +799,7 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 │ ≡ 102 / 0       │ Ana       │ Reward │ 20 G$  │ confirming arrival     │
 │                 │           │        │        │  [ Ack details ]       │
 │ ≡ 101 / 0       │ Rocinha   │ Fund   │ 500 G$ │ Confirmed ↗            │
+│ Protocol→Garden funding is separate from contributor payout status.   │
 │ Commitment queues, batches, and account registration await gates      │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -763,9 +811,9 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 A full **canvas route** reached from W21 and from the NEW deployer-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18; only the cancel-batch confirmation is a dialog. **Hi-fi**: [`#screens/W22@ready`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W22@ready) (9 states).
 
 ```text
-┌── Settlement 104 / attempt 0 — Rocinha ────────────────────────┐
+┌── Payout plan 18 · child 104 / attempt 0 — Rocinha ────────────┐
 │ command tuple from canonical pooling facts · no G$ in CCIP      │
-│ ▸ Route details — payer: owning-pool Safe · peer/version/gas    │
+│ ▸ Route details — payer: provider garden Safe · peer/version/gas│
 │   snapshot locked                                               │
 │ [ Dispatch command ]     (spends the monitored native ETH       │
 │                           reserve; floor preserved)             │
@@ -776,7 +824,7 @@ A full **canvas route** reached from W21 and from the NEW deployer-gated **Opera
 ├──────────────────────────────────────────────────────────┤
 │ Delay is derived after the service window; no mutation.   │
 │ [ CCIP manual-execution guidance ] [ Retry same command ] │
-│ Failure acknowledgment: source adapter may create attempt 1│
+│ Failure acknowledgment: retry this contributor as attempt 1│
 │ Pre-dispatch only: [ Cancel whole queued batch… ]          │
 │ No member-level cancellation while this batch is Queued.   │
 └──────────────────────────────────────────────────────────┘
@@ -793,6 +841,9 @@ Lives in the drawer's **Tokens tab** — G$ is a token balance, so it joins the 
 ├──────────────────────────────────────────────┤
 │ Support received (G$ · Celo)          128 G$ │
 │ ≡ +20 G$ — Prune the north beds  (arrived ↗) │
+│   recognition 30% · payment 25%               │
+│   plan partially complete · 100 G$ kept       │
+│   in the garden                               │
 │ [ Send G$ ]                                  │  shown only after AA gate
 ├──────────────────────────────────────────────┤
 │ Send G$                                      │  {DialogShell}; explicit online
@@ -857,6 +908,8 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 │ PRE-CLAIM SHEET — provider context           │  {DialogShell}; AppBar hidden
 │ take this up   ◉ As myself                   │  (Appendix B §5.1)
 │                ○ For Awka Hub                │  garden option: eligible
+│ fulfillment   ◉ Solo  ○ With a team          │
+│ team policy   ◉ Open  ○ Lead-managed         │
 │ [ Continue ]                                 │  stewards only
 ├──────────────────────────────────────────────┤
 │ → (waiting for review) chip                  │  W1 pending/declined/superseded
@@ -870,7 +923,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 
 ### W26 — Cycle close → allocation → certificate wizard (admin)
 
-A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9). **Hi-fi**: [`#screens/W26@review`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W26@review) (8 states, incl. the four `paused-*` variants).
+A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9). **Hi-fi**: [`#screens/W26@review`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W26@review) (9 states, incl. the blocking attribution-repair state and four `paused-*` variants).
 
 ```text
 ┌── Close cycle: Season of First Rains ── Step 1 of 4 ─────┐
@@ -880,6 +933,13 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │ Step 2 — Shares (read-only; locked at open, W11)         │
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
+│   Gardener contributors:                                 │
+│   Maria 38% · João 37% · Ana 25%                         │
+│   20% equal + 80% verified contribution                  │
+│   [ Correct recognition… ] requires recorded reason      │
+│   If eligible contributors = 0: certificate blocked      │
+│   [ Repair attribution… ] requires Work/evidence proof   │
+│   + reason; before/after set and weights stay in metadata│
 │ Step 3 — Impact certificate                              │
 │   bundle: 7 fulfilled promises + their work, evidence,   │
 │   and need lineage → allowlist from the shares above     │
@@ -899,6 +959,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 |---|---|
 | §5.2 pool home | W1 |
 | §5.3 commitment detail | W2 |
+| Appendix C team/contribution management | W2b + W2/W2a/WFLOW deltas |
 | §5.4 creation flow | W3 |
 | §5.5 evidence capture | W2a |
 | §5.7 existing work submission + commitment context | WFLOW |
@@ -908,8 +969,8 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 | §6.2 garden pool tab | W7 |
 | §6.3 seeding console | W8 |
 | §6.5 analog capture | W9 |
-| §6.2/§6.7 commitment dialog, disputes, rewardPaid | W10 |
-| §6.10 allocation step | W11 |
+| §6.2/§6.7 commitment dialog, disputes, recognition/payment plan | W10 |
+| §6.10 allocation step + within-gardener recognition policy | W11 |
 | §6.8 Pools view inside admin `/community` | W12 (rescoped 2026-07-18: your garden + protocol pool) |
 | §6.9 Hub confirm stage | W13 + W13b commitment-context chip |
 | Existing Hub Work approval stage | HUBWORK |

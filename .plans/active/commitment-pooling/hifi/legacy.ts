@@ -626,8 +626,8 @@ W7X: [
 W8: [
   { m: "[ Seed this commitment ]", l: "Seed this commitment", to: "frame:W7", info: "Console seeding — SeasonCampaign and StewardCaptured exist only here (UX:150)." },
   { m: "claim mode  ◉ open   ○ steward-reviewed", l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
-  { m: "confirmers  [ + add address ]", l: "Confirmer rule", info: "Named any-N group; the accepted provider is excluded before threshold validation (UX:280)." },
-  { m: "○ none  ◉ external payout  ○ Celo G$", l: "Reward rail", info: "Exactly one rail is stored. ArbitrumExternal records an outside payout; CeloSettlement queues canonical G$ from the owning-pool Safe." },
+  { m: "confirmers  [ + add address ]", l: "Confirmer rule", info: "Named any-N group; every frozen team member is excluded before threshold validation (UX:280)." },
+  { m: "○ none  ◉ external payout  ○ Celo G$", l: "Reward rail", info: "Exactly one rail is stored. ArbitrumExternal records an outside payout; CeloSettlement queues canonical G$ child disbursements from the provider garden Safe." },
 ],
 W9: [
   { m: "search members", l: "Pick the member", info: "The member is the social source; the steward is only the recorder (UX:437)." },

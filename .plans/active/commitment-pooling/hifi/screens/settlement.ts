@@ -77,6 +77,9 @@ const W12_HOTS: HifiDef["hots"] = {
 
 const W21_STATES = [
   ["queue", "Disbursement queue"], ["unregistered", "No account yet"],
+  ["payout-plan", "Contributor payout plan · draft"], ["payout-finalized", "Contributor payout plan · finalized"],
+  ["payout-retained", "All support retained · complete"], ["payout-partial", "Contributor payouts · partial"],
+  ["payout-complete", "Contributor payouts · complete"],
   ["register-account", "Register account"], ["registered", "Account registered"],
   ["failed-recovery", "Failed — recovery"], ["gate-status", "Delivery gate"],
   ["requeue-confirm", "Requeue — confirm"], ["requeued", "Requeued"],
@@ -95,10 +98,10 @@ const w21Rows = () =>
   dtable(
     ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
     [
-      ["104 · attempt 0", "Maria", "Reward — member", `<span class="num">20 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
-      ["103 · attempt 1", "João", "Reward — member", `<span class="num">15 G$</span>`, chip("Failed — route rejected", "err"), `${hot("w21.requeue", btn("Source follow-up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close delivery", { kind: "ghost", sm: true }))}`],
-      ["102 · attempt 0", "Ana", "Reward — member", `<span class="num">12 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack details", { kind: "ghost", sm: true }))],
-      ["101 · attempt 0", "Kwame", "Reward — member", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
+      ["104 · attempt 0", "Maria", "Contributor payout", `<span class="num">160 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
+      ["103 · attempt 1", "João", "Contributor payout", `<span class="num">100 G$</span>`, chip("Failed — route rejected", "err"), `${hot("w21.requeue", btn("Source follow-up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close delivery", { kind: "ghost", sm: true }))}`],
+      ["102 · attempt 0", "Ana", "Contributor payout", `<span class="num">140 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack details", { kind: "ghost", sm: true }))],
+      ["101 · attempt 0", "Kwame", "Contributor payout", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
     ],
     "Rocinha settlement disbursement queue",
   );
@@ -209,6 +212,69 @@ ${kv("Settlement 104 · Maria", "20 G$ · eligible")}${kv("Settlement 99 · Leil
 
   let inner: string;
   switch (state) {
+    case "payout-plan":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("The provider garden accounts for the fulfilled commitment's support. The recognition vector matches its snapshot hash, and payment weights are derived from this complete amount vector.", "stone", "information-line")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "100 G$")}${kv("Contributor total", "400 G$")}
+${dtable(
+  ["Contributor", "Recognition", "Payment", "State", ""],
+  [
+    ["Maria · lead", "40%", "160 G$", chip("Draft", "plain", { dot: true }), ""],
+    ["Ana", "35%", "140 G$", chip("Draft", "plain", { dot: true }), ""],
+    ["João", "25%", "100 G$", chip("Draft", "plain", { dot: true }), ""],
+  ],
+  "Contributor payout plan",
+)}
+${banner("Payment uses the recognition weights without correction. Finalize verifies conservation and canonical recipients, then makes the plan immutable before dispatch.", "amber")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.finalize-plan", btn("Finalize payout plan", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "payout-finalized":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Finalized. Recognition and payment snapshot hashes match the visible rows, and retained plus contributor amounts equals 500 G$.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 0 of 3 arrived")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Queued", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Queued", "plain", { dot: true }), ""],
+    ["João", "100 G$", chip("Queued", "plain", { dot: true }), ""],
+  ],
+  "Finalized contributor payout plan",
+)}`,
+      );
+      break;
+    case "payout-retained":
+      inner = acard(
+        "All support retained · payout plan",
+        `${banner("Complete without dispatch. The garden retained the full declared support, so finalization created no contributor child and sent no CCIP message.", "stone", "checkbox-circle-fill")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "500 G$")}${kv("Contributor total", "0 G$")}${kv("Divergence reason", "Shared materials and follow-up costs · recorded")}${kv("Parent pointer", "Stable · one plan for this commitment")}`,
+      );
+      break;
+    case "payout-partial":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${kv("Parent status", "Partial · 2 of 3 arrived")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State"],
+  [
+    ["Maria · lead", "160 G$", chip("Confirmed ↗", "ok", { dot: true })],
+    ["Ana", "140 G$", chip("Confirmed ↗", "ok", { dot: true })],
+    ["João", "100 G$", chip("Failed — recoverable", "err")],
+  ],
+  "Contributor payout progress",
+)}
+${banner("The commitment stays Fulfilled. One failed child delivery never rewrites recognition or the two successful receipts.", "stone")}`,
+      );
+      break;
+    case "payout-complete":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("All contributor payouts arrived.", "stone", "checkbox-circle-fill")}${kv("Parent status", "Complete · 3 of 3")}${kv("Garden retained", "100 G$")}${kv("Contributor receipts", "Maria 160 · Ana 140 · João 100 G$")}`,
+      );
+      break;
     case "unregistered":
       inner = acard(
         "Settlement (Celo)",
@@ -230,7 +296,7 @@ ${kv("Settlement 104 · Maria", "20 G$ · eligible")}${kv("Settlement 99 · Leil
     case "batch-created":
       inner = acard(
         "Settlement (Celo)",
-        `${banner("Batch #12 is queued. Its two-member snapshot is now immutable; dispatch creates the execution key.", "stone")}${kv("Members", "Maria · 20 G$ · Leila · 10 G$")}${kv("Route", "Rocinha owning-pool Safe → member accounts")}${kv("State", "Queued · batch #12")}<div class="actrow">${hot("w21.open-batch-command", btn("Open batch command", { kind: "pri", sm: true }))}</div>`,
+        `${banner("Batch #12 is queued. Its two-member snapshot is now immutable; dispatch creates the execution key.", "stone")}${kv("Members", "Maria · 20 G$ · Leila · 10 G$")}${kv("Route", "Rocinha provider garden Safe → contributor accounts")}${kv("State", "Queued · batch #12")}<div class="actrow">${hot("w21.open-batch-command", btn("Open batch command", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "cancelled-queued":
@@ -294,6 +360,8 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
+  "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-child conservation, then freezes the plan before dispatch.", calls: ["finalizeCommitmentPayoutPlan"] },
+  "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@dispatched", info: "Dispatches one child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
   "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "dispatchDisbursement creates the immutable execution key and sends the data-only command for this garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe.", calls: ["dispatchDisbursement"] },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
   "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
@@ -390,7 +458,7 @@ ${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG prot
   const routeDetails = disclosure(
     "Route details",
     "payer · route · batch",
-    `${kv("Settlement 104 — attempt 0", "message-only command · no token amounts")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Route snapshot", "Celo selector · executor 0x5e…91 · v1 · 240,000 gas")}${kv("Batch #12", "2 immutable members · limit 8 · ceiling 24")}`,
+    `${kv("Settlement 104 — attempt 0", "message-only command · no token amounts")}${kv("Payer", "Rocinha garden Safe · Celo")}${kv("Plan", "Prune the north beds · contributor payout")}${kv("Route snapshot", "Celo selector · executor 0x5e…91 · v1 · 240,000 gas")}${kv("Batch #12", "2 immutable child payouts · limit 8 · ceiling 24")}`,
   );
   let inner: string;
   const stage = (n: number) => stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], n);
@@ -556,7 +624,7 @@ const W24_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W26_STATES = [
-  ["review", "1 · Review"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Rest the cycle"],
+  ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Rest the cycle"],
   ["paused-review", "Paused · 1 · Review"], ["paused-shares", "Paused · 2 · Shares"],
   ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Rest the cycle"],
 ] as const;
@@ -564,6 +632,25 @@ type W26State = (typeof W26_STATES)[number][0];
 type W26Phase = "review" | "shares" | "certificate" | "rest";
 
 function w26(state: W26State): string {
+  if (state === "recognition-blocked") {
+    const header = pageHeader({
+      title: "Recognition needs repair",
+      eyebrow: "Close cycle · blocking review",
+      description: "One fulfilled commitment has no contributor with approved Work or confirmed evidence credit.",
+    });
+    const body = `<div class="flowform">
+${banner("Certificate expansion is blocked. Green Goods never awards this commitment to the lead automatically.", "amber", "error-warning-line")}
+${kv("Commitment", "Repair the shared tool handles")}${kv("Before", "Eligible contributors · 0")}${kv("Roster", "Maria · lead · Ana · João")}
+${field("Proof reference (required)", input("approved Work UID or confirmed evidence CID"))}
+${field("Reason for attribution repair (required)", input("describe what was missing from the indexed record"))}
+${banner("The mint metadata keeps the before/after eligible set, weights, proof reference, reason, and steward.", "stone", "shield-check-line")}
+<div class="actrow">${hot("w26.cancel-attribution-repair", btn("Back to review", { kind: "ghost" }))}${hot("w26.repair-attribution", btn("Record repair and recalculate", { kind: "pri" }))}</div>
+</div>`;
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool/close",
+      adminCanvas("garden", "garden", { screenId: "W26", garden: "Rocinha", header, body }),
+    );
+  }
   const paused = state.startsWith("paused-");
   const phase = (paused ? state.slice("paused-".length) : state) as W26Phase;
   const stepIx = phase === "review" ? 0 : phase === "shares" ? 1 : phase === "certificate" ? 2 : 3;
@@ -608,6 +695,8 @@ ${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
 }
 
 const W26_HOTS: HifiDef["hots"] = {
+  "w26.cancel-attribution-repair": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to unresolved review." },
+  "w26.repair-attribution": { l: "Record attribution repair", to: "screen:W26@shares", info: "Requires a qualifying Work/evidence reference and steward reason, then preserves the before/after contributor set and weights in mint metadata. It never mutates the frozen on-chain roster or cycle policy." },
   "w26.continue-shares": { l: "Continue to shares", to: "screen:W26@shares", info: "Moves from unresolved-item review to the locked six-role allocation snapshot." },
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   // Unresolved items are handled in a dialog over the wizard. Sending the
@@ -628,6 +717,11 @@ const W26_HOTS: HifiDef["hots"] = {
 const w21Facts = (state: W21State): StateFacts | undefined => {
   if (state === "unregistered" || state === "register-account") return { settlementAccount: "Unregistered" };
   if (state === "registered") return { settlementAccount: "Registered" };
+  if (state === "payout-plan") return { payoutPlan: "Draft", disbursement: "Queued", settlementAccount: "Active" };
+  if (state === "payout-finalized") return { payoutPlan: "Pending", disbursement: "Queued", settlementAccount: "Active" };
+  if (state === "payout-retained") return { payoutPlan: "Complete" };
+  if (state === "payout-partial") return { payoutPlan: "Partial" };
+  if (state === "payout-complete") return { payoutPlan: "Complete" };
   if (state === "failed-recovery" || state === "requeue-confirm" || state === "close-delivery-confirm")
     return { disbursement: "Failed" };
   if (["queue", "requeued", "batch-create", "batch-created", "cancel-queued-confirm", "protocol-queue"].includes(state))

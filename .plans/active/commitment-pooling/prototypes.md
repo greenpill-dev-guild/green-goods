@@ -1,7 +1,7 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
-- **Updated**: 2026-07-26 — lifecycle-context preservation and offline-queue closure (see Changelog); the hi-fi render upgrade was register #36.
+- **Updated**: 2026-07-28 — group commitments, contributor recognition, and garden-funded child payouts (see Changelog); the hi-fi render upgrade was register #36.
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
 - **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
@@ -19,6 +19,7 @@
 | 2026-07-25 | Review closure: lifecycle validation now covers claim, evidence, assessment, cancellation, dispute, reward, batch, dispatch, and retry calls; paused/reviewing/no-Season states retain their legal acts; O23 gains a batch review/result; requeue copy creates its key on dispatch; SB-26–31 walk the remaining participation, campaign, service, and batch-cancel paths. |
 | 2026-07-26 | Scoped review fixes: contract-call validation now preserves every untouched overlapping lifecycle fact; Paused cycle close/cancel paths retain the Paused pool through confirmation, reconciliation, compost, and member echo; SupportService creation and evidence both render their required local queue boundary; SB-32 walks the paused wind-down variants. |
 | 2026-07-26 | Ontology alignment: RestorePrevious replays the fixture's exact ReadyForConfirmation state; W26 reviews unresolved items before ordered `closeCycle` → `compostCycle`; screen facts distinguish derived/on-chain cycle moments; MF-6 points to its evidence-only request state; settlement-account readiness no longer masquerades as `DisbursementState`. |
+| 2026-07-28 | Architecture amendment: W2/W2b exposes one accountable lead plus a contribution-bearing team; W3 requirements are repeatable instead of a four-item product rule; W10/W11 distinguish Hypercert recognition from payment; W21 models a frozen garden-retained parent plan with child contributor payouts; W23 shows the contributor receipt. SB-33 walks the complete cross-surface path. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
 - Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
@@ -33,7 +34,7 @@
 
 **Source keys** (same folder unless pathed): `UX` uiux-spec · `WF` wireframes · `CS` contract-spec · `SS` settlement-spec · `DG` diagrams · `AM` acceptance-matrix · `LAP` reports/linear/linear-apply-pack.md · `CI-WF` / `CI-SPEC` ../community-interface/wireframes.md / spec.md. `UX:128` = uiux-spec.md line 128. `PT` = plan.todo.md — cite by **Decision Log #N** / **register #N** / section name, never by line (the file shifts).
 
-**Frame ids** — `W1…W23` are commitment-pooling frames (WF); `W2a` is the attach sheet inside W2 (WF:164). September community frames take a `CI-` prefix (`CI-W1…CI-W14`) because that file numbers its own W1–W14 independently (CI-WF:32-443).
+**Frame ids** — `W1…W26` are commitment-pooling frames; `W2a` is the evidence sheet and `W2b` is the team/contribution sheet inside W2. September community frames take a `CI-` prefix (`CI-W1…CI-W14`) because that file numbers its own W1–W14 independently (CI-WF:32-443).
 
 **Per-storyboard anatomy** — a meta line, a flow graph, then a numbered steps table:
 - **Meta**: persona (`docs/docs/builders/specs/v1-0.mdx` §3.1 archetype + named research persona, `docs/docs/reference/design-research.md:104-164`) · owning scenario(s) · surfaces · garden theme.
@@ -46,7 +47,7 @@
 
 ## Storyboard index
 
-**At a glance** — thirty-two numbered storyboards (thirty-seven validated source flows after surface/task splits) mapped to personas, scenarios, and surfaces.
+**At a glance** — thirty-three numbered storyboards mapped to personas, scenarios, and surfaces.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
@@ -82,8 +83,9 @@
 | SB-30 | Finish a Campaign promise while it is reviewing | Gardener | S1 campaign review | Client PWA |
 | SB-31 | Cancel an immutable queued batch | Settlement steward | S8 batch recovery | Admin |
 | SB-32 | Wind down a season while its pool stays paused | Steward | S5 paused wind-down | Admin (+ member echo) |
+| SB-33 | Recognize and pay a commitment team | Lead + contributors + steward | S1 group commitment | Client PWA + Admin |
 
-Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, and SB-32 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool.
+Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33 proves recognition and payment stay linked but distinct.
 
 ---
 
@@ -112,7 +114,7 @@ flowchart LR
 | 2 | W1 | Taps **[ Offer support ]** (WF:79) | routes to `/home/:id/pool/new?direction=offer` (UX:120) | — | — |
 | 3 | W3 (WF:172-196) | Direction Offer, type Garden work, AGRO action anchors, 6 hours, due Aug 12 → **[ Make this offer ]** | enqueues `commitment` job (UX:212); returns to W1 with optimistic queued card | Draft → local; Offered (optimistic) | Offline/retry lanes → SB-7 |
 | 4 | W1 | — (sync completes) | `CommitmentCreated` (CS:132); SyncStatusBar count clears (UX:237) | **Offered** (on-chain) | After 5 retries: Failed chip + retry/discard (UX:240) |
-| 5 | W1 | João taps **[ Take this up ]** on the open-mode card (WF:86; helper text names the mode, UX:129) | enqueues `claim`; on sync `CommitmentAccepted` + `UnitsCommitted` (CS:133; DG:176-181). Provider = Maria (Offer creator); confirmer default = João (recipient) — AM:34, UX:32 | **Accepted** | Approval-gated variant → SB-3 |
+| 5 | W1 | João taps **[ Take this up ]** on the open-mode card (WF:86; helper text names the mode, UX:129) | enqueues `claim`; on sync `CommitmentAccepted` + `UnitsCommitted` (CS:133; DG:176-181). Accountable lead = Maria (Offer creator); contributors may join before roster freeze; confirmer default = João (recipient) — AM:34, UX:32 | **Accepted** | Approval-gated variant → SB-3 |
 | 6 | W2 → WFLOW | Maria submits work with `meta.commitmentId`; a second existing work may be linked | existing work job plus `linkWork`; DomainImpact never exposes `submitForConfirmation` (CS:735,138b) | Accepted → Active | Existing work/evidence recovery stays on its ordinary rail |
 | 7 | HUBWORK → W10 | Stewards approve the required works; a steward or evaluator attaches the qualifying assessment | `onWorkApproved` counts requirements; `attachAssessment` re-runs auto-Ready (CS:737,740) | PartiallyApproved → ReadyForConfirmation | Missing approval or assessment keeps the promise out of Ready |
 | 8 | W4 | Maria's provider view is read-only; João's eligible-recipient sheet names the provider exclusion | — | ReadyForConfirmation | João picks **Not yet** → SB-5 |
@@ -144,7 +146,7 @@ flowchart LR
 |---|---|---|---|---|---|
 | 1 | W1 | Ana taps **[ Request help ]** (WF:79) | `/pool/new?direction=request` (UX:120) | — | — |
 | 2 | W3 | Direction Request, type Support/service — **step 3 anchors are skipped entirely** (WF:199; UX:152); unit "1 ride"; review → **[ Ask for this help ]** (UX:153) | `commitment` job → `CommitmentCreated` | **Requested** (UX:85) | SB-7 lanes |
-| 3 | W1 | João taps the Request card's **"I can help"** CTA (UX:85) | `claim` → `CommitmentAccepted`. Provider = **João** (accepted claimant); confirmer = **Ana** (Request creator) — AM:34, UX:32 | **Accepted** | Gated variant → SB-3 |
+| 3 | W1 | João taps the Request card's **"I can help"** CTA (UX:85) | `claim` → `CommitmentAccepted`. Accountable lead = **João** (accepted claimant); contributors may join before roster freeze; confirmer = **Ana** (Request creator) — AM:34, UX:32 | **Accepted** | Gated variant → SB-3 |
 | 4 | W2 | João attaches ride photo via W2a | `EvidenceAttached` | EvidenceSubmitted (derived) | row retry (UX:214) |
 | 5 | W2 | Either eligible party (creator, counterparty, or steward — CS:741) taps **Send for confirmation** | `confirmation` `{action:"submit"}` (UX:141,216) → `CommitmentReadyForConfirmation` (CS:138b) | **ReadyForConfirmation** | Requires ≥1 evidence + declared assessment (CS:138b) |
 | 6 | W4 | Ana's sheet reads **"claimant provides · request creator confirms"** (WF:224); João is excluded | — | — | Ana picks Not yet → SB-5 |
@@ -550,7 +552,7 @@ flowchart LR
 |---|---|---|---|---|---|
 | 1 | W21 | **[ Review registration requirements ]** | Read-only checklist explains that production governance separately deploys and verifies the 2-of-3 Safe/Roles route; only then may `registerSettlementAccount` bind the already-deployed Celo account | account stays unregistered until Release artifact exists | Missing Safe/Roles artifact keeps registration unavailable |
 | 2 | W24 / W12 | (funding beat) protocol steward queues **ProtocolToGarden** — the only modeled route; HoA → protocol Safe is upstream (SS:172; DG:832-856); the real, non-proposed control is on the W24 Operations funding view, with funding context reflected on W12 (SS:528; MF-11) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens (SS:172) | funding Queued | AA-gate failure never blocks this Safe-to-Safe route (SS:417; DG:856) |
-| 3 | W10 | Per fulfilled commitment declared as `CeloSettlement`: **[ Queue disbursement ]**; `Record payout` is unavailable (WF:564; SS:526) | `queueDisbursement` requires `memberDeliveryEnabled`, Fulfilled state, canonical G$, and an active owning-pool source account; Individual derives the provider AA recipient, Garden derives the active `providerGarden` Safe recipient (SS:171) | **Queued** — member reads "support is queued" | Any rail/account/gate mismatch blocks queueing |
+| 3 | W10/W21 | Per fulfilled commitment declared as `CeloSettlement`: **[ Save draft ]** atomically stores the hash-bound recognition and amount-derived payment vectors, then **[ Finalize payout plan ]** verifies conservation before any non-zero contributor child can dispatch; `Record payout` is unavailable (WF:564; SS §3) | finalization requires Fulfilled state, canonical G$, an active provider-garden source account, exact recognition/payment hashes, explicit retention, conserved child amounts, and eligible contributor accounts; a zero-child all-retained plan completes without CCIP (SS §3) | parent **Draft / Pending / Partial / Complete / Failed**; each member sees their own child state and the parent pointer remains stable after cancellation | Any vector/hash/conservation/eligibility/account/gate mismatch blocks finalization; sibling results remain intact |
 | 4 | W21 | **[ Create batch (2) ]** (WF:583) | `createBatch` — 1..configured limit unique ids, immutable members, one executorGarden/source/token; configured limit is measured and cannot exceed hard ceiling 24 | batch Queued | Batching remains unavailable while configured limit is zero. |
 | 5 | W22 | Steward **[ Dispatch command ]** | `dispatchDisbursement` / `dispatchBatch` sends the immutable data-only payload; source facts, recipient, token, amount, and steward scope derive from canonical pooling/funding state | Queued → **Dispatched** | Fee shortage or transport delay is operational, not payment failure; retry preserves the attempt and execution key. |
 | 6 | W22 | (system) authenticated Celo executor receives the command | validates router, selector, sender, version, zero token amounts, account, G$, caps, and Zodiac role; writes the bounded outcome before attempting the acknowledgment | Dispatched → Celo executed / acknowledgment pending | Duplicate or out-of-order commands cannot execute G$ twice. |

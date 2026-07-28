@@ -1,13 +1,13 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-07-26. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
+Updated 2026-07-28. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
 
 ## Build snapshot
 
-- 31 registered screens / 267 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 260 states: 9 Client PWA (150 states), 13 Admin console (105 states), 2 Editorial website (5 states)
-- 370 registered hotspots
-- 37 validated source flows / 296 scenes; 36 presentation-visible flows / 287 scenes: 16 Client PWA, 19 Admin console, 1 Editorial website
+- 32 registered screens / 279 rendered states in the full source registry
+- 25 presentation-visible hi-fi screens / 272 states: 10 Client PWA (154 states), 13 Admin console (113 states), 2 Editorial website (5 states)
+- 381 registered hotspots
+- 38 validated source flows / 309 scenes; 37 presentation-visible flows / 300 scenes: 16 Client PWA, 20 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -54,6 +54,12 @@ session), the Campaign-scoped request, the steward-recorded
 **garden-provided** protocol commitment (Awka Hub provides, protocol stewards
 confirm — 1 survey). A request that renders offer copy mid-flow is a fiction
 break, not a styling detail: direction, title, unit and cast all differ.
+
+**Group architecture (2026-07-28).** `W2b` makes the accountable lead, contributor roster,
+contribution record, roster freeze, and recognition preview directly reviewable. `W3` renders
+repeatable action/count requirements without a four-item product rule. `W10`, `W11`, `W21`, and
+`W23` keep recognition, garden retention, contributor child payouts, partial recovery, and the
+member receipt linked but distinct. SB-33 walks the complete cross-surface path.
 
 ## Presentation coverage classification
 
@@ -107,24 +113,25 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W1 | Client PWA | 27 | open, not-ready, ready, seeded, request-open, request-queued, reviewing, paused, closed, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
 | W2 | Client PWA | 64 | accepted, offered, requested, active, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-active, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error |
 | W2a | Client PWA | 7 | compose, compose-request, compose-campaign-request, compose-support, compose-captured, queued, failed |
+| W2b | Client PWA | 3 | forming, frozen, recognition |
 | W3 | Client PWA | 9 | step-what, step-howmuch, step-anchors, step-review, support-howmuch, support-review, request-variant, draft-resume, validation |
 | W4 | Client PWA | 26 | confirm-domain, confirm-support, confirm-request, confirm-campaign-request, confirm-captured, not-yet, not-yet-support, not-yet-request, not-yet-campaign-request, not-yet-captured, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, confirmed-pending-campaign-request, confirmed-campaign-request, confirmed-pending-captured, confirmed-captured, not-yet-failed, not-yet-failed-support, not-yet-failed-request, not-yet-failed-campaign-request, not-yet-failed-captured |
 | W5 | Client PWA | 7 | default, queued, waiting-membership, empty, loading, not-found, read-error |
-| W23 | Client PWA | 5 | balance, send, send-pending, send-failed, delivery-blocked |
+| W23 | Client PWA | 6 | balance, contributor-receipt, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
 | WFLOW | Client PWA | 1 | review |
 | W7 | Admin console | 27 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
-| W10 | Admin console | 15 | detail, fulfilled, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
-| W11 | Admin console | 7 | presets, invalid-sum, guard, campaign-allocation, campaign-open, discard, campaign-discard |
+| W10 | Admin console | 16 | detail, fulfilled, contributor-allocation, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
+| W11 | Admin console | 8 | presets, invalid-sum, guard, recognition-policy, campaign-allocation, campaign-open, discard, campaign-discard |
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 4 | queue, context-chip, assess, empty |
 | W14 | Admin console | 3 | baseline, delta, discard |
-| W21 | Admin console | 16 | queue, unregistered, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
+| W21 | Admin console | 21 | queue, unregistered, payout-plan, payout-finalized, payout-retained, payout-partial, payout-complete, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
 | W22 | Admin console | 9 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm, garden-command |
 | W24 | Admin console | 3 | queue, ccip, flows |
-| W26 | Admin console | 8 | review, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest |
+| W26 | Admin console | 9 | review, recognition-blocked, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest |
 | HUBWORK | Admin console | 1 | approve |
 | W15 | Editorial website | 3 | counts-only, above-threshold, pre-launch |
 | W16 | Editorial website | 2 | band, pipeline-delta |

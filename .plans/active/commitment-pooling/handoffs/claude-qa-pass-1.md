@@ -73,3 +73,9 @@ Run the targeted commands named in each GREEN handoff, then:
   lane/router and still must not be reported as a direct Arbitrum Sepolia↔Celo Sepolia lifecycle.
 - Authenticated Brave and real-device access are confirmed.
 - QA result separates passes, defects, and external blockers with route/role/state evidence.
+
+## 2026-07-28 amendment coverage
+
+- Add acceptance proof for solo and team commitments, repeatable requirements beyond four in a benchmark-safe fixture, contributor add/remove/freeze, all-team confirmation exclusion, and contribution attribution.
+- Prove gardener recognition totals exactly, including zero-eligible W26 blocking with no lead fallback, proof-linked repair, and rounding; prove recognition-vector/hash binding, amount-derived payment weights, reasoned correction, explicit finalization, all-retained zero-child completion, exact garden-retention conservation, stable parent pointers after cancellation, partial child failure/retry, and complete receipts.
+- A passed commitment lifecycle does not waive settlement gates; runtime/deploy/broadcast remain blocked until their existing lane gates clear.

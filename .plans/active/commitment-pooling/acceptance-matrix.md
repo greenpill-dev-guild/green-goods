@@ -1,7 +1,7 @@
 # Commitment Pooling — Cross-Surface Acceptance Matrix
 
 **Status**: canonical execution companion  
-**Updated**: 2026-07-25
+**Updated**: 2026-07-28
 **Sources**: `contract-spec.md`, `settlement-spec.md`, `pilot-evidence-spec.md`, `uiux-spec.md`, `wireframes.md`
 **Purpose**: one exact target for the handoffs' copy/state matrix, public claim/copy matrix, and final QA acceptance matrix. Specs win if this summary drifts.
 
@@ -17,12 +17,17 @@
 | Claim Pending | Canonical claimant + “requested by” actor + provider context | Same stored row; accept/decline key canonical claimant | Counts only | Accept, decline, supersede, cancel, or expire |
 | Claim Declined | Reason + fresh-request CTA | Selected row only | Not public | New request, never retry old row |
 | Claim Superseded | Taken/no-longer-available copy; no retry | Indexed terminal row | Not public | Browse exit |
+| Team forming | Lead + active contributors + join/approval policy; requirement assignments are planning only | Roster editor, eligibility, contribution credit, and confirmer reachability | Counts/roles only | Add/remove/join events |
+| Contributor roster frozen | “Team locked for confirmation” + who is credited | No roster edits; contributor exclusion is visible beside confirmer rule | Recognition roster may be reported | ReadyForConfirmation transition |
 | Evidence-only Accepted | Evidence + declared assessment requirements | Attach assessment; submit Ready; override separate | Active counts only | Evidence, assessment when declared, submit Ready |
-| DomainImpact Accepted | Per-action Work/approval progress; no manual Ready-submit | Positional requirement rows; override separate | Active counts only | Every `approvedWorkCounts[i] >= requiredApprovedWorkCounts[i]` + assessment when declared |
+| DomainImpact Accepted | Repeatable per-action Work/approval progress; no manual Ready-submit | Requirement rows may repeat domains; Add requirement is not capped at four in UX; override separate | Active counts only | Every requirement `approvedCount >= requiredCount` + assessment when declared |
+| Payout-plan draft | Recognition and proposed payment shown side by side; garden-retained amount explicit | Steward edits require reason; invariant and derived recipient accounts visible | No “paid” claim | Exact declared = retained + contributor total |
 | Settlement queued | “Support is queued” | Dispatch action + fee quote/reserve | Planned, not sent | Successful command dispatch |
 | Command dispatched | “Support on its way” | Command message ID, elapsed time, fee/route health | Sent, never received | Indexed Celo execution or authenticated failure acknowledgment |
 | Executed; acknowledgment pending | “Confirming arrival” | Celo execution + retry acknowledgment guidance | Confirming, never received | Authenticated success acknowledgment |
 | Confirmed settlement | “Support arrived” | Command, Celo execution, acknowledgment, Celo ref | Confirmed | Authenticated current success acknowledgment |
+| Payout partially complete | Per-contributor arrived/pending/failed receipts; never one blanket success | Parent status derived from child disbursements; failed contributor requeues independently | “Partially distributed” | Every non-zero child terminal/confirmed |
+| Payout complete | Every non-zero contributor row arrived; retained amount stays in garden | Recognition/payment comparison and child receipts preserved | “Distributed” with retained amount | Every non-zero child Confirmed |
 | Authenticated execution failure | Calm failure/recovery | Bounded failure code + per-member new-attempt/cancel controls | Failed | Explicit reconciliation |
 | Cancelled from Queued | “Support was withdrawn before it was sent” | Cancellation reason + Queued origin | Cancelled before send | Terminal; no execution key |
 | Cancelled from Failed | “Support was closed after delivery could not complete” | Failed attempt/code + cancellation reason/origin | Cancelled after authenticated failure | Terminal; no new execution key |
@@ -37,13 +42,17 @@
 | Claim type | runtime `kind == stored claimType` | Mismatch is a contract error, not eligibility copy |
 | Individual claim | `claimant = requestedBy = msg.sender`; counterparty = caller | One identity row |
 | Garden claim | `claimant = gardenContext`; `requestedBy = authenticated operator`; counterparty = GardenAccount | Show both GardenAccount and requester |
-| Provider | Offer → creator; Request → accepted counterparty | Provider excluded from ordinary/named/fallback confirmation |
-| Work linker | accepted canonical claimant/counterparty or steward | Creator is not an extra path |
+| Lead provider | Offer → creator; Request → accepted counterparty | One accountable lead; lead alone consumes the register slot |
+| Contributor roster | lead auto-added at acceptance; Open permits eligible self-join; LeadManaged permits lead/steward changes before freeze | Solo is one contributor; no semantic team-size cap; every contributor excluded from ordinary/named/fallback confirmation |
+| Work linker | active contributor, lead provider, or steward; Work attester must be active | One Work credit increments one contributor and one matched requirement |
+| Evidence attribution | every credited address is active; duplicate credit in one record rejected | Evidence attribution and requirement assignment are visibly distinct |
 | Pre-accept cancellation | creator or steward | Both paths tested |
 | Accepted cancellation | steward only | Member control hidden |
-| Individual G$ beneficiary | stored provider same-address Celo AA | AA gate required |
-| Garden G$ beneficiary | registered `providerGarden` Celo Safe | Never send to Arbitrum GardenAccount |
-| Commitment-reward source | registered Safe for the owning pool `commitment.garden`; protocol commitment → GG protocol Safe | `executorGarden` and source never switch to the provider garden; Garden claim uses providerGarden only as recipient/attribution |
+| Contributor G$ beneficiary | each frozen eligible contributor's derived same-address Celo account | AA gate required; arbitrary recipient input impossible |
+| Commitment-reward source | registered Celo Safe for `providerGarden` | Garden pays its contributors; protocol commitment may use ProtocolToGarden top-up first; never send to Arbitrum GardenAccount |
+| Garden retention | `declared reward = gardenRetainedAmount + Σ non-zero contributor payouts` | Retained amount is explicit accounting, not a fake Safe-to-self transfer |
+| Recognition/payment default | complete sorted recognition vector matches its snapshot hash; initial amounts follow it; payment weights derive from amounts | Steward may atomically edit the full amount vector while Draft only; divergence needs a reason and visible before/after comparison; explicit finalization freezes before dispatch |
+| Payout-plan state | Draft/Pending/Partial/Complete/Failed derives from explicit finalization plus child disbursements | Parent has no execution key or acknowledgment; finalization freezes all entries before dispatch; an all-retained zero-child plan completes immediately |
 | Reward-rail exclusivity | `ArbitrumExternal` may use core `recordRewardPaid`; `CeloSettlement` may use SettlementModule; `None` has zero reward fields | A commitment cannot record both rail outcomes; Celo queue rejects the external rail and core payout recording rejects the Celo rail |
 | Canonical funding config | initializer-locked `protocolGarden` + canonical Celo G$ | No post-initialization setter; Celo router upgrade must preserve immutable G$ |
 | Settlement trust-root configuration | both source and executor initialize paused; source dependency changes require pause and emit old/new; source unpause requires complete route, active protocol account, and fee floor; executor unpause requires source peer, caps, period policy, and reserve floor | Incomplete or unpaused configuration fails before authority or dispatch changes; indexed configuration shows the active dependency addresses |
@@ -55,17 +64,18 @@
 | Delegated dispatch | exact optional `dispatcher` address | Dispatch/retry only; never queue, requeue, cancel, or configure |
 | Fee reserve | Arbitrum command sends always spend the module reserve; Celo acknowledgment sends identify `reserveFunded`; every reserve-funded send and withdrawal leaves native balance `>= configured minimum` | Floor, live balance, low state, funding, source fee spend, Celo sponsored fee spend, and caller-funded Celo retry are distinguishable and observable |
 | Batch safety | configured limit is 0–24; zero disables batch commands only | Both chains match before enable and can return to zero; unbatched commands require one recipient and remain governed by non-zero transfer/aggregate/period caps |
-| Batch command shape | every member shares executor garden, source, token, kind, and funding route | Mixed funding/reward or mixed-route batch creation reverts; indexed batch preserves the homogeneous facts |
+| Batch command shape | every member shares executor garden, source, token, kind, and funding route | Mixed funding/reward or mixed-route batch creation reverts; large contributor teams may split across several measured batches |
 | Execution-key domain | `keccak256(abi.encode(sourceChainSelector, sourceSettlementModule, isBatch, settlementId, attempt))` | A disbursement and batch with the same numeric ID/attempt produce different keys; command tuple carries the same authenticated `isBatch` value |
 | Source selector identity | Arbitrum implementation constructor immutably stores the official local CCIP selector; Celo recomputes from authenticated `message.sourceChainSelector` | Both sides derive the same key without substituting `block.chainid`; upgrade verifier rejects a source-selector change |
 | Remote EVM chain identity | verified generated `SettlementConfiguration.remoteEvmChainId` is required for each exact supported source/executor lane independently of its CCIP selector and remains null for independent component rehearsals | Production source `42161` uses executor `42220` and production executor `42220` uses source `42161`; `421614` and `11142220` component rows never claim a peer pairing or route readiness without a freshly published exact lane/router; Celo route/execution/message relationships fail closed when the field is null and never translate selectors or use the local Celo chain as Garden identity |
 | Command destination binding | initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry and acknowledgment validation use that snapshot | Peer rotation cannot reroute the same key to a replacement executor, and a globally accepted previous peer cannot acknowledge a command that was sent to the new peer |
 | Acknowledgment origin binding | `originatingCommandMessageId` maps to the same execution key through the initial/retry message registry | An out-of-order acknowledgment may name any known send for that key, but cannot import an unrelated or invented command ID |
 | Batch cancellation | `Queued batch -> cancelBatch(batchId, reasonCID)` atomically cancels the immutable member set; `cancelDisbursement` rejects queued members with `batchId != 0` | UI exposes one reasoned whole-batch action; indexer replay can never show a partially cancelled Queued batch |
-| DomainImpact requirement shape | positional `domains[]`, `requiredActionUIDs[]`, `requiredApprovedWorkCounts[]`; equal lengths, 1–4 entries, each required count non-zero | Admin creation, shared types, contract tests, and indexed read model preserve array positions |
-| Work approval credit | `requirementIndex` selects exactly one requirement; validated Work domain/action must match that indexed pair | One approval increments exactly `approvedWorkCounts[requirementIndex]`; no scalar or aggregate-only shortcut |
-| DomainImpact progress | `approvedUnits = floor(targetUnits * Σ_i min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ_i requiredApprovedWorkCounts[i])` | Client/admin/indexer show per-action counts and this per-commitment approved-unit value; DomainImpact creation rejects a zero denominator; pool/cycle totals never mix labels |
-| Provider concurrency cap | non-empty/non-zero class creation plus a non-zero count cap and `Registered -> Committed -> Released\|Fulfilled`; commit/release/fulfill require the full non-zero quota/live balance; only their register events mutate indexed exposure; dispute preserves the slot | Module and register zero-cap paths use `OpenCommitmentCapRequired(poolId)` before event/storage mutation; unit events carry poolId/cycleId/exact unitLabel; `hours` × 100 and `meals` × 1 each consume one slot; partial, zero, repeat, wrong-account, and terminal-state calls revert before count mutation; `CommitmentAccepted` alone never increments the indexer; no transition, out-of-order event, or replay double-counts |
+| DomainImpact requirement shape | repeatable `{ actionUID, requiredCount }` rows; 1–`MAX_REQUIREMENTS`; domains derived from ActionRegistry and may repeat | UI starts with four visible rows plus Add requirement; contract benchmark compares 8/16/24/32 before freezing the provisional 16 bound |
+| Work approval credit | `requirementIndex` selects exactly one requirement; Work action matches and Work attester is an active contributor | One approval increments exactly one requirement and one contributor credit |
+| DomainImpact progress | `approvedUnits = floor(targetUnits * Σ_i min(requirement.approvedCount, requirement.requiredCount) / Σ_i requirement.requiredCount)` | Per-action counts and per-commitment units remain visible; pool/cycle totals never mix labels |
+| Hypercert gardener recognition | gardener class divides equally across fulfilled commitments; within each, cycle policy defaults 20% equal eligible participation + 80% verified contribution | Eligible = frozen contributor with approved Work or confirmed evidence credit; deterministic remainder by highest weight then ascending address; zero eligible blocks W26 with no lead fallback; proof-linked reasoned repair preserves before/after |
+| Lead-provider concurrency cap | non-empty/non-zero class creation plus a non-zero count cap and `Registered -> Committed -> Released\|Fulfilled`; only the lead provider is the register account | Adding contributors never consumes extra slots; partial, repeat, wrong-account, and terminal-state calls fail before count mutation |
 | Register authority audit | `ModuleUpdated(oldModule, newModule)` is global to the register, not a pool transition | One pool-less `CommitmentEvent` sets `configurationKey = null` and stores the normalized old/new module addresses in generic `previousValue`/`newValue`; pool/cycle/commitment relations stay null, no pool `0` sentinel is invented, no actor comes from `transaction.from`, and no accounting row changes |
 | Exact-label unit summaries | ID uses chain + POOL/CYCLE scope + scope ID + `viem.keccak256(viem.stringToBytes(unitLabel))` over the exact stored UTF-8 string | Indexer declares direct `viem@2.55.0` dependency matching the repo pin; two `hours` commitments share a row; `Hours` is distinct; composed/decomposed Unicode remains byte-distinct; replay changes neither row |
 | Cross-commitment rate | `promiseKeptRate = commitmentsFulfilled / commitmentsDue` | Sole aggregate percentage; active progress uses state counts and exact-label groups |
@@ -90,8 +100,8 @@
 
 | Surface | Role | Required journey | Proof owner | GREEN evidence |
 |---|---|---|---|---|
-| Client `/home/:garden/pool` | member/provider/recipient | create, claim, evidence/work, Ready-submit, confirm/dispute, offline retry | `ui_client` | targeted tests + authenticated Brave + real device |
-| Admin `/garden/pool` | operator/evaluator | readiness, cycles, seeding, claims, assessment, override/dispute | `ui_admin` | targeted tests + authenticated Brave |
+| Client `/home/:garden/pool` | member/lead/contributor/recipient | create, claim, join/team, evidence/work credit, Ready-submit, confirm/dispute, payout receipts, offline retry | `ui_client` | targeted tests + authenticated Brave + real device |
+| Admin `/garden/pool` | steward/evaluator | readiness, cycles, seeding, claims, roster/credit, recognition/payment review, retention, override/dispute | `ui_admin` | targeted tests + authenticated Brave |
 | Admin `/community/pools` | protocol steward | Protocol pool plus current-garden pool only; no other-garden rows | `ui_admin` | targeted tests + authenticated Brave |
 | Admin Operations | deployer | alphabetical cross-garden oversight, batch/CCIP command-ack controls, native fee reserves, peer/Safe/cap status | `ui_admin` | targeted tests + authenticated Brave |
 | WalletDrawer | member | delivery-disabled and enabled Celo send | `ui_client` + `settlement` | AA evidence + authenticated real device |

@@ -726,3 +726,15 @@ Out of boundary, reported not edited: the stale `settlement-spec.md` §3.2/§3.3
 `acceptance-matrix.md:78`, `prototypes.md:6`, `wireframes.md:519`, and `settlement-spec.md:1150`
 itself. No product code, dependency installation, codegen, deployment, broadcast, transaction,
 Safe/Zodiac authority mutation, or Linear write is part of this pass.
+
+## 2026-07-28 — Group commitments, recognition, and garden-funded payout correction
+
+The earlier planning model accidentally collapsed fulfillment into one provider and rendered the requirement editor as a maximum of four actions. That was too narrow for commitments completed by a team and would have made contributor recognition and payment an after-the-fact spreadsheet exercise.
+
+The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or confirmed evidence; the roster freezes atomically on the transition to ReadyForConfirmation; and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
+
+Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead fallback: zero eligible contributors block W26 until a proof-linked, reason-required attribution repair is recorded. Evidence fulfillment loads a bounded commitment attribution index rather than scanning. Recognition weights remain separate from payment and do not transfer funds.
+
+The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization proves retained-plus-child conservation before dispatch, completes all-retained zero-child plans without CCIP, and makes the plan immutable. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
+
+Propagation includes `plan.todo.md` registers #63–#68, contract and settlement specs, acceptance matrix, UI/UX spec, wireframes, diagrams D7.2/D17, the hi-fi W2b/W3/W10/W11/W21/W23/W26 states and SB-33, all implementation/QA/docs handoffs, the shared ontology sidecar and generated docs, design-research/glossary prose, the canonical Google Doc, and live Linear mirrors. The existing runtime implementation, deployment, broadcast, and value-movement gates remain unchanged.

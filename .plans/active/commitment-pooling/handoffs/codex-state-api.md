@@ -21,7 +21,11 @@
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
-- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward rail/source/token/amount, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
+- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
+  `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
+  rail/source/token/amount, evidence, and timing; claim preserves kind/garden context;
+  confirmation is the submit-or-confirm union. Accept/decline, contributor changes, roster freeze,
+  assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
   Kernel `0.2.4` on both testnets for same-address mechanics evidence and Kernel `0.3.1` on
@@ -32,9 +36,11 @@
   only the separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or
   provider-list presence cannot enable the production action.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
-- Direction-aware confirmation eligibility and provider exclusion.
+- Direction-aware confirmation eligibility with every frozen team member excluded.
 - Pool/cycle/commitment/dispute recovery selectors.
-- Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and canonical per-commitment `approvedUnits`; one `requirementIndex` can credit only its matching domain/action position.
+- Per-action progress exposes `approvedCount / requiredCount`, the registry-derived domain tag,
+  credited contributors, and canonical per-commitment `approvedUnits`; one `requirementIndex` can
+  credit only its matching registered action requirement.
 - Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
 - Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles require fulfilled lineage.
 - Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
@@ -93,3 +99,9 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
 - Composite Garden replay proof is required before switching shared reads, but the live cutover itself is owned by `human-release-ops.md`.
 - Manual status.json gate is explicitly cleared.
 - RED proof is recorded before shared implementation; final GREEN includes targeted tests and typecheck.
+
+## Binding architecture amendment — 2026-07-28
+
+- Shared types/selectors must expose `leadProvider`, contributor policy/roster/freeze state, repeatable requirement inputs versus derived stored fields, the evidence attribution index, zero-eligible recognition blocking/repair, recognition/payment snapshot hashes, garden retention, parent finalization, stable plan pointer, and contributor child status.
+- Mutations cover roster management before the ReadyForConfirmation freeze, proof-linked recognition repair, atomic full-vector payout saves, explicit payout-plan finalization, and child dispatch/recovery through the existing job queue. Hooks remain in `@green-goods/shared`.
+- Keep recognition and payment as separate read models. Payment weights derive from amounts and may default from recognition, but a receipt is shown only from authenticated settlement confirmation. An all-retained finalized plan completes without creating a child receipt.

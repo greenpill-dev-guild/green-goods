@@ -108,13 +108,21 @@ const W5_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W23_STATES = [
-  ["balance", "Support received"], ["send", "Send"], ["send-pending", "Sending"], ["send-failed", "Send failed"], ["delivery-blocked", "Delivery blocked"],
+  ["balance", "Support received"], ["contributor-receipt", "Contributor receipt"], ["send", "Send"], ["send-pending", "Sending"], ["send-failed", "Send failed"], ["delivery-blocked", "Delivery blocked"],
 ] as const;
 type W23State = (typeof W23_STATES)[number][0];
 
 function w23(state: W23State): string {
   let inner: string;
   switch (state) {
+    case "contributor-receipt":
+      inner = `${card(
+        `<div class="cardrow">${chip("Arrived", "ok", { dot: true })}<div class="grow"></div><div class="t-title num">+140 G$</div></div>
+<div class="t-title">Prune the north beds</div>
+${kv("Paid by", "Rocinha garden Safe")}${kv("Your recognition", "35% · approved pruning work")}${kv("Payment basis", "Hypercert recognition weights")}${kv("Garden retained", "100 G$ of 500 G$")}
+${banner("Recognition records your contribution to the impact certificate. This receipt records the separate child payout that reached your account.", "stone")}`,
+      )}`;
+      break;
     case "send":
       inner = `${field("To", input("address or member…", { placeholder: true, icon: "user-line" }))}
 ${field("Amount", input("20 G$"))}
@@ -139,7 +147,7 @@ ${hot("w23.send-retry", btn("Try again", { kind: "pri", full: true, icon: "refre
     default:
       inner = `${card(
         `<div class="cardrow"><div class="grow"><div class="t-title">Support received</div><div class="t-meta">G$ · Celo</div></div><div class="t-title num">128 G$</div></div>` +
-          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+20 G$ — Prune the north beds", meta: "Arrived · delivery receipt ↗", chipHtml: chip("Arrived", "ok") })) +
+          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+140 G$ — Prune the north beds", meta: "Contributor payout arrived · receipt ↗", chipHtml: chip("Arrived", "ok") })) +
           listRow({ icon: "time-line", primary: "+15 G$ — Market rides", meta: "On its way" }),
         { cls: "flat" },
       )}
@@ -154,7 +162,7 @@ const W23_HOTS: HifiDef["hots"] = {
   "w23.send": { l: "Send G$", to: "screen:W23@send", info: "Online-only wallet action, sponsored gas — never enters the offline queue (UX:219)." },
   "w23.send-submit": { l: "Send", to: "screen:W23@send-pending", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
   "w23.send-retry": { l: "Try again", to: "screen:W23@send-pending", info: "Retries the online-only wallet action with the recipient and amount retained (UX:219)." },
-  "w23.arrived-row": { l: "Arrived row", info: "“Arrived” means an authenticated CCIP success acknowledgment — dispatched or Celo-executed/ack-pending never render as arrived." },
+  "w23.arrived-row": { l: "Arrived row", to: "screen:W23@contributor-receipt", info: "“Arrived” means an authenticated CCIP success acknowledgment. The receipt keeps Hypercert recognition and the child payout distinct." },
   "w23.tech-status": { l: "Technical status", info: "AA/paymaster gate failed: member delivery + sends stay off; Safe-to-Safe garden funding continues (SS:425)." },
 };
 
