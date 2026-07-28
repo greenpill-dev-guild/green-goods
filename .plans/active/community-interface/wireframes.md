@@ -2,10 +2,10 @@
 
 **Feature Slug**: `community-interface`  
 **Stage**: `active`  
-**Updated**: 2026-07-21
+**Updated**: 2026-07-27
 **Companions**: `spec.md`, `diagrams.md`, `journeys.md`, `research-plan.md`.
 
-These frames define information hierarchy, states, and recovery. They do not define visual styling. The member frames belong to the planned independent `packages/community` PWA at `community.greengoods.app` and `http://localhost:3010`, after the shared-foundation gate. Admin frames belong under `/community`. Funder frames extend existing `packages/client` public garden, impact, and funding surfaces.
+These frames define information hierarchy, states, and recovery. They do not define visual styling. The member frames belong to the planned independent `packages/community` PWA at `community.greengoods.app` and `http://localhost:3010`, after the shared-foundation gate. Admin Need frames W9–W11 belong to the fifth `/community/needs` mode; W12 is the separately gated `/community/members` Manage Members state. Funder frames extend existing `packages/client` public garden, impact, and funding surfaces.
 
 Implementation uses Warm Earth tokens, semantic landmarks and headings, persistent visible labels, logical focus order, visible focus, at least 44px touch targets, text plus icon/shape for state, AA contrast, one polite status announcer, limited assertive announcements, and reduced-motion behavior. Every string and state ships in en/es/pt.
 
@@ -14,7 +14,8 @@ Implementation uses Warm Earth tokens, semantic landmarks and headings, persiste
 | Frame | Surface | Mode | Required states represented |
 |---|---|---|---|
 | W1–W8 | Community PWA | installed PWA and public browser | loading, empty, offline-stale, pending, `waiting_for_hat`, failed, retry, canceled, declined, merged, hidden, retracted |
-| W9–W12 | Admin `/community` | authenticated operator/evaluator | loading, empty, stale read, signature rejected, transaction failed, retry, partial-source, export blocked |
+| W9–W11 | Admin `/community/needs` | authenticated operator/evaluator | loading, empty, stale read, signature rejected, transaction failed, retry, partial-source, export blocked |
+| W12 | Admin `/community/members` | authenticated operator | blocked gate; no queue data before RESR-64 clears |
 | W13–W14 | Existing client public surfaces | public browser / funder | pending proof, unverified, verified attribution, duplicate ignored, funding failure, attribution failure, retry |
 | State and recovery copy contract | all three surfaces | all applicable modes | plain-language names, role visibility, accessible status, and one safe recovery/exit per state |
 
@@ -24,7 +25,8 @@ Implementation uses Warm Earth tokens, semantic landmarks and headings, persiste
 |---|---|---|---|
 | Community installed PWA | Community-owned Needs / Create / Profile tabs, manifest, service-worker scope, telemetry, and copy | Full member draft queue; install/update/offline status from shared foundations | No pools, evaluator export, work submission, claiming, wallet drawer, or settlement |
 | Community public browser | Community-owned browser navigation; browse works before account or install | First action returns to the exact Need after passkey/join; install remains optional | Global discovery is read-only outside the member’s garden |
-| Admin `/community` | Authenticated admin shell and `/community` workspace | Online moderation and seeding; membership actions only after the RESR-64 gate | Pools, cycles, gathering, operator triage, evaluator lineage/export |
+| Admin `/community/needs` | Authenticated admin shell and fifth Needs mode | Online moderation and seeding | Gathering, operator triage, selected-Need inspector, Need lineage/export; pool/cycle operations stay in `/community/coordination` |
+| Admin `/community/members` | Existing Manage Members mode | Membership actions only after the RESR-64 gate | No Need triage, seeding, lineage, or pool/cycle controls |
 | Existing client public browser | Existing garden, impact, and funding navigation, manifest, telemetry, and copy | Existing funding writes plus optional attribution; no Community offline queue | Funder discovery/detail under existing public surfaces |
 
 Client and Community may consume the same shared foundations, but their routes, navigation, manifests, service-worker scopes, telemetry identities, and application copy never merge.
@@ -46,14 +48,14 @@ Client and Community may consume the same shared foundations, but their routes, 
 │ THIS MONTH · IN PROGRESS                     │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
-│ Agro · Education · 8 neighbors agree        │
+│ Agro · Education · 8 support · 2 do not     │
 │ Acknowledged · In progress                  │
-│                          [View] [Agree]      │
+│         [View] [Support] [Do not support]   │
 ├──────────────────────────────────────────────┤
 │ THIS SEASON · OPEN                           │
 │ Weekend work days lack a shared tool library│
 │ No domain assigned · Open                   │
-│                          [View] [Agree]      │
+│         [View] [Support] [Do not support]   │
 ├──────────────────────────────────────────────┤
 │    Needs          ＋ Create          Profile │
 └──────────────────────────────────────────────┘
@@ -62,6 +64,8 @@ Client and Community may consume the same shared foundations, but their routes, 
 Rules:
 
 - My garden is default; Explore is global read-only. Signal controls appear only for same-garden Community Hat members.
+- Support and non-support counts remain separate; the interface never derives a net score. A selected direction has text/icon state beyond color, and `[Clear my signal]` replaces neither direction.
+- Switching direction shows only the final intended state. Offline rapid changes collapse into one queued signal intent; clear cancels an unsent local intent or queues revocation of the current on-chain winner.
 - Board order is recency + status, never funding. Empty domains render “No domain assigned.”
 - Moderation and progress are separate labels. Status never relies on color.
 - Hidden and retracted Needs do not appear. Merged cards redirect to the canonical Need. Declined cards appear only to their author and operators.
@@ -133,7 +137,7 @@ There is no Need-kind choice. A Need captures a problem and desired outcome; Req
 ├──────────────────────────────────────────────┤
 │ Similar in your garden                       │
 │ “Transport for clinic visits”       [View]  │
-│ [Same — add my agreement] [Share mine]      │
+│ [Support this existing Need] [Share mine]   │
 ├──────────────────────────────────────────────┤
 │ SAVED ON THIS DEVICE                         │
 │ Waiting for garden membership. No send      │
@@ -165,7 +169,7 @@ The similar-Need prompt is advisory and never blocks authorship.
 │ THIS MONTH                                   │
 │ Moderation: Acknowledged                     │
 │ Progress: In progress                        │
-│ Agro · Education · 8 neighbors agree        │
+│ Agro · Education · 8 support · 2 do not     │
 ├──────────────────────────────────────────────┤
 │ Your neighbor's words                        │
 │ “Market days are hard for elders…” [▶ audio]│
@@ -182,11 +186,14 @@ The similar-Need prompt is advisory and never blocks authorship.
 │ 120 G$ funding attribution verified         │
 │ Funding supports the garden; it is not escrow│
 ├──────────────────────────────────────────────┤
-│ [Agree]                       [Add testimony]│
+│ [Support] [Do not support] [Clear my signal]│
+│                              [Add testimony]│
 └──────────────────────────────────────────────┘
 ```
 
 This line is FundingAttribution verification, not commitment reward settlement. Reported and oracle-verified G$ settlement language belongs to the commitment experience and is never inferred from a FundingAttribution.
+
+Signal recovery copy is explicit: queued direction (“Saved on this device — Support will send when you are back online”), queued clear (“Your signal will clear when you are back online”), rejected signature (“Your signal did not change”), resolver/membership failure with Retry, and successful switch/clear announced through the polite status region. The selected state overlays the latest queued intent so an older on-chain direction never flashes as current.
 
 ## W6. Profile — drafts, membership, confirmations, and testimony
 
@@ -212,7 +219,7 @@ This line is FundingAttribution verification, not commitment reward settlement. 
 │ [Review evidence] [Confirm fulfillment]     │
 ├──────────────────────────────────────────────┤
 │ Your activity                                │
-│ Needs · agreements · testimony              │
+│ Needs · signals · testimony                 │
 └──────────────────────────────────────────────┘
 ```
 
@@ -280,7 +287,7 @@ HIDDEN — OPERATOR ONLY            RETRACTED WITH LINEAGE
 
 Hidden Needs have no public placeholder. Declined Needs have no public card. A retracted Need has no board card and exposes only the content-free tombstone where immutable lineage requires it. An operator may reopen merged, hidden, or declined by writing a later acknowledged NeedStatus with a mandatory rationale.
 
-## W9. Admin `/community` — gathering and triage
+## W9. Admin `/community/needs` — gathering and triage
 
 **Question**: Can an operator prepare a gathering and write a typed moderation decision with recovery?  
 **Source**: `spec.md` §9.
@@ -307,7 +314,7 @@ Hidden Needs have no public placeholder. Declined Needs have no public card. A r
 
 Merge uses a typed same-garden canonical-Need picker for `mergedIntoNeedUID` and a separate rationale field for `noteCID`. Reopen is labeled explicitly and requires rationale. Online NeedStatus writes expose loading, rejected signature, transaction failure, stale read, success, and Retry.
 
-## W10. Admin `/community` — seed a commitment
+## W10. Admin `/community/needs` — seed a commitment
 
 **Question**: Which fields are merely suggested from the Need, and which must the operator confirm?  
 **Source**: `spec.md` §§9, 11; Commitment Pooling `contract-spec.md`.
@@ -336,7 +343,7 @@ Merge uses a typed same-garden canonical-Need picker for `mergedIntoNeedUID` and
 
 Domains are optional arrays; DomainImpact requires one registered, domain-matching action per domain. Action UID `0` remains valid. A Request defaults to its creator/Need author as confirmer; an Offer waits for its accepted recipient. The accepted provider is excluded, and the operator sees an unreachable-threshold error before acceptance.
 
-## W11. Admin `/community` — evaluator lineage and export
+## W11. Admin `/community/needs` — evaluator lineage and export
 
 **Question**: Can an evaluator trace evidence and avoid exporting an incomplete or privacy-unsafe graph?  
 **Source**: `spec.md` §§9, 11.
@@ -365,7 +372,7 @@ PARTIAL SOURCE
 
 CSV emits one lineage edge per row; JSON nests edges. Retraction yields only the withdrawn tombstone. Text/media CIDs require existing viewer access. Wallet addresses, join identities, and research contacts never export.
 
-## W12. Admin `/community` — membership queue gate
+## W12. Admin `/community/members` — Manage Members queue gate
 
 **Question**: What may be designed now without pretending join-request storage is decided?  
 **Source**: `spec.md` §§7, 9; `research-plan.md`.
@@ -436,7 +443,7 @@ PROOF PENDING / UNVERIFIED             VERIFIED DUPLICATE
 └──────────────────────────────┘       └──────────────────────────────────┘
 ```
 
-Verification requires a supported chain and finalized successful canonical receipt matching contract/event, garden, token, and amount. De-duplication uses `(needUID, chainId, txHash, rail)`; the lowest `(timeCreated, uid)` is canonical.
+Verification requires a supported chain and finalized successful canonical receipt matching contract/event, garden, token, and amount. Global de-duplication uses `(chainId, txHash, rail)` across all Needs; the lowest `(timeCreated, uid)` is canonical and every later attribution contributes zero.
 
 ## State and recovery copy contract
 

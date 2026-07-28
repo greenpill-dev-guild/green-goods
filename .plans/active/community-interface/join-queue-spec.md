@@ -115,7 +115,7 @@ The existing Home empty state directs members to seek an open garden or ask an o
 
 ### 4.2 Operator
 
-**NET-NEW:** add **Waiting to join** as a section of the existing Manage Members dialog in the Garden workspace — never under admin `/community` and never as a route. A row shows chosen name, abbreviated address, requested time, and a note marker; its detail shows the optional note. **Welcome in** calls `addGardener(address)` and waits for the gardener-role read. **Decline** requires a reason and has no on-chain effect.
+**NET-NEW:** add **Waiting to join** as a section of the existing Manage Members dialog launched from `/community/members` — never in `/community/needs` and never as a standalone route. A row shows chosen name, abbreviated address, requested time, and a note marker; its detail shows the optional note. **Welcome in** calls `addGardener(address)` and waits for the gardener-role read. **Decline** requires a reason and has no on-chain effect.
 
 The existing dialog is the flat role roster and add-member surface (`packages/admin/src/components/Garden/ManageMembersDialog.tsx:37-67`, `packages/admin/src/components/Garden/ManageMembersDialog.tsx:91-129`). **NET-NEW:** an operator sees the usual queue rows plus a calm aggregate banner such as “Some requests were rate-limited recently”; it never reveals throttled addresses or note text.
 

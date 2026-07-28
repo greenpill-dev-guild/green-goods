@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-27T17:43:53.472Z"
+    "updated_at": "2026-07-28T09:13:18.000Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -57,7 +57,7 @@
         "milestone": "release"
       }
     },
-    "lastSyncedAt": "2026-07-27T17:43:53.471Z",
+    "lastSyncedAt": "2026-07-28T07:09:41.000Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
@@ -725,6 +725,38 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-28T06:51:47.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reconciled",
+      "branch": null,
+      "note": "Community Needs topology and the Visual Asset Gallery source now reflect the PRD-758 decision: four EAS schemas across CommunityNeedsResolver and FundingAttributionResolver, with EAS recipient/refUID relationship normalization and directional bool support signals. Commitment Pooling execution gates are unchanged."
+    },
+    {
+      "timestamp": "2026-07-28T07:09:41.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "gallery_rebuilt",
+      "branch": null,
+      "note": "The Visual Asset Gallery source rebuilt successfully and prerendered 35 diagrams with 0 failures; the 7,929,588-byte shareable HTML body contains 82 SVGs and no Mermaid pre blocks. The live artifact publisher is unavailable in this environment, so no public artifact URL update is claimed."
+    },
+    {
+      "timestamp": "2026-07-28T07:09:41.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "The live Commitment Pooling project related-work paragraph was corrected and re-read: Community members name Needs, request/offer are commitment directions, and Initiatives remain separate Green Goods objects. Commitment Pooling execution gates are unchanged."
+    },
+    {
+      "timestamp": "2026-07-28T09:13:18.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "community_prototype_reconciled",
+      "branch": null,
+      "note": "The September Community chapter now shows Support, Do not support, and Clear my signal with separate counts, and its admin seam names /community/needs versus /community/coordination ownership. The executable Flow Prototype passed with 31 screens, 267 states, 374 hotspots, 37 journeys, 296 scenes, and 0 warnings. The Visual Asset Gallery prerendered all 35 Mermaid diagrams with 0 failures; the 7,929,365-byte shareable body contains 82 SVGs and no Mermaid pre blocks. No Commitment Pooling runtime or execution gate changed."
     }
   ]
 }

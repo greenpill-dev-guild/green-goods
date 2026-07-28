@@ -99,7 +99,7 @@ Green Goods uses a holistic framework for impact measurement:
 
 The page itself documents the live Green Goods design and research practice. The five scenarios below are **target personas and planned journeys** for Commitment Pooling and Community Needs & Signals; they are research inputs, not claims that those product flows are already available. Live feature documentation remains in the linked operator and gardener guides until implementation ships.
 
-The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; operator pools, triage, and evaluator lineage/export live in admin under `/community`; public funder discovery stays in existing Green Goods browser surfaces. Need kinds are Request, Offer, and Initiative. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). Domains are optional arrays; DomainImpact commitments pair each positional domain with a registered, domain-matching action UID, and UID `0` remains valid.
+The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; operator pools, triage, and evaluator lineage/export live in admin under `/community`; public funder discovery stays in existing Green Goods browser surfaces. A Need records a problem paired with a desired outcome and has no kind. Request and Offer describe the direction of a later commitment, not the Need itself. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). Domains are optional arrays; DomainImpact commitments pair each positional domain with a registered, domain-matching action UID, and UID `0` remains valid.
 
 #### Gardener: Maria
 
@@ -119,7 +119,7 @@ The planned surface boundary is explicit: Community Needs & Signals is an indepe
 
 **Who he is**: Community coordinator managing a coastal restoration project in Muizenberg, Cape Town. Oversees 20 gardeners across waste collection and food systems actions. Web3-familiar but not a developer. Spends 2-4 hours per week on garden management.
 
-**Target journey (planned)**: David opens admin `/community` before a community gathering. He reviews new Requests, Offers, and Initiatives, acknowledges them with zero or more domains, merges one duplicate with a visible rationale, and prepares a print-legible gathering view. After the group agrees on priorities, he seeds bounded commitments with units, positional domain/action pairs where DomainImpact requires them, evidence, confirmation rules, and rewards. He can review work, membership, reported settlement, and oracle-verified settlement without maintaining a second spreadsheet.
+**Target journey (planned)**: David opens admin `/community` before a community gathering. He reviews new Needs and their desired outcomes, acknowledges them with zero or more domains, merges one duplicate with a visible rationale, and prepares a print-legible gathering view. After the group agrees on priorities, he seeds bounded Request or Offer commitments with units, positional domain/action pairs where DomainImpact requires them, evidence, confirmation rules, and rewards. He can review work, membership, reported settlement, and oracle-verified settlement without maintaining a second spreadsheet.
 
 **What success feels like**: "I turned what the community agreed into clear work without losing anyone's words." The workspace feels like an operating tool, not a protocol console.
 
@@ -147,7 +147,7 @@ The planned surface boundary is explicit: Community Needs & Signals is an indepe
 
 **Who she is**: Impact fund manager at a mid-size foundation evaluating 20-30 projects per quarter. Comfortable with dashboards and financial reporting tools but does not read Solidity. Needs verified, auditable impact data to justify allocations to her board.
 
-**Target journey (planned)**: Before a quarterly allocation meeting, Amara browses recent community Requests, Offers, and Initiatives in existing Green Goods public-browser surfaces without a performance leaderboard. She opens one garden's story, follows the Need → promise → work → proof chain, and supports the garden through the existing direct-donation or endowment path. A receipt-checked FundingAttribution shows the context of her contribution without pretending it created per-Need escrow or gave her control over garden allocation. Reported and oracle-verified G$ settlement remain visibly distinct.
+**Target journey (planned)**: Before a quarterly allocation meeting, Amara browses recent community Needs in existing Green Goods public-browser surfaces without a performance leaderboard. She opens one garden's story, follows the Need → promise → work → proof chain, and supports the garden through the existing direct-donation or endowment path. A receipt-checked FundingAttribution shows the context of her contribution without pretending it created per-Need escrow or gave her control over garden allocation. Reported and oracle-verified G$ settlement remain visibly distinct.
 
 **What success feels like**: "I can show my board exactly where the money went and what it produced, with proof that no one fabricated the numbers." The dashboard gives her confidence that this is not just another NGO spreadsheet.
 
@@ -159,9 +159,9 @@ The planned surface boundary is explicit: Community Needs & Signals is an indepe
 
 #### Community Member: Kwame
 
-**Who he is**: Local resident whose neighborhood benefits from a school garden program. He may not do formal fieldwork, but he can name a request, offer a resource, or help organize a shared initiative. He uses a smartphone with tech comfort similar to Maria and usually enters through a garden QR or gathering.
+**Who he is**: Local resident whose neighborhood benefits from a school garden program. He may not do formal fieldwork, but he can name what the community needs and describe what better would look like. He uses a smartphone with tech comfort similar to Maria and usually enters through a garden QR or gathering.
 
-**Target journey (planned)**: Kwame hears that elders need reliable market rides. He opens the independent Community PWA without signing in, reads the desired outcome, and taps Agree. On his first action he creates a passkey account; the action stays safely queued while the operator confirms membership. Membership persistence remains evidence-gated. Later he sees moderation and progress separately: the Need is acknowledged, a ride commitment is seeded, work is in progress, and neighbors have added testimony.
+**Target journey (planned)**: Kwame hears that elders need reliable market rides. He opens the independent Community PWA without signing in, reads the desired outcome, and chooses Support. On his first action he creates a passkey account; the action stays safely queued while the operator confirms membership. Membership persistence remains evidence-gated. Later he sees moderation and progress separately: the Need is acknowledged, a ride commitment is seeded, work is in progress, and neighbors have added testimony.
 
 **What success feels like**: "I said what mattered and can see what happened next." He does not need to understand the protocol — only that his words, the garden's response, and the resulting work remain connected.
 
@@ -169,7 +169,7 @@ The planned surface boundary is explicit: Community Needs & Signals is an indepe
 
 **Frustration points**: Jargon-heavy governance UI, forced domain classification, unclear membership waiting states, and no visible feedback loop.
 
-**Design implication**: Community features must use plain Request / Offer / Initiative language and show a legible need → promise → work → proof thread without protocol vocabulary.
+**Design implication**: Community features must use plain Need and desired-outcome language, reserve Request / Offer for commitment direction, and show a legible need → promise → work → proof thread without protocol vocabulary.
 
 ### Operator Context Profiles
 

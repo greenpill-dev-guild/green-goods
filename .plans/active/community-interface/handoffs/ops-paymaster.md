@@ -8,11 +8,11 @@
 
 ## Outputs
 
-- Dashboard policy for Need/Signal/Testimony, per-account/window caps, owner/rollback/runbook, staged burst evidence, and monitoring thresholds.
+- Dashboard policy for Need/Signal/Testimony, per-account/window caps, owner/rollback/runbook, staged burst evidence, and monitoring thresholds. Because Need, NeedSignal, and NeedStatus share `CommunityNeedsResolver`, policy matching must distinguish the exact schema UID and attestation calldata branch rather than allowlisting the resolver address alone.
 
 ## Acceptance
 
-- Only named writes are sponsored; NeedStatus/FundingAttribution are excluded; waiting jobs make no sponsor request; normal and gathering bursts pass without exposing wallet/reporter identifiers.
+- Only Need, NeedSignal, and Testimony writes are sponsored; NeedStatus/FundingAttribution are excluded even though NeedStatus shares the Community resolver address; waiting jobs make no sponsor request; normal and gathering bursts pass without exposing wallet/reporter identifiers.
 
 ## RED / GREEN or proof limit
 

@@ -493,12 +493,13 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
   {
     question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
-    verdict: "decision",
+    verdict: "answered",
     finding:
-      "Two layers. Resolvers — one-per-schema is a repo convention, not an EAS requirement: EAS binds a resolver per schema at registration but lets one contract serve many (the resolver receives `attestation.schema`), and the frozen AssessmentResolver upgrade already runs two schemas through one proxy. No recorded decision defends four Need resolvers. Schemas — the four-schema set looks load-bearing on analysis: each is a distinct attester-gate / revocability / payload / volume tuple, and merging NeedSignal + NeedStatus would put the union payload on the highest-volume record while demoting schema-level revocability into resolver branches. The schema count stays open for the team design session rather than being recorded as settled here.",
+      "Answered 2026-07-27. Keep four immutable EAS schema records because Need, NeedSignal, NeedStatus, and FundingAttribution each retain a distinct payload, attester gate, volume, and schema-visible revocability policy. Deploy two UUPS resolver proxies: `CommunityNeedsResolver` serves Need/NeedSignal/NeedStatus through exact schema-UID dispatch, and `FundingAttributionResolver` stays separate as the only ungated branch with chain policy. EAS `recipient` is the canonical garden; child `refUID` is the Need UID; custom data no longer duplicates those relationships. NeedSignal carries only `bool support`, with latest-winner support/non-support state derived reader-side.",
+    riderLabel: "Implementation lock",
     rider:
-      "Collapse 4 → 2 resolvers: `CommunityNeedsResolver` (Need + NeedSignal + NeedStatus — hat-gated branches, branched `onRevoke` defaulting false, no zero-UID wildcard, pairwise UID distinctness) plus a separate `FundingAttributionResolver` (the only ungated one — keep the blast wall). Cheap now while the contracts lane is unstarted, expensive after. Schema count: bring the keep-4 analysis to the design session; do not treat it as decided.",
-    cites: "EAS SchemaRegistry (per-schema binding; resolver address in the UID preimage) · contract-spec.md AssessmentV3 dispatch · community-interface/spec.md §3.1–3.2",
+      "Root Need uses zero `refUID`; every child resolver validates an exact, same-recipient, live Need reference. All v1 attestations are non-expiring. Signal switching writes a newer attestation, clear revokes the winner, pending directions coalesce, and support/non-support counts never become a net score.",
+    cites: "community-interface/spec.md decisions #13–14 + §§3.1–3.3/6 · PRD-758",
   },
   {
     question: "Do the wireframes mirror our UI prototypes?",
@@ -512,7 +513,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
 const openQuestionsSection = `
 <section id="ref-open-questions">
   <h2>Open questions</h2>
-  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — four answered, one answered with an open gap, and two parked as decisions with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
+  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — five answered, one answered with an open gap, and one parked as a decision with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
   <div class="qpanel">
     <span class="eyebrow">Audited 2026-07-27</span>
     <ol class="qfindings">

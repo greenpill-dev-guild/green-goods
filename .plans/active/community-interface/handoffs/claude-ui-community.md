@@ -8,15 +8,17 @@
 
 ## Outputs
 
-- Independent `packages/community` PWA at local 3010 / `community.greengoods.app`: Needs/Create/Profile, public deep links, offline queue/recovery, install/update, isolated manifest/service worker/telemetry, en/es/pt UI.
+- Independent `packages/community` PWA at local 3010 / `community.greengoods.app`: Needs/Create/Profile, public deep links, directional signal controls, offline queue/recovery, install/update, isolated manifest/service worker/telemetry, en/es/pt UI.
 
 ## Acceptance
 
-- All named states and retraction/privacy rules render accessibly; touch/focus/live-region/reduced-motion requirements pass; client and Community service workers cannot control each other's origin. Membership queue is absent while gated.
+- Same-garden cards/details expose `Support`, `Do not support`, and `Clear my signal`; show support/non-support separately; mark the current or queued final intent without relying on color; never derive a net score or funding/ranking implication.
+- Switching, clear, queued, waiting, rejected-signature, resolver-failure, and retry states render accessibly; Explore/cross-garden detail exposes no signal controls.
+- All other named states and retraction/privacy rules render accessibly; touch/focus/live-region/reduced-motion requirements pass; client and Community service workers cannot control each other's origin. Membership queue is absent while gated.
 
 ## RED / GREEN
 
-- RED: route, state, PWA-scope, i18n, and accessibility tests fail before scaffolding/implementation.
+- RED: route, directional signal state/switch/clear, revoked-winner display, separate counts, queue overlay, cross-garden read-only, PWA-scope, i18n, and accessibility tests fail before scaffolding/implementation.
 - GREEN: package tests/build/PWA checks pass plus authenticated Brave and real-device screenshots for the full Need loop and recovery paths.
 
 ## Exact commands

@@ -8,15 +8,16 @@
 
 ## Outputs
 
-- `/community` triage, moderation/reopen, pools, evaluator lineage/export, gathering, and seed-from-Need surfaces using canonical admin primitives.
+- `/community/needs` as the fifth route-level `AdminTabRail` mode with focused triage, moderation/reopen, selected-Need inspector, gathering, seed-from-Need, and Need-filtered evaluator lineage/export surfaces using canonical admin primitives. Existing `/community/coordination` retains pool/cycle operations, and `/community/members` retains Manage Members. Do not expand the existing catch-all `CommunityTab` branch.
 
 ## Acceptance
 
-- No `/pools` root; online status writes expose signature/pending/failed/retry; declined/hidden access is enforced; partial lineage cannot export; membership queue is not implemented before its gate.
+- No `/pools` or top-level `/needs` root and no duplicate pool/cycle controls in `/community/needs`; triage rows show support and non-support separately; default ordering is support count, then recency, then alphabetical tie-break; non-support never subtracts into a net score.
+- Online status writes expose signature/pending/failed/retry; declined/hidden access is enforced; partial lineage cannot export; membership queue is not implemented before its gate.
 
 ## RED / GREEN
 
-- RED: route, moderation transition/access, export completeness, and recovery tests fail first.
+- RED: route, separate-count/no-net-score ordering, moderation transition/access, export completeness, and recovery tests fail first.
 - GREEN: targeted admin tests/build, stories where applicable, and authenticated Brave proof pass.
 
 ## Exact commands
