@@ -105,12 +105,25 @@ changing either factory path.
 
 ## Entities
 
-- Gardens and actions: `Garden`, `Action`, `Gardener`
-- Garden governance: `GardenCommunity`, `GardenSignalPool`, `GardenHatTree`,
-  `PartialGrantFailure`
-- Vaults and yield: `GardenVault`, `GardenVaultIndex`, `VaultDeposit`, `VaultEvent`,
-  `VaultAddressIndex`, and yield-distribution entities
-- Integrations: Hypercerts, Cookie Jars, ENS registration lifecycle, and GreenWill badges
+The full set defined in `schema.graphql` — this list is exhaustive; nothing else is indexed:
+
+- Gardens and actions: `Garden`, `Gardener`, `Action`, `GardenDomains`
+- Vaults and yield: `GardenVault`, `GardenVaultIndex`, `VaultAddressIndex`, `VaultDeposit`,
+  `VaultEvent`, `YieldAllocation`
+- Hypercerts: `Hypercert`, `HypercertClaim` (minimal linkage only)
+- Campaigns: `CampaignCookieJar`
+- GreenWill badges: `GreenWillBadgeDefinition`, `GreenWillBadgeGrant`, `GreenWillBadgeOwnership`
+
+Garden governance, signal pools, hat trees, grant-failure records, generic cookie jars, and ENS
+registration lifecycle are **not** indexer entities. Hats role membership is folded into `Garden`
+role arrays rather than a separate entity.
+
+### Entity ID convention
+
+Most entities use chain-composite IDs (`${chainId}-${identifier}`) so the same address on two
+chains cannot collide. **`Garden.id` is a deliberate exception**: it is the bare GardenAccount
+address, preserved for GraphQL compatibility with existing consumers. Do not "fix" it to a
+composite ID — that is a breaking change to the public query surface.
 
 ENS profile text fields on `Gardener` remain schema fields for client consumption; handlers do not
 populate them. The client resolves those values from ENS text records.

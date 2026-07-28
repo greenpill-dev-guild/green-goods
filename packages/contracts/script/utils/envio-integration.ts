@@ -6,10 +6,11 @@ import { getFoundryBroadcastPath } from "./paths";
 
 interface EnvioContract {
   name: string;
-  address: string;
+  // Optional: Envio v3 dynamically registered contracts (OctantVault) carry no address.
+  address?: string;
 }
 
-interface EnvioNetwork {
+interface EnvioChain {
   id: number;
   start_block: number;
   contracts: EnvioContract[];
@@ -17,7 +18,8 @@ interface EnvioNetwork {
 }
 
 interface EnvioConfig {
-  networks: EnvioNetwork[];
+  // Envio v3 renamed the top-level `networks` key to `chains`.
+  chains: EnvioChain[];
   [key: string]: unknown;
 }
 
@@ -71,6 +73,105 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
 ] as const;
 
 const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
+
+/**
+ * Contracts Envio discovers at runtime through `indexer.contractRegister`. Their config entries
+ * intentionally carry no address, and writing a deployed address here would pin the indexer to a
+ * single vault and break dynamic registration. Deployment sync must leave them address-less.
+ */
+const DYNAMICALLY_REGISTERED_CONTRACTS = new Set<string>(["OctantVault"]);
+
+const ZERO_ADDRESS_LITERAL = "0x0000000000000000000000000000000000000000";
+
+export interface ApplyDeploymentToChainParams {
+  chains: EnvioChain[];
+  chainId: number;
+  deployment: DeploymentData;
+  gardenAccountAddress?: string;
+  /** Used only when the chain is not already configured; existing start blocks are never moved. */
+  fallbackStartBlock: number;
+}
+
+/**
+ * Pure Envio v3 `chains` transformation used by deployment sync.
+ *
+ * Preserves configured start blocks, address-less dynamic contract entries, and the canonical
+ * contract order, and never writes an address for a dynamically registered contract.
+ */
+export function applyDeploymentToEnvioChains({
+  chains,
+  chainId,
+  deployment,
+  gardenAccountAddress,
+  fallbackStartBlock,
+}: ApplyDeploymentToChainParams): EnvioChain[] {
+  const nextChains = [...chains];
+  const chainIndex = nextChains.findIndex((chain) => chain.id === chainId);
+  const existingChain = chainIndex >= 0 ? nextChains[chainIndex] : undefined;
+
+  // Never move an already-configured start block: rewinding it would force a full replay,
+  // and advancing it would silently skip history.
+  const startBlock = typeof existingChain?.start_block === "number" ? existingChain.start_block : fallbackStartBlock;
+
+  const contractsByName = new Map<string, EnvioContract>();
+  for (const contract of existingChain?.contracts ?? []) {
+    if (!INDEXER_MANAGED_CONTRACTS.has(contract.name)) continue;
+    // Preserve address-less dynamic entries verbatim; String(undefined) would write "undefined".
+    contractsByName.set(
+      contract.name,
+      contract.address === undefined
+        ? { name: contract.name }
+        : { name: contract.name, address: String(contract.address) },
+    );
+  }
+
+  const upsertContract = (name: string, address?: string): void => {
+    if (DYNAMICALLY_REGISTERED_CONTRACTS.has(name)) return;
+    if (!address || address === ZERO_ADDRESS_LITERAL) return;
+    contractsByName.set(name, { name, address: String(address) });
+  };
+
+  upsertContract("ActionRegistry", deployment.actionRegistry);
+  upsertContract("GardenToken", deployment.gardenToken);
+  upsertContract("GardenAccount", gardenAccountAddress);
+  upsertContract("HatsModule", deployment.hatsModule);
+  upsertContract("OctantModule", deployment.octantModule);
+  // OctantVault is intentionally omitted: it is registered dynamically from
+  // OctantModule.VaultCreated, so its config entry must stay address-less.
+  upsertContract("GardensModule", deployment.gardensModule);
+  upsertContract("CookieJarModule", deployment.cookieJarModule);
+  upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
+  upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
+  upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
+  upsertContract("GreenWill", deployment.greenWill);
+  // Some contracts may be absent in deployment JSON for specific chains.
+  // In that case, we preserve existing config entries (including placeholders).
+  upsertContract("YieldSplitter", deployment.yieldSplitter);
+  upsertContract("HypercertMinter", deployment.hypercertMinter);
+  // HypercertMinter has a fixed address per chain, managed in config.yaml.
+  // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
+
+  const orderedContracts: EnvioContract[] = [];
+  for (const name of INDEXER_MANAGED_CONTRACT_ORDER) {
+    const contract = contractsByName.get(name);
+    if (contract) orderedContracts.push(contract);
+  }
+
+  const chainConfig: EnvioChain = {
+    id: chainId,
+    start_block: startBlock,
+    contracts: orderedContracts,
+  };
+
+  if (chainIndex >= 0) {
+    // Preserve existing chain config structure, only update contracts
+    nextChains[chainIndex] = { ...nextChains[chainIndex], ...chainConfig };
+  } else {
+    nextChains.push(chainConfig);
+  }
+
+  return nextChains;
+}
 
 export class EnvioIntegration {
   private contractsDir: string;
@@ -242,80 +343,32 @@ export class EnvioIntegration {
         schema: yaml.CORE_SCHEMA,
       }) as EnvioConfig;
 
-      // Update or add network configuration
+      // Update or add chain configuration
       const targetChainId = Number.parseInt(chainId, 10);
-      const networkIndex = envioConfig.networks.findIndex((n) => n.id === targetChainId);
+      const previousChains = envioConfig.chains ?? [];
+      const hadChain = previousChains.some((chain) => chain.id === targetChainId);
 
-      const startBlock = this.getStartBlock(chainId);
-      const existingContracts = networkIndex >= 0 ? (envioConfig.networks[networkIndex].contracts ?? []) : [];
-
-      const contractsByName = new Map<string, EnvioContract>();
-      existingContracts.forEach((contract) => {
-        if (!INDEXER_MANAGED_CONTRACTS.has(contract.name)) return;
-        contractsByName.set(contract.name, {
-          name: contract.name,
-          address: String(contract.address),
-        });
+      envioConfig.chains = applyDeploymentToEnvioChains({
+        chains: previousChains,
+        chainId: targetChainId,
+        deployment,
+        gardenAccountAddress,
+        fallbackStartBlock: this.getStartBlock(chainId),
       });
 
-      const upsertContract = (name: string, address?: string): void => {
-        if (!address || address === ZERO_ADDRESS) return;
-        contractsByName.set(name, { name, address: String(address) });
-      };
+      console.log(
+        hadChain
+          ? `🔄 Updated existing chain config for chain ${targetChainId}`
+          : `➕ Added new chain config for chain ${targetChainId}`,
+      );
 
-      upsertContract("ActionRegistry", deployment.actionRegistry);
-      upsertContract("GardenToken", deployment.gardenToken);
-      upsertContract("GardenAccount", gardenAccountAddress);
-      upsertContract("HatsModule", deployment.hatsModule);
-      upsertContract("OctantModule", deployment.octantModule);
-      upsertContract("OctantVault", deployment.octantVault);
-      upsertContract("GardensModule", deployment.gardensModule);
-      upsertContract("CookieJarModule", deployment.cookieJarModule);
-      upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
-      upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
-      upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
-      upsertContract("GreenWill", deployment.greenWill);
-      // Some contracts may be absent in deployment JSON for specific networks.
-      // In that case, we preserve existing config entries (including placeholders).
-      upsertContract("YieldSplitter", deployment.yieldSplitter);
-      upsertContract("HypercertMinter", deployment.hypercertMinter);
-      // HypercertMinter has a fixed address per chain, managed in config.yaml.
-      // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
-
-      const orderedContracts: EnvioContract[] = [];
-
-      INDEXER_MANAGED_CONTRACT_ORDER.forEach((name) => {
-        const contract = contractsByName.get(name);
-        if (contract) {
-          orderedContracts.push(contract);
-        }
-      });
-
-      const networkConfig: EnvioNetwork = {
-        id: targetChainId,
-        start_block: startBlock,
-        contracts: orderedContracts,
-      };
-
-      if (networkIndex >= 0) {
-        // Preserve existing network config structure, only update contracts
-        envioConfig.networks[networkIndex] = {
-          ...envioConfig.networks[networkIndex],
-          ...networkConfig,
-        };
-        console.log(`🔄 Updated existing network config for chain ${targetChainId}`);
-      } else {
-        envioConfig.networks.push(networkConfig);
-        console.log(`➕ Added new network config for chain ${targetChainId}`);
-      }
-
-      // Ensure all network addresses are strings (fix corrupted data)
-      envioConfig.networks.forEach((network) => {
-        if (network.contracts) {
-          network.contracts.forEach((contract) => {
+      // Ensure all chain addresses are strings (fix corrupted data)
+      envioConfig.chains.forEach((chain) => {
+        if (chain.contracts) {
+          chain.contracts.forEach((contract) => {
             if (contract.address !== undefined && typeof contract.address !== "string") {
               // Convert scientific notation back to hex if needed
-              console.warn(`⚠️  Converting corrupted address for ${contract.name} on chain ${network.id}`);
+              console.warn(`⚠️  Converting corrupted address for ${contract.name} on chain ${chain.id}`);
               // This is corrupted data, we can't recover it - flag for manual fix
               contract.address = String(contract.address);
             }

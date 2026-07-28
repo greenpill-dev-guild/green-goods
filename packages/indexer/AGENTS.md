@@ -19,7 +19,9 @@ responsible for protocol entities, not for EAS attestations.
 
 - Do not index EAS attestations here. Those stay in shared's EAS data layer.
 - Every persisted entity needs a `chainId`.
-- Use composite IDs that include `chainId` to avoid cross-chain collisions.
+- Use composite IDs that include `chainId` to avoid cross-chain collisions. Documented exception:
+  `Garden.id` stays the bare GardenAccount address for GraphQL compatibility with existing
+  consumers; it still carries `chainId`. Do not convert it to a composite ID.
 - When relationships change, update both sides.
 - Keep TypeScript `strict` and `noImplicitAny` enabled for handwritten `src/` and `test/` code; do not weaken compiler flags to accommodate generated types.
 - After schema or config changes, regenerate `.envio/` types before trusting tests.

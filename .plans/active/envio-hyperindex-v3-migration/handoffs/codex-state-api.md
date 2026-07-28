@@ -29,7 +29,8 @@ foundation before Commitment Pooling adds indexer events, entities, or handlers.
 - Boundary check, build, and tests.
 - Focused GardenAccount and OctantVault dynamic-registration proof.
 - Existing-handler regression proof for GreenWill, Hypercert, Campaign/Cookie Jar, and Garden data.
-- Migration/replay idempotence and configured block-boundary preservation.
+- Clean-replay determinism, same-store repeated-range rejection without mutation, and configured
+  block-boundary preservation. Handler-level idempotence is not claimed.
 - Local runtime and representative GraphQL query proof.
 - Review showing no nested skill copies, unrelated shared changes, or root pnpm-first drift.
 - Production-readiness note for reindex, DB compatibility, hosted config, rollback, and approval.
@@ -194,14 +195,14 @@ Verdict: **REQUEST_CHANGES**. No commit, push, PR retarget, or Linear write was 
 - Envio 3.2.1 materially widens the transitive dependency tree (adds `express`, `react`, `ink`,
   `@clickhouse/client`, `postgres`, `tsx`). Worth release-owner awareness.
 
-### Publication blocker (not a code defect)
+### Publication blocker — RESOLVED
 
-PR #649's head is **`moose-code:chore/upgrade-envio-3.2.1`**, a fork branch, and our token reports
-`push: false` on `moose-code/green-goods`. The local branch has no `origin` upstream. Pushing it to
-`origin` would create a different ref and would **not** update PR #649's diff, whose head
-(`0fb3f72d`) is still the uncorrected fork state. Landing this work needs a human decision: either
-the fork owner updates their branch, or a new `origin` branch + PR targeting `develop` supersedes
-#649. This session did not make that call.
+~~PR #649's head is a fork branch with `push: false`, so its diff cannot be updated from this
+repo.~~ **Superseded.** The fork repo itself grants `push: false`, but PR #649 carries
+`maintainer_can_modify: true`, so a base-repo maintainer can push to the PR head branch directly.
+Afo retargeted the base to `develop`, and the corrected branch has been published to
+`moose-code:chore/upgrade-envio-3.2.1` by fast-forward — no force push, and no superseding `origin`
+branch was created. Current live PR state is recorded in the closeout section below.
 
 ### Gates run in this pass
 
@@ -320,9 +321,70 @@ decision. A fresh independent review is still required before any push or PR ret
   filename guards or explicit guidance not to restore package-local pnpm workflows.
 - `git diff --check develop --` passes. The two files reported by the global format gate are
   identical to `develop` in the final migration diff.
-- A final read-only GitHub refresh confirms PR #649 is still open at head `0fb3f72dcb5034523e87909f29e136dac3ad9e16`
-  on `moose-code:chore/upgrade-envio-3.2.1` and still targets `main`; the corrected local branch
-  has not been published to it.
+- ~~A final read-only GitHub refresh confirms PR #649 is still open at head `0fb3f72d` on
+  `moose-code:chore/upgrade-envio-3.2.1` and still targets `main`; the corrected local branch has
+  not been published to it.~~ **Stale — superseded by the closeout section below.**
 - The PRD-557 parent-only Linear manifest regenerates without warnings. The live Linear connector
   was unavailable for the final refresh, so the next reviewer must re-read live PRD-557 before
   publication and compare it with this plan state.
+
+## 2026-07-28 closeout pass (Claude) — implementation + publication
+
+Worked from an isolated worktree at the live PR head, because the shared checkout had four
+uncommitted files from another session (`.plans/active/commitment-pooling/{plan.todo.md,status.json}`,
+`scripts/harness/plan-hub.{mjs,test.mjs}`) and a fast-forward would have collided with two of them.
+The shared checkout was left untouched.
+
+### Defects fixed
+
+1. **Docker image had no real Node 22.** Reproduced first: running the exact image-mounted command
+   under `oven/bun:1.3.14-slim` failed with `node-cli.js is still running under Bun`, because
+   `bun run` substitutes Bun for `node` and `scripts/dev/node-cli.js` refuses to run under Bun.
+   The image is now `node:22-slim` with the pinned Bun binary copied from `oven/bun:1.3.14-slim`,
+   so both runtimes are present. Envio entry points were **not** reverted to `bun --bun envio`.
+2. **`.dockerignore` excluded `patches/`** — found while building. The repository-root image build
+   failed at `bun install --frozen-lockfile` with
+   `Couldn't find patch file: 'patches/react-docgen-typescript@2.4.0.patch'`, because
+   `package.json#patchedDependencies` resolves from the build context. `patches/` is now
+   re-included. This was a pre-existing defect that blocked the image build before codegen ran.
+3. **Deployment utilities still read `config.networks`.** `envio-integration.ts`,
+   `post-deploy-verify.ts`, and `marketplace-readiness.ts` now read `chains`. The config writer
+   additionally: preserves an already-configured `start_block` instead of recomputing it,
+   preserves address-less dynamic entries verbatim (the old code wrote the literal string
+   `"undefined"` through `String(contract.address)`), and **never writes an OctantVault address**.
+   The transformation was extracted into a pure exported `applyDeploymentToEnvioChains` helper.
+4. **Protocol status mis-reported dynamic registration.** `generate-protocol-status.mjs` required a
+   static address, so the intentionally address-less `OctantVault` reported `indexer_ready: false`.
+   Presence of the entry is now readiness for dynamically registered contracts; an *absent* entry
+   is still not ready.
+5. **Docs corrections** — entity list rebuilt from `schema.graphql`; the `Garden.id` compatibility
+   exception documented in `.claude/rules/indexer.md` and `packages/indexer/AGENTS.md`; replay
+   language changed to clean-replay determinism + same-store repeated-range rejection, with
+   handler-level idempotence explicitly not claimed.
+
+### Docker proof
+
+- Repository-root image build from the checked-in frozen lockfile: **succeeded**. The image
+  codegen stage ran `node ../../scripts/dev/node-cli.js envio codegen` and completed in 10.5s.
+- Inside the built image: `node v22.23.1`, `bun 1.3.14`, `node_modules/.bin/envio` present.
+- Non-destructive container smoke: in-container `bun run codegen` succeeded and the `start` entry
+  resolved through the Node 22 launcher. No database was reset and no hosted indexing ran.
+
+### Protocol-status proof
+
+Regenerating with the fixed script flips exactly two entries — `octant-vault` on 42161 and
+11155111, `false -> true` — verified by diffing the HEAD-script output against the fixed-script
+output. Celo (42220) correctly stays `false` because it has no chain entry in `config.yaml`.
+The committed `protocol-status.generated.json` was additionally **stale** relative to the v3
+config, so regenerating it also corrects eight unrelated module states that predate this PR's
+generator migration.
+
+### Runtime proof (existing database reused)
+
+The Envio-managed containers were already up and Hasura was already serving, so the runtime was
+inspected rather than restarted. `/healthz` returned 200. `_meta` reported Arbitrum
+`start 433713812` and Sepolia `start 10243363`, `endBlock: null` on both, and `isReady: true` on
+both. A representative `Garden` query returned live data (`Ilhas de Abundância`,
+`Greenpill Nigeria`); Garden 21 / GardenVault 39 / VaultAddressIndex 39 evidence dynamic
+registration. `envio-postgres-data` remained present. No `reset`, `dev:restart`, `envio stop`, or
+`envio local docker down` was run.

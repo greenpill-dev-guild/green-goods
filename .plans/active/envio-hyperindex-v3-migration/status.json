@@ -10,7 +10,7 @@
     "overall_status": "in_progress",
     "priority": "p1",
     "created_at": "2026-05-24T22:48:40.215Z",
-    "updated_at": "2026-07-27T22:45:15.421Z"
+    "updated_at": "2026-07-28T03:12:40.057Z"
   },
   "links": {
     "brief": "brief.md",
@@ -49,6 +49,8 @@
     "2026-07-27 QA pass 2 (independent review) found one further code defect: stop and db:down ran `envio local docker down`, which also deletes the envio-postgres-data volume despite help text naming only containers. Both now stop the Envio-managed containers by their dev.envio.config-hash label, verified to preserve the volume and resume the same indexed state; the four documentation surfaces asserting volume preservation were corrected to match.",
     "PR #649 is published and corrected: Afo retargeted the base to develop, and because the PR carries maintainer_can_modify: true a base-repo maintainer fast-forwarded the fork head from 0fb3f72d to ec1cb087 (no force push, no superseding origin branch). The PR is MERGEABLE with 58 changed files and an accurate title/body.",
     "Remaining before merge: GitHub gates all ten workflows for this fork PR as action_required, so a maintainer must approve the CI run; three Vercel checks need fork-deploy authorization; and the two develop-baseline plan status.json formatting failures are deferred to a follow-up on develop by Afo's decision.",
+    "2026-07-28 closeout: fixed the Docker image (node:22-slim + pinned Bun copied from oven/bun:1.3.14-slim) after reproducing 'node-cli.js is still running under Bun', and re-included patches/ in .dockerignore after the repository-root build failed at bun install on a missing patch file. Migrated packages/contracts/script/utils envio-integration/post-deploy-verify/marketplace-readiness from the removed networks key to chains, extracted a pure applyDeploymentToEnvioChains helper, and stopped the writer from ever emitting an OctantVault address or recomputing a configured start_block. generate-protocol-status.mjs now treats an address-less dynamically registered entry as indexer-ready; the change flips exactly octant-vault on 42161 and 11155111, verified by diffing HEAD-script output against fixed-script output.",
+    "2026-07-28 closeout proof: full bun run test exit 0 (contracts 1533, indexer 190, shared 3358, client 640, admin 539, agent 232, docs 28); bun lint exit 0; VITE_CHAIN_ID=11155111 bun run build exit 0; boundary/codegen/build:indexer/indexer lint pass; contract tooling tests 23 passing with 7 new regressions; Docker image build plus in-container codegen and start-entry smoke pass; runtime reused the existing database with healthz 200, both chains isReady, exact start blocks, null end blocks, a non-empty Garden read, and envio-postgres-data preserved. bun format:check and ci-local --quick still fail only on the two unrelated develop-baseline plan status files.",
     "Landing the corrected PR completes the repository foundation; hosted deployment and reindex remain later authorized release operations."
   ],
   "lanes": {
@@ -83,14 +85,14 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run test; bun run --cwd packages/indexer dev (forced Bun runtime smoke)",
-          "evidence": "QA pass 1 reproduced 10s indexer timeouts; the first same-store replay test proved Envio rejects an already-processed range; forcing the Envio runtime through Bun resumed storage but failed handler auto-load with an indexer initialization-cycle ReferenceError."
+          "command": "docker run --rm -v $PWD:/app -w /app oven/bun:1.3.14-slim sh -c 'bun run --cwd packages/indexer codegen'; docker build -f packages/indexer/Dockerfile .; grep -rn 'config.networks' packages/contracts/script/utils/",
+          "evidence": "Image-mounted codegen failed with 'node-cli.js is still running under Bun' because bun run substitutes Bun for node. The repository-root image build failed even earlier at bun install --frozen-lockfile with \"Couldn't find patch file: 'patches/react-docgen-typescript@2.4.0.patch'\" because .dockerignore excluded patches/. envio-integration.ts, post-deploy-verify.ts and marketplace-readiness.ts still parsed the removed config.networks key, and the config writer upserted a static OctantVault address and recomputed start_block."
         },
         "green": {
-          "command": "bun run test:indexer && bun run test && VITE_CHAIN_ID=11155111 bun run build; bun run --cwd packages/indexer dev (Node 22 runtime smoke)",
-          "evidence": "190 indexer tests and the full repository test gate pass; pinned build passes; retained events are batched; repeated-range rejection preserves the snapshot; the Bun-first Node 22 launcher resumes the existing DB with healthz 200, both chains ready, exact boundaries, and a non-empty Garden query."
+          "command": "docker build -f packages/indexer/Dockerfile -t green-goods-indexer:closeout . && docker run --rm green-goods-indexer:closeout sh -c 'node --version; bun --version; bun run codegen' && bun run --cwd packages/contracts test:script && bun run test && VITE_CHAIN_ID=11155111 bun run build",
+          "evidence": "Image builds from the frozen lockfile with node v22.23.1 + bun 1.3.14; image codegen stage completed in 10.5s and in-container codegen plus the start entry both resolve. Contract tooling tests 23 passing including 7 new applyDeploymentToEnvioChains regressions (start-block preservation, address-less OctantVault, never writing a vault address, contract order, zero-address skip, other-chain isolation). Full bun run test exit 0: contracts 1533, indexer 190, shared 3358, client 640, admin 539, agent 232, docs 28. bun lint exit 0; VITE_CHAIN_ID=11155111 bun run build exit 0. Runtime reused the existing database: healthz 200, both chains isReady with exact start blocks 433713812/10243363 and null end blocks, non-empty Garden query, envio-postgres-data preserved."
         },
-        "note": "Corrective QA resolved findings 1 and 3-6 plus the final Bun-runtime incompatibility. Publication still waits on out-of-scope develop formatting drift, independent review, and the fork-owned PR decision."
+        "note": ""
       },
       "skill_tags": ["indexer", "ops", "testing"]
     },
@@ -231,6 +233,14 @@
       "status": "tdd_recorded",
       "branch": "codex/state-api/envio-hyperindex-v3-migration",
       "note": "Corrective QA resolved findings 1 and 3-6 plus the final Bun-runtime incompatibility. Publication still waits on out-of-scope develop formatting drift, independent review, and the fork-owned PR decision."
+    },
+    {
+      "timestamp": "2026-07-28T03:12:40.057Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/envio-hyperindex-v3-migration",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }

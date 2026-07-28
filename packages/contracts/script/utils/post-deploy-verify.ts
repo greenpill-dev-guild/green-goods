@@ -64,17 +64,19 @@ interface DeploymentRecord {
 
 interface IndexerContract {
   name: string;
-  address: string;
+  // Optional: Envio v3 dynamically registered contracts (OctantVault) carry no address.
+  address?: string;
 }
 
-interface IndexerNetwork {
+interface IndexerChain {
   id: number;
   contracts: IndexerContract[];
 }
 
 interface IndexerConfig {
   contracts: Array<{ name: string }>;
-  networks: IndexerNetwork[];
+  // Envio v3 renamed the top-level `networks` key to `chains`.
+  chains: IndexerChain[];
 }
 
 interface RuntimeGarden {
@@ -436,9 +438,9 @@ function validateIndexerConfig(chainId: string, deployment: DeploymentRecord, fa
   const parsed = yaml.load(fs.readFileSync(indexerPath, "utf8"), {
     schema: yaml.CORE_SCHEMA,
   }) as IndexerConfig;
-  const network = parsed.networks.find((item) => item.id.toString() === chainId);
-  if (!network) {
-    failures.push(`Indexer config missing network id ${chainId}`);
+  const chain = (parsed.chains ?? []).find((item) => item.id.toString() === chainId);
+  if (!chain) {
+    failures.push(`Indexer config missing chain id ${chainId}`);
     return;
   }
 
