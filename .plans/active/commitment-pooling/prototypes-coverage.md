@@ -1,13 +1,13 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-07-26. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
+Updated 2026-07-27. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
 
 ## Build snapshot
 
-- 31 registered screens / 267 rendered states in the full source registry
-- 24 presentation-visible hi-fi screens / 260 states: 9 Client PWA (150 states), 13 Admin console (105 states), 2 Editorial website (5 states)
-- 370 registered hotspots
-- 37 validated source flows / 296 scenes; 36 presentation-visible flows / 287 scenes: 16 Client PWA, 19 Admin console, 1 Editorial website
+- 31 registered screens / 268 rendered states in the full source registry
+- 24 presentation-visible hi-fi screens / 261 states: 9 Client PWA (150 states), 13 Admin console (106 states), 2 Editorial website (5 states)
+- 372 registered hotspots
+- 38 validated source flows / 299 scenes; 37 presentation-visible flows / 290 scenes: 16 Client PWA, 20 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -123,7 +123,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W14 | Admin console | 3 | baseline, delta, discard |
 | W21 | Admin console | 16 | queue, unregistered, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
 | W22 | Admin console | 9 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm, garden-command |
-| W24 | Admin console | 3 | queue, ccip, flows |
+| W24 | Admin console | 4 | queue, ccip, flows, funding |
 | W26 | Admin console | 8 | review, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest |
 | HUBWORK | Admin console | 1 | approve |
 | W15 | Editorial website | 3 | counts-only, above-threshold, pre-launch |

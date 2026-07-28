@@ -634,7 +634,7 @@ W9: [
   { m: "◉ their offer  ○ their request  ○ confirmation", l: "Capture kind", info: "Captured confirmations always carry a reason (UX:291)." },
 ],
 W10: [
-  { m: "[ Record payout ]", l: "Record payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here. CeloSettlement uses Queue disbursement instead." },
+  { m: "[ Record payout ]", l: "Record payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here. CeloSettlement instead creates the separate settlement job automatically after indexed Fulfilled." },
   { m: "[ Confirm as fallback… ]", l: "Confirm as fallback", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   { m: "[ Raise dispute… ]", l: "Raise dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
   { m: "Resolve dispute", l: "Resolve dispute", info: "RestorePrevious / Fulfilled / Cancelled / Expired, each with a required reason; Expired can never resolve Fulfilled (CS:144)." },
@@ -663,7 +663,7 @@ W16: [
 ],
 W21: [
   { m: "[ Review registration requirements ]", l: "Review registration requirements", info: "Read-only prerequisite summary. Release governance deploys and verifies the 2-of-3 Safe/Roles route; registration binds only the existing account." },
-  { m: "member delivery: enabled", l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
+  { m: "member delivery: enabled", l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The owner-only flip gates Individual reward delivery and member send, never Garden rewards or non-commitment garden seeding." },
   { m: "[ Create batch (2) ]", l: "Create batch", to: "frame:W22", info: "Batches hold immutable members up to the measured configured limit; the hard ceiling is 24." },
   { m: "[ Requeue ]", l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
   { m: "[close]", l: "Close failed delivery", info: "Failed → Cancelled; preserves the attempt/failure history and creates no new execution key." },
@@ -685,7 +685,7 @@ W23: [
   { m: "[ Send ]", l: "Send", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
 ],
 W23G: [
-  { m: "[ View technical status ]", l: "Technical status", info: "AA/paymaster gate failed: member delivery + sends stay off; Safe-to-Safe garden funding continues (SS:425)." },
+  { m: "[ View technical status ]", l: "Technical status", info: "AA/paymaster gate failed: Individual reward delivery + member sends stay off; Garden-claim rewards and non-commitment garden seeding continue Safe-to-Safe (SS:425)." },
 ],
 W24: [
   { m: "[ Execute ▸ ]", l: "Execute batch", to: "frame:W22", info: "Cross-garden execution home (WF:643). Executor-role guard (register #34e) applies to every execute/report control here, same as W22." },

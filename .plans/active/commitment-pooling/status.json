@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-27T17:43:53.472Z"
+    "updated_at": "2026-07-28T06:39:27.669Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -57,12 +57,13 @@
         "milestone": "release"
       }
     },
-    "lastSyncedAt": "2026-07-27T17:43:53.471Z",
+    "lastSyncedAt": "2026-07-28T06:39:27.669Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
       "august_proof": "PRD-650",
       "august_settlement": "PRD-686",
+      "protocol_funding_decision": "PRD-759",
       "september_interface": "PRD-682",
       "july_dry_run": "COM-7",
       "needs_substrate": "PRD-687",
@@ -93,6 +94,7 @@
     "Green Goods settles canonical G$ on Celo and never bridges G$ to Arbitrum. Green Goods designates the GG protocol Safe on Celo as the direct House of Alignment receiving account; current partner mechanism, receiving-address, and live-receipt evidence remain blockers (topology corrected 2026-07-18, corrections-log §9; verification report 2026-07-20).",
     "Commitment domains are optional arrays; DomainImpact requires 1-4 registered action/domain pairs. Action UID 0 is valid, action existence/domain is checked through ActionRegistry, and claim supersession uses a commitment-keyed companion index rather than an unavailable arbitrary entity scan.",
     "G$ commitment commands require the explicit CeloSettlement reward rail and derive garden/recipients/amounts from the Fulfilled commitment; core recordRewardPaid accepts only ArbitrumExternal, so the two records cannot both close one reward. Funding is limited to ProtocolToGarden. CCIP transports data only; token, Safe, target, and calldata are never caller supplied. Only an authenticated success acknowledgment for the subject's current execution key and attempt produces Confirmed. CeloSettlementExecutor is a scoped Zodiac Roles member and never an owner; exact pilot owner identities and recovery policy remain human Release evidence.",
+    "Protocol-pool parity decision (Decision Log #30 / PRD-759, 2026-07-27): the root garden's protocol pool uses the ordinary claim, accept, work/evidence, confirmation, and Fulfilled lifecycle. Indexed Fulfillment is the economic reward approval and creates a separate durable settlement job; permissionless queueDisbursement derives every payment fact and reconciles an exact existing live pointer as success, while queue exhaustion never rolls Fulfilled back. Garden claims target the registered providerGarden Safe without memberDeliveryEnabled; Individual claims target the provider AA and require it. Steward/module-owner-only queueFunding remains initial-scope solely for discretionary non-commitment garden seeds/top-ups, with no agent or keeper value authority.",
     "Linear was reconciled and live-re-read on 2026-07-10: both projects, all active milestones, core and referenced issues, canceled-child supersession notes, the Garden Mandate Survey, RESR-57/58 documents, and the new RESR-64 engagement-model document. PRD-651/697 are Backlog with no cycle or agent dispatch. Resolved 2026-07-11: the staged apply pack (reports/linear/linear-apply-pack.md) was applied and live-verified, the previously credit-blocked PRD-686/RESR-57 Safe/Zodiac wording refinement landed, and the PRD-651/697 due dates were cleared manually in the Linear UI (live-verified null).",
     "Out of scope for all lanes: bridged G$, arbitrary bridge-executor automation, a packages/agent settlement relayer or write path, bridge custody or unbounded value authority, Sarafu integration, transferable settlement vouchers/settlementAdapter activation, indexing Celo/G$ transfers, garden-to-garden federation, leaderboards, and credit scores. Optional later agent alerts are read-only and hold no settlement authority. The bounded message-only CeloSettlementExecutor is the August settlement path, not a token bridge.",
     "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in ../../backlog/commitment-credit-follow-on/spec.md, not part of the Build phase, and not dispatchable without an explicit unblock.",
@@ -725,6 +727,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-28T06:39:27.669Z",
+      "actor": "codex",
+      "lane": "settlement",
+      "status": "decision_recorded",
+      "branch": null,
+      "note": "Decision Log #30 and PRD-759 now record protocol-pool parity: eligible Fulfilled Celo rewards create a separate durable permissionless settlement job; Garden rewards use providerGarden Safe without the member-AA gate; Individual rewards retain that gate; steward/module-owner queueFunding remains only for discretionary non-commitment garden seeds/top-ups. PRD-759 title and description were replaced, proof comment posted, and status live-re-read as Done. No product implementation, deploy, broadcast, Safe mutation, or value movement was included."
     }
   ]
 }

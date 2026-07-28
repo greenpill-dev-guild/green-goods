@@ -23,6 +23,10 @@
 
 - Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
 - Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/CCIP operations live only in the deployer-gated Operations workspace.
+- Fulfilled `CeloSettlement` commitments show automatic arrangement/job recovery, never a second
+  “Queue disbursement” approval. Operations Flows separately provides **Seed / top up garden** for
+  steward-only non-commitment `queueFunding`; the review states that it does not fulfill, reward,
+  or alter a commitment.
 - Immutable batch-membership view with the measured configured 0–24 limit and hard ceiling of 24, whole-batch cancellation while Queued, per-member retry/cancel only after authenticated failure, command/execution/acknowledgment states, native ETH/CELO fee floors and low-balance state, active/previous peer expiry, Safe/Roles/cap health, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
 - Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
@@ -50,6 +54,9 @@
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
 - A Queued batch exposes one blast-radius-confirmed whole-batch cancel action and never a per-member cancel. A rejected batch cannot be edited or requeued wholesale; only Failed members can be requeued or terminally cancelled. The UI preserves the failed attempt/failure code and distinguishes that closeout from an atomic Queued pre-send batch withdrawal or an unbatched Queued cancellation.
 - Dispatch or Celo execution never marks settlement Confirmed. Same-key command retry, stored acknowledgment retry, authenticated failure/new-attempt, derived delivery delay, CCIP manual-execution guidance, command/destination/acknowledgment IDs with Explorer links, and ignored stale/duplicate acknowledgment behavior are legible.
+- Garden rewards remain available to the registered provider-garden Safe when member delivery is
+  disabled; Individual reward arrangement remains blocked. Automatic queue-job failure leaves
+  Fulfilled intact and exposes retry without presenting a new payment approval.
 - Safe view shows 2-of-3 recovery and separates owners from scoped executors.
 - Account setup never claims to deploy a Safe: it explains the Release-gated Safe/Roles prerequisites and registers only an already-deployed, live-verified route.
 - Loading, empty, offline, waiting, declined, failed, retry, queued, dispatched, executed/acknowledgment-pending, delayed, and Confirmed states have accessible recovery.

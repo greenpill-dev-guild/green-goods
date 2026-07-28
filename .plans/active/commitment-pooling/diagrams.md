@@ -99,7 +99,7 @@ Write `CommitmentPoolType` in full wherever the type is named (D7.1 does). A bar
 
 **MDR is ambiguous and unused here.** In client surfaces MDR means the **Media–Details–Review** capture wizard; in evaluation contexts it means the **Monitoring–Data–Reporting** pipeline (v1-0 §16.1 disambiguates the two). No diagram or asset in this hub uses the abbreviation, and none should — spell whichever one is meant.
 
-**Steward names are deliberately distinct, not drift.** They are different *resolutions* of the same Hats-based authority, and D13b is the exact gate for each: **commitment-pool steward** (the resolved authority of the commitment's pool), **protocol steward** (the root/protocol pool's steward specifically — the only one who may `queueFunding`), **settlement steward** (the resolved steward for a settlement subject), and **batch steward** (the resolved steward for an immutable batch's executor garden). Where a diagram says only "steward", the resolution is whichever of these the function's D13b row names. `operatorBps` keeps its GraphQL field name because that is canonical in `contract-spec.md` §8.2; its label reads "steward share" everywhere it is drawn.
+**Steward names are deliberately distinct, not drift.** They are different *resolutions* of the same Hats-based authority, and D13b is the exact gate for each: **commitment-pool steward** (the resolved authority of the commitment's pool), **protocol steward** (the root/protocol pool's steward specifically — the only human authority that may `queueFunding` for a discretionary non-commitment seed/top-up), **settlement steward** (the resolved steward for a settlement subject), and **batch steward** (the resolved steward for an immutable batch's executor garden). Where a diagram says only "steward", the resolution is whichever of these the function's D13b row names. `operatorBps` keeps its GraphQL field name because that is canonical in `contract-spec.md` §8.2; its label reads "steward share" everywhere it is drawn.
 
 ---
 
@@ -865,7 +865,7 @@ erDiagram
       String previousPeer "nullable bounded predecessor during rotation"
       Int previousPeerExpiresAt "nullable; no later than rotation plus 30 days"
     Boolean peerConfigured "readiness fact"
-    Boolean memberDeliveryEnabled "owner gate on member G$ delivery; never gates funding"
+    Boolean memberDeliveryEnabled "owner gate on individual G$ delivery; never gates Garden rewards or funding"
     Boolean paused "event-owned state"
   }
   SETTLEMENT_ACCOUNT {
@@ -1107,7 +1107,8 @@ Every steward action below is taken in the Admin Operations workspace. The two a
 ```mermaid
 sequenceDiagram
   autonumber
-  actor OP as Pool steward
+  participant APP as App settlement job
+  actor OP as Settlement steward
   actor PST as Protocol steward
   participant SM as SettlementModule (Arbitrum)
   participant CPM as CommitmentPoolingModule
@@ -1118,11 +1119,13 @@ sequenceDiagram
   participant IDX as Envio read model
 
   alt CommitmentReward — one fulfilled commitment
-    OP->>SM: queueDisbursement(commitmentId)
+    IDX-->>APP: indexed Fulfilled CeloSettlement commitment
+    APP->>SM: queueDisbursement(commitmentId) — permissionless/idempotent
     SM->>CPM: read canonical eligible facts for that commitment
-  else Funding — ProtocolToGarden top-up, commitmentId is 0
+    Note over SM,SAFE: Garden claim uses registered providerGarden Safe<br/>Individual claim uses provider AA and requires memberDeliveryEnabled
+  else Funding — discretionary ProtocolToGarden seed/top-up, commitmentId is 0
     PST->>SM: queueFunding(garden, amount) — protocol steward or owner only
-    Note over SM,CPM: no commitment is read — source, recipient and token<br/>derive from the funding config
+    Note over SM,CPM: no commitment is read because this is not an earned reward<br/>source, recipient and token derive from funding config
   end
   SM-->>IDX: DisbursementQueued ("support is queued")
   OP->>SM: dispatchDisbursement or dispatchBatch
@@ -1236,7 +1239,7 @@ stateDiagram-v2
 
 | State | What it means | What's allowed next | Who acts |
 |---|---|---|---|
-| Queued | canonical eligible facts are queued; nothing dispatched. Two distinct entry authorities: `queueDisbursement(commitmentId)` by the **commitment-pool steward**, and `queueFunding(garden, amount)` by the **protocol steward or module owner** only | dispatch through the frozen entrypoint (`executionKey` + `messageId`); `cancelDisbursement(unbatched disbursementId, reasonCID)`, or cancel the whole immutable batch | queueing: commitment-pool steward (disbursement) / protocol steward or owner (funding) · dispatch + cancel: resolved settlement steward |
+| Queued | canonical eligible facts are queued; nothing dispatched. Two distinct entry authorities: permissionless, app-driven `queueDisbursement(commitmentId)` for an indexed eligible Fulfilled reward, and `queueFunding(garden, amount)` by the **protocol steward or module owner** only for a discretionary non-commitment seed/top-up | dispatch through the frozen entrypoint (`executionKey` + `messageId`); `cancelDisbursement(unbatched disbursementId, reasonCID)`, or cancel the whole immutable batch | queueing: app settlement job / anyone for a derived commitment reward; protocol steward or owner for treasury seeding · dispatch + cancel: resolved settlement steward |
 | Dispatched | command sent; execution or acknowledgment may still be pending | wait; retry same command; retry stored acknowledgment from Celo | resolved steward / anyone for destination ack retry |
 | Confirmed | authenticated success acknowledgment for the current key/attempt received | terminal — “support arrived” | Celo executor through CCIP |
 | Failed | authenticated current execution-failure acknowledgment received | `requeue(disbursementId)` — **each failed member individually**, `attempt++`, as a new next attempt — or terminally cancel; the immutable failed batch is never rewritten or requeued as a batch | resolved settlement steward |
@@ -1370,34 +1373,55 @@ A `DECLINED` row is never reopened: a later request from the same claimant is a 
 
 ## D12. Protocol-to-garden funding route
 
+**Protocol-pool parity amendment (Decision Log #30)**: this section now draws both the ordinary
+earned-reward entry and the narrower discretionary treasury entry that share the route.
+
 **How to read this**: the topology treats a verified House of Alignment stream into the protocol
 Safe as an upstream treasury fact that Green Goods never queues, executes, or verifies. Its
 mechanism, receiving-address confirmation, and live receipt evidence remain pending. The planned
-protocol → garden top-up uses the same CCIP command → bounded Celo execution → acknowledgment
-discipline as D9 and cannot be enabled until the production Safe/Zodiac route is approved.
+root-garden protocol pool otherwise behaves like every garden pool: an indexed Fulfilled
+`CeloSettlement` commitment automatically creates the separate settlement job and uses the normal
+derived reward queue. `queueFunding` is the narrower treasury exception for a discretionary seed or
+top-up that is not earned by a commitment. Both routes share the same CCIP command → bounded Celo
+execution → acknowledgment discipline as D9 and cannot be enabled until the production Safe/Zodiac
+route is approved.
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor HOA as GoodDollar House of Alignment
   actor OP as Protocol steward
+  participant CPM as CommitmentPoolingModule
+  participant IDX as Envio read model
+  participant APP as App settlement job
   participant SM as SettlementModule (Arbitrum)
   participant CCIP as CCIP routers
   participant CE as CeloSettlementExecutor
   participant PS as GG protocol Safe (Celo)
-  participant GS as Garden Safe (Celo)
+  participant DST as Derived Garden Safe or member AA
 
   HOA->>PS: G$ stream lands in the protocol Safe (upstream fact)
-  Note over SM,GS: SettlementModule derives the only allowed ProtocolToGarden route
-  OP->>SM: queueFunding(garden, amount)
+  alt Fulfilled protocol-pool commitment reward
+    CPM-->>IDX: Fulfilled with CeloSettlement reward
+    IDX-->>APP: eligible commitment without live disbursement
+    APP->>SM: queueDisbursement(commitmentId)
+    SM->>CPM: derive source, beneficiary, token and amount
+    Note over SM,DST: Garden uses providerGarden Safe without member AA gate<br/>Individual uses provider AA with memberDeliveryEnabled
+  else Discretionary non-commitment garden seed or top-up
+    OP->>SM: queueFunding(garden, amount)
+    Note over SM,DST: protocol steward or module owner only<br/>not the protocol-pool reward path
+  end
   SM->>CCIP: data-only command
   CCIP->>CE: authenticated command
-  CE->>PS: typed canonical-G$ route to GS
+  CE->>PS: execute bounded canonical-G$ transfer
+  PS->>DST: canonical G$ arrives at derived beneficiary
   CE->>CCIP: stored outcome acknowledgment
   CCIP->>SM: authenticated success/failure acknowledgment
 ```
 
-If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available while `memberDeliveryEnabled` stays false. There is no garden-custody member-claim fallback.
+If the Celo AA/paymaster spike fails, Garden-claim rewards and discretionary Safe-to-Safe garden
+seeding remain available while `memberDeliveryEnabled` stays false. Individual rewards and member
+sends remain blocked. There is no garden-custody member-claim fallback.
 
 ## D13. Capability responsibility summary
 
@@ -1476,9 +1500,9 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Assessment config: existing `setSchemaUID`, existing `setKarmaGAPModule`, new `setAssessmentV3SchemaUID` | Existing AssessmentResolver owner (protocol multisig) | v2 selector/event and the deployment-window zero value stay compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; the v3 UID rejects zero and emits old/new |
 | Community Testimony config: `setSchemaUID`, `setCommitmentModule` | CommunityTestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID. Preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | `registerSettlementAccount`, `updateSettlementRecovery`, `setAccountActive` | Steward or `SettlementModule` owner | Registration is write-once for garden/account/Roles modifier/`roleKey`/`allowanceKey` and the immutable permissions hash; `chainId == DESTINATION_EVM_CHAIN_ID()`; the three recovery owners are sorted, unique, non-zero, and **none is a current executor**; threshold fixed at 2. A recovery update may change only owners and the recovery hash. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
-| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks new commitment-reward queues and member sends but never blocks the funding route |
-| `queueDisbursement` | Commitment-pool steward | Fulfilled commitment; `reward.rail == CeloSettlement`; member-delivery gate; canonical G$; active owning-pool source account; Individual derives provider AA while Garden derives active providerGarden Safe; no caller-selected recipient/token/amount |
-| `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
+| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks new **Individual** commitment-reward queues and member sends but never blocks Garden-claim rewards or the funding route |
+| `queueDisbursement` | Anyone; normally the app's durable `settlement` job | Indexed Fulfilled commitment; `reward.rail == CeloSettlement`; canonical G$; active owning-pool source account; Individual derives provider AA and requires `memberDeliveryEnabled`, while Garden derives active providerGarden Safe without that gate; no caller-selected recipient/token/amount; an exact existing live pointer is idempotent success |
+| `queueFunding` | Protocol steward or `SettlementModule` owner | Discretionary non-commitment ProtocolToGarden seed/top-up only; active source/destination accounts; no caller-selected token/Safe/target/calldata; never the normal protocol-pool commitment reward path |
 | `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members share executor garden/source/token/kind/funding route; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
 | `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Stored steward, `SettlementModule` owner, or configured dispatcher | Frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID |
 | `requeue` | Resolved settlement steward | Authenticated `Failed` member only; increments the individual attempt; immutable failed batch is never rewritten |

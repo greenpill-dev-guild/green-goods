@@ -1,7 +1,7 @@
 # Commitment Pooling — Cross-Surface Acceptance Matrix
 
 **Status**: canonical execution companion  
-**Updated**: 2026-07-25
+**Updated**: 2026-07-27
 **Sources**: `contract-spec.md`, `settlement-spec.md`, `pilot-evidence-spec.md`, `uiux-spec.md`, `wireframes.md`
 **Purpose**: one exact target for the handoffs' copy/state matrix, public claim/copy matrix, and final QA acceptance matrix. Specs win if this summary drifts.
 
@@ -19,6 +19,7 @@
 | Claim Superseded | Taken/no-longer-available copy; no retry | Indexed terminal row | Not public | Browse exit |
 | Evidence-only Accepted | Evidence + declared assessment requirements | Attach assessment; submit Ready; override separate | Active counts only | Evidence, assessment when declared, submit Ready |
 | DomainImpact Accepted | Per-action Work/approval progress; no manual Ready-submit | Positional requirement rows; override separate | Active counts only | Every `approvedWorkCounts[i] >= requiredApprovedWorkCounts[i]` + assessment when declared |
+| Fulfilled Celo reward awaiting queue | “Arranging settlement; your promise is fulfilled” | Automatic `settlement` job state + retry only on failure; no payout-approval button | Fulfilled, settlement not yet queued | Permissionless derived queue or exact-live-pointer reconciliation |
 | Settlement queued | “Support is queued” | Dispatch action + fee quote/reserve | Planned, not sent | Successful command dispatch |
 | Command dispatched | “Support on its way” | Command message ID, elapsed time, fee/route health | Sent, never received | Indexed Celo execution or authenticated failure acknowledgment |
 | Executed; acknowledgment pending | “Confirming arrival” | Celo execution + retry acknowledgment guidance | Confirming, never received | Authenticated success acknowledgment |
@@ -28,7 +29,7 @@
 | Cancelled from Failed | “Support was closed after delivery could not complete” | Failed attempt/code + cancellation reason/origin | Cancelled after authenticated failure | Terminal; no new execution key |
 | Queued batch cancelled | Each member uses Cancelled-from-Queued copy | One whole-batch action, reason, immutable member list, and blast radius; no member-level cancel | Batch and every member Cancelled before send | Atomic terminal transition; no partial queued-batch state |
 | Delivery/fee delay | Still on its way / confirming; never failed | Retry same command or stored acknowledgment; manual-execution guidance | Delivery delayed, not payment failure | Delivery/fee recovery |
-| Member delivery disabled | No G$ balance/send/delivery CTA | Gate reason; the funding route remains | Explicit delivery-blocked copy | AA/paymaster exit evidence + enabled event |
+| Member delivery disabled | No Individual G$ balance/send/delivery CTA; Garden-claim reward state remains visible | Gate reason; Individual reward queue and member send are blocked, while Garden-claim rewards and non-commitment garden seeding remain | Explicit member-delivery-blocked copy; no claim that Safe-to-Safe routes are blocked | AA/paymaster exit evidence + enabled event for Individual delivery |
 
 ## 2. Identity, permissions, and payout formulas
 
@@ -45,6 +46,8 @@
 | Garden G$ beneficiary | registered `providerGarden` Celo Safe | Never send to Arbitrum GardenAccount |
 | Commitment-reward source | registered Safe for the owning pool `commitment.garden`; protocol commitment → GG protocol Safe | `executorGarden` and source never switch to the provider garden; Garden claim uses providerGarden only as recipient/attribution |
 | Reward-rail exclusivity | `ArbitrumExternal` may use core `recordRewardPaid`; `CeloSettlement` may use SettlementModule; `None` has zero reward fields | A commitment cannot record both rail outcomes; Celo queue rejects the external rail and core payout recording rejects the Celo rail |
+| Celo reward queue authority | `queueDisbursement(commitmentId)` is permissionless because source, beneficiary, token, amount, rail, Fulfilled state, and one-live-disbursement pointer are contract-derived | The app creates one durable `settlement` job only after indexed eligible Fulfillment; an exact existing live pointer is success; queue exhaustion leaves Fulfilled untouched |
+| Discretionary garden funding | `queueFunding(garden, amount)` by protocol steward or SettlementModule owner | Initial-scope seed/top-up outside any commitment only; never the normal protocol-pool reward path and never agent/keeper value authority |
 | Canonical funding config | initializer-locked `protocolGarden` + canonical Celo G$ | No post-initialization setter; Celo router upgrade must preserve immutable G$ |
 | Settlement trust-root configuration | both source and executor initialize paused; source dependency changes require pause and emit old/new; source unpause requires complete route, active protocol account, and fee floor; executor unpause requires source peer, caps, period policy, and reserve floor | Incomplete or unpaused configuration fails before authority or dispatch changes; indexed configuration shows the active dependency addresses |
 | Assessment v3 placement | `assessmentV3` is one additive schema UID on the existing upgraded `AssessmentResolver` proxy | The proxy upgrade uses only `upgrade.ts assessment-resolver`; every tx-plan has an explicit sender verified against live `owner()`; registration computes the deterministic EAS UID and either registers an empty record or reconciles an exact existing record after partial persistence failure; read-before-set skips the exact UID and rejects a conflicting non-zero UID; v2 UID/address/owner/state stay preserved; no `AssessmentV3Resolver` contract or resolver artifact key; live `42161 schemaUID() == 0` is remediated from the verified v2 artifact before v3 activation; the `421614` rehearsal deploys/pins current v2 before upgrading |

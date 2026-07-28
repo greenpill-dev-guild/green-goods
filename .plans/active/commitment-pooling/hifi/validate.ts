@@ -93,6 +93,12 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
       beneficiarySettlementAccount: ["NotRequired", "Active"],
     },
   },
+  queueFunding: {
+    key: "settlementAccount",
+    allowed: ["Active"],
+    effects: { disbursement: "Queued" },
+    requires: { beneficiarySettlementAccount: ["Active"] },
+  },
   createBatch: { key: "disbursement", allowed: ["Queued"] },
   dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
   dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },

@@ -517,17 +517,22 @@ FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
 └────────────────────────────────┘       └────────────────────────────────┘
 ```
 
-- Celo G$ settlement (`CeloSettlement`) replaces the external row with the rail-specific queue confirmation below — reachable, like Record payout, only from the Fulfilled state. It cannot expose `Record payout`.
+- Celo G$ settlement (`CeloSettlement`) replaces the external row with the automatic arrangement state below. Indexed Fulfillment creates a separate durable settlement job; there is no second payout-approval control and it cannot expose `Record payout`.
 
 ```text
-┌── Queue Celo settlement ─────────────────────────────────┐
+┌── Arranging Celo settlement ─────────────────────────────┐
 │ Rail: CeloSettlement · reward: 500 G$                    │
 │ Payer: Rocinha owning-pool Safe · Celo                   │
 │ Recipient: Maria · same-address AA                       │
-│ Route/version/gas snapshot when queued                   │
-│                                  [ Queue disbursement ]  │
+│ Fulfilled ✓ · arranging the derived reward route         │
+│ If retry is needed: [ Retry arrangement ]                │
 └──────────────────────────────────────────────────────────┘
 ```
+
+For a Garden claim, Recipient is the registered `providerGarden` Safe and the member-AA gate is
+not consulted. For an Individual claim, Recipient is the provider's same-address Celo AA and
+`memberDeliveryEnabled` must be true. An exact existing live disbursement completes the job
+idempotently; an exhausted job leaves the commitment Fulfilled.
 
 - Review additions (audit 2026-07-18): Celo rows follow settlement-record-first precedence (settlement-spec §3.1.2), and the dialog shows the confirmation threshold with named-confirmer status. *Wireframe-only — the hi-fi keeps claims triage on W7 and does not draw an inline pending-claims queue or per-action requirement rows ("Prune 2/2 · Plant 0/1") in this dialog; both are kept here as recorded review intent.*
 
@@ -728,9 +733,9 @@ This commitment-pooling file retains only the shared commitment, confirmation, t
 
 ## 6. Settlement deltas (August, settlement-spec §7)
 
-G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific queue state drawn above.
+G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific automatic-arrangement state drawn above.
 
-**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders “support is queued” (Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` exposes Queue disbursement only after the canonical pooling and settlement interfaces are both GREEN; `ArbitrumExternal` alone exposes Record payout.
+**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders “arranging settlement” while its post-Fulfillment job has not yet reconciled a live row · “support is queued” (Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` automatically arranges the derived reward after indexed Fulfillment and exposes retry only if that separate job fails; `ArbitrumExternal` alone exposes Record payout.
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
@@ -818,7 +823,7 @@ Gate-failed variant (same frame, no substitute custody flow):
 
 ### W24 — Operations workspace (NET-NEW, deployer-gated)
 
-New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · CCIP · Flows**. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused. **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue) (3 states; the queue renders as a dtable with a protocol funding row).
+New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · CCIP · Flows** plus a focused **Seed / top up garden** state opened from Flows. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused. **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue) (4 states; the queue renders as a dtable with typed reward/funding rows).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -827,7 +832,7 @@ New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`show
 │ QUEUE — all gardens                                                    │
 │ ≡ Rocinha settlement 104 / attempt 0 (Queued) [ Dispatch ▸ ]           │  ▸ W22
 │ ≡ Awka settlement 103 / attempt 1 (Failed ▸) [ source follow-up ]      │
-│ Funding/commitment rows wait for canonical contract/indexer GREEN      │
+│ Fulfilled commitment rewards arrive automatically; treasury rows typed │
 ├────────────────────────────────────────────────────────────────────────┤
 │ CCIP — command/ack health                                              │
 │ Arbitrum native reserve ✓ · Celo native reserve ✓ · peers configured ✓ │
@@ -835,13 +840,21 @@ New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`show
 ├────────────────────────────────────────────────────────────────────────┤
 │ FLOWS — cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
-│ GG protocol Safe → garden Safes       source integration gate           │
-│ garden Safes → members                planned commitment rewards         │
+│ GG protocol Safe → garden Safes       earned rewards + treasury seeds    │
+│                                    [ Seed / top up ]                     │
+│ garden Safes → members                Individual AA gate only            │
 │ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │  oversight rows moved
+├────────────────────────────────────────────────────────────────────────┤
+│ SEED OR TOP UP A GARDEN (focused state)                                │
+│ Garden  ◉ Awka Hub · ○ Muizenberg     Amount [ 500 G$ ]                │
+│ GG protocol Safe → selected registered garden Safe                     │
+│ Outside any commitment; earned rewards queue automatically elsewhere   │
+│                                      [ Queue seed / top up ]            │
 └────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
 ```
 
-- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module does not record an upstream hop. The planned read model distinguishes queued, dispatched, Celo-executed/ack-pending, confirmed, failed, and delayed.
+- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module does not record an upstream hop. It also draws the decision boundary: earned protocol-pool rewards enter through the automatic post-Fulfillment `settlement` job; the explicit `queueFunding(garden, amount)` form is only for a non-commitment seed/top-up and remains protocol-steward/module-owner-only.
+- Garden-claim rewards and the seed/top-up path are Safe-to-Safe and do not depend on `memberDeliveryEnabled`; Individual reward queues and member sends do.
 - The production route authority gate applies to every value-execution control here, as described in W22.
 
 ### W25 — Protocol-pool claim flow (client PWA)

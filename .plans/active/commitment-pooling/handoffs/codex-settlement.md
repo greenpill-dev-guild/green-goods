@@ -119,10 +119,12 @@
   fee change, token pause/unpause, maximum-fee-bps/absolute-fee limits, ERC-20 false,
   ERC-777 reentrancy,
   source-as-recipient, and duplicate-recipient cases.
-- Every commitment reward sources G$ from the owning pool garden's registered Safe (`commitment.garden`; protocol pool → GG protocol Safe). Individual rewards target the provider's same-address Celo AA. Garden rewards target the separate registered `providerGarden` Safe. `ProtocolToGarden` is the only funding route.
+- Every commitment reward sources G$ from the owning pool garden's registered Safe (`commitment.garden`; protocol pool → GG protocol Safe). Individual rewards target the provider's same-address Celo AA and require `memberDeliveryEnabled`. Garden rewards target the separate registered `providerGarden` Safe without that member-AA gate. `ProtocolToGarden` is the only value route, but its semantics are distinct: permissionless `queueDisbursement(commitmentId)` is the normal fully derived reward path after indexed Fulfilled, while steward/module-owner-only `queueFunding(garden, amount)` is solely a discretionary non-commitment seed/top-up.
 - Native ETH/CELO fee balances, quote, reserve threshold, low-balance state, and withdrawal constraints are observable and tested. Arbitrum command dispatch/retry always spends the module reserve; Celo `AcknowledgmentSent.reserveFunded` distinguishes automatic/sponsored reserve spend from an exact caller-funded retry. LINK fee payment is out of scope.
 - `dispatcher` is a single optional Arbitrum address with dispatch/retry authority only. Protocol garden and canonical G$ have no post-initialization setter. Both contracts preserve their configured native-fee floor on sends and withdrawals.
-- `memberDeliveryEnabled()` remains the canonical AA capability gate; failure keeps member delivery blocked without disabling `ProtocolToGarden`.
+- `memberDeliveryEnabled()` remains the canonical Individual-AA capability gate; failure keeps
+  Individual reward queues and member sends blocked without disabling Garden-claim rewards or
+  discretionary `ProtocolToGarden` seeding.
 - Shared currently constructs Kernel `0.3.1` accounts. Pimlico's official support matrix lists
   that implementation on Arbitrum One, Arbitrum Sepolia, and Celo Mainnet, but not on Celo
   Sepolia; Celo Sepolia lists Kernel `0.2.4`. The workaround has two non-interchangeable tiers:

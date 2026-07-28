@@ -29,12 +29,17 @@
 - Pool readiness checklist exposes charter, qualifying baseline, and provider open-commitment cap; Paused exposes its reason while leaving only the contract-authorized recovery actions available.
 - Pool and cycle summaries show state counts and exact-label unit groups; `promiseKeptRate` is the only cross-commitment percentage. `hours` and `Hours` remain visibly separate, and active progress never adds unlike units.
 - Direction-aware confirmation UI: Offer recipient; Request creator; provider never shown as eligible.
-- G$ reward status and online send flow gated by authenticated acknowledgment and member delivery readiness.
+- G$ reward status begins with the automatic post-Fulfillment “arranging settlement” job state.
+  Individual reward delivery and online send remain gated by member-delivery readiness; Garden
+  reward rows may proceed Safe-to-Safe without that gate.
 - Accessible mobile/PWA states and en/es/pt copy.
 
 ## Acceptance
 
 - The five field job kinds work offline, survive restart, expose waiting/retry/failure, and do not duplicate submissions.
+- The sixth offline `settlement` job is system-created from indexed eligible Fulfillment, never
+  waits for a member Hat, reconciles an exact live disbursement as success, and leaves Fulfilled
+  untouched on failure.
 - DomainImpact creation rejects unequal positional arrays, duplicate domains, missing actions, domain/action mismatches, and zero required counts; successful jobs preserve the complete ordered `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]` payload through restart and retry. Per-action progress remains attached to `requirementIndex`, and the commitment uses canonical state/API `approvedUnits`.
 - The pool renders at most one open Season plus every concurrently open Campaign; scope controls label Season/Campaign/all-current state counts and exact-label summaries, and member creation binds one explicit cycle or cycle-less context.
 - Decline changes only the selected request and leaves peers Pending; acceptance consumes stored terms and renders every other pending indexed request Superseded; a new request never mutates or retries the old record.

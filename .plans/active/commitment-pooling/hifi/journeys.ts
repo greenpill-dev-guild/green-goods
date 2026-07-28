@@ -234,11 +234,11 @@ export const SBS: SB[] = [
   { f: "W2@support-failed", hot: null, st: "Failed (disbursement)", ev: "'still arranging support — your promise is recorded' — the commitment stays Fulfilled", cite: "SS:532 · DG:666", br: [{ l: "Steward recovery", to: "sb12:6" }] },
   { f: "W2@support-cancelled-queued", hot: null, st: "Cancelled from Queued", ev: "'support was withdrawn before it was sent' — the promise and its record stay intact", cite: "SS §3.1" },
   { f: "W2@support-cancelled-failed", hot: null, st: "Cancelled from Failed", ev: "'support was closed after delivery could not complete' — failed attempt history remains legible", cite: "SS §3.1" },
-  { f: "W23@delivery-blocked", hot: null, st: "delivery blocked", ev: "AA gate failed → no balance or send; Safe-to-Safe garden funding continues · register #34f makes the gate legible admin-side", cite: "SS:425" },
+  { f: "W23@delivery-blocked", hot: null, st: "delivery blocked", ev: "AA gate failed → no Individual reward delivery, balance, or send; Garden-claim rewards and non-commitment seeding continue Safe-to-Safe · register #34f makes the gate legible admin-side", cite: "SS:425 · Decision Log #30" },
 ]},
 { id: "sb12", n: 12, title: "Dispatch queued support and close the loop", persona: "Steward + protocol executor", scen: "S8/S9 · pre-broadcast proof", reviewVisible: true, reviewGroup: "admin", steps: [
   { f: "W21", hot: null, st: "Queued deliveries", ev: "the garden queue separates eligible delivery actions from the production route evidence that still gates value", cite: "SS §3" },
-  { f: "W10@queue-settlement", hot: { h: "w10.queue-settlement-confirm", l: "Queue disbursement" }, ev: "CeloSettlement snapshots the owning-pool Safe payer, canonical G$ recipient and amount, route, version, and gas limit", cite: "SS §3" },
+  { f: "W10@queue-settlement", hot: { h: "w10.queue-settlement-confirm", l: "View queued reward" }, ev: "indexed Fulfillment created the durable settlement job; permissionless queueDisbursement derived the owning-pool Safe payer, canonical G$ recipient and amount, route, version, and gas limit without a second payout approval", cite: "SS §3 · Decision Log #30" },
   { f: "W21", hot: { h: "w21.create-batch", l: "Create batch" }, ev: "the queued deliveries enter the optional homogeneous batch review before membership becomes immutable", cite: "SS §3" },
   { f: "W21@batch-create", hot: { h: "w21.create-batch-confirm", l: "Create batch" }, st: "Homogeneous selection", ev: "createBatch checks the shared source, route, version, and gas limit, then stores one immutable member snapshot", cite: "SS §3.1.2" },
   { f: "W21@batch-created", hot: { h: "w21.open-batch-command", l: "Open batch command" }, st: "Queued batch", ev: "batch #12 exists with two immutable members; its execution key is still created only when dispatch begins", cite: "SS §3.1.2" },
@@ -265,13 +265,13 @@ export const SBS: SB[] = [
 // The money leg: what a garden-claimed protocol promise actually pays, and to
 // whom. Everything else in the artifact pays an individual.
 { id: "sb19", n: 19, title: "Send a garden's G$ to its own Safe", persona: "Protocol steward", scen: "S14 · settlement", reviewVisible: true, reviewGroup: "admin", steps: [
-  { f: "W21@gate-status", hot: null, st: "gate enabled", ev: "member delivery is enabled and the route is registered — the precondition for queueing anything at all", cite: "SS §3.1" },
+  { f: "W21@gate-status", hot: null, st: "garden route active", ev: "the protocol and provider-garden Safe routes are registered; member delivery may remain disabled because the Garden reward does not target a member AA", cite: "SS §3.1 · Decision Log #30" },
   { f: "W10@garden-ready", hot: { h: "w10.garden-confirm", l: "Confirm — promise kept" }, st: "ReadyForConfirmation", ev: "confirmFulfillment by a named protocol steward; no reason is stored on the ordinary path", cite: "CS:743" },
-  { f: "W10@garden-fulfilled", hot: { h: "w10.queue-settlement-garden", l: "Queue disbursement…" }, st: "Fulfilled", ev: "the CeloSettlement rail replaces Record payout — the two rails are exclusive", cite: "AM §2" },
-  { f: "W10@queue-settlement-garden", hot: { h: "w10.queue-settlement-garden-confirm", l: "Queue disbursement" }, ev: "payer = the GG protocol Safe (the owning pool); beneficiary = Awka Hub's registered Celo Safe, never its Arbitrum account", cite: "AM:43 · SS:516" },
+  { f: "W10@garden-fulfilled", hot: { h: "w10.queue-settlement-garden", l: "View arrangement" }, st: "Fulfilled", ev: "Fulfillment is the economic approval and creates the separate settlement job automatically; Record payout remains unavailable", cite: "AM §2 · Decision Log #30" },
+  { f: "W10@queue-settlement-garden", hot: { h: "w10.queue-settlement-garden-confirm", l: "Open queued reward" }, ev: "permissionless queueDisbursement derives payer = the GG protocol Safe (the owning pool) and beneficiary = Awka Hub's registered Celo Safe, never its Arbitrum account and without the member-AA gate", cite: "AM:43 · SS:516" },
   { f: "W21@protocol-queue", hot: { h: "w21.dispatch-garden", l: "Dispatch" }, st: "Queued", ev: "the queue shows the garden reward beside a member one — the Kind column is what tells them apart", cite: "SS §3.1" },
   { f: "W22@garden-command", hot: { h: "w22.garden-open-ops", l: "Open Operations" }, st: "Dispatched", ev: "data-only command, zero token amounts; Celo moves the G$ and acknowledges back", cite: "SS §3" },
-  { f: "W24@flows", hot: null, marks: ["w24.queue-funding"], st: "Confirmed", ev: "the cross-garden board shows the corridor: GG protocol Safe → garden Safes, with this delivery confirmed; the funding top-up route stays behind its integration gate", cite: "SS:291" },
+  { f: "W24@flows", hot: null, marks: ["w24.queue-funding"], st: "Confirmed", ev: "the cross-garden board shows the shared corridor: this earned delivery is confirmed, while the explicit queueFunding control is reserved for a separate non-commitment seed or top-up", cite: "SS:291 · Decision Log #30" },
   { f: "W2@garden-support-arrived", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], st: "Confirmed", ev: "the garden's members see it: the support reached Awka Hub's own account, not a personal wallet", cite: "SS §5" },
 ]},
 // The public surface has its own reader: a neighbour or funder who never signs
@@ -406,6 +406,11 @@ export const SBS: SB[] = [
   { f: "W7@paused", hot: { h: "w7.cancel-cycle-paused", l: "Cancel season…" }, st: "Variant rewind · Pool Paused · cycle Open", ev: "the cancel variant starts from the same paused open season and does not imply a resume", cite: "CS:130", note: "This variant rewinds to the paused open season shown at the start of the chapter." },
   { f: "W7@paused-cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-paused-confirm", l: "Cancel season" }, st: "Pool Paused · reason required", ev: "cancelCycle changes only the cycle and stores the member-visible reason", cite: "CS:130 · UX:77" },
   { f: "W1@paused-cancelled-cycle", hot: null, surface: "pwa", echo: true, st: "Pool Paused · cycle Cancelled", ev: "members see both truths together: the season was cancelled and the pool remains paused", cite: "UX:60,77" },
+]},
+{ id: "sb33", n: 33, title: "Seed or top up a garden outside a commitment", persona: "Protocol steward", scen: "S9 · discretionary treasury support", reviewVisible: true, reviewGroup: "admin", steps: [
+  { f: "W24@flows", hot: { h: "w24.queue-funding", l: "Seed / top up" }, ev: "the funds board distinguishes automatic fulfilled-commitment rewards from an explicit non-commitment treasury action", cite: "Decision Log #30 · SS §3.1.3" },
+  { f: "W24@funding", hot: { h: "w24.queue-funding-confirm", l: "Queue seed / top up" }, st: "Explicit treasury review", ev: "queueFunding derives the GG protocol Safe, selected registered garden Safe, and canonical G$; it carries no commitmentId and grants no agent or keeper value authority", cite: "SS §3.1.3 · AM §2" },
+  { f: "W21@protocol-queue", hot: null, st: "Queued funding", ev: "the resulting row shares the transport queue but remains typed as Funding, never a commitment reward", cite: "SS §3.1.2" },
 ]},
 { id: "sb14", n: 14, title: "Turn a neighbor's need into a seeded promise", persona: "Neighbour (Kwame) + steward", scen: "S10 · September", reviewVisible: false, reviewGroup: "admin", steps: [
   { f: "C3", hot: { m: "What is your community trying to solve?", l: "Describe the problem by voice or text" }, who: "Kwame", surface: "community", ev: "kind-free Need · words captured by voice or typing · Request/Offer belongs to commitment seeding", cite: "CI-WF:96" },

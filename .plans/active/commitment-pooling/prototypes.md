@@ -1,7 +1,7 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
-- **Updated**: 2026-07-26 — lifecycle-context preservation and offline-queue closure (see Changelog); the hi-fi render upgrade was register #36.
+- **Updated**: 2026-07-27 — PRD-759 protocol-pool parity and discretionary seeding split (see Changelog); the hi-fi render upgrade was register #36.
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
 - **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
@@ -19,6 +19,7 @@
 | 2026-07-25 | Review closure: lifecycle validation now covers claim, evidence, assessment, cancellation, dispute, reward, batch, dispatch, and retry calls; paused/reviewing/no-Season states retain their legal acts; O23 gains a batch review/result; requeue copy creates its key on dispatch; SB-26–31 walk the remaining participation, campaign, service, and batch-cancel paths. |
 | 2026-07-26 | Scoped review fixes: contract-call validation now preserves every untouched overlapping lifecycle fact; Paused cycle close/cancel paths retain the Paused pool through confirmation, reconciliation, compost, and member echo; SupportService creation and evidence both render their required local queue boundary; SB-32 walks the paused wind-down variants. |
 | 2026-07-26 | Ontology alignment: RestorePrevious replays the fixture's exact ReadyForConfirmation state; W26 reviews unresolved items before ordered `closeCycle` → `compostCycle`; screen facts distinguish derived/on-chain cycle moments; MF-6 points to its evidence-only request state; settlement-account readiness no longer masquerades as `DisbursementState`. |
+| 2026-07-27 | PRD-759 decision closure (Decision Log #30): Fulfilled Celo rewards now create a separate durable, permissionless settlement job automatically; Garden rewards bypass the member-AA gate, Individual rewards retain it; W24 gains the initial-scope steward-only non-commitment seed/top-up flow; SB-33 walks that treasury exception. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
 - Hi-fi renders pull tokens from the design skills (`.claude/skills/design/`) and `packages/shared/src/styles/theme.css`; type approximates Inter / Plus Jakarta Sans / Fraunces via system fonts (artifacts make no external requests).
@@ -46,7 +47,7 @@
 
 ## Storyboard index
 
-**At a glance** — thirty-two numbered storyboards (thirty-seven validated source flows after surface/task splits) mapped to personas, scenarios, and surfaces.
+**At a glance** — thirty-three numbered storyboards (thirty-eight validated source flows after surface/task splits) mapped to personas, scenarios, and surfaces.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
@@ -82,8 +83,9 @@
 | SB-30 | Finish a Campaign promise while it is reviewing | Gardener | S1 campaign review | Client PWA |
 | SB-31 | Cancel an immutable queued batch | Settlement steward | S8 batch recovery | Admin |
 | SB-32 | Wind down a season while its pool stays paused | Steward | S5 paused wind-down | Admin (+ member echo) |
+| SB-33 | Seed or top up a garden outside a commitment | Protocol steward | S9 discretionary treasury support | Admin |
 
-Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, and SB-32 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool.
+Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33 isolates treasury seeding from earned rewards.
 
 ---
 
@@ -357,7 +359,7 @@ flowchart LR
 | 6 | — | (membership-wait lane) a brand-new member's job needs a garden hat that hasn't landed | S6: the job waits in `waiting_for_hat` **without consuming retries**, resumes after membership, "never fabricates a successful write" (LAP:191); the ≥99% sync metric explicitly excludes time in this state (`acceptance-matrix.md` §6) | waiting (local) | — |
 
 **Spec gap (finding input)** — `waiting_for_hat` is required by scenario S6 and the acceptance metric, and CI-W4 draws it for September community jobs (CI-WF:124-159):
-- but for the five pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
+- but for the five member-created pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
 - S6 also names **Edit/Retry/Cancel/Delete** for queued jobs (LAP:191), where §5.12 offers only retry/discard (UX:240).
 
 **Decided 2026-07-11 (register #34c)**: in scope for August — the pre-flight membership check consumes no retries, the join-request approval (register #35) is the canonical resume trigger, and uiux-spec §5.11/§5.12 are updated. Realized source sketch:
@@ -487,7 +489,7 @@ flowchart LR
 | 5 | W10 | **[ Record payout ]** on the `ArbitrumExternal` row (WF:377); `AdminConfirmDialog` captures the executed rail reference — jar withdrawal or treasury tx (UX:302) | `recordRewardPaid` → `RewardPaid(source, recipient, token, amount, payoutRef, recordedBy)` (CS:749; DG event list) | rewardPaid = true | State must be Fulfilled; single record per commitment; any other rail reverts (CS:749) |
 | 6 | W2 | Member's reward row flips to "reward released" (UX:143; WF:165) | quiet admin confirmation row only — celebration is client-side and already fired at Fulfilled (UX:202, register #27 PT:73) | — | — |
 
-No custody anywhere in this storyboard: value moved on the jar/treasury rail outside this UI; the module records that it happened (UX:302 "No value moves through this UI"). A commitment declared as `CeloSettlement` replaces step 5 with **[ Queue disbursement ]** → SB-12 (WF:564; SS:526); it never gains `rewardPaid`. **Dry-run note (register #34h)**: the 07-31 rehearsal runs the external rail with a real minimal Cookie Jar withdrawal — prerequisites: a configured jar (max/interval per corrections-log H7), the payout executor wearing the Gardener Hat, and the payoutRef captured via `recordRewardPaid` so S13 is exercised end to end.
+No custody anywhere in this storyboard: value moved on the jar/treasury rail outside this UI; the module records that it happened (UX:302 "No value moves through this UI"). A commitment declared as `CeloSettlement` replaces step 5 with the automatic post-Fulfillment `settlement` job → SB-12 (WF:564; SS:526); it never gains `rewardPaid` or asks for a second payout approval. **Dry-run note (register #34h)**: the 07-31 rehearsal runs the external rail with a real minimal Cookie Jar withdrawal — prerequisites: a configured jar (max/interval per corrections-log H7), the payout executor wearing the Gardener Hat, and the payoutRef captured via `recordRewardPaid` so S13 is exercised end to end.
 
 ---
 
@@ -520,7 +522,7 @@ flowchart LR
 | 7 | W23 | Wallet drawer G$ section: balance + "+20 G$ — Prune the north beds (arrived ↗)" (WF:569-572) | Celo balance read; rows from `queryKeys.settlement.*` (UX:219) | — | — |
 | 8 | W23 | **[ Send G$ ]** → sheet: to, amount, "Sent from your account on Celo. No gas needed." (WF:573-579) | online `transfer` — never enters the offline queue, no MAX_RETRIES replay (UX:219; SS:433); sponsored gas, members hold no CELO (WF:578) | wallet-pending → confirmed | Wallet rejection/tx failure inline with retry CTA (UX:219) |
 | 9 | W2 | (failure lane) reads **"still arranging support — your promise is recorded"** | disbursement Failed; commitment state untouched — Fulfilled is permanent | Failed (disbursement only) | Steward requeues after authenticated failure → SB-12 |
-| 10 | W23 | (blocked lane) AA gate failed: the whole G$ section is replaced by the gate-failed frame — "Planned · not available yet … member delivery and Send G$ stay unavailable." (WF:632-641) | `memberDeliveryEnabled` stays false; Safe-to-Safe garden funding may continue (SS:417; PT:32) | delivery blocked | No alternate member-delivery path ships (SS:417; DG:856) |
+| 10 | W23 | (blocked lane) AA gate failed: the whole personal G$ section is replaced by the gate-failed frame — "Planned · not available yet … member delivery and Send G$ stay unavailable." (WF:632-641) | `memberDeliveryEnabled` stays false; Garden-claim rewards and non-commitment garden seeding may continue Safe-to-Safe (SS:417; Decision Log #30) | Individual delivery blocked | No alternate member-delivery path ships (SS:417; DG:856) |
 
 **Honesty check (passes)**: every copy stage matches AM:20-25 — destination execution without its authenticated acknowledgment never renders as received, "support arrived" is Confirmed-only, and the blocked state names what still works (garden funding) without implying custody elsewhere. **register #34f** makes the gate legible steward-side too: W21/W12 gain a read-only gate-status row (enabled/disabled · changed by · date · evidence ref), so "delivery blocked" is diagnosable without reading chain state.
 
@@ -528,15 +530,15 @@ flowchart LR
 
 ## SB-12 — Funding routes → CCIP dispatch → authenticated acknowledgment
 
-**At a glance** — a steward queues, batches, and dispatches immutable settlement facts; the Celo executor authenticates the command, executes bounded G$ through Zodiac Roles, stores the outcome, and acknowledges it through CCIP. Human recovery is limited to transport retry, authenticated-failure requeue, or terminal cancellation from Queued/Failed; Dispatched can never be cancelled on delay alone.
+**At a glance** — indexed Fulfillment automatically creates the durable, permissionless settlement-queue job; a steward may batch and dispatch the resulting immutable settlement facts. Separately, the protocol steward may seed or top up a garden outside any commitment. The Celo executor authenticates each command, executes bounded G$ through Zodiac Roles, stores the outcome, and acknowledges it through CCIP. Human recovery is limited to transport retry, authenticated-failure requeue, or terminal cancellation from Queued/Failed; Dispatched can never be cancelled on delay alone.
 
-**Persona**: Operator (steward) queues, dispatches, and recovers. The **protocol executor** is the authenticated Celo contract — a scoped Zodiac Roles member, never a Safe owner, and not a human-facing persona (SS:47,415). **Scenario**: S8 (LAP:199-202) + S9 routes (LAP:204-207). **Surface**: admin. **Theme**: TAS first execution.
+**Persona**: Operator (steward) dispatches and recovers; the protocol steward may also initiate a discretionary non-commitment seed/top-up. The app's `settlement` job performs the normal commitment-reward queue, and the **protocol executor** is the authenticated Celo contract — a scoped Zodiac Roles member, never a Safe owner, and not a human-facing persona (SS:47,415). **Scenario**: S8 (LAP:199-202) + S9 routes (LAP:204-207). **Surface**: admin. **Theme**: TAS first execution.
 
 ```mermaid
 flowchart LR
   A["W21 settlement card"] -->|"Review registration requirements"| B["Release deploys/verifies Safe + Roles"]
   B -->|"Register existing route"| C["W21 registered"]
-  C -->|"Queue disbursement via W10"| D["W21 queue rows"]
+  C -->|"App queues after indexed Fulfilled"| D["W21 queue rows"]
   D -->|"Create batch"| E["W22 batch console"]
   E -->|"Dispatch immutable command"| F["CCIP command in flight"]
   F -->|"Authenticated command"| G["Celo bounded G$ execution"]
@@ -549,8 +551,8 @@ flowchart LR
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W21 | **[ Review registration requirements ]** | Read-only checklist explains that production governance separately deploys and verifies the 2-of-3 Safe/Roles route; only then may `registerSettlementAccount` bind the already-deployed Celo account | account stays unregistered until Release artifact exists | Missing Safe/Roles artifact keeps registration unavailable |
-| 2 | W24 / W12 | (funding beat) protocol steward queues **ProtocolToGarden** — the only modeled route; HoA → protocol Safe is upstream (SS:172; DG:832-856); the real, non-proposed control is on the W24 Operations funding view, with funding context reflected on W12 (SS:528; MF-11) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens (SS:172) | funding Queued | AA-gate failure never blocks this Safe-to-Safe route (SS:417; DG:856) |
-| 3 | W10 | Per fulfilled commitment declared as `CeloSettlement`: **[ Queue disbursement ]**; `Record payout` is unavailable (WF:564; SS:526) | `queueDisbursement` requires `memberDeliveryEnabled`, Fulfilled state, canonical G$, and an active owning-pool source account; Individual derives the provider AA recipient, Garden derives the active `providerGarden` Safe recipient (SS:171) | **Queued** — member reads "support is queued" | Any rail/account/gate mismatch blocks queueing |
+| 2 | W24 / W12 | (treasury beat) protocol steward chooses **Seed / top up garden** outside any commitment; HoA → protocol Safe is upstream (SS:172; DG:832-856); the control is on the W24 Operations funding view, with funding context reflected on W12 (SS:528; MF-11) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens, and it is never the protocol-pool reward path (SS:172) | funding Queued | AA-gate failure never blocks this Safe-to-Safe route (SS:417; DG:856) |
+| 3 | W10 | (system after indexed Fulfillment) the app creates `settlement { commitmentId, gardenAddress }`; W10 reads **Arranging Celo settlement** and never asks for a second payout approval | permissionless `queueDisbursement` derives every fact. Individual derives the provider AA and requires `memberDeliveryEnabled`; Garden derives the active `providerGarden` Safe without that gate. An exact live pointer is idempotent success | **arranging → Queued** — member then reads "support is queued" | Rail/account/beneficiary mismatch exhausts only the settlement job; Fulfilled remains permanent and W10 exposes retry |
 | 4 | W21 | **[ Create batch (2) ]** (WF:583) | `createBatch` — 1..configured limit unique ids, immutable members, one executorGarden/source/token; configured limit is measured and cannot exceed hard ceiling 24 | batch Queued | Batching remains unavailable while configured limit is zero. |
 | 5 | W22 | Steward **[ Dispatch command ]** | `dispatchDisbursement` / `dispatchBatch` sends the immutable data-only payload; source facts, recipient, token, amount, and steward scope derive from canonical pooling/funding state | Queued → **Dispatched** | Fee shortage or transport delay is operational, not payment failure; retry preserves the attempt and execution key. |
 | 6 | W22 | (system) authenticated Celo executor receives the command | validates router, selector, sender, version, zero token amounts, account, G$, caps, and Zodiac role; writes the bounded outcome before attempting the acknowledgment | Dispatched → Celo executed / acknowledgment pending | Duplicate or out-of-order commands cannot execute G$ twice. |
@@ -558,7 +560,34 @@ flowchart LR
 | 8 | W22 | (system) authenticated acknowledgment arrives | Success → **Confirmed**; bounded execution failure → **Failed**; duplicate or stale acknowledgments are ignored | Confirmed / Failed | A new source attempt is permitted only after authenticated failure; the steward requeues the failed member, never the immutable batch. |
 | 9 | W21 / W22 | Steward **[ Cancel ]** from Queued, or **[ Requeue ] / [ Close delivery ]** after authenticated failure | Queued cancel records pre-send origin; Failed close preserves the failed attempt/code and creates no new key; requeue increments the attempt and creates a new key only on its next dispatch | Cancelled / Failed → Queued | A timeout or missing acknowledgment never authorizes cancel, close, or requeue. |
 
-**Steward-burden note (finding input)**: the normal path is queue (W10) → optional batch (W21) → dispatch (W22). CCIP delivery, bounded Celo execution, outcome storage, and acknowledgment are automated. Retry controls appear only for operational recovery, and a new logical attempt is impossible until an authenticated failure. The dry run must measure whether these two or three steward interactions fit the 2–4 hrs/week volunteer budget.
+**Steward-burden note (finding input)**: the normal earned-reward path is automatic queue → optional batch (W21) → dispatch (W22); it has no W10 payout-approval interaction. CCIP delivery, bounded Celo execution, outcome storage, and acknowledgment are automated. Retry controls appear only for operational recovery, and a new logical attempt is impossible until an authenticated failure. The dry run must measure whether the remaining one or two steward interactions fit the 2–4 hrs/week volunteer budget. A discretionary seed/top-up is a separate intentional treasury action.
+
+---
+
+## SB-33 — Seed or top up a garden outside a commitment
+
+**At a glance** — a protocol steward may deliberately seed G$ into a registered garden Safe so the
+garden can begin making commitments. This initial-scope treasury path is not earned by, linked to, or
+authorized by a commitment; it shares the settlement transport only after its explicit queue action.
+
+**Persona**: Protocol steward. **Scenario**: S9 discretionary treasury support. **Surface**: admin
+Operations. **Theme**: no garden-specific visual authority.
+
+```mermaid
+flowchart LR
+  A["W24 Flows"] -->|"Seed / top up"| B["W24 funding review"]
+  B -->|"queueFunding(garden, amount)"| C["W21 typed Funding row"]
+  C -->|"Ordinary steward dispatch"| D["W22 CCIP transport"]
+```
+
+| # | Screen | User action | System response | State | If it fails |
+|---|---|---|---|---|---|
+| 1 | W24@flows | Protocol steward chooses **[ Seed / top up ]** | Opens the treasury review and explicitly states that earned rewards queue automatically elsewhere | draft only | Cancel returns to Flows with no write |
+| 2 | W24@funding | Select registered garden and amount; **[ Queue seed / top up ]** | steward/module-owner-only `queueFunding(garden, amount)` derives GG protocol Safe, destination garden Safe, and canonical G$; no `commitmentId` and no caller-selected token/address | Funding **Queued** | Missing/inactive route blocks the write without creating a row |
+| 3 | W21@protocol-queue | Reads the typed Funding row | The existing batch/dispatch/retry/acknowledgment transport applies; Kind remains Funding so it cannot be mistaken for a commitment reward | Queued | Ordinary settlement recovery |
+
+**Authority boundary**: no agent or keeper receives queue authority for this value path. A future
+threshold-triggered treasury policy would require a new explicit decision and authority model.
 
 ---
 
@@ -697,9 +726,9 @@ The table preserves the source gap that created each MF identifier; it is not a 
 
 ## 16. Action inventory — how many new user-facing actions does this feature add?
 
-**At a glance** — August adds ~37 net-new user-facing actions (9 member · 28 operator), riding 5 offline-safe job kinds plus one online G$ send; the Celo settlement executor is automated and adds no human-facing action.
+**At a glance** — August adds ~36 net-new user-facing actions (9 member · 27 operator), riding five member-created offline field kinds, one system-created offline `settlement` follow-up, and one online G$ send; automatic reward queueing and the Celo settlement executor add no human-facing action.
 
-**Sources of truth** — the permission matrix spans two files: `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186), cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitment, claim, evidence, workLink, confirmation`; `transfer` is online-only; `work`/`approval` are untouched (CS:1536; UX:206).
+**Sources of truth** — the permission matrix spans two files: `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186), cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitment, claim, evidence, workLink, confirmation, settlement`; only the first five use member membership-wait behavior, `settlement` is app-created from indexed eligible Fulfillment, `transfer` is online-only, and `work`/`approval` are untouched (CS:1536; UX:206).
 
 **Counting rules**:
 - **Net-new user-facing** = a persona triggers it from a realized frame or an explicit locked spec placement.
@@ -728,7 +757,7 @@ The table preserves the source gap that created each MF identifier; it is not a 
 |---|---|---|---|---|---|---|
 | O0 | Take this up **for this garden** (provider context) | `claimCommitment` ClaimType.Garden (CS:732,577-589) | W1 protocol card + `W25@context-chooser` (MF-8/register #51) | offline `claim` | NEW | eligible stewards only; claimant = GardenAccount, requestedBy = steward |
 
-**Operators / stewards — admin (27)**
+**Operators / stewards — admin (26)**
 
 | # | Action | Entry point(s) | Surface · screen | Offline? | New / ext | Notes |
 |---|---|---|---|---|---|---|
@@ -752,8 +781,7 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | O18 | Resolve a dispute (4 outcomes, reason) | `resolveDispute` (CS:748) | W10 (WF:381-382) | online | NEW | Expired can never resolve Fulfilled (CS:144) |
 | O19 | Record external payout | `recordRewardPaid` (CS:749) | W10 + AdminConfirmDialog (UX:302) | online | NEW | `ArbitrumExternal` only; `CeloSettlement` reverts |
 | O20 | Set up the settlement account | `registerSettlementAccount` (SS:169) | W21 registration form + result (SB-23) | online | NEW | registers an already-deployed, governance-verified Safe; steward or module owner |
-| O21 | Queue a disbursement | `queueDisbursement` (SS:171) | W10@queue-settlement (WF:564; SS:526) | online | NEW | `CeloSettlement` only; gated on member delivery + Fulfilled + active source/beneficiary routes |
-| O22 | Queue garden funding | `queueFunding` (SS:172) | W24 Operations funding view + W12 funding context (SS:528; MF-11, realized) | online | NEW | protocol steward or owner; GG→garden only |
+| O22 | Seed or top up a garden outside a commitment | `queueFunding` (SS:172) | W24 Operations funding view + W12 funding context (SS:528; MF-11, realized) | online | NEW | protocol steward or owner; GG→garden only; explicitly not an earned protocol-pool commitment reward |
 | O23 | Create a settlement batch | `createBatch` (SS:235) | W21 batch review + queued result (SB-12; WF:583) | online | NEW | resolved settlement steward only; homogeneous 1–configured-limit immutable members; hard ceiling 24 |
 | O24 | Retry command / acknowledgment | `retryCommand` / `retryBatchCommand` / `retryAcknowledgment` | W22 | online | NEW | source retry preserves attempt + execution key; a stored acknowledgment retry cannot move G$ |
 | O25 | Dispatch a settlement command | `dispatchDisbursement` / `dispatchBatch` | W22 | online | NEW | immutable source facts only; no arbitrary target, token, amount, or calldata |
@@ -769,7 +797,7 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | C1 | Confirm when named (Need author) | `confirmFulfillment` (CS:743) | CI-W5/CI-W6 (CI-SPEC:259) | offline `confirmation` | NEW (Sept surface) | consumes the shared primitive |
 | C2 | Add testimony | Community-testimony EAS attest, Community Hat only (CS:762) | CI-W5 plus the CI-W6→CI-W5 compatibility alias; no August client CTA or frame (UX:91 → MF-12) | offline-capable (DG:111-113, community job) | NEW (Sept) | first real attestation gate for the Community Hat |
 
-**Permissionless (1, intentionally ops-triggered)**: P1 — expire a lapsed commitment, `expireCommitment` (CS:746), callable by anyone once past due. Register #34d intentionally assigns the trigger to the post-launch keeper/admin sweep rather than an August member action. Counted apart from the 37 below.
+**Permissionless (1, intentionally ops-triggered)**: P1 — expire a lapsed commitment, `expireCommitment` (CS:746), callable by anyone once past due. Register #34d intentionally assigns the trigger to the post-launch keeper/admin sweep rather than an August member action. Counted apart from the 36 below.
 
 **Evaluator**: 0 exclusive actions — attach-assessment is shared (O14), and assessment v3 authorship (baseline evaluator-or-steward, delta evaluator-only — CS:760-761) is an **extension** of the existing Create Assessment flow (W14). **Funder**: 0 actions — the declared-reward reference is realized through operator seeding (UX:28); funder discovery stays on existing public surfaces (PT:158).
 
@@ -779,29 +807,29 @@ The table preserves the source gap that created each MF identifier; it is not a 
 
 `registerPool` (deploy-time + backfill, CS:722,934,1115) · `setDeclaredReward`/`setConfirmerRule` standalone pre-acceptance edits (CS:731 — W8 step 3 sets these as creation params; no edit control exists) · `unlinkWork` (CS:736) · `syncApprovedWork` recovery (CS:738; DG:221) · module admin setters ×8 incl. module pause (CS:750) · register `setModule` (CS:753) · UUPS upgrades ×3 (CS:754) · settlement router/peer rotation, caps, fee-reserve, garden-route, dispatcher, and pause governance (SS:166-183) · **`setMemberDeliveryEnabled` (SS:170 — the AA gate itself: owner-only, no surface; W23 renders only its OFF state)**.
 
-### 16.3 System actions surfaced only as states (never user-triggered — 6)
+### 16.3 System actions surfaced only as states (never user-triggered — 7)
 
-`onGardenMinted` (GardenToken-only) · `onWorkApproved` (WorkApprovalResolver-only) · CommitmentRegister module-only class-unit calls plus the register-side `setProviderOpenCommitmentCap` count-cap twin · authenticated Celo executor success/failure acknowledgment for the current execution key and attempt — the only producer of Confirmed / execution-failure Failed · SettlementModule `initialize` · indexer claim-request **supersession**.
+`onGardenMinted` (GardenToken-only) · `onWorkApproved` (WorkApprovalResolver-only) · CommitmentRegister module-only class-unit calls plus the register-side `setProviderOpenCommitmentCap` count-cap twin · app-created `settlement` job after indexed eligible Fulfillment, whose permissionless `queueDisbursement` reconciles an exact existing live pointer as success · authenticated Celo executor success/failure acknowledgment for the current execution key and attempt — the only producer of Confirmed / execution-failure Failed · SettlementModule `initialize` · indexer claim-request **supersession**.
 
 ### 16.4 Totals
 
 | Measure | Count |
 |---|---|
-| Net-new user-vocabulary actions, August surfaces | **37** = members 9 + operators 28 (27 admin + 1 client); the protocol executor is automated |
+| Net-new user-vocabulary actions, August surfaces | **36** = members 9 + operators 27 (26 admin + 1 client); reward queueing and the protocol executor are automated |
 | — of which await a final placement lock | **0** — register #51 locks MF-2b/MF-7/MF-8/MF-13 where drawn. |
 | — of which are visually silent | none; every August user-facing entry point is realized in a locked state or intentionally assigned to ops/config. |
-| Join-request queue (register #35; canonical design in `../community-interface/join-queue-spec.md`; operating gate remains) | +2 actions when RESR-64 clears implementation (member "ask to join" · steward "welcome / decline with reason") — counted then, not in the 39 |
+| Join-request queue (register #35; canonical design in `../community-interface/join-queue-spec.md`; operating gate remains) | +2 actions when RESR-64 clears implementation (member "ask to join" · steward "welcome / decline with reason") — counted then, not in the 38 |
 | September community-app actions | **12** = member 5 (post a Need · signal · retract · C1 confirm · C2 testimony) + operator 7 (acknowledge · decline · merge · hide · reopen · private-lane intake · seed-from-Need, CI-W9/CI-W10) — seed-from-Need extends O10 with `needUID` prefill |
 | Permissionless | 1 (P1 expire — intentionally assigned to the post-launch keeper/admin sweep by register #34d) |
 | Distinct user-triggered contract entry points, August | Re-baseline from the frozen pooling + CCIP settlement ABIs before UI implementation; retired verification/reporting entry points are excluded |
 | Ops/config functions with no app surface | Re-baseline from the frozen deployment/governance interfaces before implementation (16.2) |
-| System-only rows | 6 (16.3) |
+| System-only rows | 7 (16.3) |
 | New routes | client 3 (`/home/:id/pool`, `…/pool/:commitmentId`, `…/pool/new`) + admin 5 (`/garden/pool`, `…/seed`, `…/capture`, `/community/pools`, `/hub/confirm`) (UX:120,252-259) |
 | New in-place screen locations (no new route) | client 3 (Pool GardenTab · WalletDrawer pools panel, including the W6→W5 compatibility target · W23 G$ section) · admin 4 (W21 settlement section · W10 reward/dispute delta · W13 stage · W14 fields) · editorial 2 sections (W15, W16) |
-| New offline job kinds | 5 (`commitment, claim, evidence, workLink, confirmation`) + 1 online-only `transfer` (CS:1536) |
+| New offline job kinds | 6 (`commitment, claim, evidence, workLink, confirmation, settlement`) + 1 online-only `transfer` (CS:1536); only the first five are member-created field jobs |
 | New i18n key families | 8 (UX:393-402) + `settlement.*` extensions (SS:539); every key en + es + pt |
 
-**Platform delta (one line for the external brief's operator note)**: August adds one new place on each existing surface — a Pool tab in the garden app, a Pool tab, Confirm stage, and Pools mode in the steward console, a promises section on public garden pages — and about 37 new things a person can do there: 9 for members, from making an offer to withdrawing one or sending G$ onward, and 28 for stewards seeding promises, reviewing claims, running seasons, and recording or settling rewards. The Celo executor is automated; these actions ride 5 new offline-safe job kinds plus one online G$ send, shipped in English, Spanish, and Portuguese.
+**Platform delta (one line for the external brief's operator note)**: August adds one new place on each existing surface — a Pool tab in the garden app, a Pool tab, Confirm stage, and Pools mode in the steward console, a promises section on public garden pages — and about 36 new things a person can do there: 9 for members, from making an offer to withdrawing one or sending G$ onward, and 27 for stewards seeding promises, reviewing claims, running seasons, and recording or settling rewards. The app automatically queues eligible fulfilled rewards and the Celo executor is automated; these actions ride five member-created offline field kinds, one system-created settlement kind, and one online G$ send, shipped in English, Spanish, and Portuguese.
 
 ---
 
@@ -875,4 +903,4 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 | Cancelled from Queued | W2 `support-cancelled-queued` — "this support was withdrawn before it was sent — your promise and its record stay intact" | W21 unbatched confirmation + explicit result (SB-25); W22 batch confirmation stays atomic |
 | Cancelled from Failed | W2 `support-cancelled-failed` — "this support was closed after delivery could not complete — your promise and its record stay intact" | W21 failed recovery |
 
-**Coverage verdict**: every August action-inventory item with a plan-defined interactive landing path now has a guided walk. SB-20–31 cover campaign opening and member use, the Community→Garden handoff, assessment entry/context, settlement registration, route authority, batch creation/cancellation, failed-member requeue, and unbatched cancellation. O22 `queueFunding` remains the decided read-only integration gate: drawing a landing state would invent a path the plan does not define. Exhaustive loading, not-found, read-error, discard, validation, and quiet non-action empty states remain intentionally Screen-library-only. S10→SB-14 remains September Community source material and is hidden until high fidelity.
+**Coverage verdict**: every August action-inventory item with a plan-defined interactive landing path now has a guided walk. SB-20–31 cover campaign opening and member use, the Community→Garden handoff, assessment entry/context, automatic settlement arrangement, settlement registration, route authority, explicit non-commitment garden seeding, batch creation/cancellation, failed-member requeue, and unbatched cancellation. Exhaustive loading, not-found, read-error, discard, validation, and quiet non-action empty states remain intentionally Screen-library-only. S10→SB-14 remains September Community source material and is hidden until high fidelity.

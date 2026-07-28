@@ -477,7 +477,7 @@ const W22_HOTS: HifiDef["hots"] = {
 // W24 — Operations workspace (wireframes.md:643, deployer-gated)
 // ---------------------------------------------------------------------------
 
-const W24_STATES = [["queue", "Queue"], ["ccip", "CCIP"], ["flows", "Flows"]] as const;
+const W24_STATES = [["queue", "Queue"], ["ccip", "CCIP"], ["flows", "Flows"], ["funding", "Seed / top up garden"]] as const;
 type W24State = (typeof W24_STATES)[number][0];
 
 function w24(state: W24State): string {
@@ -506,10 +506,20 @@ ${banner("Manual execution is guidance, not a Green Goods state change. Show it 
       inner = acard(
         "Cross-chain funds board",
         `<div class="arow">${hot("w24.inflow-row", `<div class="grow">GoodDollar pool → GG protocol Safe</div>`)}<span class="num">balance 4,120 G$</span>${chip("Celo read", "plain")}</div>
-${hot("w24.queue-funding", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">source integration gate</span>${btn("View route gate", { kind: "sec", sm: true })}</div>`)}
+${hot("w24.queue-funding", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">earned rewards + treasury seeds</span>${btn("Seed / top up", { kind: "sec", sm: true })}</div>`)}
 <div class="arow"><div class="grow">Garden Safes → members</div><span class="t-meta num">source integration gate</span></div>
 ${hot("w24.gardens", `<div class="arow"><div class="grow">Gardens: Awka kept 8/9 · Muizenberg kept 5/6</div>${chip("alphabetical", "plain")}</div>`)}
-${banner("Queued, dispatched, executed, confirming, confirmed, failed, and delayed stay distinct here. Inflow is a Celo balance read — no upstream hop is recorded.", "stone")}`,
+${banner("Fulfilled commitment rewards queue automatically from their canonical facts. Seed / top up is the separate protocol-steward treasury action for support not earned by a commitment. Inflow is a Celo balance read — no upstream hop is recorded.", "stone")}`,
+      );
+      break;
+    case "funding":
+      inner = acard(
+        "Seed or top up a garden",
+        `${field("Garden", radio([{ label: "Awka Hub", meta: "registered Celo Safe", on: true }, { label: "Muizenberg", meta: "registered Celo Safe" }], { interactive: true, name: "funding-garden" }))}
+${field("Amount", input("500 G$"))}
+${kv("Source", "GG protocol Safe · Celo")}${kv("Recipient", "Selected garden's registered Celo Safe")}
+${banner("Treasury support outside a commitment. This does not fulfill, reward, or alter a promise; earned protocol-pool rewards are arranged automatically after Fulfilled.", "stone")}
+<div class="actrow" style="justify-content:flex-end">${hot("w24.cancel-funding", btn("Cancel", { kind: "ghost" }))}${hot("w24.queue-funding-confirm", btn("Queue seed / top up", { kind: "pri" }))}</div>`,
       );
       break;
     default:
@@ -520,11 +530,10 @@ ${banner("Queued, dispatched, executed, confirming, confirmed, failed, and delay
           [
             ["Rocinha", `settlement 104 · attempt 0`, chip("Queued", "plain", { dot: true }), hot("w24.execute", btn("Dispatch ▸", { kind: "pri", sm: true }))],
             ["Awka", `settlement 103 · attempt 1`, chip("Failed ▸", "err"), hot("w24.requeue", btn("Source follow-up", { kind: "sec", sm: true }))],
-            // Viewing a gate is a read, not a peer of dispatch — one primary per view.
-            ["protocol", `future funding → Muizenberg`, chip("Integration gate", "plain", { dot: true }), hot("w24.execute-protocol", btn("View gate ▸", { kind: "sec", sm: true }))],
+            ["protocol", `treasury seed → Muizenberg`, chip("Draft", "plain", { dot: true }), hot("w24.execute-protocol", btn("Seed / top up ▸", { kind: "sec", sm: true }))],
           ],
           "All gardens settlement queue",
-        ) + banner("Deployer-gated workspace — source integration and production Safe/Zodiac route evidence gate all future value controls.", "stone"),
+        ) + banner("Fulfilled commitment rewards enter this queue automatically. A garden seed/top-up remains an explicit protocol-steward treasury action; production Safe/Zodiac route evidence gates both.", "stone"),
       );
   }
   const header = pageHeader({
@@ -543,8 +552,16 @@ const W24_HOTS: HifiDef["hots"] = {
   "w24.tab-ccip": { l: "CCIP tab", to: "screen:W24@ccip", info: "Command/ack peer, native fee reserve, and acknowledgment-delay health." },
   "w24.tab-flows": { l: "Flows tab", to: "screen:W24@flows", info: "Cross-chain funds board with transport state, not raw G$ indexing." },
   "w24.execute": { l: "Dispatch command", to: "screen:W22", info: "Cross-garden source-command home; production value authority remains externally gated." },
-  "w24.execute-protocol": { l: "View protocol funding gate", info: "ProtocolToGarden requires the future source integration and approved production route." },
-  "w24.queue-funding": { l: "View funding route gate", to: "screen:W24@flows", info: "No upstream HoA hop is written onchain; future ProtocolToGarden facts are source-integrated." },
+  "w24.execute-protocol": { l: "Seed or top up a garden", to: "screen:W24@funding", info: "Explicit protocol treasury support outside any commitment; the destination Safe and canonical G$ route are derived." },
+  "w24.queue-funding": { l: "Seed or top up a garden", to: "screen:W24@funding", info: "No upstream HoA hop is written onchain. This explicit treasury action is distinct from automatic fulfilled-commitment reward queueing." },
+  "w24.cancel-funding": { l: "Cancel garden funding", to: "screen:W24@flows", info: "Returns to the flows board without creating a funding disbursement." },
+  "w24.queue-funding-confirm": {
+    l: "Queue seed or top up",
+    to: "screen:W21@protocol-queue",
+    info: "queueFunding derives the GG protocol Safe, selected garden Safe, and canonical G$ token. It is steward/module-owner-only and has no commitmentId.",
+    calls: ["queueFunding"],
+    facts: { settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+  },
   "w24.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A new logical attempt requires an authenticated failure and source integration ownership." },
   "w24.inflow-row": { l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   "w24.gardens": { l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },

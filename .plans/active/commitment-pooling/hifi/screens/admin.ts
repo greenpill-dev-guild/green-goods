@@ -925,13 +925,13 @@ const W9_HOTS: HifiDef["hots"] = {
 
 const W10_STATES = [
   ["detail", "Detail"], ["fulfilled", "Fulfilled — reward unpaid"],
-  ["record-payout", "Record payout"], ["queue-settlement", "Queue Celo settlement"],
+  ["record-payout", "Record payout"], ["queue-settlement", "Celo settlement arrangement"],
   ["fallback-confirm", "Fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
   ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel promise"], ["not-found", "Not found"],
   ["garden-ready", "Garden-provided — ready"], ["garden-fulfilled", "Garden-provided — fulfilled"],
-  ["queue-settlement-garden", "Queue G$ to the garden"],
+  ["queue-settlement-garden", "Garden reward arrangement"],
 ] as const;
 type W10State = (typeof W10_STATES)[number][0];
 
@@ -954,11 +954,11 @@ const w10Behind = () =>
 const W10_TITLE: Record<W10State, string> = {
   detail: "Prune the north beds", fulfilled: "Prune the north beds",
   accepted: "Repair tool handles", "record-payout": "Record payout",
-  "queue-settlement": "Queue Celo settlement",
+  "queue-settlement": "Arranging Celo settlement",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
   "attach-assessment": "Attach assessment", "mark-ready-override": "Mark service ready with override",
   "garden-ready": "Methodology survey", "garden-fulfilled": "Methodology survey",
-  "queue-settlement-garden": "Queue Celo settlement",
+  "queue-settlement-garden": "Garden reward arrangement",
   cancel: "Cancel this service promise", "not-found": "Promise unavailable",
 };
 
@@ -973,8 +973,8 @@ function w10(state: W10State): string {
       actions = `${dismiss()}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
       break;
     case "queue-settlement":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${banner("Queueing snapshots the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. Record payout is unavailable for this rail.", "stone")}`;
-      actions = `${dismiss()}${hot("w10.queue-settlement-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${kv("Settlement job", "Queued automatically after Fulfilled")}${banner("Fulfillment is the reward approval. The app's separate settlement job derives the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit; there is no second payout approval. Individual delivery waits for the member-AA gate. Record payout is unavailable for this rail.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.queue-settlement-confirm", btn("View queued reward", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
       body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — the provider's own address is blocked, always. The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
@@ -1024,7 +1024,7 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo account · unqueued")}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · arranged automatically after Fulfilled")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
@@ -1032,16 +1032,16 @@ ${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's
 ${kv("Protocol pool → Awka Hub", "1 survey")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "2 of 2 protocol stewards · Jul 12")}${kv("Provider garden", "Awka Hub — its gardeners worked and proved it")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo account · unqueued")}
-${banner("A garden-provided promise settles to the providing garden's own Celo account — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
-      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Queue disbursement…", { kind: "pri" }))}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · arranging")}
+${banner("Fulfillment automatically created the separate settlement job. A garden-provided promise settles to the providing garden's own Celo Safe without the member-AA gate — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("View arrangement", { kind: "pri" }))}`;
       break;
     case "queue-settlement-garden":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${banner(
-        "Queueing snapshots the canonical G$ amount, the owning-pool source, the recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$.",
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Settlement job", "Queued automatically after Fulfilled")}${banner(
+        "The job derives the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$; memberDeliveryEnabled is not consulted for this Safe-to-Safe reward.",
         "stone",
       )}`;
-      actions = `${dismiss()}${hot("w10.queue-settlement-garden-confirm", btn("Queue disbursement", { kind: "pri" }))}`;
+      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden-confirm", btn("Open queued reward", { kind: "pri" }))}`;
       break;
     case "not-found":
       body = emptyState(
@@ -1085,11 +1085,9 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
   "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
   "w10.queue-settlement-confirm": {
-    l: "Queue disbursement",
+    l: "View queued reward",
     to: "screen:W21",
-    info: "CeloSettlement only: queueDisbursement snapshots the active owning-pool Safe source and canonical G$ delivery facts.",
-    calls: ["queueDisbursement"],
-    facts: { commitment: "Fulfilled", settlementAccount: "Active", beneficiarySettlementAccount: "NotRequired" },
+    info: "CeloSettlement only: indexed Fulfillment created the separate settlement job, which permissionlessly derived the active owning-pool Safe source and canonical G$ delivery facts.",
   },
   "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "confirmFulfillmentAsFallback stores the steward's required reason; the member timeline renders the override marker.", calls: ["confirmFulfillmentAsFallback"] },
@@ -1105,13 +1103,11 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.cancel": { l: "Cancel promise (steward)", to: "screen:W10@cancel", info: "MF-2b: steward cancel of an Accepted (or §4.1 Paused) promise — cancelCommitment (CS:745; AM:36-37)." },
   "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@support-cancelled", info: "Accepted → Cancelled with a recorded reason; units release; the member result keeps the SupportService cast and its reason (CS:745).", calls: ["cancelCommitment"] },
   "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743).", calls: ["confirmFulfillment"] },
-  "w10.queue-settlement-garden": { l: "Queue disbursement", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
+  "w10.queue-settlement-garden": { l: "View arrangement", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; Fulfillment created the separate settlement job automatically, and Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
   "w10.queue-settlement-garden-confirm": {
-    l: "Queue disbursement (confirm)",
+    l: "Open queued reward",
     to: "screen:W21@protocol-queue",
-    info: "queueDisbursement takes no reason. Both the GG protocol source Safe and the providing garden's Celo Safe are active before this action is offered (AM:43 · SS:516).",
-    calls: ["queueDisbursement"],
-    facts: { commitment: "Fulfilled", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+    info: "The app's permissionless queue job already derived the GG protocol source Safe and the providing garden's Celo Safe. Garden rewards do not depend on the member-AA gate (AM:43 · SS:516).",
   },
   "w10.dismiss": { l: "Close dialog", to: "screen:W10", info: "Closes without applying the pending steward action." },
   "w10.retry": { l: "Retry promise read", to: "screen:W10", info: "Retries the promise read; the sentinel state never renders as a lifecycle chip." },

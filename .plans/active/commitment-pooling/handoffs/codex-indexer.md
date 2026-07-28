@@ -56,6 +56,10 @@
 - Full Garden.id migration to chainId-lowercaseAddress with replay/backfill, every foreign-key/helper/query/fixture cutover, and no mixed-ID interval.
 - Nullable generic audit actor populated only from explicit event parameters, never transaction.from.
 - Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and explicit `RewardRail` plus derived reward facts. `rewardRecipient` is the ArbitrumExternal `RewardPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs, and legacy Work-bundle readability.
+- The read model exposes deterministic settlement-job eligibility for an indexed Fulfilled
+  `CeloSettlement` commitment with no live disbursement, plus its exact live-disbursement pointer
+  when present. Garden eligibility joins the active registered `providerGarden` Safe without the
+  member-delivery gate; Individual eligibility requires `memberDeliveryEnabled`.
 - `CommitmentUnitSummary` is keyed by `chainId-scope-scopeId-unitLabelHash`, where the hash is computed from exact stored UTF-8 label bytes. POOL and CYCLE rows keep expected, approved, fulfilled, and open units only for that exact hash; `hours` and `Hours` never merge.
 - `CommitmentProviderExposure` is keyed by chain, pool, and provider and stores only the current open commitment count.
 - Generated-config preservation changes and a regression fixture proving

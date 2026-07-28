@@ -64,7 +64,7 @@ export type ContractCall =
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
-  | "queueDisbursement" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryBatchCommand"
+  | "queueDisbursement" | "queueFunding" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 
 // Metadata for one registered hotspot (a tappable control on a screen).

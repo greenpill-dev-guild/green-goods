@@ -20,9 +20,14 @@
 ## Outputs
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
-- Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
+- Six offline job kinds: five member-created field kinds (`commitment`, `claim`, `evidence`,
+  `workLink`, `confirmation`) plus the system-created `settlement` follow-up.
 - Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward rail/source/token/amount, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
+- The app creates `settlement { commitmentId, gardenAddress }` only after the indexer exposes an
+  eligible Fulfilled `CeloSettlement` commitment without a live disbursement. Its executor
+  permissionlessly calls `queueDisbursement(commitmentId)`, treats that commitment's exact existing
+  live pointer as idempotent success, and never mutates or rolls back Fulfilled on exhaustion.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
   Kernel `0.2.4` on both testnets for same-address mechanics evidence and Kernel `0.3.1` on
   Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
@@ -45,7 +50,9 @@
 
 - All hooks live in @green-goods/shared and use centralized queryKeys.
 - Mutations use the shared error pattern and event-driven invalidation.
-- Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
+- Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer. Only
+  the five field kinds enter `waiting_for_hat`; the system `settlement` job is driven by indexed
+  eligibility and reconciles the derived live pointer.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
@@ -53,6 +60,10 @@
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
   `RewardPaid`; `CeloSettlement` can surface only SettlementModule state; `None` has neither.
+- Celo reward eligibility distinguishes beneficiary kind: Garden targets the active registered
+  `providerGarden` Safe without consulting `memberDeliveryEnabled`; Individual targets the
+  provider AA and remains disabled until that gate is true. The separate steward-only
+  `queueFunding` seed/top-up is not exposed as a commitment job or an agent/keeper action.
 - Acknowledgment reads preserve the exact originating command-message relationship and stored
   return receiver/version; an older retry ID delivered out of order can join only to its own
   execution key and never to another settlement.
