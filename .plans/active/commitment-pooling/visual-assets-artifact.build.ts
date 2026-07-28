@@ -5,9 +5,14 @@
 //   2) Architecture — D1–D16 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
-//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26.
-//                     The hi-fi screen set is a different artifact entirely —
-//                     see prototypes-artifact.build.ts.
+//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26,
+//                     reconciled to the hi-fi registry (2026-07-27). The hi-fi screen
+//                     set is a different artifact entirely — see
+//                     prototypes-artifact.build.ts.
+//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 29-asset
+//                     coverage matrix, the ship-time appendix, and the audited
+//                     Open-questions findings panel, so the diagrams lead their
+//                     own tab.
 //
 // Rebuild:  bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts
 //           Always writes two explicit outputs:
@@ -395,8 +400,8 @@ const storyNav = [
 const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
-  <p class="lede">Twenty-three named diagrams, D1 through D16, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
-  <p><strong>Start anywhere.</strong> Every diagram carries its own “How to read this” panel, so no section depends on the one before it.</p>
+  <p class="lede">${architectureSecs.length} named diagrams, D1 through D16, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p><strong>Start anywhere.</strong> Every section carries a “How to read this” panel, so no section depends on the one before it. Where a section splits into sub-blocks, that panel sits at the top of the section and covers all of them — D7 is the exception that guides each sub-block separately.</p>
   <ul class="wayfind">
     <li><b>D1 · D1b</b> <span>the widest frame — who participates, and which boundary may authorize what</span></li>
     <li><b>D2 · D3 · D6</b> <span>one promise end to end, plus the analog capture path</span></li>
@@ -1774,9 +1779,15 @@ for (const prefix of diagramHowToPrefixes) {
 // Every anchor the nav can target must be unique across the whole document — both
 // panes are in the DOM at once, so a section id colliding with a sub-block id (or a
 // sub-block id repeated across tabs) would silently break the anchors added here.
+// All four panes are in the DOM at once — hidden panes are collapsed, not removed —
+// so scrollspy's getElementById and native #hash jumps resolve to whichever element
+// comes first. A Story id colliding with a diagrams/wireframes id would silently
+// track a hidden pane, so the Story anchors belong in this check too.
+const storySectionIds = [...storyBody.matchAll(/<section id="([^"]+)"/g)].map((m) => m[1]);
 const allAnchorIds = [
   "arch-intro",
   "ref-open-questions",
+  ...storySectionIds,
   ...[...dia.secs, ...wf.secs].flatMap((s) => [s.id, ...s.subs.map((sub) => sub.id)]),
 ];
 const duplicateAnchor = allAnchorIds.find((id, i) => allAnchorIds.indexOf(id) !== i);
@@ -1809,6 +1820,13 @@ for (const [navHtml, bodyHtml, label] of [
   }
 }
 assertBuild(architectureSectionCount === 24, "Architecture output must contain 24 sections (23 D-sections + the hand-written intro)");
+// The opener states the diagram count in prose; tie it to the routed section list so
+// adding or removing a D-section cannot leave the sentence quietly stale.
+assertBuild(
+  architectureSectionCount === architectureSecs.length + 1
+    && archIntro.includes(`${architectureSecs.length} named diagrams`),
+  "the Architecture opener's diagram count must track the routed D-section count",
+);
 assertBuild(architectureMermaidCount === 34, "Architecture output must contain 34 Mermaid blocks");
 assertBuild(mermaidCount === 35, "Gallery output must contain 35 Mermaid blocks including the Screens flow");
 // The Reference pane is the only home of the deep material now, so losing a routed
