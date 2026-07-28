@@ -22,7 +22,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Not
 
 That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS the need statement). No `## Reporter context` beyond the Speaker line (other attendees are on the Drive notes one click away). No PostHog evidence or Deploy correlation block (those live on the Issue). The Customer Need is the raw signal anchor; the Issue is where work happens.
 
-**Labels (Customer Need)**: the Linear API surface for `save_customer_need` accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the linked Issue. The fields `protocol:green-goods`, `source:drive`, `agent:claude` (formerly listed here) belong on the linked Issue's label set.
+**Labels (Customer Need)**: the Linear API surface for `save_customer_need` accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the linked Issue. The fields `protocol:green-goods`, `source:drive`, `ai:claude` (formerly listed here) belong on the linked Issue's label set.
 
 **Required link**: every Customer Need must carry an `issue` (or `project`) parameter. Linear's API rejects with `Exactly one of projectId or issueId must be defined` otherwise. There is no standalone Need path — use the track-only pattern below for items that should be recorded without claiming committed fix work.
 
@@ -64,10 +64,10 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 <one sentence from the notes or extraction; "needs investigation" if absent. When a Deploy-correlation block is present, default to "investigate the linked diff" unless the notes named a different fix path.>
 
 ## Provenance
-{include only when the `agent:*` label can't carry both an origin and a delegate}
-- Created by: <agent:claude | agent:routine>
-- Delegated to: <agent:codex | agent:claude>
-- The label set carries the delegate-to agent (Linear enforces single-value-per-group on `agent:*`); the originating agent is captured here.
+{include only when the `ai:*` label can't carry both an origin and a delegate}
+- Created by: <ai:claude | ai:routine>
+- Delegated to: <ai:codex | ai:claude>
+- The label set carries the delegate-to agent (Linear enforces single-value-per-group on `ai:*`); the originating agent is captured here.
 
 ## Source
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker named on the linked Customer Need.
@@ -86,7 +86,7 @@ Admin Dashboard (members panel)
 Investigation likely spans `package:admin` (display) and `package:indexer` (enrichment); only `package:admin` is on the label set per Linear's single-value-per-group constraint on `package:*`.
 ```
 
-**Labels (Issue)** — Linear enforces single-value-per-group on `agent:*` and `package:*`; the rules below assume one value per family:
+**Labels (Issue)** — Linear enforces single-value-per-group on `ai:*` and `package:*`; the rules below assume one value per family:
 
 - `protocol:green-goods` — always.
 - `package:*` (one only) — one of `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs`. The **primary surface** wins as the label; secondary packages are named in the body's `## Surface` block. Omit only when the surface is genuinely unknown.
@@ -94,7 +94,7 @@ Investigation likely spans `package:admin` (display) and `package:indexer` (enri
 - `activity:maintenance` — cleanup or polish that isn't a user-visible defect.
 - `activity:architecture` — strategic / architectural work (e.g., cross-device account recovery, auth-flow rework).
 - `source:drive` — provenance still matters for triage.
-- `agent:*` (one only) — `agent:claude` (interactive Claude Code), `agent:codex` (delegated to Codex), `agent:routine` (cron'd routine writes). When both an origin and a delegate-to apply, the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. The interactive `qa-triage` skill defaults to `agent:claude` unless the user picks Codex delegation in the assignee dialog.
+- `ai:*` (one only) — `ai:claude` (interactive Claude Code), `ai:codex` (delegated to Codex), `ai:routine` (cron'd routine writes). When both an origin and a delegate-to apply, the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. The interactive `qa-triage` skill defaults to `ai:claude` unless the user picks Codex delegation in the assignee dialog.
 
 **Workflow state**:
 - `Todo` when surface + behavior are clear and a fix path is suggestable.
@@ -122,7 +122,7 @@ When Phase 3 surfaces a `[derived:recurring]` item and the user approves it in P
 <bullet list of Linear URLs for every Customer Need this run associates with this hash>
 ```
 
-**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `agent:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
+**Labels**: `protocol:green-goods`, `activity:qa`, `package:<inferred>`, `ai:claude`, plus `pattern:posthog-<hash-prefix>` if the pattern label family exists on the team. If `pattern:*` is missing, fail loud and skip the recurring-pattern parent rather than inventing a label.
 
 **Title format**: `Recurring: <top-line-error-message-redacted>` — verb-led when possible.
 
