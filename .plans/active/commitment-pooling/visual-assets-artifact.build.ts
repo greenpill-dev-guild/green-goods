@@ -251,20 +251,33 @@ const diaOut = sectionsHtml(architectureSecs);
 const refOut = sectionsHtml(referenceSecs, { navMinLevel: 1, rename: REFERENCE_RENAMES });
 const wfOutRaw = sectionsHtml(wf.secs);
 
-// Every wireframe frame carries the accuracy caveat, because a reader lands on a
-// single frame from the TOC and would otherwise never see a pane-level notice.
-const WF_BADGE =
-  '<span class="wf-badge" title="These frames have not yet been reconciled against the hi-fi UI prototypes.">pending sync with UI prototypes</span>';
-let wfBadgeCount = 0;
-const wfOut = {
-  nav: wfOutRaw.nav,
-  // Non-greedy across the whole heading, not [^<]*: W12's title carries an inline
-  // <code> span, and a tag-free match silently skipped exactly that one frame.
-  body: wfOutRaw.body.replace(/<h4>((?:W\d|WFLOW|HUBWORK)[\s\S]*?)<\/h4>/g, (_m, title: string) => {
-    wfBadgeCount += 1;
-    return `<h4>${title} ${WF_BADGE}</h4>`;
-  }),
-};
+// Reconciled 2026-07-27: the blanket "pending sync with UI prototypes" badge is
+// retired — every frame was audited against the hi-fi registry and corrected to
+// mirror it (wireframes.md § Hi-fi reconciliation). What remains is a scope tag on
+// exactly the frames that deliberately keep a block the hi-fi does not draw; each
+// such block also carries an inline "Wireframe-only" sentence in the frame's prose.
+// The allowlist is explicit so a tag can never reappear as a regex side effect.
+const WF_ONLY_FRAMES = [
+  "w4-counterparty-confirmation-sheet-uiux-spec-5-6", // evidence-band comparison
+  "w7-garden-workspace-pool-tab-uiux-spec-6-2", // waiting-to-join queue (community-interface build)
+  "w10-commitment-detail-dialog-uiux-spec-6-2-6-7", // inline claims queue + per-action rows (review intent)
+  "w12-pools-mode-inside-admin-community-uiux-spec-6-8", // claimable-by-your-gardeners browse list
+  "w15-gardendialog-pool-story-section-uiux-spec-7-1", // "Recently kept" montage
+  "w21-garden-pool-tab-settlement-section-delta-to-w7", // Safe/allowance/executor detail rows
+];
+const WF_ONLY_TAG =
+  '<span class="wf-badge wf-only" title="This frame keeps at least one block the hi-fi registry does not draw; the block is marked in the frame notes.">includes wireframe-only detail</span>';
+// Count-only scan (same shape the badge injection used): the non-greedy body match
+// exists because W12's heading carries an inline <code> span.
+const wfScreenCount = (wfOutRaw.body.match(/<h4>(?:W\d|WFLOW|HUBWORK)[\s\S]*?<\/h4>/g) || []).length;
+let wfOnlyApplied = 0;
+let wfBody = wfOutRaw.body;
+for (const id of WF_ONLY_FRAMES) {
+  const before = wfBody;
+  wfBody = wfBody.replace(new RegExp(`(<section id="${id}"><h4>[\\s\\S]*?)</h4>`), `$1 ${WF_ONLY_TAG}</h4>`);
+  if (wfBody !== before) wfOnlyApplied += 1;
+}
+const wfOut = { nav: wfOutRaw.nav, body: wfBody };
 const requiredArchitectureSections = [
   ["D1.", "d1-unified-system-context"],
   ["D1b.", "d1b-contract-module-topology-and-trust-boundaries"],
@@ -409,26 +422,105 @@ const archIntro = `
   <p><strong>The Reference tab holds the rest</strong> — the 29-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, and the open questions this set does not answer.</p>
 </section>`;
 
-// Recorded, not resolved. These are decisions with owners; the diagrams are drawn
-// as the frozen specs stand today and none of them was bent to imply an answer.
-const OPEN_QUESTIONS = [
-  "Do we enable commitment fulfillment just from actions being completed?",
-  "Can a commitment have multiple requirements attached?",
-  "How are hypercerts shares determined?",
-  "How is gas covered for CCIP actions; can the user pay instead of the protocol?",
-  "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
-  "Can the needs architecture be simplified (fewer schemas/resolvers)?",
-  "Do the wireframes mirror our UI prototypes?",
+// Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
+// shipped code (no CP Solidity exists on any branch — every build lane is unstarted,
+// so the frozen specs ARE the implementation). Questions are kept byte-identical;
+// each entry adds a verdict, a grounded finding, citations, and — where the call is
+// genuinely open — a rider the team still owns. Postures were aligned with the
+// founder interactively on 2026-07-27; nothing here bends a diagram to imply an
+// answer the specs don't carry.
+type OpenQuestionVerdict = "answered" | "answered-gap" | "decision";
+const VERDICT_LABEL: Record<OpenQuestionVerdict, string> = {
+  answered: "Answered",
+  "answered-gap": "Answered · one open gap",
+  decision: "Decision needed",
+};
+const OPEN_QUESTIONS: ReadonlyArray<{
+  question: string; // original wording, byte-identical — asserted below
+  verdict: OpenQuestionVerdict;
+  finding: string;
+  cites: string;
+  rider?: string; // recommendation, or for no-lean entries the postures themselves
+  riderLabel?: string; // defaults to "Recommendation"
+}> = [
+  {
+    question: "Do we enable commitment fulfillment just from actions being completed?",
+    verdict: "answered",
+    finding:
+      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every per-action requirement reaches its required count and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with the provider excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
+    cites:
+      "contract-spec.md §5.3 transition tables + locked fulfillment posture · Linear PRD-649 and the Lifecycle & Aggregator Semantics doc",
+  },
+  {
+    question: "Can a commitment have multiple requirements attached?",
+    verdict: "answered",
+    finding:
+      "Yes — up to four. DomainImpact commitments store positional arrays (`domains[]`, `requiredActionUIDs[]`, `requiredApprovedWorkCounts[]`): unique domains, max 4, every required count non-zero; each work approval credits exactly one requirement via `requirementIndex`, and approved units are the weighted sum across requirements. Evidence-only kinds carry zero. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1 `CommitmentRequirement`) are what members see between Accepted and Ready. D7.1 draws the 1:N shape.",
+    cites: "contract-spec.md §5.3 storage + §8.2 `CommitmentRequirement` · Decision Log #28(a) and #39",
+  },
+  {
+    question: "How are hypercerts shares determined?",
+    verdict: "answered-gap",
+    finding:
+      "Decided at the class level: a six-role bps snapshot (gardeners / treasury / steward / evaluator / community / funder) is frozen at `openCycle`, must sum to 10,000, and ships a Model 1 default of 6000/1500/1000/500/500/500. Open at the contributor level: how a class’s share divides among its members — the gardeners’ 6000 across N fulfilled-commitment providers — is app-computed and unspecified, and raw units never mix across commitments (Decision Log #45), which rules out the most obvious weighting. D7c draws the expansion honestly as a black box.",
+    rider:
+      "Reuse the shipped hypercert `DistributionMode` picker (equal · proportional · count · value · custom) at cycle close, defaulting to `equal` within each class; `count`-by-fulfilled-commitments is the unit-safe alternative. Trade-off: per-mint steward flexibility versus one fixed rule’s predictability.",
+    cites: "contract-spec.md §9.4–9.5 · packages/shared/src/lib/hypercerts/distribution.ts (shipped precedent)",
+  },
+  {
+    question: "How is gas covered for CCIP actions; can the user pay instead of the protocol?",
+    verdict: "answered",
+    finding:
+      "The protocol pays, by design, on both legs: the Arbitrum module holds monitored native ETH for commands, the Celo executor holds monitored native CELO for acknowledgments, neither route uses LINK, and reserve floors are timelock-gated. Caller overpayment on dispatch was deliberately removed (Decision Log #52). The user-pays paths that do exist: permissionless exact-fee `retryAcknowledgment` (atomic refund on failure; the Safe is never re-invoked) and permissionless reserve top-ups (`fundFees` / `fundAcknowledgmentFees`). Transport note: Chainlink Functions was retired in the 2026-07-23 re-freeze (Decision Log #46) — the CCIP command/acknowledgment model drawn in D8–D10 is current, and the Linear mirrors (PRD-686, the Lifecycle doc) still carrying Functions wording are stale.",
+    rider:
+      "Follow-up worth scoping: exact-quote steward-funded dispatch, mirroring the acknowledgment-retry pattern, as a future spec change that reduces protocol subsidy. Trade-off: it reopens the caller-payment surface Decision Log #52 closed.",
+    cites: "settlement-spec.md §2 decision basis, §3.1.3 fee surface, §4 independent acknowledgment · Decision Log #46/#50/#52",
+  },
+  {
+    question: "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
+    verdict: "decision",
+    finding:
+      "Confirmed manual in the frozen spec — deliberately: `queueFunding(garden, amount)` is callable only by the protocol steward or module owner, the route is locked to `ProtocolToGarden` with source, recipient, and token derived from config (never caller-supplied), and settlement-write automation is explicitly out of scope — later alerts may read indexed health only. Everything after queueing is automated transport (CCIP command → bounded Celo execution → authenticated acknowledgment). No rationale sentence is recorded in the spec; the posture is reconstructed from its adjacent locks. HoA → protocol Safe stays an upstream treasury fact, and the return leg is an open external dependency (PRD-734).",
+    riderLabel: "Postures under consideration",
+    rider:
+      "(a) Keep manual initiation — value moves stay human-initiated and machine-verified, with indexed-health alerts nudging the steward. (b) Post-MVP threshold-triggered `queueFunding` — requires a new authority model, since today no agent or keeper holds settlement write authority. No lean recorded; this is a team call.",
+    cites: "settlement-spec.md §3.1.3 `queueFunding` gates + §9 out-of-scope · PRD-734",
+  },
+  {
+    question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
+    verdict: "decision",
+    finding:
+      "Two layers. Resolvers — one-per-schema is a repo convention, not an EAS requirement: EAS binds a resolver per schema at registration but lets one contract serve many (the resolver receives `attestation.schema`), and the frozen AssessmentResolver upgrade already runs two schemas through one proxy. No recorded decision defends four Need resolvers. Schemas — the four-schema set looks load-bearing on analysis: each is a distinct attester-gate / revocability / payload / volume tuple, and merging NeedSignal + NeedStatus would put the union payload on the highest-volume record while demoting schema-level revocability into resolver branches. The schema count stays open for the team design session rather than being recorded as settled here.",
+    rider:
+      "Collapse 4 → 2 resolvers: `CommunityNeedsResolver` (Need + NeedSignal + NeedStatus — hat-gated branches, branched `onRevoke` defaulting false, no zero-UID wildcard, pairwise UID distinctness) plus a separate `FundingAttributionResolver` (the only ungated one — keep the blast wall). Cheap now while the contracts lane is unstarted, expensive after. Schema count: bring the keep-4 analysis to the design session; do not treat it as decided.",
+    cites: "EAS SchemaRegistry (per-schema binding; resolver address in the UID preimage) · contract-spec.md AssessmentV3 dispatch · community-interface/spec.md §3.1–3.2",
+  },
+  {
+    question: "Do the wireframes mirror our UI prototypes?",
+    verdict: "answered",
+    finding:
+      "Audited 2026-07-27: they did not — only 4 of 25 frames matched the hi-fi registry (five locked uiux-spec Appendix B addenda had never been absorbed, and W7’s drawn tab rail contradicted the shipped admin code). Reconciled in the same pass: all 21 divergent frames were corrected to mirror the canonical states, every frame now cites its `#screens/SCREEN@state` registry entry, and the blanket “pending sync” badge is retired — the six frames that keep a block the hi-fi does not draw carry an explicit wireframe-only tag instead.",
+    cites: "wireframes.md § Hi-fi reconciliation (2026-07-27) · hifi/screens/index.ts registry · the Flow Prototypes artifact",
+  },
 ];
 
 const openQuestionsSection = `
 <section id="ref-open-questions">
   <h2>Open questions</h2>
-  <p class="lede">Design decisions this asset set deliberately does not answer. They are recorded here so no diagram is read as having settled one — each belongs to its owner, and every diagram below is drawn as the frozen specs stand today.</p>
+  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — four answered, one answered with an open gap, and two parked as decisions with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
   <div class="qpanel">
-    <span class="eyebrow">Parked for decision</span>
-    <ol>
-      ${OPEN_QUESTIONS.map((q) => `<li>${esc(q)}</li>`).join("\n      ")}
+    <span class="eyebrow">Audited 2026-07-27</span>
+    <ol class="qfindings">
+      ${OPEN_QUESTIONS.map((entry) => {
+        const rider = entry.rider
+          ? `<p class="qrec"><strong>${esc(entry.riderLabel ?? "Recommendation")}.</strong> ${inline(entry.rider)}</p>`
+          : "";
+        return `<li>
+        <p class="qq">${esc(entry.question)} <span class="qtag qtag-${entry.verdict}">${VERDICT_LABEL[entry.verdict]}</span></p>
+        <p class="qfind">${inline(entry.finding)}</p>${rider}
+        <p class="qcite">${inline(entry.cites)}</p>
+      </li>`;
+      }).join("\n      ")}
     </ol>
   </div>
 </section>`;
@@ -702,6 +794,20 @@ ul.wayfind li{display:grid;grid-template-columns:minmax(7rem,auto) minmax(0,1fr)
 .qpanel ol{margin:.7rem 0 0;padding-left:1.35rem;max-width:76ch;}
 .qpanel li{margin:.42rem 0;}
 .qpanel li::marker{color:var(--stone);font-variant-numeric:tabular-nums;}
+/* Findings layout: question (verbatim) + verdict pill, finding, optional rider,
+   compact citation line. All tokens; dark theme comes free. */
+ol.qfindings{max-width:none;}
+.qfindings li{margin:1rem 0;}
+.qfindings .qq{font-weight:600;color:var(--ink);max-width:76ch;margin:0;}
+.qtag{display:inline-block;margin-left:.45rem;padding:.06rem .5rem;border:1px solid var(--sand);
+  border-radius:999px;background:var(--paper);color:var(--stone);vertical-align:middle;white-space:nowrap;
+  font:600 .66rem/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;letter-spacing:.02em;}
+.qtag-answered{background:var(--moss-tint);border-color:var(--moss);color:var(--moss-ink);}
+.qtag-answered-gap{background:var(--diagram-note);border-color:var(--diagram-note-border);color:var(--ink);}
+.qtag-decision{background:var(--paper);border-color:var(--sand);color:var(--stone);}
+.qfind{margin:.3rem 0 0;max-width:76ch;}
+.qrec{margin:.45rem 0 0;padding:.1rem 0 .1rem .75rem;border-left:3px solid var(--moss);max-width:76ch;}
+.qcite{margin:.35rem 0 0;color:var(--stone);font-size:.78rem;max-width:none;}
 /* Wireframe accuracy caveat, carried on every screen heading. */
 .wf-badge{display:inline-block;margin-left:.5rem;padding:.08rem .5rem;border:1px solid var(--sand);
   border-radius:999px;background:var(--paper);color:var(--stone);vertical-align:middle;white-space:nowrap;
@@ -732,7 +838,7 @@ section,h4[id]{scroll-margin-top:calc(var(--header-h) + 1rem);}
 <header class="top">
   <div class="mast">
     <h1>Commitment Pooling — Visual Asset Gallery</h1>
-    <p class="sub">Green Goods · ${storyAssetCount} hand-drawn story assets · ${archDiagramCount} architecture diagrams · ${wfBadgeCount} wireframe screens · source: <code>.plans/active/commitment-pooling/</code></p>
+    <p class="sub">Green Goods · ${storyAssetCount} hand-drawn story assets · ${archDiagramCount} architecture diagrams · ${wfScreenCount} wireframe screens · source: <code>.plans/active/commitment-pooling/</code></p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Gallery sections">
     <button id="tab-story" role="tab" aria-selected="true" aria-controls="pane-story" tabindex="0" data-tab="story">The story</button>
@@ -1711,11 +1817,39 @@ assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-r
 assertBuild(referenceSectionCount === REFERENCE_TITLES.length + 1, "Reference output must contain the routed sections plus Open questions");
 assertBuild(refBody.includes("Visual coverage matrix") && refBody.includes("<table"), "Reference must still carry the coverage matrix in full");
 assertBuild(!archBody.includes("Visual coverage matrix"), "the coverage matrix must not remain in the Architecture pane");
-for (const question of OPEN_QUESTIONS) {
-  assertBuild(refBody.includes(esc(question)), `Open questions panel lost the verbatim item: ${question}`);
+for (const entry of OPEN_QUESTIONS) {
+  assertBuild(refBody.includes(esc(entry.question)), `Open questions panel lost the verbatim item: ${entry.question}`);
+  assertBuild(
+    entry.finding.trim().length > 0 && entry.cites.trim().length > 0,
+    `Open-questions entry needs a finding and citations: ${entry.question.slice(0, 48)}`,
+  );
+  if (entry.verdict === "decision") {
+    assertBuild(Boolean(entry.rider?.trim()), `decision entry must carry a rider: ${entry.question.slice(0, 48)}`);
+  }
 }
-assertBuild(OPEN_QUESTIONS.length === 7, "the Open questions panel is seeded with exactly the seven recorded items");
-assertBuild(wfBadgeCount === 25, `all 25 wireframe frames must carry the pending-sync badge (found ${wfBadgeCount})`);
+assertBuild(OPEN_QUESTIONS.length === 7, "the Open questions panel carries exactly the seven audited items");
+assertBuild(
+  (refBody.match(/class="qq"/g) || []).length === 7 && (refBody.match(/class="qtag /g) || []).length === 7,
+  "every question must render with exactly one verdict tag",
+);
+assertBuild(
+  (refBody.match(/class="qrec"/g) || []).length === OPEN_QUESTIONS.filter((entry) => entry.rider).length,
+  "rendered rider count must match the entries that declare one",
+);
+assertBuild(
+  !refBody.includes("Parked for decision") && !refBody.includes("deliberately does not answer"),
+  "the pre-audit framing cannot survive alongside findings",
+);
+assertBuild(wfScreenCount === 25, `the Screens pane must present all 25 wireframe frames (found ${wfScreenCount})`);
+for (const id of WF_ONLY_FRAMES) {
+  assertBuild(wf.secs.some((s) => s.id === id), `WF_ONLY_FRAMES names #${id}, which is not a Screens section`);
+}
+assertBuild(wfOnlyApplied === WF_ONLY_FRAMES.length, `wf-only tag applied to ${wfOnlyApplied} of ${WF_ONLY_FRAMES.length} allowlisted frames`);
+assertBuild(
+  (artifactBody.match(/class="wf-badge wf-only"/g) || []).length === WF_ONLY_FRAMES.length,
+  "rendered wf-only tag count must equal the allowlist",
+);
+assertBuild(!artifactBody.includes("pending sync with UI prototypes"), "the blanket pending-sync badge is retired");
 // Matched against the markup, not a bare role= substring: the same strings appear
 // inside the pane-switching script's querySelectorAll calls.
 assertBuild(
@@ -1742,5 +1876,5 @@ writeFileSync(ARTIFACT_OUT, artifactBody);
 console.log(`local preview: ${LOCAL_OUT} (${Buffer.byteLength(localDocument).toLocaleString()} bytes, embedded Mermaid ${mermaidVersion})`);
 console.log(`Artifact body: ${ARTIFACT_OUT} (${Buffer.byteLength(artifactBody).toLocaleString()} bytes, host-rendered Mermaid)`);
 console.log(`sections: story ${storyAssetCount} · architecture ${architectureSectionCount} · screens ${wfOut.body.split("<section").length - 1} · reference ${referenceSectionCount}`);
-console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount} · wireframe badges: ${wfBadgeCount}`);
+console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount} · wireframe screens: ${wfScreenCount} · wf-only tags: ${WF_ONLY_FRAMES.length}`);
 console.log("publish only the Artifact body; open the local preview directly with file://");
