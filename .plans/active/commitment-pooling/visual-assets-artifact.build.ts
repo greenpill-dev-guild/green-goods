@@ -5,9 +5,14 @@
 //   2) Architecture — D1–D16 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
-//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26.
-//                     The hi-fi screen set is a different artifact entirely —
-//                     see prototypes-artifact.build.ts.
+//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26,
+//                     reconciled to the hi-fi registry (2026-07-27). The hi-fi screen
+//                     set is a different artifact entirely — see
+//                     prototypes-artifact.build.ts.
+//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 29-asset
+//                     coverage matrix, the ship-time appendix, and the audited
+//                     Open-questions findings panel, so the diagrams lead their
+//                     own tab.
 //
 // Rebuild:  bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts
 //           Always writes two explicit outputs:
@@ -201,11 +206,20 @@ const respSvg = (s: string, label: string) =>
 const dia = renderMd(diagramsMd);
 const wf = renderMd(wireframesMd);
 
-function sectionsHtml(secs: Sec[], skipTitles: string[] = []): { nav: string; body: string } {
-  const kept = secs.filter((s) => s.html.length > 0 && !skipTitles.includes(s.title));
-  const navLabel = (t: string) => esc(t.replace(/\s*\(.*?\)\s*$/, ""));
+type SectionOpts = {
+  /** Reference routes a level-1 section into its own pane, so it needs a nav entry. */
+  navMinLevel?: number;
+  /** Display-only heading rewrites. Anchor ids stay derived from the source title. */
+  rename?: Record<string, string>;
+};
+
+function sectionsHtml(secs: Sec[], opts: SectionOpts = {}): { nav: string; body: string } {
+  const { navMinLevel = 2, rename = {} } = opts;
+  const kept = secs.filter((s) => s.html.length > 0);
+  const shown = (t: string) => rename[t] ?? t;
+  const navLabel = (t: string) => esc(shown(t).replace(/\s*\(.*?\)\s*$/, ""));
   const nav = kept
-    .filter((s) => s.level >= 2)
+    .filter((s) => s.level >= navMinLevel)
     .map((s) =>
       `<a href="#${s.id}">${navLabel(s.title)}</a>` +
       s.subs.map((sub) => `<a class="sub" href="#${sub.id}">${navLabel(sub.title)}</a>`).join(""),
@@ -214,14 +228,61 @@ function sectionsHtml(secs: Sec[], skipTitles: string[] = []): { nav: string; bo
   const body = kept
     .map((s) => {
       const tag = s.level === 1 ? "h2" : s.level === 2 ? "h3" : "h4";
-      return `<section id="${s.id}"><${tag}>${inline(s.title)}</${tag}>${s.html.join("\n")}</section>`;
+      return `<section id="${s.id}"><${tag}>${inline(shown(s.title))}</${tag}>${s.html.join("\n")}</section>`;
     })
     .join("\n");
   return { nav, body };
 }
 
-const diaOut = sectionsHtml(dia.secs);
-const wfOut = sectionsHtml(wf.secs);
+// Tab routing (2026-07-27): the diagrams must lead the Architecture pane, so the
+// preamble, the 29-asset coverage matrix, and the ship-time appendix move to a
+// Reference pane. Nothing is dropped — the deep material renders there in full,
+// and a purpose-written intro carries only what you need to read a diagram.
+const REFERENCE_TITLES = [
+  "Commitment Pooling: Diagrams",
+  "Visual coverage matrix",
+  "Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)",
+];
+const REFERENCE_RENAMES: Record<string, string> = {
+  "Commitment Pooling: Diagrams": "Sources, vocabulary, and drawing conventions",
+  "Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)":
+    "Appendix — edits to existing docs diagrams at ship",
+};
+
+const architectureSecs = dia.secs.filter((s) => !REFERENCE_TITLES.includes(s.title));
+const referenceSecs = dia.secs.filter((s) => REFERENCE_TITLES.includes(s.title));
+
+const diaOut = sectionsHtml(architectureSecs);
+const refOut = sectionsHtml(referenceSecs, { navMinLevel: 1, rename: REFERENCE_RENAMES });
+const wfOutRaw = sectionsHtml(wf.secs);
+
+// Reconciled 2026-07-27: the blanket "pending sync with UI prototypes" badge is
+// retired — every frame was audited against the hi-fi registry and corrected to
+// mirror it (wireframes.md § Hi-fi reconciliation). What remains is a scope tag on
+// exactly the frames that deliberately keep a block the hi-fi does not draw; each
+// such block also carries an inline "Wireframe-only" sentence in the frame's prose.
+// The allowlist is explicit so a tag can never reappear as a regex side effect.
+const WF_ONLY_FRAMES = [
+  "w4-counterparty-confirmation-sheet-uiux-spec-5-6", // evidence-band comparison
+  "w7-garden-workspace-pool-tab-uiux-spec-6-2", // waiting-to-join queue (community-interface build)
+  "w10-commitment-detail-dialog-uiux-spec-6-2-6-7", // inline claims queue + per-action rows (review intent)
+  "w12-pools-mode-inside-admin-community-uiux-spec-6-8", // claimable-by-your-gardeners browse list
+  "w15-gardendialog-pool-story-section-uiux-spec-7-1", // "Recently kept" montage
+  "w21-garden-pool-tab-settlement-section-delta-to-w7", // Safe/allowance/executor detail rows
+];
+const WF_ONLY_TAG =
+  '<span class="wf-badge wf-only" title="This frame keeps at least one block the hi-fi registry does not draw; the block is marked in the frame notes.">includes wireframe-only detail</span>';
+// Count-only scan (same shape the badge injection used): the non-greedy body match
+// exists because W12's heading carries an inline <code> span.
+const wfScreenCount = (wfOutRaw.body.match(/<h4>(?:W\d|WFLOW|HUBWORK)[\s\S]*?<\/h4>/g) || []).length;
+let wfOnlyApplied = 0;
+let wfBody = wfOutRaw.body;
+for (const id of WF_ONLY_FRAMES) {
+  const before = wfBody;
+  wfBody = wfBody.replace(new RegExp(`(<section id="${id}"><h4>[\\s\\S]*?)</h4>`), `$1 ${WF_ONLY_TAG}</h4>`);
+  if (wfBody !== before) wfOnlyApplied += 1;
+}
+const wfOut = { nav: wfOutRaw.nav, body: wfBody };
 const requiredArchitectureSections = [
   ["D1.", "d1-unified-system-context"],
   ["D1b.", "d1b-contract-module-topology-and-trust-boundaries"],
@@ -333,6 +394,152 @@ const storyNav = [
   ["story-ownership", "Where each document lives"],
 ].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
 
+// Hand-written Architecture opener. It carries only what you need in hand to read a
+// diagram — where things live, and the two colour contracts. Everything deeper is
+// one tab away, rendered in full rather than summarised.
+const archIntro = `
+<section id="arch-intro">
+  <h2>How to read this set</h2>
+  <p class="lede">${architectureSecs.length} named diagrams, D1 through D16, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p><strong>Start anywhere.</strong> Every section carries a “How to read this” panel, so no section depends on the one before it. Where a section splits into sub-blocks, that panel sits at the top of the section and covers all of them — D7 is the exception that guides each sub-block separately.</p>
+  <ul class="wayfind">
+    <li><b>D1 · D1b</b> <span>the widest frame — who participates, and which boundary may authorize what</span></li>
+    <li><b>D2 · D3 · D6</b> <span>one promise end to end, plus the analog capture path</span></li>
+    <li><b>D4 · D5</b> <span>pool and cycle state machines</span></li>
+    <li><b>D7 · D7b · D7c · D7d</b> <span>the Envio read model, its ERDs and its cut-overs</span></li>
+    <li><b>D8 – D12</b> <span>G$ topology, settlement sequence, disbursement states, funding route</span></li>
+    <li><b>D13 · D13b</b> <span>capabilities, then the exact per-function permission table</span></li>
+    <li><b>D14 – D16</b> <span>offline jobs, deployment topology, error taxonomy</span></li>
+  </ul>
+  <p><strong>Five sections open with an overview and then zoom in.</strong> D2 and D6 split into three acts, D7 into an entity map plus two field blocks, D9 into healthy path, idempotency and retries, and D16 into the error, where it manifests, and how the person responds. Sub-blocks are indented in the section list on the left.</p>
+  <p><strong>Three status treatments, and only three.</strong> A fill never means two different things in two diagrams, and the meaning of a relationship is always written on the arrow.</p>
+  <ul class="legend">
+    <li><span class="sw" aria-hidden="true"></span><span><b>Built / live</b> — ships today, in production</span></li>
+    <li><span class="sw sw-planned" aria-hidden="true"></span><span><b>Planned / gated</b> — does not exist yet, or is gated</span></li>
+    <li><span class="sw sw-delta" aria-hidden="true"></span><span><b>Existing surface, planned delta</b> — live today, and this work adds a planned capability to it</span></li>
+  </ul>
+  <p><strong>State provenance is not decoration.</strong> The state machines render where a state is stored, so a value the indexer computes never reads as a chain write.</p>
+  <ul class="legend">
+    <li><span class="sw" aria-hidden="true"></span><span><b>On-chain</b> — the module stores it; a transaction moved it here</span></li>
+    <li><span class="sw sw-derived" aria-hidden="true"></span><span><b>Derived</b> — the indexer computes it from events; no transaction writes it</span></li>
+    <li><span class="sw sw-app" aria-hidden="true"></span><span><b>App-only</b> — client-side; <code>Draft</code> lives in IndexedDB and has no chain presence</span></li>
+  </ul>
+  <p><strong>The Reference tab holds the rest</strong> — the 29-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, and the open questions this set does not answer.</p>
+</section>`;
+
+// Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
+// shipped code (no CP Solidity exists on any branch — every build lane is unstarted,
+// so the frozen specs ARE the implementation). Questions are kept byte-identical;
+// each entry adds a verdict, a grounded finding, citations, and — where the call is
+// genuinely open — a rider the team still owns. Postures were aligned with the
+// founder interactively on 2026-07-27; nothing here bends a diagram to imply an
+// answer the specs don't carry.
+type OpenQuestionVerdict = "answered" | "answered-gap" | "decision";
+const VERDICT_LABEL: Record<OpenQuestionVerdict, string> = {
+  answered: "Answered",
+  "answered-gap": "Answered · one open gap",
+  decision: "Decision needed",
+};
+const OPEN_QUESTIONS: ReadonlyArray<{
+  question: string; // original wording, byte-identical — asserted below
+  verdict: OpenQuestionVerdict;
+  finding: string;
+  cites: string;
+  rider?: string; // recommendation, or for no-lean entries the postures themselves
+  riderLabel?: string; // defaults to "Recommendation"
+}> = [
+  {
+    question: "Do we enable commitment fulfillment just from actions being completed?",
+    verdict: "answered",
+    finding:
+      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every per-action requirement reaches its required count and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with the provider excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
+    cites:
+      "contract-spec.md §5.3 transition tables + locked fulfillment posture · Linear PRD-649 and the Lifecycle & Aggregator Semantics doc",
+  },
+  {
+    question: "Can a commitment have multiple requirements attached?",
+    verdict: "answered",
+    finding:
+      "Yes — up to four. DomainImpact commitments store positional arrays (`domains[]`, `requiredActionUIDs[]`, `requiredApprovedWorkCounts[]`): unique domains, max 4, every required count non-zero; each work approval credits exactly one requirement via `requirementIndex`, and approved units are the weighted sum across requirements. Evidence-only kinds carry zero. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1 `CommitmentRequirement`) are what members see between Accepted and Ready. D7.1 draws the 1:N shape.",
+    cites: "contract-spec.md §5.3 storage + §8.2 `CommitmentRequirement` · Decision Log #28(a) and #39",
+  },
+  {
+    question: "How are hypercerts shares determined?",
+    verdict: "answered-gap",
+    finding:
+      "Decided at the class level: a six-role bps snapshot (gardeners / treasury / steward / evaluator / community / funder) is frozen at `openCycle`, must sum to 10,000, and ships a Model 1 default of 6000/1500/1000/500/500/500. Open at the contributor level: how a class’s share divides among its members — the gardeners’ 6000 across N fulfilled-commitment providers — is app-computed and unspecified, and raw units never mix across commitments (Decision Log #45), which rules out the most obvious weighting. D7c draws the expansion honestly as a black box.",
+    rider:
+      "Reuse the shipped hypercert `DistributionMode` picker (equal · proportional · count · value · custom) at cycle close, defaulting to `equal` within each class; `count`-by-fulfilled-commitments is the unit-safe alternative. Trade-off: per-mint steward flexibility versus one fixed rule’s predictability.",
+    cites: "contract-spec.md §9.4–9.5 · packages/shared/src/lib/hypercerts/distribution.ts (shipped precedent)",
+  },
+  {
+    question: "How is gas covered for CCIP actions; can the user pay instead of the protocol?",
+    verdict: "answered",
+    finding:
+      "The protocol pays, by design, on both legs: the Arbitrum module holds monitored native ETH for commands, the Celo executor holds monitored native CELO for acknowledgments, neither route uses LINK, and reserve floors are timelock-gated. Caller overpayment on dispatch was deliberately removed (Decision Log #52). The user-pays paths that do exist: permissionless exact-fee `retryAcknowledgment` (atomic refund on failure; the Safe is never re-invoked) and permissionless reserve top-ups (`fundFees` / `fundAcknowledgmentFees`). Transport note: Chainlink Functions was retired in the 2026-07-23 re-freeze (Decision Log #46) — the CCIP command/acknowledgment model drawn in D8–D10 is current, and the Linear mirrors (PRD-686, the Lifecycle doc) still carrying Functions wording are stale.",
+    rider:
+      "Follow-up worth scoping: exact-quote steward-funded dispatch, mirroring the acknowledgment-retry pattern, as a future spec change that reduces protocol subsidy. Trade-off: it reopens the caller-payment surface Decision Log #52 closed.",
+    cites: "settlement-spec.md §2 decision basis, §3.1.3 fee surface, §4 independent acknowledgment · Decision Log #46/#50/#52",
+  },
+  {
+    question: "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
+    verdict: "decision",
+    finding:
+      "Confirmed manual in the frozen spec — deliberately: `queueFunding(garden, amount)` is callable only by the protocol steward or module owner, the route is locked to `ProtocolToGarden` with source, recipient, and token derived from config (never caller-supplied), and settlement-write automation is explicitly out of scope — later alerts may read indexed health only. Everything after queueing is automated transport (CCIP command → bounded Celo execution → authenticated acknowledgment). No rationale sentence is recorded in the spec; the posture is reconstructed from its adjacent locks. HoA → protocol Safe stays an upstream treasury fact, and the return leg is an open external dependency (PRD-734).",
+    riderLabel: "Postures under consideration",
+    rider:
+      "(a) Keep manual initiation — value moves stay human-initiated and machine-verified, with indexed-health alerts nudging the steward. (b) Post-MVP threshold-triggered `queueFunding` — requires a new authority model, since today no agent or keeper holds settlement write authority. No lean recorded; this is a team call.",
+    cites: "settlement-spec.md §3.1.3 `queueFunding` gates + §9 out-of-scope · PRD-734",
+  },
+  {
+    question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
+    verdict: "decision",
+    finding:
+      "Two layers. Resolvers — one-per-schema is a repo convention, not an EAS requirement: EAS binds a resolver per schema at registration but lets one contract serve many (the resolver receives `attestation.schema`), and the frozen AssessmentResolver upgrade already runs two schemas through one proxy. No recorded decision defends four Need resolvers. Schemas — the four-schema set looks load-bearing on analysis: each is a distinct attester-gate / revocability / payload / volume tuple, and merging NeedSignal + NeedStatus would put the union payload on the highest-volume record while demoting schema-level revocability into resolver branches. The schema count stays open for the team design session rather than being recorded as settled here.",
+    rider:
+      "Collapse 4 → 2 resolvers: `CommunityNeedsResolver` (Need + NeedSignal + NeedStatus — hat-gated branches, branched `onRevoke` defaulting false, no zero-UID wildcard, pairwise UID distinctness) plus a separate `FundingAttributionResolver` (the only ungated one — keep the blast wall). Cheap now while the contracts lane is unstarted, expensive after. Schema count: bring the keep-4 analysis to the design session; do not treat it as decided.",
+    cites: "EAS SchemaRegistry (per-schema binding; resolver address in the UID preimage) · contract-spec.md AssessmentV3 dispatch · community-interface/spec.md §3.1–3.2",
+  },
+  {
+    question: "Do the wireframes mirror our UI prototypes?",
+    verdict: "answered",
+    finding:
+      "Audited 2026-07-27: they did not — only 4 of 25 frames matched the hi-fi registry (five locked uiux-spec Appendix B addenda had never been absorbed, and W7’s drawn tab rail contradicted the shipped admin code). Reconciled in the same pass: all 21 divergent frames were corrected to mirror the canonical states, every frame now cites its `#screens/SCREEN@state` registry entry, and the blanket “pending sync” badge is retired — the six frames that keep a block the hi-fi does not draw carry an explicit wireframe-only tag instead.",
+    cites: "wireframes.md § Hi-fi reconciliation (2026-07-27) · hifi/screens/index.ts registry · the Flow Prototypes artifact",
+  },
+];
+
+const openQuestionsSection = `
+<section id="ref-open-questions">
+  <h2>Open questions</h2>
+  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — four answered, one answered with an open gap, and two parked as decisions with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
+  <div class="qpanel">
+    <span class="eyebrow">Audited 2026-07-27</span>
+    <ol class="qfindings">
+      ${OPEN_QUESTIONS.map((entry) => {
+        const rider = entry.rider
+          ? `<p class="qrec"><strong>${esc(entry.riderLabel ?? "Recommendation")}.</strong> ${inline(entry.rider)}</p>`
+          : "";
+        return `<li>
+        <p class="qq">${esc(entry.question)} <span class="qtag qtag-${entry.verdict}">${VERDICT_LABEL[entry.verdict]}</span></p>
+        <p class="qfind">${inline(entry.finding)}</p>${rider}
+        <p class="qcite">${inline(entry.cites)}</p>
+      </li>`;
+      }).join("\n      ")}
+    </ol>
+  </div>
+</section>`;
+
+const archNav = `<a href="#arch-intro">How to read this set</a>${diaOut.nav}`;
+const archBody = `${archIntro}\n${diaOut.body}`;
+const refNav = `<a href="#ref-open-questions">Open questions</a>${refOut.nav}`;
+const refBody = `${openQuestionsSection}\n${refOut.body}`;
+
+// Counted, never typed by hand — the masthead line is clamped to two lines and a
+// stale number there is the kind of drift nobody notices.
+const storyAssetCount = storyBody.split("<section").length - 1;
+const archDiagramCount = (diaOut.body.match(/class="mermaid"/g) || []).length;
+
 // ---------- Artifact body-content (the publisher owns doctype/html/head/body) ----------
 const artifactContent = `
 <meta charset="utf-8">
@@ -341,6 +548,9 @@ const artifactContent = `
 <style>
 :root{
   color-scheme:light;
+  /* Measured from the sticky masthead at runtime; every sticky offset and anchor
+     scroll-margin derives from it, so tightening the header cannot desync them. */
+  --header-h:96px;
   --paper:#FBF8F2; --panel:#FFFFFF; --ink:#2A2722; --stone:#6E6857; --line:#E4DDD0;
   --moss:#4C7A57; --moss-tint:#DFEBDE; --moss-ink:#24422E; --sand:#988D77;
   --diagram-paper:#FBF8F2; --diagram-ink:#2A2722; --diagram-stone:#6E6857;
@@ -381,25 +591,38 @@ body{margin:0;background:var(--paper);color:var(--ink);
   padding:.55rem .8rem;font-weight:600;}
 .skip-link:focus{transform:translateY(0);}
 header.top{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line);
-  padding:0.85rem 1.25rem 0;}
+  padding:0.55rem 1.25rem 0;}
 .mast{max-width:1440px;margin:0 auto;}
-.mast h1{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:1.35rem;margin:0 0 .1rem;
+.mast h1{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:1.24rem;margin:0;line-height:1.2;
   letter-spacing:.01em;text-wrap:balance;}
-.mast .sub{color:var(--stone);font-size:.82rem;margin:0 0 .7rem;}
-nav.tabs{display:flex;gap:.25rem;max-width:1440px;margin:0 auto;}
+/* Two lines is the contract, not an aspiration: the clamp holds even if the
+   source counts in the subtitle grow. */
+.mast .sub{color:var(--stone);font-size:.78rem;line-height:1.45;margin:.15rem 0 .45rem;max-width:104ch;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;}
+.mast .sub code{white-space:nowrap;}
+/* Wrapping, never clipping: a fourth tab must not become unreachable on a phone. */
+nav.tabs{display:flex;flex-wrap:wrap;gap:.25rem;max-width:1440px;margin:0 auto;}
 nav.tabs button{appearance:none;border:0;background:none;color:var(--stone);font:inherit;font-size:.95rem;
   padding:.5rem .9rem;border-radius:10px 10px 0 0;cursor:pointer;border-bottom:2.5px solid transparent;}
 nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--moss);font-weight:600;}
 nav.tabs button:focus-visible{outline:2px solid var(--moss);outline-offset:2px;}
 main{max-width:1440px;margin:0 auto;padding:1.25rem;display:grid;grid-template-columns:220px minmax(0,1fr);gap:1.75rem;}
 @media (max-width:860px){ main{grid-template-columns:minmax(0,1fr);} aside.toc{display:none;} }
-aside.toc{position:sticky;top:6.4rem;align-self:start;max-height:calc(100vh - 7.5rem);overflow-y:auto;
+aside.toc{position:sticky;top:calc(var(--header-h) + .6rem);align-self:start;
+  max-height:calc(100dvh - var(--header-h) - 1.6rem);overflow-y:auto;overscroll-behavior:contain;
   font-size:.8rem;padding-right:.5rem;}
 aside.toc a{display:block;color:var(--stone);text-decoration:none;padding:.18rem .5rem;border-left:2px solid var(--line);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 aside.toc a:hover{color:var(--ink);border-left-color:var(--sand);}
+aside.toc a:focus-visible{outline:2px solid var(--moss);outline-offset:-2px;border-radius:0 6px 6px 0;}
 aside.toc a.sub{padding-left:1.1rem;font-size:.94em;opacity:.85;}
-.paneshost{position:relative;min-width:0;overflow:hidden;}
+/* Scrollspy: the section currently under the masthead. */
+aside.toc a.is-current{color:var(--moss-ink);background:var(--moss-tint);border-left-color:var(--moss);
+  border-radius:0 7px 7px 0;font-weight:600;opacity:1;}
+/* overflow:hidden here made the host a scroll container, which silently pinned every
+   sticky table header to a box that never scrolls. clip still contains a sideways
+   blowout but establishes no scrollport, so thead can stick to the masthead. */
+.paneshost{position:relative;min-width:0;overflow-x:clip;overflow-y:visible;}
 .pane{min-width:0;}
 .pane[aria-hidden="true"]{position:absolute;inset:0;width:100%;height:1px;overflow:hidden;visibility:hidden;pointer-events:none;}
 section{margin:0 0 2.6rem;}
@@ -408,13 +631,16 @@ h1{font-size:1.7rem;margin:.2rem 0 .8rem;}
 h2{font-size:1.35rem;margin:2.2rem 0 .6rem;padding-top:.4rem;}
 h3{font-size:1.1rem;margin:1.6rem 0 .5rem;}
 h4{font-size:.95rem;margin:1.2rem 0 .4rem;}
-p{max-width:72ch;margin:.55rem 0;}
+/* Enum runs and file paths are single unbreakable words far wider than a phone
+   column, so body copy has to be allowed to break them rather than clip them. */
+p{max-width:72ch;margin:.55rem 0;overflow-wrap:break-word;}
 p.lede{color:var(--stone);}
 ul,ol{max-width:72ch;padding-left:1.35rem;}
-li{margin:.3rem 0;}
-a{color:var(--moss);}
+li{margin:.3rem 0;overflow-wrap:break-word;}
+blockquote p{overflow-wrap:break-word;}
+a{color:var(--moss);overflow-wrap:anywhere;}
 code{background:var(--moss-tint);color:var(--moss-ink);border-radius:5px;padding:.08em .35em;
-  font:.86em ui-monospace,SFMono-Regular,Menlo,monospace;}
+  font:.86em ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;}
 blockquote{border-left:3px solid var(--sand);margin:.8rem 0;padding:.15rem 1rem;color:var(--stone);}
 hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
 .howto{background:var(--moss-tint);color:var(--moss-ink);border-radius:12px;padding: .8rem 1rem;
@@ -424,8 +650,13 @@ hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) .howto code{background:rgba(0,0,0,.25);}
 }
+/* overscroll-behavior must stay per-axis. Blink treats a scroll container with
+   "contain" on the block axis as blocking scroll chaining even when it has nothing
+   to scroll, which trapped the page under every diagram the pointer crossed.
+   Inline stays contained so sideways panning never drags the page with it. */
 .dia{container-type:inline-size;background:var(--diagram-paper);border:1px solid var(--line);border-radius:14px;
-  padding:1rem;overflow:auto;overscroll-behavior:contain;margin:.9rem 0;}
+  padding:1rem;overflow-x:auto;overflow-y:auto;
+  overscroll-behavior-inline:contain;overscroll-behavior-block:auto;margin:.9rem 0;}
 .dia .mermaid{margin:0;display:flex;justify-content:center;color:var(--diagram-ink);}
 .dia .mermaid.is-rendering{min-height:18rem;align-items:center;color:transparent;font-size:0;}
 .dia .mermaid.is-rendering::before{content:"Drawing diagram…";color:var(--diagram-stone);font:600 .82rem/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
@@ -462,15 +693,37 @@ hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
   fill:var(--diagram-fill)!important;stroke:var(--diagram-border)!important;}
 .diagram-render-error{margin:.25rem 0 .75rem;padding:.65rem .8rem;border:1px solid #B66A3C;border-radius:10px;background:#FFF7ED;color:#713D24;font-size:.86rem;}
 .dia pre.mermaid-error{display:block;white-space:pre;width:max-content;min-width:100%;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;}
-.framewrap,.tablewrap{overflow-x:auto;margin:.9rem 0;}
+.framewrap{overflow-x:auto;overscroll-behavior-inline:contain;overscroll-behavior-block:auto;margin:.9rem 0;}
+/* Tables carry no scroll container on desktop, which is what lets the header row
+   stick to the masthead instead of to a wrapper that never scrolls. Below the TOC
+   breakpoint the wrapper becomes the sideways escape hatch so the page itself
+   still never scrolls horizontally. */
+.tablewrap{margin:.9rem 0;}
+@media (max-width:860px){
+  .tablewrap{overflow-x:auto;overscroll-behavior-inline:contain;overscroll-behavior-block:auto;}
+}
 pre.frame{background:#FFFFFF;color:#2A2722;border:1px solid var(--line);border-radius:14px;padding:1rem 1.2rem;
   font:12.5px/1.42 ui-monospace,SFMono-Regular,Menlo,monospace;margin:0;width:max-content;min-width:100%;}
 pre.code{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem 1.2rem;
   font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:0;}
-table{border-collapse:collapse;font-size:.86rem;min-width:100%;}
-th,td{border:1px solid var(--line);padding:.45rem .6rem;text-align:left;vertical-align:top;}
-th{background:var(--moss-tint);color:var(--moss-ink);}
-.svgcard{background:#FBF8F2;border:1px solid var(--line);border-radius:16px;padding:.6rem;margin:1rem 0;overflow-x:auto;overscroll-behavior-inline:contain;}
+table{border-collapse:collapse;width:100%;font-size:.79rem;line-height:1.45;
+  font-variant-numeric:tabular-nums;}
+/* break-word, not anywhere: "anywhere" zeroes a column's min-content width, which let
+   the auto layout squeeze short headings into "Audienc / e". break-word keeps each
+   column at least as wide as its longest word and still breaks the long code tokens. */
+th,td{border:1px solid var(--line);padding:.34rem .5rem;text-align:left;vertical-align:top;
+  overflow-wrap:break-word;}
+td code,th code{overflow-wrap:anywhere;font-size:.9em;padding:.05em .25em;}
+/* A collapsed border does not paint on a stuck cell, so the header's edges are
+   drawn with a shadow instead. */
+thead th{position:sticky;top:var(--header-h);z-index:2;background:var(--moss-tint);color:var(--moss-ink);
+  box-shadow:0 1px 0 var(--line),0 -1px 0 var(--line);}
+@media (max-width:860px){
+  table{font-size:.74rem;}
+  th,td{padding:.3rem .4rem;}
+}
+.svgcard{background:#FBF8F2;border:1px solid var(--line);border-radius:16px;padding:.6rem;margin:1rem 0;
+  overflow-x:auto;overscroll-behavior-inline:contain;overscroll-behavior-block:auto;}
 .svgcard,.dia,.framewrap{position:relative;}
 .previewable{cursor:zoom-in;}
 .previewable:focus-visible{outline:3px solid var(--moss);outline-offset:3px;}
@@ -481,7 +734,11 @@ th{background:var(--moss-tint);color:var(--moss-ink);}
 .expand-control:hover{border-color:var(--moss);color:var(--moss-ink);background:var(--moss-tint);}
 .expand-control:focus-visible,.preview-controls button:focus-visible{outline:3px solid var(--moss);outline-offset:2px;}
 svg.asset{width:100%;min-width:0;height:min(78dvh,820px);display:block;}
-@media (max-width:860px){svg.asset{width:auto;min-width:720px;height:auto;}}
+/* A 720px floor inside a ~350px card showed the left quarter of each asset — usually
+   empty canvas — so a phone landed on a blank box and had to pan to find the drawing.
+   Fit the whole composition instead and let Expand carry detailed reading, which is
+   already how the architecture diagrams behave at every width. */
+@media (max-width:860px){svg.asset{width:100%;min-width:0;height:auto;}}
 .preview-dialog{width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;
   background:var(--paper);color:var(--ink);overflow:hidden;}
 .preview-dialog::backdrop{background:rgba(42,39,34,.76);}
@@ -511,23 +768,88 @@ pre.preview-item{margin:0;padding:1rem 1.2rem;border:1px solid var(--line);borde
   .preview-controls button{flex:0 0 auto;}
   .preview-viewport{padding:.25rem .4rem .4rem;}
 }
+/* ---- gallery chrome ---- */
+/* Status legend. The swatches are painted from the same tokens the diagrams use,
+   so the key cannot drift away from what it describes. */
+ul.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.45rem 1.1rem;
+  margin:.85rem 0 1.2rem;padding:0;list-style:none;max-width:none;}
+ul.legend li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:.6rem;margin:0;
+  font-size:.83rem;line-height:1.45;}
+.legend .sw{width:1.6rem;height:1.05rem;border-radius:5px;margin-top:.18rem;
+  border:2px solid var(--diagram-border);background:var(--diagram-fill);}
+.legend .sw-planned{background:var(--diagram-planned-fill);border-color:var(--diagram-planned-border);border-style:dashed;}
+.legend .sw-delta{background:var(--diagram-paper);border-color:var(--diagram-border);}
+.legend .sw-derived{background:var(--diagram-note);border-color:var(--diagram-note-border);}
+.legend .sw-app{background:var(--diagram-app-fill);border-color:var(--diagram-app-border);}
+.legend b{color:var(--ink);}
+.legend span{color:var(--stone);}
+/* Where-to-look map for the 23 diagrams. */
+ul.wayfind{display:grid;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));gap:.4rem 1.5rem;
+  margin:.8rem 0 1.2rem;padding:0;list-style:none;max-width:none;}
+ul.wayfind li{display:grid;grid-template-columns:minmax(7rem,auto) minmax(0,1fr);gap:.75rem;margin:0;
+  align-items:baseline;font-size:.83rem;line-height:1.5;}
+.wayfind b{color:var(--ink);white-space:nowrap;}
+.wayfind span{color:var(--stone);}
+/* Open questions — decisions parked for their owners, not answered here. */
+.qpanel{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:1rem 1.15rem;
+  margin:.9rem 0 1.5rem;}
+.qpanel .eyebrow{display:block;margin:0 0 .35rem;color:var(--stone);text-transform:uppercase;letter-spacing:.09em;
+  font:600 .68rem/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
+.qpanel p{margin:0;max-width:70ch;}
+.qpanel ol{margin:.7rem 0 0;padding-left:1.35rem;max-width:76ch;}
+.qpanel li{margin:.42rem 0;}
+.qpanel li::marker{color:var(--stone);font-variant-numeric:tabular-nums;}
+/* Findings layout: question (verbatim) + verdict pill, finding, optional rider,
+   compact citation line. All tokens; dark theme comes free. */
+ol.qfindings{max-width:none;}
+.qfindings li{margin:1rem 0;}
+.qfindings .qq{font-weight:600;color:var(--ink);max-width:76ch;margin:0;}
+.qtag{display:inline-block;margin-left:.45rem;padding:.06rem .5rem;border:1px solid var(--sand);
+  border-radius:999px;background:var(--paper);color:var(--stone);vertical-align:middle;white-space:nowrap;
+  font:600 .66rem/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;letter-spacing:.02em;}
+.qtag-answered{background:var(--moss-tint);border-color:var(--moss);color:var(--moss-ink);}
+.qtag-answered-gap{background:var(--diagram-note);border-color:var(--diagram-note-border);color:var(--ink);}
+.qtag-decision{background:var(--paper);border-color:var(--sand);color:var(--stone);}
+.qfind{margin:.3rem 0 0;max-width:76ch;}
+.qrec{margin:.45rem 0 0;padding:.1rem 0 .1rem .75rem;border-left:3px solid var(--moss);max-width:76ch;}
+.qcite{margin:.35rem 0 0;color:var(--stone);font-size:.78rem;max-width:none;}
+/* Wireframe accuracy caveat, carried on every screen heading. */
+.wf-badge{display:inline-block;margin-left:.5rem;padding:.08rem .5rem;border:1px solid var(--sand);
+  border-radius:999px;background:var(--paper);color:var(--stone);vertical-align:middle;white-space:nowrap;
+  font:600 .66rem/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;letter-spacing:.02em;}
 footer{color:var(--stone);font-size:.78rem;text-align:center;padding:2rem 1rem 3rem;}
 @media (prefers-reduced-motion: no-preference){
-  section{scroll-margin-top:6.5rem;}
   .expand-control,.preview-controls button{transition:background-color .14s ease,border-color .14s ease,color .14s ease;}
+  aside.toc a{transition:background-color .12s ease,color .12s ease,border-color .12s ease;}
 }
-section{scroll-margin-top:6.5rem;}
+/* Sub-block h4s are nav destinations too, so they need the same anchor offset. */
+section,h4[id]{scroll-margin-top:calc(var(--header-h) + 1rem);}
+/* On a phone the masthead is sticky overhead the reader carries for the whole
+   document, so it earns its height back: smaller type, tighter padding, and four
+   tabs sized to sit on one row. */
+@media (max-width:560px){
+  header.top{padding:.45rem .9rem 0;}
+  .mast h1{font-size:1.06rem;}
+  .mast .sub{font-size:.72rem;margin:.1rem 0 .3rem;}
+  nav.tabs button{padding:.4rem .5rem;font-size:.8rem;}
+  main{padding:.9rem;}
+  /* The control overlays the corner of the artwork, which is free space on a wide
+     card and directly on top of the drawing on a phone. Give it its own row there. */
+  .expand-control{position:static;width:max-content;margin:.1rem .1rem .4rem auto;
+    left:auto;padding:.4rem .75rem;}
+}
 </style>
 <a class="skip-link" href="#content">Skip to gallery content</a>
 <header class="top">
   <div class="mast">
     <h1>Commitment Pooling — Visual Asset Gallery</h1>
-    <p class="sub">Green Goods · sources: <code>.plans/active/commitment-pooling/</code> diagrams.md · wireframes.md · 12 accessible SVGs + 32 architecture diagrams · rebuilt 2026-07-25 (architecture reconciled to the frozen specs; D2/D7/D9 split; D7d, D10b, D11b, D15, D16 added)</p>
+    <p class="sub">Green Goods · ${storyAssetCount} hand-drawn story assets · ${archDiagramCount} architecture diagrams · ${wfScreenCount} wireframe screens · source: <code>.plans/active/commitment-pooling/</code></p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Gallery sections">
     <button id="tab-story" role="tab" aria-selected="true" aria-controls="pane-story" tabindex="0" data-tab="story">The story</button>
     <button id="tab-arch" role="tab" aria-selected="false" aria-controls="pane-arch" tabindex="-1" data-tab="arch">Architecture</button>
     <button id="tab-screens" role="tab" aria-selected="false" aria-controls="pane-screens" tabindex="-1" data-tab="screens">Screens</button>
+    <button id="tab-reference" role="tab" aria-selected="false" aria-controls="pane-reference" tabindex="-1" data-tab="reference">Reference</button>
   </nav>
 </header>
 <main id="content" tabindex="-1">
@@ -536,11 +858,14 @@ section{scroll-margin-top:6.5rem;}
     <div class="pane" id="pane-story" role="tabpanel" aria-labelledby="tab-story" aria-hidden="false" data-nav='${storyNav.replace(/'/g, "&#39;")}'>
       ${storyBody}
     </div>
-    <div class="pane" id="pane-arch" role="tabpanel" aria-labelledby="tab-arch" aria-hidden="true" inert data-nav='${diaOut.nav.replace(/'/g, "&#39;")}'>
-      ${diaOut.body}
+    <div class="pane" id="pane-arch" role="tabpanel" aria-labelledby="tab-arch" aria-hidden="true" inert data-nav='${archNav.replace(/'/g, "&#39;")}'>
+      ${archBody}
     </div>
     <div class="pane" id="pane-screens" role="tabpanel" aria-labelledby="tab-screens" aria-hidden="true" inert data-nav='${wfOut.nav.replace(/'/g, "&#39;")}'>
       ${wfOut.body}
+    </div>
+    <div class="pane" id="pane-reference" role="tabpanel" aria-labelledby="tab-reference" aria-hidden="true" inert data-nav='${refNav.replace(/'/g, "&#39;")}'>
+      ${refBody}
     </div>
   </div>
 </main>
@@ -764,10 +1089,14 @@ section{scroll-margin-top:6.5rem;}
     var availableWidth = rendered ? rendered.clientWidth : (diagram ? diagram.clientWidth : 0);
     if (!availableWidth && diagram) availableWidth = diagram.clientWidth;
     if (!svg || !viewBox || !viewBox.width || !viewBox.height || !availableWidth) return;
-    var header = document.querySelector('header.top');
-    var headerHeight = header ? header.getBoundingClientRect().height : 0;
-    var availableHeight = Math.max(1, Math.min(720, window.innerHeight - headerHeight - 72));
-    var scale = Math.min(availableWidth / viewBox.width, availableHeight / viewBox.height, 1.2);
+    // Fit to width, not to the viewport's height. Binding the inline view to a
+    // laptop-height reading plane drove the big ERDs down to ~0.15 scale — roughly
+    // two-pixel type, which reads as texture rather than as a diagram. Width-fitting
+    // against an absolute height ceiling roughly doubles the worst cases and lets a
+    // tall diagram simply be tall; the page scrolls past it, and Expand is still the
+    // path for detailed reading.
+    var MAX_INLINE_HEIGHT = 1500;
+    var scale = Math.min(availableWidth / viewBox.width, MAX_INLINE_HEIGHT / viewBox.height, 1.2);
     var width = Math.max(1, viewBox.width * scale);
     var height = Math.max(1, viewBox.height * scale);
     svg.style.width = width + 'px';
@@ -931,6 +1260,62 @@ section{scroll-margin-top:6.5rem;}
     });
   }
 
+  // Measure the masthead instead of hard-coding its height: every sticky offset,
+  // anchor scroll-margin and sticky table header reads --header-h, so they stay in
+  // step when the header wraps to another row or the subtitle clamps differently.
+  var headerEl = document.querySelector('header.top');
+  function syncHeaderHeight(){
+    if (!headerEl) return;
+    var height = Math.ceil(headerEl.getBoundingClientRect().height);
+    if (height > 0) document.documentElement.style.setProperty('--header-h', height + 'px');
+  }
+
+  // Scrollspy — marks the section currently sitting under the masthead.
+  var spyTargets = [];
+  var spyCurrent = null;
+  var spyFrame = 0;
+
+  function updateScrollspy(){
+    spyFrame = 0;
+    if (!spyTargets.length) return;
+    var edge = (headerEl ? headerEl.getBoundingClientRect().height : 96) + 28;
+    var found = spyTargets[0];
+    for (var i = 0; i < spyTargets.length; i += 1) {
+      if (spyTargets[i].el.getBoundingClientRect().top <= edge) found = spyTargets[i];
+      else break;
+    }
+    // The final section can be too short to ever cross the line; at the bottom of
+    // the document it is unambiguously the one being read.
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+      found = spyTargets[spyTargets.length - 1];
+    }
+    if (found === spyCurrent) return;
+    if (spyCurrent) {
+      spyCurrent.link.classList.remove('is-current');
+      spyCurrent.link.removeAttribute('aria-current');
+    }
+    spyCurrent = found;
+    found.link.classList.add('is-current');
+    found.link.setAttribute('aria-current', 'true');
+    // Keep the marker visible by scrolling the TOC's own box — never the page.
+    if (!toc.clientHeight) return;
+    var top = found.link.offsetTop;
+    if (top < toc.scrollTop || top + found.link.offsetHeight > toc.scrollTop + toc.clientHeight) {
+      toc.scrollTop = Math.max(0, top - toc.clientHeight / 2);
+    }
+  }
+
+  function scheduleScrollspy(){ if (!spyFrame) spyFrame = requestAnimationFrame(updateScrollspy); }
+
+  function buildScrollspy(){
+    spyCurrent = null;
+    spyTargets = Array.from(toc.querySelectorAll('a')).map(function(link){
+      var id = (link.getAttribute('href') || '').slice(1);
+      return { link: link, el: id ? document.getElementById(id) : null };
+    }).filter(function(target){ return target.el; });
+    updateScrollspy();
+  }
+
   function activate(name, focusTab, resetScroll){
     var selectedTab;
     tabs.forEach(function(tab){
@@ -948,7 +1333,12 @@ section{scroll-margin-top:6.5rem;}
     toc.innerHTML = pane ? (pane.getAttribute('data-nav') || '') : '';
     if (focusTab && selectedTab) selectedTab.focus();
     if (resetScroll) window.scrollTo({ top: 0 });
-    requestAnimationFrame(function(){ decoratePreviewables(); scheduleOverviewSizing(); });
+    requestAnimationFrame(function(){
+      syncHeaderHeight();
+      decoratePreviewables();
+      scheduleOverviewSizing();
+      buildScrollspy();
+    });
   }
 
   tabs.forEach(function(tab, index){
@@ -1030,8 +1420,17 @@ section{scroll-margin-top:6.5rem;}
     if (container) openPreview(container, trigger);
   });
   window.addEventListener('resize', scheduleOverviewSizing);
-  window.addEventListener('resize', function(){ if (preview.open && previewState.mode === 'fit') fitPreview(); });
-  if ('ResizeObserver' in window) new ResizeObserver(scheduleOverviewSizing).observe(document.querySelector('.paneshost'));
+  window.addEventListener('resize', function(){
+    syncHeaderHeight();
+    scheduleScrollspy();
+    if (preview.open && previewState.mode === 'fit') fitPreview();
+  });
+  window.addEventListener('scroll', scheduleScrollspy, { passive: true });
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(scheduleOverviewSizing).observe(document.querySelector('.paneshost'));
+    if (headerEl) new ResizeObserver(function(){ syncHeaderHeight(); scheduleScrollspy(); }).observe(headerEl);
+  }
+  syncHeaderHeight();
   decoratePreviewables();
   activate('story', false, false);
 })();
@@ -1333,8 +1732,9 @@ ${mermaidRuntime}
 })();
 </script>`;
 const mermaidCount = (artifactContent.match(/class="mermaid"/g) || []).length;
-const architectureMermaidCount = (diaOut.body.match(/class="mermaid"/g) || []).length;
-const architectureSectionCount = diaOut.body.split("<section").length - 1;
+const architectureMermaidCount = archDiagramCount;
+const architectureSectionCount = archBody.split("<section").length - 1;
+const referenceSectionCount = refBody.split("<section").length - 1;
 const frameCount = (artifactContent.match(/class="frame"/g) || []).length;
 const artifactBody = artifactContent;
 const localDocument = `<!doctype html><html lang="en"><head>${artifactContent.slice(0, styleEnd)}</head><body>${artifactContent.slice(styleEnd)}${embeddedMermaid}</body></html>`;
@@ -1379,7 +1779,17 @@ for (const prefix of diagramHowToPrefixes) {
 // Every anchor the nav can target must be unique across the whole document — both
 // panes are in the DOM at once, so a section id colliding with a sub-block id (or a
 // sub-block id repeated across tabs) would silently break the anchors added here.
-const allAnchorIds = [...dia.secs, ...wf.secs].flatMap((s) => [s.id, ...s.subs.map((sub) => sub.id)]);
+// All four panes are in the DOM at once — hidden panes are collapsed, not removed —
+// so scrollspy's getElementById and native #hash jumps resolve to whichever element
+// comes first. A Story id colliding with a diagrams/wireframes id would silently
+// track a hidden pane, so the Story anchors belong in this check too.
+const storySectionIds = [...storyBody.matchAll(/<section id="([^"]+)"/g)].map((m) => m[1]);
+const allAnchorIds = [
+  "arch-intro",
+  "ref-open-questions",
+  ...storySectionIds,
+  ...[...dia.secs, ...wf.secs].flatMap((s) => [s.id, ...s.subs.map((sub) => sub.id)]),
+];
 const duplicateAnchor = allAnchorIds.find((id, i) => allAnchorIds.indexOf(id) !== i);
 assertBuild(!duplicateAnchor, `anchor id "${duplicateAnchor}" is used more than once across the gallery`);
 // Nav/body parity, both directions. A nav entry pointing at a section that does
@@ -1387,8 +1797,9 @@ assertBuild(!duplicateAnchor, `anchor id "${duplicateAnchor}" is used more than 
 // both shipped undetected because nothing checked this.
 for (const [navHtml, bodyHtml, label] of [
   [storyNav, storyBody, "Story"],
-  [diaOut.nav, diaOut.body, "Architecture"],
+  [archNav, archBody, "Architecture"],
   [wfOut.nav, wfOut.body, "Screens"],
+  [refNav, refBody, "Reference"],
 ] as const) {
   const navIds = [...navHtml.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]);
   const sectionIds = [...bodyHtml.matchAll(/<section id="([^"]+)"/g)].map((m) => m[1]);
@@ -1408,9 +1819,62 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 26, "Architecture output must contain 26 sections");
-assertBuild(architectureMermaidCount === 32, "Architecture output must contain 32 Mermaid blocks");
-assertBuild(mermaidCount === 33, "Gallery output must contain 33 Mermaid blocks including the Screens flow");
+assertBuild(architectureSectionCount === 24, "Architecture output must contain 24 sections (23 D-sections + the hand-written intro)");
+// The opener states the diagram count in prose; tie it to the routed section list so
+// adding or removing a D-section cannot leave the sentence quietly stale.
+assertBuild(
+  architectureSectionCount === architectureSecs.length + 1
+    && archIntro.includes(`${architectureSecs.length} named diagrams`),
+  "the Architecture opener's diagram count must track the routed D-section count",
+);
+assertBuild(architectureMermaidCount === 34, "Architecture output must contain 34 Mermaid blocks");
+assertBuild(mermaidCount === 35, "Gallery output must contain 35 Mermaid blocks including the Screens flow");
+// The Reference pane is the only home of the deep material now, so losing a routed
+// section there would silently delete it from the gallery rather than move it.
+assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");
+assertBuild(referenceSectionCount === REFERENCE_TITLES.length + 1, "Reference output must contain the routed sections plus Open questions");
+assertBuild(refBody.includes("Visual coverage matrix") && refBody.includes("<table"), "Reference must still carry the coverage matrix in full");
+assertBuild(!archBody.includes("Visual coverage matrix"), "the coverage matrix must not remain in the Architecture pane");
+for (const entry of OPEN_QUESTIONS) {
+  assertBuild(refBody.includes(esc(entry.question)), `Open questions panel lost the verbatim item: ${entry.question}`);
+  assertBuild(
+    entry.finding.trim().length > 0 && entry.cites.trim().length > 0,
+    `Open-questions entry needs a finding and citations: ${entry.question.slice(0, 48)}`,
+  );
+  if (entry.verdict === "decision") {
+    assertBuild(Boolean(entry.rider?.trim()), `decision entry must carry a rider: ${entry.question.slice(0, 48)}`);
+  }
+}
+assertBuild(OPEN_QUESTIONS.length === 7, "the Open questions panel carries exactly the seven audited items");
+assertBuild(
+  (refBody.match(/class="qq"/g) || []).length === 7 && (refBody.match(/class="qtag /g) || []).length === 7,
+  "every question must render with exactly one verdict tag",
+);
+assertBuild(
+  (refBody.match(/class="qrec"/g) || []).length === OPEN_QUESTIONS.filter((entry) => entry.rider).length,
+  "rendered rider count must match the entries that declare one",
+);
+assertBuild(
+  !refBody.includes("Parked for decision") && !refBody.includes("deliberately does not answer"),
+  "the pre-audit framing cannot survive alongside findings",
+);
+assertBuild(wfScreenCount === 25, `the Screens pane must present all 25 wireframe frames (found ${wfScreenCount})`);
+for (const id of WF_ONLY_FRAMES) {
+  assertBuild(wf.secs.some((s) => s.id === id), `WF_ONLY_FRAMES names #${id}, which is not a Screens section`);
+}
+assertBuild(wfOnlyApplied === WF_ONLY_FRAMES.length, `wf-only tag applied to ${wfOnlyApplied} of ${WF_ONLY_FRAMES.length} allowlisted frames`);
+assertBuild(
+  (artifactBody.match(/class="wf-badge wf-only"/g) || []).length === WF_ONLY_FRAMES.length,
+  "rendered wf-only tag count must equal the allowlist",
+);
+assertBuild(!artifactBody.includes("pending sync with UI prototypes"), "the blanket pending-sync badge is retired");
+// Matched against the markup, not a bare role= substring: the same strings appear
+// inside the pane-switching script's querySelectorAll calls.
+assertBuild(
+  (artifactBody.match(/<button id="tab-[a-z]+" role="tab"/g) || []).length === 4
+    && (artifactBody.match(/<div class="pane" id="pane-[a-z]+" role="tabpanel"/g) || []).length === 4,
+  "the gallery must expose exactly four tabs and four panes",
+);
 assertBuild(localDocument.startsWith("<!doctype html>"), "local output must be a complete document");
 assertBuild(localDocument.includes(`data-embedded-runtime="mermaid@${mermaidVersion}"`), "local output must embed the locked Mermaid runtime");
 assertBuild((localDocument.match(/class="mermaid"/g) || []).length === mermaidCount, "local output lost Mermaid source blocks");
@@ -1429,6 +1893,6 @@ writeFileSync(LOCAL_OUT, localDocument);
 writeFileSync(ARTIFACT_OUT, artifactBody);
 console.log(`local preview: ${LOCAL_OUT} (${Buffer.byteLength(localDocument).toLocaleString()} bytes, embedded Mermaid ${mermaidVersion})`);
 console.log(`Artifact body: ${ARTIFACT_OUT} (${Buffer.byteLength(artifactBody).toLocaleString()} bytes, host-rendered Mermaid)`);
-console.log(`sections: story ${storyBody.split("<section").length - 1} · architecture ${diaOut.body.split("<section").length - 1} · screens ${wfOut.body.split("<section").length - 1}`);
-console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount}`);
+console.log(`sections: story ${storyAssetCount} · architecture ${architectureSectionCount} · screens ${wfOut.body.split("<section").length - 1} · reference ${referenceSectionCount}`);
+console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount} · wireframe screens: ${wfScreenCount} · wf-only tags: ${WF_ONLY_FRAMES.length}`);
 console.log("publish only the Artifact body; open the local preview directly with file://");
