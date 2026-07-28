@@ -192,9 +192,11 @@ if no open Linear Issue matching the canonical labels + category marker:
     team        = Product
     project     = (none — unprojected)
     title       = "<category marker>: <one-line summary>"
-    labels      = "green-goods", "qa", "routine",   // bare child names or IDs
-                  // only — save_issue rejects the group:child display form
-                  package:<inferred> (when applicable)
+    labels      = "green-goods", "qa", "routine",
+                  <package child, e.g. "indexer"> (when applicable)
+                  // bare child names or IDs only — save_issue rejects the
+                  // group:child display form, including the package label,
+                  // and one bad entry rejects the whole array
     status      = Backlog (exploratory) or Todo (well-scoped)
     body        = <findings>
 else:
