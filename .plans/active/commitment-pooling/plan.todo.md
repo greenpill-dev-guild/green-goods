@@ -44,7 +44,7 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
 
 - [Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — 36 review-visible guided flows + 24 hi-fi screens; the September Community source flow and wireframes remain hidden but validated (`prototypes-artifact.build.ts` + `hifi/`)
-- [Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d) — all assets rendered, three audience tabs (`visual-assets-artifact.build.ts`)
+- [Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d) — all assets rendered, four audience tabs: story · Architecture · Screens · Reference (`visual-assets-artifact.build.ts`)
 
 **External-facing canonical home**: [Green Goods Commitment Pooling (Google Doc)](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit). `external-brief.md` is a pointer and source map only; no repo file mirrors the external narrative.
 
