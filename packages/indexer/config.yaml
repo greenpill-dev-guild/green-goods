@@ -64,7 +64,7 @@ contracts:
     events:
       - event: JarCreated(address indexed jarAddress, address indexed creator)
       - event: MetadataUpdated(address indexed jarAddress, string metadata)
-networks:
+chains:
   - id: 42161
     start_block: 433713812
     contracts:
@@ -78,8 +78,8 @@ networks:
         address: "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266"
       - name: OctantModule
         address: "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9"
+      # No address: dynamically registered via OctantModule.VaultCreated.
       - name: OctantVault
-        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x90896C86108528abB600Da3C48a1aa054958bDeb"
       - name: HypercertMinter
@@ -101,13 +101,12 @@ networks:
         address: "0x8dF31575A30765d7cca6D788644fD0d4FE33a433"
       - name: OctantModule
         address: "0xF70970DD1CC26d073A647DAfd1761D9E6d66c187"
+      # No address: dynamically registered via OctantModule.VaultCreated.
       - name: OctantVault
-        address: "0x0000000000000000000000000000000000000000"
       - name: YieldSplitter
         address: "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
-      - name: GreenWill
-        address: "0x0000000000000000000000000000000000000000"
+      # GreenWill is not deployed on Sepolia, so it is omitted on this chain.
       - name: CookieJarFactory
         address: "0x021368bf9958f4D535d39d571Bc45f74d20e4666"

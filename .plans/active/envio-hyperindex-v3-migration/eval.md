@@ -9,7 +9,7 @@
 | AC-3 | Envio 3.2.1 codegen, boundary check, build, and tests pass | Command output from the corrected PR head |
 | AC-4 | Dynamic GardenAccount and OctantVault discovery remains intact | Focused tests |
 | AC-5 | Existing entity IDs, relationships, chain IDs, and GraphQL shape are preserved | Replay fixtures and representative GraphQL query |
-| AC-6 | Configured block boundaries and idempotent replay are preserved | Migration/replay evidence |
+| AC-6 | Configured block boundaries preserved; clean replay deterministic and a repeated same-store range rejected without mutation (handler idempotence not claimed) | Migration/replay evidence |
 | AC-7 | Local v3 runtime starts and serves Green Goods data | Runtime smoke evidence or an explicit merge blocker |
 | AC-8 | Migration-required docs and canonical guidance match v3 | Docs checks and focused source review |
 | AC-9 | Reindex, DB compatibility, hosted configuration, rollback, and approval owner are recorded | Production-readiness note |

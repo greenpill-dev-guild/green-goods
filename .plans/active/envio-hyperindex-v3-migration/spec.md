@@ -38,7 +38,12 @@
 - GreenWill, Hypercert, Campaign/Cookie Jar, and existing Garden event behavior remains equivalent.
 - EAS attestations remain outside this indexer.
 - The v3 migration preserves the configured canonical start/end block boundaries.
-- Replay is idempotent across the current entity set.
+- Clean replay is deterministic across the current entity set: two fresh runs from the configured
+  start block produce identical representative entity snapshots.
+- A repeated block range against the same store is rejected by Envio before handlers run, and that
+  rejection leaves existing entities unmutated.
+- Handler-level idempotence is explicitly **not** claimed. No test re-runs the handlers over an
+  already-processed range, so counter-style fields would double if that ever became possible.
 - Public GraphQL names, relationships, and nullability remain equivalent or any unavoidable
   migration delta is explicitly recorded before merge.
 

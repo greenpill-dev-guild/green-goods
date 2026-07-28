@@ -1,18 +1,6 @@
-import { ActionRegistry } from "../../generated";
-
-import type {
-  Action,
-  ActionRegistry_ActionEndTimeUpdated_handlerArgs,
-  ActionRegistry_ActionInstructionsUpdated_handlerArgs,
-  ActionRegistry_ActionMediaUpdated_handlerArgs,
-  ActionRegistry_ActionRegistered_handlerArgs,
-  ActionRegistry_ActionStartTimeUpdated_handlerArgs,
-  ActionRegistry_ActionTitleUpdated_handlerArgs,
-  HandlerTypes_handlerArgs,
-} from "../../generated/src/Types.gen";
+import { indexer, type Action } from "envio";
 
 import {
-  type ActionRegistry_GardenDomainsUpdated_eventArgs,
   expandDomainMask,
   type GardenDomainsEntity,
   mapCapitalType,
@@ -25,8 +13,9 @@ import {
 // ============================================================================
 
 // Handler for the ActionRegistered event
-ActionRegistry.ActionRegistered.handler(
-  async ({ event, context }: ActionRegistry_ActionRegistered_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionRegistered" },
+  async ({ event, context }) => {
     // Create unique ID by combining chainId and actionUID to prevent cross-chain collisions
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const capitals = event.params.capitals.map(mapCapitalType);
@@ -52,11 +41,9 @@ ActionRegistry.ActionRegistered.handler(
 );
 
 // Handler for the GardenDomainsUpdated event
-ActionRegistry.GardenDomainsUpdated.handler(
-  async ({
-    event,
-    context,
-  }: HandlerTypes_handlerArgs<ActionRegistry_GardenDomainsUpdated_eventArgs, void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "GardenDomainsUpdated" },
+  async ({ event, context }) => {
     const gardenAddress = normalizeAddress(event.params.garden);
     const domainMask = Number(event.params.domainMask);
     const entityId = `${event.chainId}-${gardenAddress}`;
@@ -75,8 +62,9 @@ ActionRegistry.GardenDomainsUpdated.handler(
 );
 
 // Handler for the ActionStartTimeUpdated event
-ActionRegistry.ActionStartTimeUpdated.handler(
-  async ({ event, context }: ActionRegistry_ActionStartTimeUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionStartTimeUpdated" },
+  async ({ event, context }) => {
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const existingAction = await context.Action.get(actionId);
 
@@ -92,8 +80,9 @@ ActionRegistry.ActionStartTimeUpdated.handler(
 );
 
 // Handler for the ActionEndTimeUpdated event
-ActionRegistry.ActionEndTimeUpdated.handler(
-  async ({ event, context }: ActionRegistry_ActionEndTimeUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionEndTimeUpdated" },
+  async ({ event, context }) => {
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const existingAction = await context.Action.get(actionId);
 
@@ -109,8 +98,9 @@ ActionRegistry.ActionEndTimeUpdated.handler(
 );
 
 // Handler for the ActionTitleUpdated event
-ActionRegistry.ActionTitleUpdated.handler(
-  async ({ event, context }: ActionRegistry_ActionTitleUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionTitleUpdated" },
+  async ({ event, context }) => {
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const existingAction = await context.Action.get(actionId);
 
@@ -126,8 +116,9 @@ ActionRegistry.ActionTitleUpdated.handler(
 );
 
 // Handler for the ActionInstructionsUpdated event
-ActionRegistry.ActionInstructionsUpdated.handler(
-  async ({ event, context }: ActionRegistry_ActionInstructionsUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionInstructionsUpdated" },
+  async ({ event, context }) => {
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const existingAction = await context.Action.get(actionId);
 
@@ -143,8 +134,9 @@ ActionRegistry.ActionInstructionsUpdated.handler(
 );
 
 // Handler for the ActionMediaUpdated event
-ActionRegistry.ActionMediaUpdated.handler(
-  async ({ event, context }: ActionRegistry_ActionMediaUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionMediaUpdated" },
+  async ({ event, context }) => {
     const actionId = `${event.chainId}-${event.params.actionUID.toString()}`;
     const existingAction = await context.Action.get(actionId);
 

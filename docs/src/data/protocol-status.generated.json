@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-19T04:08:27.590Z",
+  "generated_at": "2026-07-28T02:26:22.059Z",
   "source_files": [
     "packages/contracts/deployments/11155111-latest.json",
     "packages/contracts/deployments/42161-latest.json",
@@ -27,14 +27,14 @@
           "indexer_ready": true,
           "effective_status": "Live",
           "deployment_addresses": {
-            "actionRegistry": "0x71F9B8B9842466e67fA2a12858267B8cb9C19B8B",
-            "gardenToken": "0xd72c21378ebfdA7ceBb3B89d88f834b92fCC7122",
-            "gardenAccountImpl": "0xf92C093629f5a9cd7d5252ED77Cc7c4d81C4D83C"
+            "actionRegistry": "0xB768203B1A3e3d6FaE0e788d0f9b99381ecB3Bae",
+            "gardenToken": "0x3e0DE15Ad3D9fd0299b6811247f14449eb866A39",
+            "gardenAccountImpl": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
           },
           "indexer_addresses": {
-            "ActionRegistry": "0x547e82BF9c8496f41927583793242f6b91C182A6",
-            "GardenToken": "0xEcbB6E69BE882d2e4E35CCe0E6637c7e1D64c791",
-            "GardenAccount": "0x83287652b4e1514e101a4053c9bcAFf6a24d051C"
+            "ActionRegistry": "0xB768203B1A3e3d6FaE0e788d0f9b99381ecB3Bae",
+            "GardenToken": "0x3e0DE15Ad3D9fd0299b6811247f14449eb866A39",
+            "GardenAccount": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
           }
         },
         {
@@ -43,13 +43,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "hatsModule": "0x9243a2039Ec7Aa0587159b4eB8d4533B5D39f543"
+            "hatsModule": "0x8dF31575A30765d7cca6D788644fD0d4FE33a433"
           },
           "indexer_addresses": {
-            "HatsModule": "0x0000000000000000000000000000000000000000"
+            "HatsModule": "0x8dF31575A30765d7cca6D788644fD0d4FE33a433"
           }
         },
         {
@@ -58,13 +58,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "octantModule": "0xFB025b627c0F8884ff5fE93654E69370f8c1c40a"
+            "octantModule": "0xF70970DD1CC26d073A647DAfd1761D9E6d66c187"
           },
           "indexer_addresses": {
-            "OctantModule": "0x0000000000000000000000000000000000000000"
+            "OctantModule": "0xF70970DD1CC26d073A647DAfd1761D9E6d66c187"
           }
         },
         {
@@ -73,14 +73,14 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "octantModule": "0xFB025b627c0F8884ff5fE93654E69370f8c1c40a",
-            "octantFactory": "0xcFd7b7C0424Cd0115cdB1B50c2a4E613bF4511Bb"
+            "octantModule": "0xF70970DD1CC26d073A647DAfd1761D9E6d66c187",
+            "octantFactory": "0xddA124A539B81e3e2aB41215E4716fcFAfdc2b22"
           },
           "indexer_addresses": {
-            "OctantVault": "0x0000000000000000000000000000000000000000"
+            "OctantVault": null
           }
         },
         {
@@ -89,13 +89,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "yieldSplitter": "0x233aB2d3fbBf6754FDbB5321962905f6Bc857d91"
+            "yieldSplitter": "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
           },
           "indexer_addresses": {
-            "YieldSplitter": "0x0000000000000000000000000000000000000000"
+            "YieldSplitter": "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
           }
         },
         {
@@ -107,7 +107,7 @@
           "indexer_ready": true,
           "effective_status": "Live",
           "deployment_addresses": {
-            "hypercertsModule": "0x2CDBBd222854e48cb422a4Fa341383E43B469A0F"
+            "hypercertsModule": "0x7748Db3Bb3e4CF1A1d489f982F3e1C258Ae9fD30"
           },
           "indexer_addresses": {
             "HypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
@@ -133,7 +133,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "gardensModule": "0xDe06c8914f12fa03DE2AC227E0D6892CE5bF0ABc"
+            "gardensModule": "0xa3938322bCc723Ff89fA8b34873ac046A7B8C837"
           },
           "indexer_addresses": {}
         },
@@ -146,7 +146,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "cookieJarModule": "0xc954CdADB611F8ad07aC2844022e58ae837CF1Ca"
+            "cookieJarModule": "0x18512876A845c626f67f88C757357C61aBd5D877"
           },
           "indexer_addresses": {}
         },
@@ -159,7 +159,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "marketplaceAdapter": "0x7D9B877EE735f280fa871fA5305afe6a33950a84"
+            "marketplaceAdapter": "0xB3b2e8AEA8bEDec3c5d4d7D9f74679a5BD1F271F"
           },
           "indexer_addresses": {}
         },
@@ -172,7 +172,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "greenGoodsENS": "0x0f85eC07214B72e1587Fac00ab55C2Bd08916D59"
+            "greenGoodsENS": "0xa33856C756B07A8Ac5472aE25d9fdaCF126C2636"
           },
           "indexer_addresses": {}
         },
@@ -185,7 +185,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "unifiedPowerRegistry": "0xe50064c4DE4a1C0a1D2926Ba49B821decF78b43E"
+            "unifiedPowerRegistry": "0x99BB8bAA32c9FdDD152d9A7971cd8fBc87E40B11"
           },
           "indexer_addresses": {}
         }
@@ -204,14 +204,14 @@
           "indexer_ready": true,
           "effective_status": "Live",
           "deployment_addresses": {
-            "actionRegistry": "0x72F172c1cB4bD22f90F196445E11B434Fcc4Bcf0",
-            "gardenToken": "0x95E74C32c6eC368565A0B5AA309261f2e1e4e241",
-            "gardenAccountImpl": "0xf92C093629f5a9cd7d5252ED77Cc7c4d81C4D83C"
+            "actionRegistry": "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4",
+            "gardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+            "gardenAccountImpl": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
           },
           "indexer_addresses": {
-            "ActionRegistry": "0x042D2b082Cdd4DCBc0aD9dD7c631BC2e45B05cB1",
-            "GardenToken": "0x0a7Ca3203f25c1c028D54C19789e83b401383F92",
-            "GardenAccount": "0x7de23111804b374E3a8d79932C4068d378F6843f"
+            "ActionRegistry": "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4",
+            "GardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+            "GardenAccount": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"
           }
         },
         {
@@ -220,13 +220,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "hatsModule": "0xDe873c53D170b0B68aAE5c42efe7aeAc5510A97b"
+            "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266"
           },
           "indexer_addresses": {
-            "HatsModule": "0x0000000000000000000000000000000000000000"
+            "HatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266"
           }
         },
         {
@@ -235,13 +235,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "octantModule": "0x6C9eA8BCa51Fd26eF3698EBb06BB01CcC72559E7"
+            "octantModule": "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9"
           },
           "indexer_addresses": {
-            "OctantModule": "0x0000000000000000000000000000000000000000"
+            "OctantModule": "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9"
           }
         },
         {
@@ -250,14 +250,14 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "octantModule": "0x6C9eA8BCa51Fd26eF3698EBb06BB01CcC72559E7",
-            "octantFactory": "0xEE03dd7743FFA5857f368DeEC3de9AFD7fDbaf64"
+            "octantModule": "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9",
+            "octantFactory": "0x84bc88EdEB7d8C74683890070761bA225B65B74a"
           },
           "indexer_addresses": {
-            "OctantVault": "0x0000000000000000000000000000000000000000"
+            "OctantVault": null
           }
         },
         {
@@ -266,13 +266,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": false,
-          "effective_status": "Implemented (activation pending indexing)",
+          "indexer_ready": true,
+          "effective_status": "Live",
           "deployment_addresses": {
-            "yieldSplitter": "0x8d25186c8c58584Fb9787d4200Bec02643d37973"
+            "yieldSplitter": "0x90896C86108528abB600Da3C48a1aa054958bDeb"
           },
           "indexer_addresses": {
-            "YieldSplitter": "0x0000000000000000000000000000000000000000"
+            "YieldSplitter": "0x90896C86108528abB600Da3C48a1aa054958bDeb"
           }
         },
         {
@@ -284,7 +284,7 @@
           "indexer_ready": true,
           "effective_status": "Live",
           "deployment_addresses": {
-            "hypercertsModule": "0xEb559842eb1322D60687Ec54c147611da7D5CbaC"
+            "hypercertsModule": "0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0"
           },
           "indexer_addresses": {
             "HypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
@@ -310,7 +310,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "gardensModule": "0x366C25c6b938589C09f6c540cF3520D97Ccb6ad2"
+            "gardensModule": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183"
           },
           "indexer_addresses": {}
         },
@@ -323,7 +323,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "cookieJarModule": "0x7DAcF90A000Ce9809Dec738cC922565eF7fEC59f"
+            "cookieJarModule": "0x726bfbd0B7449C8f4aBfbcc2FBC5a89eB18fF157"
           },
           "indexer_addresses": {}
         },
@@ -336,7 +336,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "marketplaceAdapter": "0xC7ff47dc773D6639EE9386466eeEd6Fe5CB2B9FB"
+            "marketplaceAdapter": "0xE396137ef12c30075fd0B8509C6e389750f36159"
           },
           "indexer_addresses": {}
         },
@@ -362,7 +362,7 @@
           "indexer_ready": null,
           "effective_status": "Live (external source)",
           "deployment_addresses": {
-            "unifiedPowerRegistry": "0xd7F7332150dE52D892D999E0676Af390bc17E5f9"
+            "unifiedPowerRegistry": "0xD36004307c136FFed0Fe425f699FB1569BFabCBa"
           },
           "indexer_addresses": {}
         }
@@ -378,17 +378,17 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": true,
-          "indexer_ready": true,
-          "effective_status": "Live",
+          "indexer_ready": false,
+          "effective_status": "Implemented (activation pending indexing)",
           "deployment_addresses": {
             "actionRegistry": "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92",
             "gardenToken": "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B",
             "gardenAccountImpl": "0x710cBFB9a29920B4577692eD495972fcd27286b4"
           },
           "indexer_addresses": {
-            "ActionRegistry": "0x0747ED4f1915b8f3A6eA8a9d8216E8F53EE80f92",
-            "GardenToken": "0xDcA639287A392E17cad0deA4E72F5B3cfA429e6B",
-            "GardenAccount": "0x710cBFB9a29920B4577692eD495972fcd27286b4"
+            "ActionRegistry": null,
+            "GardenToken": null,
+            "GardenAccount": null
           }
         },
         {
@@ -403,7 +403,7 @@
             "hatsModule": "0x0000000000000000000000000000000000000000"
           },
           "indexer_addresses": {
-            "HatsModule": "0x0000000000000000000000000000000000000000"
+            "HatsModule": null
           }
         },
         {
@@ -418,7 +418,7 @@
             "octantModule": "0x0000000000000000000000000000000000000000"
           },
           "indexer_addresses": {
-            "OctantModule": "0x0000000000000000000000000000000000000000"
+            "OctantModule": null
           }
         },
         {
@@ -434,7 +434,7 @@
             "octantFactory": "0x0000000000000000000000000000000000000000"
           },
           "indexer_addresses": {
-            "OctantVault": "0x0000000000000000000000000000000000000000"
+            "OctantVault": null
           }
         },
         {
@@ -449,7 +449,7 @@
             "yieldSplitter": "0x0000000000000000000000000000000000000000"
           },
           "indexer_addresses": {
-            "YieldSplitter": "0x0000000000000000000000000000000000000000"
+            "YieldSplitter": null
           }
         },
         {
@@ -458,13 +458,13 @@
           "data_source": "Envio indexer",
           "implemented_in_code": true,
           "deployment_ready": false,
-          "indexer_ready": true,
+          "indexer_ready": false,
           "effective_status": "Implemented (activation pending deployment)",
           "deployment_addresses": {
             "hypercertsModule": "0x0000000000000000000000000000000000000000"
           },
           "indexer_addresses": {
-            "HypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+            "HypercertMinter": null
           }
         },
         {

@@ -3,6 +3,11 @@
 !package.json
 !bun.lock
 
+# `bun install --frozen-lockfile` resolves package.json#patchedDependencies from here,
+# so the patch files must stay in the build context or the image install fails.
+!patches/
+!patches/**
+
 !packages/
 !packages/admin/
 !packages/admin/package.json
@@ -17,7 +22,10 @@
 !packages/contracts/deployments/
 !packages/contracts/deployments/**
 !packages/indexer/
-!packages/indexer/package.json
+!packages/indexer/**
+packages/indexer/.envio/
+packages/indexer/generated/
+packages/indexer/node_modules/
 !packages/shared/
 !packages/shared/package.json
 !packages/shared/src/

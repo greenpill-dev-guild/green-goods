@@ -1,6 +1,10 @@
-import { Capital, HypercertStatus, PoolType, WeightScheme } from "../../generated";
-import type { Domain_t } from "../../generated/src/db/Enums.gen";
-import type { Garden, GardenVault, Hypercert } from "../../generated/src/Types.gen";
+import type { Enum, Garden, GardenVault, Hypercert } from "envio";
+
+type Capital = Enum<"Capital">;
+type Domain = Enum<"Domain">;
+type HypercertStatus = Enum<"HypercertStatus">;
+type PoolType = Enum<"PoolType">;
+type WeightScheme = Enum<"WeightScheme">;
 
 import type { FetchJsonContext, TransactionWithHash } from "./types";
 import {
@@ -38,7 +42,7 @@ export function getTxHash(transaction: unknown): string {
  * Converts a numeric domain type from the blockchain to a Domain enum value.
  * Returns "UNKNOWN" for any unrecognized values.
  */
-export function mapDomainType(value: bigint): Domain_t {
+export function mapDomainType(value: bigint): Domain {
   const numValue = Number(value);
   return DOMAIN_TYPE_MAP[numValue] ?? "UNKNOWN";
 }
@@ -47,8 +51,8 @@ export function mapDomainType(value: bigint): Domain_t {
  * Expands a domain bitmask into an array of Domain enum strings.
  * Bit 0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE
  */
-export function expandDomainMask(mask: number): Domain_t[] {
-  const domains: Domain_t[] = [];
+export function expandDomainMask(mask: number): Domain[] {
+  const domains: Domain[] = [];
   if (mask & 1) domains.push("SOLAR");
   if (mask & 2) domains.push("AGRO");
   if (mask & 4) domains.push("EDU");
@@ -69,15 +73,15 @@ export function normalizeAddress(address: string): string {
   return address.toLowerCase();
 }
 
-export function addUniqueAddress(list: string[], address: string): string[] {
+export function addUniqueAddress(list: readonly string[], address: string): string[] {
   const normalized = normalizeAddress(address);
   if (list.some((item) => normalizeAddress(item) === normalized)) {
-    return list;
+    return [...list];
   }
   return [...list, normalized];
 }
 
-export function removeAddress(list: string[], address: string): string[] {
+export function removeAddress(list: readonly string[], address: string): string[] {
   const normalized = normalizeAddress(address);
   return list.filter((item) => normalizeAddress(item) !== normalized);
 }

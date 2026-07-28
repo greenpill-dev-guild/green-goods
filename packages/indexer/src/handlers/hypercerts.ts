@@ -1,11 +1,6 @@
-import { HypercertMinter, HypercertStatus } from "../../generated";
+import { indexer, type Enum, type Hypercert, type HypercertClaim } from "envio";
 
-import type {
-  Hypercert,
-  HypercertClaim,
-  HypercertMinter_ClaimStored_handlerArgs,
-  HypercertMinter_TransferSingle_handlerArgs,
-} from "../../generated/src/Types.gen";
+type HypercertStatus = Enum<"HypercertStatus">;
 
 import {
   createDefaultHypercert,
@@ -21,8 +16,9 @@ import {
 
 // Handler for HypercertMinter TransferSingle event (detects mints)
 // This fires for all ERC1155 transfers, we filter for mints (from = zero address)
-HypercertMinter.TransferSingle.handler(
-  async ({ event, context }: HypercertMinter_TransferSingle_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "HypercertMinter", event: "TransferSingle" },
+  async ({ event, context }) => {
     // Only process mints (from zero address)
     if (event.params.from.toLowerCase() !== ZERO_ADDRESS) {
       return;
@@ -128,8 +124,9 @@ HypercertMinter.TransferSingle.handler(
 );
 
 // Handler for HypercertMinter ClaimStored event (stores metadata URI)
-HypercertMinter.ClaimStored.handler(
-  async ({ event, context }: HypercertMinter_ClaimStored_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "HypercertMinter", event: "ClaimStored" },
+  async ({ event, context }) => {
     const tokenId = event.params.claimID;
     const hypercertId = `${event.chainId}-${tokenId.toString()}`;
     const timestamp = event.block.timestamp;

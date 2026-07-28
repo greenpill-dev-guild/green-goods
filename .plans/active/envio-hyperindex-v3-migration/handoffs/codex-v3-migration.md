@@ -27,7 +27,8 @@
 - [ ] Obtain explicit install authorization.
 - [ ] Generate clean bindings from the checked-in lockfile.
 - [ ] Run boundary, build, and test gates.
-- [ ] Prove existing-handler behavior, migration replay, and idempotence.
+- [ ] Prove existing-handler behavior, clean-replay determinism, and same-store repeated-range
+      rejection without mutation. Do not claim handler-level idempotence.
 - [ ] Start the local runtime and query representative Green Goods data.
 - [ ] Record reindex, DB compatibility, hosted configuration, rollback, and approval ownership.
 - [ ] Attach proof to PRD-557 and update `../status.json`.

@@ -118,10 +118,23 @@ const loadJson = async (relativePath) => {
 const indexerYaml = await fs.readFile(path.resolve(repoRoot, "packages/indexer/config.yaml"), "utf8");
 const indexerConfig = yaml.load(indexerYaml, { schema: yaml.CORE_SCHEMA });
 
-const indexerAddress = (chainId, contractName) => {
-  const network = indexerConfig.networks?.find((item) => Number(item.id) === Number(chainId));
-  const contract = network?.contracts?.find((item) => item.name === contractName);
-  return contract?.address ?? null;
+// Envio v3 discovers these at runtime through `indexer.contractRegister`, so their config
+// entries intentionally carry no address. Presence of the entry — not an address — is readiness.
+const DYNAMICALLY_REGISTERED_INDEXER_CONTRACTS = new Set(["OctantVault"]);
+
+const indexerContractEntry = (chainId, contractName) => {
+  const chain = indexerConfig.chains?.find((item) => Number(item.id) === Number(chainId));
+  return chain?.contracts?.find((item) => item.name === contractName) ?? null;
+};
+
+const indexerAddress = (chainId, contractName) =>
+  indexerContractEntry(chainId, contractName)?.address ?? null;
+
+const indexerContractReady = (chainId, contractName) => {
+  const entry = indexerContractEntry(chainId, contractName);
+  if (!entry) return false;
+  if (DYNAMICALLY_REGISTERED_INDEXER_CONTRACTS.has(contractName)) return true;
+  return nonZero(entry.address);
 };
 
 const chainSummaries = [];
@@ -138,7 +151,8 @@ for (const chain of chains) {
     const indexerAddresses = moduleDef.indexerNames.map((name) => indexerAddress(chain.chainId, name));
     const indexerReady =
       moduleDef.source === "indexer"
-        ? indexerAddresses.length > 0 && indexerAddresses.every(nonZero)
+        ? moduleDef.indexerNames.length > 0 &&
+          moduleDef.indexerNames.every((name) => indexerContractReady(chain.chainId, name))
         : null;
 
     let effectiveStatus = "Implemented (activation pending deployment)";

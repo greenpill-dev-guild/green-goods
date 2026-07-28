@@ -134,8 +134,7 @@ function cleanupTargets() {
     targets.push(
       "packages/indexer/.envio",
       "packages/indexer/artifacts",
-      "packages/indexer/benchmarks",
-      "packages/indexer/generated/persisted_state.envio.json"
+      "packages/indexer/benchmarks"
     );
   }
 
