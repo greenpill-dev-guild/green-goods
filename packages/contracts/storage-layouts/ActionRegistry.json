@@ -116,11 +116,22 @@
     },
     "t_enum(Capital)": {
       "encoding": "inplace",
+      "enumMembers": [
+        "SOCIAL",
+        "MATERIAL",
+        "FINANCIAL",
+        "LIVING",
+        "INTELLECTUAL",
+        "EXPERIENTIAL",
+        "SPIRITUAL",
+        "CULTURAL"
+      ],
       "label": "enum Capital",
       "numberOfBytes": "1"
     },
     "t_enum(Domain)": {
       "encoding": "inplace",
+      "enumMembers": ["SOLAR", "AGRO", "EDU", "WASTE"],
       "label": "enum Domain",
       "numberOfBytes": "1"
     },

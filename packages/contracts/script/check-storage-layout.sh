@@ -95,6 +95,11 @@ forge "${build_args[@]}" 2>/dev/null || {
   exit 1
 }
 
+if ! enum_catalog=$(bun script/utils/storage-layout-enums.ts src); then
+  echo -e "${RED}Could not extract enum definitions from the Solidity AST.${NC}"
+  exit 1
+fi
+
 failures=0
 updates=0
 
@@ -122,11 +127,13 @@ for entry in "${CONTRACTS[@]}"; do
   fi
 
   # Extract only the fields that matter for layout compatibility:
-  # slot, offset, type, label, and every recursively referenced type definition
-  # (not astId or contract source names, which change on recompilation)
-  current_normalized=$(echo "$current_layout" | python3 -c "
-import json, re, sys
+  # slot, offset, type, label, enum member order, and every recursively
+  # referenced type definition (not astId or contract source names, which
+  # change on recompilation).
+  if ! current_normalized=$(echo "$current_layout" | ENUM_CATALOG="$enum_catalog" python3 -c "
+import json, os, re, sys
 data = json.load(sys.stdin)
+enum_catalog = json.loads(os.environ['ENUM_CATALOG'])
 
 def stable_type(type_name):
     # Foundry embeds source-order-dependent AST ids in contract, struct, enum, and
@@ -183,13 +190,35 @@ for type_name in referenced_types:
             }
             for member in type_definition['members']
         ]
+    if type_name.startswith('t_enum('):
+        label = type_definition.get('label', '')
+        if not label.startswith('enum '):
+            raise ValueError(f'Enum storage type {type_name} has unexpected label {label!r}')
+        canonical_name = label.removeprefix('enum ')
+        enum_members = enum_catalog.get(canonical_name)
+        if enum_members is None:
+            short_name = canonical_name.rsplit('.', 1)[-1]
+            matches = [
+                members
+                for name, members in enum_catalog.items()
+                if name == short_name or name.endswith(f'.{short_name}')
+            ]
+            if len(matches) != 1:
+                raise ValueError(f'Could not uniquely resolve enum members for {canonical_name}')
+            enum_members = matches[0]
+        normalized['enumMembers'] = enum_members
     types[stable_type(type_name)] = normalized
 
 print(json.dumps({'storage': slots, 'types': types}, indent=2, sort_keys=True))
-" 2>/dev/null || echo "$current_layout")
+"); then
+    echo -e "${RED}Could not normalize ${contract_name} storage layout.${NC}"
+    failures=$((failures + 1))
+    continue
+  fi
 
   if $update_mode; then
     echo "$current_normalized" > "$baseline_file"
+    bunx @biomejs/biome format --write "$baseline_file" >/dev/null
     echo -e "${GREEN}Updated: ${contract_name}${NC}"
     updates=$((updates + 1))
     continue
@@ -206,13 +235,18 @@ print(json.dumps({'storage': slots, 'types': types}, indent=2, sort_keys=True))
   fi
 
   # Compare normalized layouts
-  baseline_content=$(cat "$baseline_file")
+  if ! baseline_content=$(jq --sort-keys --compact-output . "$baseline_file"); then
+    echo -e "${RED}INVALID STORAGE BASELINE: ${contract_name}${NC}"
+    failures=$((failures + 1))
+    continue
+  fi
+  current_content=$(echo "$current_normalized" | jq --sort-keys --compact-output .)
 
-  if [[ "$current_normalized" != "$baseline_content" ]]; then
+  if [[ "$current_content" != "$baseline_content" ]]; then
     echo -e "${RED}STORAGE LAYOUT CHANGED: ${contract_name}${NC}"
     echo "  Baseline: $baseline_file"
     echo "  Diff:"
-    diff <(echo "$baseline_content") <(echo "$current_normalized") || true
+    diff <(jq --sort-keys . "$baseline_file") <(echo "$current_normalized" | jq --sort-keys .) || true
     echo ""
     echo -e "${YELLOW}  If this change is intentional, run:${NC}"
     echo "    ./script/check-storage-layout.sh --update"

@@ -6,7 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
+import { redactRpcUrl } from "../../../../../packages/contracts/script/utils/cli-parser";
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
+
+export { redactRpcUrl };
 
 type NetworkName = "sepolia" | "arbitrum";
 
@@ -166,15 +169,6 @@ function parseOptions(argv: string[]): Options {
   }
 
   return { network, outputDir, expectedCaller, expectedCount, safeBatch, rpcUrl };
-}
-
-export function redactRpcUrl(value: string): string {
-  try {
-    const parsed = new URL(value);
-    return `${parsed.protocol}//[REDACTED]`;
-  } catch {
-    return "[REDACTED_RPC_URL]";
-  }
 }
 
 export function redactRpcError(message: string, rpcUrl: string): string {

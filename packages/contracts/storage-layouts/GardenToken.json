@@ -241,6 +241,7 @@
     },
     "t_enum(TransferRestriction)": {
       "encoding": "inplace",
+      "enumMembers": ["Unrestricted", "OwnerOnly", "Locked"],
       "label": "enum GardenToken.TransferRestriction",
       "numberOfBytes": "1"
     },

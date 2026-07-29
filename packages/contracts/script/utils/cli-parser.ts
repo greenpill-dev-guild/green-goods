@@ -52,6 +52,16 @@ const VALUE_FLAGS = new Set([
 /** Flags whose values contain secrets and must be redacted in logs */
 const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--rpc-url", "--account", "--sender"]);
 
+/** Reduce an RPC URL to a credential-free marker that is safe to persist or log. */
+export function redactRpcUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    return `${parsed.protocol}//[REDACTED]`;
+  } catch {
+    return "[REDACTED_RPC_URL]";
+  }
+}
+
 /**
  * Redact sensitive flag values from a forge argument list for safe logging.
  * Returns a new array with secret values replaced by "[REDACTED]".

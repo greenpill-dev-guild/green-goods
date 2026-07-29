@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createPublicClient, http, parseAbi, type Address } from "viem";
 import { arbitrum } from "viem/chains";
 
+import { redactRpcUrl } from "../../../../../packages/contracts/script/utils/cli-parser";
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
 
 export interface InventoryGarden {
@@ -361,7 +362,7 @@ async function main(): Promise<void> {
     network: "arbitrum",
     chainId: arbitrum.id.toString(),
     blockNumber: blockNumber.toString(),
-    rpcUrl: new URL(rpcUrl).origin,
+    rpcUrl: redactRpcUrl(rpcUrl),
     gardenToken: inventory.gardenToken,
     gardenAccountImpl: inventory.gardenAccountImpl,
     hatsModule: inventory.hatsModule,

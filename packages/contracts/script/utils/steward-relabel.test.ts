@@ -15,8 +15,9 @@ import {
   validateReviewedPlanArtifact,
   type RelabelPlan,
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel";
-import { redactSensitiveArgs } from "./cli-parser";
+import { redactRpcUrl as redactSharedRpcUrl, redactSensitiveArgs } from "./cli-parser";
 import { collectStewardGardenCoverageErrors } from "./post-deploy-verify";
+import { extractEnumDefinitionsFromSource } from "./storage-layout-enums";
 
 type InventoryIdentity = Pick<InventoryGarden, "tokenId" | "garden" | "operatorHatId">;
 
@@ -78,6 +79,21 @@ describe("Steward relabel safety", () => {
     expect(redactRpcError(message, rpcUrl)).not.toContain("password");
     expect(redactRpcError(message, rpcUrl)).not.toContain("api-key");
     expect(redactRpcError(message, rpcUrl)).not.toContain("secret");
+  });
+
+  it("persists a fully redacted RPC marker in refreshed preflight artifacts", () => {
+    const rpcUrl = "https://api-key.provider.example/custom/key?token=secret";
+    const refreshSource = fs.readFileSync(
+      new URL(
+        "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-direct-plan.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    expect(redactSharedRpcUrl(rpcUrl)).toBe("https://[REDACTED]");
+    expect(refreshSource).toContain("rpcUrl: redactRpcUrl(rpcUrl)");
+    expect(refreshSource).not.toContain("rpcUrl: new URL(rpcUrl).origin");
   });
 
   it("accepts a complete unique inventory even when token rows are unordered", () => {
@@ -203,5 +219,23 @@ describe("Steward relabel safety", () => {
     ]) {
       expect(fs.existsSync(new URL(`../../storage-layouts/${contract}.json`, import.meta.url))).toBe(true);
     }
+  });
+
+  it("extracts top-level and contract enum members in source order", () => {
+    const first = extractEnumDefinitionsFromSource(`
+      enum Capital { SOCIAL, MATERIAL, FINANCIAL }
+      contract GardenToken {
+        enum TransferRestriction { None, Limited, Soulbound }
+      }
+    `);
+    const reordered = extractEnumDefinitionsFromSource(`
+      enum Capital { MATERIAL, SOCIAL, FINANCIAL }
+    `);
+
+    expect(first).toEqual({
+      Capital: ["SOCIAL", "MATERIAL", "FINANCIAL"],
+      "GardenToken.TransferRestriction": ["None", "Limited", "Soulbound"],
+    });
+    expect(reordered.Capital).not.toEqual(first.Capital);
   });
 });
