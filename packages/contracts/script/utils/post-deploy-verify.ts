@@ -108,8 +108,13 @@ interface GardensFile {
   gardens?: Array<{ tokenId?: number; address?: string }>;
 }
 
-interface RpcLog {
-  topics?: string[];
+export interface StorageLayoutBaseline {
+  storage?: Array<{
+    label?: string;
+    slot?: string;
+    offset?: number;
+    type?: string;
+  }>;
 }
 
 interface StewardGardenBaseline {
@@ -362,15 +367,6 @@ function parseAddressArray(output: string): string[] {
   return output.match(/0x[a-fA-F0-9]{40}/g) ?? [];
 }
 
-function parseTopicAddress(topic: string | undefined): string {
-  if (!topic) return ZERO_ADDRESS;
-  const normalized = topic.toLowerCase();
-  if (/^0x[a-f0-9]{64}$/.test(normalized)) {
-    return `0x${normalized.slice(-40)}`;
-  }
-  return parseAddress(topic);
-}
-
 function parseUint(output: string): bigint {
   const token = output.match(/0x[a-fA-F0-9]+|\d+/)?.[0];
   if (!token) return 0n;
@@ -411,34 +407,32 @@ function readStorageAddress(rpcUrl: string, contract: string, slot: string): str
   }
 }
 
-function castLogs(rpcUrl: string, address: string, signature: string): RpcLog[] {
+function readStorageUint(rpcUrl: string, contract: string, slot: string): bigint {
   try {
-    const output = execFileSync(
-      "cast",
-      [
-        "logs",
-        "--json",
-        "--from-block",
-        "0",
-        "--to-block",
-        "latest",
-        "--address",
-        address,
-        "--rpc-url",
-        rpcUrl,
-        signature,
-      ],
-      {
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    return JSON.parse(output) as RpcLog[];
+    const output = execFileSync("cast", ["storage", contract, slot, "--rpc-url", rpcUrl], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    const word = output.match(/0x[a-fA-F0-9]{64}/)?.[0];
+    if (!word) throw new Error(`unexpected storage word: ${output}`);
+    return BigInt(word);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(`⚠️  Failed to read garden mint logs: ${maskRpcApiKey(message)}`);
-    return [];
+    throw new Error(`cast storage failed (${contract} ${slot}): ${maskRpcApiKey(message)}`);
   }
+}
+
+export function findStorageSlot(layout: StorageLayoutBaseline, label: string, expectedType: string): string {
+  const matches = (layout.storage ?? []).filter((entry) => entry.label === label);
+  if (
+    matches.length !== 1 ||
+    !/^\d+$/.test(matches[0].slot ?? "") ||
+    matches[0].offset !== 0 ||
+    matches[0].type !== expectedType
+  ) {
+    throw new Error(`Storage layout must contain one ${expectedType} ${label} at offset zero`);
+  }
+  return matches[0].slot as string;
 }
 
 function parseNumberish(value: number | string | undefined): number {
@@ -487,16 +481,24 @@ function loadGardensFromChain(options: VerifyOptions, deployment: DeploymentReco
     return [];
   }
 
-  const logs = castLogs(options.rpcUrl, deployment.gardenToken as string, "Transfer(address,address,uint256)");
-  const tokenIds = logs
-    .filter((entry) => normalizeAddress(parseTopicAddress(entry.topics?.[1])) === normalizeAddress(ZERO_ADDRESS))
-    .map((entry) => entry.topics?.[3])
-    .filter((tokenId): tokenId is string => typeof tokenId === "string")
-    .map((tokenId) => BigInt(tokenId));
+  const layoutPath = path.join(__dirname, "../../storage-layouts/GardenToken.json");
+  const layout = JSON.parse(fs.readFileSync(layoutPath, "utf8")) as StorageLayoutBaseline;
+  const nextTokenIdSlot = findStorageSlot(layout, "_nextTokenId", "t_uint256");
+  const mintedCount = readStorageUint(options.rpcUrl, deployment.gardenToken as string, nextTokenIdSlot);
+  if (mintedCount > 10_000n) {
+    throw new Error(`GardenToken live mint count ${mintedCount} exceeds the verification safety limit`);
+  }
+  const tokenIds = Array.from({ length: Number(mintedCount) }, (_, tokenId) => BigInt(tokenId));
 
   return tokenIds
-    .map((tokenId) =>
-      parseAddress(
+    .map((tokenId) => {
+      const tokenOwner = parseAddress(
+        castCall(options.rpcUrl, deployment.gardenToken as string, "ownerOf(uint256)(address)", [tokenId.toString()]),
+      );
+      if (isZeroAddress(tokenOwner)) {
+        throw new Error(`GardenToken ownerOf(${tokenId}) returned a zero or invalid address`);
+      }
+      return parseAddress(
         castCall(options.rpcUrl, TOKENBOUND_REGISTRY, "account(address,bytes32,uint256,address,uint256)(address)", [
           deployment.gardenAccountImpl as string,
           TOKENBOUND_SALT,
@@ -504,8 +506,8 @@ function loadGardensFromChain(options: VerifyOptions, deployment: DeploymentReco
           deployment.gardenToken as string,
           tokenId.toString(),
         ]),
-      ),
-    )
+      );
+    })
     .filter((garden) => !isZeroAddress(garden));
 }
 

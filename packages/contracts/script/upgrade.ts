@@ -374,10 +374,17 @@ export function findLatestUpgradeArtifactIn(baseDir: string, functionSignature: 
     path.join(baseDir, "run-latest.json"),
   ];
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
+  const existingCandidates = candidates
+    .filter((candidate) => fs.existsSync(candidate))
+    .map((candidate, priority) => ({
+      candidate,
+      modifiedAt: fs.statSync(candidate).mtimeMs,
+      priority,
+    }))
+    .sort((left, right) => right.modifiedAt - left.modifiedAt || left.priority - right.priority);
+
+  if (existingCandidates.length > 0) {
+    return existingCandidates[0].candidate;
   }
 
   throw new Error(`Upgrade artifact not found under ${baseDir}`);

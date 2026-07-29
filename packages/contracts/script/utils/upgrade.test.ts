@@ -30,6 +30,17 @@ describe("upgrade transaction plan artifact discovery", () => {
     expect(findLatestUpgradeArtifactIn(temporaryDirectory, "upgradeHatsModule()")).toBe(artifactPath);
   });
 
+  it("selects a fresh legacy artifact over a stale signature-specific artifact", () => {
+    const signatureArtifact = path.join(temporaryDirectory, "dry-run", "upgradeHatsModule-latest.json");
+    const legacyArtifact = path.join(temporaryDirectory, "dry-run", "run-latest.json");
+    fs.writeFileSync(signatureArtifact, "{}");
+    fs.writeFileSync(legacyArtifact, "{}");
+    fs.utimesSync(signatureArtifact, new Date(1_000), new Date(1_000));
+    fs.utimesSync(legacyArtifact, new Date(2_000), new Date(2_000));
+
+    expect(findLatestUpgradeArtifactIn(temporaryDirectory, "upgradeHatsModule()")).toBe(legacyArtifact);
+  });
+
   it("fails closed for an invalid function signature", () => {
     expect(() => findLatestUpgradeArtifactIn(temporaryDirectory, "upgradeHatsModule")).toThrow(
       "Invalid upgrade function signature",

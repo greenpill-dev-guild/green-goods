@@ -16,7 +16,7 @@ import {
   type RelabelPlan,
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel";
 import { redactRpcUrl as redactSharedRpcUrl, redactSensitiveArgs } from "./cli-parser";
-import { collectStewardGardenCoverageErrors } from "./post-deploy-verify";
+import { collectStewardGardenCoverageErrors, findStorageSlot } from "./post-deploy-verify";
 import { extractEnumDefinitionsFromSource } from "./storage-layout-enums";
 
 type InventoryIdentity = Pick<InventoryGarden, "tokenId" | "garden" | "operatorHatId">;
@@ -190,6 +190,17 @@ describe("Steward relabel safety", () => {
 
     expect(errors).toContain("Steward baseline covers 2 gardens but live inventory contains 3");
     expect(errors).toContain(`Steward baseline is missing live garden ${GARDENS[2].garden}`);
+  });
+
+  it("derives the live garden mint count from the protected GardenToken storage slot", () => {
+    const layout = JSON.parse(
+      fs.readFileSync(new URL("../../storage-layouts/GardenToken.json", import.meta.url), "utf8"),
+    ) as Parameters<typeof findStorageSlot>[0];
+
+    expect(findStorageSlot(layout, "_nextTokenId", "t_uint256")).toBe("201");
+    expect(() => findStorageSlot(layout, "_nextTokenId", "t_address")).toThrow(
+      "Storage layout must contain one t_address _nextTokenId at offset zero",
+    );
   });
 
   it("runs the HatsModule storage check before either broadcast wrapper", () => {
