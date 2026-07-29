@@ -1597,7 +1597,7 @@
       "status": "spec",
       "vocabulary": "commitment-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
-      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; the contributor roster freezes atomically on the transition to ReadyForConfirmation; disputes restore an explicitly stored prior state.",
+      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; the contributor roster freezes atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; recognition requires an opened cycle policy or the immutable cycle-less 20/80 default plus at least one verified contributor; disputes restore an explicitly stored prior state.",
       "states": [
         { "name": "Draft", "storage": "off-chain" },
         { "name": "Offered", "storage": "on-chain" },
@@ -1648,7 +1648,7 @@
           "from": "…",
           "to": "ReadyForConfirmation",
           "layer": "on-chain",
-          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; contributor roster freezes atomically before the ready event on every path"
+          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus at least one verified contributor; contributor roster freezes atomically before the ready event"
         },
         {
           "from": "ReadyForConfirmation",
@@ -1684,7 +1684,7 @@
           "from": "Disputed",
           "to": "previous | Fulfilled | Cancelled | Expired",
           "layer": "on-chain",
-          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled"
+          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved"
         }
       ]
     }

@@ -106,7 +106,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 33 | Contributor payout plans are explicitly finalized before any child preparation or dispatch. Finalization verifies the recognition and amount-derived payment vectors plus exact conservation, makes the plan immutable, and creates no child. A later idempotent per-contributor preparation materializes one Queued child from a frozen non-zero row. A zero-child all-retained plan completes at finalization without a self-transfer. Recipients must be frozen eligible contributors and their Celo accounts are derived, never typed as arbitrary addresses. Overall plan status includes unprepared rows plus child states; partial success is visible, failed contributors requeue independently, and child cancellation never clears the one-plan-per-commitment pointer. | Review closure 2026-07-28, child lifecycle clarified 2026-07-29. It preserves the bounded settlement state machine while preventing editable-draft or finalization-created orphan children. |
 | 34 | The UI separates three relationships everywhere they matter: who is accountable, who contributed, and who is paid. Team membership, requirement credit, contribution evidence, recognition weights, payout edits, retention, partial settlement, and per-recipient receipts are first-class states across W2/W2a/W2b/W3/W4/W8/W10/W11/W21/W22/W23/W25/W26. | User architecture amendment 2026-07-28. A multi-person data model without visible composition and correction paths would reproduce the same singular-provider UX failure. |
 | 35 | This amendment updates planning, diagrams, prototypes, ontology/docs, and tracker mirrors only. Product contracts, indexer, shared state, UI packages, deployment, broadcast, Safe authority, and value movement remain blocked behind their existing lanes and proof gates. | Scope boundary for the 2026-07-28 alignment pass. |
-| 36 | Automatic Hypercert allocation has no unearned lead fallback. A fulfilled commitment with no eligible contributor blocks W26 certificate expansion until a steward records a proof-linked, reason-required attribution repair whose before/after set and weights remain in mint metadata. Commitment creation accepts only `actionUID`/`requiredCount`; evidence fulfillment uses a bounded attribution index; settlement creation binds the full recognition vector to its hash and derives payment weights from amounts. | Review closure 2026-07-28. These constraints make the recognition and payout audit trail internally verifiable and keep caller-authored derived fields out of contract inputs. |
+| 36 | Automatic Hypercert allocation has no unearned lead or metadata-only fallback. Ready transitions and direct Fulfilled dispute resolutions require an available recognition policy and at least one verified contributor; W26 blocks inconsistent legacy/indexed zero-eligible state pending governed correction. Commitment creation accepts only `actionUID`/`requiredCount` for DomainImpact; evidence jobs persist their explicit credited-contributor vector; each Work UID counts once; settlement creation binds the full recognition vector to its hash and derives payment weights from amounts. | Review closure 2026-07-28, tightened 2026-07-29. These constraints make the recognition and payout audit trail internally verifiable and keep caller-authored derived fields out of contract inputs. |
 
 ### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–68)
 
@@ -330,8 +330,9 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     commitment, 20% is shared equally among eligible contributors and 80% follows verified
     contribution weights from approved linked Work plus evidence attribution on the Fulfilled commitment.
     Deterministic rounding follows highest weight then ascending address. The policy is frozen at
-    cycle open. There is no automatic lead fallback: zero eligible contributors block W26 until a
-    proof-linked, reason-required attribution repair records the before/after set and weights.
+    cycle open, while cycle-less commitments use the immutable protocol 20/80 default. There is no
+    automatic lead or metadata-only fallback: Ready and direct Fulfilled dispute resolution reject
+    zero eligible contributors, and W26 blocks any inconsistent legacy/indexed state.
 65. Payout-plan amendment (2026-07-28, Afo authorization): a fulfilled CeloSettlement commitment
     receives a garden-managed payout plan. Its initial contributor weights copy the final
     Hypercert recognition weights. Plan creation asks CommitmentPooling to recompute the complete
@@ -363,8 +364,9 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     blocks instead of falling back to the lead; payout plans verify the complete recognition
     vector/hash, derive payment weights from atomic amount vectors, explicitly finalize before
     dispatch, complete all-retained plans without CCIP, and preserve the parent pointer through
-    every child/batch cancellation. The roster freeze remains atomic with the transition to
-    ReadyForConfirmation. Repo truth is corrected before Google Doc and Linear mirrors.
+    every child/batch cancellation. The roster freeze remains atomic with every transition to
+    ReadyForConfirmation and with a direct `Disputed -> Fulfilled` resolution. Repo truth is
+    corrected before Google Doc and Linear mirrors.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

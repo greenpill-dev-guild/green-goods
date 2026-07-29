@@ -235,8 +235,8 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 27-feature-slot Commitment Pooling declaration order and `__gap[23]`, including
-  `workRequirementIndexPlusOne`, but treat the generated compiler baseline plus concrete
+- Implement the 28-feature-slot Commitment Pooling declaration order and `__gap[22]`, including
+  `workRequirementIndexPlusOne` and `workCreditCounted`, but treat the generated compiler baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique measured-bounded credited list, increments `evidenceCount` once and each active contributor's `evidenceCredits` once, and never counts the same attachment again. `isEligibleContributor` additionally requires `Fulfilled`.
 - The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark selects the transaction-safe value. It is not a semantic team-size cap.
@@ -244,7 +244,13 @@ every conflicting state. Broadcast remains outside this handoff.
   add/join reject max-plus-one before mutation. Open contributors may self-leave only before
   freeze with zero credit; neither the lead nor a credited contributor may leave/be removed.
 - `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row,
-  stores index-plus-one, emits it, and increments only that row on approval/sync.
+  stores index-plus-one, emits it, and increments only that row on approval/sync. `approvalCounted`
+  makes one approval-attestation delivery idempotent, while `workCreditCounted` guarantees that
+  distinct approval attestations for the same Work UID can award contributor/requirement credit only once.
+- Every Ready transition and a direct `Disputed -> Fulfilled` resolution require at least one
+  verified eligible contributor plus either the cycle's already-opened recognition policy or the
+  immutable cycle-less 20/80 default. The direct dispute path freezes and validates the roster
+  before emitting the Fulfilled resolution.
 - Garden-claimed Requests use stored `requestedBy` as the accountable lead while retaining the
   GardenAccount as counterparty/provider scope. CeloSettlement declarations require source zero;
   the accepted provider-garden Safe becomes authoritative only in SettlementModule.

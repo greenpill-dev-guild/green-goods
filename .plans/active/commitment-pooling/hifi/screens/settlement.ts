@@ -141,7 +141,7 @@ function w21(state: W21State): string {
       "admin.greengoods.app/dashboard/garden/settlement",
       adminDialogM3(w21Behind("failed"), "garden", {
         title: "Requeue failed delivery",
-        body: `${banner("Settlement 103 has an authenticated route rejection. Requeueing preserves attempt 1, clears its old batch, and creates queued attempt 2. Its execution key is created only when attempt 2 dispatches.", "stone")}${kv("Recipient", "João")}${kv("Amount", "15 G$")}${kv("Next state", "Queued · attempt 2")}`,
+        body: `${banner("Settlement 103 has an authenticated route rejection. Requeueing preserves attempt 1, clears its old batch, and creates queued attempt 2. Its execution key is created only when attempt 2 dispatches.", "stone")}${kv("Recipient", "Kwame")}${kv("Amount", "100 G$")}${kv("Next state", "Queued · attempt 2")}`,
         actions: `${hot("w21.requeue-dismiss", btn("Keep failed", { kind: "ghost" }))}${hot("w21.requeue-confirm", btn("Requeue attempt", { kind: "pri" }))}`,
         closeHot: "w21.requeue-dismiss",
       }),
@@ -653,17 +653,15 @@ type W26Phase = "review" | "shares" | "certificate" | "rest";
 function w26(state: W26State): string {
   if (state === "recognition-blocked") {
     const header = pageHeader({
-      title: "Recognition needs repair",
+      title: "Recognition data conflict",
       eyebrow: "Close cycle · blocking review",
-      description: "One fulfilled commitment has no contributor with approved Work or evidence credit.",
+      description: "A legacy or indexed record conflicts with the protocol's fulfillment invariants.",
     });
     const body = `<div class="flowform">
 ${banner("Certificate expansion is blocked. Green Goods never awards this commitment to the lead automatically.", "amber", "error-warning-line")}
 ${kv("Commitment", "Repair the shared tool handles")}${kv("Before", "Eligible contributors · 0")}${kv("Roster", "Maria · lead · Ana · Kwame")}
-${field("Proof reference (required)", input("approved Work UID or evidence CID from this fulfilled promise"))}
-${field("Reason for attribution repair (required)", input("describe what was missing from the indexed record"))}
-${banner("The mint metadata keeps the before/after eligible set, weights, proof reference, reason, and steward.", "stone", "shield-check-line")}
-<div class="actrow">${hot("w26.cancel-attribution-repair", btn("Back to review", { kind: "ghost" }))}${hot("w26.repair-attribution", btn("Record repair and recalculate", { kind: "pri" }))}</div>
+${banner("New commitments cannot reach Ready or resolve as Fulfilled without an available recognition policy and at least one verified contributor. This inconsistent record needs a governed migration or source-data correction; mint metadata cannot change on-chain credit.", "stone", "shield-check-line")}
+<div class="actrow">${hot("w26.recognition-blocked-back", btn("Back to review", { kind: "pri" }))}</div>
 </div>`;
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/close",
@@ -714,8 +712,7 @@ ${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
 }
 
 const W26_HOTS: HifiDef["hots"] = {
-  "w26.cancel-attribution-repair": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to unresolved review." },
-  "w26.repair-attribution": { l: "Record attribution repair", to: "screen:W26@shares", info: "Requires a qualifying Work/evidence reference and steward reason, then preserves the before/after contributor set and weights in mint metadata. It never mutates the frozen on-chain roster or cycle policy." },
+  "w26.recognition-blocked-back": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to unresolved review; no metadata-only action can mutate canonical recognition credit." },
   "w26.continue-shares": { l: "Continue to shares", to: "screen:W26@shares", info: "Moves from unresolved-item review to the locked six-role allocation snapshot." },
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   // Unresolved items are handled in a dialog over the wizard. Sending the

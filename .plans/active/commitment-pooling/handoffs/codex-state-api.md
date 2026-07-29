@@ -23,8 +23,11 @@
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
 - Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
-  rail/source/token/amount, evidence, and timing; claim preserves kind/garden context;
-  confirmation is the submit-or-confirm union. Accept/decline, contributor changes, roster freeze,
+  rail/source/token/amount, evidence, and timing. DomainImpact creation never accepts caller-authored
+  domain tags; the contract derives them from ActionRegistry, while evidence-only types preserve
+  their optional validated tags. Evidence jobs serialize the explicit non-empty bounded
+  `creditedContributors` address vector and retry with the same vector; claim preserves
+  kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, contributor changes, roster freeze,
   assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
@@ -55,6 +58,9 @@
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
+- Ready selectors expose the non-zero verified-contributor gate and either the selected cycle's
+  already-opened recognition policy or the immutable cycle-less 20/80 default. Direct
+  `Disputed -> Fulfilled` resolution exposes the same gates and frozen-roster outcome.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
@@ -102,6 +108,13 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
 
 ## Binding architecture amendment — 2026-07-28
 
-- Shared types/selectors must expose `leadProvider`, contributor policy/roster/freeze state, repeatable requirement inputs versus derived stored fields, the evidence attribution index, zero-eligible recognition blocking/repair, recognition/payment snapshot hashes, garden retention, parent finalization, stable plan pointer, and contributor child status.
-- Mutations cover roster management before the ReadyForConfirmation freeze, proof-linked recognition repair, atomic full-vector payout saves, explicit payout-plan finalization, idempotent per-contributor preparation, and child dispatch/recovery through the existing job queue. Hooks remain in `@green-goods/shared`.
+- Shared types/selectors must expose `leadProvider`, contributor policy/roster/freeze state,
+  repeatable requirement inputs versus derived stored fields, the evidence attribution index,
+  one-credit-per-Work state, opened cycle policy or cycle-less default, zero-eligible
+  inconsistent-state blocking, recognition/payment snapshot hashes, garden retention, parent
+  finalization, stable plan pointer, and contributor child status.
+- Mutations cover online-only roster management before the ReadyForConfirmation freeze, atomic
+  full-vector payout saves, explicit payout-plan finalization, idempotent per-contributor
+  preparation, and child dispatch/recovery through the existing job queue. There is no
+  metadata-only recognition-repair mutation. Hooks remain in `@green-goods/shared`.
 - Keep recognition and payment as separate read models. Payment weights derive from amounts and may default from recognition, but a receipt is shown only from authenticated settlement confirmation. An all-retained finalized plan completes without creating a child receipt.

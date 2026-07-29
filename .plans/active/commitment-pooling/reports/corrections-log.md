@@ -733,7 +733,7 @@ The earlier planning model accidentally collapsed fulfillment into one provider 
 
 The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or evidence; evidence credit becomes eligible only after fulfillment, the roster freezes atomically on the transition to ReadyForConfirmation, and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
 
-Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead fallback: zero eligible contributors block W26 until a proof-linked, reason-required attribution repair is recorded. Evidence fulfillment loads a bounded commitment attribution index rather than scanning. Recognition weights remain separate from payment and do not transfer funds.
+Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead or metadata-only fallback: every Ready transition and direct Fulfilled dispute resolution requires an available recognition policy plus at least one verified contributor, while W26 blocks inconsistent legacy/indexed zero-eligible state. Evidence fulfillment loads a bounded commitment attribution index rather than scanning, evidence jobs persist their explicit credited-contributor vector, and each Work UID produces at most one credit even when multiple approval attestations exist. Recognition weights remain separate from payment and do not transfer funds.
 
 The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization proves retained-plus-payout conservation, creates no child, completes all-retained plans without CCIP, and makes the plan immutable. A later idempotent preparation materializes one queued child per payable frozen row. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
 
@@ -750,8 +750,8 @@ its payout-plan ID counter.
 
 The corrected storage tables now state canonical declaration order and defer final truth to the
 compiler-generated storage baseline plus concrete slot/offset assertions. Commitment Pooling
-accounts for 27 feature slots and a 23-slot gap after the exact Work-to-requirement binding added
-in the follow-up below. Settlement accounts for 21 feature slots and a
+accounts for 28 feature slots and a 22-slot gap after the exact Work-to-requirement binding and
+one-credit-per-Work guard added in the follow-up below. Settlement accounts for 21 feature slots and a
 29-slot gap, including `nextPayoutPlanId`, the three-slot `CcipRoute`, and the packed delivery
 configuration slot. The existing Hats runtime comment is aligned with its generated baseline:
 `gardenHats` is slot 161 and `gardensModule` is slot 162.
@@ -804,3 +804,28 @@ ReadyForConfirmation, and includes `settlement-spec.md` in both workflow and CI-
 Claim-time team-policy choices, mixed external/Celo actions, invalid contributor confirmation
 fixtures, stale queue ABI, and stale prototype counts were removed or reconciled. The generated
 ontology reference and executable prototype registry validate those mirrors.
+
+## 2026-07-29 — Recognition lifecycle and offline-attribution closure
+
+The next review pass found fifteen valid cross-surface inconsistencies. Direct dispute resolution
+could reach Fulfilled without freezing the roster, recognition could be attempted before a cycle
+policy existed, repeated approval attestations could award one Work more than once, and the offline
+evidence job omitted the contributors it was required to credit. The plan also promised offline
+roster edits that the queue did not implement, described an impossible metadata-only attribution
+repair, and carried smaller UI, fixture, rounding, copy, and coverage drift.
+
+The binding model now requires every Ready transition and direct `Disputed -> Fulfilled`
+resolution to have at least one verified eligible contributor plus either the cycle's already-opened
+recognition policy or the immutable cycle-less 20/80 default. The direct dispute path freezes the
+roster before its terminal event. `approvalCounted` remains attestation-delivery idempotency, while
+the new `workCreditCounted` storage guard permits only one countable credit per Work UID. A
+zero-eligible legacy or indexed record is a read-only blocker until governed migration or
+source-data correction restores canonical on-chain credit; mint metadata cannot repair it.
+
+Evidence jobs serialize their explicit bounded `creditedContributors` vector and reuse it unchanged
+on retry. Roster changes are online-only wallet mutations, and frozen rosters expose no edit action.
+DomainImpact creation serializes ordered action/count requirements but no caller-authored domain
+tags; evidence-only commitment types retain optional validated tags. Settlement uses one
+fractional-remainder/address order for payment weights. The admin prototype supplies an Active
+payer account for payout drafts, the Settlement 103 recovery fixture uses Kwame and 100 G$, and the
+executable registry now validates 281 states and 382 hotspots with no warnings.

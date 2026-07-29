@@ -345,7 +345,7 @@ sequenceDiagram
   M-->>IDX: ApprovedWorkCounted(contributor, requirementIndex, approvedWorkCount, approvedUnits, newlyApprovedUnits, …)
   opt approval landed before linkWork
     OP->>M: syncApprovedWork(commitmentId, approvalUIDs) — bounded recovery
-    Note over M,EAS: each UID is EAS-verified and deduped through approvalCounted
+    Note over M,EAS: approvalCounted dedupes delivery; workCreditCounted permits only one credit per Work UID
   end
   Note over M,EAS: every per-action required count met (requirementIndex credits<br/>exactly one requirement) and assessment satisfied → auto-flip
   M-->>IDX: ContributorRosterFrozen
@@ -598,7 +598,7 @@ stateDiagram-v2
   Disputed --> Accepted : resolveDispute (RestorePrevious)
   Disputed --> ReadyForConfirmation : resolveDispute (RestorePrevious)
   Disputed --> Expired : resolveDispute (RestorePrevious or Expired)
-  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired)
+  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired); require policy + verified contributor; freeze roster first when needed
   Disputed --> Cancelled : resolveDispute (Cancelled)
   Fulfilled --> Reconciled : CycleClosed
   Cancelled --> Reconciled : CycleClosed
@@ -720,7 +720,7 @@ erDiagram
     Int domains "unique derived tags; not positional or a requirement cap"
     Int requirementCount "bounded by measured MAX_REQUIREMENTS"
     Int contributorCount "event-derived active roster size"
-    Boolean contributorsFrozen "true from ReadyForConfirmation"
+    Boolean contributorsFrozen "true from ReadyForConfirmation or before direct dispute resolution to Fulfilled"
     Boolean requiresAssessment "creation fact"
     String metadataCID "creation terms"
     String needUID "optional community Need this promise answers"
@@ -1562,7 +1562,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `confirmFulfillmentAsFallback` | Resolved pool steward | Mandatory reason; any steward who is on the frozen team is excluded |
 | `cancelCommitment` | Creator or steward before acceptance; steward after acceptance | Allowed state only; accepted record releases units and one slot once |
 | `expireCommitment` | Anyone | Past due date/cycle end; accepted record releases units and one slot once |
-| `raiseDispute`, `resolveDispute` | Creator/counterparty/named confirmer/steward may raise; steward resolves | Allowed state and mandatory reason; prior slot state preserved; expired prior state cannot resolve Fulfilled |
+| `raiseDispute`, `resolveDispute` | Creator/counterparty/named confirmer/steward may raise; steward resolves | Allowed state and mandatory reason; prior slot state preserved; expired prior state cannot resolve Fulfilled; a direct Fulfilled result requires an opened/cycle-less policy and verified contributor, freezing the roster first when it was not already Ready |
 | `recordRewardPaid` | Resolved pool steward | Fulfilled; `reward.rail == ArbitrumExternal`; one record; earned-reward facts derive from storage; every other rail reverts |
 | `setGardenToken`, `setHatsModule`, `setActionRegistry`, `setCommitmentRegister`, `setWorkApprovalResolver`, `setEAS`, `setSchemaUIDs` | Module owner | Module initialized paused and must remain paused for dependency/schema changes; dependencies reject zero; all four schema UIDs reject zero/collision; every real change emits old/new facts |
 | Pooling-module `setPaused` | Module owner | Pause always available; unpause requires every dependency plus four non-zero, pairwise-distinct schema UIDs |
@@ -1783,7 +1783,7 @@ flowchart LR
     POLICY["Cycle policy<br/>20% equal + 80% verified"] --> REC["Recognition weights"]
     CR --> REC
     CREDIT --> REC
-    ZERO["No eligible contributor"] -->|blocks W26; proof-linked repair| REC
+    ZERO["Inconsistent zero-eligible legacy/indexed state"] -->|blocks W26; governed migration or source correction| REC
     REC --> HC["Hypercert gardener shares"]
 
     REC --> PAY["Draft payout plan<br/>vector matches recognition hash"]

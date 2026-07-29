@@ -147,13 +147,13 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
 | PartiallyApproved <-> EvidenceSubmitted | derived | New evidence/work after partial approvals flips forward; the counter events flip back. |
-| -> ReadyForConfirmation | on-chain | Three paths, all freezing the contributor roster and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkApproved`, `syncApprovedWork`, or `attachAssessment` once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with no requirements, with >= 1 evidence and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
+| -> ReadyForConfirmation | on-chain | Three paths, all requiring at least one verified contributor credit, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy), freezing the contributor roster, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkApproved`, `syncApprovedWork`, or `attachAssessment` once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with no requirements, with >= 1 evidence and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy or verified-credit prerequisites. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
 | ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator); each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled`. Every frozen contributor is excluded from every confirmation path. Fallback: `confirmFulfillmentAsFallback(commitmentId, reason)` operator/owner with mandatory reason, also forbidden when the caller is a contributor. Register converts the lead provider's units (`UnitsFulfilled`). |
 | Fulfilled -> Reconciled | derived | `CycleClosed` for the commitment's cycleId; cycle-less commitments (cycleId == 0) derive Reconciled from `PoolClosed`. |
 | -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. Offered/Requested have no committed units and emit no register release; Accepted releases exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
 | -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. Offered/Requested emit no register release; Accepted/ReadyForConfirmation release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
 | -> Disputed | on-chain | `raiseDispute(commitmentId, reasonCID)` from Accepted/ReadyForConfirmation/Expired (the locked EvidenceSubmitted/PartiallyApproved entries map to on-chain Accepted). Before setting Disputed, the module stores the exact prior state in `preDisputeState`. Raiser: creator, counterparty, named confirmer, or steward. Event `CommitmentDisputed`. |
-| Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious|Fulfilled|Cancelled|Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
+| Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious|Fulfilled|Cancelled|Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution requires the same opened-policy and non-zero verified-credit predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
 | Cancelled/Expired -> Reconciled at cycle close | derived | `CycleClosed` event; no on-chain per-commitment write (no unbounded loops at close). |
 
 Fulfillment posture (locked): the party receiving the provider's work confirms by default—Offer recipient/counterparty or Request creator/requester—provider self-confirmation is blocked, and operator/owner fallback requires a reason and is also blocked for a provider who is an operator.
@@ -219,8 +219,9 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 25 | `requirementAssignments` | `mapping(uint256 commitmentId => mapping(uint16 requirementIndex => mapping(address contributor => bool)))` |
 | 26 | `evidenceAttached` | `mapping(uint256 commitmentId => mapping(bytes32 cidHash => bool))` |
 | 27 | `workRequirementIndexPlusOne` | `mapping(bytes32 workUID => uint16 requirementIndexPlusOne)` (0 = no DomainImpact requirement binding) |
+| 28 | `workCreditCounted` | `mapping(bytes32 workUID => bool)` (one countable contributor/requirement credit per Work, regardless of how many approval attestations exist) |
 
-Gap: `uint256[23] private __gap;` (27 named + 23 reserved = 50 total). This declaration-order
+Gap: `uint256[22] private __gap;` (28 named + 22 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
 slot/offset assertions remain authoritative at implementation time.
 
@@ -653,6 +654,8 @@ interface ICommitmentPoolingModule {
     error ContributorPolicyMismatch(uint256 commitmentId);
     error LeadContributorCannotLeave(uint256 commitmentId);
     error ContributorHasCredit(address contributor);
+    error NoEligibleContributors(uint256 commitmentId);
+    error RecognitionPolicyUnavailable(uint256 cycleId);
     error InvalidRequirementAssignment(uint256 requirementIndex, address contributor);
     error ConfirmationThresholdUnreachable(uint256 commitmentId);
     error UnknownAction(uint256 actionUID);
@@ -789,8 +792,9 @@ interface ICommitmentPoolingModule {
 
     /// @notice Called by WorkApprovalResolver inside try/catch after full
     ///         approval validation (WorkApproval.sol:179-183 GAP precedent).
-    ///         No-op (returns without revert) when the workUID is unlinked or
-    ///         the approvalUID was already counted. Never reverts on state it
+    ///         No-op (returns without revert) when the workUID is unlinked, the
+    ///         approvalUID was already observed, or this Work already produced
+    ///         its one countable credit. Never reverts on state it
     ///         does not recognize: the approval must stand regardless.
     ///         Gating: workApprovalResolver only.
     function onWorkApproved(bytes32 workUID, bytes32 approvalUID, address garden) external;
@@ -799,14 +803,17 @@ interface ICommitmentPoolingModule {
     ///         (module wired after approvals, or work linked after approval).
     ///         Verifies each approvalUID via eas.getAttestation: schema ==
     ///         workApprovalSchemaUID, decoded approved == true, decoded workUID
-    ///         linked to this commitmentId, recipient == providerGarden; dedupes
-    ///         via approvalCounted. Gating: pool steward.
+    ///         linked to this commitmentId, recipient == providerGarden; records
+    ///         each approvalUID for idempotency but credits each workUID at most
+    ///         once through workCreditCounted. Gating: pool steward.
     function syncApprovedWork(uint256 commitmentId, bytes32[] calldata approvalUIDs) external;
 
     /// @notice Canonical recognition validator shared by Hypercert composition
     ///         and SettlementModule. Recomputes the complete sorted vector from
-    ///         the frozen on-chain roster, credit counters, and cycle policy;
-    ///         rejects omissions, caller-selected weights, and hash mismatch.
+    ///         the frozen on-chain roster, credit counters, and either the
+    ///         opened cycle policy or immutable cycle-less 20/80 protocol
+    ///         policy; rejects zero eligible rows, unavailable policy,
+    ///         omissions, caller-selected weights, and hash mismatch.
     function validateRecognitionSnapshot(
         uint256 commitmentId,
         RecognitionEntry[] calldata entries,
@@ -901,6 +908,7 @@ interface ICommitmentPoolingModule {
     function MAX_REQUIREMENTS() external pure returns (uint256);
     function MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT() external pure returns (uint256);
     function MAX_CONTRIBUTORS_PER_COMMITMENT() external pure returns (uint256);
+    function cyclelessRecognitionPolicy() external pure returns (RecognitionPolicy memory);
     function paused() external view returns (bool);
 
     // ══════════════════════ Admin (module owner) ═════════════════════
@@ -1096,19 +1104,32 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   only that exact row. Repeated action UIDs therefore remain legal without first-match,
   first-unmet, or all-match ambiguity. Non-DomainImpact Work links use index `0` as a
   non-counting compatibility value and never write the plus-one mapping.
+- **One countable approval per Work**: `approvalCounted` makes delivery of one approval attestation
+  idempotent, while `workCreditCounted` is the recognition/accounting guard. The first valid
+  approved attestation for a linked `workUID` marks both keys and increments exactly one
+  requirement and contributor credit. Any later approval attestation for that same Work is
+  recorded as observed and returns without changing counts, units, eligibility, or events. This
+  remains true when `WorkApprovalResolver` issues a new non-revocable decision attestation.
 - **Canonical recognition validation**: the module maintains `eligibleContributorCount` when a
   contributor receives their first verified credit and `totalVerifiedCredits` on every
-  de-duplicated credit. After fulfillment, `validateRecognitionSnapshot` requires exactly that
-  many sorted unique eligible rows and recomputes the 20/80 (or cycle-snapshotted) weights and
-  deterministic remainders from on-chain records before returning the domain-separated hash.
+  de-duplicated credit. Cycle-scoped commitments may enter ReadyForConfirmation or resolve a
+  dispute as Fulfilled only after their cycle is Open and its two-part policy is snapshotted.
+  Cycle-less commitments use the immutable protocol policy returned by
+  `cyclelessRecognitionPolicy()` (2_000 equal / 8_000 verified). After fulfillment,
+  `validateRecognitionSnapshot` requires a frozen roster, at least one eligible contributor,
+  exactly that many sorted unique eligible rows, and an available policy, then recomputes the
+  weights and deterministic remainders from on-chain records before returning the
+  domain-separated hash.
   Both the existing Hypercert allowlist composer and SettlementModule must call this view; a
   self-consistent caller-supplied vector/hash is never authority.
 - **ReadyForConfirmation gates**: DomainImpact requires every requirement to meet its non-zero
   count; evidence-only kinds use no requirements. Work-gated auto-flip is evaluated after any
   requirement counter changes and after `attachAssessment`, and happens only when every
-  requirement is met and `requiresAssessment == false || assessmentUID != 0`. Immediately before
-  the Ready transition, the module freezes the contributor roster and revalidates that every
-  confirmer remains outside it and the threshold is reachable. Evidence-only
+  requirement is met and `requiresAssessment == false || assessmentUID != 0`. Every path also
+  requires `eligibleContributorCount > 0` and an Open cycle when `cycleId != 0`; the steward
+  override cannot bypass either predicate. Immediately before the Ready transition, the module
+  freezes the contributor roster and revalidates that every confirmer remains outside it and the
+  threshold is reachable. Evidence-only
   `submitForConfirmation` enforces the same assessment/roster predicates and rejects
   DomainImpact, and reads the on-chain `evidenceCount >= 1` predicate. Steward override may bypass work counts, never contributor/confirmation
   separation, and always emits its reason.
@@ -1148,7 +1169,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   tests cover the current non-revoked Baseline preflight and deterministic Hypercert recognition
   expansion.
 - The compiler-generated baseline and concrete slot/offset assertions prove the expected
-  27-feature-slot layout and reserved gap; arithmetic alone is not proof. The Bun-wrapped
+  28-feature-slot layout and reserved gap; arithmetic alone is not proof. The Bun-wrapped
   storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
 
@@ -1662,7 +1683,7 @@ if (schema.approved && address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: claimant or steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after the approval. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID: the module looks up both bindings; if unlinked it returns without effect. Approvals landing before linkage are recovered by steward-called `syncApprovedWork(commitmentId, approvalUIDs)`, which verifies each approval on EAS and dedupes via `approvalCounted`.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: claimant or steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after the approval. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID: the module looks up both bindings; if unlinked it returns without effect. Approvals landing before linkage are recovered by steward-called `syncApprovedWork(commitmentId, approvalUIDs)`, which verifies each approval on EAS. `approvalCounted` de-duplicates delivery of one approval attestation; `workCreditCounted` independently guarantees that distinct approval attestations for the same Work can never increment the requirement, contributor credit, or units twice.
 
 Trust model: linkage is operator-curated (steward and claimant are the only linkers), the resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
@@ -2372,12 +2393,13 @@ Populated by extending `parseHypercertMetadata` in the ClaimStored handler (`pac
      verified credit count (`approvedWorkCredits + evidenceCredits`);
   5. assign integer remainders by descending verified weight, then ascending lowercase address.
   The protocol preset is 2_000 equal / 8_000 verified. The steward selects the policy at cycle
-  open, where it snapshots immutably and must sum to 10_000. There is no automatic lead fallback:
-  if a fulfilled commitment has no eligible contributor, W26 blocks certificate expansion and
-  names the missing-attribution problem. A steward may repair the attribution only by citing an
-  approved Work UID or evidence CID from the fulfilled commitment and recording a non-empty reason; mint metadata
-  preserves the before/after eligible set and weights. This correction never mutates the
-  on-chain roster or policy. The final addresses and units continue through the existing
+  open, where it snapshots immutably and must sum to 10_000; cycle-less commitments use the same
+  immutable protocol preset. There is no automatic lead fallback and no metadata-only recognition
+  override: every Ready transition and direct Fulfilled dispute resolution rejects zero eligible
+  contributors before freezing/finalizing the roster. W26 treats a zero-eligible Fulfilled record
+  as an inconsistent legacy or indexed state, blocks certificate expansion, and requires a
+  governed migration or source-data correction rather than pretending mint metadata changed the
+  on-chain counters. The final canonical addresses and units continue through the existing
   validation, IPFS upload, and merkle-root pipeline unchanged
   (`reports/corrections-log.md` §2).
 - Holder: already satisfied. `createAllowlistAndRegister(garden, ...)` passes the garden as hypercert creator/holder, so the ERC-6551 garden account holds the cert (`packages/contracts/src/modules/Hypercerts.sol:139-166`, holder at line 160).
@@ -2403,8 +2425,10 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
 - Cycle-open bps snapshot equals the allocation encoded in the minted allowlist within rounding (app test).
 - The gardeners-class expansion covers solo and team commitments, equal cross-commitment budgets,
   the 20/80 preset, deterministic tie/rounding behavior, zero-eligible blocking with no lead
-  fallback, and a proof-linked, reason-preserving attribution-repair path. Once every fulfilled
-  commitment has an eligible contributor, the result sums exactly to the gardeners-class units.
+  fallback, and rejection of any inconsistent legacy/indexed zero-eligible state. There is no
+  metadata-only attribution repair; a governed migration or source-data correction must restore
+  canonical on-chain credit before expansion. Once every fulfilled commitment has an eligible
+  contributor, the result sums exactly to the gardeners-class units.
 - No change to `HypercertsModule` bytecode; `createAllowlistAndRegister` call shape is identical.
 
 ## 10. Package-Level Backlog

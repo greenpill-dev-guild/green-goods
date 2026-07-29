@@ -467,7 +467,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "How are hypercerts shares determined?",
     verdict: "answered",
     finding:
-      "The six-role class snapshot is still frozen at `openCycle` and must sum to 10,000. Within the gardeners class, each fulfilled commitment receives an equal budget so unrelated work units never mix. That budget then shares 20% equally among eligible contributors and allocates 80% by verified contribution, with deterministic remainder handling. There is no lead fallback: zero eligible contributors block W26 until a proof-linked, reason-required attribution repair preserves the before/after audit. The cycle-open snapshot makes the policy predictable; payment corrections remain separate from recognition. D7c and D17 draw the full expansion.",
+      "The six-role class snapshot is still frozen at `openCycle` and must sum to 10,000. Within the gardeners class, each fulfilled commitment receives an equal budget so unrelated work units never mix. That budget then shares 20% equally among eligible contributors and allocates 80% by verified contribution, with deterministic remainder handling. There is no lead or metadata-only fallback: Ready and direct Fulfilled dispute resolution require at least one verified contributor, and W26 blocks inconsistent legacy/indexed zero-eligible state. The cycle-open snapshot makes the policy predictable; cycle-less commitments use the immutable protocol 20/80 default, and payment corrections remain separate from recognition. D7c and D17 draw the full expansion.",
     cites: "contract-spec.md §9.4–9.6 · settlement-spec.md §3 · Decision Log #64–#67",
   },
   {

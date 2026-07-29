@@ -77,5 +77,12 @@ Run the targeted commands named in each GREEN handoff, then:
 ## 2026-07-28 amendment coverage
 
 - Add acceptance proof for solo and team commitments, repeatable requirements beyond four in a benchmark-safe fixture, contributor add/remove/freeze, all-team confirmation exclusion, and contribution attribution.
-- Prove gardener recognition totals exactly, including exact-CID evidence de-duplication, fulfillment-gated eligibility, zero-eligible W26 blocking with no lead fallback, proof-linked repair, and rounding; prove recognition-vector/hash binding, amount-derived payment weights, reasoned correction, no-child finalization, idempotent one-child preparation, all-retained zero-child completion, exact garden-retention conservation, stable parent pointers after cancellation, partial child failure/retry, and complete receipts.
+- Prove gardener recognition totals exactly, including exact-CID evidence de-duplication,
+  explicit credited-contributor job replay, one countable credit per Work UID, fulfillment-gated
+  eligibility, opened cycle policy or the immutable cycle-less default, roster freeze on Ready
+  and direct dispute fulfillment, zero-eligible W26 inconsistent-state blocking with no lead or
+  metadata fallback, and deterministic rounding; prove recognition-vector/hash binding,
+  amount-derived payment weights, reasoned correction, no-child finalization, idempotent one-child
+  preparation, all-retained zero-child completion, exact garden-retention conservation, stable
+  parent pointers after cancellation, partial child failure/retry, and complete receipts.
 - A passed commitment lifecycle does not waive settlement gates; runtime/deploy/broadcast remain blocked until their existing lane gates clear.

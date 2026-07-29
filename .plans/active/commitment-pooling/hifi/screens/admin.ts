@@ -1100,7 +1100,7 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
 
 const W10_HOTS: HifiDef["hots"] = {
   "w10.allocate-contributors": { l: "Set recognition and payment", to: "screen:W10@contributor-allocation", info: "Opens the steward editor with Hypercert recognition weights as the default payment weights." },
-  "w10.save-contributor-allocation": { l: "Save payout draft", to: "screen:W21@payout-plan", info: "Atomically stores the complete amount vector and garden retention, derives payment weights, and keeps the plan editable until explicit finalization." },
+  "w10.save-contributor-allocation": { l: "Save payout draft", to: "screen:W21@payout-plan", info: "Creates the recognition-bound payout plan, atomically stores the complete amount vector and garden retention, derives payment weights, and keeps the plan editable until explicit finalization.", calls: ["createCommitmentPayoutPlan", "setContributorPayouts"] },
   "w10.all-retained-preview": { l: "Preview all-retained case", to: "screen:W21@payout-retained", info: "Shows the zero-child path: finalization completes the plan without CCIP or a self-transfer." },
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
   "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
@@ -1446,6 +1446,13 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
 const w10Facts = (state: W10State): StateFacts | undefined => {
   if (state === "not-found") return undefined;
   const context = { pool: "Open" as const, cycle: "Open" as const };
+  if (["contributor-allocation", "queue-settlement-garden"].includes(state))
+    return {
+      ...context,
+      commitment: "Fulfilled",
+      kind: "DomainImpact",
+      settlementAccount: "Active",
+    };
   if (["external-fulfilled", "fulfilled", "contributor-allocation", "record-payout", "garden-fulfilled", "queue-settlement-garden"].includes(state))
     return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
   if (["detail", "fallback-confirm", "raise-dispute", "garden-ready"].includes(state))

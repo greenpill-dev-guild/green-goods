@@ -1119,16 +1119,22 @@ const W2_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W2B_STATES = [
-  ["forming", "Team forming"], ["frozen", "Roster frozen"], ["recognition", "Recognition preview"],
+  ["forming", "Team forming"], ["add-contributor", "Add contributor"],
+  ["frozen", "Roster frozen"], ["recognition", "Recognition preview"],
 ] as const;
 type W2bState = (typeof W2B_STATES)[number][0];
 
 function w2b(state: W2bState): string {
-  const frozen = state !== "forming";
-  const body = state === "recognition"
+  const frozen = state === "frozen" || state === "recognition";
+  const body = state === "add-contributor"
+    ? `${banner("Team updates are online-only contract actions. Nothing is queued while this device is offline.", "stone", "wifi-off-line")}
+${field("Garden member", input("Kwame · 0x5b…19"))}
+${banner("Adding a contributor never changes the accountable lead or grants recognition credit by itself.", "stone")}
+<div class="actrow">${hot("w2b.add-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.add-confirm", btn("Add contributor", { kind: "pri" }))}</div>`
+    : state === "recognition"
     ? `${banner("Each fulfilled commitment receives an equal budget. Within it, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
 ${card(`${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("Kwame", "25% · evidence + follow-through")}`)}
-${banner("This is the Hypercert gardener-share preview. No eligible contributor means W26 blocks rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct member amounts with a reason.", "amber")}`
+${banner("This is the Hypercert gardener-share preview. New protocol state cannot reach fulfillment with zero eligible contributors; W26 blocks inconsistent legacy/indexed data rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct contributor amounts with a reason.", "amber")}`
     : `${card(
         `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead · accepted the commitment", chipHtml: chip("Lead", "offer") })}
 ${listRow({ icon: "user-line", primary: "Ana", meta: "Contributor · approved pruning work", chipHtml: chip("Credited", "ok") })}
@@ -1136,15 +1142,17 @@ ${listRow({ icon: "user-line", primary: "Kwame", meta: "Contributor · evidence 
         { cls: "flat" },
       )}
 ${frozen
-  ? banner("Roster frozen atomically when the commitment entered Ready for confirmation. Later edits need the steward correction path and a reason.", "stone", "shield-check-line")
+  ? banner("Roster frozen atomically when the commitment entered Ready for confirmation. Roster edits are unavailable after freeze.", "stone", "shield-check-line")
   : `${banner("One person stays accountable. Add collaborators now; only people tied to approved work or evidence become credited contributors.", "stone")}${hot("w2b.add", btn("Add contributor", { kind: "sec", full: true, icon: "add-line" }))}`}
 ${hot("w2b.preview", btn("Preview recognition", { kind: "pri", full: true }))}`;
   return phoneFrame(`${hdr("Team and contributions", { back: true })}${pagepad(body)}<div style="flex:1"></div>`, { appBar: false });
 }
 
 const W2B_HOTS: HifiDef["hots"] = {
-  "w2b.add": { l: "Add contributor", info: "Adds a garden member while the roster is still forming; the accountable lead remains unchanged." },
-  "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Shows the 20% equal-participation plus 80% verified-contribution Hypercert weights, their zero-eligible block, and their relationship to the later payment default." },
+  "w2b.add": { l: "Add contributor", to: "screen:W2b@add-contributor", info: "Opens the online-only garden-member picker; roster updates never enter the offline field queue." },
+  "w2b.add-cancel": { l: "Cancel add contributor", to: "screen:W2b@forming", info: "Closes the picker without changing the roster." },
+  "w2b.add-confirm": { l: "Confirm add contributor", to: "screen:W2b@forming", info: "Calls addContributor for the selected garden member; wallet rejection or a roster-cap/freeze error leaves the selection visible for retry.", calls: ["addContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Shows the 20% equal-participation plus 80% verified-contribution Hypercert weights, the impossible-state blocker, and their relationship to the later payment default." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1175,13 +1183,13 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
   let inner: string;
   if (state === "failed") {
     inner =
-      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · couldn't send", chipHtml: chip("Couldn't send", "err"), trailing: hot("w2a.retry-row", btn("Retry", { kind: "sec", sm: true, icon: "refresh-line" })) }) +
+      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · credits Maria, Ana · couldn't send", chipHtml: chip("Couldn't send", "err"), trailing: hot("w2a.retry-row", btn("Retry", { kind: "sec", sm: true, icon: "refresh-line" })) }) +
       listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · sent", chipHtml: chip("Sent", "ok") }) +
       banner("Your evidence is held on this device — nothing is dropped. Retry the one that didn't send whenever you're ready.", "stone", "wifi-off-line") +
       hot("w2a.done", btn("Done", { kind: "ghost", full: true }));
   } else if (state === "queued") {
     inner =
-      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", chipHtml: chip("Queued", "queued") }) +
+      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · credits Maria, Ana · just now", chipHtml: chip("Queued", "queued") }) +
       banner("It will send when you're back online. Nothing else to do.", "stone", "wifi-off-line") +
       hot("w2a.done", btn("Done", { kind: "sec", full: true }));
   } else {
@@ -1191,7 +1199,7 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
       : request ? "w2a.attach-request"
       : captured ? "w2a.attach-captured"
       : "w2a.attach";
-    inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }))}`;
+    inner = `${kinds}${field("Credit contributors", input(captured ? "Maria" : "Maria · Ana"))}${banner("The selected active contributors are saved with this evidence and reused exactly on retry.", "stone", "user-line")}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }))}`;
   }
   const cast: PromiseCast =
     campaignRequest ? "campaign-request" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
@@ -1201,11 +1209,11 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
 
 const W2A_HOTS: HifiDef["hots"] = {
   "w2a.kind": { l: "Evidence kind", info: "Photo / link / note → one evidence job per submit (UX:159)." },
-  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-submitted", info: "Enqueues the evidence job → EvidenceAttached after sync (CS:739).", calls: ["attachEvidence"] },
-  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS:739).", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-captured": { l: "Attach captured-promise evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-submitted", info: "Enqueues media plus the explicit creditedContributors vector; after upload the executor calls EvidenceAttached with those same addresses (CS §6.1).", calls: ["attachEvidence"] },
+  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence plus explicit attribution for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-captured": { l: "Attach captured-promise evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed evidence job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
   "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the promise with the queued or sent evidence row still visible." },
 };

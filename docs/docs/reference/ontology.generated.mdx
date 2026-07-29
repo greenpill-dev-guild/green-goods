@@ -556,7 +556,7 @@ One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Su
 
 #### `commitment`
 
-Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; the contributor roster freezes atomically on the transition to ReadyForConfirmation; disputes restore an explicitly stored prior state.
+Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; the contributor roster freezes atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; recognition requires an opened cycle policy or the immutable cycle-less 20/80 default plus at least one verified contributor; disputes restore an explicitly stored prior state.
 
 | State | Storage |
 |---|---|
@@ -581,13 +581,13 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 | Accepted | Active | derived | first WorkLinked or EvidenceAttached after acceptance |
 | Active | EvidenceSubmitted | derived | any EvidenceAttached or WorkLinked event |
 | EvidenceSubmitted | PartiallyApproved | derived | ApprovedWorkCounted with some requirement counters below their required counts |
-| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; contributor roster freezes atomically before the ready event on every path |
+| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus at least one verified contributor; contributor roster freezes atomically before the ready event |
 | ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path |
 | Fulfilled | Reconciled | derived | CycleClosed for the commitment's cycle (or PoolClosed when cycle-less) |
 | … | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | … | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted \| ReadyForConfirmation \| Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled |
+| Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
 
 ## Known Issues
 

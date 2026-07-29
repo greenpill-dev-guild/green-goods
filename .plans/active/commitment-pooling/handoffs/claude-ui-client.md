@@ -93,6 +93,13 @@ Both named client test files do not exist yet; they are intentional to-be-create
 ## Binding architecture amendment — 2026-07-28
 
 - W2/W2b shows one accountable lead, every contributor, roster-forming/frozen state, and the contribution record. Do not present presence as equal credit.
+- W2b contributor changes are explicit online-only wallet mutations with member selection,
+  retryable failure state, and no offline-queue badge. The frozen roster has no edit affordance.
+- Evidence composition requires a labelled bounded credited-contributor selection and persists the
+  exact address vector through queued, failed, and retry states; reconnect never invents a fallback recipient.
 - W3 uses repeatable action/count requirements and never tells people they may add only four. W4 excludes every team member from confirmation.
+- Recognition preview uses the opened cycle policy or immutable cycle-less 20/80 default. It
+  presents zero-eligible legacy/indexed state as a blocking inconsistency with no lead or
+  metadata-only repair action.
 - W23 contributor receipts distinguish Hypercert recognition from garden-funded child payment, name the garden payer and retained amount, and never say “arrived” before authenticated confirmation.
 - The hi-fi artifact and SB-33 are the interaction reference; all new user-facing copy lands in en/es/pt and requires authenticated Brave plus real-device proof.

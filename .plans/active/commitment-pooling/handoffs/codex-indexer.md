@@ -152,6 +152,10 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 ## Binding architecture amendment — 2026-07-28
 
 - Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence attribution without positional-domain assumptions. `CommitmentEvidenceAttributionIndex` owns the stable IDs loaded on fulfillment; no handler scan is permitted.
-- Materialize the recognition inputs and deterministic gardener-share output: equal budget per fulfilled commitment, then 20% equal participation among eligible contributors plus 80% verified contribution. Zero eligible contributors produce a blocking W26 review item, never a lead fallback.
+- Materialize the recognition inputs and deterministic gardener-share output: equal budget per fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less 20/80 default among eligible contributors. A Work UID contributes at most once even when distinct approval attestations exist. Zero eligible contributors produce a blocking W26 inconsistent-state review item, never a lead fallback or metadata repair.
 - Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer. Verify recognition/payment snapshot hashes from emitted vectors, keep payment weights amount-derived, and derive parent status from finalization, unprepared payable rows, and child counters; do not infer payment from Hypercert weights or raw token transfers.
-- Migration/replay fixtures must include solo lead, multi-person team, roster freeze at `ReadyForConfirmation`, zero-eligible recognition blocking plus proof-linked repair, reasoned payment correction, all-retained zero-child finalization, idempotent preparation, stable pointer after child/batch cancellation, partial payout, retry, and complete payout.
+- Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
+  `ReadyForConfirmation` and direct `Disputed -> Fulfilled`, one-credit-per-Work replay, opened
+  cycle policy and cycle-less default, zero-eligible inconsistent-state blocking with no metadata
+  repair, reasoned payment correction, all-retained zero-child finalization, idempotent
+  preparation, stable pointer after child/batch cancellation, partial payout, retry, and complete payout.

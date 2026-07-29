@@ -56,6 +56,7 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
+  addContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
   attachEvidence: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "EvidenceSubmitted" },
   linkWork: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachAssessment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation", kinds: ["DomainImpact"] },

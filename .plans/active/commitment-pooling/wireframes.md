@@ -931,7 +931,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 
 ### W26 — Cycle close → allocation → certificate wizard (admin)
 
-A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9). **Hi-fi**: [`#screens/W26@review`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W26@review) (9 states, incl. the blocking attribution-repair state and four `paused-*` variants).
+A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9). **Hi-fi**: [`#screens/W26@review`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W26@review) (9 states, including the read-only inconsistent-recognition blocker and four `paused-*` variants).
 
 ```text
 ┌── Close cycle: Season of First Rains ── Step 1 of 4 ─────┐
@@ -944,10 +944,9 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │   Gardener contributors:                                 │
 │   Maria 38% · Kwame 37% · Ana 25%                        │
 │   20% equal + 80% verified contribution                  │
-│   [ Correct recognition… ] requires recorded reason      │
-│   If eligible contributors = 0: certificate blocked      │
-│   [ Repair attribution… ] requires Work/evidence proof   │
-│   + reason; before/after set and weights stay in metadata│
+│   Recognition is read-only from frozen on-chain credit.  │
+│   If eligible contributors = 0: certificate blocked as   │
+│   inconsistent legacy/indexed data; no metadata override.│
 │ Step 3 — Impact certificate                              │
 │   bundle: 7 fulfilled promises + their work, evidence,   │
 │   and need lineage → allowlist from the shares above     │

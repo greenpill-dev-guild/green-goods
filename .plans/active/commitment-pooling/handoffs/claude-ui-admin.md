@@ -97,6 +97,13 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 ## Binding architecture amendment — 2026-07-28
 
 - Seeding and detail surfaces expose the accountable lead, contributor policy/roster, repeatable requirements, and roster freeze.
-- Recognition review shows the canonical equal-commitment then 20/80 gardener formula. The payment editor starts from those weights, makes garden retention explicit, and requires a reason only when a steward changes the member weights.
+- Ready and direct dispute-fulfillment controls expose the non-zero verified-contributor gate and
+  either the opened cycle policy or immutable cycle-less 20/80 default. A direct Fulfilled
+  dispute result shows the roster as frozen before recognition or payment becomes available.
+- Recognition review shows the canonical equal-commitment then policy-defined gardener formula.
+  The payment editor starts from those weights, makes garden retention explicit, and requires a
+  reason only when a steward changes the contributor weights.
 - Settlement separates Save draft, Finalize payout plan, and per-contributor Prepare payout. Finalization creates no child; preparation is visibly idempotent and creates one Queued child from a frozen non-zero row. The surface shows recognition/payment hashes, amount-derived weights, reasoned divergence, all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent pointer.
+- Payout-plan draft actions render only when the provider-garden settlement account is Active;
+  external-record and Celo allocation actions remain mutually exclusive by reward rail.
 - Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

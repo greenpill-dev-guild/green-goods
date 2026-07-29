@@ -60,7 +60,7 @@ export type StateFacts = {
 
 export type ContractCall =
   | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
-  | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
+  | "addContributor" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
   | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment"
   | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"

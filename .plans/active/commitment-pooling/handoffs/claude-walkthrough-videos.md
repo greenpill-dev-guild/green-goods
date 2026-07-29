@@ -60,5 +60,10 @@
 
 ## 2026-07-28 required walkthrough
 
-- Record SB-33 end to end: repeatable requirements, lead and contributors, roster freeze at ReadyForConfirmation, 20% equal plus 80% verified recognition, zero-eligible block/repair, hash-bound recognition, amount-derived payment, Save draft, no-child finalization, idempotent Prepare payout, garden retention, all-retained completion, partial child recovery with stable parent pointer, and contributor receipt.
+- Record SB-33 end to end: repeatable requirements, lead and contributors, roster freeze at
+  ReadyForConfirmation and direct dispute fulfillment, opened policy or cycle-less 20/80
+  recognition, zero-eligible inconsistent-state blocking with no metadata repair, hash-bound
+  recognition, amount-derived payment, Save draft, no-child finalization, idempotent Prepare
+  payout, garden retention, all-retained completion, partial child recovery with stable parent
+  pointer, and contributor receipt.
 - The narration must say recognition and payment are distinct and must label all architecture-only screens as planned until runtime proof exists.
