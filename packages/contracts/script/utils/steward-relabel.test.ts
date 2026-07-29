@@ -297,6 +297,18 @@ describe("Steward relabel safety", () => {
     expect(refreshSource).toContain("redactRpcUrlsInText(message)");
   });
 
+  it("redacts relabel RPC failures before printing them", () => {
+    const relabelSource = fs.readFileSync(
+      new URL(
+        "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    expect(relabelSource).toContain("redactRpcUrlsInText(message)");
+  });
+
   it("commits a baseline for every contract in the repository-wide storage gate", () => {
     for (const contract of [
       "GardenToken",

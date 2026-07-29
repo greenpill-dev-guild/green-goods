@@ -7,7 +7,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
-import { redactSensitiveArgs } from "../../../../../packages/contracts/script/utils/cli-parser";
+import {
+  redactRpcUrlsInText,
+  redactSensitiveArgs,
+} from "../../../../../packages/contracts/script/utils/cli-parser";
 
 export interface RelabelPlan {
   version: number;
@@ -256,7 +259,8 @@ if (import.meta.main) {
   try {
     main();
   } catch (error) {
-    console.error(`\n❌ Steward relabel failed: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`\n❌ Steward relabel failed: ${redactRpcUrlsInText(message)}`);
     process.exit(1);
   }
 }
