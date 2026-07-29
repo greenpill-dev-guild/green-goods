@@ -96,6 +96,11 @@ interface IHatsModule {
 
     function isGardenerOf(address garden, address account) external view returns (bool);
     function isEvaluatorOf(address garden, address account) external view returns (bool);
+
+    /// @notice Returns whether an account wears the garden's steward role hat
+    function isStewardOf(address garden, address account) external view returns (bool);
+
+    /// @notice Deprecated alias for isStewardOf
     function isOperatorOf(address garden, address account) external view returns (bool);
     function isOwnerOf(address garden, address account) external view returns (bool);
     function isFunderOf(address garden, address account) external view returns (bool);

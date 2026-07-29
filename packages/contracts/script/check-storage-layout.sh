@@ -6,8 +6,9 @@
 #          committed baselines.
 #
 # Usage:
-#   ./script/check-storage-layout.sh          # Check current vs baseline
-#   ./script/check-storage-layout.sh --update  # Update baselines
+#   ./script/check-storage-layout.sh
+#   ./script/check-storage-layout.sh --contract HatsModule
+#   ./script/check-storage-layout.sh --update --contract HatsModule
 #
 # Add to CI:
 #   - name: Check storage layout
@@ -39,9 +40,28 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 update_mode=false
-if [[ "${1:-}" == "--update" ]]; then
-  update_mode=true
-fi
+contract_filter=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --update)
+      update_mode=true
+      shift
+      ;;
+    --contract)
+      if [[ -z "${2:-}" ]]; then
+        echo "Error: --contract requires a contract name." >&2
+        exit 1
+      fi
+      contract_filter="$2"
+      shift 2
+      ;;
+    *)
+      echo "Error: unknown argument '$1'." >&2
+      exit 1
+      ;;
+  esac
+done
 
 cd "$PROJECT_DIR"
 
@@ -50,7 +70,25 @@ mkdir -p "$BASELINE_DIR"
 
 # Build first (forge inspect needs compiled contracts)
 echo "Compiling contracts..."
-forge build --quiet 2>/dev/null || {
+build_args=(build --quiet --extra-output storageLayout)
+if [[ -n "$contract_filter" ]]; then
+  selected_contract_path=""
+  for entry in "${CONTRACTS[@]}"; do
+    if [[ "${entry%%:*}" == "$contract_filter" ]]; then
+      selected_contract_path="${entry#*:}"
+      break
+    fi
+  done
+
+  if [[ -z "$selected_contract_path" ]]; then
+    echo -e "${RED}Unknown protected contract: ${contract_filter}${NC}"
+    exit 1
+  fi
+
+  build_args+=(--force --skip test --skip script "$selected_contract_path")
+fi
+
+forge "${build_args[@]}" 2>/dev/null || {
   echo -e "${RED}Compilation failed. Fix build errors first.${NC}"
   exit 1
 }
@@ -63,20 +101,39 @@ for entry in "${CONTRACTS[@]}"; do
   contract_path="${entry#*:}"
   baseline_file="$BASELINE_DIR/${contract_name}.json"
 
+  if [[ -n "$contract_filter" && "$contract_name" != "$contract_filter" ]]; then
+    continue
+  fi
+
   # Extract storage layout
-  current_layout=$(forge inspect "$contract_name" storage-layout --json 2>/dev/null)
+  if ! current_layout=$(forge inspect "$contract_name" storage-layout --json 2>&1); then
+    echo -e "${RED}Could not inspect ${contract_name}:${NC}"
+    echo "$current_layout"
+    failures=$((failures + 1))
+    continue
+  fi
 
   if [[ -z "$current_layout" ]]; then
-    echo -e "${YELLOW}Warning: Could not inspect ${contract_name}${NC}"
+    echo -e "${RED}Could not inspect ${contract_name}: empty storage layout${NC}"
+    failures=$((failures + 1))
     continue
   fi
 
   # Extract only the fields that matter for layout compatibility:
   # slot, offset, type, label (not astId which changes on recompilation)
   current_normalized=$(echo "$current_layout" | python3 -c "
-import json, sys
+import json, re, sys
 data = json.load(sys.stdin)
-slots = [{'slot': s['slot'], 'offset': s['offset'], 'type': s['type'], 'label': s['label']}
+def stable_type(type_name):
+    # Foundry embeds source-order-dependent AST ids in contract, struct, enum, and
+    # user-defined value type identifiers. Those ids are not storage semantics.
+    # Preserve array lengths such as t_array(t_uint256)50_storage.
+    return re.sub(
+        r't_(contract|struct|enum|userDefinedValueType)\(([^)]*)\)\d+',
+        r't_\1(\2)',
+        type_name,
+    )
+slots = [{'slot': s['slot'], 'offset': s['offset'], 'type': stable_type(s['type']), 'label': s['label']}
          for s in data.get('storage', [])]
 print(json.dumps({'storage': slots}, indent=2, sort_keys=True))
 " 2>/dev/null || echo "$current_layout")
@@ -84,15 +141,17 @@ print(json.dumps({'storage': slots}, indent=2, sort_keys=True))
   if $update_mode; then
     echo "$current_normalized" > "$baseline_file"
     echo -e "${GREEN}Updated: ${contract_name}${NC}"
-    ((updates++))
+    updates=$((updates + 1))
     continue
   fi
 
   # Check mode
   if [[ ! -f "$baseline_file" ]]; then
-    echo -e "${YELLOW}No baseline for ${contract_name}. Run with --update to create.${NC}"
-    echo "$current_normalized" > "$baseline_file"
-    ((updates++))
+    echo -e "${RED}MISSING STORAGE BASELINE: ${contract_name}${NC}"
+    echo "  Expected: $baseline_file"
+    echo "  Review the current layout, then create the baseline explicitly with:"
+    echo "    ./script/check-storage-layout.sh --update --contract ${contract_name}"
+    failures=$((failures + 1))
     continue
   fi
 
@@ -108,7 +167,7 @@ print(json.dumps({'storage': slots}, indent=2, sort_keys=True))
     echo -e "${YELLOW}  If this change is intentional, run:${NC}"
     echo "    ./script/check-storage-layout.sh --update"
     echo ""
-    ((failures++))
+    failures=$((failures + 1))
   else
     echo -e "${GREEN}OK: ${contract_name}${NC}"
   fi
@@ -116,6 +175,10 @@ done
 
 echo ""
 if $update_mode; then
+  if [[ "$updates" -eq 0 ]]; then
+    echo -e "${RED}No matching contract baseline was updated.${NC}"
+    exit 1
+  fi
   echo -e "${GREEN}Updated ${updates} baseline(s).${NC}"
   echo "Commit the storage-layouts/ directory to preserve baselines."
 elif [[ $failures -gt 0 ]]; then

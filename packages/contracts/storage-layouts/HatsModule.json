@@ -1,0 +1,142 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_status",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "hats",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_contract(IHats)"
+    },
+    {
+      "label": "gardenToken",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "label": "karmaGAPModule",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_contract(IKarmaGAPModule)"
+    },
+    {
+      "label": "hatsModuleFactory",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_contract(IHatsModuleFactory)"
+    },
+    {
+      "label": "funderEligibilityModule",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "label": "communityEligibilityModule",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_address"
+    },
+    {
+      "label": "communityMinBalance",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_uint256"
+    },
+    {
+      "label": "communityHatId",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_uint256"
+    },
+    {
+      "label": "gardensHatId",
+      "offset": 0,
+      "slot": "159",
+      "type": "t_uint256"
+    },
+    {
+      "label": "protocolGardenersHatId",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_uint256"
+    },
+    {
+      "label": "gardenHats",
+      "offset": 0,
+      "slot": "161",
+      "type": "t_mapping(t_address,t_struct(GardenHats)_storage)"
+    },
+    {
+      "label": "gardensModule",
+      "offset": 0,
+      "slot": "162",
+      "type": "t_address"
+    },
+    {
+      "label": "configAuthority",
+      "offset": 0,
+      "slot": "163",
+      "type": "t_mapping(t_address,t_bool)"
+    },
+    {
+      "label": "gardenConvictionStrategies",
+      "offset": 0,
+      "slot": "164",
+      "type": "t_mapping(t_address,t_array(t_address)dyn_storage)"
+    },
+    {
+      "label": "_revokeNonce",
+      "offset": 0,
+      "slot": "165",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "166",
+      "type": "t_array(t_uint256)35_storage"
+    }
+  ]
+}

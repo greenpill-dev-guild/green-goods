@@ -30,6 +30,10 @@ interface VerifyOptions {
   checkEtherscan: boolean;
   requireProductCopy: boolean;
   productCopyAcknowledged: boolean;
+  checkStewardUpgrade: boolean;
+  stewardBaselinePath?: string;
+  expectedHatsImplementation?: string;
+  stewardProbeAccounts: string[];
 }
 
 interface DeploymentRecord {
@@ -108,9 +112,34 @@ interface RpcLog {
   topics?: string[];
 }
 
+interface StewardGardenBaseline {
+  garden: string;
+  ownerHatId: string;
+  operatorHatId: string;
+  evaluatorHatId: string;
+  gardenerHatId: string;
+  funderHatId: string;
+  communityHatId: string;
+  adminHatId: string;
+  configured: boolean;
+}
+
+interface StewardUpgradeBaseline {
+  version: 1;
+  chainId: string;
+  hatsModule: string;
+  implementationBefore: string;
+  ownerBefore: string;
+  hatsProtocolBefore: string;
+  gardens: StewardGardenBaseline[];
+  probeAccounts?: string[];
+}
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
+const REPO_ROOT = path.resolve(__dirname, "../../../..");
 
 /** Mask API key segments in RPC URLs to prevent credential leakage in logs. */
 function maskRpcApiKey(value: string): string {
@@ -155,6 +184,10 @@ function parseArgs(argv: string[]): VerifyOptions {
   let checkEtherscan = false;
   let requireProductCopy = process.env.REQUIRE_PRODUCT_COPY === "true";
   let productCopyAcknowledged = process.env.PRODUCT_COPY_ACKNOWLEDGED === "true";
+  let checkStewardUpgrade = false;
+  let stewardBaselinePath: string | undefined;
+  let expectedHatsImplementation: string | undefined;
+  const stewardProbeAccounts: string[] = [];
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -216,6 +249,18 @@ function parseArgs(argv: string[]): VerifyOptions {
       case "--ack-product-copy":
         productCopyAcknowledged = true;
         break;
+      case "--check-steward-upgrade":
+        checkStewardUpgrade = true;
+        break;
+      case "--steward-baseline":
+        stewardBaselinePath = argv[++i];
+        break;
+      case "--expected-hats-implementation":
+        expectedHatsImplementation = argv[++i];
+        break;
+      case "--steward-probe-account":
+        stewardProbeAccounts.push(argv[++i] ?? "");
+        break;
       default:
         break;
     }
@@ -248,6 +293,10 @@ function parseArgs(argv: string[]): VerifyOptions {
     checkEtherscan,
     requireProductCopy,
     productCopyAcknowledged,
+    checkStewardUpgrade,
+    stewardBaselinePath,
+    expectedHatsImplementation,
+    stewardProbeAccounts,
   };
 }
 
@@ -283,6 +332,10 @@ function parseAddress(output: string): string {
   return match ? match[0] : ZERO_ADDRESS;
 }
 
+function isAddress(value: string | undefined): value is string {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value) && !isZeroAddress(value);
+}
+
 function parseAddressArray(output: string): string[] {
   return output.match(/0x[a-fA-F0-9]{40}/g) ?? [];
 }
@@ -305,6 +358,14 @@ function parseUint(output: string): bigint {
   return BigInt(token);
 }
 
+function parseUintValues(output: string): bigint[] {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.match(/^\s*\(?\s*(0x[a-fA-F0-9]+|\d+)/)?.[1])
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => BigInt(value));
+}
+
 function parseBool(output: string): boolean {
   const trimmed = output.trim().toLowerCase();
   return trimmed === "true" || trimmed === "1";
@@ -312,6 +373,20 @@ function parseBool(output: string): boolean {
 
 function normalizeAddress(value: string): string {
   return value.toLowerCase();
+}
+
+function readStorageAddress(rpcUrl: string, contract: string, slot: string): string {
+  try {
+    const output = execFileSync("cast", ["storage", contract, slot, "--rpc-url", rpcUrl], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    const word = output.match(/0x[a-fA-F0-9]{64}/)?.[0];
+    return word ? `0x${word.slice(-40)}` : ZERO_ADDRESS;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`cast storage failed (${contract} ${slot}): ${maskRpcApiKey(message)}`);
+  }
 }
 
 function castLogs(rpcUrl: string, address: string, signature: string): RpcLog[] {
@@ -426,6 +501,204 @@ function enumerateGardens(options: VerifyOptions, deployment: DeploymentRecord):
   }
 
   return Array.from(gardens.values());
+}
+
+function loadStewardUpgradeBaseline(baselinePath: string): StewardUpgradeBaseline {
+  const candidates = path.isAbsolute(baselinePath)
+    ? [baselinePath]
+    : [path.resolve(process.cwd(), baselinePath), path.resolve(REPO_ROOT, baselinePath)];
+  const resolvedPath = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!resolvedPath) {
+    throw new Error(`Steward upgrade baseline not found; checked: ${candidates.join(", ")}`);
+  }
+
+  const baseline = JSON.parse(fs.readFileSync(resolvedPath, "utf8")) as StewardUpgradeBaseline;
+  if (
+    baseline.version !== 1 ||
+    !baseline.chainId ||
+    !isAddress(baseline.hatsModule) ||
+    !isAddress(baseline.implementationBefore) ||
+    !isAddress(baseline.ownerBefore) ||
+    !isAddress(baseline.hatsProtocolBefore) ||
+    !Array.isArray(baseline.gardens) ||
+    baseline.gardens.length === 0
+  ) {
+    throw new Error(`Invalid Steward upgrade baseline: ${resolvedPath}`);
+  }
+
+  const hatIdKeys = [
+    "ownerHatId",
+    "operatorHatId",
+    "evaluatorHatId",
+    "gardenerHatId",
+    "funderHatId",
+    "communityHatId",
+    "adminHatId",
+  ] as const;
+  const gardens = new Set<string>();
+  for (const garden of baseline.gardens) {
+    if (
+      !isAddress(garden.garden) ||
+      typeof garden.configured !== "boolean" ||
+      hatIdKeys.some((key) => !/^\d+$/.test(garden[key]) || BigInt(garden[key]) === 0n)
+    ) {
+      throw new Error(`Invalid garden record in Steward upgrade baseline: ${resolvedPath}`);
+    }
+    const normalizedGarden = normalizeAddress(garden.garden);
+    if (gardens.has(normalizedGarden)) {
+      throw new Error(`Duplicate garden in Steward upgrade baseline: ${garden.garden}`);
+    }
+    gardens.add(normalizedGarden);
+  }
+  if (baseline.probeAccounts?.some((account) => !isAddress(account))) {
+    throw new Error(`Invalid probe account in Steward upgrade baseline: ${resolvedPath}`);
+  }
+
+  return baseline;
+}
+
+function readGardenHatIds(options: VerifyOptions, hatsModule: string, garden: string): StewardGardenBaseline {
+  const output = castCall(
+    options.rpcUrl,
+    hatsModule,
+    "getGardenHatIds(address)(uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)",
+    [garden],
+  );
+  const values = parseUintValues(output);
+  if (values.length < 7) {
+    throw new Error(`getGardenHatIds returned fewer than seven ids for ${garden}: ${output}`);
+  }
+
+  return {
+    garden,
+    ownerHatId: values[0].toString(),
+    operatorHatId: values[1].toString(),
+    evaluatorHatId: values[2].toString(),
+    gardenerHatId: values[3].toString(),
+    funderHatId: values[4].toString(),
+    communityHatId: values[5].toString(),
+    adminHatId: values[6].toString(),
+    configured: parseBool(castCall(options.rpcUrl, hatsModule, "isConfigured(address)(bool)", [garden])),
+  };
+}
+
+function validateStewardUpgrade(options: VerifyOptions, deployment: DeploymentRecord, failures: string[]): void {
+  if (!options.checkStewardUpgrade) return;
+
+  try {
+    if (!options.stewardBaselinePath) {
+      failures.push("--check-steward-upgrade requires --steward-baseline <path>");
+      return;
+    }
+    if (!isAddress(options.expectedHatsImplementation)) {
+      failures.push("--check-steward-upgrade requires --expected-hats-implementation <address>");
+      return;
+    }
+    if (!isAddress(deployment.hatsModule)) {
+      failures.push("deployment.hatsModule is missing or zero");
+      return;
+    }
+
+    const baseline = loadStewardUpgradeBaseline(options.stewardBaselinePath);
+    const hatsModule = deployment.hatsModule;
+    assert(
+      baseline.chainId === options.chainId,
+      "Steward baseline chain id does not match verification chain",
+      failures,
+    );
+    assert(
+      normalizeAddress(baseline.hatsModule) === normalizeAddress(hatsModule),
+      "Steward baseline HatsModule proxy does not match deployment artifact",
+      failures,
+    );
+
+    const implementation = readStorageAddress(options.rpcUrl, hatsModule, EIP1967_IMPLEMENTATION_SLOT);
+    assert(
+      normalizeAddress(implementation) === normalizeAddress(options.expectedHatsImplementation),
+      `HatsModule implementation ${implementation} does not match reviewed ${options.expectedHatsImplementation}`,
+      failures,
+    );
+    assert(
+      normalizeAddress(implementation) !== normalizeAddress(baseline.implementationBefore),
+      "HatsModule implementation did not change from the pre-upgrade baseline",
+      failures,
+    );
+
+    const owner = parseAddress(castCall(options.rpcUrl, hatsModule, "owner()(address)"));
+    assert(
+      normalizeAddress(owner) === normalizeAddress(baseline.ownerBefore),
+      `HatsModule owner changed from ${baseline.ownerBefore} to ${owner}`,
+      failures,
+    );
+
+    const hatsProtocol = parseAddress(castCall(options.rpcUrl, hatsModule, "hats()(address)"));
+    assert(
+      normalizeAddress(hatsProtocol) === normalizeAddress(baseline.hatsProtocolBefore),
+      `Hats protocol reference changed from ${baseline.hatsProtocolBefore} to ${hatsProtocol}`,
+      failures,
+    );
+
+    const fixedNonWearer = "0x000000000000000000000000000000000000dEaD";
+    const fallbackProbes = new Map<string, string>();
+    for (const account of [...options.stewardProbeAccounts, ...(baseline.probeAccounts ?? [])]) {
+      if (isAddress(account)) fallbackProbes.set(normalizeAddress(account), account);
+    }
+
+    for (const expected of baseline.gardens) {
+      const current = readGardenHatIds(options, hatsModule, expected.garden);
+      for (const key of [
+        "ownerHatId",
+        "operatorHatId",
+        "evaluatorHatId",
+        "gardenerHatId",
+        "funderHatId",
+        "communityHatId",
+        "adminHatId",
+      ] as const) {
+        assert(
+          current[key] === expected[key],
+          `${expected.garden} ${key} changed from ${expected[key]} to ${current[key]}`,
+          failures,
+        );
+      }
+      assert(
+        current.configured === expected.configured,
+        `${expected.garden} configured changed from ${expected.configured} to ${current.configured}`,
+        failures,
+      );
+
+      const gardenProbes = new Map<string, string>();
+      gardenProbes.set(normalizeAddress(fixedNonWearer), fixedNonWearer);
+      try {
+        const gardenOwner = parseAddress(castCall(options.rpcUrl, expected.garden, "owner()(address)"));
+        if (isAddress(gardenOwner)) gardenProbes.set(normalizeAddress(gardenOwner), gardenOwner);
+      } catch {
+        // Some historical garden account implementations do not expose owner().
+      }
+      for (const account of [expected.garden, owner, hatsModule, ...fallbackProbes.values()]) {
+        if (isAddress(account)) gardenProbes.set(normalizeAddress(account), account);
+      }
+
+      let gardenSawWearer = false;
+      let gardenSawNonWearer = false;
+      for (const account of gardenProbes.values()) {
+        const steward = parseBool(
+          castCall(options.rpcUrl, hatsModule, "isStewardOf(address,address)(bool)", [expected.garden, account]),
+        );
+        const operator = parseBool(
+          castCall(options.rpcUrl, hatsModule, "isOperatorOf(address,address)(bool)", [expected.garden, account]),
+        );
+        assert(steward === operator, `selector mismatch for garden ${expected.garden}, account ${account}`, failures);
+        gardenSawWearer ||= steward;
+        gardenSawNonWearer ||= !steward;
+        if (gardenSawWearer && gardenSawNonWearer) break;
+      }
+      assert(gardenSawWearer, `selector verification found no live role wearer for ${expected.garden}`, failures);
+      assert(gardenSawNonWearer, `selector verification found no non-wearer for ${expected.garden}`, failures);
+    }
+  } catch (error) {
+    failures.push(error instanceof Error ? error.message : String(error));
+  }
 }
 
 function validateIndexerConfig(chainId: string, deployment: DeploymentRecord, failures: string[]): void {
@@ -941,7 +1214,10 @@ async function main(): Promise<void> {
   console.log(`  communitySlug: ${options.communitySlug}\n`);
 
   const deployment = loadDeployment(options.chainId);
-  const allGardens = enumerateGardens(options, deployment);
+  const allGardens =
+    options.checkStewardUpgrade && options.stewardBaselinePath
+      ? loadStewardUpgradeBaseline(options.stewardBaselinePath).gardens.map((garden) => garden.garden)
+      : enumerateGardens(options, deployment);
   const rootGarden = deployment.rootGarden?.address ?? ZERO_ADDRESS;
 
   console.log(`  enumeratedGardens: ${allGardens.length}`);
@@ -957,6 +1233,20 @@ async function main(): Promise<void> {
   assert(!isZeroAddress(deployment.gardenAccountImpl), "deployment.gardenAccountImpl is zero", failures);
   assert(!isZeroAddress(rootGarden), "deployment.rootGarden.address is zero", failures);
   assert(allGardens.length > 0, "failed to enumerate any gardens", failures);
+
+  validateStewardUpgrade(options, deployment, failures);
+  if (options.checkStewardUpgrade) {
+    if (failures.length > 0) {
+      console.error("\nVerification failed:");
+      for (const failure of failures) {
+        console.error(`- ${failure}`);
+      }
+      process.exit(1);
+    }
+
+    console.log("Verification passed: Steward upgrade invariants are preserved.");
+    return;
+  }
 
   if (failures.length === 0) {
     const domainMask = parseUint(
@@ -1029,7 +1319,9 @@ async function main(): Promise<void> {
   }
 
   // HypercertMarketplaceAdapter checks
-  if (!isZeroAddress(deployment.marketplaceAdapter) && failures.length === 0) {
+  // The Hypercert marketplace is deployed only on Arbitrum. Sepolia keeps the
+  // adapter address for integration compatibility without the exchange stack.
+  if (options.network === "arbitrum" && !isZeroAddress(deployment.marketplaceAdapter) && failures.length === 0) {
     const marketplaceState = readMarketplaceLiveState(deployment, {
       call: (to, signature, args = []) => {
         try {

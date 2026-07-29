@@ -16,6 +16,7 @@ import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
+import { HatsModule } from "../src/modules/Hats.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { KarmaGAPModule } from "../src/modules/Karma.sol";
@@ -283,6 +284,32 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("OctantModule upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Upgrade HatsModule
+    /// @dev Intentionally excluded from upgradeAll; run as an explicit, storage-gated target.
+    function upgradeHatsModule() public {
+        address proxy = loadProxyAddress("hatsModule");
+        console.log("Upgrading HatsModule proxy at:", proxy);
+
+        validateProxy(proxy, "HatsModule");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 currentImpl = vm.load(proxy, implementationSlot);
+        address currentImplAddr = address(uint160(uint256(currentImpl)));
+        console.log("Current HatsModule implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        HatsModule newImpl = new HatsModule();
+        console.log("New HatsModule implementation:", address(newImpl));
+
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("HatsModule upgraded successfully");
 
         vm.stopBroadcast();
     }

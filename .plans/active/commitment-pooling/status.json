@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-27T17:43:53.472Z"
+    "updated_at": "2026-07-29T00:32:59.000Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -98,7 +98,7 @@
     "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in ../../backlog/commitment-credit-follow-on/spec.md, not part of the Build phase, and not dispatchable without an explicit unblock.",
     "Plan-hub machine lanes are intentionally canonical: contracts, state_api, ui, qa_pass_1, qa_pass_2. Detailed execution sub-lanes live in execution_sub_lanes and plan.todo.md; do not add custom keys to lanes unless plan-hub supports them.",
     "linear.laneSyncMode is lane_issues (register #37, 2026-07-20, supersedes register #31 and Decision Log #20): each execution sub-lane carries a THIN Linear issue of roughly three lines plus a handoff link. Linear owns status, dates, assignee, and dependencies; this hub owns content, and lane bodies must not restate handoff scope. PRD-650 remains the parent of the lane issues; PRD-686 (settlement) and PRD-682 (community) context stays in consolidatedTrackers and execution_sub_lanes.",
-    "Approved dependency order is Envio foundation -> existing Steward/GreenWill contract cleanup -> Afo architecture freeze -> contracts/indexer/shared -> authorized non-value broadcast and live indexer read-back -> scoped existing-admin/UI foundation -> runtime client/admin/editorial -> develop/staging QA Pass 1 -> documentation polish -> QA Pass 2 -> walkthrough videos. Settlement may run in parallel after its interface freeze, but its selectors and value tier retain their separate evidence and authorization gates.",
+    "Approved dependency order as of 2026-07-28 is Envio foundation -> PRD-747/748 Steward contract/live-hat closure -> PRD-762 signed offchain app avatars -> Afo architecture freeze -> contracts/indexer/shared -> authorized non-value broadcast and live indexer read-back -> scoped existing-admin/UI foundation -> runtime client/admin/editorial -> develop/staging QA Pass 1 -> documentation polish -> QA Pass 2 -> walkthrough videos. PRD-747/748 acceptance completed on 2026-07-28: Sepolia and Arbitrum HatsModule upgrades passed focused verification, all 18 Arbitrum live hats were relabeled, the fixed-block re-read returned zero failures, and the official Hats app visibly rendered the exact Steward label for three sampled gardens. Only branch review and merge hygiene remain. PRD-575 GreenWill is deferred to a coordinated Green Pill Dev Guild Council Safe release, and PRD-663 ENS avatar records are deferred; neither blocks Commitment Pooling. Settlement may run in parallel after its interface freeze, but its selectors and value tier retain their separate evidence and authorization gates.",
     "Indexer acceptance includes Envio regeneration preserving every new contract block/signature, a full Garden.id cutover to chainId-address, composite IDs for every entity relation, and nullable audit actor populated only from explicit event fields. Envio never indexes EAS or raw Celo token transfers.",
     "The September Community surface remains a separate independent PWA at community.greengoods.app and local port 3010; it consumes extracted shared runtime/auth/offline/shell foundations without sharing routes, navigation, manifest, service-worker scope, telemetry identity, or application copy with packages/client.",
     "Machine lane ownership follows plan-hub conventions: Codex owns contracts, state_api, and qa_pass_2; Claude owns ui and qa_pass_1. Detailed sub-lane ownership remains: Codex executes contracts, settlement, indexer, state/API, and blocked credit follow-on; Claude executes client/admin UI, editorial, post-QA docs, post-certification walkthrough videos, and community; July dry run stays human-owned. Per-issue dispatch stays with Afo.",
@@ -134,7 +134,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Approved prerequisite order: do not dispatch PRD-721 until PRD-557 lands corrected PR #649 with Envio 3.2.1 proof, the Steward contract/live-hat work in PRD-747/748 and the deferred GreenWill broadcast in PRD-575 are complete, and Afo closes the final PRD-649 architecture fine-comb.",
+      "blocked_reason": "PRD-747/748 Steward acceptance is complete; branch review and merge hygiene remain. Do not dispatch PRD-721 until PRD-557 lands corrected PR #649 with Envio 3.2.1 proof, PRD-762 delivers signed offchain app avatars, and Afo closes the final PRD-649 architecture fine-comb. PRD-575 GreenWill and PRD-663 ENS avatar records are deferred and do not block this lane.",
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -238,7 +238,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Approved prerequisite order: PRD-557 lands corrected PR #649 and its Envio 3.2.1 proof first; then PRD-747/748 Steward contract/live-hat work and PRD-575 GreenWill broadcast; then Afo's final PRD-649 architecture fine-comb. PRD-721 stays Todo and cannot dispatch before all four gates close.",
+      "blocked_reason": "PRD-747/748 Steward acceptance is complete; branch review and merge hygiene remain. PRD-557 corrected PR #649 and Envio 3.2.1 proof, PRD-762 signed offchain app avatars, and Afo's final PRD-649 architecture fine-comb remain prerequisites. PRD-575 GreenWill and PRD-663 ENS avatar records are deferred and do not block this lane. PRD-721 stays Todo until the active gates close.",
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -725,6 +725,18 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "date": "2026-07-28",
+      "event": "Afo revised the pre-Commitment-Pooling development flow. PRD-747/748 Steward contract and live-hat closure remains the current gate. PRD-762 now owns the signed offchain address-to-IPFS avatar path and blocks PRD-721; PRD-663 remains the deferred eventual ENS-record path. PRD-575 GreenWill is deferred to a coordinated Green Pill Dev Guild Council Safe release. The active sequence is therefore Envio foundation -> Steward closure -> offchain app avatars -> PRD-649 architecture fine-comb -> PRD-721 implementation. Live Linear PRD-650, PRD-663, PRD-762, and the PRD-762 -> PRD-721 blocking relation were updated and re-read."
+    },
+    {
+      "timestamp": "2026-07-29T00:32:59.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "onchain_complete",
+      "branch": "polish/rename-operator-to-steward-onchain",
+      "note": "PRD-747/748 acceptance completed. Sepolia and Arbitrum HatsModule upgrades passed focused post-upgrade verification; the authorized direct-admin Arbitrum relabel broadcast produced 18 successful receipts from block 488773296 through 488773365; an independent fixed-block re-read at 488774048 confirmed all 18 exact Steward labels, active and mutable status, authorized caller admin, and zero failures; and the official Hats app visibly rendered the exact Steward label for Green Goods Community Garden, TAS HUB, and AgroforestDAO. Branch review and merge hygiene remain."
     }
   ]
 }
