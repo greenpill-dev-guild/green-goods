@@ -7,6 +7,7 @@ import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
 import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
 import { assertSepoliaGate } from "./utils/release-gate";
+import { redactSensitiveArgs } from "./utils/cli-parser";
 
 // Load environment variables from root .env
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
@@ -19,6 +20,7 @@ type ContractName =
   | "signal-pool-yield-wiring"
   | "yield-gardens-wiring"
   | "octant-module"
+  | "hats-module"
   | "karma-gap-module"
   | "work-resolver"
   | "work-approval-resolver"
@@ -35,6 +37,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "signal-pool-yield-wiring": "upgradeYieldGardensWiring()",
   "yield-gardens-wiring": "wireYieldResolverGardensModule()",
   "octant-module": "upgradeOctantModule()",
+  "hats-module": "upgradeHatsModule()",
   "karma-gap-module": "upgradeKarmaGAPModule()",
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
@@ -56,7 +59,7 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "yield-gardens-wiring",
   "octant-module",
   "karma-gap-module",
-  // Intentionally exclude GreenWill: it is funds-adjacent and must be upgraded as an explicit target.
+  // Intentionally exclude HatsModule and GreenWill: both must be upgraded as explicit targets.
 ];
 
 const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
@@ -65,6 +68,7 @@ const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "yield-resolver": "yieldSplitter",
   "gardens-module": "gardensModule",
   "octant-module": "octantModule",
+  "hats-module": "hatsModule",
   "karma-gap-module": "karmaGAPModule",
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
@@ -236,13 +240,14 @@ Contracts:
   signal-pool-yield-wiring  Upgrade YieldResolver, GardensModule, then cross-wire them
   yield-gardens-wiring    Cross-wire YieldResolver ↔ GardensModule after upgrades
   octant-module           Upgrade OctantModule (vault treasury module)
+  hats-module             Upgrade HatsModule (explicit target; excluded from all)
   karma-gap-module        Upgrade KarmaGAPModule (Karma GAP integration)
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
-  all                     Upgrade all standard contracts (excludes GreenWill)
+  all                     Upgrade standard contracts (excludes HatsModule and GreenWill)
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)
@@ -272,6 +277,9 @@ Examples:
   
   # Generate transaction plan
   bun script/upgrade.ts action-registry --network sepolia --tx-plan --sender 0x1234...
+
+  # Prepare the isolated HatsModule upgrade
+  bun script/upgrade.ts hats-module --network sepolia --tx-plan --sender 0x1234...
 
   # Execute upgrade
   bun script/upgrade.ts action-registry --network sepolia --broadcast
@@ -354,21 +362,41 @@ function parseOptions(args: string[]): UpgradeOptions {
   };
 }
 
-function findLatestUpgradeArtifact(chainId: number): string {
-  const baseDir = getFoundryBroadcastPath("Upgrade.s.sol", chainId.toString());
-  const candidates = [path.join(baseDir, "dry-run", "run-latest.json"), path.join(baseDir, "run-latest.json")];
+export function findLatestUpgradeArtifactIn(baseDir: string, functionSignature: string): string {
+  const functionName = functionSignature.match(/^([A-Za-z_][A-Za-z0-9_]*)\(/)?.[1];
+  if (!functionName) {
+    throw new Error(`Invalid upgrade function signature: ${functionSignature}`);
+  }
+  const candidates = [
+    path.join(baseDir, "dry-run", `${functionName}-latest.json`),
+    path.join(baseDir, `${functionName}-latest.json`),
+    path.join(baseDir, "dry-run", "run-latest.json"),
+    path.join(baseDir, "run-latest.json"),
+  ];
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
+  const existingCandidates = candidates
+    .filter((candidate) => fs.existsSync(candidate))
+    .map((candidate, priority) => ({
+      candidate,
+      modifiedAt: fs.statSync(candidate).mtimeMs,
+      priority,
+    }))
+    .sort((left, right) => right.modifiedAt - left.modifiedAt || left.priority - right.priority);
+
+  if (existingCandidates.length > 0) {
+    return existingCandidates[0].candidate;
   }
 
   throw new Error(`Upgrade artifact not found under ${baseDir}`);
 }
 
+function findLatestUpgradeArtifact(chainId: number, functionSignature: string): string {
+  const baseDir = getFoundryBroadcastPath("Upgrade.s.sol", chainId.toString());
+  return findLatestUpgradeArtifactIn(baseDir, functionSignature);
+}
+
 function persistTxPlan(options: UpgradeOptions, chainId: number): string {
-  const artifactPath = findLatestUpgradeArtifact(chainId);
+  const artifactPath = findLatestUpgradeArtifact(chainId, CONTRACT_FUNCTIONS[options.contract]);
   const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8")) as ForgeBroadcastArtifact;
   const transactions = (artifact.transactions ?? []).map((entry, index) => ({
     index,
@@ -394,7 +422,7 @@ function persistTxPlan(options: UpgradeOptions, chainId: number): string {
     contract: options.contract,
     functionSignature: CONTRACT_FUNCTIONS[options.contract],
     sender: options.sender ?? process.env.SENDER_ADDRESS ?? null,
-    sourceArtifact: artifactPath,
+    sourceArtifact: path.relative(CONTRACTS_ROOT, artifactPath),
     transactionCount: transactions.length,
     transactions,
   };
@@ -522,7 +550,7 @@ function main(): void {
     console.log("🔍 Simulation mode - no transactions will be broadcast\n");
   }
 
-  console.log(`Executing: forge ${forgeArgs.join(" ")}\n`);
+  console.log(`Executing: forge ${redactSensitiveArgs(forgeArgs).join(" ")}\n`);
 
   try {
     execFileSync("forge", forgeArgs, {
@@ -547,4 +575,6 @@ function main(): void {
   }
 }
 
-main();
+if (import.meta.main) {
+  main();
+}
