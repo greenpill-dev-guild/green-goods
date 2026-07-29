@@ -15,7 +15,7 @@ import {
   validateReviewedPlanArtifact,
   type RelabelPlan,
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel";
-import { redactRpcUrl as redactSharedRpcUrl, redactSensitiveArgs } from "./cli-parser";
+import { redactRpcUrl as redactSharedRpcUrl, redactRpcUrlsInText, redactSensitiveArgs } from "./cli-parser";
 import { collectStewardGardenCoverageErrors, findStorageSlot } from "./post-deploy-verify";
 import { extractEnumDefinitionsFromSource } from "./storage-layout-enums";
 
@@ -79,6 +79,17 @@ describe("Steward relabel safety", () => {
     expect(redactRpcError(message, rpcUrl)).not.toContain("password");
     expect(redactRpcError(message, rpcUrl)).not.toContain("api-key");
     expect(redactRpcError(message, rpcUrl)).not.toContain("secret");
+  });
+
+  it("redacts arbitrary RPC URL shapes embedded in command failures", () => {
+    const message =
+      "Command failed: cast storage 0x123 0x0 --rpc-url https://user:password@secret-project.rpc.example.com/custom/key?apiKey=super-secret (exit 1)";
+    const redacted = redactRpcUrlsInText(message);
+
+    expect(redacted).toContain("--rpc-url https://[REDACTED] (exit 1)");
+    expect(redacted).not.toContain("user:password");
+    expect(redacted).not.toContain("secret-project");
+    expect(redacted).not.toContain("super-secret");
   });
 
   it("persists a fully redacted RPC marker in refreshed preflight artifacts", () => {
@@ -209,11 +220,15 @@ describe("Steward relabel safety", () => {
     };
 
     expect(packageJson.scripts["check:storage-layout"]).toBe("bash script/check-storage-layout.sh");
-    for (const scriptName of ["upgrade:hats-module:sepolia", "upgrade:hats-module:arbitrum"]) {
-      expect(packageJson.scripts[scriptName]).toMatch(
-        /^bun run check:storage-layout:hats-module && bun script\/upgrade\.ts hats-module /,
-      );
-    }
+    expect(packageJson.scripts["upgrade:hats-module:sepolia"]).toMatch(
+      /^bun run check:storage-layout:hats-module && bun script\/upgrade\.ts hats-module /,
+    );
+    expect(packageJson.scripts["test:fork:hats-module-upgrade:arbitrum"]).toBe(
+      "ARBITRUM_FORK_BLOCK_NUMBER=488705295 bun script/utils/fork-shards.mjs run hats-module-upgrade",
+    );
+    expect(packageJson.scripts["upgrade:hats-module:arbitrum"]).toMatch(
+      /^bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:arbitrum && bun script\/upgrade\.ts hats-module /,
+    );
   });
 
   it("commits a baseline for every contract in the repository-wide storage gate", () => {

@@ -22,7 +22,12 @@ const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+  },
+  "hats-module-upgrade": {
+    chain: "ARBITRUM",
+    description: "Pinned Arbitrum rehearsal of the live HatsModule UUPS upgrade",
+    glob: "test/fork/ArbitrumHatsModuleUpgrade.t.sol",
   },
   sepolia: {
     chain: "SEPOLIA",
@@ -245,7 +250,7 @@ function printManifest() {
 
 function usage(exitCode = 0) {
   console.log("Usage: bun script/utils/fork-shards.mjs <run|check|manifest> [shard|all]");
-  console.log(`Shards: ${SHARD_ORDER.join(", ")}`);
+  console.log(`Shards: ${Object.keys(SHARDS).join(", ")}`);
   process.exit(exitCode);
 }
 

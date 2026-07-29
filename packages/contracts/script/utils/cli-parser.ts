@@ -62,6 +62,15 @@ export function redactRpcUrl(value: string): string {
   }
 }
 
+/** Redact every HTTP(S) URL embedded in diagnostic text. */
+export function redactRpcUrlsInText(value: string): string {
+  return value.replace(/\bhttps?:\/\/[^\s"'`<>]+/giu, (match) => {
+    const trailingPunctuation = match.match(/[),.;\]}]+$/u)?.[0] ?? "";
+    const url = trailingPunctuation ? match.slice(0, -trailingPunctuation.length) : match;
+    return `${redactRpcUrl(url)}${trailingPunctuation}`;
+  });
+}
+
 /**
  * Redact sensitive flag values from a forge argument list for safe logging.
  * Returns a new array with secret values replaced by "[REDACTED]".

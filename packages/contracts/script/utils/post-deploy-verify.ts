@@ -9,6 +9,7 @@ import {
   validateIndexerDeploymentCoverage,
   validateMarketplaceReadiness,
 } from "./marketplace-readiness";
+import { redactRpcUrl, redactRpcUrlsInText } from "./cli-parser";
 import { CHAIN_ID_MAP, NetworkManager } from "./network";
 
 type NetworkName = "sepolia" | "arbitrum" | "celo" | "mainnet" | "localhost";
@@ -168,10 +169,6 @@ const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
 
-/** Mask API key segments in RPC URLs to prevent credential leakage in logs. */
-function maskRpcApiKey(value: string): string {
-  return value.replace(/(\/v\d+\/)[^\s/]+/g, "$1***");
-}
 const DEFAULT_LOCAL_INDEXER_ENDPOINT = "http://localhost:3006/v1/graphql";
 const RUNTIME_INDEXER_QUERY = `
   query PostDeployIndexerRuntime($chainId: Int!, $limit: Int!) {
@@ -337,7 +334,7 @@ function castCall(rpcUrl: string, to: string, signature: string, args: string[] 
     return execFileSync("cast", callArgs, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cast call failed (${to} ${signature}): ${maskRpcApiKey(message)}`);
+    throw new Error(`cast call failed (${to} ${signature}): ${redactRpcUrlsInText(message)}`);
   }
 }
 
@@ -403,7 +400,7 @@ function readStorageAddress(rpcUrl: string, contract: string, slot: string): str
     return word ? `0x${word.slice(-40)}` : ZERO_ADDRESS;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cast storage failed (${contract} ${slot}): ${maskRpcApiKey(message)}`);
+    throw new Error(`cast storage failed (${contract} ${slot}): ${redactRpcUrlsInText(message)}`);
   }
 }
 
@@ -418,7 +415,7 @@ function readStorageUint(rpcUrl: string, contract: string, slot: string): bigint
     return BigInt(word);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cast storage failed (${contract} ${slot}): ${maskRpcApiKey(message)}`);
+    throw new Error(`cast storage failed (${contract} ${slot}): ${redactRpcUrlsInText(message)}`);
   }
 }
 
@@ -1076,7 +1073,7 @@ function validateOctantVaultReadiness(
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           failures.push(
-            `strategy ${strategy} asset() call failed — strategy may not be ERC4626 compliant: ${maskRpcApiKey(message)}`,
+            `strategy ${strategy} asset() call failed — strategy may not be ERC4626 compliant: ${redactRpcUrlsInText(message)}`,
           );
         }
 
@@ -1087,7 +1084,7 @@ function validateOctantVaultReadiness(
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           failures.push(
-            `strategy ${strategy} totalAssets() call failed — strategy cannot communicate with Aave: ${maskRpcApiKey(message)}`,
+            `strategy ${strategy} totalAssets() call failed — strategy cannot communicate with Aave: ${redactRpcUrlsInText(message)}`,
           );
         }
 
@@ -1245,7 +1242,7 @@ async function main(): Promise<void> {
   console.log("\nPost-deploy verification");
   console.log(`  network: ${options.network}`);
   console.log(`  chainId: ${options.chainId}`);
-  console.log(`  rpcUrl: ${maskRpcApiKey(options.rpcUrl)}`);
+  console.log(`  rpcUrl: ${redactRpcUrl(options.rpcUrl)}`);
   console.log(`  communitySlug: ${options.communitySlug}\n`);
 
   const deployment = loadDeployment(options.chainId);
@@ -1452,7 +1449,7 @@ async function main(): Promise<void> {
 if (import.meta.main) {
   main().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`Verification command failed: ${maskRpcApiKey(message)}`);
+    console.error(`Verification command failed: ${redactRpcUrlsInText(message)}`);
     process.exit(1);
   });
 }
