@@ -2,12 +2,13 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createPublicClient, http, parseAbi, type Address } from "viem";
 import { arbitrum } from "viem/chains";
 
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
 
-interface InventoryGarden {
+export interface InventoryGarden {
   tokenId: string;
   garden: Address;
   ownerHatId: string;
@@ -39,7 +40,8 @@ interface Options {
 
 const UNIVERSAL_HATS = "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137" as Address;
 const EXPECTED_MODULE_OWNER = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6" as Address;
-const CONTRACTS_PLAN_DIR = path.resolve(import.meta.dir, "../../../../../packages/contracts/deployments/tx-plans");
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const CONTRACTS_PLAN_DIR = path.resolve(MODULE_DIR, "../../../../../packages/contracts/deployments/tx-plans");
 const EIP1967_IMPLEMENTATION_SLOT =
   "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc" as const;
 
@@ -71,7 +73,7 @@ baseline. It never signs, broadcasts, or executes transactions.`);
 
 function parseOptions(argv: string[]): Options {
   let inventoryPath: string | undefined;
-  let outputDir = import.meta.dir;
+  let outputDir = MODULE_DIR;
   let expectedCount: number | undefined;
   let rpcUrl: string | undefined;
 
@@ -131,6 +133,39 @@ function writeJson(outputPath: string, value: unknown): void {
   fs.writeFileSync(outputPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
 }
 
+export function validateInventoryCoverage(
+  gardens: Pick<InventoryGarden, "tokenId" | "garden" | "operatorHatId">[],
+  expectedCount: number,
+): void {
+  const tokenIds = gardens.map((garden) => garden.tokenId);
+  if (tokenIds.some((tokenId) => !/^\d+$/.test(tokenId))) {
+    throw new Error("Reviewed inventory contains an invalid token ID");
+  }
+
+  const uniqueTokenIds = new Set(tokenIds);
+  const expectedTokenIds = Array.from({ length: expectedCount }, (_, index) => index.toString());
+  if (
+    uniqueTokenIds.size !== expectedCount ||
+    expectedTokenIds.some((tokenId) => !uniqueTokenIds.has(tokenId))
+  ) {
+    throw new Error(`Reviewed inventory token IDs must uniquely cover 0..${expectedCount - 1}`);
+  }
+
+  const gardenAddresses = gardens.map((garden) => garden.garden.toLowerCase());
+  if (new Set(gardenAddresses).size !== gardens.length) {
+    throw new Error("Reviewed inventory contains a duplicate garden address");
+  }
+
+  const operatorHatIds = gardens.map((garden) => garden.operatorHatId);
+  if (operatorHatIds.some((hatId) => !/^\d+$/.test(hatId))) {
+    throw new Error("Reviewed inventory contains an invalid operator hat ID");
+  }
+  const normalizedOperatorHatIds = operatorHatIds.map((hatId) => BigInt(hatId).toString());
+  if (new Set(normalizedOperatorHatIds).size !== gardens.length) {
+    throw new Error("Reviewed inventory contains a duplicate operator hat ID");
+  }
+}
+
 async function main(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
   const inventory = JSON.parse(fs.readFileSync(options.inventoryPath, "utf8")) as Inventory;
@@ -142,6 +177,7 @@ async function main(): Promise<void> {
   ) {
     throw new Error("Reviewed inventory does not match Arbitrum or the expected garden count");
   }
+  validateInventoryCoverage(inventory.gardens, options.expectedCount);
   requireAddress(inventory.gardenToken, "gardenToken");
   requireAddress(inventory.hatsModule, "hatsModule");
   requireAddress(inventory.hatsProtocol, "hatsProtocol");
@@ -412,7 +448,9 @@ async function main(): Promise<void> {
   console.log(`Executable relabel plan: ${executablePlanPath}`);
 }
 
-main().catch((error) => {
-  console.error(`Steward direct-plan refresh failed: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error(`Steward direct-plan refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  });
+}

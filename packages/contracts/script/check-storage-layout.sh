@@ -106,7 +106,7 @@ for entry in "${CONTRACTS[@]}"; do
   fi
 
   # Extract storage layout
-  if ! current_layout=$(forge inspect "$contract_name" storage-layout --json 2>&1); then
+  if ! current_layout=$(forge inspect "$contract_name" storage-layout --json); then
     echo -e "${RED}Could not inspect ${contract_name}:${NC}"
     echo "$current_layout"
     failures=$((failures + 1))

@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
+import { redactSensitiveArgs } from "../../../../../packages/contracts/script/utils/cli-parser";
 
 interface RelabelPlan {
   version: number;
@@ -124,7 +125,7 @@ function main(): void {
   console.log(`Plan: ${options.planPath}`);
   console.log(`Targets: ${plan.targetCount}`);
   console.log(`Caller: ${plan.caller}`);
-  console.log(`Executing: forge ${forgeArgs.join(" ")}\n`);
+  console.log(`Executing: forge ${redactSensitiveArgs(forgeArgs).join(" ")}\n`);
 
   execFileSync("forge", forgeArgs, {
     cwd: CONTRACTS_ROOT,
