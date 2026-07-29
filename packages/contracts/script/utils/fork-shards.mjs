@@ -8,6 +8,13 @@ const NO_MATCH_TEST = ".*[cC]elo.*|.*[uU]nlock.*";
 const DEFAULT_THREADS = "1";
 const DEFAULT_VERBOSITY = "-vvv";
 const DEFAULT_FORK_RETRIES = "5";
+const HATS_MODULE_REHEARSAL_INPUTS = [
+  "HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER",
+  "HATS_MODULE_UPGRADE_GARDEN_COUNT",
+];
+const HATS_MODULE_REHEARSAL_ADDRESS_INPUTS = [
+  "HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION",
+];
 const DEFAULTS = {
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
@@ -23,17 +30,38 @@ const SHARDS = {
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
       "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+    testEnv: {
+      HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
+      HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
+      HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION:
+        "0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2",
+    },
   },
-  "hats-module-upgrade": {
+  "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
-    description: "Pinned Arbitrum rehearsal of the live HatsModule UUPS upgrade",
+    description: "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade",
     glob: "test/fork/ArbitrumHatsModuleUpgrade.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
+  },
+  "hats-module-upgrade-sepolia": {
+    chain: "SEPOLIA",
+    description: "Reviewed current-state Sepolia rehearsal of the live HatsModule UUPS upgrade",
+    glob: "test/fork/SepoliaHatsModuleUpgrade.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
   },
   sepolia: {
     chain: "SEPOLIA",
     description: "Sepolia protocol, EAS, ENS, Karma GAP, CookieJar, and full-protocol fork coverage",
     glob:
-      "test/fork/{SepoliaActionRegistry,SepoliaConvictionVoting,SepoliaCookieJar,SepoliaENS,SepoliaGardenAccount,SepoliaGardenAccountConfig,SepoliaGardenAccountMembership,SepoliaGardenAccountMetadata,SepoliaGardenToken,SepoliaGardensModule,SepoliaGoodsToken,SepoliaHats,SepoliaKarmaGAP,SepoliaNegativePaths,e2e/FullProtocolE2E,e2e/SepoliaExtendedE2E,eas/EASAttestationLifecycle}.t.sol",
+      "test/fork/{SepoliaActionRegistry,SepoliaConvictionVoting,SepoliaCookieJar,SepoliaENS,SepoliaGardenAccount,SepoliaGardenAccountConfig,SepoliaGardenAccountMembership,SepoliaGardenAccountMetadata,SepoliaGardenToken,SepoliaGardensModule,SepoliaGoodsToken,SepoliaHats,SepoliaHatsModuleUpgrade,SepoliaKarmaGAP,SepoliaNegativePaths,e2e/FullProtocolE2E,e2e/SepoliaExtendedE2E,eas/EASAttestationLifecycle}.t.sol",
+    testEnv: {
+      HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "11370209",
+      HATS_MODULE_UPGRADE_GARDEN_COUNT: "4",
+      HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION:
+        "0xC69FDc14f8b7B1C9133f398D33590c40D5A9cdA7",
+    },
   },
   ethereum: {
     chain: "ETHEREUM",
@@ -69,7 +97,7 @@ function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), ".env"), override: false, quiet: true });
 }
 
-function forgeEnv(profile = "fork") {
+function forgeEnv(profile = "fork", overrides = {}) {
   const env = { ...process.env, FOUNDRY_PROFILE: profile };
   const alchemyKey = env.ALCHEMY_API_KEY || env.ALCHEMY_KEY || env.VITE_ALCHEMY_API_KEY;
 
@@ -86,12 +114,12 @@ function forgeEnv(profile = "fork") {
   env.ETHEREUM_FORK_RPC_URL ||= env.ETHEREUM_RPC_URL;
   env.MAINNET_RPC_URL ||= env.ETHEREUM_RPC_URL;
 
-  return env;
+  return { ...env, ...overrides };
 }
 
-function runForge(args, { profile = "fork", capture = false } = {}) {
+function runForge(args, { profile = "fork", capture = false, envOverrides = {} } = {}) {
   const result = spawnSync("forge", args, {
-    env: forgeEnv(profile),
+    env: forgeEnv(profile, envOverrides),
     encoding: "utf8",
     stdio: capture ? ["ignore", "pipe", "inherit"] : "inherit",
   });
@@ -145,13 +173,36 @@ function runShard(name) {
     usage(1);
   }
 
+  const missingOrInvalidInputs = (shard.requiredPositiveIntegerEnv || []).filter((key) => {
+    const value = process.env[key]?.trim();
+    return !value || !/^\d+$/.test(value) || BigInt(value) === 0n;
+  });
+  if (missingOrInvalidInputs.length > 0) {
+    console.error(
+      `[fork-shard] ${name}: set fresh reviewed positive integers for ${missingOrInvalidInputs.join(", ")}`,
+    );
+    process.exit(1);
+  }
+  const missingOrInvalidAddresses = (shard.requiredAddressEnv || []).filter((key) => {
+    const value = process.env[key]?.trim();
+    return !value || !/^0x[0-9a-fA-F]{40}$/.test(value);
+  });
+  if (missingOrInvalidAddresses.length > 0) {
+    console.error(
+      `[fork-shard] ${name}: set fresh reviewed addresses for ${missingOrInvalidAddresses.join(", ")}`,
+    );
+    process.exit(1);
+  }
+
   console.log(`[fork-shard] ${name}: ${shard.description}`);
   console.log(`[fork-shard] match-path: ${shard.glob}`);
   const forkArgs = forkArgsForChain(shard.chain);
   if (forkArgs.length) {
     console.log(`[fork-shard] ${name}: using pinned ${shard.chain.toLowerCase()} process fork`);
   }
-  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()]);
+  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()], {
+    envOverrides: shard.testEnv,
+  });
 
   for (const extraRun of shard.extraRuns || []) {
     console.log(`[fork-shard] ${name}: ${extraRun.description}`);

@@ -7,6 +7,7 @@ import {
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-direct-plan";
 import {
   collectPreparationValidationErrors,
+  isExpectedMissingGardenTokenError,
   redactRpcError,
   redactRpcUrl,
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/prepare";
@@ -16,7 +17,11 @@ import {
   type RelabelPlan,
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel";
 import { redactRpcUrl as redactSharedRpcUrl, redactRpcUrlsInText, redactSensitiveArgs } from "./cli-parser";
-import { collectStewardGardenCoverageErrors, findStorageSlot } from "./post-deploy-verify";
+import {
+  collectStewardGardenCoverageErrors,
+  collectStewardSelectorParityErrors,
+  findStorageSlot,
+} from "./post-deploy-verify";
 import { extractEnumDefinitionsFromSource } from "./storage-layout-enums";
 
 type InventoryIdentity = Pick<InventoryGarden, "tokenId" | "garden" | "operatorHatId">;
@@ -90,6 +95,12 @@ describe("Steward relabel safety", () => {
     expect(redacted).not.toContain("user:password");
     expect(redacted).not.toContain("secret-project");
     expect(redacted).not.toContain("super-secret");
+  });
+
+  it("distinguishes an absent next garden token from RPC failures", () => {
+    expect(isExpectedMissingGardenTokenError("execution reverted: ERC721: invalid token ID")).toBe(true);
+    expect(isExpectedMissingGardenTokenError("HTTP 429 rate limit")).toBe(false);
+    expect(isExpectedMissingGardenTokenError("request timed out")).toBe(false);
   });
 
   it("persists a fully redacted RPC marker in refreshed preflight artifacts", () => {
@@ -203,6 +214,19 @@ describe("Steward relabel safety", () => {
     expect(errors).toContain(`Steward baseline is missing live garden ${GARDENS[2].garden}`);
   });
 
+  it("allows gardens with no current Steward while enforcing selector parity", () => {
+    const garden = GARDENS[0].garden;
+    expect(
+      collectStewardSelectorParityErrors(garden, [
+        { account: GARDENS[1].garden, steward: false, operator: false },
+        { account: GARDENS[2].garden, steward: false, operator: false },
+      ]),
+    ).toEqual([]);
+    expect(
+      collectStewardSelectorParityErrors(garden, [{ account: GARDENS[1].garden, steward: true, operator: false }]),
+    ).toEqual([`selector mismatch for garden ${garden}, account ${GARDENS[1].garden}`]);
+  });
+
   it("derives the live garden mint count from the protected GardenToken storage slot", () => {
     const layout = JSON.parse(
       fs.readFileSync(new URL("../../storage-layouts/GardenToken.json", import.meta.url), "utf8"),
@@ -220,15 +244,29 @@ describe("Steward relabel safety", () => {
     };
 
     expect(packageJson.scripts["check:storage-layout"]).toBe("bash script/check-storage-layout.sh");
-    expect(packageJson.scripts["upgrade:hats-module:sepolia"]).toMatch(
-      /^bun run check:storage-layout:hats-module && bun script\/upgrade\.ts hats-module /,
+    expect(packageJson.scripts["test:fork:hats-module-upgrade:sepolia"]).toBe(
+      "bun script/utils/fork-shards.mjs run hats-module-upgrade-sepolia",
     );
     expect(packageJson.scripts["test:fork:hats-module-upgrade:arbitrum"]).toBe(
-      "ARBITRUM_FORK_BLOCK_NUMBER=488705295 bun script/utils/fork-shards.mjs run hats-module-upgrade",
+      "bun script/utils/fork-shards.mjs run hats-module-upgrade-arbitrum",
+    );
+    expect(packageJson.scripts["upgrade:hats-module:sepolia"]).toMatch(
+      /^bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:sepolia && bun script\/upgrade\.ts hats-module /,
     );
     expect(packageJson.scripts["upgrade:hats-module:arbitrum"]).toMatch(
       /^bun run check:storage-layout:hats-module && bun run test:fork:hats-module-upgrade:arbitrum && bun script\/upgrade\.ts hats-module /,
     );
+  });
+
+  it("requires fresh reviewed fork inputs for both HatsModule upgrade rehearsals", () => {
+    const shardSource = fs.readFileSync(new URL("./fork-shards.mjs", import.meta.url), "utf8");
+
+    expect(shardSource).toContain('"HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER"');
+    expect(shardSource).toContain('"HATS_MODULE_UPGRADE_GARDEN_COUNT"');
+    expect(shardSource).toContain('"HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION"');
+    expect(shardSource).toContain("requiredPositiveIntegerEnv");
+    expect(shardSource).toContain("requiredAddressEnv");
+    expect(shardSource).not.toContain("ARBITRUM_FORK_BLOCK_NUMBER=488705295");
   });
 
   it("commits a baseline for every contract in the repository-wide storage gate", () => {

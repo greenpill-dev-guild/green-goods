@@ -175,6 +175,10 @@ export function redactRpcError(message: string, rpcUrl: string): string {
   return message.split(rpcUrl).join(redactRpcUrl(rpcUrl));
 }
 
+export function isExpectedMissingGardenTokenError(message: string): boolean {
+  return message.includes("ERC721: invalid token ID");
+}
+
 function runCast(rpcUrl: string, args: string[]): string {
   try {
     return execFileSync("cast", [...args, "--rpc-url", rpcUrl], {
@@ -347,9 +351,9 @@ function loadMintedTokenIds(
         snapshotBlockText,
       );
       unexpectedNextToken = true;
-    } catch {
-      // GardenToken IDs are contiguous from zero and has no burn path. A
-      // revert here proves the reviewed expected count is still exact.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isExpectedMissingGardenTokenError(message)) throw error;
     }
     if (unexpectedNextToken) {
       throw new Error(`Garden token ${expectedCount} exists; expected count ${expectedCount} is stale`);

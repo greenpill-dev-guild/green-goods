@@ -163,6 +163,18 @@ export function collectStewardGardenCoverageErrors(baselineGardens: string[], li
   return errors;
 }
 
+export interface StewardSelectorProbe {
+  account: string;
+  steward: boolean;
+  operator: boolean;
+}
+
+export function collectStewardSelectorParityErrors(garden: string, probes: StewardSelectorProbe[]): string[] {
+  return probes
+    .filter((probe) => probe.steward !== probe.operator)
+    .map((probe) => `selector mismatch for garden ${garden}, account ${probe.account}`);
+}
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
@@ -711,8 +723,7 @@ function validateStewardUpgrade(
         if (isAddress(account)) gardenProbes.set(normalizeAddress(account), account);
       }
 
-      let gardenSawWearer = false;
-      let gardenSawNonWearer = false;
+      const selectorProbes: StewardSelectorProbe[] = [];
       for (const account of gardenProbes.values()) {
         const steward = parseBool(
           castCall(options.rpcUrl, hatsModule, "isStewardOf(address,address)(bool)", [expected.garden, account]),
@@ -720,13 +731,9 @@ function validateStewardUpgrade(
         const operator = parseBool(
           castCall(options.rpcUrl, hatsModule, "isOperatorOf(address,address)(bool)", [expected.garden, account]),
         );
-        assert(steward === operator, `selector mismatch for garden ${expected.garden}, account ${account}`, failures);
-        gardenSawWearer ||= steward;
-        gardenSawNonWearer ||= !steward;
-        if (gardenSawWearer && gardenSawNonWearer) break;
+        selectorProbes.push({ account, steward, operator });
       }
-      assert(gardenSawWearer, `selector verification found no live role wearer for ${expected.garden}`, failures);
-      assert(gardenSawNonWearer, `selector verification found no non-wearer for ${expected.garden}`, failures);
+      failures.push(...collectStewardSelectorParityErrors(expected.garden, selectorProbes));
     }
   } catch (error) {
     failures.push(error instanceof Error ? error.message : String(error));
