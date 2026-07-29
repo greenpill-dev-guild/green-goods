@@ -749,7 +749,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       cast === "garden" ? "garden team · 3 credited" : "1 lead · 2 contributors",
       cast === "garden"
         ? `${listRow({ icon: "group-line", primary: "Awka Hub", meta: "Accountable provider garden" })}${listRow({ icon: "user-line", primary: "Leila", meta: "Lead · credited contributor" })}${listRow({ icon: "group-line", primary: "Amara · Chidi", meta: "Contributors · credited from approved work" })}${hot("w2.open-team", btn("See team and contributions", { kind: "ghost", sm: true }))}`
-        : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · João", meta: "Contributors · credited from approved work" })}${hot("w2.open-team", btn("See team and contributions", { kind: "ghost", sm: true }))}`,
+        : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · Kwame", meta: "Contributors · credited from approved work" })}${hot("w2.open-team", btn("See team and contributions", { kind: "ghost", sm: true }))}`,
     ) +
     (preAcceptance
       ? ""
@@ -1094,7 +1094,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@compose-support", info: "Evidence-only SupportService offer: photo / link / note → one offline evidence job (UX:159)." },
   "w2.add-evidence-captured": { l: "Add captured-promise evidence", to: "screen:W2a@compose-captured", info: "Keeps the StewardCaptured kind and the member as promise source while opening the evidence composer." },
   "w2.submit-work": { l: "Submit work for this promise", to: "screen:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
-  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker of your approved/pending works → workLink job (UX:140). The prototype resumes at the linked work's existing approval surface.", calls: ["linkWork"] },
+  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker selects an approved/pending Work plus one exact requirement row → workLink job carries requirementIndex (UX:140). Repeated action UIDs never use first-match behavior.", calls: ["linkWork"] },
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-pending", info: "Queues the evidence-only readiness transition; DomainImpact is rejected on-chain (CS:138b).", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService promise." },
@@ -1127,12 +1127,12 @@ function w2b(state: W2bState): string {
   const frozen = state !== "forming";
   const body = state === "recognition"
     ? `${banner("Each fulfilled commitment receives an equal budget. Within it, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
-${card(`${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("João", "25% · evidence + follow-through")}`)}
+${card(`${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("Kwame", "25% · evidence + follow-through")}`)}
 ${banner("This is the Hypercert gardener-share preview. No eligible contributor means W26 blocks rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct member amounts with a reason.", "amber")}`
     : `${card(
         `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead · accepted the commitment", chipHtml: chip("Lead", "offer") })}
 ${listRow({ icon: "user-line", primary: "Ana", meta: "Contributor · approved pruning work", chipHtml: chip("Credited", "ok") })}
-${listRow({ icon: "user-line", primary: "João", meta: "Contributor · evidence and delivery follow-through", chipHtml: chip("Credited", "ok") })}`,
+${listRow({ icon: "user-line", primary: "Kwame", meta: "Contributor · evidence and delivery follow-through", chipHtml: chip("Credited", "ok") })}`,
         { cls: "flat" },
       )}
 ${frozen
@@ -1388,7 +1388,7 @@ function w4(state: W4State): string {
   // confirmed members condense to one row so the sheet leads with the reader's
   // own act (§5.6 keeps the self row distinct).
   const confirmMeter = hot("w4.meter", `<div>${meter(66, { left: "confirmations", right: "2 of 3" })}</div>`) +
-    listRow({ icon: "checkbox-circle-fill", primary: "João and Ana confirmed", meta: "Jul 11 · Jul 12" }) +
+    listRow({ icon: "checkbox-circle-fill", primary: "João and Sofia confirmed", meta: "Jul 11 · Jul 12" }) +
     listRow({ icon: "user-line", primary: "You", chipHtml: chip("Your turn", "warn") });
   const exclusion = hot(
     "w4.provider-note",
@@ -1396,7 +1396,7 @@ function w4(state: W4State): string {
       ? banner("João gave the ride, so João cannot confirm it — the person who asked does. Not even a steward can confirm their own.", "stone", "shield-check-line")
       : captured
         ? banner("Kwame's named provider cannot confirm their own work — the named counterparty does.", "stone", "shield-check-line")
-      : banner("Maria made this promise, so Maria cannot confirm it — not even a steward can confirm their own.", "stone", "shield-check-line"),
+      : banner("Maria, Ana, and Kwame are on the frozen contributor roster, so none can confirm — not even through the steward fallback.", "stone", "shield-check-line"),
   );
 
   let inner: string;

@@ -213,10 +213,10 @@ NET-NEW job kinds and per-action behavior:
 
 | Action | Kind | Payload sketch (all addresses `Address`) | Optimistic UI | Queued chrome | Retry/failure (MAX_RETRIES 5) | Sync-complete invalidation |
 |---|---|---|---|---|---|---|
-| Create offer / request | `commitment` | `{ poolId, cycleId, gardenAddress, direction, commitmentType, claimType, claimMode, onBehalfOf, title, note, unitLabel, targetUnits, requiresAssessment, domains: number[], requiredActionUIDs: bigint[], requiredApprovedWorkCounts: number[], dueDate, metadataCID, needUID, confirmers: Address[], confirmationThreshold, reward: { source, token, amount } }` mirrors `CreateCommitmentParams` exactly after the metadata builder resolves title/note to `metadataCID`. `cycleId=0`, zero address, empty arrays, zero UID, and zero reward are explicit sentinels, never omitted defaults. | Card appears in selected cycle scope + mine with Offered/Requested chip | Queued badge; SyncStatusBar count | Failed chip + retry/discard after 5 attempts; `parseContractError` | pool commitments/mine/stats |
+| Create offer / request | `commitment` | `{ poolId, cycleId, gardenAddress, direction, commitmentType, claimType, claimMode, contributorPolicy, onBehalfOf, title, note, unitLabel, targetUnits, requiresAssessment, domainTags: number[], requirements: Array<{ actionUID: bigint, requiredCount: number }>, dueDate, metadataCID, needUID, confirmers: Address[], confirmationThreshold, reward: { rail, source, token, amount } }` mirrors `CreateCommitmentParams` after the metadata builder resolves title/note to `metadataCID`. The queue payload builder and executor preserve every requirement row in order, including valid action UID `0`; they never reconstruct the retired positional domain/action/count arrays. `cycleId=0`, zero address, empty arrays, zero UID, and zero reward are explicit sentinels, never omitted defaults. Builder/executor tests assert exact round-trip equality for repeated action UIDs and domains. | Card appears in selected cycle scope + mine with Offered/Requested chip | Queued badge; SyncStatusBar count | Failed chip + retry/discard after 5 attempts; `parseContractError` | pool commitments/mine/stats |
 | Claim commitment | `claim` | `{ commitmentId, poolId, kind: "garden"\|"individual", gardenContext }`. Executor rejects `kind != stored claimType`. Individual derives `claimant=requestedBy=userAddress`; Garden derives `claimant=gardenContext`, `requestedBy=userAddress` after operator authorization. Accept/decline are separate online admin mutations keyed by canonical claimant. | OPEN: Accepted locally. APPROVAL_GATED: Pending row with canonical claimant + requestedBy | Queued badge; indexed outcome replaces optimistic state | Pre-event failure reverts row; Declined/Superseded are event outcomes, not queue failures | commitment, requests, requestsByClaimant |
 | Attach lightweight evidence | `evidence` | `{ commitmentId, gardenAddress, note?, link?, media?: File[] }` (files serialized per `SerializedFileData`) | Evidence row appears with uploading state | Row-level spinner + queued badge; media held in IndexedDB | Row failed state, retry per row; media never silently dropped | `queryKeys.pools.commitment(commitmentId)` |
-| Link work to commitment | `workLink` | `{ commitmentId, workUID, gardenAddress }` (or deferred: `meta.commitmentId` on a `work` job spawns this after work syncs) | Linked-work row appears with pending chip | Chip "linking" | Row failed state + retry; work itself is unaffected | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.works.*` (existing family) |
+| Link work to commitment | `workLink` | `{ commitmentId, workUID, requirementIndex, gardenAddress }` (or deferred: `meta.{ commitmentId, requirementIndex }` on a `work` job spawns this after work syncs). The builder resolves the selected requirement row and the executor forwards that exact index; repeated action UIDs never use first-match behavior. | Linked-work row appears with pending chip | Chip "linking" | Row failed state + retry; work itself is unaffected | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.works.*` (existing family) |
 | Submit ready / confirm fulfillment | `confirmation` | discriminated union `{ action: "submit", commitmentId, gardenAddress }` or `{ action: "confirm", commitmentId, gardenAddress }`. Submit is limited to evidence-only SupportService/StewardCaptured/SeasonCampaign and checks evidence + assessment. Positive confirmation stays provider-excluding. Steward fallback is an online admin mutation with mandatory reason. | Submit shows “waiting for confirmation”; confirm advances meter | Detail/inbox queued chip; hero waits for sync | Optimism reverts on failure; dedupe by action + commitmentId + userAddress | commitment, pendingConfirmations, stats |
 | Not yet / raise dispute | online contract action, not a queue kind | `{ commitmentId, reason }` | No optimistic state transition; control shows wallet pending | No offline queue chrome | Failure leaves ReadyForConfirmation and shows inline retry; success invalidates to Disputed | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.pools.pendingConfirmations(userAddress)` |
 | Accept/decline claim; attach assessment; steward Ready override | online shared mutation hooks | canonical claimant key for accept/decline; `{ commitmentId, assessmentUID }` for attach; `{ commitmentId, reason }` for override | No offline optimism beyond wallet-pending row | No field-queue chrome | Failure preserves current indexed state and exposes inline retry | commitment, claim requests, pending confirmations |
@@ -284,7 +284,7 @@ Flow AdminDialog + `ActionFlowShell` steps (stepper precedent `CreateAssessment.
 
 1. **Type and scope**: commitment type (SeasonCampaign, SupportService, DomainImpact, StewardCaptured), direction (offer or request the pool is seeding), cycle binding, title, note. The cycle selector groups the one open Season separately from every open Campaign, labels type on every option, and permits an explicit cycle-less choice where the contract allows it. `AdminTextField` + type cards.
 2. **Requirements and team policy**: unit label + target quantity; repeatable `{ actionUID, requiredCount }` rows; immutable `ContributorPolicy` (`Open` or `LeadManaged`); optional assessment requirement; due date or cycle-deadline default. DomainImpact requires at least one registered row and a positive count per action. SupportService, StewardCaptured, and SeasonCampaign may explicitly choose evidence-only with no Work requirements. The review step shows per-requirement progress and the single commitment's `approvedUnits` use `floor(targetUnits × Σ min(approved[i], required[i]) / Σ required[i])`. No assessment UID is attached at creation because `providerGarden` is not frozen until acceptance.
-3. **Confirmation rule and reward**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accountable lead and every contributor before threshold validation, and the flow blocks an unreachable threshold. Claim mode toggle (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19). The reward section first selects exactly one rail: `None`, `ArbitrumExternal`, or `CeloSettlement`. `None` requires zero source/token/amount. `ArbitrumExternal` captures the external source reference, token, and amount for later payout recording. `CeloSettlement` requires canonical G$ and previews the provider garden as funding boundary; after fulfillment the garden Safe pays a conserved contributor plan with explicit retention. It never enables `Record payout`.
+3. **Confirmation rule and reward**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accountable lead and every contributor before threshold validation, and the flow blocks an unreachable threshold. Claim mode toggle (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19). The reward section first selects exactly one rail: `None`, `ArbitrumExternal`, or `CeloSettlement`. `None` requires zero source/token/amount. `ArbitrumExternal` captures the external source reference, token, and amount for later payout recording. `CeloSettlement` stores source zero and canonical G$ at seeding because a protocol Request has no provider garden yet; acceptance resolves that garden and SettlementModule stores its active Safe as plan payer. The preview labels this as “payer selected with the provider garden,” then shows the conserved contributor plan with explicit retention after fulfillment. It never enables `Record payout`.
 4. **Review and seed**: summary + seed action. Console actions are online-expected but ride the same queue plumbing (§5.11 note). See Appendix B for the dated five-step amendment to this list.
 
 ### 6.4 Claims/review queue
@@ -307,7 +307,17 @@ On the commitment AdminDialog detail:
 - **Dispute**: "Raise dispute" (allowed from Accepted through Expired per §4.3) with mandatory reason; resolution actions are `RestorePrevious`, `Fulfill`, `Cancel`, or `Expire`, each with required reason. The module stores the pre-dispute state; `RestorePrevious` returns to it. An Expired commitment cannot resolve Fulfilled. All reasons render in the state timeline for members too.
 - **Override**: requirement waivers (for example waive a rejected work's replacement) carry reason and a visible "override" marker in both admin and member detail (Lifecycle rule).
 - **ArbitrumExternal payout record**: on Fulfilled, this rail alone gains "Record payout" (`AdminButton`); `AdminConfirmDialog` captures the executed rail reference (jar withdrawal or treasury tx) and records the module's `RewardPaid` event (register #18). The row then shows paid status + reference. No value moves through this UI.
-- **CeloSettlement queue**: on Fulfilled, this rail instead gains "Set recognition and payment" after the pooling, settlement, member-delivery, account, and route gates are GREEN. The editor names canonical G$, provider garden, hash-bound recognition default, explicit retention, and contributor child amounts. Saving creates an editable parent draft and atomically derives payment weights from the complete amount vector. A separate **Finalize payout plan** action verifies conservation and freezes it before any child calls the bounded disbursement path from the garden Safe. An all-retained zero-child plan completes on finalization without CCIP. `Record payout` is unavailable and the parent/child settlement rows own all later delivery status.
+- **CeloSettlement queue**: on Fulfilled, this rail instead gains "Set recognition and payment"
+  after pooling, settlement-account, and provider-garden authority gates are GREEN. The
+  member-delivery gate does not block local plan bookkeeping. The editor names canonical G$,
+  provider garden, canonically recomputed recognition default, explicit retention, and contributor
+  payout amounts. Saving creates an editable parent draft and atomically derives payment weights
+  from the complete amount vector. A separate **Finalize payout plan** action verifies
+  conservation and freezes it without creating children. Only **Prepare payout** for a non-zero
+  row requires `memberDeliveryEnabled` and the live route; the first action creates one immutable
+  Queued child and an exact repeat returns the same child. An all-retained zero-child plan
+  completes on finalization without CCIP even while delivery is disabled. `Record payout` is
+  unavailable and the parent/child settlement rows own all later delivery status.
 
 ### 6.8 Community workspace: Pools mode NET-NEW
 
@@ -327,7 +337,11 @@ The Hub pipeline rail is `AdminTabRail` fed by `PIPELINE_STAGE_CONFIG` with stag
 
 ### 6.10 Hypercert allocation policy at cycle open NET-NEW
 
-A step inside the open-cycle flow (§6.2 section 2): allocation-class percentage editor with preset picker. The UI converts the six percentage fields to bps and submits the complete `AllocationBps` atomically in `openCycle(cycleId, allocation)`; no allocation is stored during `seedCycle`.
+A step inside the open-cycle flow (§6.2 section 2): allocation-class percentage editor plus a
+within-gardeners recognition policy preset. The UI converts the six allocation fields and the
+equal/verified recognition fields to bps and submits both immutable structs atomically in
+`openCycle(cycleId, allocation, recognitionPolicy)`; neither snapshot is stored during
+`seedCycle`, and each group must total 10,000 bps.
 
 | Preset | gardeners | treasury | operator | evaluator | community | funder |
 |---|---|---|---|---|---|---|
@@ -535,9 +549,12 @@ placement in §§5–6 while preserving their route and component anchors.
   may join) or **Lead-managed team** (lead/steward approval). The summary explains who may join.
 - W2 shows team membership, each contributor's linked Work/evidence credit, optional requirement
   assignments, and whether the roster is still editable. W2b is the focused team sheet for
-  join/invite/add/remove/leave/assign actions and their queued/offline states.
+  join/invite/add/remove/leave/assign actions and their queued/offline states. Leave is available
+  only to an active non-lead Open-team contributor with zero Work/evidence credit; lead or
+  credited removal is blocked with attribution-preserving copy. Add/join also surface the
+  measured roster-cap error before queuing.
 - Assignment is visually labeled “planned responsibility,” not “credit.” Recognition credit comes
-  only from approved Work or confirmed evidence attribution.
+  only from approved Work or evidence attribution on the Fulfilled commitment.
 - When the commitment becomes ReadyForConfirmation, the roster visibly locks. W4 lists all
   contributors as ineligible confirmers and explains why. A contributor-steward never receives
   the fallback action.
@@ -565,13 +582,14 @@ placement in §§5–6 while preserving their route and component anchors.
   It is not a normal slider at close.
 - When a fulfilled commitment has no eligible contributor, W26 blocks certificate expansion and
   says explicitly that there is no automatic lead fallback. **Repair attribution** requires an
-  approved Work UID or confirmed evidence CID plus a steward reason; the mint metadata preserves
+  approved Work UID or evidence CID from the Fulfilled commitment plus a steward reason; the mint metadata preserves
   the before/after eligible set and weights without changing the frozen roster or cycle policy.
 
 ### C.4 Payment begins from recognition, then remains distinct
 
-- W10 adds a **Recognition and payment** section after fulfillment. Plan creation verifies the
-  complete sorted recognition vector against its snapshot hash. The comparison table has
+- W10 adds a **Recognition and payment** section after fulfillment. Plan creation uses the
+  CommitmentPooling validator to recompute the complete sorted recognition vector and hash from
+  frozen on-chain credits and policy. The comparison table has
   Contributor, Recognition, Payment, Amount, and Status columns.
 - A steward may atomically replace the complete amount vector while the plan is Draft. Payment
   weights derive from those amounts with deterministic rounding; no control accepts an

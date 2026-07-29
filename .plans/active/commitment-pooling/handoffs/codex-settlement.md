@@ -127,7 +127,9 @@
   or masquerade as one another.
 - Native ETH/CELO fee balances, quote, reserve threshold, low-balance state, and withdrawal constraints are observable and tested. Arbitrum command dispatch/retry always spends the module reserve; Celo `AcknowledgmentSent.reserveFunded` distinguishes automatic/sponsored reserve spend from an exact caller-funded retry. LINK fee payment is out of scope.
 - `dispatcher` is a single optional Arbitrum address with dispatch/retry authority only. Protocol garden and canonical G$ have no post-initialization setter. Both contracts preserve their configured native-fee floor on sends and withdrawals.
-- `memberDeliveryEnabled()` remains the canonical AA capability gate; failure keeps member delivery blocked without disabling `ProtocolToGarden`.
+- `memberDeliveryEnabled()` remains the canonical AA capability gate for non-zero contributor
+  preparation and member sends. Failure does not block payout-plan creation/edit/finalization,
+  all-retained zero-child completion, or `ProtocolToGarden`.
 - Shared currently constructs Kernel `0.3.1` accounts. Pimlico's official support matrix lists
   that implementation on Arbitrum One, Arbitrum Sepolia, and Celo Mainnet, but not on Celo
   Sepolia; Celo Sepolia lists Kernel `0.2.4`. The workaround has two non-interchangeable tiers:
@@ -187,7 +189,28 @@ Deployment commands must be added through the existing deploy wrapper and verifi
 ## Binding architecture amendment — 2026-07-28
 
 - The provider garden Safe is the payer for member allocation. Protocol-to-garden funding remains a separate parent transfer and must not be conflated with contributor payout.
-- Add one stable `CommitmentPayoutPlan`: creation validates the complete sorted recognition vector against its snapshot hash. Atomic full-vector amount edits derive payment weights; callers never author recognition and payment weights independently, and a divergence requires a stored reason.
-- Explicit finalization verifies declared amount = garden-retained amount + all contributor child amounts and freezes the plan before dispatch. Each non-zero contributor amount becomes a separate `ContributorReward` disbursement; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
-- Parent status is derived from finalization and children as Draft / Pending / Partial / Complete / Failed. Child or batch cancellation never clears `payoutPlanOfCommitment`, so a second plan cannot bypass the audit trail.
+- Add one stable `CommitmentPayoutPlan`: creation validates the complete sorted recognition vector
+  and hash through CommitmentPooling's canonical on-chain recomputation. Atomic full-vector
+  amount edits derive payment weights; callers never author recognition and payment weights
+  independently, and a divergence requires a stored reason.
+- Explicit finalization verifies declared amount = garden-retained amount + all contributor payout amounts, freezes the plan, and creates no child. A later idempotent `prepareContributorPayout` call materializes exactly one `ContributorReward` disbursement from a frozen non-zero row; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
+- Parent status is derived from finalization, unprepared payable rows, and children as Draft / Pending / Partial / Complete / Failed. Child or batch cancellation never clears `payoutPlanOfCommitment`, so a second plan cannot bypass the audit trail.
 - A failed child never reverses commitment fulfillment, recognition, or successful siblings. No garden-held member claim, custody voucher, manual arrival flag, or arbitrary Safe execution is introduced.
+
+## Binding review closure — 2026-07-29
+
+- Resolve create/edit/finalize/prepare/requeue/cancel authority from the immutable provider or
+  executor garden's operator/owner Hats. A root-pool steward cannot spend a claimant garden Safe;
+  the optional dispatcher may only execute an already-finalized immutable plan.
+- Creation calls `CommitmentPoolingModule.validateRecognitionSnapshot` and rejects a
+  self-consistent but noncanonical vector/hash. It emits `CommitmentPayoutPlanCreated` followed by
+  one ordered `ContributorPayoutSet` for every initial row so an untouched draft is enumerable
+  from events.
+- The measured payout-vector bound equals `MAX_CONTRIBUTORS_PER_COMMITMENT` (provisional 32).
+  Tests cover max and max-plus-one before any plan storage/event mutation.
+- A zero contributor-payment total derives an explicit all-zero payment-weight vector without
+  division or remainder allocation, hashes those rows plus retention, and requires a non-empty
+  recognition-divergence reason. Finalization completes that plan locally even when member
+  delivery is disabled.
+- Child or batch cancellation retains `payoutPlanOfCommitment` and never permits a second plan or
+  replacement child. Only authenticated-failure requeue creates a later logical attempt.

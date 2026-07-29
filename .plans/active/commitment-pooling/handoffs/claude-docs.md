@@ -74,5 +74,5 @@
 
 - Document commitments as one accountable lead plus optional contributors, repeatable requirements, roster freeze, and all-team confirmation exclusion.
 - Explain the gardener Hypercert formula in plain language: equal commitment budgets, then 20% equal participation among eligible contributors plus 80% verified contribution; zero eligible contributors block instead of defaulting to the lead.
-- Explain that the garden Safe pays members through child disbursements, garden retention is explicit, recognition is hash-bound, payment weights derive from amounts, corrections require reasons, and explicit finalization precedes dispatch. Include the zero-child all-retained completion and stable parent-pointer rules.
+- Explain that the garden Safe pays members through child disbursements, garden retention is explicit, recognition is hash-bound, payment weights derive from amounts, and corrections require reasons. Finalization freezes the plan without creating children; idempotent per-contributor preparation creates one Queued child from a frozen non-zero row. Include zero-child all-retained completion and stable parent-pointer rules.
 - Preserve planned/live and proof labels: this architecture is specified and prototyped, not shipped or deployed.

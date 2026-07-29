@@ -1207,7 +1207,7 @@
       },
       "planned_anchor": {
         "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
-        "symbol": "CommitmentPayoutPlanStatus"
+        "symbol": "PayoutPlanStatus"
       },
       "representations": [],
       "mappings": []
@@ -1558,7 +1558,7 @@
           "from": "Seeded",
           "to": "Open",
           "layer": "on-chain",
-          "mechanism": "openCycle(cycleId, allocation) — six-role bps must sum to 10000, stored immutably → CycleOpened"
+          "mechanism": "openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened"
         },
         {
           "from": "Open",
@@ -1648,13 +1648,13 @@
           "from": "…",
           "to": "ReadyForConfirmation",
           "layer": "on-chain",
-          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason"
+          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; contributor roster freezes atomically before the ready event on every path"
         },
         {
           "from": "ReadyForConfirmation",
           "to": "Fulfilled",
           "layer": "on-chain",
-          "mechanism": "confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; roster freezes and every lead/contributor is excluded from every confirmation path"
+          "mechanism": "confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path"
         },
         {
           "from": "Fulfilled",

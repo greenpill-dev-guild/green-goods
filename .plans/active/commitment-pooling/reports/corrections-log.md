@@ -731,10 +731,76 @@ Safe/Zodiac authority mutation, or Linear write is part of this pass.
 
 The earlier planning model accidentally collapsed fulfillment into one provider and rendered the requirement editor as a maximum of four actions. That was too narrow for commitments completed by a team and would have made contributor recognition and payment an after-the-fact spreadsheet exercise.
 
-The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or confirmed evidence; the roster freezes atomically on the transition to ReadyForConfirmation; and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
+The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or evidence; evidence credit becomes eligible only after fulfillment, the roster freezes atomically on the transition to ReadyForConfirmation, and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
 
 Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead fallback: zero eligible contributors block W26 until a proof-linked, reason-required attribution repair is recorded. Evidence fulfillment loads a bounded commitment attribution index rather than scanning. Recognition weights remain separate from payment and do not transfer funds.
 
-The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization proves retained-plus-child conservation before dispatch, completes all-retained zero-child plans without CCIP, and makes the plan immutable. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
+The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization proves retained-plus-payout conservation, creates no child, completes all-retained plans without CCIP, and makes the plan immutable. A later idempotent preparation materializes one queued child per payable frozen row. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
 
 Propagation includes `plan.todo.md` registers #63–#68, contract and settlement specs, acceptance matrix, UI/UX spec, wireframes, diagrams D7.2/D17, the hi-fi W2b/W3/W10/W11/W21/W23/W26 states and SB-33, all implementation/QA/docs handoffs, the shared ontology sidecar and generated docs, design-research/glossary prose, the canonical Google Doc, and live Linear mirrors. The existing runtime implementation, deployment, broadcast, and value-movement gates remain unchanged.
+
+## 2026-07-29 — Storage, evidence, and payout-child review closure
+
+A merge-readiness review found three specification hazards in the 2026-07-28 amendment. The
+Commitment Pooling prose omitted contributor mappings from its storage accounting and carried an
+invalid interface-level mapping declaration; evidence readiness depended on a missing on-chain
+counter and could replay the same CID; and draft payout edits implicitly assigned child IDs before
+the plan became immutable. The settlement storage table also duplicated ordinal rows and omitted
+its payout-plan ID counter.
+
+The corrected storage tables now state canonical declaration order and defer final truth to the
+compiler-generated storage baseline plus concrete slot/offset assertions. Commitment Pooling
+accounts for 27 feature slots and a 23-slot gap after the exact Work-to-requirement binding added
+in the follow-up below. Settlement accounts for 21 feature slots and a
+29-slot gap, including `nextPayoutPlanId`, the three-slot `CcipRoute`, and the packed delivery
+configuration slot. The existing Hats runtime comment is aligned with its generated baseline:
+`gardenHats` is slot 161 and `gardensModule` is slot 162.
+
+Evidence now has an on-chain `evidenceCount`, exact `(commitmentId, cidHash)` de-duplication, and a
+non-empty, unique, measured-bounded credited-contributor list. Each active contributor's
+`evidenceCredits` increments once at attachment. Eligibility additionally requires the commitment
+to be Fulfilled, so recorded attribution cannot be mistaken for verified completion.
+
+Payout-plan creation and draft edits create no disbursement. Finalization verifies and freezes the
+complete vectors but also creates no disbursement. The separate
+`prepareContributorPayout(planId, contributor)` action materializes exactly one immutable Queued
+child from a frozen non-zero row; an exact repeat returns the same ID and emits nothing. Parent
+status counts unprepared payable rows as Pending and uses stored prepared/confirmed/failed/
+cancelled counters, preserving bounded status reads and the stable one-plan-per-commitment pointer.
+The hi-fi adds the finalized-unprepared and prepared-queued states and validates the call sequence.
+
+The provisional evidence-recipient and payout-contributor bounds are 32 only as transaction-safety
+benchmarks. Implementation must measure 8/16/24/32 before freezing either constant; neither is a
+four-person product rule or a semantic team-size ceiling.
+
+## 2026-07-29 — Review-comment authority and completeness closure
+
+The PR review identified a second layer of valid implementation blockers. The resolution keeps the
+group model while making its transaction and authority boundaries explicit:
+
+- `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector cap, provisionally 32. It is
+  enforced before add/join mutation and matches the payout-vector bound. Open contributors gain a
+  pre-freeze self-leave call, but the lead and any credited contributor cannot leave or be removed.
+- Work links now name one exact requirement index. The module stores index-plus-one beside the
+  Work-to-commitment mapping, so repeated action UIDs remain legal without ambiguous first-match
+  counting.
+- Garden-claimed Requests keep the GardenAccount as counterparty/provider scope while the stored
+  authenticated `requestedBy` operator becomes the accountable lead. CeloSettlement declarations
+  store source zero until acceptance selects the provider garden; Settlement stores the active
+  provider Safe as payer.
+- CommitmentPooling exposes canonical recognition validation from frozen roster counts, verified
+  credits, and immutable policy. Hypercert composition and Settlement use that recomputation; a
+  caller-supplied self-consistent vector/hash is not authority. Cross-commitment remainder units go
+  to ascending commitment IDs before contributor rounding.
+- Only provider-garden operator/owner stewardship may create, edit, finalize, prepare, requeue, or
+  cancel its payout plan. A dispatcher can execute only the frozen approved plan. Creation emits
+  every initial payout row for indexer observability.
+- Delivery-disabled mode still permits plan bookkeeping and an all-retained local completion.
+  Zero-total payment weights are an explicit all-zero vector with a required divergence reason,
+  never a division-by-zero case.
+
+The ontology now watches `PayoutPlanStatus`, freezes rosters on entry to
+ReadyForConfirmation, and includes `settlement-spec.md` in both workflow and CI-gate matching.
+Claim-time team-policy choices, mixed external/Celo actions, invalid contributor confirmation
+fixtures, stale queue ABI, and stale prototype counts were removed or reconciled. The generated
+ontology reference and executable prototype registry validate those mirrors.

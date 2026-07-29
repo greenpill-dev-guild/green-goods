@@ -1,13 +1,13 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-07-28. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
+Updated 2026-07-29. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
 
 ## Build snapshot
 
-- 32 registered screens / 279 rendered states in the full source registry
-- 25 presentation-visible hi-fi screens / 272 states: 10 Client PWA (154 states), 13 Admin console (113 states), 2 Editorial website (5 states)
+- 32 registered screens / 280 rendered states in the full source registry
+- 25 presentation-visible hi-fi screens / 273 states: 10 Client PWA (154 states), 13 Admin console (114 states), 2 Editorial website (5 states)
 - 381 registered hotspots
-- 38 validated source flows / 309 scenes; 37 presentation-visible flows / 300 scenes: 16 Client PWA, 20 Admin console, 1 Editorial website
+- 38 validated source flows / 310 scenes; 37 presentation-visible flows / 301 scenes: 16 Client PWA, 20 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -123,12 +123,12 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W7 | Admin console | 27 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
-| W10 | Admin console | 16 | detail, fulfilled, contributor-allocation, record-payout, queue-settlement, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
+| W10 | Admin console | 15 | detail, fulfilled, contributor-allocation, record-payout, fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
 | W11 | Admin console | 8 | presets, invalid-sum, guard, recognition-policy, campaign-allocation, campaign-open, discard, campaign-discard |
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 4 | queue, context-chip, assess, empty |
 | W14 | Admin console | 3 | baseline, delta, discard |
-| W21 | Admin console | 21 | queue, unregistered, payout-plan, payout-finalized, payout-retained, payout-partial, payout-complete, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
+| W21 | Admin console | 22 | queue, unregistered, payout-plan, payout-finalized, payout-prepared, payout-retained, payout-partial, payout-complete, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
 | W22 | Admin console | 9 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm, garden-command |
 | W24 | Admin console | 3 | queue, ccip, flows |
 | W26 | Admin console | 9 | review, recognition-blocked, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest |

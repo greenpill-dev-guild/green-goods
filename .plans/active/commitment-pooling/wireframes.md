@@ -153,7 +153,7 @@ Route `/home/:id/pool/:commitmentId`. `{AppBar}` hidden (Appendix B §5.1) — t
 │ ⚠ Recorded by your steward on your behalf.   │  StewardCaptured banner, not a
 │   The promise stays yours.                   │  chip (fixed phrasing, §13 Q2)
 ├──────────────────────────────────────────────┤
-│ Lead: João · 3 contributors — work underway  │  accountability + team
+│ Lead: Maria · 3 contributors — work underway │  accountability + team
 │ Reward: 20 DAI from the garden jar · pending │  declared-reward row (register #18)
 ├──────────────────────────────────────────────┤
 │ ▸ Timeline (4)                               │  {StateTimeline} disclosure
@@ -220,18 +220,18 @@ credit. Solo commitments use the same frame with one contributor.
 
 ```text
 ┌── Team for this promise ────────────────────────────────┐
-│ Accountable lead   João                                │
+│ Accountable lead   Maria                               │
 │ Team policy        Lead-managed                        │
-│ Roster             Editable until confirmation         │
+│ Roster             Editable until Ready for confirmation│
 ├────────────────────────────────────────────────────────┤
 │ Contributors                                           │
-│ ≡ João  Lead · Prune ×2       Work 2 · Evidence 1      │
+│ ≡ Maria Lead · Prune ×2       Work 2 · Evidence 1      │
 │ ≡ Ana   Beds survey ×1        Work 1 · Evidence 0      │
 │ ≡ Kwame Unassigned            No verified credit yet   │
 │                         [ + Add contributor ]           │
 ├────────────────────────────────────────────────────────┤
 │ Assignments help coordinate work. Recognition comes    │
-│ from approved Work and confirmed evidence.             │
+│ from approved Work and evidence on a fulfilled promise.│
 │                                          [ Done ]       │
 └────────────────────────────────────────────────────────┘
 
@@ -239,9 +239,14 @@ OPEN TEAM — ELIGIBLE MEMBER             FROZEN
 ┌──────────────────────────────┐        ┌──────────────────────────────┐
 │ This team is open to members │        │ Team locked for confirmation │
 │ [ Join this promise ]        │        │ 3 contributors cannot confirm│
-└──────────────────────────────┘        │ this promise.                │
-                                        └──────────────────────────────┘
+│ After joining, before credit:│        │ this promise.                │
+│ [ Leave this promise ]       │        └──────────────────────────────┘
+└──────────────────────────────┘
 ```
+
+`Leave this promise` calls `leaveCommitment` and appears only for a non-lead Open-team member
+with zero approved Work/evidence credit. Credited contributors stay in the roster so attribution
+and confirmation exclusion cannot be erased.
 
 ### W3 — Offer / request creation flow (uiux-spec §5.4)
 
@@ -291,14 +296,16 @@ Deep-link from W2 into the existing Garden work-submission flow — full-screen 
 │ ≡ 2 photos · pruning session                 │
 │ ≡ Fulfills: Prune the north beds             │
 │   Offer · AGRO · (Promise)                   │
-│ Credited contributor: João                   │
+│ Requirement: Prune north beds · row 2        │
+│ Credited contributor: Ana                    │
 │                                              │
 │ Everything else is the existing work flow.  │
 │                              [ Submit work ] │
 └──────────────────────────────────────────────┘
 ```
 
-Submitting carries `meta.commitmentId`; after sync, the work links back to W2 and advances only the matched requirement row.
+Submitting carries `meta.commitmentId` plus the selected `meta.requirementIndex`; after sync, the
+work links back to W2 and advances only that exact row, even when another row uses the same action.
 
 ### W4 — Counterparty confirmation sheet (uiux-spec §5.6)
 
@@ -312,7 +319,7 @@ Submitting carries `meta.commitmentId`; after sync, the work links back to W2 an
 │ evidence: 2 items · linked work: 1 approved  │
 ├──────────────────────────────────────────────┤
 │ Confirmations   ▓▓▓▓▓▓▓░░░  2 of 3           │  {ProgressMeter} + text equiv
-│ ≡ João and Ana confirmed              ✓ ✓    │  condensed row (Appendix B §5.6)
+│ ≡ João and Sofia confirmed            ✓ ✓    │  condensed row (Appendix B §5.6)
 │ ≡ You — your turn                     ○      │  distinct actionable row
 │ Maria, Ana, and Kwame cannot confirm.         │  every contributor excluded
 ├──────────────────────────────────────────────┤
@@ -567,9 +574,11 @@ FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
 ```
 
 - Finalization verifies the complete recognition vector/hash, derives payment weights from the
-  atomic amount vector, proves `declared = retained + children`, and freezes the plan before any
-  dispatch. If the garden retains all 500 G$, the finalized plan is Complete with zero children,
-  no CCIP message, and no garden self-transfer.
+  atomic amount vector, proves `declared = retained + payouts`, and freezes the plan without
+  creating children. The finalized screen exposes **[ Prepare payout ]** per non-zero contributor;
+  the first action creates one immutable Queued child and an exact repeat returns the same ID.
+  If the garden retains all 500 G$, the finalized plan is Complete with zero children, no CCIP
+  message, and no garden self-transfer.
 
 - Review additions (audit 2026-07-18): Celo rows follow settlement-record-first precedence (settlement-spec §3.1.2), and the dialog shows the confirmation threshold with named-confirmer status. *Wireframe-only — the hi-fi keeps claims triage on W7 and does not draw an inline pending-claims queue or per-action requirement rows ("Prune 2/2 · Plant 0/1") in this dialog; both are kept here as recorded review intent.*
 
@@ -776,11 +785,11 @@ This commitment-pooling file retains only the shared commitment, confirmation, t
 
 G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific queue state drawn above.
 
-**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders “support is queued” (Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` exposes Queue disbursement only after the canonical pooling and settlement interfaces are both GREEN; `ArbitrumExternal` alone exposes Record payout.
+**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders “support is queued” (Queued) · “support on its way” (Dispatched) · “confirming arrival” (Celo execution indexed, acknowledgment pending) · “support arrived ↗” only after an authenticated success acknowledgment for the current execution key and attempt · “still arranging support — your promise is recorded” (authenticated failure) · origin-specific terminal copy for Cancelled from Queued versus Failed. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` exposes the recognition-aligned contributor payout draft; W21 finalizes the plan and prepares each payable row before dispatch. `ArbitrumExternal` alone exposes Record payout.
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
-Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (16 states, incl. the full recovery set).
+Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (22 states, incl. payout planning, preparation, and the full recovery set).
 
 ```text
 ┌─ Settlement · Garden · Celo ───────────────────────────────────────────┐
@@ -793,14 +802,14 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 │ Payout plan 18 · Prune north beds · Partial · 100 G$ kept in garden   │
 │ Disbursements                                    [ Create batch ]      │
 │ Settlement/att. │ Recipient │ Kind   │ Amount │ State                  │  6-column dtable rows
-│ ≡ 104 / 0       │ Maria     │ Reward │ 20 G$  │ Queued   [ Dispatch ]  │
-│ ≡ 103 / 1       │ João      │ Reward │ 35 G$  │ Failed                 │
+│ ≡ 104 / 0       │ Maria     │ Reward │ 160 G$ │ Queued   [ Dispatch ]  │
+│ ≡ 103 / 1       │ Kwame     │ Reward │ 100 G$ │ Failed                 │
 │                 │           │        │        │  [ Source follow-up ]  │
-│ ≡ 102 / 0       │ Ana       │ Reward │ 20 G$  │ confirming arrival     │
+│ ≡ 102 / 0       │ Ana       │ Reward │ 140 G$ │ confirming arrival     │
 │                 │           │        │        │  [ Ack details ]       │
-│ ≡ 101 / 0       │ Rocinha   │ Fund   │ 500 G$ │ Confirmed ↗            │
+│ ≡ 101 / 0       │ Kwame     │ Reward │ 18 G$  │ Confirmed ↗            │
 │ Protocol→Garden funding is separate from contributor payout status.   │
-│ Commitment queues, batches, and account registration await gates      │
+│ Payout preparation, batches, and account registration await gates     │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -908,8 +917,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 │ PRE-CLAIM SHEET — provider context           │  {DialogShell}; AppBar hidden
 │ take this up   ◉ As myself                   │  (Appendix B §5.1)
 │                ○ For Awka Hub                │  garden option: eligible
-│ fulfillment   ◉ Solo  ○ With a team          │
-│ team policy   ◉ Open  ○ Lead-managed         │
+│ Team          With a team · Open             │  immutable creation-time policy
 │ [ Continue ]                                 │  stewards only
 ├──────────────────────────────────────────────┤
 │ → (waiting for review) chip                  │  W1 pending/declined/superseded
@@ -919,7 +927,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 └──────────────────────────────────────────────┘
 ```
 
-- No new grammar: the protocol pool reuses W1's cards and wait states, W2's delivery, W4's confirmation. Only the `(Protocol)` chip and the **pre-claim provider-context sheet** are new (register #51 / MF-8 — the card never asks the context question) — and Work/assessments anchor to the claiming garden even though the commitment lives in the root pool (D2's providerGarden rule). **Hi-fi**: [`#screens/W25@card`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@card) · sheet: [`#screens/W25@context-chooser`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@context-chooser).
+- No new grammar: the protocol pool reuses W1's cards and wait states, W2's delivery, W4's confirmation. Only the `(Protocol)` chip and the **pre-claim provider-context sheet** are new (register #51 / MF-8 — the card never asks the context question). Solo/team and Open/Lead-managed are immutable seeding facts, so this sheet displays them read-only and never attempts to change them through `claimCommitment`. Work/assessments anchor to the claiming garden even though the commitment lives in the root pool (D2's providerGarden rule). **Hi-fi**: [`#screens/W25@card`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@card) · sheet: [`#screens/W25@context-chooser`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@context-chooser).
 
 ### W26 — Cycle close → allocation → certificate wizard (admin)
 
@@ -934,7 +942,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
 │   Gardener contributors:                                 │
-│   Maria 38% · João 37% · Ana 25%                         │
+│   Maria 38% · Kwame 37% · Ana 25%                        │
 │   20% equal + 80% verified contribution                  │
 │   [ Correct recognition… ] requires recorded reason      │
 │   If eligible contributors = 0: certificate blocked      │

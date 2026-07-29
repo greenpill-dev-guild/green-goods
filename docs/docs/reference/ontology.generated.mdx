@@ -376,7 +376,7 @@ Derived progress of a frozen commitment payout plan across its contributor child
 
 **Canonical members:** Draft (0) · Pending (1) · Partial (2) · Complete (3) · Failed (4)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `CommitmentPayoutPlanStatus`. The drift gate flags arrival so the status flips to live with declared representations._
+_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `PayoutPlanStatus`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ## EAS Schemas
 
@@ -547,7 +547,7 @@ One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Su
 | From | To | Layer | Mechanism |
 |---|---|---|---|
 | Draft | Seeded | on-chain | seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet |
-| Seeded | Open | on-chain | openCycle(cycleId, allocation) — six-role bps must sum to 10000, stored immutably → CycleOpened |
+| Seeded | Open | on-chain | openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened |
 | Open | InProgress | derived | first CommitmentAccepted for the cycle OR block time ≥ startTime |
 | InProgress | Reviewing | derived | block time &gt; endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back |
 | Reviewing | Reconciled | on-chain | closeCycle (the reconcile act) → CycleClosed; commitment-level Reconciled derives from this event |
@@ -581,8 +581,8 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 | Accepted | Active | derived | first WorkLinked or EvidenceAttached after acceptance |
 | Active | EvidenceSubmitted | derived | any EvidenceAttached or WorkLinked event |
 | EvidenceSubmitted | PartiallyApproved | derived | ApprovedWorkCounted with some requirement counters below their required counts |
-| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason |
-| ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; roster freezes and every lead/contributor is excluded from every confirmation path |
+| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; contributor roster freezes atomically before the ready event on every path |
+| ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path |
 | Fulfilled | Reconciled | derived | CycleClosed for the commitment's cycle (or PoolClosed when cycle-less) |
 | … | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | … | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |

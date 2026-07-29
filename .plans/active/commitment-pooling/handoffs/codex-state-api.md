@@ -103,5 +103,5 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
 ## Binding architecture amendment — 2026-07-28
 
 - Shared types/selectors must expose `leadProvider`, contributor policy/roster/freeze state, repeatable requirement inputs versus derived stored fields, the evidence attribution index, zero-eligible recognition blocking/repair, recognition/payment snapshot hashes, garden retention, parent finalization, stable plan pointer, and contributor child status.
-- Mutations cover roster management before the ReadyForConfirmation freeze, proof-linked recognition repair, atomic full-vector payout saves, explicit payout-plan finalization, and child dispatch/recovery through the existing job queue. Hooks remain in `@green-goods/shared`.
+- Mutations cover roster management before the ReadyForConfirmation freeze, proof-linked recognition repair, atomic full-vector payout saves, explicit payout-plan finalization, idempotent per-contributor preparation, and child dispatch/recovery through the existing job queue. Hooks remain in `@green-goods/shared`.
 - Keep recognition and payment as separate read models. Payment weights derive from amounts and may default from recognition, but a receipt is shown only from authenticated settlement confirmation. An all-retained finalized plan completes without creating a child receipt.

@@ -93,7 +93,6 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   setContributorPayouts: {
     key: "payoutPlan",
     allowed: ["Draft"],
-    effects: { disbursement: "Queued" },
     requires: { settlementAccount: ["Active"] },
   },
   finalizeCommitmentPayoutPlan: {
@@ -102,14 +101,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     next: "Pending",
     requires: { settlementAccount: ["Active"] },
   },
-  queueDisbursement: {
-    key: "commitment",
-    allowed: ["Fulfilled"],
+  prepareContributorPayout: {
+    key: "payoutPlan",
+    allowed: ["Pending", "Partial"],
     effects: { disbursement: "Queued" },
-    requires: {
-      settlementAccount: ["Active"],
-      beneficiarySettlementAccount: ["NotRequired", "Active"],
-    },
+    requires: { settlementAccount: ["Active"] },
   },
   createBatch: { key: "disbursement", allowed: ["Queued"] },
   dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },

@@ -37,7 +37,10 @@
   `approvedCount / requiredCount` plus canonical per-commitment `approvedUnits`. The UI starts
   with four rows and adds more; it never presents four as the product maximum.
 - Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
-- Cycle seeding carries no allocation. The open-cycle step accepts percentages, converts all six fields to basis points, requires an exact 10,000 total, and submits the complete allocation atomically through `openCycle(cycleId, allocation)`.
+- Cycle seeding carries no allocation or recognition policy. The open-cycle step accepts the six
+  allocation percentages plus equal/verified recognition percentages, converts both groups to
+  basis points, requires each group to total exactly 10,000, and submits both snapshots atomically
+  through `openCycle(cycleId, allocation, recognitionPolicy)`.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
 - `W10@accepted` uses one locked action row: “Send for confirmation” is available only when required evidence is complete; “Cancel promise” opens the reason-required `W10@cancel` steward dialog; “Mark ready” opens the authorized reason-required `W10@mark-ready-override` flow and is visually distinct from ordinary evidence completion. The row never implies that acceptance alone made the commitment Ready.
 - `W10@attach-assessment` is the only assessment-attachment placement. It filters to eligible Assessment v3 records for the commitment’s accepted `providerGarden`, records the selected assessment before Ready submission, and exposes an empty/ineligible state instead of attaching an unrelated garden’s assessment.
@@ -95,5 +98,5 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 
 - Seeding and detail surfaces expose the accountable lead, contributor policy/roster, repeatable requirements, and roster freeze.
 - Recognition review shows the canonical equal-commitment then 20/80 gardener formula. The payment editor starts from those weights, makes garden retention explicit, and requires a reason only when a steward changes the member weights.
-- Settlement separates Save draft from Finalize payout plan. It shows recognition/payment hashes, amount-derived weights, reasoned divergence, all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent pointer.
+- Settlement separates Save draft, Finalize payout plan, and per-contributor Prepare payout. Finalization creates no child; preparation is visibly idempotent and creates one Queued child from a frozen non-zero row. The surface shows recognition/payment hashes, amount-derived weights, reasoned divergence, all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent pointer.
 - Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

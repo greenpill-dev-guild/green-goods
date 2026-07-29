@@ -56,7 +56,12 @@
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
   the register's replacement guard calls that selector; interface/implementation ABI proof must
   fail before deployment if it is absent.
-- `seedCycle` stores no allocation. `openCycle(cycleId, AllocationBps allocation)` validates all six fields sum to 10,000, stores the immutable cycle snapshot, and emits that snapshot in `CycleOpened`.
+- `seedCycle` stores no allocation or recognition policy.
+  `openCycle(cycleId, AllocationBps allocation, RecognitionPolicy recognitionPolicy)` validates
+  the six allocation fields sum to 10,000 and the equal/verified recognition fields separately
+  sum to 10,000, stores both immutable snapshots, and emits all eight fields in `CycleOpened`.
+  Update every downstream call site and ABI fixture; tests prove invalid sums reject before
+  storage/event mutation and a valid policy cannot change after opening.
 - DomainImpact creation stores repeatable `CommitmentRequirement { actionUID, requiredCount }` rows
   (1–`MAX_REQUIREMENTS`, every required count non-zero). Every Work approval carries a
   `requirementIndex`, validates the matching registered action and contributor attribution, and
@@ -227,3 +232,25 @@ every conflicting state. Broadcast remains outside this handoff.
 - Accept repeatable `CommitmentRequirementInput` rows containing only `actionUID` and `requiredCount`; derive stored `domain` and `approvedCount` inside the module. There is no four-requirement product rule; set `MAX_REQUIREMENTS` only from the named gas/indexer benchmark.
 - Freeze the roster atomically on the transition to `ReadyForConfirmation`. Emit contributor, work/evidence attribution, and recognition inputs needed by the indexer.
 - The gardener Hypercert class uses equal fulfilled-commitment budgets, then 20% equal participation among eligible contributors plus 80% verified contribution with deterministic rounding. Zero eligible contributors block certificate expansion; there is no lead fallback. Recognition is not a payment transfer.
+
+## Binding review closure — 2026-07-29
+
+- Implement the 27-feature-slot Commitment Pooling declaration order and `__gap[23]`, including
+  `workRequirementIndexPlusOne`, but treat the generated compiler baseline plus concrete
+  slot/offset assertions as authoritative.
+- `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique measured-bounded credited list, increments `evidenceCount` once and each active contributor's `evidenceCredits` once, and never counts the same attachment again. `isEligibleContributor` additionally requires `Fulfilled`.
+- The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark selects the transaction-safe value. It is not a semantic team-size cap.
+- `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector bound (provisional 32);
+  add/join reject max-plus-one before mutation. Open contributors may self-leave only before
+  freeze with zero credit; neither the lead nor a credited contributor may leave/be removed.
+- `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row,
+  stores index-plus-one, emits it, and increments only that row on approval/sync.
+- Garden-claimed Requests use stored `requestedBy` as the accountable lead while retaining the
+  GardenAccount as counterparty/provider scope. CeloSettlement declarations require source zero;
+  the accepted provider-garden Safe becomes authoritative only in SettlementModule.
+- Maintain eligible-contributor/verified-credit totals and expose
+  `validateRecognitionSnapshot`; Hypercert composition and Settlement must use its on-chain
+  recomputation rather than trust a caller-selected vector/hash.
+- For the gardeners-class cross-commitment split, sort fulfilled commitment IDs ascending, assign
+  the floor share to each, and give one remainder unit to the lowest IDs before applying the
+  within-commitment contributor policy.

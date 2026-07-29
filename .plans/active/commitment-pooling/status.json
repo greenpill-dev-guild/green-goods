@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-29T00:32:59.000Z"
+    "updated_at": "2026-07-29T08:02:35Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -92,9 +92,9 @@
     "G$ split-state settlement is Build-phase scope via PRD-686: Arbitrum SettlementModule sends message-only CCIP commands, bounded CeloSettlementExecutor executes canonical G$ transfers through Zodiac Roles, and only authenticated acknowledgments bound to the subject's current execution key and attempt finalize state. Immutable batch membership uses a hard ceiling of 24 plus a measurement-gated configured limit; same-key idempotency, independent acknowledgment retry, one immutable router per implementation, bounded previous-peer grace, a paused/drained router-upgrade cutover, native-fee monitoring, recipient event/query surfaces, and AA-gated member delivery are mandatory. Release remains separately human-authorized.",
     "Green Goods settles canonical G$ on Celo and never bridges G$ to Arbitrum. Green Goods designates the GG protocol Safe on Celo as the direct House of Alignment receiving account; current partner mechanism, receiving-address, and live-receipt evidence remain blockers (topology corrected 2026-07-18, corrections-log §9; verification report 2026-07-20).",
     "DomainImpact uses repeatable CommitmentRequirement rows with an action UID and required count; domains are derived from the registered actions. Action UID 0 is valid. There is no four-requirement product rule: MAX_REQUIREMENTS is accepted only after the contract-gas and indexer benchmark proves the implementation bound.",
-    "A commitment has one accountable lead plus zero or more contributors. Only the lead consumes the non-transferable register slot; approved Work/evidence preserves contributor attribution, the roster freezes atomically on the transition to ReadyForConfirmation, and every team member is excluded from confirmation.",
+    "A commitment has one accountable lead plus zero or more contributors. Only the lead consumes the non-transferable register slot; approved Work and exact-CID-de-duplicated evidence preserve contributor attribution, evidence eligibility additionally requires Fulfilled, the roster freezes atomically on the transition to ReadyForConfirmation, and every team member is excluded from confirmation.",
     "The Hypercert gardener class allocates equal budgets to fulfilled commitments, then shares 20% equally among eligible contributors and allocates 80% by verified contribution with deterministic rounding. There is no automatic lead fallback: zero eligible contributors block W26 until a proof-linked, reason-required attribution repair is audited.",
-    "G$ commitment support is accounted to the provider garden, whose Celo Safe pays contributors through one stable CommitmentPayoutPlan. Creation binds the complete recognition vector to its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization verifies retained-plus-child conservation before dispatch, completes all-retained zero-child plans without CCIP, and child cancellation never clears the parent pointer. Funding remains limited to ProtocolToGarden, CCIP transports data only, and authenticated acknowledgment remains the sole path to Confirmed.",
+    "G$ commitment support is accounted to the provider garden, whose Celo Safe pays contributors through one stable CommitmentPayoutPlan. Creation binds the complete recognition vector to its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization verifies retained-plus-payout conservation, freezes the plan, and creates no child. Idempotent per-contributor preparation later materializes one immutable Queued child from a frozen non-zero row. All-retained plans complete without CCIP, and child cancellation never clears the parent pointer. Funding remains limited to ProtocolToGarden, CCIP transports data only, and authenticated acknowledgment remains the sole path to Confirmed.",
     "Linear was reconciled and live-re-read on 2026-07-10: both projects, all active milestones, core and referenced issues, canceled-child supersession notes, the Garden Mandate Survey, RESR-57/58 documents, and the new RESR-64 engagement-model document. PRD-651/697 are Backlog with no cycle or agent dispatch. Resolved 2026-07-11: the staged apply pack (reports/linear/linear-apply-pack.md) was applied and live-verified, the previously credit-blocked PRD-686/RESR-57 Safe/Zodiac wording refinement landed, and the PRD-651/697 due dates were cleared manually in the Linear UI (live-verified null).",
     "Out of scope for all lanes: bridged G$, arbitrary bridge-executor automation, a packages/agent settlement relayer or write path, bridge custody or unbounded value authority, Sarafu integration, transferable settlement vouchers/settlementAdapter activation, indexing Celo/G$ transfers, garden-to-garden federation, leaderboards, and credit scores. Optional later agent alerts are read-only and hold no settlement authority. The bounded message-only CeloSettlementExecutor is the August settlement path, not a token bridge.",
     "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in ../../backlog/commitment-credit-follow-on/spec.md, not part of the Build phase, and not dispatchable without an explicit unblock.",
@@ -771,6 +771,14 @@
       "status": "onchain_complete",
       "branch": "polish/rename-operator-to-steward-onchain",
       "note": "PRD-747/748 acceptance completed. Sepolia and Arbitrum HatsModule upgrades passed focused post-upgrade verification; the authorized direct-admin Arbitrum relabel broadcast produced 18 successful receipts from block 488773296 through 488773365; an independent fixed-block re-read at 488774048 confirmed all 18 exact Steward labels, active and mutable status, authorized caller admin, and zero failures; and the official Hats app visibly rendered the exact Steward label for Green Goods Community Garden, TAS HUB, and AgroforestDAO. Branch review and merge hygiene remain."
+    },
+    {
+      "timestamp": "2026-07-29T08:02:35Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "review_findings_reconciled",
+      "branch": "polish/explore-hypercert-share-allocation",
+      "note": "Focused review fixes align compiler-baseline storage accounting, exact-CID evidence de-duplication and fulfillment-gated eligibility, and the payout child lifecycle. Draft edits and finalization create no child; idempotent post-finalization preparation creates one immutable Queued child per frozen non-zero contributor row. Provisional 32-item evidence and payout bounds remain measurement gates rather than team-size product rules. Prototype artifacts validate the new finalized-unprepared and prepared-queued states. No Linear, source-document, deployment, broadcast, or value mutation was performed."
     }
   ]
 }
