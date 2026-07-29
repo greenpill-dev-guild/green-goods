@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE: all readiness corrections scope-locked 2026-07-10; implementation lanes are blocked only on named interfaces, aggregate proofs, external operations, authorization, or research gates; implementation not started`
 **Created**: 2026-07-04
-**Last Updated**: 2026-07-10
+**Last Updated**: 2026-07-29
 
 Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-dev-guild/project/community-needs-and-signals-083dd7e556c2). Milestones: Needs substrate (2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The Product Commitment Pooling cycle runs 2026-07-16 through 2026-07-30; Research alignment runs through 2026-07-30. Active September delivery tracker PRD-682 stays in [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354); canceled PRD-683 remains historical traceability only. Artifacts: `spec.md`, `corrections-log.md`, `diagrams.md`, `wireframes.md`, `journeys.md`, `research-plan.md`.
 
@@ -26,6 +26,7 @@ Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-
 | 9 | A Need is a problem paired with a desired outcome; it has no kind. Request / Offer is commitment direction only. Domains are operator-applied, optional, and multi-valued; commitments use the same optional multi-domain shape, with action pairing required only for DomainImpact. |
 | 10 | Join-request persistence is an explicit open decision. The member experience is designed, but PRD-691's membership-queue slice waits for privacy, retention, offline/recovery, deletion, and operator-handoff evidence. |
 | 11 | `packages/community` is an independent PWA at `community.greengoods.app` / local 3010; a prerequisite shared-foundation lane extracts generic runtime/auth/offline/install/update/error/shell primitives for both client and Community without sharing routes, manifests, service-worker scope, telemetry identity, or copy. |
+| 12 | PRD-758 is the Community Needs architecture gate for PRD-682. It must close before PRD-682 implementation, but it does not block PRD-721/722/723 or the core Commitment Pooling backend. |
 | 12 | Need moderation and progress are separate axes; declined is author/operator-only, hidden is operator-only, merge redirects, acknowledgement with rationale reopens, and author retraction leaves a content-free lineage tombstone. |
 
 Sub-decisions: Need/NeedSignal revocable (self-retraction/un-signal only); NeedStatus moderation 1 acknowledged / 2 merged / 3 hidden / 4 declined; progress open/committed/in-progress/addressed derives separately; `need`, `needSignal`, and `testimony` may wait in `waiting_for_hat`; NeedStatus/FundingAttribution stay online; FundingAttribution displays once per verified `(needUID, chainId, txHash, rail)`; Envio never indexes EAS.
@@ -77,7 +78,7 @@ Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `nee
 
 ### Track A: September needs app
 
-7. [ ] PRD-682 scaffolds the independent Community PWA only after shared-foundation, state/API, and paymaster proof; PRD-691 admin `/community` triage/pools/evaluator consumes the same substrate. Membership queue remains gated
+7. [ ] PRD-682 scaffolds the independent Community PWA only after PRD-758 closes and shared-foundation, state/API, and paymaster proof are complete; PRD-691 admin `/community` triage/pools/evaluator consumes the same substrate. PRD-758 does not block the core Commitment Pooling backend. Membership queue remains gated
 8. [ ] PRD-691 funder-lens sub-lane after the PRD-687 state/API aggregate and editorial grammar are GREEN (historical PRD-692 is not dispatchable)
 9. [ ] PRD-691 admin seeding-gate intake after the Community state/API aggregate and Commitment Pooling admin substrate are GREEN (canceled PRD-683 is not dispatchable)
 10. [ ] PRD-691 docs sub-lane after Community PWA, admin, and funder surfaces ship for screenshots (historical PRD-693 is not dispatchable)

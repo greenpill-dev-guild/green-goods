@@ -12,8 +12,10 @@
 ## Inputs
 
 - Corrected and merged GitHub PR #649 with Envio `3.2.1` generation/build/test/migration proof.
-- Completed PRD-747/748 Steward contract/live-hat work. PRD-575 GreenWill is explicitly deferred
-  for separate Council Safe coordination and is not an input to this lane.
+- PRD-747/748 Steward contract/live-hat work closed after branch review and merge hygiene.
+- Closed PRD-762 signed app-avatar API path, with its PRD-721 blocker removed. This prerequisite is
+  agent/shared/client work and requires no Commitment Pooling contract change, indexer work, or
+  deployment broadcast.
 - Afo's completed PRD-649 architecture fine-comb with every resulting correction reconciled into
   the contract/event/indexer/state/API boundaries.
 - contract-spec.md, especially sections 5-8
@@ -201,8 +203,8 @@ every conflicting state. Broadcast remains outside this handoff.
 ## Unblock evidence
 
 - GitHub PR #649 is corrected, merged, and proven on Envio `3.2.1`.
-- PRD-747 and PRD-748 have complete live upgrade/broadcast verification; PRD-575 remains deferred
-  and non-blocking.
+- PRD-747 and PRD-748 have complete live upgrade/broadcast verification and branch merge hygiene.
+- PRD-762's signed app-avatar API path is complete and its PRD-721 blocker is closed.
 - Afo explicitly closes the PRD-649 final architecture fine-comb.
 - status.json then marks the contracts lane ready and the user explicitly dispatches it.
 - Corrected handoff and exact count-cap contract interface/event tables are present.
