@@ -9,6 +9,7 @@ import {
   validateIndexerDeploymentCoverage,
   validateMarketplaceReadiness,
 } from "./marketplace-readiness";
+import { redactRpcUrl, redactRpcUrlsInText } from "./cli-parser";
 import { CHAIN_ID_MAP, NetworkManager } from "./network";
 
 type NetworkName = "sepolia" | "arbitrum" | "celo" | "mainnet" | "localhost";
@@ -30,6 +31,10 @@ interface VerifyOptions {
   checkEtherscan: boolean;
   requireProductCopy: boolean;
   productCopyAcknowledged: boolean;
+  checkStewardUpgrade: boolean;
+  stewardBaselinePath?: string;
+  expectedHatsImplementation?: string;
+  stewardProbeAccounts: string[];
 }
 
 interface DeploymentRecord {
@@ -104,18 +109,78 @@ interface GardensFile {
   gardens?: Array<{ tokenId?: number; address?: string }>;
 }
 
-interface RpcLog {
-  topics?: string[];
+export interface StorageLayoutBaseline {
+  storage?: Array<{
+    label?: string;
+    slot?: string;
+    offset?: number;
+    type?: string;
+  }>;
+}
+
+interface StewardGardenBaseline {
+  garden: string;
+  ownerHatId: string;
+  operatorHatId: string;
+  evaluatorHatId: string;
+  gardenerHatId: string;
+  funderHatId: string;
+  communityHatId: string;
+  adminHatId: string;
+  configured: boolean;
+}
+
+interface StewardUpgradeBaseline {
+  version: 1;
+  chainId: string;
+  hatsModule: string;
+  implementationBefore: string;
+  ownerBefore: string;
+  hatsProtocolBefore: string;
+  gardens: StewardGardenBaseline[];
+  probeAccounts?: string[];
+}
+
+export function collectStewardGardenCoverageErrors(baselineGardens: string[], liveGardens: string[]): string[] {
+  const errors: string[] = [];
+  const baselineSet = new Set(baselineGardens.map((garden) => garden.toLowerCase()));
+  const liveSet = new Set(liveGardens.map((garden) => garden.toLowerCase()));
+
+  if (baselineSet.size !== liveSet.size) {
+    errors.push(`Steward baseline covers ${baselineSet.size} gardens but live inventory contains ${liveSet.size}`);
+  }
+  for (const garden of liveGardens) {
+    if (!baselineSet.has(garden.toLowerCase())) {
+      errors.push(`Steward baseline is missing live garden ${garden}`);
+    }
+  }
+  for (const garden of baselineGardens) {
+    if (!liveSet.has(garden.toLowerCase())) {
+      errors.push(`Steward baseline contains non-live garden ${garden}`);
+    }
+  }
+
+  return errors;
+}
+
+export interface StewardSelectorProbe {
+  account: string;
+  steward: boolean;
+  operator: boolean;
+}
+
+export function collectStewardSelectorParityErrors(garden: string, probes: StewardSelectorProbe[]): string[] {
+  return probes
+    .filter((probe) => probe.steward !== probe.operator)
+    .map((probe) => `selector mismatch for garden ${garden}, account ${probe.account}`);
 }
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
+const REPO_ROOT = path.resolve(__dirname, "../../../..");
 
-/** Mask API key segments in RPC URLs to prevent credential leakage in logs. */
-function maskRpcApiKey(value: string): string {
-  return value.replace(/(\/v\d+\/)[^\s/]+/g, "$1***");
-}
 const DEFAULT_LOCAL_INDEXER_ENDPOINT = "http://localhost:3006/v1/graphql";
 const RUNTIME_INDEXER_QUERY = `
   query PostDeployIndexerRuntime($chainId: Int!, $limit: Int!) {
@@ -155,6 +220,10 @@ function parseArgs(argv: string[]): VerifyOptions {
   let checkEtherscan = false;
   let requireProductCopy = process.env.REQUIRE_PRODUCT_COPY === "true";
   let productCopyAcknowledged = process.env.PRODUCT_COPY_ACKNOWLEDGED === "true";
+  let checkStewardUpgrade = false;
+  let stewardBaselinePath: string | undefined;
+  let expectedHatsImplementation: string | undefined;
+  const stewardProbeAccounts: string[] = [];
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -216,6 +285,18 @@ function parseArgs(argv: string[]): VerifyOptions {
       case "--ack-product-copy":
         productCopyAcknowledged = true;
         break;
+      case "--check-steward-upgrade":
+        checkStewardUpgrade = true;
+        break;
+      case "--steward-baseline":
+        stewardBaselinePath = argv[++i];
+        break;
+      case "--expected-hats-implementation":
+        expectedHatsImplementation = argv[++i];
+        break;
+      case "--steward-probe-account":
+        stewardProbeAccounts.push(argv[++i] ?? "");
+        break;
       default:
         break;
     }
@@ -248,6 +329,10 @@ function parseArgs(argv: string[]): VerifyOptions {
     checkEtherscan,
     requireProductCopy,
     productCopyAcknowledged,
+    checkStewardUpgrade,
+    stewardBaselinePath,
+    expectedHatsImplementation,
+    stewardProbeAccounts,
   };
 }
 
@@ -261,7 +346,7 @@ function castCall(rpcUrl: string, to: string, signature: string, args: string[] 
     return execFileSync("cast", callArgs, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cast call failed (${to} ${signature}): ${maskRpcApiKey(message)}`);
+    throw new Error(`cast call failed (${to} ${signature}): ${redactRpcUrlsInText(message)}`);
   }
 }
 
@@ -283,17 +368,12 @@ function parseAddress(output: string): string {
   return match ? match[0] : ZERO_ADDRESS;
 }
 
-function parseAddressArray(output: string): string[] {
-  return output.match(/0x[a-fA-F0-9]{40}/g) ?? [];
+function isAddress(value: string | undefined): value is string {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value) && !isZeroAddress(value);
 }
 
-function parseTopicAddress(topic: string | undefined): string {
-  if (!topic) return ZERO_ADDRESS;
-  const normalized = topic.toLowerCase();
-  if (/^0x[a-f0-9]{64}$/.test(normalized)) {
-    return `0x${normalized.slice(-40)}`;
-  }
-  return parseAddress(topic);
+function parseAddressArray(output: string): string[] {
+  return output.match(/0x[a-fA-F0-9]{40}/g) ?? [];
 }
 
 function parseUint(output: string): bigint {
@@ -305,6 +385,14 @@ function parseUint(output: string): bigint {
   return BigInt(token);
 }
 
+function parseUintValues(output: string): bigint[] {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.match(/^\s*\(?\s*(0x[a-fA-F0-9]+|\d+)/)?.[1])
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => BigInt(value));
+}
+
 function parseBool(output: string): boolean {
   const trimmed = output.trim().toLowerCase();
   return trimmed === "true" || trimmed === "1";
@@ -314,34 +402,46 @@ function normalizeAddress(value: string): string {
   return value.toLowerCase();
 }
 
-function castLogs(rpcUrl: string, address: string, signature: string): RpcLog[] {
+function readStorageAddress(rpcUrl: string, contract: string, slot: string): string {
   try {
-    const output = execFileSync(
-      "cast",
-      [
-        "logs",
-        "--json",
-        "--from-block",
-        "0",
-        "--to-block",
-        "latest",
-        "--address",
-        address,
-        "--rpc-url",
-        rpcUrl,
-        signature,
-      ],
-      {
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    return JSON.parse(output) as RpcLog[];
+    const output = execFileSync("cast", ["storage", contract, slot, "--rpc-url", rpcUrl], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    const word = output.match(/0x[a-fA-F0-9]{64}/)?.[0];
+    return word ? `0x${word.slice(-40)}` : ZERO_ADDRESS;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn(`⚠️  Failed to read garden mint logs: ${maskRpcApiKey(message)}`);
-    return [];
+    throw new Error(`cast storage failed (${contract} ${slot}): ${redactRpcUrlsInText(message)}`);
   }
+}
+
+function readStorageUint(rpcUrl: string, contract: string, slot: string): bigint {
+  try {
+    const output = execFileSync("cast", ["storage", contract, slot, "--rpc-url", rpcUrl], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    const word = output.match(/0x[a-fA-F0-9]{64}/)?.[0];
+    if (!word) throw new Error(`unexpected storage word: ${output}`);
+    return BigInt(word);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`cast storage failed (${contract} ${slot}): ${redactRpcUrlsInText(message)}`);
+  }
+}
+
+export function findStorageSlot(layout: StorageLayoutBaseline, label: string, expectedType: string): string {
+  const matches = (layout.storage ?? []).filter((entry) => entry.label === label);
+  if (
+    matches.length !== 1 ||
+    !/^\d+$/.test(matches[0].slot ?? "") ||
+    matches[0].offset !== 0 ||
+    matches[0].type !== expectedType
+  ) {
+    throw new Error(`Storage layout must contain one ${expectedType} ${label} at offset zero`);
+  }
+  return matches[0].slot as string;
 }
 
 function parseNumberish(value: number | string | undefined): number {
@@ -390,16 +490,24 @@ function loadGardensFromChain(options: VerifyOptions, deployment: DeploymentReco
     return [];
   }
 
-  const logs = castLogs(options.rpcUrl, deployment.gardenToken as string, "Transfer(address,address,uint256)");
-  const tokenIds = logs
-    .filter((entry) => normalizeAddress(parseTopicAddress(entry.topics?.[1])) === normalizeAddress(ZERO_ADDRESS))
-    .map((entry) => entry.topics?.[3])
-    .filter((tokenId): tokenId is string => typeof tokenId === "string")
-    .map((tokenId) => BigInt(tokenId));
+  const layoutPath = path.join(__dirname, "../../storage-layouts/GardenToken.json");
+  const layout = JSON.parse(fs.readFileSync(layoutPath, "utf8")) as StorageLayoutBaseline;
+  const nextTokenIdSlot = findStorageSlot(layout, "_nextTokenId", "t_uint256");
+  const mintedCount = readStorageUint(options.rpcUrl, deployment.gardenToken as string, nextTokenIdSlot);
+  if (mintedCount > 10_000n) {
+    throw new Error(`GardenToken live mint count ${mintedCount} exceeds the verification safety limit`);
+  }
+  const tokenIds = Array.from({ length: Number(mintedCount) }, (_, tokenId) => BigInt(tokenId));
 
   return tokenIds
-    .map((tokenId) =>
-      parseAddress(
+    .map((tokenId) => {
+      const tokenOwner = parseAddress(
+        castCall(options.rpcUrl, deployment.gardenToken as string, "ownerOf(uint256)(address)", [tokenId.toString()]),
+      );
+      if (isZeroAddress(tokenOwner)) {
+        throw new Error(`GardenToken ownerOf(${tokenId}) returned a zero or invalid address`);
+      }
+      return parseAddress(
         castCall(options.rpcUrl, TOKENBOUND_REGISTRY, "account(address,bytes32,uint256,address,uint256)(address)", [
           deployment.gardenAccountImpl as string,
           TOKENBOUND_SALT,
@@ -407,8 +515,8 @@ function loadGardensFromChain(options: VerifyOptions, deployment: DeploymentReco
           deployment.gardenToken as string,
           tokenId.toString(),
         ]),
-      ),
-    )
+      );
+    })
     .filter((garden) => !isZeroAddress(garden));
 }
 
@@ -426,6 +534,210 @@ function enumerateGardens(options: VerifyOptions, deployment: DeploymentRecord):
   }
 
   return Array.from(gardens.values());
+}
+
+function loadStewardUpgradeBaseline(baselinePath: string): StewardUpgradeBaseline {
+  const candidates = path.isAbsolute(baselinePath)
+    ? [baselinePath]
+    : [path.resolve(process.cwd(), baselinePath), path.resolve(REPO_ROOT, baselinePath)];
+  const resolvedPath = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!resolvedPath) {
+    throw new Error(`Steward upgrade baseline not found; checked: ${candidates.join(", ")}`);
+  }
+
+  const baseline = JSON.parse(fs.readFileSync(resolvedPath, "utf8")) as StewardUpgradeBaseline;
+  if (
+    baseline.version !== 1 ||
+    !baseline.chainId ||
+    !isAddress(baseline.hatsModule) ||
+    !isAddress(baseline.implementationBefore) ||
+    !isAddress(baseline.ownerBefore) ||
+    !isAddress(baseline.hatsProtocolBefore) ||
+    !Array.isArray(baseline.gardens) ||
+    baseline.gardens.length === 0
+  ) {
+    throw new Error(`Invalid Steward upgrade baseline: ${resolvedPath}`);
+  }
+
+  const hatIdKeys = [
+    "ownerHatId",
+    "operatorHatId",
+    "evaluatorHatId",
+    "gardenerHatId",
+    "funderHatId",
+    "communityHatId",
+    "adminHatId",
+  ] as const;
+  const gardens = new Set<string>();
+  for (const garden of baseline.gardens) {
+    if (
+      !isAddress(garden.garden) ||
+      typeof garden.configured !== "boolean" ||
+      hatIdKeys.some((key) => !/^\d+$/.test(garden[key]) || BigInt(garden[key]) === 0n)
+    ) {
+      throw new Error(`Invalid garden record in Steward upgrade baseline: ${resolvedPath}`);
+    }
+    const normalizedGarden = normalizeAddress(garden.garden);
+    if (gardens.has(normalizedGarden)) {
+      throw new Error(`Duplicate garden in Steward upgrade baseline: ${garden.garden}`);
+    }
+    gardens.add(normalizedGarden);
+  }
+  if (baseline.probeAccounts?.some((account) => !isAddress(account))) {
+    throw new Error(`Invalid probe account in Steward upgrade baseline: ${resolvedPath}`);
+  }
+
+  return baseline;
+}
+
+function readGardenHatIds(options: VerifyOptions, hatsModule: string, garden: string): StewardGardenBaseline {
+  const output = castCall(
+    options.rpcUrl,
+    hatsModule,
+    "getGardenHatIds(address)(uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)",
+    [garden],
+  );
+  const values = parseUintValues(output);
+  if (values.length < 7) {
+    throw new Error(`getGardenHatIds returned fewer than seven ids for ${garden}: ${output}`);
+  }
+
+  return {
+    garden,
+    ownerHatId: values[0].toString(),
+    operatorHatId: values[1].toString(),
+    evaluatorHatId: values[2].toString(),
+    gardenerHatId: values[3].toString(),
+    funderHatId: values[4].toString(),
+    communityHatId: values[5].toString(),
+    adminHatId: values[6].toString(),
+    configured: parseBool(castCall(options.rpcUrl, hatsModule, "isConfigured(address)(bool)", [garden])),
+  };
+}
+
+function validateStewardUpgrade(
+  options: VerifyOptions,
+  deployment: DeploymentRecord,
+  liveGardens: string[],
+  failures: string[],
+): void {
+  if (!options.checkStewardUpgrade) return;
+
+  try {
+    if (!options.stewardBaselinePath) {
+      failures.push("--check-steward-upgrade requires --steward-baseline <path>");
+      return;
+    }
+    if (!isAddress(options.expectedHatsImplementation)) {
+      failures.push("--check-steward-upgrade requires --expected-hats-implementation <address>");
+      return;
+    }
+    if (!isAddress(deployment.hatsModule)) {
+      failures.push("deployment.hatsModule is missing or zero");
+      return;
+    }
+
+    const baseline = loadStewardUpgradeBaseline(options.stewardBaselinePath);
+    failures.push(
+      ...collectStewardGardenCoverageErrors(
+        baseline.gardens.map((garden) => garden.garden),
+        liveGardens,
+      ),
+    );
+    const hatsModule = deployment.hatsModule;
+    assert(
+      baseline.chainId === options.chainId,
+      "Steward baseline chain id does not match verification chain",
+      failures,
+    );
+    assert(
+      normalizeAddress(baseline.hatsModule) === normalizeAddress(hatsModule),
+      "Steward baseline HatsModule proxy does not match deployment artifact",
+      failures,
+    );
+
+    const implementation = readStorageAddress(options.rpcUrl, hatsModule, EIP1967_IMPLEMENTATION_SLOT);
+    assert(
+      normalizeAddress(implementation) === normalizeAddress(options.expectedHatsImplementation),
+      `HatsModule implementation ${implementation} does not match reviewed ${options.expectedHatsImplementation}`,
+      failures,
+    );
+    assert(
+      normalizeAddress(implementation) !== normalizeAddress(baseline.implementationBefore),
+      "HatsModule implementation did not change from the pre-upgrade baseline",
+      failures,
+    );
+
+    const owner = parseAddress(castCall(options.rpcUrl, hatsModule, "owner()(address)"));
+    assert(
+      normalizeAddress(owner) === normalizeAddress(baseline.ownerBefore),
+      `HatsModule owner changed from ${baseline.ownerBefore} to ${owner}`,
+      failures,
+    );
+
+    const hatsProtocol = parseAddress(castCall(options.rpcUrl, hatsModule, "hats()(address)"));
+    assert(
+      normalizeAddress(hatsProtocol) === normalizeAddress(baseline.hatsProtocolBefore),
+      `Hats protocol reference changed from ${baseline.hatsProtocolBefore} to ${hatsProtocol}`,
+      failures,
+    );
+
+    const fixedNonWearer = "0x000000000000000000000000000000000000dEaD";
+    const fallbackProbes = new Map<string, string>();
+    for (const account of [...options.stewardProbeAccounts, ...(baseline.probeAccounts ?? [])]) {
+      if (isAddress(account)) fallbackProbes.set(normalizeAddress(account), account);
+    }
+
+    for (const expected of baseline.gardens) {
+      const current = readGardenHatIds(options, hatsModule, expected.garden);
+      for (const key of [
+        "ownerHatId",
+        "operatorHatId",
+        "evaluatorHatId",
+        "gardenerHatId",
+        "funderHatId",
+        "communityHatId",
+        "adminHatId",
+      ] as const) {
+        assert(
+          current[key] === expected[key],
+          `${expected.garden} ${key} changed from ${expected[key]} to ${current[key]}`,
+          failures,
+        );
+      }
+      assert(
+        current.configured === expected.configured,
+        `${expected.garden} configured changed from ${expected.configured} to ${current.configured}`,
+        failures,
+      );
+
+      const gardenProbes = new Map<string, string>();
+      gardenProbes.set(normalizeAddress(fixedNonWearer), fixedNonWearer);
+      try {
+        const gardenOwner = parseAddress(castCall(options.rpcUrl, expected.garden, "owner()(address)"));
+        if (isAddress(gardenOwner)) gardenProbes.set(normalizeAddress(gardenOwner), gardenOwner);
+      } catch {
+        // Some historical garden account implementations do not expose owner().
+      }
+      for (const account of [expected.garden, owner, hatsModule, ...fallbackProbes.values()]) {
+        if (isAddress(account)) gardenProbes.set(normalizeAddress(account), account);
+      }
+
+      const selectorProbes: StewardSelectorProbe[] = [];
+      for (const account of gardenProbes.values()) {
+        const steward = parseBool(
+          castCall(options.rpcUrl, hatsModule, "isStewardOf(address,address)(bool)", [expected.garden, account]),
+        );
+        const operator = parseBool(
+          castCall(options.rpcUrl, hatsModule, "isOperatorOf(address,address)(bool)", [expected.garden, account]),
+        );
+        selectorProbes.push({ account, steward, operator });
+      }
+      failures.push(...collectStewardSelectorParityErrors(expected.garden, selectorProbes));
+    }
+  } catch (error) {
+    failures.push(error instanceof Error ? error.message : String(error));
+  }
 }
 
 function validateIndexerConfig(chainId: string, deployment: DeploymentRecord, failures: string[]): void {
@@ -768,7 +1080,7 @@ function validateOctantVaultReadiness(
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           failures.push(
-            `strategy ${strategy} asset() call failed — strategy may not be ERC4626 compliant: ${maskRpcApiKey(message)}`,
+            `strategy ${strategy} asset() call failed — strategy may not be ERC4626 compliant: ${redactRpcUrlsInText(message)}`,
           );
         }
 
@@ -779,7 +1091,7 @@ function validateOctantVaultReadiness(
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           failures.push(
-            `strategy ${strategy} totalAssets() call failed — strategy cannot communicate with Aave: ${maskRpcApiKey(message)}`,
+            `strategy ${strategy} totalAssets() call failed — strategy cannot communicate with Aave: ${redactRpcUrlsInText(message)}`,
           );
         }
 
@@ -937,7 +1249,7 @@ async function main(): Promise<void> {
   console.log("\nPost-deploy verification");
   console.log(`  network: ${options.network}`);
   console.log(`  chainId: ${options.chainId}`);
-  console.log(`  rpcUrl: ${maskRpcApiKey(options.rpcUrl)}`);
+  console.log(`  rpcUrl: ${redactRpcUrl(options.rpcUrl)}`);
   console.log(`  communitySlug: ${options.communitySlug}\n`);
 
   const deployment = loadDeployment(options.chainId);
@@ -957,6 +1269,20 @@ async function main(): Promise<void> {
   assert(!isZeroAddress(deployment.gardenAccountImpl), "deployment.gardenAccountImpl is zero", failures);
   assert(!isZeroAddress(rootGarden), "deployment.rootGarden.address is zero", failures);
   assert(allGardens.length > 0, "failed to enumerate any gardens", failures);
+
+  validateStewardUpgrade(options, deployment, allGardens, failures);
+  if (options.checkStewardUpgrade) {
+    if (failures.length > 0) {
+      console.error("\nVerification failed:");
+      for (const failure of failures) {
+        console.error(`- ${failure}`);
+      }
+      process.exit(1);
+    }
+
+    console.log("Verification passed: Steward upgrade invariants are preserved.");
+    return;
+  }
 
   if (failures.length === 0) {
     const domainMask = parseUint(
@@ -1029,7 +1355,9 @@ async function main(): Promise<void> {
   }
 
   // HypercertMarketplaceAdapter checks
-  if (!isZeroAddress(deployment.marketplaceAdapter) && failures.length === 0) {
+  // The Hypercert marketplace is deployed only on Arbitrum. Sepolia keeps the
+  // adapter address for integration compatibility without the exchange stack.
+  if (options.network === "arbitrum" && !isZeroAddress(deployment.marketplaceAdapter) && failures.length === 0) {
     const marketplaceState = readMarketplaceLiveState(deployment, {
       call: (to, signature, args = []) => {
         try {
@@ -1125,8 +1453,10 @@ async function main(): Promise<void> {
   console.log("Verification passed: deployment is ready for frontend/indexer integration checks.");
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`Verification command failed: ${maskRpcApiKey(message)}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Verification command failed: ${redactRpcUrlsInText(message)}`);
+    process.exit(1);
+  });
+}

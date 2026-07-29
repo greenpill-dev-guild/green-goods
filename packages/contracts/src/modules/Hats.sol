@@ -276,13 +276,9 @@ contract HatsModule is
     // Garden-Specific Queries (for external use)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Strict hat check — returns true only if the account wears the gardener hat.
-    /// @dev Unlike GardenAccount.isGardener(), this does NOT include operator/owner hierarchy.
-    ///      GardenAccount applies inclusive hierarchy (owner→operator→evaluator→gardener),
-    ///      while these functions check the exact hat. Callers should prefer GardenAccount
-    ///      for permission checks and these functions for exact hat membership queries.
-    ///      Reverts with GardenNotConfigured if the garden has no hat tree. Use isConfigured()
-    ///      to check first when calling directly (not through GardenAccount).
+    /// @notice Strict hat check; unlike GardenAccount, these queries do not include role hierarchy.
+    /// @dev Prefer GardenAccount for permissions and these functions for exact hat membership.
+    ///      Reverts with GardenNotConfigured; direct callers can check isConfigured() first.
     function isGardenerOf(address garden, address account) public view override returns (bool) {
         return _checkRole(garden, account, GardenRole.Gardener);
     }
@@ -291,8 +287,12 @@ contract HatsModule is
         return _checkRole(garden, account, GardenRole.Evaluator);
     }
 
-    function isOperatorOf(address garden, address account) public view override returns (bool) {
+    function isStewardOf(address garden, address account) public view override returns (bool) {
         return _checkRole(garden, account, GardenRole.Operator);
+    }
+
+    function isOperatorOf(address garden, address account) public view override returns (bool) {
+        return isStewardOf(garden, account);
     }
 
     function isOwnerOf(address garden, address account) public view override returns (bool) {
@@ -386,7 +386,7 @@ contract HatsModule is
             adminHatId, _buildDetails(name, "Owner"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
         uint256 operatorHatId = hats.createHat(
-            adminHatId, _buildDetails(name, "Operator"), type(uint32).max, defaultModule, defaultModule, true, ""
+            adminHatId, _buildDetails(name, "Steward"), type(uint32).max, defaultModule, defaultModule, true, ""
         );
         uint256 evaluatorHatId = hats.createHat(
             adminHatId, _buildDetails(name, "Evaluator"), type(uint32).max, defaultModule, defaultModule, true, ""

@@ -109,6 +109,10 @@ contract MockHatsModuleForGardens is IHatsModule {
         return operators[garden][account];
     }
 
+    function isStewardOf(address garden, address account) external view returns (bool) {
+        return operators[garden][account];
+    }
+
     function isOwnerOf(address, address) external pure returns (bool) {
         return false;
     }
