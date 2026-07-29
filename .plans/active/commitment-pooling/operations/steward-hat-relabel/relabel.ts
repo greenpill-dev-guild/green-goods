@@ -3,11 +3,12 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
 import { redactSensitiveArgs } from "../../../../../packages/contracts/script/utils/cli-parser";
 
-interface RelabelPlan {
+export interface RelabelPlan {
   version: number;
   chainId: string;
   caller: string;
@@ -22,9 +23,11 @@ interface Options {
   broadcast: boolean;
 }
 
-const CONTRACTS_ROOT = path.resolve(import.meta.dir, "../../../../../packages/contracts");
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const CONTRACTS_ROOT = path.resolve(MODULE_DIR, "../../../../../packages/contracts");
 const REPO_ROOT = path.resolve(CONTRACTS_ROOT, "../..");
 const EXPECTED_CALLER = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
+const UNIVERSAL_HATS = "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137";
 const ARBITRUM_CHAIN_ID = 42_161;
 
 function usage(exitCode = 1): never {
@@ -79,23 +82,31 @@ function parseOptions(argv: string[]): Options {
   return { planPath, expectedCount: expectedCount as number, broadcast };
 }
 
-function main(): void {
-  const options = parseOptions(process.argv.slice(2));
-  const plan = JSON.parse(fs.readFileSync(options.planPath, "utf8")) as RelabelPlan;
+export function validateRelabelPlan(plan: RelabelPlan, expectedCount: number): void {
   if (
     plan.version !== 1 ||
     plan.chainId !== ARBITRUM_CHAIN_ID.toString() ||
-    plan.targetCount !== options.expectedCount ||
-    plan.transactions.length !== options.expectedCount
+    plan.targetCount !== expectedCount ||
+    !Array.isArray(plan.transactions) ||
+    plan.transactions.length !== expectedCount
   ) {
     throw new Error("Relabel plan version, chain, or target count does not match the reviewed operation");
   }
-  if (plan.caller.toLowerCase() !== EXPECTED_CALLER.toLowerCase()) {
+  if (typeof plan.caller !== "string" || plan.caller.toLowerCase() !== EXPECTED_CALLER.toLowerCase()) {
     throw new Error(`Relabel plan caller ${plan.caller} does not match ${EXPECTED_CALLER}`);
   }
-  if (!/^0x[a-fA-F0-9]{40}$/.test(plan.hatsProtocol)) {
-    throw new Error(`Invalid Hats Protocol address: ${plan.hatsProtocol}`);
+  if (
+    typeof plan.hatsProtocol !== "string" ||
+    plan.hatsProtocol.toLowerCase() !== UNIVERSAL_HATS.toLowerCase()
+  ) {
+    throw new Error(`Relabel plan Hats Protocol ${plan.hatsProtocol} does not match ${UNIVERSAL_HATS}`);
   }
+}
+
+function main(): void {
+  const options = parseOptions(process.argv.slice(2));
+  const plan = JSON.parse(fs.readFileSync(options.planPath, "utf8")) as RelabelPlan;
+  validateRelabelPlan(plan, options.expectedCount);
 
   const networkManager = new NetworkManager();
   const rpcUrl = networkManager.getRpcUrl("arbitrum");
@@ -139,9 +150,11 @@ function main(): void {
   console.log(options.broadcast ? "\n✅ Steward relabel broadcast completed" : "\n✅ Steward relabel simulation completed");
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`\n❌ Steward relabel failed: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
+if (import.meta.main) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`\n❌ Steward relabel failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
 }

@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
@@ -42,7 +43,7 @@ interface MintEnumeration {
   maximumChunkSize: string;
 }
 
-interface GardenHatRecord {
+export interface GardenHatRecord {
   tokenId: string;
   garden: string;
   ownerHatId: string;
@@ -67,7 +68,8 @@ interface GardenHatRecord {
   validationErrors: string[];
 }
 
-const REPO_ROOT = path.resolve(import.meta.dir, "../../../../..");
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(MODULE_DIR, "../../../../..");
 const CONTRACTS_ROOT = path.join(REPO_ROOT, "packages/contracts");
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
@@ -109,7 +111,7 @@ function normalizeAddress(value: string): string {
 
 function parseOptions(argv: string[]): Options {
   let network: NetworkName | undefined;
-  let outputDir = import.meta.dir;
+  let outputDir = MODULE_DIR;
   let expectedCaller: string | undefined;
   let expectedCount: number | undefined;
   let safeBatch = false;
@@ -166,8 +168,17 @@ function parseOptions(argv: string[]): Options {
   return { network, outputDir, expectedCaller, expectedCount, safeBatch, rpcUrl };
 }
 
-function maskRpc(value: string): string {
-  return value.replace(/(\/v\d+\/)[^\s/]+/g, "$1***");
+export function redactRpcUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    return `${parsed.protocol}//[REDACTED]`;
+  } catch {
+    return "[REDACTED_RPC_URL]";
+  }
+}
+
+export function redactRpcError(message: string, rpcUrl: string): string {
+  return message.split(rpcUrl).join(redactRpcUrl(rpcUrl));
 }
 
 function runCast(rpcUrl: string, args: string[]): string {
@@ -178,7 +189,7 @@ function runCast(rpcUrl: string, args: string[]): string {
     }).trim();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`cast ${args[0]} failed: ${maskRpc(message)}`);
+    throw new Error(`cast ${args[0]} failed: ${redactRpcError(message, rpcUrl)}`);
   }
 }
 
@@ -544,6 +555,42 @@ function writeJson(outputPath: string, value: unknown): void {
   fs.writeFileSync(outputPath, `${JSON.stringify(value, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
 }
 
+type PreparationValidationRecord = Pick<
+  GardenHatRecord,
+  | "garden"
+  | "operatorHatId"
+  | "mutable"
+  | "active"
+  | "expectedCallerIsAdmin"
+  | "expectedCallerControlsGarden"
+  | "gardenIsAdmin"
+  | "validationErrors"
+>;
+
+export function collectPreparationValidationErrors(
+  records: PreparationValidationRecord[],
+  expectedCaller?: string,
+): string[] {
+  const validationErrors = records.flatMap((record) => record.validationErrors);
+  const gardens = new Set(records.map((record) => normalizeAddress(record.garden)));
+  const hats = new Set(records.map((record) => record.operatorHatId));
+
+  if (gardens.size !== records.length) validationErrors.push("Duplicate derived garden address detected");
+  if (hats.size !== records.length) validationErrors.push("Duplicate operator hat id detected");
+  if (records.some((record) => !record.mutable)) validationErrors.push("At least one target operator hat is immutable");
+  if (records.some((record) => !record.active)) validationErrors.push("At least one target operator hat is inactive");
+  if (
+    expectedCaller &&
+    records.some(
+      (record) => !record.expectedCallerIsAdmin && !(record.expectedCallerControlsGarden && record.gardenIsAdmin),
+    )
+  ) {
+    validationErrors.push(`Declared caller ${expectedCaller} cannot authorize every target hat`);
+  }
+
+  return validationErrors;
+}
+
 function buildSafeBatch(chainId: number, caller: string, hatsProtocol: string, records: GardenHatRecord[]) {
   return {
     version: "1.0",
@@ -740,21 +787,8 @@ function main(): void {
     );
   });
 
-  const gardens = new Set(records.map((record) => normalizeAddress(record.garden)));
-  const hats = new Set(records.map((record) => record.operatorHatId));
-  const validationErrors = records.flatMap((record) => record.validationErrors);
+  const validationErrors = collectPreparationValidationErrors(records, options.expectedCaller);
   const warnings: string[] = [];
-  if (gardens.size !== records.length) validationErrors.push("Duplicate derived garden address detected");
-  if (hats.size !== records.length) validationErrors.push("Duplicate operator hat id detected");
-  if (records.some((record) => !record.mutable)) validationErrors.push("At least one target operator hat is immutable");
-  if (
-    options.expectedCaller &&
-    records.some(
-      (record) => !record.expectedCallerIsAdmin && !(record.expectedCallerControlsGarden && record.gardenIsAdmin),
-    )
-  ) {
-    validationErrors.push(`Declared caller ${options.expectedCaller} cannot authorize every target hat`);
-  }
 
   if (deployment.rootGarden?.address && deployment.rootGarden.tokenId !== undefined) {
     const root = records.find((record) => record.tokenId === deployment.rootGarden?.tokenId?.toString());
@@ -790,7 +824,7 @@ function main(): void {
     network: options.network,
     chainId: chainId.toString(),
     blockNumber,
-    rpcUrl: maskRpc(rpcUrl),
+    rpcUrl: redactRpcUrl(rpcUrl),
     gardenToken: deployment.gardenToken,
     gardenAccountImpl: deployment.gardenAccountImpl,
     hatsModule: deployment.hatsModule,
@@ -874,9 +908,11 @@ function main(): void {
   }
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`Steward hat preparation failed: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
+if (import.meta.main) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`Steward hat preparation failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
 }

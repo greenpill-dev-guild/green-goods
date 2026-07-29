@@ -7,6 +7,7 @@ import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
 import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
 import { assertSepoliaGate } from "./utils/release-gate";
+import { redactSensitiveArgs } from "./utils/cli-parser";
 
 // Load environment variables from root .env
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
@@ -542,7 +543,7 @@ function main(): void {
     console.log("🔍 Simulation mode - no transactions will be broadcast\n");
   }
 
-  console.log(`Executing: forge ${forgeArgs.join(" ")}\n`);
+  console.log(`Executing: forge ${redactSensitiveArgs(forgeArgs).join(" ")}\n`);
 
   try {
     execFileSync("forge", forgeArgs, {

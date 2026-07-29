@@ -120,10 +120,12 @@ for entry in "${CONTRACTS[@]}"; do
   fi
 
   # Extract only the fields that matter for layout compatibility:
-  # slot, offset, type, label (not astId which changes on recompilation)
+  # slot, offset, type, label, and every recursively referenced type definition
+  # (not astId or contract source names, which change on recompilation)
   current_normalized=$(echo "$current_layout" | python3 -c "
 import json, re, sys
 data = json.load(sys.stdin)
+
 def stable_type(type_name):
     # Foundry embeds source-order-dependent AST ids in contract, struct, enum, and
     # user-defined value type identifiers. Those ids are not storage semantics.
@@ -133,9 +135,55 @@ def stable_type(type_name):
         r't_\1(\2)',
         type_name,
     )
+
+raw_types = data.get('types', {})
+referenced_types = set()
+
+def visit_type(type_name):
+    if type_name in referenced_types:
+        return
+    referenced_types.add(type_name)
+    type_definition = raw_types.get(type_name)
+    if not type_definition:
+        return
+    for field in ('base', 'key', 'value'):
+        referenced_type = type_definition.get(field)
+        if referenced_type:
+            visit_type(referenced_type)
+    for member in type_definition.get('members', []):
+        visit_type(member['type'])
+
 slots = [{'slot': s['slot'], 'offset': s['offset'], 'type': stable_type(s['type']), 'label': s['label']}
          for s in data.get('storage', [])]
-print(json.dumps({'storage': slots}, indent=2, sort_keys=True))
+for slot in data.get('storage', []):
+    visit_type(slot['type'])
+
+types = {}
+for type_name in referenced_types:
+    type_definition = raw_types.get(type_name)
+    if not type_definition:
+        continue
+    normalized = {
+        field: type_definition[field]
+        for field in ('encoding', 'label', 'numberOfBytes')
+        if field in type_definition
+    }
+    for field in ('base', 'key', 'value'):
+        if field in type_definition:
+            normalized[field] = stable_type(type_definition[field])
+    if 'members' in type_definition:
+        normalized['members'] = [
+            {
+                'label': member['label'],
+                'offset': member['offset'],
+                'slot': member['slot'],
+                'type': stable_type(member['type']),
+            }
+            for member in type_definition['members']
+        ]
+    types[stable_type(type_name)] = normalized
+
+print(json.dumps({'storage': slots, 'types': types}, indent=2, sort_keys=True))
 " 2>/dev/null || echo "$current_layout")
 
   if $update_mode; then
