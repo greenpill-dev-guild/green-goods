@@ -118,5 +118,6 @@ is complete; only branch review and merge hygiene remain.
 2. Complete PRD-762's signed offchain app-avatar path.
 3. Complete Afo's final PRD-649 architecture fine-comb, then dispatch PRD-721 Commitment Pooling
    contracts.
-4. Coordinate the deferred PRD-575 GreenWill Safe release separately with the Green Pill Dev Guild
-   Council, and leave PRD-663's eventual ENS-record architecture deferred.
+
+The PRD-575 GreenWill and PRD-663 ENS-record findings above are retained as historical review
+evidence only; neither update remains in the active development sequence.
