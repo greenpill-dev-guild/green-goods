@@ -1,0 +1,219 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_nextActionUID",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "actionToOwner",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_mapping(t_uint256,t_address)"
+    },
+    {
+      "label": "idToAction",
+      "offset": 0,
+      "slot": "103",
+      "type": "t_mapping(t_uint256,t_struct(Action)_storage)"
+    },
+    {
+      "label": "gardenDomains",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_mapping(t_address,t_uint8)"
+    },
+    {
+      "label": "hatsModule",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_address"
+    },
+    {
+      "label": "gardenToken",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "107",
+      "type": "t_array(t_uint256)44_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_enum(Capital))dyn_storage": {
+      "base": "t_enum(Capital)",
+      "encoding": "dynamic_array",
+      "label": "enum Capital[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_string_storage)dyn_storage": {
+      "base": "t_string_storage",
+      "encoding": "dynamic_array",
+      "label": "string[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)44_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[44]",
+      "numberOfBytes": "1408"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_enum(Capital)": {
+      "encoding": "inplace",
+      "label": "enum Capital",
+      "numberOfBytes": "1"
+    },
+    "t_enum(Domain)": {
+      "encoding": "inplace",
+      "label": "enum Domain",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_uint8)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint8)",
+      "numberOfBytes": "32",
+      "value": "t_uint8"
+    },
+    "t_mapping(t_uint256,t_address)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_uint256,t_struct(Action)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ActionRegistry.Action)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Action)_storage"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(Action)_storage": {
+      "encoding": "inplace",
+      "label": "struct ActionRegistry.Action",
+      "members": [
+        {
+          "label": "startTime",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "endTime",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "label": "title",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "slug",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "instructions",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "capitals",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_array(t_enum(Capital))dyn_storage"
+        },
+        {
+          "label": "media",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_array(t_string_storage)dyn_storage"
+        },
+        {
+          "label": "domain",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_enum(Domain)"
+        }
+      ],
+      "numberOfBytes": "256"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}

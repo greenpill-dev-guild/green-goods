@@ -12,14 +12,23 @@ import {
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/prepare";
 import {
   validateRelabelPlan,
+  validateReviewedPlanArtifact,
   type RelabelPlan,
 } from "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/relabel";
 import { redactSensitiveArgs } from "./cli-parser";
+import { collectStewardGardenCoverageErrors } from "./post-deploy-verify";
 
 type InventoryIdentity = Pick<InventoryGarden, "tokenId" | "garden" | "operatorHatId">;
 
 const UNIVERSAL_HATS = "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137";
-const EXPECTED_CALLER = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
+const REVIEWED_PLAN_PATH = new URL(
+  "../../deployments/tx-plans/42161-steward-relabel-488705295-plan.json",
+  import.meta.url,
+);
+
+function loadReviewedPlan(): RelabelPlan {
+  return JSON.parse(fs.readFileSync(REVIEWED_PLAN_PATH, "utf8")) as RelabelPlan;
+}
 
 const GARDENS: InventoryIdentity[] = [
   {
@@ -48,6 +57,16 @@ describe("Steward relabel safety", () => {
 
     expect(redacted).toEqual(["script", "RelabelStewardHats", "--rpc-url", "[REDACTED]", "--chain-id", "42161"]);
     expect(redacted).not.toContain(rpcUrl);
+  });
+
+  it("redacts sensitive values supplied with inline CLI syntax", () => {
+    const rpcUrl = "https://user:password@provider.example/rpc";
+
+    expect(redactSensitiveArgs([`--rpc-url=${rpcUrl}`, "--account=deployer", "--chain-id=42161"])).toEqual([
+      "--rpc-url=[REDACTED]",
+      "--account=[REDACTED]",
+      "--chain-id=42161",
+    ]);
   });
 
   it("fully redacts RPC URLs and error messages regardless of credential shape", () => {
@@ -111,18 +130,50 @@ describe("Steward relabel safety", () => {
   });
 
   it("rejects relabel plans that do not target the canonical Hats contract", () => {
-    const plan: RelabelPlan = {
-      version: 1,
-      chainId: "42161",
-      caller: EXPECTED_CALLER,
-      hatsProtocol: "0x0000000000000000000000000000000000000001",
-      targetCount: 1,
-      transactions: [{}],
-    };
+    const plan = loadReviewedPlan();
+    plan.hatsProtocol = "0x0000000000000000000000000000000000000001";
 
-    expect(() => validateRelabelPlan(plan, 1)).toThrow(
+    expect(() => validateRelabelPlan(plan, 18)).toThrow(
       `Relabel plan Hats Protocol ${plan.hatsProtocol} does not match ${UNIVERSAL_HATS}`,
     );
+  });
+
+  it("rejects operator-supplied target counts that differ from the reviewed operation", () => {
+    expect(() => validateRelabelPlan(loadReviewedPlan(), 17)).toThrow(
+      "Relabel target count must equal the reviewed count 18",
+    );
+  });
+
+  it("rejects altered same-count relabel transactions", () => {
+    const plan = loadReviewedPlan();
+    const transaction = plan.transactions[0] as {
+      targetDetails: string;
+      contractInputsValues: { _newDetails: string };
+    };
+    transaction.targetDetails = "Substituted Steward";
+    transaction.contractInputsValues._newDetails = transaction.targetDetails;
+
+    expect(() => validateRelabelPlan(plan, 18)).toThrow(
+      "Relabel transaction 0 is not the reviewed changeHatDetails operation",
+    );
+  });
+
+  it("pins execution to the reviewed plan artifact and digest", () => {
+    const contents = fs.readFileSync(REVIEWED_PLAN_PATH, "utf8");
+    expect(() => validateReviewedPlanArtifact(REVIEWED_PLAN_PATH.pathname, contents)).not.toThrow();
+    expect(() => validateReviewedPlanArtifact(REVIEWED_PLAN_PATH.pathname, `${contents}\n`)).toThrow(
+      "does not match the reviewed artifact",
+    );
+  });
+
+  it("rejects Steward baselines that omit a live garden", () => {
+    const errors = collectStewardGardenCoverageErrors(
+      [GARDENS[0].garden, GARDENS[1].garden],
+      GARDENS.map((garden) => garden.garden),
+    );
+
+    expect(errors).toContain("Steward baseline covers 2 gardens but live inventory contains 3");
+    expect(errors).toContain(`Steward baseline is missing live garden ${GARDENS[2].garden}`);
   });
 
   it("runs the HatsModule storage check before either broadcast wrapper", () => {
@@ -130,10 +181,27 @@ describe("Steward relabel safety", () => {
       scripts: Record<string, string>;
     };
 
+    expect(packageJson.scripts["check:storage-layout"]).toBe("bash script/check-storage-layout.sh");
     for (const scriptName of ["upgrade:hats-module:sepolia", "upgrade:hats-module:arbitrum"]) {
       expect(packageJson.scripts[scriptName]).toMatch(
         /^bun run check:storage-layout:hats-module && bun script\/upgrade\.ts hats-module /,
       );
+    }
+  });
+
+  it("commits a baseline for every contract in the repository-wide storage gate", () => {
+    for (const contract of [
+      "GardenToken",
+      "GardenAccount",
+      "HatsModule",
+      "KarmaGAPModule",
+      "ActionRegistry",
+      "WorkResolver",
+      "WorkApprovalResolver",
+      "AssessmentResolver",
+      "Deployment",
+    ]) {
+      expect(fs.existsSync(new URL(`../../storage-layouts/${contract}.json`, import.meta.url))).toBe(true);
     }
   });
 });

@@ -30,7 +30,7 @@ CONTRACTS=(
   "WorkResolver:src/resolvers/Work.sol"
   "WorkApprovalResolver:src/resolvers/WorkApproval.sol"
   "AssessmentResolver:src/resolvers/Assessment.sol"
-  "DeploymentRegistry:src/DeploymentRegistry.sol"
+  "Deployment:src/registries/Deployment.sol"
 )
 
 # Colors for output
@@ -70,7 +70,7 @@ mkdir -p "$BASELINE_DIR"
 
 # Build first (forge inspect needs compiled contracts)
 echo "Compiling contracts..."
-build_args=(build --quiet --extra-output storageLayout)
+build_args=(build --quiet --extra-output storageLayout --force --skip test --skip script)
 if [[ -n "$contract_filter" ]]; then
   selected_contract_path=""
   for entry in "${CONTRACTS[@]}"; do
@@ -85,7 +85,9 @@ if [[ -n "$contract_filter" ]]; then
     exit 1
   fi
 
-  build_args+=(--force --skip test --skip script "$selected_contract_path")
+  build_args+=("$selected_contract_path")
+else
+  build_args+=(src)
 fi
 
 forge "${build_args[@]}" 2>/dev/null || {
@@ -223,6 +225,10 @@ done
 
 echo ""
 if $update_mode; then
+  if [[ "$failures" -gt 0 ]]; then
+    echo -e "${RED}${failures} storage layout baseline update(s) failed.${NC}"
+    exit 1
+  fi
   if [[ "$updates" -eq 0 ]]; then
     echo -e "${RED}No matching contract baseline was updated.${NC}"
     exit 1

@@ -63,6 +63,11 @@ export function redactSensitiveArgs(args: string[]): string[] {
   const redacted: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+    const inlineSensitiveFlag = Array.from(SENSITIVE_FLAGS).find((flag) => arg.startsWith(`${flag}=`));
+    if (inlineSensitiveFlag) {
+      redacted.push(`${inlineSensitiveFlag}=[REDACTED]`);
+      continue;
+    }
     redacted.push(arg);
     if (SENSITIVE_FLAGS.has(arg) && i + 1 < args.length) {
       redacted.push("[REDACTED]");

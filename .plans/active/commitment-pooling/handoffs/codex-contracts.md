@@ -12,8 +12,8 @@
 ## Inputs
 
 - Corrected and merged GitHub PR #649 with Envio `3.2.1` generation/build/test/migration proof.
-- Completed PRD-747/748 Steward contract/live-hat work and the maintainer-authorized PRD-575
-  GreenWill broadcast, pointer verification, and low-stakes smoke.
+- Completed PRD-747/748 Steward contract/live-hat work. PRD-575 GreenWill is explicitly deferred
+  for separate Council Safe coordination and is not an input to this lane.
 - Afo's completed PRD-649 architecture fine-comb with every resulting correction reconciled into
   the contract/event/indexer/state/API boundaries.
 - contract-spec.md, especially sections 5-8
@@ -201,7 +201,8 @@ every conflicting state. Broadcast remains outside this handoff.
 ## Unblock evidence
 
 - GitHub PR #649 is corrected, merged, and proven on Envio `3.2.1`.
-- PRD-747, PRD-748, and PRD-575 have complete live upgrade/broadcast verification.
+- PRD-747 and PRD-748 have complete live upgrade/broadcast verification; PRD-575 remains deferred
+  and non-blocking.
 - Afo explicitly closes the PRD-649 final architecture fine-comb.
 - status.json then marks the contracts lane ready and the user explicitly dispatches it.
 - Corrected handoff and exact count-cap contract interface/event tables are present.

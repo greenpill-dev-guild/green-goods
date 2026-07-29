@@ -135,6 +135,28 @@ interface StewardUpgradeBaseline {
   probeAccounts?: string[];
 }
 
+export function collectStewardGardenCoverageErrors(baselineGardens: string[], liveGardens: string[]): string[] {
+  const errors: string[] = [];
+  const baselineSet = new Set(baselineGardens.map((garden) => garden.toLowerCase()));
+  const liveSet = new Set(liveGardens.map((garden) => garden.toLowerCase()));
+
+  if (baselineSet.size !== liveSet.size) {
+    errors.push(`Steward baseline covers ${baselineSet.size} gardens but live inventory contains ${liveSet.size}`);
+  }
+  for (const garden of liveGardens) {
+    if (!baselineSet.has(garden.toLowerCase())) {
+      errors.push(`Steward baseline is missing live garden ${garden}`);
+    }
+  }
+  for (const garden of baselineGardens) {
+    if (!liveSet.has(garden.toLowerCase())) {
+      errors.push(`Steward baseline contains non-live garden ${garden}`);
+    }
+  }
+
+  return errors;
+}
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
@@ -582,7 +604,12 @@ function readGardenHatIds(options: VerifyOptions, hatsModule: string, garden: st
   };
 }
 
-function validateStewardUpgrade(options: VerifyOptions, deployment: DeploymentRecord, failures: string[]): void {
+function validateStewardUpgrade(
+  options: VerifyOptions,
+  deployment: DeploymentRecord,
+  liveGardens: string[],
+  failures: string[],
+): void {
   if (!options.checkStewardUpgrade) return;
 
   try {
@@ -600,6 +627,12 @@ function validateStewardUpgrade(options: VerifyOptions, deployment: DeploymentRe
     }
 
     const baseline = loadStewardUpgradeBaseline(options.stewardBaselinePath);
+    failures.push(
+      ...collectStewardGardenCoverageErrors(
+        baseline.gardens.map((garden) => garden.garden),
+        liveGardens,
+      ),
+    );
     const hatsModule = deployment.hatsModule;
     assert(
       baseline.chainId === options.chainId,
@@ -1214,10 +1247,7 @@ async function main(): Promise<void> {
   console.log(`  communitySlug: ${options.communitySlug}\n`);
 
   const deployment = loadDeployment(options.chainId);
-  const allGardens =
-    options.checkStewardUpgrade && options.stewardBaselinePath
-      ? loadStewardUpgradeBaseline(options.stewardBaselinePath).gardens.map((garden) => garden.garden)
-      : enumerateGardens(options, deployment);
+  const allGardens = enumerateGardens(options, deployment);
   const rootGarden = deployment.rootGarden?.address ?? ZERO_ADDRESS;
 
   console.log(`  enumeratedGardens: ${allGardens.length}`);
@@ -1234,7 +1264,7 @@ async function main(): Promise<void> {
   assert(!isZeroAddress(rootGarden), "deployment.rootGarden.address is zero", failures);
   assert(allGardens.length > 0, "failed to enumerate any gardens", failures);
 
-  validateStewardUpgrade(options, deployment, failures);
+  validateStewardUpgrade(options, deployment, allGardens, failures);
   if (options.checkStewardUpgrade) {
     if (failures.length > 0) {
       console.error("\nVerification failed:");
@@ -1417,8 +1447,10 @@ async function main(): Promise<void> {
   console.log("Verification passed: deployment is ready for frontend/indexer integration checks.");
 }
 
-main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`Verification command failed: ${maskRpcApiKey(message)}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Verification command failed: ${maskRpcApiKey(message)}`);
+    process.exit(1);
+  });
+}
