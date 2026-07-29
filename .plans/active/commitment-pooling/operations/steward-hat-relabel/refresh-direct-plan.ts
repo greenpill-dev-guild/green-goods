@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 import { createPublicClient, http, parseAbi, type Address } from "viem";
 import { arbitrum } from "viem/chains";
 
-import { redactRpcUrl } from "../../../../../packages/contracts/script/utils/cli-parser";
+import {
+  redactRpcUrl,
+  redactRpcUrlsInText,
+} from "../../../../../packages/contracts/script/utils/cli-parser";
 import { NetworkManager } from "../../../../../packages/contracts/script/utils/network";
 
 export interface InventoryGarden {
@@ -451,7 +454,8 @@ async function main(): Promise<void> {
 
 if (import.meta.main) {
   main().catch((error) => {
-    console.error(`Steward direct-plan refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Steward direct-plan refresh failed: ${redactRpcUrlsInText(message)}`);
     process.exit(1);
   });
 }

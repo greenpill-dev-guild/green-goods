@@ -31,6 +31,21 @@ bun run contracts:verify:steward-upgrade:sepolia -- \
 Use the Arbitrum wrapper for Arbitrum One. The expected implementation must come from the final
 broadcast artifact, not an older transaction plan whose sender nonce may have changed.
 
+Before any future HatsModule broadcast, review the current block, exact contiguous GardenToken
+count, and proxy implementation from that same chain snapshot. Pass all three inputs through the
+documented wrapper so its fork rehearsal can prove that it is testing the reviewed live state:
+
+```bash
+HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER=<REVIEWED_CURRENT_BLOCK> \
+HATS_MODULE_UPGRADE_GARDEN_COUNT=<REVIEWED_EXACT_GARDEN_COUNT> \
+HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION=<REVIEWED_CURRENT_IMPLEMENTATION> \
+bun run contracts:upgrade:hats-module:arbitrum
+```
+
+Use `contracts:upgrade:hats-module:sepolia` for Sepolia. The wrapper fails before simulation or
+broadcast when any input is absent, malformed, stale, or does not match the implementation and
+garden inventory at the reviewed block.
+
 ## Prepare the PRD-748 operation
 
 First run without `--safe-batch` and review the live count, details, mutability, and authorization

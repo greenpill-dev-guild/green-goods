@@ -97,6 +97,15 @@ describe("Steward relabel safety", () => {
     expect(redacted).not.toContain("super-secret");
   });
 
+  it("redacts WebSocket RPC credentials embedded in command failures", () => {
+    const message = "Command failed: cast call --rpc-url wss://user:pass@provider.example/rpc?token=secret";
+    const redacted = redactRpcUrlsInText(message);
+
+    expect(redacted).toBe("Command failed: cast call --rpc-url wss://[REDACTED]");
+    expect(redacted).not.toContain("user:pass");
+    expect(redacted).not.toContain("token=secret");
+  });
+
   it("distinguishes an absent next garden token from RPC failures", () => {
     expect(isExpectedMissingGardenTokenError("execution reverted: ERC721: invalid token ID")).toBe(true);
     expect(isExpectedMissingGardenTokenError("HTTP 429 rate limit")).toBe(false);
@@ -260,6 +269,10 @@ describe("Steward relabel safety", () => {
 
   it("requires fresh reviewed fork inputs for both HatsModule upgrade rehearsals", () => {
     const shardSource = fs.readFileSync(new URL("./fork-shards.mjs", import.meta.url), "utf8");
+    const operationReadme = fs.readFileSync(
+      new URL("../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/README.md", import.meta.url),
+      "utf8",
+    );
 
     expect(shardSource).toContain('"HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER"');
     expect(shardSource).toContain('"HATS_MODULE_UPGRADE_GARDEN_COUNT"');
@@ -267,6 +280,21 @@ describe("Steward relabel safety", () => {
     expect(shardSource).toContain("requiredPositiveIntegerEnv");
     expect(shardSource).toContain("requiredAddressEnv");
     expect(shardSource).not.toContain("ARBITRUM_FORK_BLOCK_NUMBER=488705295");
+    expect(operationReadme).toContain("HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER=<REVIEWED_CURRENT_BLOCK>");
+    expect(operationReadme).toContain("HATS_MODULE_UPGRADE_GARDEN_COUNT=<REVIEWED_EXACT_GARDEN_COUNT>");
+    expect(operationReadme).toContain("HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION=<REVIEWED_CURRENT_IMPLEMENTATION>");
+  });
+
+  it("redacts refresh-direct-plan RPC failures before printing them", () => {
+    const refreshSource = fs.readFileSync(
+      new URL(
+        "../../../../.plans/active/commitment-pooling/operations/steward-hat-relabel/refresh-direct-plan.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+
+    expect(refreshSource).toContain("redactRpcUrlsInText(message)");
   });
 
   it("commits a baseline for every contract in the repository-wide storage gate", () => {
