@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-29T22:45:01Z"
+    "updated_at": "2026-07-30T09:21:21.103Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -57,7 +57,7 @@
         "milestone": "release"
       }
     },
-    "lastSyncedAt": "2026-07-29T08:14:48.210Z",
+    "lastSyncedAt": "2026-07-30T09:21:21.103Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
@@ -96,6 +96,7 @@
     "The Hypercert gardener class allocates equal budgets to fulfilled commitments, then applies the immutable cycle-open RecognitionPolicy through independent exact equal-participation and verified-contribution remainder passes before adding the row results. The protocol default and cycle-less preset are 20/80, not a fixed cycle invariant. Stable recognition bps remain commitment-scoped, while integer units are persisted per Hypercert + commitment + contributor so repeated bundling cannot overwrite a previous certificate. There is no automatic lead or metadata-only fallback: Ready and direct Fulfilled dispute resolution require an available policy plus pre-freeze totalVerifiedCredits > 0, and W26 blocks inconsistent legacy/indexed zero-eligible state. Each cycle tracks liveCommitmentCount in O(1), and closeCycle/cancelCycle require zero so recognition cannot change after a terminal cycle transition.",
     "Final integrity closure 2026-07-30: Work catch-up proves each supplied maximum equals the resolver's current sequence before mutation, applies only current decisions, and permits unlink after effective rejection; acceptance revalidates the resolved lead's current provider-garden membership before register/roster mutation; CommitmentCycle indexes exact liveCommitmentCount including Offered/Requested; every shared Hypercert composer route requires exact Reconciled cycle state; paymentSnapshotHash uses the explicit immutable contributor/recipient/recognition-weight/payment-weight/amount tuple plus chain, plan, version, retention, and contributor total, excluding child lifecycle fields.",
     "G$ commitment support is accounted to the provider garden, whose Celo Safe pays contributors through one stable CommitmentPayoutPlan. Creation binds the complete recognition vector to its hash and uses deterministic full-reward base-unit apportionment; a normalized bps difference caused only by that canonical rounding is not a steward divergence. Atomic noncanonical amount or retention edits derive payment weights and require a reason. The provider account must remain Active for edit, finalization, first preparation, ContributorReward batching, and initial dispatch. Explicit finalization verifies retained-plus-payout conservation, freezes the plan, and creates no child. Idempotent per-contributor preparation later materializes one immutable Queued child from a frozen non-zero row. All-retained plans complete without CCIP, and child cancellation never clears the parent pointer. Protocol Safe to garden Safe value is Funding/ProtocolToGarden queued only through queueFunding, never a garden-beneficiary commitment reward; CCIP transports data only, and authenticated acknowledgment remains the sole path to Confirmed.",
+    "PRD-759 architecture lock (2026-07-30): the protocol pool reuses the ordinary provider-garden payout-plan lifecycle after Fulfilled. There is no sixth offline settlement job, per-device settlement attempt, or permissionless queueDisbursement(commitmentId) path. queueFunding remains the explicit discretionary ProtocolToGarden seed/top-up action. Operations route visibility is isDeployer || canQueueFunding || canOperateSettlement, while funding submission itself requires protocol-steward or SettlementModule-owner authority and creates a typed Funding Queued row with no commitment ID.",
     "Linear was reconciled and live-re-read on 2026-07-10: both projects, all active milestones, core and referenced issues, canceled-child supersession notes, the Garden Mandate Survey, RESR-57/58 documents, and the new RESR-64 engagement-model document. PRD-651/697 are Backlog with no cycle or agent dispatch. Resolved 2026-07-11: the staged apply pack (reports/linear/linear-apply-pack.md) was applied and live-verified, the previously credit-blocked PRD-686/RESR-57 Safe/Zodiac wording refinement landed, and the PRD-651/697 due dates were cleared manually in the Linear UI (live-verified null).",
     "Out of scope for all lanes: bridged G$, arbitrary bridge-executor automation, a packages/agent settlement relayer or write path, bridge custody or unbounded value authority, Sarafu integration, transferable settlement vouchers/settlementAdapter activation, indexing Celo/G$ transfers, garden-to-garden federation, leaderboards, and credit scores. Optional later agent alerts are read-only and hold no settlement authority. The bounded message-only CeloSettlementExecutor is the August settlement path, not a token bridge.",
     "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in ../../backlog/commitment-credit-follow-on/spec.md, not part of the Build phase, and not dispatchable without an explicit unblock.",
@@ -328,7 +329,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-724", "PRD-650"],
-      "acceptance": "Garden pool routes, direction-aware eligible confirmation, Not yet -> online raiseDispute, repeatable DomainImpact {actionUID,requiredCount} creation rows with derived domain tags, requirementIndex-bound per-action progress and per-commitment approvedUnits, accountable lead plus contributor roster/assignment/credit UI with online-only roster mutations, evidence composer plus durable creditedContributors offline payload/retry, opened-cycle/cycle-less recognition preview with no zero-eligible or metadata-only fallback and a cycle-less not-certificate-eligible state, provider-garden payout-plan/retention/child-receipt UI, state counts plus exact-label unit groups with promiseKeptRate as the only cross-commitment percentage, offline membership waiting/recovery states, and queued/dispatched/executed-ack-pending/confirmed/failed/delayed reward rows with member delivery hidden when disabled."
+      "acceptance": "Garden pool routes, direction-aware eligible confirmation, Not yet -> online raiseDispute, repeatable DomainImpact {actionUID,requiredCount} creation rows with derived domain tags, requirementIndex-bound per-action progress and per-commitment approvedUnits, accountable lead plus contributor roster/assignment/credit UI with online-only roster mutations, evidence composer plus durable creditedContributors offline payload/retry, opened-cycle/cycle-less recognition preview with no zero-eligible or metadata-only fallback and a cycle-less not-certificate-eligible state, provider-garden payout-plan/retention/child-receipt UI, state counts plus exact-label unit groups with promiseKeptRate as the only cross-commitment percentage, five offline job kinds with membership waiting/recovery and no settlement job, and queued/dispatched/executed-ack-pending/confirmed/failed/delayed reward rows. When memberDeliveryEnabled is false, only first contributor-child preparation and member sends are unavailable: the Fulfilled commitment, provider-garden payout plan, retention, unprepared rows, and historical child states remain visible, with no retry on an unprepared row; ProtocolToGarden remains separate treasury funding, not a Garden-reward bypass."
     },
     "ui_admin": {
       "machine_lane": "ui",
@@ -347,7 +348,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-725", "PRD-650", "PRD-682"],
-      "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, deployer-gated Operations cross-garden mode, repeatable DomainImpact requirement creation/progress, accountable lead plus contributor roster/credit visibility, Work-UID credit deduplication, explicit evidence attribution, provider open-commitment cap readiness, state-count and exact-label unit summaries with no mixed-label arithmetic, six-role allocation plus RecognitionPolicy encoded atomically at open, cycle-less certificate-selection exclusion, direct Fulfilled dispute resolution freeze/policy/credit gates, provider-garden payout-plan creation/edit/finalization/retention/child preparation, stored claim acceptance/decline/supersession, dispute restoration, immutable-batch per-member reconciliation, native fee reserves, command/ack message state, same-key retry, acknowledgment retry, and failure/new-attempt controls."
+      "acceptance": "Garden Pool operations, /community/pools Protocol plus current-garden mode, capability-gated Operations cross-garden mode with showOperations = isDeployer || canQueueFunding || canOperateSettlement and independent per-action authorization, repeatable DomainImpact requirement creation/progress, accountable lead plus contributor roster/credit visibility, Work-UID credit deduplication, explicit evidence attribution, provider open-commitment cap readiness, state-count and exact-label unit summaries with no mixed-label arithmetic, six-role allocation plus RecognitionPolicy encoded atomically at open, cycle-less certificate-selection exclusion, direct Fulfilled dispute resolution freeze/policy/credit gates, provider-garden payout-plan creation/edit/finalization/retention/child preparation, stored claim acceptance/decline/supersession, dispute restoration, immutable-batch per-member reconciliation, native fee reserves, command/ack message state, same-key retry, acknowledgment retry, and failure/new-attempt controls. The queueFunding form requires protocol-steward or SettlementModule-owner authority, deployer alone cannot submit, cancel creates no row, and success renders an emitted Funding/ProtocolToGarden Queued row with no commitment ID."
     },
     "editorial": {
       "machine_lane": "ui",
@@ -730,6 +731,30 @@
       "note": "Recorded Linear parent/lane issue identifiers"
     },
     {
+      "timestamp": "2026-07-28T06:51:47.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reconciled",
+      "branch": null,
+      "note": "Community Needs topology and the Visual Asset Gallery source now reflect the PRD-758 decision: four EAS schemas across CommunityNeedsResolver and FundingAttributionResolver, with EAS recipient/refUID relationship normalization and directional bool support signals. Commitment Pooling execution gates are unchanged."
+    },
+    {
+      "timestamp": "2026-07-28T07:09:41.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "gallery_rebuilt",
+      "branch": null,
+      "note": "The Visual Asset Gallery source rebuilt successfully and prerendered 35 diagrams with 0 failures; the 7,929,588-byte shareable HTML body contains 82 SVGs and no Mermaid pre blocks. The live artifact publisher is unavailable in this environment, so no public artifact URL update is claimed."
+    },
+    {
+      "timestamp": "2026-07-28T07:09:41.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "The live Commitment Pooling project related-work paragraph was corrected and re-read: Community members name Needs, request/offer are commitment directions, and Initiatives remain separate Green Goods objects. Commitment Pooling execution gates are unchanged."
+    },
+    {
       "timestamp": "2026-07-28T07:19:05Z",
       "actor": "codex",
       "lane": "system",
@@ -744,6 +769,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Live-re-read PRD-757 in Done, recorded the binding amendment on PRD-650 and PRD-686, and mirrored it to PRD-721/722/723/724/725/727/729/730. The canonical Green Goods Commitment Pooling Google Doc was amended and verified saved to Drive. Lane states and release gates remain unchanged."
+    },
+    {
+      "timestamp": "2026-07-28T09:13:18.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "community_prototype_reconciled",
+      "branch": null,
+      "note": "The September Community chapter now shows Support, Do not support, and Clear my signal with separate counts, and its admin seam names /community/needs versus /community/coordination ownership. The executable Flow Prototype passed with 31 screens, 267 states, 374 hotspots, 37 journeys, 296 scenes, and 0 warnings. The Visual Asset Gallery prerendered all 35 Mermaid diagrams with 0 failures; the 7,929,365-byte shareable body contains 82 SVGs and no Mermaid pre blocks. No Commitment Pooling runtime or execution gate changed."
     },
     {
       "timestamp": "2026-07-28T09:14:53Z",
@@ -804,6 +837,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-30T09:21:21.103Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_reconciled",
+      "branch": "polish/evaluate-automated-garden-funding",
+      "note": "PRD-759, the plan/spec/diagram surface, acceptance criteria, and executable prototypes now preserve develop's provider-garden payout-plan architecture. The obsolete permissionless settlement-job model is removed; queueFunding remains a separately authorized discretionary Funding/ProtocolToGarden action with no commitment identity. Linear PRD-759 was live-updated and re-read. No contract deployment, broadcast, Safe mutation, or value movement was performed."
     }
   ]
 }

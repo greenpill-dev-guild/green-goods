@@ -22,7 +22,17 @@
 ## Outputs
 
 - Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
-- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/CCIP operations live only in the deployer-gated Operations workspace.
+- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools
+  route. Alphabetical all-garden oversight and batch/CCIP operations live in the capability-gated
+  Operations workspace. `showOperations = isDeployer || canQueueFunding || canOperateSettlement`;
+  W21/W22 remain garden-scoped detail/recovery exceptions.
+- Fulfilled `CeloSettlement` commitments use the ordinary provider-garden payout-plan actions:
+  create/edit Draft, finalize, then idempotently prepare each frozen non-zero contributor row.
+  There is no sixth offline settlement job or per-device arrangement state. Operations Flows
+  separately provides **Seed / top up garden** only when onchain `canQueueFunding` resolves to
+  protocol steward or SettlementModule owner; deployer alone cannot submit. The review states
+  that it does not fulfill, reward, or alter a commitment, cancel creates no queue entity, and
+  success renders a typed `Funding` / `ProtocolToGarden` Queued row with no commitment ID.
 - Immutable batch-membership view with the measured configured 0–24 limit and hard ceiling of 24, whole-batch cancellation while Queued, per-member retry/cancel only after authenticated failure, command/execution/acknowledgment states, native ETH/CELO fee floors and low-balance state, active/previous peer expiry, Safe/Roles/cap health, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
 - Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
@@ -56,6 +66,13 @@
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
 - A Queued batch exposes one blast-radius-confirmed whole-batch cancel action and never a per-member cancel. A rejected batch cannot be edited or requeued wholesale; only Failed members can be requeued or terminally cancelled. The UI preserves the failed attempt/failure code and distinguishes that closeout from an atomic Queued pre-send batch withdrawal or an unbatched Queued cancellation.
 - Dispatch or Celo execution never marks settlement Confirmed. Same-key command retry, stored acknowledgment retry, authenticated failure/new-attempt, derived delivery delay, CCIP manual-execution guidance, command/destination/acknowledgment IDs with Explorer links, and ignored stale/duplicate acknowledgment behavior are legible.
+- When member delivery is disabled, the fulfilled commitment, provider-garden payout plan,
+  retention, unprepared rows, and historical child states remain visible. First contributor-child
+  preparation and member sends are unavailable, and an unprepared row exposes no retry. Separate
+  ProtocolToGarden treasury funding may continue; it is not a Garden-beneficiary reward bypass.
+- Operations route/nav access and every action are tested independently: a protocol steward or
+  module owner can reach and submit funding without deployer role; a deployer with neither
+  funding authority cannot submit it; settlement operators see only their authorized controls.
 - Safe view shows 2-of-3 recovery and separates owners from scoped executors.
 - Account setup never claims to deploy a Safe: it explains the Release-gated Safe/Roles prerequisites and registers only an already-deployed, live-verified route.
 - Loading, empty, offline, waiting, declined, failed, retry, queued, dispatched, executed/acknowledgment-pending, delayed, and Confirmed states have accessible recovery.

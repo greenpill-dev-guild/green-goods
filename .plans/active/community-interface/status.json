@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-29T08:16:43.843Z"
+    "updated_at": "2026-07-30T21:17:01.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -28,6 +28,7 @@
   },
   "linear": {
     "parentIssue": "PRD-687",
+    "architectureIssue": "PRD-758",
     "project": "Community Needs & Signals",
     "projectId": "7a4f2562-c629-4911-a7d6-947ab3195435",
     "initiative": "Impact Methodologies & Evaluator Flywheel",
@@ -76,19 +77,22 @@
   },
   "notes": [
     "Vocabulary is Need, never problem — code and copy alike (decision #1).",
-    "Four EAS schemas (Need, NeedSignal, NeedStatus, FundingAttribution); commitments stay module-native (CP decision-register addendum #28).",
-    "EAS is never indexed by Envio: status derivation is an app-side join of easscan reads and Envio commitment entities carrying needUID.",
+    "Four immutable EAS schemas (Need, NeedSignal, NeedStatus, FundingAttribution) across two UUPS resolvers: CommunityNeedsResolver owns the three role-gated branches and FundingAttributionResolver retains a separate ungated blast wall.",
+    "EAS recipient is the canonical garden, root Need refUID is zero, and child NeedSignal/NeedStatus/FundingAttribution refUID is the Need UID; custom data does not duplicate those relationships.",
+    "NeedSignal custom data is bool support. The latest unsigned (timeCreated, uid) per (refUID, attester) wins before revoked/expired filtering; revoked/expired winners clear state without resurrecting older signals; support and non-support remain separate counts with no net score.",
+    "EAS is never indexed by Envio: status and signal derivation are an app-side join of easscan reads and Envio commitment entities carrying needUID.",
     "Need moderation (none/acknowledged/merged/hidden/declined) and progress (open/committed/in-progress/addressed) are separate axes; retraction leaves only a content-free lineage tombstone.",
     "The needUID commitment field was amended into the CP contract-spec on 2026-07-04, before the August build, so it ships in the initial deploy.",
     "A Need is a problem paired with a desired outcome and has no kind. Request/Offer is commitment direction only. NeedStatus domains and commitment domains are optional arrays; DomainImpact commitments require 1-4 unique domain/action pairs.",
     "The selected join-request architecture is a minimal encrypted garden-scoped service queue inside the existing Garden Manage Members dialog; the membership-queue slice remains manually blocked until RESR-64 accepts the proposed retention, EIP-6492/auth, encryption/key-owner, recovery, abuse, cost, and operator-handoff record.",
-    "FundingAttribution displays once per verified (needUID, chainId, txHash, rail); mergedIntoNeedUID is typed separately from noteCID.",
+    "FundingAttribution displays once globally per verified receipt key (chainId, txHash, rail), including across different Needs; mergedIntoNeedUID is typed separately from noteCID.",
     "packages/community is an independent PWA at community.greengoods.app and local port 3010; client and Community consume prerequisite shared runtime/auth/offline/install/update/error/shell foundations but retain separate app identities.",
     "PRD-758 is the Community Needs architecture prerequisite for PRD-682 and must close before PRD-682 implementation. It does not block PRD-721, PRD-722, PRD-723, or the core Commitment Pooling backend.",
     "No claim flow, no leaderboards, no funding-ranked boards, no per-need escrow, no push notifications; the gathering is the notification layer.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable lane-level execution truth; Linear is the parent-only roadmap and coordination mirror, not a 1:1 lane mirror.",
-    "Linear was reconciled and live-re-read on 2026-07-10: project/milestones, PRD-687/691/695/696, PRD-682/683, canceled-child supersession notes, and the new RESR-64 engagement-model document all match the parent-only plan contract."
+    "Linear was reconciled and live-re-read on 2026-07-10: project/milestones, PRD-687/691/695/696, PRD-682/683, canceled-child supersession notes, and the new RESR-64 engagement-model document all match the parent-only plan contract.",
+    "Linear was live-updated and re-read on 2026-07-28 for the PRD-758 architecture decision, validation comment, and In Review transition; the PRD-687 parent pointer; the Community Needs project description and Needs substrate milestone; and the Commitment Pooling related-work boundary. PRD-687 remains Todo, no duplicate lane issues were created, and PRD-691/PRD-693 were not changed."
   ],
   "lanes": {
     "contracts": {
@@ -224,7 +228,7 @@
       "depends_on": ["contracts", "indexer", "shared_foundation"],
       "handoff": "handoffs/codex-state-api.md",
       "linear_issues": ["PRD-687"],
-      "acceptance": "Shared need/needSignal/testimony jobs, waiting_for_hat recovery, two-axis joined reads, funding verifier/export, voice dictation/transcription, and locale substrate."
+      "acceptance": "Shared envelope normalization, latest directional-signal derivation, coalesced needSignal intent, need/needSignal/testimony jobs, waiting_for_hat recovery, two-axis joined reads, funding verifier/export, voice dictation/transcription, and locale substrate."
     },
     "ops_paymaster": {
       "machine_lane": "state_api",
@@ -232,12 +236,12 @@
       "status": "blocked",
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
-      "blocked_reason": "Manual external gate: a human owner must configure and export the Pimlico allowlist/caps, record the denial/allow matrix and staged burst evidence, and name monitoring/rollback ownership before sponsored Community writes can proceed.",
+      "blocked_reason": "Manual external gate: a human owner must configure and export a Pimlico rule that matches the chain-specific EAS target, attest selector, and exact allowed Need/NeedSignal/Testimony schema UIDs, record the denial/allow matrix and staged burst evidence, and name monitoring/rollback ownership before sponsored Community writes can proceed.",
       "branch": null,
       "depends_on": ["contracts"],
       "handoff": "handoffs/ops-paymaster.md",
       "linear_issues": ["PRD-687"],
-      "acceptance": "Pimlico dashboard policy + burst test; live before the first sponsored community write."
+      "acceptance": "Pimlico policy matches the chain-specific EAS call target and attest selector, then permits only Need, NeedSignal, and Testimony schema UIDs from decoded attest calldata; NeedStatus and FundingAttribution remain excluded. Cap and burst proof must pass before the first sponsored community write."
     },
     "ui_community": {
       "machine_lane": "ui",
@@ -250,7 +254,7 @@
       "depends_on": ["shared_foundation", "state_api", "ops_paymaster"],
       "handoff": "handoffs/claude-ui-community.md",
       "linear_issues": ["PRD-682", "PRD-691"],
-      "acceptance": "Independent Community PWA at community.greengoods.app/local 3010 with Needs/Create/Profile, isolated app identity and service-worker scope, complete queue/recovery states, and en/es/pt accessibility proof. Membership queue remains excluded until its manual gate clears."
+      "acceptance": "Independent Community PWA at community.greengoods.app, served locally on port 3010, with Needs/Create/Profile, Support/Do not support/Clear signal states, separate counts without a net score, isolated app identity and service-worker scope, complete queue/recovery states, and en/es/pt accessibility proof. Membership queue remains excluded until its manual gate clears."
     },
     "ui_admin": {
       "machine_lane": "ui",
@@ -260,7 +264,7 @@
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
       "linear_issues": ["PRD-691"],
-      "acceptance": "Admin /community triage, moderation/reopen, pools, evaluator lineage/export, gathering view, and seed-from-signal. Membership queue is excluded until its manual decision gate clears."
+      "acceptance": "The fifth Admin /community/needs route mode owns triage, separate support/non-support counts, week-horizon alerts grouped first, then support-descending/recency-descending/alphabetical ordering for Month+ items without a net score, moderation/reopen, the selected-Need inspector, gathering, seed-from-Need, and Need lineage/export. Existing /community/coordination retains pool/cycle operations, and membership remains in /community/members with its queue excluded until the manual decision gate clears."
     },
     "funder_lens": {
       "machine_lane": "ui",
@@ -369,6 +373,38 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-28T06:51:47.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_locked",
+      "branch": null,
+      "note": "PRD-758 decision converged in the plan: four schemas, two resolvers, EAS recipient/refUID relationship normalization, bool support signals, latest-winner semantics, separate counts, and coalesced pending signal intent. Parent-only Linear routing and all named implementation gates remain intact."
+    },
+    {
+      "timestamp": "2026-07-28T07:09:41.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "Live Linear convergence was written and re-read: PRD-758 carries the architecture decision and validation proof in In Review; PRD-687 remains the thin Todo mirror; the Community Needs project and Needs substrate milestone carry the four-schema/two-resolver recipient/refUID and directional-signal contract; and the Commitment Pooling related-work paragraph now names Needs with request/offer as commitment directions."
+    },
+    {
+      "timestamp": "2026-07-28T08:08:27.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_scope_confirmed",
+      "branch": null,
+      "note": "Afo confirmed this pass is architecture and planning only. The working diff contains no product runtime implementation; implementation lanes and TDD remain pending behind their existing gates."
+    },
+    {
+      "timestamp": "2026-07-28T09:13:18.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "review_findings_resolved",
+      "branch": null,
+      "note": "The planning review findings were reconciled without product implementation: the canonical ontology now declares all four spec-only Needs schemas, their two planned resolvers, envelope/reference rules, latest-winner signal rule, and trust-boundary constraints; spec and plan decision logs carry the PRD-758 gate plus decisions 14-15; admin ownership is closed across /community/needs, /community/coordination, and /community/members; prototype citations use stable section/frame anchors; the global funding receipt key is consistent; and all flow-prototype signal controls are directional. Ontology, Plan Hub, flow prototype, visual prerender, docs, format, lint, vocab, and Codex-doc gates passed. Linear was previewed only; no live tracker write was made."
     },
     {
       "timestamp": "2026-07-29T08:16:43.843Z",

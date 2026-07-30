@@ -9,6 +9,8 @@
 ## Outputs
 
 - Community/member, operator triage, funder, evaluator/export, privacy/retraction, and glossary documentation with planned/live/reported/verified labels.
+- Builder documentation includes one plain-language EAS relationship diagram: four schema records, two resolvers, `recipient` as garden, child `refUID` as Need UID, and `mergedIntoNeedUID` as the optional second relationship.
+- Member/operator language explains Support / Do not support / Clear, latest-signal behavior, separate counts, and why no net score exists without exposing protocol vocabulary in the member flow.
 
 ## Acceptance
 

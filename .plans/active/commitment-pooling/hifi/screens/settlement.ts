@@ -35,7 +35,7 @@ function w12(state: W12State): string {
           "Rocinha pool",
           `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">Open · 2 campaigns</span></div><span class="t-meta num">kept 7/9 · 18 units promised</span></div>
 <div class="actrow" style="justify-content:flex-end">${hot("w12.open-garden-pool", btn("Open garden pool", { kind: "pri", sm: true }))}</div>
-${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in deployer-gated Operations.", "stone"))}`,
+${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}`,
         )
       : `${acard(
           "Funding view",
@@ -93,6 +93,7 @@ const W21_STATES = [
   ["batch-cancelled", "Batch cancelled"],
   ["close-delivery-confirm", "Close delivery — confirm"], ["cancelled-failed", "Failed item cancelled"],
   ["protocol-queue", "Protocol queue — garden funding"],
+  ["protocol-funding-queued", "Garden funding — queued"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -210,6 +211,40 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
         garden: "Rocinha",
         header,
         body: acard("Settlement (Celo) — protocol pool", `${rows}${banner("Settlement 105 was created by queueFunding. Its kind is Funding and its immutable route is ProtocolToGarden; it is not tied to commitment fulfillment or a payout plan.", "stone")}`),
+      }),
+    );
+  }
+  if (state === "protocol-funding-queued") {
+    const rows = dtable(
+      ["Settlement · attempt", "Recipient", "Kind", "Route", "Amount", "State", ""],
+      [
+        [
+          "106 · attempt 0",
+          "Awka Hub — registered garden Safe",
+          "Funding",
+          "ProtocolToGarden",
+          `<span class="num">500 G$</span>`,
+          chip("Queued", "plain", { dot: true }),
+          hot("w21.dispatch-funding", btn("Dispatch", { kind: "sec", sm: true })),
+        ],
+      ],
+      "Queued protocol funding",
+    );
+    const header = pageHeader({
+      title: "Garden funding queued",
+      eyebrow: "Protocol · Celo",
+      description: "A discretionary treasury transfer, separate from commitment fulfillment and contributor payout plans.",
+    });
+    return deskWin(
+      "admin.greengoods.app/dashboard/community/pools/settlement",
+      adminCanvas("community", "community", {
+        screenId: "W21",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Funding queued",
+          `${rows}${banner("This Funding row has no commitment ID. queueFunding derived the GG protocol Safe, canonical G$, and the selected garden's registered Safe from onchain configuration.", "stone")}`,
+        ),
       }),
     );
   }
@@ -440,7 +475,20 @@ const W21_HOTS: HifiDef["hots"] = {
   "w21.prepare-ana": { l: "Prepare Ana payout", to: "screen:W21@payout-prepared-2", info: "Materializes Ana's one immutable queued child from her frozen non-zero row; Maria's existing child is unchanged.", calls: ["prepareContributorPayout"] },
   "w21.prepare-kwame": { l: "Prepare Kwame payout", to: "screen:W21@payout-prepared-all", info: "Materializes Kwame's one immutable queued child; every payable row is now prepared exactly once.", calls: ["prepareContributorPayout"] },
   "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@individual-dispatched", info: "Dispatches one unbatched child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
-  "w21.dispatch-garden": { l: "Dispatch protocol-to-garden funding", to: "screen:W22@garden-command", info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement creates its immutable execution key and sends the data-only command; no commitment reward or payout plan is involved.", calls: ["dispatchDisbursement"] },
+  "w21.dispatch-garden": {
+    l: "Dispatch protocol-to-garden funding",
+    to: "screen:W22@garden-command",
+    info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement rechecks both settlement accounts, creates its immutable execution key, and sends the data-only command; no commitment reward or payout plan is involved.",
+    calls: ["dispatchDisbursement"],
+    facts: { disbursement: "Queued", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+  },
+  "w21.dispatch-funding": {
+    l: "Dispatch queued garden funding",
+    to: "screen:W22@garden-command",
+    info: "Dispatches the typed Funding/ProtocolToGarden row created by queueFunding after rechecking both settlement accounts; no commitment or payout-plan identity is attached.",
+    calls: ["dispatchDisbursement"],
+    facts: { disbursement: "Queued", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+  },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
   "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
   "w21.register-confirm": { l: "Register settlement account", to: "screen:W21@registered", info: "registerSettlementAccount stores the verified Celo Safe route for this pool.", calls: ["registerSettlementAccount"] },
@@ -628,7 +676,7 @@ ${w22Members}${routeDetails}`;
 }
 
 const W22_HOTS: HifiDef["hots"] = {
-  "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The cross-garden funds board is where a garden-beneficiary delivery is watched to arrival; it is deployer-gated." },
+  "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The capability-gated cross-garden funds board separates contributor payout-plan delivery from discretionary ProtocolToGarden funding." },
   "w22.route-gate": { l: "Open route gate", to: "screen:W22@role-guard", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },
   "w22.cancel-dismiss": { l: "Keep batch queued", to: "screen:W22", info: "Closes the confirmation with the batch untouched." },
@@ -645,10 +693,17 @@ const W22_HOTS: HifiDef["hots"] = {
 };
 
 // ---------------------------------------------------------------------------
-// W24 — Operations workspace (wireframes.md:643, deployer-gated)
+// W24 — Operations workspace (wireframes.md:881, capability-gated)
 // ---------------------------------------------------------------------------
 
-const W24_STATES = [["queue", "Queue"], ["ccip", "CCIP"], ["flows", "Flows"]] as const;
+const W24_STATES = [
+  ["queue", "Queue"],
+  ["ccip", "CCIP"],
+  ["flows", "Flows"],
+  ["flows-funding-unavailable", "Flows · funding unavailable"],
+  ["funding", "Seed / top up"],
+  ["funding-unauthorized", "Funding unavailable"],
+] as const;
 type W24State = (typeof W24_STATES)[number][0];
 
 function w24(state: W24State): string {
@@ -656,7 +711,7 @@ function w24(state: W24State): string {
   const stateIx = state === "queue" ? 0 : state === "ccip" ? 1 : 2;
   const rail = tabRail(
     [
-      { label: "Queue", count: 4, hot: "w24.tab-queue" },
+      { label: "Queue", count: 3, hot: "w24.tab-queue" },
       { label: "CCIP", hot: "w24.tab-ccip" },
       { label: "Flows", hot: "w24.tab-flows" },
     ],
@@ -673,14 +728,36 @@ function w24(state: W24State): string {
 ${banner("Manual execution is guidance, not a Green Goods state change. Show it only when CCIP Explorer marks a command eligible; a destination transaction alone never means support arrived.", "stone")}`,
       );
       break;
-    case "flows":
+    case "flows-funding-unavailable":
+    case "flows": {
+      const canQueueFunding = state === "flows";
       inner = acard(
         "Cross-chain funds board",
         `<div class="arow">${hot("w24.inflow-row", `<div class="grow">GoodDollar pool → GG protocol Safe</div>`)}<span class="num">balance 4,120 G$</span>${chip("Celo read", "plain")}</div>
-${hot("w24.queue-funding", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">source integration gate</span>${btn("View route gate", { kind: "sec", sm: true })}</div>`)}
+${hot(canQueueFunding ? "w24.queue-funding" : "w24.queue-funding-unavailable", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">discretionary treasury funding</span>${btn(canQueueFunding ? "Seed / top up" : "Funding unavailable", { kind: "sec", sm: true })}</div>`)}
 <div class="arow"><div class="grow">Garden Safes → members</div><span class="t-meta num">source integration gate</span></div>
 ${hot("w24.gardens", `<div class="arow"><div class="grow">Gardens: Awka kept 8/9 · Muizenberg kept 5/6</div>${chip("alphabetical", "plain")}</div>`)}
-${banner("Queued, dispatched, executed, confirming, confirmed, failed, and delayed stay distinct here. Inflow is a Celo balance read — no upstream hop is recorded.", "stone")}`,
+${banner(canQueueFunding ? "Commitment-earned support follows the provider garden's payout-plan actions. Seed / top up is a separate protocol-steward/module-owner treasury action. Inflow is a Celo balance read — no upstream hop is recorded." : "This account can inspect Operations through another capability, but it cannot queue garden funding. Inflow remains a Celo balance read — no upstream hop is recorded.", "stone")}`,
+      );
+      break;
+    }
+    case "funding":
+      inner = acard(
+        "Seed or top up a garden",
+        `${banner("Available only to a current protocol steward or the SettlementModule owner. Onchain queueFunding authority, not deployer status, controls submission.", "stone")}
+${field("Garden", radio([{ label: "Awka Hub", meta: "registered Celo Safe", on: true }, { label: "Muizenberg", meta: "registered Celo Safe" }], { interactive: true, name: "funding-garden" }))}
+${field("Amount", input("500 G$"))}
+${kv("Source", "GG protocol Safe · Celo")}${kv("Recipient", "Selected garden's registered Celo Safe")}
+${banner("Treasury support outside a commitment. This does not fulfill, reward, or alter a promise; fulfilled commitments use the provider garden's contributor payout plan.", "stone")}
+<div class="actrow" style="justify-content:flex-end">${hot("w24.cancel-funding", btn("Cancel", { kind: "ghost" }))}${hot("w24.queue-funding-confirm", btn("Queue seed / top up", { kind: "pri" }))}</div>`,
+      );
+      break;
+    case "funding-unauthorized":
+      inner = acard(
+        "Garden funding unavailable",
+        `${banner("Your connected account is neither a current protocol steward nor the SettlementModule owner.", "amber", "error-warning-line")}
+${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("Deployer role", "Does not grant queueFunding authority")}
+<div class="t-meta">Another Operations capability may still grant read or settlement access, but this account cannot submit garden funding.</div>`,
       );
       break;
     default:
@@ -691,16 +768,15 @@ ${banner("Queued, dispatched, executed, confirming, confirmed, failed, and delay
           [
             ["Rocinha", `settlement 104 · attempt 0`, chip("Queued", "plain", { dot: true }), hot("w24.execute", btn("Dispatch ▸", { kind: "pri", sm: true }))],
             ["Awka", `settlement 103 · attempt 1`, chip("Failed ▸", "err"), hot("w24.requeue", btn("Source follow-up", { kind: "sec", sm: true }))],
-            // Viewing a gate is a read, not a peer of dispatch — one primary per view.
-            ["protocol", `future funding → Muizenberg`, chip("Integration gate", "plain", { dot: true }), hot("w24.execute-protocol", btn("View gate ▸", { kind: "sec", sm: true }))],
+            ["Muizenberg", `Funding · ProtocolToGarden · no commitment`, chip("Queued", "plain", { dot: true }), hot("w24.execute-funding", btn("Dispatch ▸", { kind: "sec", sm: true }))],
           ],
           "All gardens settlement queue",
-        ) + banner("Deployer-gated workspace — source integration and production Safe/Zodiac route evidence gate all future value controls.", "stone"),
+        ) + banner("Only emitted Queued or Failed rows appear here. Route access is capability-gated, and each write still checks its own onchain authority.", "stone"),
       );
   }
   const header = pageHeader({
     title: "Operations",
-    eyebrow: "Protocol execution · deployer-gated",
+    eyebrow: "Protocol execution · capability-gated",
     description: "Every garden's command queue, CCIP health, and cross-chain funds — one execution home.",
   });
   return deskWin(
@@ -714,8 +790,16 @@ const W24_HOTS: HifiDef["hots"] = {
   "w24.tab-ccip": { l: "CCIP tab", to: "screen:W24@ccip", info: "Command/ack peer, native fee reserve, and acknowledgment-delay health." },
   "w24.tab-flows": { l: "Flows tab", to: "screen:W24@flows", info: "Cross-chain funds board with transport state, not raw G$ indexing." },
   "w24.execute": { l: "Dispatch command", to: "screen:W22", info: "Cross-garden source-command home; production value authority remains externally gated." },
-  "w24.execute-protocol": { l: "View protocol funding gate", info: "ProtocolToGarden requires the future source integration and approved production route." },
-  "w24.queue-funding": { l: "View funding route gate", to: "screen:W24@flows", info: "No upstream HoA hop is written onchain; future ProtocolToGarden facts are source-integrated." },
+  "w24.execute-funding": { l: "Dispatch queued funding", to: "screen:W22@garden-command", info: "Dispatches an already-emitted Funding/ProtocolToGarden row with no commitment identity after rechecking both settlement accounts.", calls: ["dispatchDisbursement"] },
+  "w24.queue-funding": { l: "Seed or top up a garden", to: "screen:W24@funding", info: "Rendered only when canQueueFunding is true; deployer status alone is insufficient." },
+  "w24.queue-funding-unavailable": { l: "Garden funding unavailable", to: "screen:W24@funding-unauthorized", info: "Capability-specific fixture: the account may inspect Operations but lacks current queueFunding authority." },
+  "w24.cancel-funding": { l: "Cancel garden funding", to: "screen:W24@flows", info: "Returns to the funds board without creating a disbursement." },
+  "w24.queue-funding-confirm": {
+    l: "Queue seed or top up",
+    to: "screen:W21@protocol-funding-queued",
+    info: "queueFunding derives the GG protocol Safe, selected garden Safe, and canonical G$ token. It creates Funding/ProtocolToGarden with no commitment ID.",
+    calls: ["queueFunding"],
+  },
   "w24.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A new logical attempt requires an authenticated failure and source integration ownership." },
   "w24.inflow-row": { l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   "w24.gardens": { l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },
@@ -823,6 +907,14 @@ const w21Facts = (state: W21State): StateFacts | undefined => {
     return { disbursement: "Failed", settlementAccount: "Active" };
   if (["queue", "requeued", "batch-create", "batch-created", "cancel-queued-confirm", "protocol-queue"].includes(state))
     return { disbursement: "Queued", settlementAccount: "Active" };
+  if (state === "protocol-funding-queued")
+    return {
+      disbursement: "Queued",
+      disbursementKind: "Funding",
+      disbursementRoute: "ProtocolToGarden",
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+    };
   if (state === "cancelled-queued" || state === "batch-cancelled" || state === "cancelled-failed")
     return { disbursement: "Cancelled" };
   return undefined;
@@ -833,6 +925,23 @@ const w22Facts = (state: W22State): StateFacts | undefined => {
     return { disbursement: "Queued", settlementAccount: "Active" };
   if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command", "individual-dispatched"].includes(state))
     return { disbursement: "Dispatched" };
+  return undefined;
+};
+
+const w24Facts = (state: W24State): StateFacts | undefined => {
+  if (state === "queue")
+    return {
+      disbursement: "Queued",
+      disbursementKind: "Funding",
+      disbursementRoute: "ProtocolToGarden",
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+    };
+  if (state === "funding")
+    return {
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+    };
   return undefined;
 };
 
@@ -849,7 +958,7 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
   { screen: { id: "W22", title: "W22 · Command/ack console", surface: "admin", frame: "desktop", group: "Admin console",
     states: W22_STATES.map(([id, label]) => ({ id, label, facts: w22Facts(id), html: w22(id) })) }, hots: { ...adminChromeHots("w22", "garden"), ...W22_HOTS } },
   { screen: { id: "W24", title: "W24 · Operations workspace (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: W24_STATES.map(([id, label]) => ({ id, label, html: w24(id) })) }, hots: { ...adminChromeHots("w24", "operations"), ...W24_HOTS } },
+    states: W24_STATES.map(([id, label]) => ({ id, label, facts: w24Facts(id), html: w24(id) })) }, hots: { ...adminChromeHots("w24", "operations"), ...W24_HOTS } },
   { screen: { id: "W26", title: "W26 · Cycle-close wizard (admin)", surface: "admin", frame: "desktop", group: "Admin console",
     states: W26_STATES.map(([id, label]) => ({
       id,

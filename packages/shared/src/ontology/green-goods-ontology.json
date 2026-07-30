@@ -1307,6 +1307,58 @@
         { "name": "title", "type": "string" },
         { "name": "testimonyCID", "type": "string" }
       ]
+    },
+    "need": {
+      "status": "spec",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "name": "Green Goods Need",
+      "revocable": true,
+      "planned_resolver": "CommunityNeedsResolver",
+      "note": "Root Needs use EAS recipient as the canonical garden, refUID zero, and expirationTime zero. CommunityNeedsResolver authorizes the attester through the recipient garden's Community role.",
+      "fields": [
+        { "name": "statementCID", "type": "string" },
+        { "name": "desiredOutcomeCID", "type": "string" },
+        { "name": "horizon", "type": "uint8" },
+        { "name": "mediaCID", "type": "string" }
+      ]
+    },
+    "needSignal": {
+      "status": "spec",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "name": "Green Goods Need Signal",
+      "revocable": true,
+      "planned_resolver": "CommunityNeedsResolver",
+      "note": "Child signal records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. Readers derive one current direction per attester through the canonical latest-winner rule.",
+      "fields": [{ "name": "support", "type": "bool" }]
+    },
+    "needStatus": {
+      "status": "spec",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "name": "Green Goods Need Status",
+      "revocable": false,
+      "planned_resolver": "CommunityNeedsResolver",
+      "note": "Operator-authored child moderation records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. mergedIntoNeedUID remains custom data because it is a second Need relationship.",
+      "fields": [
+        { "name": "status", "type": "uint8" },
+        { "name": "domains", "type": "uint8[]" },
+        { "name": "mergedIntoNeedUID", "type": "bytes32" },
+        { "name": "noteCID", "type": "string" }
+      ]
+    },
+    "fundingAttribution": {
+      "status": "spec",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "name": "Green Goods Funding Attribution",
+      "revocable": false,
+      "planned_resolver": "FundingAttributionResolver",
+      "note": "Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from CommunityNeedsResolver and the joined reader verifies canonical receipts before display.",
+      "fields": [
+        { "name": "chainId", "type": "uint256" },
+        { "name": "txHash", "type": "bytes32" },
+        { "name": "token", "type": "address" },
+        { "name": "amount", "type": "uint256" },
+        { "name": "rail", "type": "uint8" }
+      ]
     }
   },
   "constraints": [
@@ -1452,6 +1504,30 @@
       "status": "spec",
       "statement": "CommitmentRegister unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module.",
       "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "needs-eas-envelope-reference",
+      "kind": "domain-range",
+      "status": "spec",
+      "statement": "All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need.",
+      "enforced_at": [{ "file": ".plans/active/community-interface/spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "need-signal-latest-winner",
+      "kind": "functional",
+      "status": "spec",
+      "statement": "For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts.",
+      "enforced_at": [{ "file": ".plans/active/community-interface/spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "needs-resolver-trust-boundaries",
+      "kind": "closed-set",
+      "status": "spec",
+      "statement": "Exactly four Needs schemas route through two resolvers: CommunityNeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed.",
+      "enforced_at": [{ "file": ".plans/active/community-interface/spec.md" }],
       "holes": []
     }
   ],
