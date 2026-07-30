@@ -58,6 +58,10 @@
 - Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and explicit `RewardRail` plus derived reward facts. `rewardRecipient` is the ArbitrumExternal `RewardPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs, legacy Work-bundle readability, and certificate-scoped `HypercertCommitmentContributorAllocation` rows; integer recognition units never live on or overwrite the commitment contributor.
 - `CommitmentUnitSummary` is keyed by `chainId-scope-scopeId-unitLabelHash`, where the hash is computed from exact stored UTF-8 label bytes. POOL and CYCLE rows keep expected, approved, fulfilled, and open units only for that exact hash; `hours` and `Hours` never merge.
 - `CommitmentProviderExposure` is keyed by chain, pool, and provider and stores only the current open commitment count.
+- `CommitmentCycle.liveCommitmentCount` mirrors the on-chain close/cancel guard independently of
+  accepted-only exposure: non-zero-cycle `CommitmentCreated` increments it, and the first
+  Fulfilled/Cancelled/Expired transition decrements it. Offered/Requested rows therefore block
+  close in the indexed read model exactly as they do on-chain.
 - Generated-config preservation changes and a regression fixture proving
   `CommitmentPoolingModule`, `CommitmentRegister`, `SettlementModule`, and
   `CeloSettlementExecutor` blocks survive repeated artifact updates on every applicable
@@ -178,6 +182,9 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
   stable IDs loaded on fulfillment; no handler scan is permitted. Evidence rows remain repeatable
   provenance, but the handler mirrors the 0-or-1 on-chain `evidenceCredits` value per contributor
   instead of incrementing it for every CID.
+  `WorkUnlinked` remains valid whenever the durable attribution's current `creditActive` is false,
+  including after `ApprovedWorkReversed`; a historical approval delivery marker is never used as
+  current-credit state.
 - Materialize the recognition inputs and deterministic gardener-share output: equal budget per
   fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less
   20/80 default among eligible contributors. Only the frozen effective Work decision contributes.
@@ -192,15 +199,21 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
   Buffer every version-tagged `ContributorPayoutSet` row by `(payoutPlanId,
   paymentSnapshotVersion)` and atomically publish a replacement only when the trailing
   `CommitmentPayoutSnapshotCommitted` row count and payment hash match; that event owns retention,
-  contributor total, version, reason, and actor without an RPC read. Keep payment weights
+  contributor total, version, reason, and actor without an RPC read. Recompute the hash only from
+  chain ID, plan ID, version, retention, contributor total, and the ordered immutable
+  `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Never hash
+  disbursement IDs, inclusion flags, or child counters. Keep payment weights
   amount-derived and derive parent status from finalization, unprepared payable rows, and child
   counters; do not infer payment from Hypercert weights or raw token transfers.
 - Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
-  `ReadyForConfirmation` and direct `Disputed -> Fulfilled`, one-credit-per-Work replay,
+  `ReadyForConfirmation` and direct `Disputed -> Fulfilled`, one-credit-per-Work replay, stale
+  catch-up rejection before mutation, unlink after effective rejection, exact
+  `liveCommitmentCount` including Offered/Requested,
   one-evidence-participation-credit across multiple CIDs, the same commitment in two
   certificate-scoped allocation snapshots, opened
   cycle policy and cycle-less default, zero-eligible inconsistent-state blocking with no metadata
-  repair, version-1 untouched-plan replay, a later complete version replacement, incomplete or
+  repair, version-1 untouched-plan replay with the canonical immutable-row hash, a later complete
+  version replacement, child preparation that leaves the hash unchanged, incomplete or
   mismatched snapshot rejection, reasoned payment correction, all-retained zero-child finalization,
   idempotent preparation, stable pointer after child/batch cancellation, duplicate-recipient batch
   rejection, partial payout, retry, and complete payout.

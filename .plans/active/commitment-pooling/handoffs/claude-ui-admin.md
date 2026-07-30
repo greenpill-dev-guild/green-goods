@@ -125,5 +125,8 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   an eligible non-contributor steward may submit the separately policy/credit-gated outcome.
 - W26 requires every commitment terminal and `liveCommitmentCount == 0`, calls `closeCycle` first,
   and only then exposes share review and certificate minting from the locked Reconciled bundle.
-  `compostCycle` is the final post-mint action; mint-before-close is never offered.
+  The count comes from `CommitmentCycle.liveCommitmentCount`, not accepted-only exposure.
+  The shared composer independently requires exact on-chain Reconciled state for both W26 and
+  `/hub/certify/create`; route entry cannot bypass close. `compostCycle` is the final post-mint
+  action; mint-before-close is never offered.
 - Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

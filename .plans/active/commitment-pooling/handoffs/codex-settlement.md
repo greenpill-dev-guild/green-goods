@@ -222,7 +222,12 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   `CommitmentPayoutSnapshotCommitted(rowCount, retainedAmount, contributorTotal,
   paymentSnapshotHash, reasonCID, actor)`. The indexer buffers by plan/version and publishes the
   atomic replacement only after the trailing summary matches, so untouched drafts and later
-  edits are fully observable without RPC enumeration.
+  edits are fully observable without RPC enumeration. The hash preimage is exactly chain ID,
+  plan ID, version, retention, contributor total, and the ordered immutable
+  `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows emitted by
+  `ContributorPayoutSet`; mutable disbursement IDs, inclusion flags, and child counters are
+  excluded everywhere. Contract, indexer, and shared tests use this one ABI tuple and prove child
+  preparation leaves the hash unchanged.
 - The measured payout-vector bound equals `MAX_CONTRIBUTORS_PER_COMMITMENT` (provisional 32).
   Tests cover max and max-plus-one before any plan storage/event mutation.
 - A zero contributor-payment total derives an explicit all-zero payment-weight vector without

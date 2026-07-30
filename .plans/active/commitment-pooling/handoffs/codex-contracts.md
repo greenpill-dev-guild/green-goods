@@ -44,7 +44,8 @@
 - A pool permits one open Season and concurrent Campaigns through bounded O(1) checks.
   `Cycle.liveCommitmentCount` increments after successful cycle-scoped creation, decrements once
   on the first Fulfilled/Cancelled/Expired transition, and must be zero before `closeCycle` or
-  `cancelCycle`.
+  `cancelCycle`. Tests include Offered/Requested commitments, which count as live before
+  acceptance even while accepted-only `openCommitmentCount` is zero.
 - Creating a commitment with a cycle requires that cycle to belong to the same pool and still accept commitments. Cycle-less commitments remain explicit.
 - DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable registered action/count requirements. Actions
   may share a domain, every non-zero quota must be met by contributor/provider-garden-valid Work
@@ -88,7 +89,9 @@
   non-member reverts before roster, confirmer, credit, or event mutation. A creator who operates
   a GardenAccount cannot request their own commitment through that garden: `claimCommitment`
   checks both canonical claimant and authenticated requester, and `acceptClaim` rechecks the
-  stored ApprovalGated requester before mutation.
+  stored ApprovalGated requester before mutation. Before register or roster mutation, every
+  resolved lead must also pass the current `providerGarden` membership predicate; tests cover an
+  Offer creator who lost their Hat and an ineligible StewardCaptured `onBehalfOf`.
   UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
   exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
   retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
@@ -167,8 +170,11 @@
   Fulfilled rejection, Garden-Request `requestedBy` lead accounting, creator-operated Garden
   rejection in both Open and ApprovalGated modes (including acceptance-time revalidation),
   evidence-only `requirements.length == 0`, one evidence-derived recognition credit per
-  contributor across multiple distinct CIDs, and cycle-less Hypercert-composer rejection while
-  recognition validation remains available for payout defaults. Run them before implementation
+  contributor across multiple distinct CIDs, stale catch-up omission before mutation, unlink
+  after effective rejection, current provider-garden eligibility for Offer/StewardCaptured
+  leads, live count including Offered/Requested, and non-Reconciled/cycle-less
+  Hypercert-composer rejection while recognition validation remains available for payout
+  defaults. Run them before implementation
   and record the expected behavioral failures.
 - GREEN: run the same files after the minimum implementation, then storage, script, and full contract checks.
 
@@ -298,10 +304,15 @@ every conflicting state. Broadcast remains outside this handoff.
   Before freeze,
   approval activates the exact requirement/contributor credit and a newer rejection reverses it;
   repeated same-state or older decisions do not double-mutate. A sequence-zero historical
-  decision rejects catch-up and requires re-attestation. After freeze, decisions are
+  decision rejects catch-up and requires re-attestation. Before mutation, catch-up must prove the
+  greatest supplied sequence for every included Work equals the resolver's current public
+  maximum, apply only that current decision, and evaluate Ready after the full batch. An omitted
+  newer rejection reverts without credit or freeze. After freeze, decisions are
   observed but cannot mutate credit, requirements, units, or recognition.
   The active contributor, accountable lead, or resolved pool steward may link after all shared
-  validation; only the steward may unlink, and unlink is also Accepted-and-unfrozen.
+  validation; only the steward may unlink, and unlink is Accepted-and-unfrozen with current
+  `workCreditActive == false`, including after an effective rejection despite a historical
+  delivered approval UID.
 - Every Ready transition and a direct `Disputed -> Fulfilled` resolution require at least one
   pre-freeze verified credit (`totalVerifiedCredits > 0`) plus either the cycle's opened
   recognition policy or the
@@ -319,9 +330,9 @@ every conflicting state. Broadcast remains outside this handoff.
   in SettlementModule.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
-  than trust a caller-selected vector/hash. Hypercert composition uses it only for non-zero-cycle
-  commitments and rejects `cycleId == 0` before allowlist/metadata construction because no
-  six-role allocation snapshot exists.
+  than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments
+  from one non-zero cycle whose current on-chain state is exactly Reconciled; the shared composer
+  rejects every other cycle state before allowlist/metadata construction.
 - For the gardeners-class cross-commitment split, sort fulfilled commitment IDs ascending, assign
   the floor share to each, and give one remainder unit to the lowest IDs before applying the
   within-commitment contributor policy. Within a commitment, allocate the equal-policy bps and

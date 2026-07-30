@@ -646,6 +646,7 @@ interface ICommitmentPoolingModule {
     error AssessmentAlreadyAttached(uint256 commitmentId, bytes32 assessmentUID);
     error WorkAlreadyLinked(bytes32 workUID);
     error ApprovalAlreadyCounted(bytes32 approvalUID);
+    error IncompleteDecisionHistory(bytes32 workUID, uint64 expectedSequence, uint64 suppliedSequence);
     error WorkNotLinkedToCommitment(bytes32 workUID, uint256 commitmentId);
     error EvidenceRequired(uint256 commitmentId);
     error EvidenceCIDRequired();
@@ -669,6 +670,7 @@ interface ICommitmentPoolingModule {
     error TooManyRequirements(uint256 supplied, uint256 maximum);
     error ContributorAlreadyActive(address contributor);
     error ContributorNotActive(address contributor);
+    error NotEligibleContributor(address contributor);
     error ContributorRosterFrozen(uint256 commitmentId);
     error ContributorPolicyMismatch(uint256 commitmentId);
     error LeadContributorCannotLeave(uint256 commitmentId);
@@ -817,7 +819,8 @@ interface ICommitmentPoolingModule {
     function linkWork(uint256 commitmentId, bytes32 workUID, uint16 requirementIndex) external;
 
     /// @notice Gating: pool steward; on-chain state Accepted, roster/credit
-    ///         ledger unfrozen, and the Work approval not yet counted.
+    ///         ledger unfrozen, and the Work's current effective credit inactive.
+    ///         Historical approvals do not block unlink after a newer rejection.
     function unlinkWork(bytes32 workUID) external;
 
     /// @notice Called by WorkApprovalResolver inside try/catch after every fully
@@ -840,8 +843,11 @@ interface ICommitmentPoolingModule {
 
     /// @notice Steward-callable catch-up when resolver hooks were missed.
     ///         Verifies every decision UID through EAS and loads its non-zero,
-    ///         resolver-owned sequence; applies only greater sequences through
-    ///         the same effective-decision transition as the live hook.
+    ///         resolver-owned sequence. Before any mutation, a bounded first
+    ///         pass proves that the greatest supplied sequence for each Work
+    ///         equals WorkApprovalResolver.latestDecisionSequence(workUID).
+    ///         A second pass applies only that current decision per Work, then
+    ///         evaluates Ready once after the whole batch.
     ///         Pre-upgrade decisions with no sequence are rejected and require
     ///         the operator to attest the current decision again.
     ///         Gating: pool steward.
@@ -1017,9 +1023,9 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
 | Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment |
-| Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while the approval is not yet counted |
+| Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while `workCreditActive[workUID] == false`; a historical approval followed by an effective rejection may be unlinked |
 | Linkage | `onWorkDecision` | WorkApprovalResolver only | never reverts; applies only the newer effective pre-freeze decision |
-| Linkage | `syncWorkDecisions` | steward | verifies decision history on EAS and the resolver-owned non-zero sequence; dedupes and converges by greatest sequence |
+| Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision and evaluates Ready after the complete batch |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active; each contributor receives at most one evidence-derived recognition credit per commitment |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
 | Confirmation | `submitForConfirmation` | counterparty, creator, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected |
@@ -1068,7 +1074,11 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   `msg.sender` for immediate Open acceptance, or the consumed pending claim's stored
   `requestedBy` for ApprovalGated acceptance.
   `counterparty` remains the GardenAccount for that Garden claim and `providerGarden` remains the
-  group scope. The resolved lead is immediately activated as the first contributor.
+  group scope. Before register commitment or roster mutation, acceptance revalidates the resolved
+  lead against the same current `providerGarden` membership predicate used by self-join,
+  managed addition, and Work authorship. A creator who lost their Hat, or an ineligible
+  StewardCaptured `onBehalfOf` member, reverts `NotEligibleContributor` instead of becoming the
+  first contributor. Only then is the lead activated.
   The lead provider alone is the `CommitmentRegister` account and open-commitment-count subject.
   `counterparty` remains the accepted recipient for an Offer and the accepted claimant for a
   Request; only the Garden-Request exception resolves its human lead from the authenticated
@@ -1175,8 +1185,11 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   first-unmet, or all-match ambiguity. Non-DomainImpact Work links use index `0` as a
   non-counting compatibility value and never write the plus-one mapping.
 - **Linked-Work roster lock**: linking increments the Work attester's
-  `uncountedLinkedWorkCount`; an Accepted-and-unfrozen `unlinkWork` or the Work's first countable
-  approval decrements it exactly once. `leaveCommitment` and `removeContributor` require that
+  `uncountedLinkedWorkCount`; an Accepted-and-unfrozen `unlinkWork` while
+  `workCreditActive == false`, or the Work's first countable approval, decrements it exactly once.
+  A newer effective rejection restores the count and makes the Work unlinkable again even though
+  its historical approval UID remains marked delivered. `leaveCommitment` and
+  `removeContributor` require that
   count plus approved Work and evidence credits to be zero. A contributor therefore cannot exit
   while an approval could later create credit for an inactive roster address; a denied or
   abandoned Work must be unlinked by a steward before exit.
@@ -1195,9 +1208,13 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   contributor's final verified credit), increments `uncountedLinkedWorkCount`, recomputes units,
   and emits `ApprovedWorkReversed` with the new cumulative values and positive removed-unit delta.
   Repeated same-state decisions update only the latest sequence/UID. Older, duplicate, unlinked,
-  or post-freeze decisions are observed but cannot mutate the frozen ledger. Ready evaluation
-  runs after either effective transition and can occur only after all decision effects in that
-  transaction have been applied.
+  or post-freeze decisions are observed but cannot mutate the frozen ledger. Catch-up is a
+  bounded two-pass operation: it first verifies all supplied attestations and proves the greatest
+  submitted sequence for each included Work equals the resolver's current
+  `latestDecisionSequence(workUID)`. Any omitted newer decision reverts
+  `IncompleteDecisionHistory` before credit, readiness, or freeze can change. It then applies
+  only each Work's current decision and evaluates Ready once after the complete batch. This
+  prevents an earlier approval from freezing the ledger ahead of a supplied or omitted rejection.
 - **Canonical recognition validation**: the module maintains `eligibleContributorCount` when a
   contributor receives their first verified credit and `totalVerifiedCredits` for each active
   approved Work credit plus each contributor's first evidence participation credit. Additional
@@ -1803,7 +1820,7 @@ if (address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS and reads its non-zero `decisionSequenceByUID` from WorkApprovalResolver. `approvalCounted` de-duplicates one decision attestation; the greatest sequence is canonical, `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS, reads its non-zero `decisionSequenceByUID`, and preflights the greatest supplied sequence per Work against the resolver's public `latestDecisionSequence(workUID)` getter before any mutation. Only the current decision per Work is applied, and Ready is evaluated once after the complete batch. `approvalCounted` de-duplicates one decision attestation; `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals, and the now-inactive Work may be unlinked even though its old approval UID remains counted for delivery idempotency. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
 
 Trust model: linkage is roster-aware: the active Work attester may link their Work, while the accountable lead or resolved pool steward may curate links for the team. Every path verifies the Work attester is active, the provider-garden scope matches, and the commitment remains Accepted and unfrozen. The resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
@@ -1813,8 +1830,9 @@ Acceptance criteria: a decision with module unset behaves byte-identically to to
 module is configured, every fully validated decision receives one stored per-Work sequence even
 if the module hook later reverts; a linked approval activates credit; a newer linked rejection
 reverses it before freeze; a still-newer approval restores it once; two decisions in separate
-transactions in the same block retain execution order; out-of-order catch-up converges to the
-greatest sequence; sequence zero rejects with the re-attestation recovery; post-freeze decisions
+transactions in the same block retain execution order; catch-up rejects an omitted current
+resolver decision before mutation, applies only each Work's current maximum, and converges under
+out-of-order input; sequence zero rejects with the re-attestation recovery; post-freeze decisions
 cannot mutate credit; and a reverting module never blocks either decision. Exact proof:
 `bun run --filter @green-goods/contracts test:match -- test/unit/WorkApprovalResolver.t.sol`,
 extended with unset/unlinked/approval/rejection/re-approval/same-block/out-of-order/unsequenced/
@@ -2148,6 +2166,7 @@ type CommitmentCycle {
   funderBps: Int!
   equalParticipationBps: Int!
   verifiedContributionBps: Int!
+  liveCommitmentCount: BigInt! # every non-terminal cycle commitment, including Offered/Requested
   # Per-cycle count stats. Unit totals live in exact-label summary rows.
   commitmentsAccepted: BigInt!
   commitmentsReadyForConfirmation: BigInt!
@@ -2456,6 +2475,11 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   domain tags, requirement action/domain/count arrays, `requiresAssessment`, `metadataCID`, and
   `needUID` directly, and seeds one `CommitmentRequirement` row per requirement. Handlers must
   not backfill these immutable facts from RPC reads or assume defaults that differ from the event.
+- **Cycle live-count read model**: `CommitmentCreated` with non-zero `cycleId` increments
+  `CommitmentCycle.liveCommitmentCount`, including Offered/Requested records that do not affect
+  `openCommitmentCount`. The first Fulfilled, Cancelled, or Expired transition decrements it once;
+  Ready and Disputed do not. Replay-idempotent event handling preserves the exact on-chain count,
+  and W26 reads this field rather than accepted-only exposure when deciding whether close can run.
   - **Pool-less authority/configuration audit**: `ModuleUpdated`,
     `ModuleDependencyUpdated`, `ModuleSchemaUIDUpdated`, and `ModulePauseStatusChanged` each create
     exactly one replay-idempotent `CommitmentEvent` with the matching event type, nullable
@@ -2614,9 +2638,11 @@ overwrites commitment-level weights or a prior certificate's units.
   open, where it snapshots immutably and must sum to 10_000; cycle-less commitments use the same
   immutable protocol preset for contributor recognition and payout defaults only. They are
   ineligible for COMMITMENT-bundle Hypercert minting because no `CycleOpened` six-role allocation
-  snapshot exists; the composer rejects any selected `cycleId == 0` commitment before allowlist or
-  metadata construction, and the admin UI labels those commitments “No cycle allocation · not
-  certificate eligible.” There is no automatic lead fallback and no metadata-only recognition
+  snapshot exists. The shared composer rejects any selected `cycleId == 0` commitment and any
+  cycle whose current on-chain state is not exactly `Reconciled` before allowlist or metadata
+  construction, regardless of whether entry came from W26 or `/hub/certify/create`; the admin UI
+  labels those commitments “Cycle must be closed · not certificate eligible.” There is no
+  automatic lead fallback and no metadata-only recognition
   override: every Ready transition and direct Fulfilled dispute resolution rejects zero eligible
   contributors before freezing/finalizing the roster. W26 treats a zero-eligible Fulfilled record
   as an inconsistent legacy or indexed state, blocks certificate expansion, and requires a
@@ -2643,10 +2669,12 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
 
 ### 9.5 Acceptance criteria
 
-- A COMMITMENT-bundle mint accepts only fulfilled commitments from one non-zero cycle, produces an
-  indexed Hypercert with `bundleKind: COMMITMENT` and populated `commitmentIds`, and rejects any
-  `cycleId == 0` selection before metadata or allowlist construction. A legacy mint still resolves
-  `WORK_LEGACY`.
+- A COMMITMENT-bundle mint accepts only fulfilled commitments from one non-zero cycle whose
+  on-chain state is already `Reconciled`, produces an indexed Hypercert with
+  `bundleKind: COMMITMENT` and populated `commitmentIds`, and rejects `cycleId == 0`, Open,
+  Seeded, Composted, or Cancelled selections before metadata or allowlist construction. This gate
+  lives in the shared composer used by both W26 and the independently reachable
+  `/hub/certify/create` route. A legacy mint still resolves `WORK_LEGACY`.
 - Every COMMITMENT-bundle mint persists certificate-scoped
   `HypercertCommitmentContributorAllocation` rows. Minting a second certificate containing the
   same fulfilled commitment creates distinct rows and may produce different `recognitionUnits`

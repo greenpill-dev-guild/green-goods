@@ -44,13 +44,19 @@
 - Per-action progress exposes `approvedCount / requiredCount`, the registry-derived domain tag,
   credited contributors, and canonical per-commitment `approvedUnits`; one `requirementIndex` can
   credit only its matching registered action requirement.
-- Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
+- Pool/cycle selectors expose state counts, accepted-only `openCommitmentCount`, exact on-chain
+  `liveCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. W26 uses
+  `liveCommitmentCount` for close/cancel preflight because it includes Offered/Requested rows.
+  `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment
+  percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress
+  percentage.
 - Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique
   `needUIDs`, certificate-scoped contributor allocation rows, and the immutable six-field
   allocation snapshot accepted atomically by `openCycle`
   (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles
-  require fulfilled lineage from one non-zero cycle and reject every `cycleId == 0` selection
-  before allowlist or metadata construction because no six-role allocation snapshot exists.
+  require fulfilled lineage from one non-zero cycle whose current on-chain state is exactly
+  Reconciled. The shared composer used by W26 and `/hub/certify/create` rejects cycle zero and
+  every other state before allowlist or metadata construction.
 - Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
 - Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
 - Exported shared API with no client/admin hooks.
@@ -71,11 +77,16 @@
   `Disputed -> Fulfilled` resolution exposes the same gates and frozen-roster outcome.
 - Roster mutation selectors expose uncounted linked Work separately from approved Work/evidence
   credit. Leave/remove remains disabled until all three are zero; unlink is available only to the
-  steward while the commitment is Accepted, unfrozen, and that Work has not been counted.
+  steward while the commitment is Accepted, unfrozen, and current Work credit is inactive,
+  including after a newer rejection reverses a historical approval.
 - Evidence selectors expose every attribution row but treat `evidenceCredits` as a 0-or-1
   participation signal per contributor. Hypercert selectors join integer recognition units
   through `(hypercertId, commitmentId, contributor)` and never read them from or write them onto
   the commitment contributor row.
+- The shared payment snapshot helper ABI-encodes chain ID, plan ID, version, retention,
+  contributor total, and ordered
+  `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows exactly.
+  It accepts no child IDs or lifecycle fields, so preparation cannot change the hash.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core

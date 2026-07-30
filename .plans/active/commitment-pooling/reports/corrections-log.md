@@ -937,3 +937,20 @@ Both member and steward commitment-creation flows now choose and review the immu
 policy. Member review shows every ordered requirement/count row. Draft payout plans expose a
 complete-vector edit path before finalization, and every non-zero finalized contributor row remains
 preparable in sequence until all three fixture children exist.
+
+## 2026-07-30 — Final catch-up, cycle-close, and snapshot-hash closure
+
+Catch-up now preflights each Work's greatest supplied decision sequence against the resolver's
+current maximum before mutation, applies only the current decision, and evaluates Ready after the
+complete batch. An omitted rejection cannot freeze stale approval credit. Current inactive credit,
+not historical approval delivery, gates unlinking after a reversal.
+
+Acceptance revalidates every resolved lead against current provider-garden membership before
+register or roster mutation. `CommitmentCycle.liveCommitmentCount` is indexed from creation through
+the first terminal transition and includes Offered/Requested records. Every shared Hypercert
+composer entry point requires exact on-chain Reconciled state.
+
+Payment snapshots now hash one explicit immutable ordered tuple:
+chain, plan, version, retention, contributor total, and
+`{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Child IDs and
+lifecycle counters are excluded, so preparation cannot mutate the frozen hash.

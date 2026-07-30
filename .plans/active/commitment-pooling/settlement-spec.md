@@ -264,6 +264,16 @@ struct ContributorPayoutInput {
     uint256 amount;
 }
 
+/// @notice Immutable ordered hash preimage row. This is never stored as the
+///         mutable ContributorPayout struct and excludes child lifecycle fields.
+struct PaymentSnapshotEntry {
+    address contributor;
+    address recipient;
+    uint16 recognitionWeightBps;
+    uint16 paymentWeightBps;
+    uint256 amount;
+}
+
 struct ContributorPayout {
     address contributor;
     uint16 recognitionWeightBps;
@@ -494,7 +504,8 @@ event ContributorPayoutSet(
 );
 /// @notice Trailing commit marker for creation and every complete Draft replacement.
 ///         Indexers buffer rows by (payoutPlanId, paymentSnapshotVersion) and
-///         atomically publish only when this summary's rowCount and hash match.
+///         atomically publish only when this summary's rowCount and canonical
+///         PaymentSnapshotEntry[] hash match.
 event CommitmentPayoutSnapshotCommitted(
     uint256 indexed payoutPlanId,
     uint32 indexed paymentSnapshotVersion,
@@ -774,12 +785,17 @@ Its snapshot hashes the explicit ordered zero rows plus full garden retention. B
 payment vector differs from a non-empty 10,000-bps recognition vector, the edit requires a
 non-empty reason such as “garden retains all support”; no special-case bypass erases that
 divergence.
-`paymentSnapshotHash` is
-`keccak256(abi.encode(block.chainid, payoutPlanId, gardenRetainedAmount, payouts))` over the same
-ascending contributor order. Default token-unit and bps remainders use descending fractional
-remainder, then ascending lowercase contributor address. The interface table, contract tests,
-shared calculation helper, and UI comparison rows use this one order; payout amount is never the
-remainder tiebreaker.
+`paymentSnapshotHash` is exactly
+`keccak256(abi.encode(block.chainid, payoutPlanId, paymentSnapshotVersion, gardenRetainedAmount, contributorPayoutTotal, paymentSnapshotEntries))`,
+where `paymentSnapshotEntries` is the ascending-contributor
+`PaymentSnapshotEntry[] { contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }`
+sequence emitted by `ContributorPayoutSet`. Creation hashes version 1; a Draft edit computes its
+next version before hashing. The tuple deliberately excludes mutable `disbursementId`, `included`,
+prepared/confirmed/failed/cancelled counters, and every other child lifecycle fact, so preparation
+cannot change a frozen snapshot. The contract, trailing commit marker, indexer verifier, shared
+helper, and tests use this exact ABI encoding and field order. Default token-unit and bps
+remainders use descending fractional remainder, then ascending lowercase contributor address;
+payout amount is never the remainder tiebreaker.
 `finalizeCommitmentPayoutPlan` rechecks both vectors and
 `reward.amount == gardenRetainedAmount + contributorPayoutTotal`, emits the finalization event, and
 blocks every later edit. It creates no child. After finalization, `prepareContributorPayout`
@@ -897,7 +913,8 @@ CCIP manual-execution eligibility and native-fee shortage are operational condit
   deterministic fractional-remainder/address ties, reason-required noncanonical divergence,
   canonical all-zero payment weights without division, reason-required all-retained divergence,
   zero-payment exclusion, explicit retention, exact invariant equality, versioned atomic
-  full-vector edits with a trailing summary/hash commit marker,
+  full-vector edits with a trailing summary/hash commit marker whose exact typed
+  `PaymentSnapshotEntry[]` preimage excludes every mutable child field,
   explicit finalization before preparation/dispatch, idempotent one-child preparation from a
   frozen row, no draft/finalization orphan children, zero-child all-retained completion without CCIP,
   exact preparation retry after Confirmed/Failed/Cancelled and while paused/delivery-disabled,
@@ -1671,7 +1688,9 @@ rehearsal (addresses remain deployment-artifact placeholders until broadcast):
 The source handler treats `CommitmentPayoutPlanCreated`, its version-1 ordered
 `ContributorPayoutSet` rows, and the trailing version-1
 `CommitmentPayoutSnapshotCommitted` as one complete creation snapshot. It buffers rows by
-`(payoutPlanId, paymentSnapshotVersion)`, verifies the trailing row count and hash, and only then
+`(payoutPlanId, paymentSnapshotVersion)`, rebuilds the exact ordered
+`PaymentSnapshotEntry[]` tuple defined above, verifies the trailing row count and canonical hash,
+and only then
 publishes the plan summary and atomic replacement vector. It therefore materializes every initial
 `ContributorPayout` even when the draft is never edited. A later full-vector edit increments the
 version once, re-emits every ordered row even when unchanged, and commits one trailing summary;
