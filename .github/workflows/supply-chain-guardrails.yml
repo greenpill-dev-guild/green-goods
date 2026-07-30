@@ -45,7 +45,7 @@ permissions:
 
 jobs:
   audit:
-    uses: greenpill-dev-guild/.github/.github/workflows/supply-chain-guardrails.yml@main
+    uses: greenpill-dev-guild/.github/.github/workflows/supply-chain-guardrails.yml@f555e6db72e59ebb42abb3f69ec4ad20837bca36 # main @ 2026-07-28
     with:
       mode: ci
       fail-on-warning: false
