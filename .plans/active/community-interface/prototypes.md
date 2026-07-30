@@ -259,7 +259,7 @@ flowchart LR
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W9 (WF W9) | Opens "For the gathering"; week-horizon items grouped first (no countdown language, SPEC §9) | Loads EAS Needs + Envio lineage via shared join (DG D9) | derived; source health shown | Partial source names EAS/Envio, keeps known data labeled (JN:84) |
-| 2 | W9 | `[Acknowledge]`, adds 0–4 unique domains | `NeedStatus` status 1 + domains (online write, SPEC §9; SPEC §3) | moderation **acknowledged** | Rejected signature: "Nothing changed. [Try again][Edit]" (WF W9) |
+| 2 | W9 | `[Acknowledge]`, adds 0–4 unique domains | `NeedStatus` status 1 + domains (online write, SPEC §9; SPEC §3) | moderation **acknowledged** | Rejected signature: "Nothing changed. [Try again] [Edit]" (WF W9) |
 | 3 | W9 | `[Merge…]` → typed same-garden canonical picker + rationale | `NeedStatus` status 2 + `mergedIntoNeedUID` + `noteCID` (SPEC §3; WF W9) | moderation **merged** | tx failure → nothing changed + Retry (SPEC §9) |
 | 4 | W9 | `[Decline…]` / `[Hide…]` with rationale | status 4 / 3 + required `noteCID` (SPEC §3) | **declined** / **hidden** | stale read → refetch (SPEC §9) |
 | 5 | W9 | (reopen a merged/hidden/declined) | Later acknowledged status + **mandatory** rationale (SPEC §3/§4; WF W8; DG D4) | reopened → **acknowledged** | winner = greatest `(timeCreated, uid)` (SPEC §3; DG D4) |

@@ -8,7 +8,7 @@
 
 ## Outputs
 
-- Hosted policy for Need/Signal/Testimony, per-account/window caps, owner/rollback/runbook, staged burst evidence, and monitoring thresholds. The smart account calls the chain-specific EAS contract, not a resolver, so the policy must match the EAS target plus `attest` selector and decode the attestation request's schema UID. Use a dashboard rule only if the exported policy proves that nested match; otherwise use the sponsorship-policy webhook to perform the same fail-closed decode. Resolver addresses are never the sponsored call target.
+- Hosted policy for Need/NeedSignal/Testimony, per-account/window caps, owner/rollback/runbook, staged burst evidence, and monitoring thresholds. The smart account calls the chain-specific EAS contract, not a resolver, so the policy must match the EAS target plus `attest` selector and decode the attestation request's schema UID. Use a dashboard rule only if the exported policy proves that nested match; otherwise use the sponsorship-policy webhook to perform the same fail-closed decode. Resolver addresses are never the sponsored call target.
 
 ## Acceptance
 

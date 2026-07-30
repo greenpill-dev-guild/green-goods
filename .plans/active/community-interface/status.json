@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-30T18:44:18.000Z"
+    "updated_at": "2026-07-30T21:17:01.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -254,7 +254,7 @@
       "depends_on": ["shared_foundation", "state_api", "ops_paymaster"],
       "handoff": "handoffs/claude-ui-community.md",
       "linear_issues": ["PRD-682", "PRD-691"],
-      "acceptance": "Independent Community PWA at community.greengoods.app/local 3010 with Needs/Create/Profile, Support/Do not support/Clear signal states, separate counts without a net score, isolated app identity and service-worker scope, complete queue/recovery states, and en/es/pt accessibility proof. Membership queue remains excluded until its manual gate clears."
+      "acceptance": "Independent Community PWA at community.greengoods.app, served locally on port 3010, with Needs/Create/Profile, Support/Do not support/Clear signal states, separate counts without a net score, isolated app identity and service-worker scope, complete queue/recovery states, and en/es/pt accessibility proof. Membership queue remains excluded until its manual gate clears."
     },
     "ui_admin": {
       "machine_lane": "ui",

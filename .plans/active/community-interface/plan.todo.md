@@ -65,7 +65,7 @@ Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `nee
 ### Track R: Research and operator engagement (live cycles)
 
 1. [ ] Through Product cycle end 2026-07-16: PRD-701 operator outreach is under way (contacts, consent script, facilitation kit in progress); the kickoff package and session slots land by PRD-701's due date 2026-07-30 (re-dated from 07-16 per commitment-pooling decision #24); no cohort is marked ready by invitation alone
-2. [ ] Through Research cycle end 2026-07-30: RESR-62 runs two-pass sessions, returns mandate drafts for operator confirmation, tests problem/desired-outcome and multi-domain language, and keeps Request/Offer testing in the commitment section; RESR-64 validates the selected join-request queue's operating record
+2. [ ] Through Research cycle end 2026-07-30: COM-7 runs two-pass sessions, returns mandate drafts for operator confirmation, tests problem/desired-outcome and multi-domain language, and keeps Request/Offer testing in the commitment section; RESR-64 validates the selected join-request queue's operating record
 3. [ ] July dry-run checkpoint 2026-07-31: confirmed mandates + readiness matrix with gaps; this is a go/no-go input, not a promise of complete onboarding
 4. [ ] August/September milestones: operator implementation reviews and gathering rehearsal; post-pilot findings gate PRD-695/696
 
