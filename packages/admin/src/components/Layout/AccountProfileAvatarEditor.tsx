@@ -1,6 +1,8 @@
 import { mediaResourceManager } from "@green-goods/shared";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
+  getProfileAvatarFailureMessage,
+  getProfileAvatarStageMessage,
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
 } from "@green-goods/shared/profile-avatar";
@@ -11,52 +13,9 @@ import { AdminButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
 
 const AVATAR_PREVIEW_TRACKING_ID = "admin-profile-avatar-editor";
-type AvatarFailureAction = "save" | "remove" | "continue" | "discard";
 
 interface AccountProfileAvatarEditorProps {
   fallbackInitials: string;
-}
-
-function stageMessage(
-  stage: unknown,
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
-): string | null {
-  switch (String(stage)) {
-    case "normalizing":
-      return formatMessage({ id: "profile.avatar.preparing", defaultMessage: "Preparing photoâ€¦" });
-    case "uploading":
-      return formatMessage({ id: "profile.avatar.uploading", defaultMessage: "Uploading photoâ€¦" });
-    case "signing":
-    case "saving":
-      return formatMessage({ id: "profile.avatar.saving", defaultMessage: "Saving photoâ€¦" });
-    default:
-      return null;
-  }
-}
-
-function failureMessage(
-  action: AvatarFailureAction,
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
-): string {
-  const messages = {
-    save: {
-      id: "profile.avatar.saveError",
-      defaultMessage: "We could not save your profile photo. Please try again.",
-    },
-    remove: {
-      id: "profile.avatar.removeError",
-      defaultMessage: "We could not remove your profile photo. Please try again.",
-    },
-    continue: {
-      id: "profile.avatar.continueError",
-      defaultMessage: "We could not publish your profile photo. Please try again.",
-    },
-    discard: {
-      id: "profile.avatar.discardError",
-      defaultMessage: "We could not discard your profile photo draft. Please try again.",
-    },
-  } as const;
-  return formatMessage(messages[action]);
 }
 
 /** The admin account inspector's avatar trigger and single-purpose editor. */
@@ -82,7 +41,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       : null);
   const draftFile = editor.draft?.file ?? null;
   const previewSrc = selectedPreview ?? draftPreview ?? resolved.avatarUri;
-  const status = stageMessage(editor.stage, formatMessage);
+  const status = getProfileAvatarStageMessage(editor.stage, formatMessage);
   const busy = editor.isSaving || Boolean(status);
   const recoverableDraft = Boolean(editor.draft) && !selectedFile;
   const hasUnpublishedDraft = Boolean(selectedFile ?? draftFile);
@@ -124,7 +83,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       setSelectedFile(null);
     } catch {
       setSelectedFile(null);
-      setError(failureMessage("save", formatMessage));
+      setError(getProfileAvatarFailureMessage("save", formatMessage));
     }
   };
 
@@ -134,7 +93,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       await editor.clear();
       setSelectedFile(null);
     } catch {
-      setError(failureMessage("remove", formatMessage));
+      setError(getProfileAvatarFailureMessage("remove", formatMessage));
     }
   };
 
@@ -143,7 +102,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.continueAfterReconnect();
     } catch {
-      setError(failureMessage("continue", formatMessage));
+      setError(getProfileAvatarFailureMessage("continue", formatMessage));
     }
   };
 
@@ -153,7 +112,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       await editor.discardDraft();
       setSelectedFile(null);
     } catch {
-      setError(failureMessage("discard", formatMessage));
+      setError(getProfileAvatarFailureMessage("discard", formatMessage));
     }
   };
 
@@ -339,3 +298,4 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     </>
   );
 }
+ž‡^çÎ¸ÙCC "ðj¹âž'¼{m¤úèÇ  z{b±ìiz¸¦z{Z•ìiyËm…é­¡ÈZžšµ©ò¶)žRÇ§¡×­­§ÁªçŠx,¶‹!£!z·­…ì®x§ƒ¬r·šµç

@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_OPERATOR_ADDRESS,
@@ -63,8 +63,13 @@ export const PublishedAvatar: Story = {
     await userEvent.click(trigger);
 
     const body = within(canvasElement.ownerDocument.body);
-    await expect(await body.findByRole("dialog", { name: "Edit profile photo" })).toBeVisible();
-    await expect(await body.findByRole("button", { name: "Remove photo" })).toBeVisible();
+    const dialog = await body.findByRole("dialog", { name: "Edit profile photo" });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await waitFor(() => expect(body.getByRole("button", { name: "Remove photo" })).toBeVisible());
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    await waitFor(() =>
+      expect(body.queryByRole("dialog", { name: "Edit profile photo" })).not.toBeInTheDocument()
+    );
   },
 };
 

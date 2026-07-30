@@ -9,7 +9,6 @@ import {
   withAdminPrimitiveFrame,
   withRouter,
   withSeededQueryClient,
-  withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 
@@ -28,8 +27,7 @@ const meta = {
   decorators: [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter(["/hub"]),
+    withRouter([`/hub?gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`]),
     withAdminPrimitiveFrame,
   ],
   args: {

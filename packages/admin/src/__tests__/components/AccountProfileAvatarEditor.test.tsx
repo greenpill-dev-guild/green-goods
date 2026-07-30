@@ -50,7 +50,8 @@ vi.mock("@green-goods/shared", () => ({
 vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
   useOnlineStatus: () => mocks.online.isOnline,
 }));
-vi.mock("@green-goods/shared/profile-avatar", () => ({
+vi.mock("@green-goods/shared/profile-avatar", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/profile-avatar")>()),
   useProfileAvatarEditor: () => mocks.editor,
   useResolvedProfileAvatar: () => mocks.resolved,
 }));

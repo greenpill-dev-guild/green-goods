@@ -11,6 +11,8 @@ export {
   clearProfileAvatarDraft,
   classifyProfileAvatarFailure,
   createProfileAvatarSigner,
+  getProfileAvatarFailureMessage,
+  getProfileAvatarStageMessage,
   loadProfileAvatarDraft,
   normalizeProfileAvatarFile,
   profileAvatarTransport,
@@ -21,6 +23,7 @@ export {
   ProfileAvatarTransportError,
 } from "../modules/profile-avatar";
 export type {
+  ProfileAvatarFailureAction,
   ProfileAvatarDraft,
   ProfileAvatarFactoryArgs,
   ProfileAvatarPublishDependencies,

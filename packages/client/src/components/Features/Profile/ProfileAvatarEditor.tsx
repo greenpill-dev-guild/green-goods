@@ -1,6 +1,8 @@
 import { cn, DialogShell, mediaResourceManager } from "@green-goods/shared";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
+  getProfileAvatarFailureMessage,
+  getProfileAvatarStageMessage,
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
 } from "@green-goods/shared/profile-avatar";
@@ -9,53 +11,10 @@ import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 
 const AVATAR_PREVIEW_TRACKING_ID = "profile-avatar-editor";
-type AvatarFailureAction = "save" | "remove" | "continue" | "discard";
 
 interface ProfileAvatarEditorProps {
   fallbackAvatar: string;
   className?: string;
-}
-
-function stageMessage(
-  stage: unknown,
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
-): string | null {
-  switch (String(stage)) {
-    case "normalizing":
-      return formatMessage({ id: "profile.avatar.preparing", defaultMessage: "Preparing photo…" });
-    case "uploading":
-      return formatMessage({ id: "profile.avatar.uploading", defaultMessage: "Uploading photo…" });
-    case "signing":
-    case "saving":
-      return formatMessage({ id: "profile.avatar.saving", defaultMessage: "Saving photo…" });
-    default:
-      return null;
-  }
-}
-
-function failureMessage(
-  action: AvatarFailureAction,
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
-): string {
-  const messages = {
-    save: {
-      id: "profile.avatar.saveError",
-      defaultMessage: "We could not save your profile photo. Please try again.",
-    },
-    remove: {
-      id: "profile.avatar.removeError",
-      defaultMessage: "We could not remove your profile photo. Please try again.",
-    },
-    continue: {
-      id: "profile.avatar.continueError",
-      defaultMessage: "We could not publish your profile photo. Please try again.",
-    },
-    discard: {
-      id: "profile.avatar.discardError",
-      defaultMessage: "We could not discard your profile photo draft. Please try again.",
-    },
-  } as const;
-  return formatMessage(messages[action]);
 }
 
 /**
@@ -85,7 +44,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       : null);
   const draftFile = editor.draft?.file ?? null;
   const previewSrc = selectedPreview ?? draftPreview ?? resolved.avatarUri ?? fallbackAvatar;
-  const status = stageMessage(editor.stage, formatMessage);
+  const status = getProfileAvatarStageMessage(editor.stage, formatMessage);
   const recoverableDraft = Boolean(editor.draft) && !selectedFile;
   const busy = editor.isSaving || Boolean(status);
   const hasUnpublishedDraft = Boolean(selectedFile ?? draftFile);
@@ -133,7 +92,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setSelectedFile(null);
     } catch {
       setSelectedFile(null);
-      setError(failureMessage("save", formatMessage));
+      setError(getProfileAvatarFailureMessage("save", formatMessage));
     }
   };
 
@@ -143,7 +102,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       await editor.clear();
       setSelectedFile(null);
     } catch {
-      setError(failureMessage("remove", formatMessage));
+      setError(getProfileAvatarFailureMessage("remove", formatMessage));
     }
   };
 
@@ -152,7 +111,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     try {
       await editor.continueAfterReconnect();
     } catch {
-      setError(failureMessage("continue", formatMessage));
+      setError(getProfileAvatarFailureMessage("continue", formatMessage));
     }
   };
 
@@ -162,7 +121,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       await editor.discardDraft();
       setSelectedFile(null);
     } catch {
-      setError(failureMessage("discard", formatMessage));
+      setError(getProfileAvatarFailureMessage("discard", formatMessage));
     }
   };
 

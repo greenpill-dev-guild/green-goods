@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo } from "react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
 import { LeftInspectorDialog } from "./LeftInspectorDialog";
 import { LeftSheetProvider, useLeftSheetConfig, type LeftSheetConfig } from "./leftSheetChannel";
@@ -60,8 +60,9 @@ export const Open: Story = {
   play: async () => {
     const body = within(document.body);
     const dialog = await body.findByRole("dialog", { name: "Review work" });
-    await expect(within(dialog).getByText("Canopy transect upload")).toBeVisible();
+    await waitFor(() => expect(within(dialog).getByText("Canopy transect upload")).toBeVisible());
     await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
     await expect(onClose).toHaveBeenCalled();
   },
 };
+‡^çÎøÑCC "ğj¹â'¼{m¤úèÇ  z{b±ìiz¸¦z{Z•ìiyËm…é­¡ÈZšµ©ò¶)RÇ§¡×­­§ÁªçŠx,¶‹!£!z·­…ì®x§ƒ¬r·šµç
