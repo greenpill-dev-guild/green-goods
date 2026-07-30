@@ -50,7 +50,26 @@ const VALUE_FLAGS = new Set([
 ]);
 
 /** Flags whose values contain secrets and must be redacted in logs */
-const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
+const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--rpc-url", "--account", "--sender"]);
+
+/** Reduce an RPC URL to a credential-free marker that is safe to persist or log. */
+export function redactRpcUrl(value: string): string {
+  try {
+    const parsed = new URL(value);
+    return `${parsed.protocol}//[REDACTED]`;
+  } catch {
+    return "[REDACTED_RPC_URL]";
+  }
+}
+
+/** Redact every HTTP(S) or WebSocket URL embedded in diagnostic text. */
+export function redactRpcUrlsInText(value: string): string {
+  return value.replace(/\b(?:https?|wss?):\/\/[^\s"'`<>]+/giu, (match) => {
+    const trailingPunctuation = match.match(/[),.;\]}]+$/u)?.[0] ?? "";
+    const url = trailingPunctuation ? match.slice(0, -trailingPunctuation.length) : match;
+    return `${redactRpcUrl(url)}${trailingPunctuation}`;
+  });
+}
 
 /**
  * Redact sensitive flag values from a forge argument list for safe logging.
@@ -63,6 +82,11 @@ export function redactSensitiveArgs(args: string[]): string[] {
   const redacted: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+    const inlineSensitiveFlag = Array.from(SENSITIVE_FLAGS).find((flag) => arg.startsWith(`${flag}=`));
+    if (inlineSensitiveFlag) {
+      redacted.push(`${inlineSensitiveFlag}=[REDACTED]`);
+      continue;
+    }
     redacted.push(arg);
     if (SENSITIVE_FLAGS.has(arg) && i + 1 < args.length) {
       redacted.push("[REDACTED]");

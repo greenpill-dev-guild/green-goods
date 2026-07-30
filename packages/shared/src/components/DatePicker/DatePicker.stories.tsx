@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { DialogShell } from "../Dialog";
 import { DatePicker } from "./DatePicker";
 
 // Fixed timestamps for deterministic stories (2025-06-15 12:00:00 UTC)
@@ -216,5 +217,69 @@ export const Interactive: Story = {
     // DayPicker renders day buttons — find at least one
     const dayButtons = portal.getAllByRole("gridcell");
     await expect(dayButtons.length).toBeGreaterThan(0);
+  },
+};
+
+export const InsideModalDialog: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "The popover is a **modal** Radix popover stacked at `calc(var(--z-modal) + 1)`, so it stays visible and clickable over a host dialog. A non-modal popover portals to `document.body`, lands under the dialog surface at `z-modal`, and inherits the dialog's `pointer-events: none` — which is what made the Create Assessment reporting-period calendars unusable. Going modal also means the calendar traps focus and locks scroll while open, and Escape closes the calendar without closing the dialog underneath.",
+      },
+    },
+  },
+  render: function Render() {
+    const [value, setValue] = useState<number | null>(null);
+    return (
+      <DialogShell
+        open
+        onOpenChange={fn()}
+        title="Submit Assessment"
+        description="Reporting-period pickers inside a dialog surface."
+      >
+        <DatePicker
+          label="Reporting period start"
+          placeholder="Select start date"
+          helperText="Opens above the dialog it is rendered inside."
+          id="date-in-dialog"
+          value={value}
+          onChange={setValue}
+          required
+        />
+      </DialogShell>
+    );
+  },
+  play: async () => {
+    const portal = within(document.body);
+
+    // Held by reference: a modal popover marks everything outside it aria-hidden,
+    // so the trigger is unreachable by role query while the calendar is open.
+    const trigger = portal.getByRole("button", { name: /select start date/i });
+    const surface = document.querySelector('[data-component="DialogShell"][data-slot="surface"]');
+    await expect(surface).not.toBeNull();
+
+    await userEvent.click(trigger);
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    const popover = document.querySelector<HTMLElement>('[data-component="DatePickerPopover"]');
+    await expect(popover).not.toBeNull();
+
+    // Stacks above the dialog surface rather than behind it.
+    const popoverZ = Number.parseInt(getComputedStyle(popover as HTMLElement).zIndex, 10);
+    const surfaceZ = Number.parseInt(getComputedStyle(surface as HTMLElement).zIndex, 10);
+    await expect(popoverZ).toBeGreaterThan(surfaceZ);
+
+    // And the days are actually reachable — the regression was a calendar that
+    // rendered but swallowed every click.
+    const day = within(popover as HTMLElement)
+      .getAllByRole("gridcell")
+      .map((cell) => cell.querySelector("button"))
+      .find((button): button is HTMLButtonElement => !!button && !button.disabled);
+    await expect(day).toBeTruthy();
+
+    await userEvent.click(day as HTMLButtonElement);
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger).not.toHaveTextContent(/select start date/i);
   },
 };

@@ -536,7 +536,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
   "cancel-cycle-confirm": {
     title: "Cancel this season",
     body: w7Confirm(
-      "Season of First Rains has 8 promises, 5 of them kept. Cancelling ends the season for everyone in it; each promise keeps its own record, and members see the reason you give here.",
+      "Season of First Rains has no live promises; all 8 are kept, cancelled, or expired. Cancelling ends the season for everyone in it; each promise keeps its own record, and members see the reason you give here.",
       "funding fell through for the rains",
     ),
     actions: `${hot("w7.confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-confirm", btn("Cancel season", { kind: "danger" }))}`,
@@ -545,7 +545,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
   "paused-cancel-cycle-confirm": {
     title: "Cancel this paused season",
     body: w7Confirm(
-      "The pool stays paused. Cancelling ends Season of First Rains for everyone in it; all 8 promises keep their own records, and members see the reason you give here.",
+      "The pool stays paused. Season of First Rains has no live promises; all 8 are kept, cancelled, or expired. Cancelling ends the season, and every promise keeps its own record and reason.",
       "funding fell through for the rains",
     ),
     actions: `${hot("w7.paused-confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-paused-confirm", btn("Cancel season", { kind: "danger" }))}`,
@@ -710,8 +710,8 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.open-pool": { l: "Open pool", to: "screen:W7@open-no-cycle", info: "openPool → PoolOpened. The pool opens without inventing an active cycle; seeding remains the next act (CS:100, CS:727).", calls: ["openPool"] },
   "w7.close-pool": { l: "Close pool", to: "screen:W7@close-pool-confirm", info: "Offered only once the last cycle composts (uiux §6.2 · CS:102); closePool(poolId) takes no reason (CS:556). Compost/reopen follow per §4.1." },
   "w7.close-pool-paused": { l: "Close paused pool", to: "screen:W7@paused-close-pool-confirm", info: "Offered after the paused pool's last cycle composts; closePool may move Paused → Closed and stores no reason." },
-  "w7.close-season": { l: "Close season", to: "screen:W26", info: "Opens the close wizard while the cycle remains Reviewing/Open on-chain. The wizard resolves outstanding items before its final ordered closeCycle → compostCycle action." },
-  "w7.close-season-paused": { l: "Close paused season", to: "screen:W26@paused-review", info: "Opens the same close wizard without resuming the Paused pool; reconciliation happens only after unresolved review." },
+  "w7.close-season": { l: "Close season", to: "screen:W26", info: "Opens the close wizard while the cycle remains Reviewing/Open on-chain. Once every commitment is terminal and liveCommitmentCount is zero, the first write closes the cycle before shares or mint." },
+  "w7.close-season-paused": { l: "Close paused season", to: "screen:W26@paused-review", info: "Opens the same close wizard without resuming the Paused pool; a terminal zero-live-count cycle closes before certificate composition." },
   "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W7@cancel-cycle-confirm", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
   "w7.cancel-cycle-paused": { l: "Cancel a paused cycle (reason)", to: "screen:W7@paused-cancel-cycle-confirm", info: "Opens the reason confirmation while preserving the Paused pool context." },
   "w7.new-campaign": { l: "New campaign", to: "screen:W7@seed-cycle", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
@@ -804,7 +804,7 @@ function w8(state: W8State): string {
   let next: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${banner("This campaign promise is evidence-confirmed, so it has no garden-work action requirements or assessment gate.", "stone")}${field("Due", input("cycle deadline", { select: true }))}`;
+      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${banner("This campaign promise is evidence-confirmed, so it has no garden-work action requirements or assessment gate.", "stone")}${hot("w8.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join" }, { label: "Lead-managed team", meta: "the lead or steward manages the roster", on: true }], { interactive: true, name: "seed-contributor-policy" })))}${field("Due", input("cycle deadline", { select: true }))}`;
       next = hot("w8.continue-requirements", btn("Continue", { kind: "pri" }));
       break;
     case "step3":
@@ -820,11 +820,11 @@ ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone
   { label: "Celo G$ settlement", meta: "queue delivery after fulfilment" },
 ], { interactive: true, name: "reward-rail" })))}
 ${field("External reward", `<div class="arow"><div class="grow">${input("Garden jar", { select: true })}</div><div class="grow">${input("20 DAI")}</div></div>`)}
-${banner("One rail only. External payout records are recorded here after the fact; Celo G$ rewards are queued for delivery from the owning-pool account.", "stone")}`;
+${banner("One rail only. External payouts are recorded here after the fact; Celo G$ support becomes a conserved provider-garden payout plan after fulfilment.", "stone")}`;
       next = hot("w8.continue-reward", btn("Continue", { kind: "pri" }));
       break;
     case "step5":
-      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
+      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Contributor policy", "Lead-managed team · lead or steward manages the roster")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
       next = hot("w8.seed", btn("Seed this commitment", { kind: "pri" }));
       break;
     default:
@@ -849,6 +849,7 @@ ${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title"
 }
 
 const W8_HOTS: HifiDef["hots"] = {
+  "w8.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy at seeding; the review repeats who may join or edit the team." },
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
   "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open." },
   "w8.reward": { l: "Reward rail", info: "Exactly one rail is declared: none, an external payout record, or a Celo G$ settlement. External rewards are references only; G$ uses the settlement module." },
@@ -924,20 +925,16 @@ const W9_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W10_STATES = [
-  ["detail", "Detail"], ["fulfilled", "Fulfilled — reward unpaid"],
+  ["detail", "Detail"], ["external-fulfilled", "Fulfilled — external payout unpaid"],
+  ["fulfilled", "Fulfilled — Celo plan needed"],
+  ["contributor-allocation", "Contributor allocation"],
   ["record-payout", "Record payout"],
-  ["queue-settlement-pending", "Celo settlement arranging"],
-  ["queue-settlement-blocked", "Celo settlement not queue-ready"],
-  ["queue-settlement-failed", "Celo settlement arrangement failed"],
-  ["queue-settlement", "Celo reward queued"],
   ["fallback-confirm", "Fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
   ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel promise"], ["not-found", "Not found"],
   ["garden-ready", "Garden-provided — ready"], ["garden-fulfilled", "Garden-provided — fulfilled"],
-  ["queue-settlement-garden-pending", "Garden reward arranging"],
-  ["queue-settlement-garden-failed", "Garden reward arrangement failed"],
-  ["queue-settlement-garden", "Garden reward queued"],
+  ["queue-settlement-garden", "Queue G$ to the garden"],
 ] as const;
 type W10State = (typeof W10_STATES)[number][0];
 
@@ -958,18 +955,13 @@ const w10Behind = () =>
   });
 
 const W10_TITLE: Record<W10State, string> = {
-  detail: "Prune the north beds", fulfilled: "Prune the north beds",
+  detail: "Prune the north beds", "external-fulfilled": "Prune the north beds", fulfilled: "Prune the north beds",
+  "contributor-allocation": "Contributor recognition and payment",
   accepted: "Repair tool handles", "record-payout": "Record payout",
-  "queue-settlement-pending": "Arranging Celo settlement",
-  "queue-settlement-blocked": "Celo settlement not queue-ready",
-  "queue-settlement-failed": "Celo settlement needs attention",
-  "queue-settlement": "Celo reward queued",
   "fallback-confirm": "Confirm as fallback", "raise-dispute": "Raise dispute", "resolve-dispute": "Resolve dispute",
   "attach-assessment": "Attach assessment", "mark-ready-override": "Mark service ready with override",
   "garden-ready": "Methodology survey", "garden-fulfilled": "Methodology survey",
-  "queue-settlement-garden-pending": "Arranging garden reward",
-  "queue-settlement-garden-failed": "Garden reward needs attention",
-  "queue-settlement-garden": "Garden reward queued",
+  "queue-settlement-garden": "Queue Celo settlement",
   cancel: "Cancel this service promise", "not-found": "Promise unavailable",
 };
 
@@ -979,28 +971,30 @@ function w10(state: W10State): string {
   let body: string;
   let actions: string;
   switch (state) {
+    case "contributor-allocation":
+      body = `${cmChips(chip("Fulfilled", "ok", { dot: true }), chip("Team commitment", "ink"))}
+${banner("Start from the Hypercert gardener-share weights. Recognition remains an impact record; this editor prepares how the garden will pay its members.", "stone", "information-line")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "100 G$ · operations and follow-up")}${kv("Available to contributors", "400 G$")}
+${acard("Contributor split", `${kv("Maria · lead", "160 G$ · 40% recognition")}${kv("Ana", "140 G$ · 35% recognition")}${kv("Kwame", "100 G$ · 25% recognition")}`)}
+${field("Reason for retained amount (required)", input("Garden operations and follow-up costs"))}
+${banner("The garden Safe is the payer. Save keeps this editable as a draft; a separate Finalize action verifies both vector hashes and conservation before any child can dispatch.", "amber")}
+<div class="actrow">${hot("w10.all-retained-preview", btn("Preview all-retained case", { kind: "ghost", sm: true }))}</div>`;
+      actions = `${dismiss("Close")}${hot("w10.save-contributor-allocation", btn("Save draft", { kind: "pri" }))}`;
+      break;
     case "record-payout":
       body = `${kv("Reward rail", "External payout record")}${kv("Declared reward", "20 DAI · garden jar")}${field("Rail reference", input("cookie-jar withdrawal #128"))}${banner("Records that the external reward moved outside the app — no value moves here. Celo G$ rewards are delivered by the settlement queue instead.", "stone")}`;
       actions = `${dismiss()}${hot("w10.payout-confirm", btn("Record payout", { kind: "pri" }))}`;
       break;
-    case "queue-settlement-pending":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${kv("Arrangement attempt", "Queued on this device · submitting")}${banner("Fulfillment is already complete. This signed-in app is submitting the permissionless queue call from canonical indexed facts. Every retry first checks the permanent commitment pointer; no onchain disbursement exists yet and there is no second payout approval.", "stone")}`;
-      actions = dismiss("Close");
-      break;
-    case "queue-settlement-blocked":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Queue readiness", "Blocked — no local attempt created")}${kv("Reason", "Individual delivery is disabled")}${banner("The promise remains Fulfilled. The app shows the indexed blocker and creates no arrangement attempt while the member-delivery gate or any canonical source fact is not queue-ready. Garden rewards and explicit garden funding are unaffected.", "stone", "error-warning-line")}`;
-      actions = dismiss("Close");
-      break;
-    case "queue-settlement-failed":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Arrangement attempt", "Couldn't submit after 5 attempts on this device")}${kv("Reason", "RPC submission failed before a transaction was accepted")}${banner("The promise remains Fulfilled. Retry restarts only this app's local attempt after re-reading the permanent pointer and current eligibility; it cannot reconfirm the promise or create a second reward after any terminal settlement.", "stone", "error-warning-line")}`;
-      actions = `${dismiss("Close")}${hot("w10.retry-settlement", btn("Retry arrangement", { kind: "pri", icon: "refresh-line" }))}`;
-      break;
-    case "queue-settlement":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "500 G$")}${kv("Payer", "Rocinha owning-pool Safe · Celo")}${kv("Recipient", "Maria · same-address AA")}${kv("Arrangement attempt", "Complete · disbursement #104 queued")}${banner("The app submitted the permissionless call from the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. The permanent commitment pointer is the global coordination point and prevents any second reward queue, including after terminal cancellation.", "stone")}`;
-      actions = `${dismiss("Close")}${hot("w10.queue-settlement-confirm", btn("View queued reward", { kind: "pri" }))}`;
+    case "external-fulfilled":
+      body = `${cmChips(chip("Offer", "offer"), chip("Fulfilled", "ok", { dot: true }))}
+${kv("Maria → João", "6 hours · due Aug 12")}
+${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 4)}
+${kv("Reward rail", "Arbitrum external payout record")}${kv("Declared reward", "20 DAI · garden jar")}${kv("Payment", "unpaid")}
+${banner("This rail records a jar or treasury payment that happens outside the app. It never opens the Celo contributor-allocation editor.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.record-payout", btn("Record external payout", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
-      body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — the provider's own address is blocked, always. The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
+      body = `${field("Reason (required)", input("confirmed on site visit"))}${banner("Steward fallback confirmation — every frozen team address is blocked. The member timeline shows this as a steward record.", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.fallback-confirm", btn("Confirm as fallback", { kind: "pri" }))}`;
       break;
     case "raise-dispute":
@@ -1008,7 +1002,7 @@ function w10(state: W10State): string {
       actions = `${dismiss()}${hot("w10.dispute-confirm", btn("Raise dispute", { kind: "pri" }))}`;
       break;
     case "resolve-dispute":
-      body = `${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Fulfilled" }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("An Expired prior state can never resolve to Fulfilled. Every outcome renders its reason in the member timeline.", "stone")}`;
+      body = `${kv("Your role", "Steward · contributor on this promise")}${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("Fulfilled is unavailable because your connected steward address is on the contributor roster. A non-contributor steward may see that outcome only when its policy and verified-credit gates pass. Every available outcome renders its reason in the member timeline.", "stone")}`;
       actions = `${dismiss()}${hot("w10.resolve", btn("Resolve", { kind: "pri" }))}`;
       break;
     case "attach-assessment":
@@ -1047,7 +1041,7 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · app-arranged once queue-ready")}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · provider-garden payout plan · unqueued")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
@@ -1055,31 +1049,16 @@ ${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's
 ${kv("Protocol pool → Awka Hub", "1 survey")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "2 of 2 protocol stewards · Jul 12")}${kv("Provider garden", "Awka Hub — its gardeners worked and proved it")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Reward", "25 G$ · to Awka Hub's Celo Safe · arranging")}
-${banner("Fulfillment made this reward queue-ready. A signed-in app can create a device-local arrangement attempt, while the permanent commitment pointer coordinates every app globally. A garden-provided promise settles to the providing garden's own Celo Safe without the member-AA gate — never to an individual, and never to the Arbitrum garden account.", "stone")}`;
-      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("View arrangement", { kind: "pri" }))}`;
-      break;
-    case "queue-settlement-garden-pending":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Arrangement attempt", "Queued on this device · submitting")}${banner(
-        "Fulfillment is complete. This signed-in app is submitting the permissionless Safe-to-Safe queue call without consulting memberDeliveryEnabled; no onchain disbursement exists yet.",
-        "stone",
-      )}`;
-      actions = dismiss("Close");
-      break;
-    case "queue-settlement-garden-failed":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Arrangement attempt", "Couldn't submit after 5 attempts on this device")}${kv("Reason", "RPC submission failed before a transaction was accepted")}${banner(
-        "The garden's promise remains Fulfilled. Retry restarts only this app's local attempt after re-reading the permanent pointer and current eligibility; terminal cancellation remains terminal.",
-        "stone",
-        "error-warning-line",
-      )}`;
-      actions = `${dismiss("Close")}${hot("w10.retry-settlement-garden", btn("Retry arrangement", { kind: "pri", icon: "refresh-line" }))}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · contributor allocation required")}
+${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-garden Safe retains the declared garden amount and pays contributors; any protocol-to-garden funding is a separate route.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Create payout draft…", { kind: "pri" }))}`;
       break;
     case "queue-settlement-garden":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared reward", "25 G$")}${kv("Payer", "GG protocol Safe · Celo (owning pool)")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Settlement job", "Complete · disbursement #105 queued")}${banner(
-        "The app submitted the canonical G$ amount, owning-pool source, recipient, route, version, and gas limit. The Arbitrum garden account is attribution only and never receives G$; memberDeliveryEnabled was not consulted, and the permanent pointer prevents a second reward queue.",
+      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "25 G$")}${kv("Payer", "Awka Hub · provider garden Safe")}${kv("Garden retains", "5 G$")}${kv("Contributor children", "Maria 12 G$ · João 8 G$")}${banner(
+        "Saving creates an editable draft and derives payment weights from these amounts. Finalization separately verifies recognition, conservation, and canonical recipients before any child can dispatch.",
         "stone",
       )}`;
-      actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden-confirm", btn("Open queued reward", { kind: "pri" }))}`;
+      actions = `${dismiss()}${hot("w10.queue-settlement-garden-confirm", btn("Save draft", { kind: "pri" }))}`;
       break;
     case "not-found":
       body = emptyState(
@@ -1098,9 +1077,10 @@ ${banner("Fulfillment made this reward queue-ready. A signed-in app can create a
 ${kv("Maria → João", "6 hours · due Aug 12")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "João · Jul 12 · 2 of 2")}${kv("Provider", "Maria — cannot confirm")}
-${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid")}
-${banner("The reward moved, or will move, outside the app. Recording it here stores the rail reference only.", "stone")}`;
-      actions = `${dismiss("Close")}${hot("w10.record-payout", btn("Record payout", { kind: "pri" }))}`;
+${kv("Team", "Maria · lead; Ana and Kwame · contributors")}${kv("Recognition", "40% · 35% · 25% from approved contribution")}
+${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "500 G$ · provider-garden Safe")}${kv("Payment", "plan not yet saved")}
+${banner("The garden receives the commitment support, retains an explicit amount, then pays contributors through child deliveries.", "stone")}`;
+      actions = `${dismiss("Close")}${hot("w10.allocate-contributors", btn("Set recognition and payment…", { kind: "pri" }))}`;
       break;
     default:
       body = `${cmChips(chip("Offer", "offer"), chip("Ready", "warn", { dot: true }))}
@@ -1120,23 +1100,16 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
 }
 
 const W10_HOTS: HifiDef["hots"] = {
+  "w10.allocate-contributors": { l: "Set recognition and payment", to: "screen:W10@contributor-allocation", info: "Opens the steward editor with Hypercert recognition weights as the default payment weights." },
+  "w10.save-contributor-allocation": { l: "Create payout draft", to: "screen:W21@payout-plan-edit", info: "Creates the stable recognition-bound Draft with its canonical default, then opens the separate recoverable amount-vector edit. If the edit transaction is rejected, retry only setContributorPayouts; never recreate the parent.", calls: ["createCommitmentPayoutPlan"] },
+  "w10.all-retained-preview": { l: "Preview all-retained case", to: "screen:W21@payout-retained", info: "Shows the zero-child path: finalization completes the plan without CCIP or a self-transfer." },
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
   "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
-  "w10.queue-settlement-confirm": {
-    l: "View queued reward",
-    to: "screen:W21",
-    info: "CeloSettlement only: indexed Fulfillment created the separate settlement job, which permissionlessly derived the active owning-pool Safe source and canonical G$ delivery facts.",
-  },
-  "w10.retry-settlement": {
-    l: "Retry arrangement",
-    to: "screen:W10@queue-settlement-pending",
-    info: "Re-checks indexed queue readiness and the permanent pointer before restarting only this device's exhausted attempt. Fulfilled stays unchanged, and a competing exact pointer reconciles instead of queueing twice.",
-  },
-  "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
+  "w10.fallback": { l: "Confirm as fallback", to: "screen:W10@fallback-confirm", info: "Steward fallback with mandatory reason — a steward on the frozen commitment team is blocked on-chain (CS §6.1)." },
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "confirmFulfillmentAsFallback stores the steward's required reason; the member timeline renders the override marker.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
   "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143).", calls: ["raiseDispute"] },
-  "w10.resolve-options": { l: "Resolution outcomes", info: "RestorePrevious / Fulfilled / Cancelled / Expired, each with a required reason (CS:144)." },
+  "w10.resolve-options": { l: "Resolution outcomes", info: "This contributor-steward fixture exposes RestorePrevious / Cancelled / Expired only. Fulfilled is hidden because the on-chain SelfConfirmation guard would reject this actor; eligible non-contributor stewards receive the separately gated Fulfilled option (CS:144)." },
   "w10.resolve": { l: "Resolve", to: "screen:W2@ready-confirmer", info: "This fixture selects RestorePrevious, returning the exact stored ReadyForConfirmation state with no unit movement (LAP:186).", calls: ["resolveDispute"], resultFacts: { commitment: "ReadyForConfirmation" } },
   "w10.assessment-pick": { l: "Assessment picker", info: "Attach re-runs the auto-Ready check → CommitmentReadyForConfirmation (CS:740)." },
   "w10.attach": { l: "Attach assessment", to: "screen:W2@ready-confirmer", info: "attachAssessment → auto-Ready re-run (UX:287). Adopted MF-13 placement.", calls: ["attachAssessment"] },
@@ -1145,17 +1118,14 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.override-confirm": { l: "Mark ready (confirm)", to: "screen:W2@support-ready-confirmer", info: "Records the override reason; the member timeline keeps the service identity and shows the steward marked it ready (UX:294).", calls: ["markReadyForConfirmation"] },
   "w10.cancel": { l: "Cancel promise (steward)", to: "screen:W10@cancel", info: "MF-2b: steward cancel of an Accepted (or §4.1 Paused) promise — cancelCommitment (CS:745; AM:36-37)." },
   "w10.cancel-confirm": { l: "Cancel promise (confirm)", to: "screen:W2@support-cancelled", info: "Accepted → Cancelled with a recorded reason; units release; the member result keeps the SupportService cast and its reason (CS:745).", calls: ["cancelCommitment"] },
-  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. The provider — here a GardenAccount — is excluded from every confirmation path (CS:743).", calls: ["confirmFulfillment"] },
-  "w10.queue-settlement-garden": { l: "View arrangement", to: "screen:W10@queue-settlement-garden-pending", info: "CeloSettlement rail on a garden-claimed commitment; Fulfillment plus complete indexed prerequisites made the reward queue-ready for a signed-in app attempt, and Record payout is unavailable for this rail (rail exclusivity, AM §2)." },
-  "w10.retry-settlement-garden": {
-    l: "Retry garden reward arrangement",
-    to: "screen:W10@queue-settlement-garden-pending",
-    info: "Restarts only the exhausted Safe-to-Safe arrangement job. It does not consult the member-AA gate or reopen a terminal settlement.",
-  },
+  "w10.garden-confirm": { l: "Confirm — promise kept", to: "screen:W10@garden-fulfilled", info: "confirmFulfillment by a named protocol steward; takes no reason. Every frozen member of the providing garden's delivery team is excluded (CS §6.1).", calls: ["confirmFulfillment"] },
+  "w10.queue-settlement-garden": { l: "Set contributor payout", to: "screen:W10@queue-settlement-garden", info: "CeloSettlement rail on a garden-claimed commitment; recognition weights seed a provider-garden-funded payout plan, while Record payout remains unavailable (SS §3)." },
   "w10.queue-settlement-garden-confirm": {
-    l: "Open queued reward",
-    to: "screen:W21@protocol-queue",
-    info: "The app's permissionless queue job already derived the GG protocol source Safe and the providing garden's Celo Safe. Garden rewards do not depend on the member-AA gate (AM:43 · SS §3.1.3).",
+    l: "Create payout draft",
+    to: "screen:W21@payout-plan-edit",
+    info: "Creates the stable provider-garden Draft with its canonical recognition-bound default, then opens the separate amount-vector edit. A failed or rejected edit resumes here and retries only setContributorPayouts; finalization remains separate (SS §3.1.3).",
+    calls: ["createCommitmentPayoutPlan"],
+    facts: { commitment: "Fulfilled", settlementAccount: "Active" },
   },
   "w10.dismiss": { l: "Close dialog", to: "screen:W10", info: "Closes without applying the pending steward action." },
   "w10.retry": { l: "Retry promise read", to: "screen:W10", info: "Retries the promise read; the sentinel state never renders as a lifecycle chip." },
@@ -1168,6 +1138,7 @@ const W10_HOTS: HifiDef["hots"] = {
 
 const W11_STATES = [
   ["presets", "Presets"], ["invalid-sum", "Invalid sum"], ["guard", "Pool is Ready — open it?"],
+  ["recognition-policy", "Gardener recognition policy"],
   ["campaign-allocation", "Campaign · allocation"], ["campaign-open", "Campaign · open"],
   ["discard", "Discard changes?"], ["campaign-discard", "Campaign · discard changes?"],
 ] as const;
@@ -1205,11 +1176,11 @@ function w11(state: W11State): string {
   if (state === "guard" || state === "campaign-open") {
     const campaign = state === "campaign-open";
     const body = campaign
-      ? `${banner("The pool is already open, so opening this campaign only starts the campaign — it runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`
-      : `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`;
+      ? `${banner("The pool is already open, so opening this campaign only starts the campaign — it runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Recognition policy", "35% equal participation · 65% verified contribution")}`
+      : `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Recognition policy", "35% equal participation · 65% verified contribution")}`;
     const orderedCalls = campaign
       ? ""
-      : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation).", "stone");
+      : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation, recognitionPolicy).", "stone");
     return deskWin(
       "admin.greengoods.app/dashboard/garden/pool/open-cycle",
       flowDialog(w7Behind(campaign ? "open" : "ready"), "garden", {
@@ -1227,6 +1198,24 @@ function w11(state: W11State): string {
     );
   }
 
+  if (state === "recognition-policy")
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+      flowDialog(w7Behind("ready"), "garden", {
+        context: W11_CONTEXT(state),
+        title: "Gardener recognition",
+        steps: [{ title: "Policy", desc: "how the gardener class is shared" }],
+        current: 0,
+        body: `${banner("Every fulfilled commitment receives an equal commitment budget inside the gardener class. Choose how each commitment shares that budget between equal participation and verified contribution.", "stone", "information-line")}
+${field("Equal participation", input("35"))}${field("Verified contribution", input("65"))}
+${kv("Policy total", "100% · valid")}${kv("Commitment budget", "equal across fulfilled commitments")}
+${kv("No eligible contributors", "certificate expansion blocked · no lead fallback")}${kv("Repair", "proof link + steward reason + before/after audit")}
+${banner("The two editable fields are stored as 3,500 / 6,500 bps when the cycle opens. Recognition weights are the default for payment, but do not themselves move funds.", "amber")}`,
+        cancelHot: "w11.cancel",
+        next: hot("w11.recognition-done", btn("Use this policy", { kind: "pri" })),
+      }),
+    );
+
   const bad = state === "invalid-sum";
   const rows = [
     ["Gardeners", bad ? "64" : "60"], ["Treasury", "15"], ["Steward", "10"],
@@ -1240,6 +1229,7 @@ function w11(state: W11State): string {
   const inner = `<div class="t-meta">Set how each fulfilled promise's units split across the six roles.</div>
 ${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }], { interactive: true, name: "allocation-preset" })))}
 ${rows}${sum}
+${hot("w11.recognition", field("Gardener recognition", `<div class="arow"><div class="grow">${input("35")}<span class="t-meta">% equal</span></div><div class="grow">${input("65")}<span class="t-meta">% verified</span></div></div><div class="quietok">${icon("check-line")}total: 100%</div>`))}
 ${banner("Treasury is at the 15% guidance floor. This split is locked when the cycle opens and reads back unchanged at close.", "stone")}`;
   const campaign = w11IsCampaign(state);
   return deskWin(
@@ -1261,20 +1251,22 @@ ${banner("Treasury is at the 15% guidance floor. This split is locked when the c
 }
 
 const W11_HOTS: HifiDef["hots"] = {
+  "w11.recognition": { l: "Edit recognition policy", to: "screen:W11@recognition-policy", info: "Edits both equal-participation and verified-contribution percentages; the two fields must total 100% and are submitted with openCycle." },
+  "w11.recognition-done": { l: "Use recognition policy", to: "screen:W11", info: "Returns to the six-class allocation with the entered 35/65 within-gardener policy retained for this cycle." },
   "w11.presets": { l: "Allocation presets", info: "Presets prefill an editable percent editor; the protocol allocation class renders as “steward” (Decision Log #28c)." },
   "w11.continue": { l: "Continue to open", to: "screen:W11@guard", info: "Allocation → the open step, which carries the Ready-pool guard prompt." },
   "w11.back": { l: "Back to allocation", to: "screen:W11", info: "Steps back to the six-role split with the entered values retained." },
   "w11.cancel": { l: "Cancel open-cycle", to: "screen:W11@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard, scoped to this flow." },
   "w11.keep-editing": { l: "Keep editing", to: "screen:W11", info: "Returns to the allocation editor with the entered shares intact." },
   "w11.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the open-cycle flow; the cycle stays Seeded." },
-  "w11.open-cycle": { l: "Open pool and cycle", to: "screen:W7", info: "Two ordered writes: openPool(poolId), then openCycle(cycleId, allocation). The cycle call validates, stores, and emits the complete six-class snapshot; shares must total 100% (UX:322-330).", calls: ["openPool", "openCycle"] },
+  "w11.open-cycle": { l: "Open pool and cycle", to: "screen:W7", info: "Two ordered writes: openPool(poolId), then openCycle(cycleId, allocation, recognitionPolicy). The cycle call validates, stores, and emits both complete snapshots; each percentage group must total 100% (UX:322-333).", calls: ["openPool", "openCycle"] },
   // Campaign path — same flow from an already-Open pool, so no guard prompt.
   "w11.campaign-continue": { l: "Continue to open", to: "screen:W11@campaign-open", info: "Allocation → the open step. The pool is already Open, so this step opens only the campaign." },
   "w11.campaign-back": { l: "Back to allocation", to: "screen:W11@campaign-allocation", info: "Steps back to this campaign's six-role split with the entered values retained." },
   "w11.campaign-cancel": { l: "Cancel open-cycle", to: "screen:W11@campaign-discard", info: "A dirty flow confirms before discarding; Keep editing returns to the campaign flow, not the Season one." },
   "w11.campaign-keep-editing": { l: "Keep editing", to: "screen:W11@campaign-allocation", info: "Returns to the campaign allocation editor with the entered shares intact." },
   "w11.campaign-discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow; the campaign stays Seeded." },
-  "w11.campaign-open-cycle": { l: "Open campaign", to: "screen:W7", info: "openCycle(cycleId, allocation) on a pool that is already Open — any number of Campaigns may run concurrently beside the one Season (UX:66 · CS:114).", calls: ["openCycle"] },
+  "w11.campaign-open-cycle": { l: "Open campaign", to: "screen:W7", info: "openCycle(cycleId, allocation, recognitionPolicy) on a pool that is already Open — any number of Campaigns may run concurrently beside the one Season (UX:66 · CS:114).", calls: ["openCycle"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -1430,8 +1422,8 @@ ${banner("Existing Work stage — approval rails untouched.", "stone")}`,
 }
 
 const HUBWORK_HOTS: HifiDef["hots"] = {
-  "hub.approve": { l: "Approve", to: "screen:HUBWORK", info: "Existing WorkApproval rails → onWorkApproved → ApprovedWorkCounted (CS:737)." },
-  "hub.reject": { l: "Reject", info: "Existing work-rejection rail with a recorded reason; no pooling-specific behavior." },
+  "hub.approve": { l: "Approve", to: "screen:HUBWORK", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted while the linked commitment is Accepted and unfrozen." },
+  "hub.reject": { l: "Reject", info: "A newer rejection decision reaches onWorkDecision and emits ApprovedWorkReversed when it replaces active pre-freeze credit." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1440,7 +1432,9 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
   if (state === "not-ready" || state === "preflight-complete") return { pool: "NotReady" };
   if (state === "ready" || state === "seed-cycle") return { pool: "Ready" };
   if (state === "open-no-cycle") return { pool: "Open" };
-  if (state === "paused" || state === "paused-cancel-cycle-confirm") return { pool: "Paused", cycle: "Open" };
+  if (state === "paused") return { pool: "Paused", cycle: "Open" };
+  if (state === "paused-cancel-cycle-confirm")
+    return { pool: "Paused", cycle: "Open", cycleLiveCommitments: "Zero" };
   if (state === "paused-cycle-composted" || state === "paused-close-pool-confirm")
     return { pool: "Paused", cycle: "Composted" };
   if (state === "pool-closed" || state === "compost-pool-confirm") return { pool: "Closed", cycle: "Composted" };
@@ -1452,18 +1446,22 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
     return { pool: "Open", cycle: "Open", commitment: "Requested", kind: "SupportService" };
   if (state === "claim-outcomes")
     return { pool: "Open", cycle: "Open", commitment: "Accepted", kind: "SupportService" };
+  if (state === "cancel-cycle-confirm")
+    return { pool: "Open", cycle: "Open", cycleLiveCommitments: "Zero" };
   return { pool: "Open", cycle: "Open" };
 };
 
 const w10Facts = (state: W10State): StateFacts | undefined => {
   if (state === "not-found") return undefined;
   const context = { pool: "Open" as const, cycle: "Open" as const };
-  if ([
-    "fulfilled", "record-payout",
-    "queue-settlement-pending", "queue-settlement-blocked", "queue-settlement-failed", "queue-settlement",
-    "garden-fulfilled",
-    "queue-settlement-garden-pending", "queue-settlement-garden-failed", "queue-settlement-garden",
-  ].includes(state))
+  if (["contributor-allocation", "queue-settlement-garden"].includes(state))
+    return {
+      ...context,
+      commitment: "Fulfilled",
+      kind: "DomainImpact",
+      settlementAccount: "Active",
+    };
+  if (["external-fulfilled", "fulfilled", "contributor-allocation", "record-payout", "garden-fulfilled", "queue-settlement-garden"].includes(state))
     return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
   if (["detail", "fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
     return { ...context, commitment: "ReadyForConfirmation", kind: "DomainImpact" };

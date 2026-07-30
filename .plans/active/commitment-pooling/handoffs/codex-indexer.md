@@ -55,24 +55,13 @@
 - Commitment-keyed request index that marks accept/decline/supersede without a database-wide scan.
 - Full Garden.id migration to chainId-lowercaseAddress with replay/backfill, every foreign-key/helper/query/fixture cutover, and no mixed-ID interval.
 - Nullable generic audit actor populated only from explicit event parameters, never transaction.from.
-- Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and explicit `RewardRail` plus derived reward facts. `rewardRecipient` is the ArbitrumExternal `RewardPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs, and legacy Work-bundle readability.
-- The read model exposes deterministic settlement queue readiness for an indexed Fulfilled
-  commitment only when **all** source-call prerequisites hold: SettlementModule is unpaused; the
-  owning-pool settlement account is active; the declared reward rail is exactly
-  `CeloSettlement`; declared source, token, and non-zero amount match the canonical owning-pool
-  Safe and configured G$; no historical commitment-disbursement pointer exists; and the
-  beneficiary route is ready. Garden readiness joins the active registered `providerGarden` Safe
-  without the member-delivery gate. Individual readiness requires the stored provider AA plus
-  `memberDeliveryEnabled`. The query returns bounded blocker codes for every false prerequisite
-  but never marks a blocked commitment job-ready. It also returns the exact first-and-only pointer
-  whenever present; Cancelled and all other terminal pointers remain queryable and permanently
-  ineligible.
-- Queue readiness and blocker codes are re-evaluated/backfilled when module pause/dependency
-  configuration, settlement-account activation, member-delivery gate, funding/token
-  configuration, commitment reward facts, Fulfillment, or commitment-pointer events change. A
-  consumer never has to infer eligibility from stale joined rows.
+- Commitment read model persists provider, providerGarden composite relation, preDisputeState, positional requirement rows (`requirementIndex`, domain/action, required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and explicit `RewardRail` plus derived reward facts. `rewardRecipient` is the ArbitrumExternal `RewardPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs, legacy Work-bundle readability, and certificate-scoped `HypercertCommitmentContributorAllocation` rows; integer recognition units never live on or overwrite the commitment contributor.
 - `CommitmentUnitSummary` is keyed by `chainId-scope-scopeId-unitLabelHash`, where the hash is computed from exact stored UTF-8 label bytes. POOL and CYCLE rows keep expected, approved, fulfilled, and open units only for that exact hash; `hours` and `Hours` never merge.
 - `CommitmentProviderExposure` is keyed by chain, pool, and provider and stores only the current open commitment count.
+- `CommitmentCycle.liveCommitmentCount` mirrors the on-chain close/cancel guard independently of
+  accepted-only exposure: non-zero-cycle `CommitmentCreated` increments it, and the first
+  Fulfilled/Cancelled/Expired transition decrements it. Offered/Requested rows therefore block
+  close in the indexed read model exactly as they do on-chain.
 - Generated-config preservation changes and a regression fixture proving
   `CommitmentPoolingModule`, `CommitmentRegister`, `SettlementModule`, and
   `CeloSettlementExecutor` blocks survive repeated artifact updates on every applicable
@@ -87,14 +76,26 @@
   verified configuration seed's non-null `remoteEvmChainId`; handlers fail closed when it is null
   and never translate selectors into EVM chain IDs or substitute the local Celo event chain.
 - Full replay produces no raw-address Garden lookup and shared consumers are cut over to the replayed dataset.
-- Settlement queue readiness equals the full `queueDisbursement` precondition conjunction above;
-  fixtures cover every blocker independently, Garden-versus-Individual beneficiary differences,
-  and re-evaluation after each relevant configuration/account/gate/reward event. No partial
-  conjunction is exposed as job-ready.
 - Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
-- Claim acceptance consumes the stored request identity and supersedes only still-pending sibling requests through the companion index.
+- ApprovalGated claim acceptance consumes the stored request identity and supersedes only
+  still-pending sibling requests through the companion index; Open acceptance has no request row
+  and stores the emitted authenticated requester as the Garden Request lead.
+- Evidence replay preserves every distinct attribution row but changes a contributor's
+  `evidenceCredits` only on the first 0-to-1 transition. Multiple CIDs attributed to the same
+  contributor never multiply recognition, while the first attribution to another contributor
+  adds exactly one participation credit.
+- A `COMMITMENT` ClaimStored replay upserts
+  `HypercertCommitmentContributorAllocation` by
+  `chainId-hypercertId-commitmentId-lowercaseContributor`. Reusing one fulfilled commitment in
+  two Hypercerts produces distinct unit rows and never overwrites either certificate or the
+  contributor's stable commitment-level `recognitionWeightBps`.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
-- `ApprovedWorkCounted` updates exactly the matching `requirementIndex`, replaces that row's cumulative count, stores event-emitted per-commitment `approvedUnits`, and increments only the matching exact-label pool/cycle summary by `newlyApprovedUnits`. `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values are never summed or re-derived.
+- `ApprovedWorkCounted` and `ApprovedWorkReversed` update exactly the matching
+  `requirementIndex`, replace that row's cumulative count, and store the event-emitted
+  per-commitment `approvedUnits`. The count event adds `newlyApprovedUnits`; the reversal event
+  subtracts `removedApprovedUnits` from only the matching exact-label pool/cycle summary.
+  `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values
+  are never summed or re-derived.
 - `CommitmentAccepted` stores the canonical claimant/counterparty/provider/providerGarden and
   resolves claim-request rows, but it never mutates count exposure. `UnitsCommitted` is the
   sole increment for pool/cycle open counts and `CommitmentProviderExposure`; `UnitsReleased`
@@ -113,9 +114,6 @@
 - Pool/cycle entities retain state counts and expose no raw-unit aggregate fields; no handler or query adds unlike label hashes.
 - Queued, Dispatched, Celo executed/acknowledgment-pending, Confirmed, authenticated execution Failed, transport-delayed, same-key command retry, acknowledgment retry, and per-member recovery remain distinguishable.
 - `DisbursementCancelled` persists whether an individual cancellation came from an unbatched Queued item or from an authenticated Failed result; a failed member is never made to look like a pre-dispatch withdrawal.
-- Both individual and batch cancellation preserve each commitment's first-and-only disbursement
-  pointer. Replaying either event cannot clear eligibility state or make a terminal reward appear
-  queueable again.
 - `BatchCancelled(uint256 indexed batchId,address indexed actor,string reasonCID)` atomically marks the still-Queued batch and every immutable member Cancelled-from-Queued in one replay-idempotent handler. No indexed state can present a partially cancelled Queued batch.
 - `SettlementExecutionStored` records the bounded Celo executor transaction, exact authenticated acknowledgment receiver, decoded `isBatch`, settlement ID, and attempt, and derives acknowledgment-pending without waiting for an Arbitrum join. `AcknowledgmentDeferred` stores the bounded quote/reserve/send deferral code; only Arbitrum `SettlementAcknowledged(success=true)` makes canonical state Confirmed.
 - `AcknowledgmentSent(...,fee,reserveFunded)` decrements the indexed CELO reserve only when `reserveFunded == true`; an exact caller-funded retry creates its message row without reducing protocol reserves. Arbitrum command sends always reduce the source reserve by their emitted fee.
@@ -170,3 +168,52 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 - Garden replay procedure, pre-replay snapshot, switch criterion, rollback package, and accountable owner Afolabi Aiyeloja are named. The implementer produces the rehearsal; `human-release-ops.md` owns the authorized live cutover.
 - Updater/boundary allowlist changes and preservation fixture are part of the lane.
 - RED fixture evidence is recorded; final GREEN includes codegen, generated build, boundary check, targeted handlers, and package build.
+
+## Binding architecture amendment — 2026-07-28
+
+- Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence
+  attribution without positional-domain assumptions. Maintain
+  `CommitmentContributor.uncountedLinkedWorkCount` from WorkLinked, WorkUnlinked,
+  ApprovedWorkCounted, and ApprovedWorkReversed. Track the emitted resolver-owned
+  `latestDecisionSequence`, audit UID, and active-credit state from those explicit events; a
+  reversal restores the uncounted-linked count and removes one
+  contributor credit before freeze. The unlink handler resolves the contributor from the
+  existing Work attribution row before removing it. `CommitmentEvidenceAttributionIndex` owns the
+  stable IDs loaded on fulfillment; no handler scan is permitted. Evidence rows remain repeatable
+  provenance, but the handler mirrors the 0-or-1 on-chain `evidenceCredits` value per contributor
+  instead of incrementing it for every CID.
+  `WorkUnlinked` remains valid whenever the durable attribution's current `creditActive` is false,
+  including after `ApprovedWorkReversed`; a historical approval delivery marker is never used as
+  current-credit state.
+- Materialize the recognition inputs and deterministic gardener-share output: equal budget per
+  fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less
+  20/80 default among eligible contributors. Only the frozen effective Work decision contributes.
+  Expand each commitment's 10,000-bps vector into its integer unit budget using the canonical
+  largest-fractional-remainder and ascending-address tie-break pass. Zero eligible contributors
+  produce a blocking W26 inconsistent-state review item, never a lead fallback or metadata repair.
+  Keep stable bps on `CommitmentContributor`, and persist each integer result on
+  `HypercertCommitmentContributorAllocation` so every certificate owns an immutable allocation
+  snapshot even when commitments are bundled again.
+- Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each
+  later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer.
+  Buffer every version-tagged `ContributorPayoutSet` row by `(payoutPlanId,
+  paymentSnapshotVersion)` and atomically publish a replacement only when the trailing
+  `CommitmentPayoutSnapshotCommitted` row count and payment hash match; that event owns retention,
+  contributor total, version, reason, and actor without an RPC read. Recompute the hash only from
+  chain ID, plan ID, version, retention, contributor total, and the ordered immutable
+  `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Never hash
+  disbursement IDs, inclusion flags, or child counters. Keep payment weights
+  amount-derived and derive parent status from finalization, unprepared payable rows, and child
+  counters; do not infer payment from Hypercert weights or raw token transfers.
+- Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
+  `ReadyForConfirmation` and direct `Disputed -> Fulfilled`, one-credit-per-Work replay, stale
+  catch-up rejection before mutation, unlink after effective rejection, exact
+  `liveCommitmentCount` including Offered/Requested,
+  one-evidence-participation-credit across multiple CIDs, the same commitment in two
+  certificate-scoped allocation snapshots, opened
+  cycle policy and cycle-less default, zero-eligible inconsistent-state blocking with no metadata
+  repair, version-1 untouched-plan replay with the canonical immutable-row hash, a later complete
+  version replacement, child preparation that leaves the hash unchanged, incomplete or
+  mismatched snapshot rejection, reasoned payment correction, all-retained zero-child finalization,
+  idempotent preparation, stable pointer after child/batch cancellation, duplicate-recipient batch
+  rejection, partial payout, retry, and complete payout.

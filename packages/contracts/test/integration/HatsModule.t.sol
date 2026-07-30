@@ -436,6 +436,30 @@ contract HatsModuleTest is Test {
         assertTrue(adapter.isOperatorOf(garden1, user1), "User should be operator");
     }
 
+    function test_isStewardOf_matchesDeprecatedOperatorAlias() public {
+        adapter.configureGarden(
+            garden1,
+            GARDEN1_OWNER_HAT,
+            GARDEN1_OPERATOR_HAT,
+            GARDEN1_EVALUATOR_HAT,
+            GARDEN1_GARDENER_HAT,
+            GARDEN1_FUNDER_HAT,
+            GARDEN1_COMMUNITY_HAT
+        );
+        mockHats.setWearer(GARDEN1_OPERATOR_HAT, user1, true);
+
+        assertEq(adapter.isStewardOf(garden1, user1), adapter.isOperatorOf(garden1, user1), "Wearer parity");
+        assertEq(adapter.isStewardOf(garden1, user2), adapter.isOperatorOf(garden1, user2), "Non-wearer parity");
+    }
+
+    function test_isStewardOf_revertsForUnconfiguredGardenLikeDeprecatedAlias() public {
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.GardenNotConfigured.selector, garden1));
+        adapter.isStewardOf(garden1, user1);
+
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.GardenNotConfigured.selector, garden1));
+        adapter.isOperatorOf(garden1, user1);
+    }
+
     function test_isOwnerOf_returnsTrueForHatWearer() public {
         adapter.configureGarden(
             garden1,
@@ -812,6 +836,9 @@ contract HatsModuleTest is Test {
         assertGt(gardenerHatId, 0, "Gardener hat should be set");
         assertGt(funderHatId, 0, "Funder hat should be set");
         assertGt(communityHatId, 0, "Community hat should be set");
+
+        (string memory stewardDetails,,,,,,,,) = mockHats.viewHat(operatorHatId);
+        assertEq(stewardDetails, "Garden Two Steward", "New role hats should use the Steward label");
     }
 
     function test_createGardenHatTree_mintsAdminHatToGardenAndModule() public {

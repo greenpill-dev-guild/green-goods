@@ -1,0 +1,856 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-28T08:17:15.766Z",
+  "network": "arbitrum",
+  "chainId": "42161",
+  "blockNumber": "488539541",
+  "rpcUrl": "https://arb1.arbitrum.io/rpc",
+  "gardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+  "gardenAccountImpl": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+  "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
+  "hatsProtocol": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+  "expectedCaller": null,
+  "gardenCount": 18,
+  "mintEnumeration": {
+    "event": "Transfer(address,address,uint256)",
+    "strategy": "full-range",
+    "fromBlock": "0",
+    "toBlock": "488539541",
+    "chunkCount": 1,
+    "minimumChunkSize": "488539542",
+    "maximumChunkSize": "488539542"
+  },
+  "warnings": ["Deployment artifact records root token 1; live root address is token 0"],
+  "authorizationModel": "Each GardenAccount wears its garden admin hat. Its current GardenToken owner must call GardenAccount.execute.",
+  "partitionCount": 15,
+  "partitions": [
+    {
+      "controller": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "0",
+          "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+          "operatorHatId": "2480315916136414719231667453646948543306174011217524382706434853306368",
+          "currentDetails": "Green Goods Community Garden Operator",
+          "targetDetails": "Green Goods Community Garden Steward",
+          "to": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c0002000100010002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024477265656e20476f6f647320436f6d6d756e6974792047617264656e205374657761726400000000000000000000000000000000000000000000000000000000",
+            "operation": "0"
+          }
+        },
+        {
+          "tokenId": "1",
+          "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+          "operatorHatId": "2480315916136414815012638757765002190702863208111848358877629989781504",
+          "currentDetails": "Aiyeloja Family Garden Operator",
+          "targetDetails": "Aiyeloja Family Garden Steward",
+          "to": "0xF7b892886998DAe960D64a9db488336684F137A0",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c000200010002000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000001e416979656c6f6a612046616d696c792047617264656e20537465776172640000",
+            "operation": "0"
+          }
+        },
+        {
+          "tokenId": "13",
+          "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+          "operatorHatId": "2480315916136415964384294407181645959463133570843736072931971627483136",
+          "currentDetails": "Vida Verde Operator",
+          "targetDetails": "Vida Verde Steward",
+          "to": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000e00020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000125669646120566572646520537465776172640000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x6855B23D93f57851d30a324B00f17f9baf34Ac02",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "2",
+          "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+          "operatorHatId": "2480315916136414910793610061883055838099552405006172335048825126256640",
+          "currentDetails": "TAS HUB Operator",
+          "targetDetails": "TAS HUB Steward",
+          "to": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c000200010003000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000f5441532048554220537465776172640000000000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x3C41f941098681bfDb14ed423709CC7C29c1e5e6",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "3",
+          "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+          "operatorHatId": "2480315916136415006574581366001109485496241601900496311220020262731776",
+          "currentDetails": "Greenpill London Operator",
+          "targetDetails": "Greenpill London Steward",
+          "to": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c0002000100040002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000018477265656e70696c6c204c6f6e646f6e20537465776172640000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x13126B6859FB72D3956797d94c99078B40294679",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "4",
+          "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+          "operatorHatId": "2480315916136415102355552670119163132892930798794820287391215399206912",
+          "currentDetails": "GreenSofa Operator",
+          "targetDetails": "GreenSofa Steward",
+          "to": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c0002000100050002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000011477265656e536f66612053746577617264000000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x4E9dD8389F25f2797Dfc3E0aFE761A1F2D638b7E",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "5",
+          "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+          "operatorHatId": "2480315916136415198136523974237216780289619995689144263562410535682048",
+          "currentDetails": "Muizenberg Community Garden Operator",
+          "targetDetails": "Muizenberg Community Garden Steward",
+          "to": "0xbcCE994513615988690aBCA373B1368218E4957C",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000600020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000234d75697a656e6265726720436f6d6d756e6974792047617264656e20537465776172640000000000000000000000000000000000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x7E6cfcA6edc4a20Bd84146825c78dff5962D8D4f",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "6",
+          "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+          "operatorHatId": "2480315916136415293917495278355270427686309192583468239733605672157184",
+          "currentDetails": "Rifai Sicilia Operator",
+          "targetDetails": "Rifai Sicilia Steward",
+          "to": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c0002000100070002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000015526966616920536963696c696120537465776172640000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0xAcD59e854adf632d2322404198624F757C868C97",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "7",
+          "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+          "operatorHatId": "2480315916136415389698466582473324075082998389477792215904800808632320",
+          "currentDetails": "Growecosystems Operator",
+          "targetDetails": "Growecosystems Steward",
+          "to": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c000200010008000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000001647726f7765636f73797374656d73205374657761726400000000000000000000",
+            "operation": "0"
+          }
+        },
+        {
+          "tokenId": "17",
+          "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+          "operatorHatId": "2480315916136416347508179623653860549049890358421031977616752173383680",
+          "currentDetails": "abundance islands Operator",
+          "targetDetails": "abundance islands Steward",
+          "to": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001001200020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000196162756e64616e63652069736c616e6473205374657761726400000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0xF3Ad97364bcCC3eA0582Ede58C363888f8C4ec85",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "8",
+          "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+          "operatorHatId": "2480315916136415485479437886591377722479687586372116192075995945107456",
+          "currentDetails": "AgroforestDAO Operator",
+          "targetDetails": "AgroforestDAO Steward",
+          "to": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000900020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000154167726f666f7265737444414f20537465776172640000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0xd30CAa4260A16994510d5858A2f4ce7Bb506a294",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "9",
+          "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+          "operatorHatId": "2480315916136415581260409190709431369876376783266440168247191081582592",
+          "currentDetails": "ReFi Barcelona Operator",
+          "targetDetails": "ReFi Barcelona Steward",
+          "to": "0x636962584b1F492B06151Fee87810281372879b6",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000a0002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000016526546692042617263656c6f6e61205374657761726400000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x7D85fCbB505D48E6176483733b62b51704e0bF95",
+      "controllerHasCode": true,
+      "transactions": [
+        {
+          "tokenId": "10",
+          "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+          "operatorHatId": "2480315916136415677041380494827485017273065980160764144418386218057728",
+          "currentDetails": "DeCleanup Network Action garden Operator",
+          "targetDetails": "DeCleanup Network Action garden Steward",
+          "to": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000b00020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000274465436c65616e7570204e6574776f726b20416374696f6e2067617264656e205374657761726400000000000000000000000000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x44770D93e1a426DDAf5923a738eaCe3D2FB65BC1",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "11",
+          "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+          "operatorHatId": "2480315916136415772822351798945538664669755177055088120589581354532864",
+          "currentDetails": "Greenpill Kenya Operator",
+          "targetDetails": "Greenpill Kenya Steward",
+          "to": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000c0002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000017477265656e70696c6c204b656e79612053746577617264000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x099e47B757cf7224C863b637Aa04485c79669621",
+      "controllerHasCode": true,
+      "transactions": [
+        {
+          "tokenId": "12",
+          "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+          "operatorHatId": "2480315916136415868603323103063592312066444373949412096760776491008000",
+          "currentDetails": "Live Garden Coop Operator",
+          "targetDetails": "Live Garden Coop Steward",
+          "to": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000d00020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000184c6976652047617264656e20436f6f7020537465776172640000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "14",
+          "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+          "operatorHatId": "2480315916136416060165265711299699606859822767738060049103166763958272",
+          "currentDetails": "Mama Gardens Operator",
+          "targetDetails": "Mama Gardens Steward",
+          "to": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001000f00020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000144d616d612047617264656e732053746577617264000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0xF4e43840cB77aCe48Bb4DB33409C8AFA84D88888",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "15",
+          "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+          "operatorHatId": "2480315916136416155946237015417753254256511964632384025274361900433408",
+          "currentDetails": "La Ligne Verte Operator",
+          "targetDetails": "La Ligne Verte Steward",
+          "to": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c00020001001000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000164c61204c69676e65205665727465205374657761726400000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x5Edc7e2ad462e670f1f9faCe7b25987800267dd2",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "16",
+          "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+          "operatorHatId": "2480315916136416251727208319535806901653201161526708001445557036908544",
+          "currentDetails": "Greenpill Nigeria Operator",
+          "targetDetails": "Greenpill Nigeria Steward",
+          "to": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e0000005c0002000100110002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000019477265656e70696c6c204e696765726961205374657761726400000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    }
+  ]
+}

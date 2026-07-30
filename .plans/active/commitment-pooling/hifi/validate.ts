@@ -33,10 +33,10 @@ const warn: string[] = [];
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
-  | "pool" | "cycle" | "commitment"
-  | "settlementAccount" | "beneficiarySettlementAccount" | "queueFundingAuthority" | "disbursement";
+  | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
+  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "queueFundingAuthority", "disbursement",
+  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
@@ -56,6 +56,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
+  joinCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  leaveCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  addContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  removeContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  setContributorRequirement: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachEvidence: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "EvidenceSubmitted" },
   linkWork: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachAssessment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation", kinds: ["DomainImpact"] },
@@ -80,31 +85,43 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   reopenPool: { key: "pool", allowed: ["Composted"], next: "Ready" },
   seedCycle: { key: "pool", allowed: ["Ready", "Open"], effects: { cycle: "Seeded" } },
   openCycle: { key: "cycle", allowed: ["Seeded"], next: "Open", requires: { pool: ["Open"] } },
-  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled" },
+  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled", requires: { cycleLiveCommitments: ["Zero"] } },
   compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
-  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
+  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled", requires: { cycleLiveCommitments: ["Zero"] } },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
-  queueDisbursement: {
+  createCommitmentPayoutPlan: {
     key: "commitment",
     allowed: ["Fulfilled"],
+    effects: { payoutPlan: "Draft" },
+    requires: { settlementAccount: ["Active"] },
+  },
+  setContributorPayouts: {
+    key: "payoutPlan",
+    allowed: ["Draft"],
+    requires: { settlementAccount: ["Active"] },
+  },
+  finalizeCommitmentPayoutPlan: {
+    key: "payoutPlan",
+    allowed: ["Draft"],
+    resultAllowed: ["Pending", "Complete"],
+    requires: { settlementAccount: ["Active"] },
+  },
+  prepareContributorPayout: {
+    key: "payoutPlan",
+    allowed: ["Pending", "Partial"],
     effects: { disbursement: "Queued" },
-    requires: {
-      settlementAccount: ["Active"],
-      beneficiarySettlementAccount: ["NotRequired", "Active"],
-    },
+    requires: { settlementAccount: ["Active"] },
   },
   queueFunding: {
     key: "settlementAccount",
     allowed: ["Active"],
     effects: { disbursement: "Queued" },
-    requires: {
-      beneficiarySettlementAccount: ["Active"],
-      queueFundingAuthority: ["ProtocolSteward", "ModuleOwner"],
-    },
+    requires: { beneficiarySettlementAccount: ["Active"] },
   },
-  createBatch: { key: "disbursement", allowed: ["Queued"] },
-  dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
-  dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
+  createBatch: { key: "disbursement", allowed: ["Queued"], requires: { settlementAccount: ["Active"] } },
+  dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
+  dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
+  retryCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryBatchCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
   cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },
@@ -264,7 +281,7 @@ const ADMIN_HERO: [RegExp, string][] = [
 ];
 
 // The contract's reason-taking confirmable acts (CS:795 + pausePool CS:725,
-// cancelCycle CS:104, cancelDisbursement/cancelBatch SS §3.1.2). Enforced in
+// cancelCycle CS:104, cancelDisbursement/cancelBatch SS:297-298). Enforced in
 // BOTH directions: a confirm for one of these must show the reason field, and a
 // confirm for anything else must NOT invent one — a required reason on
 // closePool (which takes none, CS:556) is how the artifact once taught a

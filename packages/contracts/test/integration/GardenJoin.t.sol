@@ -75,6 +75,10 @@ contract MockHatsModuleForJoin is IHatsModule {
         return roles[garden][account][uint8(GardenRole.Operator)];
     }
 
+    function isStewardOf(address garden, address account) external view returns (bool) {
+        return roles[garden][account][uint8(GardenRole.Operator)];
+    }
+
     function isOwnerOf(address garden, address account) external view returns (bool) {
         return roles[garden][account][uint8(GardenRole.Owner)];
     }

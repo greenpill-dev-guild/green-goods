@@ -452,7 +452,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Do we enable commitment fulfillment just from actions being completed?",
     verdict: "answered",
     finding:
-      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every per-action requirement reaches its required count and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with the provider excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
+      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every action/count requirement is met and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with every frozen team member excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
     cites:
       "contract-spec.md §5.3 transition tables + locked fulfillment posture · Linear PRD-649 and the Lifecycle & Aggregator Semantics doc",
   },
@@ -460,17 +460,15 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Can a commitment have multiple requirements attached?",
     verdict: "answered",
     finding:
-      "Yes — up to four. DomainImpact commitments store positional arrays (`domains[]`, `requiredActionUIDs[]`, `requiredApprovedWorkCounts[]`): unique domains, max 4, every required count non-zero; each work approval credits exactly one requirement via `requirementIndex`, and approved units are the weighted sum across requirements. Evidence-only kinds carry zero. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1 `CommitmentRequirement`) are what members see between Accepted and Ready. D7.1 draws the 1:N shape.",
-    cites: "contract-spec.md §5.3 storage + §8.2 `CommitmentRequirement` · Decision Log #28(a) and #39",
+      "Yes. DomainImpact commitments store repeatable `CommitmentRequirement { actionUID, requiredCount }` rows. Actions may share a domain; domain tags are derived from ActionRegistry rather than stored as a positional uniqueness constraint. Every required count is non-zero, each work approval credits one requirement, and approved units are the weighted sum across requirements. Evidence-only kinds carry none. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1) are what members see between Accepted and Ready. The UI starts with four rows but may add more; implementation benchmarks 8/16/24/32 before freezing `MAX_REQUIREMENTS` (provisional 16).",
+    cites: "contract-spec.md §5.3 + §8.2 · Decision Log #21 and #63",
   },
   {
     question: "How are hypercerts shares determined?",
-    verdict: "answered-gap",
+    verdict: "answered",
     finding:
-      "Decided at the class level: a six-role bps snapshot (gardeners / treasury / steward / evaluator / community / funder) is frozen at `openCycle`, must sum to 10,000, and ships a Model 1 default of 6000/1500/1000/500/500/500. Open at the contributor level: how a class’s share divides among its members — the gardeners’ 6000 across N fulfilled-commitment providers — is app-computed and unspecified, and raw units never mix across commitments (Decision Log #45), which rules out the most obvious weighting. D7c draws the expansion honestly as a black box.",
-    rider:
-      "Reuse the shipped hypercert `DistributionMode` picker (equal · proportional · count · value · custom) at cycle close, defaulting to `equal` within each class; `count`-by-fulfilled-commitments is the unit-safe alternative. Trade-off: per-mint steward flexibility versus one fixed rule’s predictability.",
-    cites: "contract-spec.md §9.4–9.5 · packages/shared/src/lib/hypercerts/distribution.ts (shipped precedent)",
+      "The six-role class snapshot is still frozen at `openCycle` and must sum to 10,000. Within the gardeners class, each fulfilled commitment receives an equal budget so unrelated work units never mix. That budget then shares 20% equally among eligible contributors and allocates 80% by verified contribution, with deterministic remainder handling. There is no lead or metadata-only fallback: Ready and direct Fulfilled dispute resolution require at least one verified contributor, and W26 blocks inconsistent legacy/indexed zero-eligible state. The cycle-open snapshot makes certificate policy predictable; cycle-less commitments use the immutable protocol 20/80 default for recognition and payment only and are not certificate eligible because they have no six-role allocation. Payment corrections remain separate from recognition. D7c and D17 draw the full expansion.",
+    cites: "contract-spec.md §9.4–9.6 · settlement-spec.md §3 · Decision Log #64–#67",
   },
   {
     question: "How is gas covered for CCIP actions; can the user pay instead of the protocol?",
@@ -485,11 +483,11 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
     verdict: "answered",
     finding:
-      "Yes for commitment-earned rewards; no for discretionary treasury seeding. The protocol pool is the root garden's ordinary commitment pool, so an indexed Fulfilled `CeloSettlement` commitment becomes queue-ready only when the full source and beneficiary prerequisite set is true. A signed-in app may then create one per-user/per-device `settlement` attempt; every send/retry re-reads the permanent onchain pointer, which coordinates competing apps globally. The attempt permissionlessly calls fully derived, idempotent `queueDisbursement(commitmentId)`; Fulfillment is the economic approval and never synchronously calls settlement. Garden claims target the active registered `providerGarden` Safe without the member-AA gate, while Individual claims require `memberDeliveryEnabled` and target the provider's Celo AA. The narrower `queueFunding(garden, amount)` remains in the initial version solely for non-commitment garden seeds or top-ups and requires current protocol-steward or SettlementModule-owner authority; deployer alone cannot submit. HoA → protocol Safe stays an upstream treasury fact, and PRD-734 remains an external dependency.",
+      "The protocol pool is the root garden's ordinary commitment pool, so its commitments use the same claim → work/evidence → confirmation → Fulfilled lifecycle and the same provider-garden contributor payout plan as every other pool. The app exposes the existing plan actions from indexed state: create or edit the Draft, finalize it, then prepare frozen non-zero contributor rows. There is no sixth offline settlement job or per-device permissionless queue. The separate `queueFunding(garden, amount)` path stays in the initial version only for discretionary, non-commitment garden seeds or top-ups. It is an explicit Operations form for a current protocol steward or SettlementModule owner; deployer alone cannot submit. Success emits Funding/ProtocolToGarden with no commitment ID. HoA → protocol Safe stays an upstream treasury fact, and PRD-734 remains an external dependency.",
     riderLabel: "Scope boundary",
     rider:
-      "Do not automate `queueFunding` or grant an agent/keeper value authority in this version. Automation follows a canonical commitment; discretionary seeding remains an explicit treasury decision.",
-    cites: "plan.todo.md Decision Log #30 · contract-spec.md reward binding · settlement-spec.md protocol-pool parity amendment · PRD-759",
+      "Do not automate `queueFunding` or grant an agent/keeper value authority in this version. Earned support follows the ordinary payout-plan primitives; discretionary seeding remains an explicit treasury decision.",
+    cites: "plan.todo.md Decision Log #37 / register #69 · contract-spec.md 2026-07-30 amendment · settlement-spec.md 2026-07-30 amendment · PRD-759",
   },
   {
     question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
@@ -1827,7 +1825,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 24, "Architecture output must contain 24 sections (23 D-sections + the hand-written intro)");
+assertBuild(architectureSectionCount === 25, "Architecture output must contain 25 sections (24 D-sections + the hand-written intro)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -1835,8 +1833,8 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 34, "Architecture output must contain 34 Mermaid blocks");
-assertBuild(mermaidCount === 35, "Gallery output must contain 35 Mermaid blocks including the Screens flow");
+assertBuild(architectureMermaidCount === 35, "Architecture output must contain 35 Mermaid blocks");
+assertBuild(mermaidCount === 36, "Gallery output must contain 36 Mermaid blocks including the Screens flow");
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");
@@ -1866,7 +1864,7 @@ assertBuild(
   !refBody.includes("Parked for decision") && !refBody.includes("deliberately does not answer"),
   "the pre-audit framing cannot survive alongside findings",
 );
-assertBuild(wfScreenCount === 25, `the Screens pane must present all 25 wireframe frames (found ${wfScreenCount})`);
+assertBuild(wfScreenCount === 26, `the Screens pane must present all 26 wireframe frames (found ${wfScreenCount})`);
 for (const id of WF_ONLY_FRAMES) {
   assertBuild(wf.secs.some((s) => s.id === id), `WF_ONLY_FRAMES names #${id}, which is not a Screens section`);
 }
