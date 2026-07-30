@@ -1576,7 +1576,7 @@
           "from": "Reviewing",
           "to": "Reconciled",
           "layer": "on-chain",
-          "mechanism": "closeCycle (the reconcile act) → CycleClosed; commitment-level Reconciled derives from this event"
+          "mechanism": "closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event"
         },
         {
           "from": "Reconciled",
@@ -1588,7 +1588,7 @@
           "from": "Seeded | Open",
           "to": "Cancelled",
           "layer": "on-chain",
-          "mechanism": "cancelCycle(reasonCID) → CycleCancelled; Draft is discarded off-chain"
+          "mechanism": "cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain"
         }
       ]
     },
@@ -1597,7 +1597,7 @@
       "status": "spec",
       "vocabulary": "commitment-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
-      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; the contributor roster freezes atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; recognition requires an opened cycle policy or the immutable cycle-less 20/80 default plus at least one verified contributor; disputes restore an explicitly stored prior state.",
+      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits > 0, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.",
       "states": [
         { "name": "Draft", "storage": "off-chain" },
         { "name": "Offered", "storage": "on-chain" },
@@ -1648,7 +1648,7 @@
           "from": "…",
           "to": "ReadyForConfirmation",
           "layer": "on-chain",
-          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus at least one verified contributor; contributor roster freezes atomically before the ready event"
+          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus pre-freeze totalVerifiedCredits > 0; contributor roster and credit ledger freeze atomically before the ready event"
         },
         {
           "from": "ReadyForConfirmation",

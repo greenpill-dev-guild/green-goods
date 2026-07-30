@@ -378,7 +378,7 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
-  "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-payout conservation, then freezes the plan without creating child disbursements.", calls: ["finalizeCommitmentPayoutPlan"] },
+  "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-payout conservation, then freezes the payable plan as Pending without creating child disbursements. A retained-only plan instead resolves Complete.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Pending" } },
   "w21.prepare-payout": { l: "Prepare contributor payout", to: "screen:W21@payout-prepared", info: "Materializes one immutable queued child from Maria's finalized payout row. An exact repeat returns the same ID without emitting again.", calls: ["prepareContributorPayout"] },
   "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@dispatched", info: "Dispatches one child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
   "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "dispatchDisbursement creates the immutable execution key and sends the data-only command for this garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe.", calls: ["dispatchDisbursement"] },
@@ -721,11 +721,11 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
   "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Reconcile and compost cycle", to: "screen:W7@cycle-composted", info: "Two ordered writes after unresolved review and certificate mint: closeCycle changes Reviewing/Open-on-chain → Reconciled, then compostCycle archives it.", calls: ["closeCycle", "compostCycle"] },
+  "w26.compost": { l: "Reconcile and compost cycle", to: "screen:W7@cycle-composted", info: "After every cycle commitment is Fulfilled, Cancelled, or Expired and liveCommitmentCount is zero, closeCycle changes Reviewing/Open-on-chain → Reconciled; compostCycle then archives it.", calls: ["closeCycle", "compostCycle"] },
   "w26.paused-continue-shares": { l: "Continue to shares while pool paused", to: "screen:W26@paused-shares", info: "Moves through the reconciliation report without changing the Paused pool." },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },
   "w26.paused-mint": { l: "Mint impact certificate while pool paused", to: "screen:W26@paused-rest", info: "Uses the existing certificate pipeline without changing pool or cycle lifecycle state." },
-  "w26.paused-compost": { l: "Reconcile and compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "closeCycle then compostCycle changes only the cycle from Reviewing/Open-on-chain → Reconciled → Composted; the pool remains Paused.", calls: ["closeCycle", "compostCycle"] },
+  "w26.paused-compost": { l: "Reconcile and compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "With liveCommitmentCount zero, closeCycle then compostCycle changes only the cycle from Reviewing/Open-on-chain → Reconciled → Composted; the pool remains Paused.", calls: ["closeCycle", "compostCycle"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -774,7 +774,11 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
     states: W26_STATES.map(([id, label]) => ({
       id,
       label,
-      facts: { pool: id.startsWith("paused-") ? "Paused" : "Open", cycle: "Open" } satisfies StateFacts,
+      facts: {
+        pool: id.startsWith("paused-") ? "Paused" : "Open",
+        cycle: "Open",
+        cycleLiveCommitments: id === "rest" || id === "paused-rest" ? "Zero" : "NonZero",
+      } satisfies StateFacts,
       html: w26(id),
     })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },
 ];

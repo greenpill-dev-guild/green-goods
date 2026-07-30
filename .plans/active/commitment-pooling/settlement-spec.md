@@ -14,7 +14,8 @@
 > payer. Creation asks CommitmentPooling to recompute one complete recognition vector and hash
 > from the frozen on-chain facts; a provider-garden steward may atomically edit the complete amount
 > vector before finalization, while payment weights remain
-> derived and any divergence requires a reason. The plan declares
+> derived. The canonical full-reward base-unit allocation is rounding-equivalent to recognition;
+> any noncanonical amount or retention divergence requires a reason. The plan declares
 > `gardenRetainedAmount`, and `reward.amount == gardenRetainedAmount + Σ contributorPayout.amount`.
 > Retention creates no self-transfer. Every non-zero payout becomes one ordinary bounded
 > disbursement with a derived contributor Celo account. Explicit finalization freezes the plan
@@ -397,8 +398,8 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | `setDispatcher(dispatcher)` | module owner behind the deployment timelock | requires pause; zero disables delegated dispatch; dispatcher can dispatch/retry only |
 | `setFeeReserveMinimum(minimum)` | module owner behind the deployment timelock | requires pause; the new floor is immediately observable and every dispatch/retry/withdrawal must preserve it |
 | `setMemberDeliveryEnabled(bool)` | module owner | enabling requires the Celo AA/paymaster exit evidence recorded in the settlement handoff; disabling blocks new contributor-payout preparation and member sends but never blocks the funding route |
-| `createCommitmentPayoutPlan(commitmentId, recognitionEntries[], recognitionSnapshotHash)` | resolved provider-garden settlement steward | commitment `Fulfilled`; no existing plan; caller is an operator/owner steward of immutable `providerGarden`; declared reward rail exactly `CeloSettlement`; declared source is zero; token canonical G$; active `settlementAccounts[providerGarden]` becomes stored source/executor garden. `CommitmentPoolingModule.validateRecognitionSnapshot` independently recomputes the complete sorted vector and hash from the frozen roster, credit counters, and cycle policy; caller-selected weights are rejected. The plan begins with zero garden retention and a deterministic full-reward payment default matching that recognition vector. Creation emits `CommitmentPayoutPlanCreated` followed by one ordered `ContributorPayoutSet` per initial row, so an untouched draft is fully observable. No child exists while Draft; `memberDeliveryEnabled` is not a creation gate |
-| `setContributorPayouts(planId, gardenRetainedAmount, payouts[], reasonCID)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only. Replaces the complete payout vector atomically; inputs contain exactly one sorted, unique row for every recognition entry. Recipient derives from the contributor's approved Celo account profile. The module derives each `paymentWeightBps` from payout amounts using largest-remainder rounding (descending fractional remainder, then ascending lowercase address) and recomputes `paymentSnapshotHash`; callers never author payment weights independently. When contributor payout total is zero, every payment weight is canonically zero with no division or remainder pass. Any derived payment vector that differs from recognition requires a non-empty reason. Zero amounts remain visible comparison rows and create no child |
+| `createCommitmentPayoutPlan(commitmentId, recognitionEntries[], recognitionSnapshotHash)` | resolved provider-garden settlement steward | commitment `Fulfilled`; no existing plan; caller is an operator/owner steward of immutable `providerGarden`; declared reward rail exactly `CeloSettlement`; declared source is zero; token canonical G$; active `settlementAccounts[providerGarden]` becomes stored source/executor garden. `CommitmentPoolingModule.validateRecognitionSnapshot` independently recomputes the complete sorted vector and hash from the frozen roster, credit counters, and cycle policy; caller-selected weights are rejected. The plan begins with zero garden retention and a deterministic full-reward payment default: allocate integer token base units by `floor(declaredAmount * recognitionWeightBps / 10_000)`, then award remaining units by descending fractional remainder and ascending lowercase contributor address. If normalizing those integer amounts produces `paymentWeightBps` that differ only because token base units cannot represent the recognition bps exactly, the vector is canonically **rounding-equivalent**, not a reason-required steward divergence. Creation emits `CommitmentPayoutPlanCreated` followed by one ordered `ContributorPayoutSet` per initial row, so an untouched draft is fully observable. No child exists while Draft; `memberDeliveryEnabled` is not a creation gate |
+| `setContributorPayouts(planId, gardenRetainedAmount, payouts[], reasonCID)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only. Replaces the complete payout vector atomically; inputs contain exactly one sorted, unique row for every recognition entry. Recipient derives from the contributor's approved Celo account profile. The module derives each `paymentWeightBps` from payout amounts using largest-remainder rounding (descending fractional remainder, then ascending lowercase address) and recomputes `paymentSnapshotHash`; callers never author payment weights independently. When contributor payout total is zero, every payment weight is canonically zero with no division or remainder pass. An edit needs no reason only when zero retention and its complete amount vector exactly equals the canonical full-reward base-unit allocation created above; any other amount/retention vector that differs from recognition requires a non-empty reason. Zero amounts remain visible comparison rows and create no child |
 | `finalizeCommitmentPayoutPlan(planId)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only; rechecks recognition through the canonical CommitmentPooling validator, derived payment weights, canonical recipients, and `declaredAmount == gardenRetainedAmount + contributorPayoutTotal`, then freezes every row. It creates no child. A plan with no non-zero row completes immediately without CCIP or a self-transfer; otherwise it becomes Pending. `memberDeliveryEnabled` is not a finalization gate |
 | `prepareContributorPayout(planId, contributor)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; finalized plan; contributor is included with non-zero amount and a non-zero canonical recipient frozen at finalization. If the row already has a child, return that ID and emit nothing even when the parent/child later became Complete, Failed, Cancelled, paused, or delivery-disabled. Only a first preparation requires source unpaused, `memberDeliveryEnabled`, and parent status Pending/Partial; it allocates one immutable Queued child, stores its `disbursementId`, increments `preparedPayoutCount`, and emits `DisbursementQueued(kind=ContributorReward)` |
 | `queueFunding(garden, amount)` | protocol steward or module owner | the single modeled route is ProtocolToGarden, recorded on the disbursement's immutable `fundingRoute` fact; target garden must differ from `protocolGarden`; executorGarden is snapshotted as protocolGarden; source, recipient, and canonical G$ derive from funding config + active settlement accounts; no arbitrary addresses/tokens; event `DisbursementQueued(kind=Funding)` |
@@ -724,10 +725,19 @@ policy before returning
 `recognitionSnapshotHash = keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))`.
 The SettlementModule compares returned and supplied hashes, so a caller cannot make an arbitrary
 split authoritative by supplying a self-consistent vector and hash.
-The default payment vector distributes the full declared reward in those proportions. A steward
-may replace the complete amount vector and retention while the plan is Draft. The module derives
-payment weights from amounts, hashes the resulting vector, and requires one emitted/indexed reason
-when it differs from recognition; callers never submit an independent payment weight.
+The default payment vector distributes the full declared reward by deterministic base-unit
+apportionment: floor each `declaredAmount * recognitionWeightBps / 10_000`, then assign remaining
+base units by descending fractional remainder and ascending lowercase contributor address. The
+module then normalizes those integer amounts into `paymentWeightBps` using the same deterministic
+ordering. A normalized weight difference caused solely by this canonical amount vector is
+**rounding-only equivalence**: creation uses an empty reason and the UI/indexer labels it “Matches
+recognition · base-unit rounded.” This is computable from the declared amount and recognition
+snapshot, so it does not create a caller-selectable exception.
+
+A steward may replace the complete amount vector and retention while the plan is Draft. The
+module derives payment weights from amounts, hashes the resulting vector, and requires one
+emitted/indexed reason unless zero retention and every amount still exactly equals the canonical
+full-reward base-unit vector. Callers never submit an independent payment weight.
 If `contributorPayoutTotal == 0`, the canonical payment-weight vector contains one zero weight for
 every ordered recognition row; the implementation performs no division or largest-remainder pass.
 Its snapshot hashes the explicit ordered zero rows plus full garden retention. Because this
@@ -851,7 +861,9 @@ CCIP manual-execution eligibility and native-fee shortage are operational condit
   `CommitmentPoolingModule.validateRecognitionSnapshot`, rejection of a self-consistent but
   noncanonical vector/hash, recognition-copy defaults, creation-time ordered
   `ContributorPayoutSet` emission for every initial row, caller-inaccessible
-  payment weights, amount-derived deterministic weights, reason-required divergence,
+  payment weights, amount-derived deterministic weights, canonical full-reward base-unit
+  apportionment, a one-base-unit/multiple-contributor rounding-only default with no reason,
+  deterministic fractional-remainder/address ties, reason-required noncanonical divergence,
   canonical all-zero payment weights without division, reason-required all-retained divergence,
   zero-payment exclusion, explicit retention, exact invariant equality, atomic full-vector edits,
   explicit finalization before preparation/dispatch, idempotent one-child preparation from a

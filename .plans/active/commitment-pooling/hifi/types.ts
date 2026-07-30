@@ -32,6 +32,7 @@ export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" 
 // Contract-call validation records the cycle's canonical on-chain state here.
 // Draft/InProgress/Reviewing remain UI overlays, matching the ontology sidecar.
 export type CycleLifecycle = "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
+export type CycleLiveCommitments = "Zero" | "NonZero";
 export type CommitmentLifecycle =
   | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
@@ -50,6 +51,7 @@ export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" |
 export type StateFacts = {
   pool?: PoolLifecycle;
   cycle?: CycleLifecycle;
+  cycleLiveCommitments?: CycleLiveCommitments;
   commitment?: CommitmentLifecycle;
   kind?: CommitmentKind;
   settlementAccount?: SettlementAccountState;
@@ -60,7 +62,8 @@ export type StateFacts = {
 
 export type ContractCall =
   | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
-  | "addContributor" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
+  | "joinCommitment" | "leaveCommitment" | "addContributor" | "removeContributor"
+  | "setContributorRequirement" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
   | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment"
   | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"

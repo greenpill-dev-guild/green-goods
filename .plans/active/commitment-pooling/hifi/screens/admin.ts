@@ -536,7 +536,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
   "cancel-cycle-confirm": {
     title: "Cancel this season",
     body: w7Confirm(
-      "Season of First Rains has 8 promises, 5 of them kept. Cancelling ends the season for everyone in it; each promise keeps its own record, and members see the reason you give here.",
+      "Season of First Rains has no live promises; all 8 are kept, cancelled, or expired. Cancelling ends the season for everyone in it; each promise keeps its own record, and members see the reason you give here.",
       "funding fell through for the rains",
     ),
     actions: `${hot("w7.confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-confirm", btn("Cancel season", { kind: "danger" }))}`,
@@ -545,7 +545,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
   "paused-cancel-cycle-confirm": {
     title: "Cancel this paused season",
     body: w7Confirm(
-      "The pool stays paused. Cancelling ends Season of First Rains for everyone in it; all 8 promises keep their own records, and members see the reason you give here.",
+      "The pool stays paused. Season of First Rains has no live promises; all 8 are kept, cancelled, or expired. Cancelling ends the season, and every promise keeps its own record and reason.",
       "funding fell through for the rains",
     ),
     actions: `${hot("w7.paused-confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-paused-confirm", btn("Cancel season", { kind: "danger" }))}`,
@@ -1428,7 +1428,9 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
   if (state === "not-ready" || state === "preflight-complete") return { pool: "NotReady" };
   if (state === "ready" || state === "seed-cycle") return { pool: "Ready" };
   if (state === "open-no-cycle") return { pool: "Open" };
-  if (state === "paused" || state === "paused-cancel-cycle-confirm") return { pool: "Paused", cycle: "Open" };
+  if (state === "paused") return { pool: "Paused", cycle: "Open" };
+  if (state === "paused-cancel-cycle-confirm")
+    return { pool: "Paused", cycle: "Open", cycleLiveCommitments: "Zero" };
   if (state === "paused-cycle-composted" || state === "paused-close-pool-confirm")
     return { pool: "Paused", cycle: "Composted" };
   if (state === "pool-closed" || state === "compost-pool-confirm") return { pool: "Closed", cycle: "Composted" };
@@ -1440,6 +1442,8 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
     return { pool: "Open", cycle: "Open", commitment: "Requested", kind: "SupportService" };
   if (state === "claim-outcomes")
     return { pool: "Open", cycle: "Open", commitment: "Accepted", kind: "SupportService" };
+  if (state === "cancel-cycle-confirm")
+    return { pool: "Open", cycle: "Open", cycleLiveCommitments: "Zero" };
   return { pool: "Open", cycle: "Open" };
 };
 

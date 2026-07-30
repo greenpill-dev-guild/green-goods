@@ -192,7 +192,9 @@ Deployment commands must be added through the existing deploy wrapper and verifi
 - Add one stable `CommitmentPayoutPlan`: creation validates the complete sorted recognition vector
   and hash through CommitmentPooling's canonical on-chain recomputation. Atomic full-vector
   amount edits derive payment weights; callers never author recognition and payment weights
-  independently, and a divergence requires a stored reason.
+  independently. Creation's deterministic full-reward base-unit allocation is rounding-equivalent
+  even when its normalized payment bps cannot exactly equal recognition; every noncanonical
+  amount/retention divergence requires a stored reason.
 - Explicit finalization verifies declared amount = garden-retained amount + all contributor payout amounts, freezes the plan, and creates no child. A later idempotent `prepareContributorPayout` call materializes exactly one `ContributorReward` disbursement from a frozen non-zero row; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
 - Parent status is derived from finalization, unprepared payable rows, and children as Draft / Pending / Partial / Complete / Failed. Child or batch cancellation never clears `payoutPlanOfCommitment`, so a second plan cannot bypass the audit trail.
 - A failed child never reverses commitment fulfillment, recognition, or successful siblings. No garden-held member claim, custody voucher, manual arrival flag, or arbitrary Safe execution is introduced.
@@ -212,5 +214,9 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   division or remainder allocation, hashes those rows plus retention, and requires a non-empty
   recognition-divergence reason. Finalization completes that plan locally even when member
   delivery is disabled.
+- Tests cover a one-base-unit reward split across multiple contributors: creation floors each
+  recognition share, assigns residual units by fractional remainder then lowercase address,
+  records no reason for that canonical vector, and still requires a reason for any steward-edited
+  amount or retention difference.
 - Child or batch cancellation retains `payoutPlanOfCommitment` and never permits a second plan or
   replacement child. Only authenticated-failure requeue creates a later logical attempt.

@@ -127,9 +127,9 @@ On-chain enum: `CycleState { None, Seeded, Open, Reconciled, Composted, Cancelle
 | Open -> InProgress | derived | Indexer/app: cycle is Open on-chain AND (first `CommitmentAccepted` with this cycleId OR block time >= startTime). |
 | InProgress -> Reviewing | derived | Indexer/app: cycle Open on-chain AND block time > endTime, OR all cycle commitments in terminal or ReadyForConfirmation states. |
 | Reviewing <-> InProgress | derived | New `EvidenceAttached` / `WorkLinked` / `ApprovedWorkCounted` on a cycle commitment while still Open on-chain flips back. |
-| Reviewing -> Reconciled | on-chain | `closeCycle(cycleId)` (the reconcile act). Event `CycleClosed`. Commitment-level `Reconciled` derivation hangs off this event (5.3). |
+| Reviewing -> Reconciled | on-chain | `closeCycle(cycleId)` (the reconcile act) requires `liveCommitmentCount == 0`; every cycle-scoped commitment must already be Fulfilled, Cancelled, or Expired. Event `CycleClosed`. Commitment-level `Reconciled` derivation hangs off this event (5.3). |
 | Reconciled -> Composted | on-chain | `compostCycle(cycleId)`. Event `CycleComposted`. |
-| Draft/Seeded/Open/InProgress -> Cancelled | on-chain for Seeded and Open (`cancelCycle(cycleId, reasonCID)`, event `CycleCancelled`); off-chain discard for Draft. InProgress is on-chain Open, so the same function covers it. |
+| Draft/Seeded/Open/InProgress -> Cancelled | on-chain for Seeded and Open (`cancelCycle(cycleId, reasonCID)`, event `CycleCancelled`) only when `liveCommitmentCount == 0`; off-chain discard for Draft. InProgress is on-chain Open, so the same function covers it. |
 | Composted -> Draft/Seeded/Open (next cycle) | on-chain | A fresh `seedCycle` on the same pool. Succession is derived by pool ordering; no on-chain predecessor pointer. |
 
 Concurrency invariant: a pool may have **one open Season** and any number of open Campaigns. `Pool.openSeasonCycleId` is the bounded O(1) Season guard: opening a Season requires it to be zero and stores the cycle ID; closing or cancelling that open Season clears it. Campaign open/close never reads or writes that field and no contract function enumerates cycles. Multiple Seeded Seasons may exist, but only one can become Open.
@@ -147,13 +147,13 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
 | PartiallyApproved <-> EvidenceSubmitted | derived | New evidence/work after partial approvals flips forward; the counter events flip back. |
-| -> ReadyForConfirmation | on-chain | Three paths, all requiring at least one verified contributor credit, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy), freezing the contributor roster, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkApproved`, `syncApprovedWork`, or `attachAssessment` once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with no requirements, with >= 1 evidence and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy or verified-credit prerequisites. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
+| -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy), freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkApproved`, `syncApprovedWork`, or `attachAssessment` once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with no requirements, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy or verified-credit prerequisites. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
 | ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator); each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled`. Every frozen contributor is excluded from every confirmation path. Fallback: `confirmFulfillmentAsFallback(commitmentId, reason)` operator/owner with mandatory reason, also forbidden when the caller is a contributor. Register converts the lead provider's units (`UnitsFulfilled`). |
 | Fulfilled -> Reconciled | derived | `CycleClosed` for the commitment's cycleId; cycle-less commitments (cycleId == 0) derive Reconciled from `PoolClosed`. |
 | -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. Offered/Requested have no committed units and emit no register release; Accepted releases exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
 | -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. Offered/Requested emit no register release; Accepted/ReadyForConfirmation release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
 | -> Disputed | on-chain | `raiseDispute(commitmentId, reasonCID)` from Accepted/ReadyForConfirmation/Expired (the locked EvidenceSubmitted/PartiallyApproved entries map to on-chain Accepted). Before setting Disputed, the module stores the exact prior state in `preDisputeState`. Raiser: creator, counterparty, named confirmer, or steward. Event `CommitmentDisputed`. |
-| Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious|Fulfilled|Cancelled|Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution requires the same opened-policy and non-zero verified-credit predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
+| Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious / Fulfilled / Cancelled / Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution requires the same opened-policy and `totalVerifiedCredits > 0` predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and contribution-credit accounting and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
 | Cancelled/Expired -> Reconciled at cycle close | derived | `CycleClosed` event; no on-chain per-commitment write (no unbounded loops at close). |
 
 Fulfillment posture (locked): the party receiving the provider's work confirms by default—Offer recipient/counterparty or Request creator/requester—provider self-confirmation is blocked, and operator/owner fallback requires a reason and is also blocked for a provider who is an operator.
@@ -316,6 +316,7 @@ interface ICommitmentPoolingModule {
         string metadataCID;
         AllocationBps allocation;  // snapshot emitted in CycleOpened
         RecognitionPolicy recognitionPolicy;
+        uint32 liveCommitmentCount; // non-terminal cycle commitments; must be zero before close
     }
 
     /// @notice Declared reward is a reference, never custody (register #18).
@@ -357,7 +358,7 @@ interface ICommitmentPoolingModule {
         string unitLabel;                // hours, tasks, meals, rides, plants...
         uint256 targetUnits;
         uint32 contributorCount;
-        uint32 eligibleContributorCount; // contributors that have received at least one verified credit
+        uint32 eligibleContributorCount; // contributors with pre-freeze credit; recognition additionally requires Fulfilled
         uint64 totalVerifiedCredits;      // approved Work + evidence credits, for canonical recognition validation
         uint32 evidenceCount;
         bool contributorsFrozen;
@@ -608,6 +609,7 @@ interface ICommitmentPoolingModule {
     error CycleNotInState(uint256 cycleId, CycleState actual);
     error CyclePoolMismatch(uint256 cycleId, uint256 expectedPoolId, uint256 actualPoolId);
     error CycleNotAcceptingCommitments(uint256 cycleId, CycleState actual);
+    error CycleHasLiveCommitments(uint256 cycleId, uint32 liveCommitmentCount);
     error InvalidAllocation(); // bps sum != 10_000 (Yield.sol InvalidSplitRatio precedent)
     error InvalidTimeWindow(uint64 startTime, uint64 endTime);
     error SeasonAlreadyOpen(uint256 poolId, uint256 cycleId);
@@ -704,8 +706,13 @@ interface ICommitmentPoolingModule {
         AllocationBps calldata allocation,
         RecognitionPolicy calldata recognitionPolicy
     ) external;
+    /// @notice Reconciliation is O(1): the cycle must be Open and its
+    ///         liveCommitmentCount must be zero. Creation increments the count
+    ///         for a non-zero cycle; Fulfilled, Cancelled, or Expired decrements
+    ///         it exactly once. ReadyForConfirmation and Disputed remain live.
     function closeCycle(uint256 cycleId) external;
     function compostCycle(uint256 cycleId) external;
+    /// @dev Requires liveCommitmentCount == 0 so cancellation cannot strand commitments.
     function cancelCycle(uint256 cycleId, string calldata reasonCID) external;
 
     // ══════════════════════ Commitments ══════════════════════════════
@@ -784,7 +791,7 @@ interface ICommitmentPoolingModule {
     ///         providerGarden role scope. One work maps to at most one
     ///         commitment; one commitment maps to many works.
     ///         Gating: active contributor, lead provider, or pool steward;
-    ///         only after acceptance.
+    ///         on-chain state Accepted and contributorsFrozen == false.
     function linkWork(uint256 commitmentId, bytes32 workUID, uint16 requirementIndex) external;
 
     /// @notice Gating: pool steward; only while the approval is not yet counted.
@@ -793,9 +800,12 @@ interface ICommitmentPoolingModule {
     /// @notice Called by WorkApprovalResolver inside try/catch after full
     ///         approval validation (WorkApproval.sol:179-183 GAP precedent).
     ///         No-op (returns without revert) when the workUID is unlinked, the
-    ///         approvalUID was already observed, or this Work already produced
-    ///         its one countable credit. Never reverts on state it
-    ///         does not recognize: the approval must stand regardless.
+    ///         approvalUID was already observed, this Work already produced
+    ///         its one countable credit, or the commitment's contribution
+    ///         ledger is frozen. A first approval after freeze is recorded as
+    ///         observed through approvalCounted but never changes Work credit,
+    ///         requirement progress, units, or recognition. Never reverts on
+    ///         state it does not recognize: the approval must stand regardless.
     ///         Gating: workApprovalResolver only.
     function onWorkApproved(bytes32 workUID, bytes32 approvalUID, address garden) external;
 
@@ -805,7 +815,8 @@ interface ICommitmentPoolingModule {
     ///         workApprovalSchemaUID, decoded approved == true, decoded workUID
     ///         linked to this commitmentId, recipient == providerGarden; records
     ///         each approvalUID for idempotency but credits each workUID at most
-    ///         once through workCreditCounted. Gating: pool steward.
+    ///         once through workCreditCounted and only while the commitment is
+    ///         Accepted and unfrozen. Gating: pool steward.
     function syncApprovedWork(uint256 commitmentId, bytes32[] calldata approvalUIDs) external;
 
     /// @notice Canonical recognition validator shared by Hypercert composition
@@ -822,11 +833,14 @@ interface ICommitmentPoolingModule {
 
     // ─────────────── Evidence, assessment, confirmation ──────────────
 
-    /// @notice Gating: active contributor, lead provider, or pool steward.
-    ///         The non-empty exact CID may be attached only once per commitment. The
-    ///         credited list is non-empty, unique, bounded, and every address
-    ///         must be active. Credits are recorded now and become eligible
-    ///         only after the commitment is Fulfilled. Offline-queueable.
+    /// @notice Gating: active contributor, lead provider, or pool steward; the
+    ///         commitment must still be Accepted and its roster/credit ledger
+    ///         unfrozen. The non-empty exact CID may be attached only once per
+    ///         commitment. The credited list is non-empty, unique, bounded,
+    ///         and every address must be active. Credits are recorded now and
+    ///         become recognition-eligible only after Fulfilled.
+    ///         Offline-queueable; a job that lands after freeze fails visibly
+    ///         and never changes credit.
     function attachEvidence(
         uint256 commitmentId,
         string calldata cid,
@@ -841,9 +855,10 @@ interface ICommitmentPoolingModule {
     /// @notice Path (b) to ReadyForConfirmation: SupportService,
     ///         StewardCaptured, or SeasonCampaign commitments with no work
     ///         requirement (requirements is empty);
-    ///         requires >= 1 evidence and any declared assessment. DomainImpact
-    ///         always reverts WorkApprovalRequired. Gating: counterparty,
-    ///         creator, or steward.
+    ///         requires >= 1 pre-freeze evidence record,
+    ///         totalVerifiedCredits > 0, and any declared assessment.
+    ///         DomainImpact always reverts WorkApprovalRequired. Gating:
+    ///         counterparty, creator, or steward.
     function submitForConfirmation(uint256 commitmentId) external;
 
     /// @notice Path (c): steward override with visible reason.
@@ -959,7 +974,7 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Cycle | `seedCycle` | steward | pool Ready or Open; valid time window; allocation is not accepted or stored |
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation-class bps sum == 10_000; recognition-policy bps sum == 10_000 (protocol default 2_000 equal / 8_000 verified); both become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
-| Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID |
+| Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID; `liveCommitmentCount == 0` |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements |
 | Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source plus canonical G$ token because its payer is derived from the accepted provider garden |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; claimant != creator; Open accepts, ApprovalGated emits `ClaimRequested` |
@@ -1037,15 +1052,26 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   credit is recorded once when the exact CID is attached and contributes to eligibility only
   after the commitment is fulfilled.
   The transition to ReadyForConfirmation emits `ContributorRosterFrozen` atomically before the
-  ready event. No add/remove/assignment mutation is valid afterward.
+  ready event and freezes both roster membership and contribution-credit accounting. No
+  add/remove/assignment, new evidence credit, new Work link, or late approval credit is valid
+  afterward.
 - **Evidence identity and bounded crediting**: `attachEvidence` rejects an empty CID, hashes the exact CID bytes, and
   rejects a repeated `(commitmentId, cidHash)` before any counter or event mutation. It requires
   1 through `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` unique active contributors, increments
   `Commitment.evidenceCount` once, and increments each credited contributor's `evidenceCredits`
-  once. The provisional bound is 32 and must be checked against 8/16/24/32 gas and event-payload
+  once only while the commitment is on-chain Accepted and `contributorsFrozen == false`; a queued
+  attachment that lands after freeze reverts without writing the CID or any credit. The
+  provisional bound is 32 and must be checked against 8/16/24/32 gas and event-payload
   benchmarks before implementation freezes it. The bound is transaction safety, not a product
   rule limiting team size. `isEligibleContributor` additionally requires the commitment to be
   `Fulfilled`, so attachment records attribution without treating unconfirmed work as verified.
+- **Cycle terminal safety**: creating any commitment with `cycleId != 0` increments that Cycle's
+  `liveCommitmentCount`. The first transition to Fulfilled, Cancelled, or Expired decrements it
+  exactly once; a dispute preserves whether the pre-dispute commitment was already terminal, so
+  resolving an already Expired record cannot decrement twice. ReadyForConfirmation remains live.
+  `closeCycle` and `cancelCycle` require the O(1) count to be zero, which forces stewards to
+  confirm, cancel, or expire every cycle commitment before reconciliation or cycle cancellation
+  and prevents a later fulfillment from changing the certified recognition set.
 - **Self-checks**: `claimCommitment` reverts `SelfCounterparty` when claimant == creator.
   `confirmFulfillment` and fallback confirmation revert `SelfConfirmation` for every active
   contributor in the frozen roster, mirroring the existing WorkApproval separation-of-duties
@@ -1106,10 +1132,13 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   non-counting compatibility value and never write the plus-one mapping.
 - **One countable approval per Work**: `approvalCounted` makes delivery of one approval attestation
   idempotent, while `workCreditCounted` is the recognition/accounting guard. The first valid
-  approved attestation for a linked `workUID` marks both keys and increments exactly one
-  requirement and contributor credit. Any later approval attestation for that same Work is
-  recorded as observed and returns without changing counts, units, eligibility, or events. This
-  remains true when `WorkApprovalResolver` issues a new non-revocable decision attestation.
+  approved attestation for a linked `workUID` while its commitment is Accepted and unfrozen marks
+  both keys and increments exactly one requirement and contributor credit. A first approval that
+  arrives after freeze marks only `approvalCounted`; it is observed but does not set
+  `workCreditCounted`, increment requirements/units/credits, or emit `ApprovedWorkCounted`. Any
+  later approval attestation for that same Work is likewise recorded as observed and returns
+  without changing counts, units, eligibility, or events. This remains true when
+  `WorkApprovalResolver` issues a new non-revocable decision attestation.
 - **Canonical recognition validation**: the module maintains `eligibleContributorCount` when a
   contributor receives their first verified credit and `totalVerifiedCredits` on every
   de-duplicated credit. Cycle-scoped commitments may enter ReadyForConfirmation or resolve a
@@ -1126,12 +1155,14 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   count; evidence-only kinds use no requirements. Work-gated auto-flip is evaluated after any
   requirement counter changes and after `attachAssessment`, and happens only when every
   requirement is met and `requiresAssessment == false || assessmentUID != 0`. Every path also
-  requires `eligibleContributorCount > 0` and an Open cycle when `cycleId != 0`; the steward
+  requires the pre-fulfillment predicate `totalVerifiedCredits > 0` and an Open cycle when
+  `cycleId != 0`; the steward
   override cannot bypass either predicate. Immediately before the Ready transition, the module
-  freezes the contributor roster and revalidates that every confirmer remains outside it and the
-  threshold is reachable. Evidence-only
+  freezes the contributor roster and contribution ledger and revalidates that every confirmer
+  remains outside it and the threshold is reachable. Evidence-only
   `submitForConfirmation` enforces the same assessment/roster predicates and rejects
-  DomainImpact, and reads the on-chain `evidenceCount >= 1` predicate. Steward override may bypass work counts, never contributor/confirmation
+  DomainImpact, and reads both `evidenceCount >= 1` and `totalVerifiedCredits > 0`. Steward
+  override may bypass work counts, never contributor/confirmation
   separation, and always emits its reason.
 - **Pause/configuration semantics**: initialization is paused-first. Dependency and schema setters
   reject unpaused calls with `ModuleMustBePaused`, reject zero/colliding values before storage
@@ -1144,7 +1175,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   new commitments, claims, Ready submissions, and confirmations only; browse, evidence/linkage,
   cancellation/expiry, and dispute recovery remain available. `PoolPaused` carries the mandatory
   reason CID and `PoolResumed` clears the indexed reason.
-- **Cycle binding**: `cycleId == 0` is the only cycle-less sentinel. Any non-zero cycle must exist and belong to `params.poolId`. Member-created commitments require an Open cycle; steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open. Cancelled, Reconciled, Composted, or cross-pool cycles always revert before class registration.
+- **Cycle binding**: `cycleId == 0` is the only cycle-less sentinel. Any non-zero cycle must exist and belong to `params.poolId`. Member-created commitments require an Open cycle; steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open. Cancelled, Reconciled, Composted, or cross-pool cycles always revert before class registration. A non-zero cycle increments `liveCommitmentCount` only after all creation validation succeeds.
 - **onWorkApproved must never revert** for unrecognized state: the EAS approval succeeds regardless (approval flow is `critical` path per repo criticality matrix).
 
 #### Acceptance criteria
@@ -1152,15 +1183,19 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 - Every transition in the section 5 tables has exactly one emitting function or a documented derivation; no silent state changes.
 - `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol`
   covers pool/cycle invariants, one open Season plus concurrent Campaigns,
-  allocation/recognition-policy validation and locking at `openCycle`, paused-first configuration,
+  allocation/recognition-policy validation and locking at `openCycle`, zero-live-commitment
+  closure with exact once-only terminal decrements, paused-first configuration,
   action UID `0`, repeated domains, caller input limited to `actionUID`/`requiredCount` while
   stored `domain`/`approvedCount` remain module-derived, provisional `MAX_REQUIREMENTS` and
   max-plus-one rejection before mutation, per-requirement approval counts,
   solo/Open/LeadManaged contributor paths, lead
   initialization, add/remove/join/leave/assignment, max-plus-one contributor rejection before
   mutation, credited/lead removal rejection, active-contributor Work/evidence credit, empty-CID rejection, exact-CID
-  evidence de-duplication, non-empty/unique/max evidence-credit lists, fulfillment-gated eligibility, roster
-  freeze on every Ready path, every-contributor confirmation exclusion, explicit repeated-action
+  evidence de-duplication, non-empty/unique/max evidence-credit lists, all three evidence-only
+  kinds reaching Ready from pre-freeze evidence credit, fulfillment-gated recognition eligibility,
+  late evidence rejection and late approval observation without credit, cycle close/cancel
+  rejection while any live commitment remains, roster
+  and credit freeze on every Ready path, every-contributor confirmation exclusion, explicit repeated-action
   requirement binding, canonical recognition-vector recomputation/hash rejection, unreachable confirmer
   threshold rejection, lead-only register exposure, assessment gating, claim identity,
   cancel/expiry/dispute count effects, reward derivation, provider-garden Work/assessment

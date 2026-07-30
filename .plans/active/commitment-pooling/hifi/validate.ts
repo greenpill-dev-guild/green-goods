@@ -33,10 +33,10 @@ const warn: string[] = [];
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
-  | "pool" | "cycle" | "commitment"
+  | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
   | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement", "payoutPlan",
+  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
@@ -56,7 +56,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
+  joinCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  leaveCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
   addContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  removeContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  setContributorRequirement: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachEvidence: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "EvidenceSubmitted" },
   linkWork: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachAssessment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation", kinds: ["DomainImpact"] },
@@ -81,9 +85,9 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   reopenPool: { key: "pool", allowed: ["Composted"], next: "Ready" },
   seedCycle: { key: "pool", allowed: ["Ready", "Open"], effects: { cycle: "Seeded" } },
   openCycle: { key: "cycle", allowed: ["Seeded"], next: "Open", requires: { pool: ["Open"] } },
-  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled" },
+  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled", requires: { cycleLiveCommitments: ["Zero"] } },
   compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
-  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
+  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled", requires: { cycleLiveCommitments: ["Zero"] } },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
   createCommitmentPayoutPlan: {
     key: "commitment",
@@ -99,7 +103,7 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   finalizeCommitmentPayoutPlan: {
     key: "payoutPlan",
     allowed: ["Draft"],
-    next: "Pending",
+    resultAllowed: ["Pending", "Complete"],
     requires: { settlementAccount: ["Active"] },
   },
   prepareContributorPayout: {

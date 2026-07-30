@@ -731,11 +731,11 @@ Safe/Zodiac authority mutation, or Linear write is part of this pass.
 
 The earlier planning model accidentally collapsed fulfillment into one provider and rendered the requirement editor as a maximum of four actions. That was too narrow for commitments completed by a team and would have made contributor recognition and payment an after-the-fact spreadsheet exercise.
 
-The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or evidence; evidence credit becomes eligible only after fulfillment, the roster freezes atomically on the transition to ReadyForConfirmation, and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
+The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or evidence while the commitment is Accepted and unfrozen; Fulfilled is the additional recognition-eligibility gate. The roster and credit ledger freeze atomically on the transition to ReadyForConfirmation, and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
 
 Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead or metadata-only fallback: every Ready transition and direct Fulfilled dispute resolution requires an available recognition policy plus at least one verified contributor, while W26 blocks inconsistent legacy/indexed zero-eligible state. Evidence fulfillment loads a bounded commitment attribution index rather than scanning, evidence jobs persist their explicit credited-contributor vector, and each Work UID produces at most one credit even when multiple approval attestations exist. Recognition weights remain separate from payment and do not transfer funds.
 
-The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; atomic amount edits derive payment weights and require a reason on divergence. Explicit finalization proves retained-plus-payout conservation, creates no child, completes all-retained plans without CCIP, and makes the plan immutable. A later idempotent preparation materializes one queued child per payable frozen row. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
+The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; the canonical full-reward integer allocation is rounding-equivalent without a reason, while noncanonical amount or retention edits require a reason. Explicit finalization proves retained-plus-payout conservation, creates no child, completes all-retained plans without CCIP, and makes the plan immutable. A later idempotent preparation materializes one queued child per payable frozen row. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
 
 Propagation includes `plan.todo.md` registers #63–#68, contract and settlement specs, acceptance matrix, UI/UX spec, wireframes, diagrams D7.2/D17, the hi-fi W2b/W3/W10/W11/W21/W23/W26 states and SB-33, all implementation/QA/docs handoffs, the shared ontology sidecar and generated docs, design-research/glossary prose, the canonical Google Doc, and live Linear mirrors. The existing runtime implementation, deployment, broadcast, and value-movement gates remain unchanged.
 
@@ -829,3 +829,32 @@ tags; evidence-only commitment types retain optional validated tags. Settlement 
 fractional-remainder/address order for payment weights. The admin prototype supplies an Active
 payer account for payout drafts, the Settlement 103 recovery fixture uses Kwame and 100 G$, and the
 executable registry now validates 281 states and 382 hotspots with no warnings.
+
+## 2026-07-29 — Ready, credit-freeze, roster-action, and rounding closure
+
+The latest review exposed ten valid gaps. Evidence-only commitments were using a
+post-fulfillment recognition count as a pre-fulfillment Ready gate, cycle reconciliation could
+strand non-terminal commitments, and evidence or a first Work approval could still mutate credit
+after the recognition boundary. The prototype also omitted four roster mutations, modeled
+all-retained finalization as Pending only, and sent one offline evidence action to a non-queued
+target. Two Markdown table rows used unescaped union separators, the roster queue contract
+contradicted itself, and a canonical integer payout could be misclassified as a steward-authored
+divergence.
+
+The binding correction uses `totalVerifiedCredits > 0` as the pre-freeze Ready/direct-Fulfilled
+predicate for all paths, including evidence-only SupportService, StewardCaptured, and
+SeasonCampaign commitments. Recognition still additionally requires Fulfilled. Evidence, Work
+linking, and new countable approval credit are accepted only while Accepted and unfrozen; a late
+approval remains observable but cannot change requirements, units, contributor credit, or
+recognition. Every cycle-scoped commitment increments an O(1) `liveCommitmentCount`, its first
+Fulfilled/Cancelled/Expired transition decrements once, and reconciliation or cycle cancellation
+requires zero. Ready and Disputed commitments therefore remain live until terminal.
+
+W2b now draws online add, join, remove, leave, and exact-requirement assignment states with
+validated contract calls, credit/freeze restrictions, and no offline queue. W2 distinguishes an
+editable pre-ready roster from the frozen recognition record. Evidence attachment lands on a
+pending queued state. Payout finalization permits Pending or immediate Complete, and the canonical
+floor-plus-largest-remainder full-reward allocation is rounding-equivalent without a reason even
+when normalized payment bps cannot exactly equal recognition; only noncanonical amount or
+retention choices require a reason. The executable registry validates 286 states and 391 hotspots
+with no warnings.

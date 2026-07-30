@@ -288,6 +288,7 @@ sequenceDiagram
   A->>M: counterparty confirms (act 3 · D2.3)
   M->>R: fulfillUnits — units converted, the one slot released
   alt cycle-scoped (cycleId != 0)
+    Note over OP,M: every cycle commitment is terminal<br/>liveCommitmentCount = 0
     OP->>M: closeCycle → CycleClosed derives Reconciled
   else cycle-less (cycleId == 0)
     OP->>M: closePool → PoolClosed derives Reconciled
@@ -381,6 +382,7 @@ sequenceDiagram
     M-->>IDX: RewardPaid(derived source, leadProvider, token, amount)
     Note over RAILS,IDX: CeloSettlement rewards never use this lane —<br/>they queue on the SettlementModule (D9, D12)
   end
+  Note over OP,M: close requires liveCommitmentCount = 0
   OP->>M: closeCycle(cycleId)
   M-->>IDX: CycleClosed (derived Reconciled for the cycle's commitments)
 ```
@@ -411,10 +413,10 @@ sequenceDiagram
   Note over ADM,M: member's detail shows<br/>"Recorded by your steward on your behalf.<br/>The promise stays yours."
   MEM->>PWA: attach evidence offline (photo, link, note)
   Note over ADM,PWA: evidence job queued in IndexedDB,<br/>media serialized, survives restart
-  PWA->>M: attachEvidence(commitmentId, cid) on sync
+  PWA->>M: attachEvidence(commitmentId, cid, creditedContributors) on sync
   M-->>IDX: EvidenceAttached (derived EvidenceSubmitted)
   MEM->>M: submitForConfirmation(commitmentId)
-  Note over PWA,IDX: allowed because the commitment carries no work requirement,<br/>at least one evidence is attached,<br/>and the declared assessment is attached — the same<br/>assessment predicate D6b applies · DomainImpact is rejected
+  Note over PWA,IDX: allowed because the commitment carries no work requirement,<br/>evidenceCount ≥ 1 and totalVerifiedCredits > 0,<br/>and the declared assessment is attached — the same<br/>assessment predicate D6b applies · DomainImpact is rejected
   M-->>IDX: CommitmentReadyForConfirmation
   CP->>M: confirmFulfillment(commitmentId)
   M-->>IDX: ConfirmationRecorded → CommitmentFulfilled
@@ -476,14 +478,14 @@ stateDiagram-v2
   Open --> InProgress : first CommitmentAccepted, or startTime reached
   InProgress --> Reviewing : endTime passed, or all commitments terminal / ready
   Reviewing --> InProgress : new evidence, work link, or approval count
-  Reviewing --> Reconciled : closeCycle (the reconcile act)
-  InProgress --> Reconciled : closeCycle (underlying Open)
-  Open --> Reconciled : closeCycle
+  Reviewing --> Reconciled : closeCycle when liveCommitmentCount = 0
+  InProgress --> Reconciled : closeCycle only after every commitment is terminal
+  Open --> Reconciled : closeCycle only after every commitment is terminal
   Reconciled --> Composted : compostCycle
-  Seeded --> Cancelled : cancelCycle(reasonCID)
-  Open --> Cancelled : cancelCycle(reasonCID)
-  InProgress --> Cancelled : cancelCycle(reasonCID) on underlying Open
-  Reviewing --> Cancelled : cancelCycle(reasonCID) on underlying Open
+  Seeded --> Cancelled : cancelCycle(reasonCID) when liveCommitmentCount = 0
+  Open --> Cancelled : cancelCycle(reasonCID) when liveCommitmentCount = 0
+  InProgress --> Cancelled : cancelCycle(reasonCID) on underlying Open when liveCommitmentCount = 0
+  Reviewing --> Cancelled : cancelCycle(reasonCID) on underlying Open when liveCommitmentCount = 0
   Composted --> [*] : succession = fresh seedCycle on the same pool
 
   class InProgress derived
@@ -493,7 +495,7 @@ stateDiagram-v2
 
 `InProgress` is on-chain `Open`, so `cancelCycle` covers it; Draft cancels are an off-chain discard. Succession is derived by pool ordering — no on-chain predecessor pointer. Opening validates **pool `Open`**, cycle existence, pool ownership, `Seeded` state, and an allocation whose basis points sum to exactly 10,000. Because `InProgress` and `Reviewing` are derived overlays of on-chain `Open`, the four edges leaving them (`→ Cancelled`, `→ Reconciled`) are the spec's single `Open →` rows drawn at overlay resolution — the diagram is deliberately a superset of the on-chain transition table, and no transition here exists that the chain does not allow. `Pool.openSeasonCycleId` permits exactly one open Season in O(1); any number of Campaigns may be open concurrently and no transition enumerates cycles.
 
-**Reading the middle of the machine**: `InProgress` and `Reviewing` are indexer-derived overlays of on-chain `Open` — the chain never stores them. A cycle sits `Open`, starts reading as `InProgress` at the first accepted commitment (or when `startTime` arrives), flips to `Reviewing` when the window ends or every commitment is terminal/ready, and flips back whenever new evidence lands. `closeCycle` is the reconcile act.
+**Reading the middle of the machine**: `InProgress` and `Reviewing` are indexer-derived overlays of on-chain `Open` — the chain never stores them. A cycle sits `Open`, starts reading as `InProgress` at the first accepted commitment (or when `startTime` arrives), flips to `Reviewing` when the window ends or every commitment is terminal/ready, and flips back whenever new evidence lands. `closeCycle` is the reconcile act, but both close and cancel require the O(1) `liveCommitmentCount` to be zero; Ready and Disputed commitments stay live until they become Fulfilled, Cancelled, or Expired.
 
 **There is deliberately no loop here**: `Composted` is terminal *for a cycle*. The loop lives at the pool — a fresh `seedCycle` (Season or Campaign) on the same pool is how the next round begins, and the composted cycle's aggregates roll into pool history. (The pool machine, D4, is the one that can reopen.)
 
@@ -569,9 +571,9 @@ stateDiagram-v2
   Active --> EvidenceSubmitted : EvidenceAttached / WorkLinked
   EvidenceSubmitted --> PartiallyApproved : ApprovedWorkCounted — some per-action counters below quota
   PartiallyApproved --> EvidenceSubmitted : new evidence or work
-  EvidenceSubmitted --> ReadyForConfirmation : (a) first counted approval completes every requirement + assessment
+  EvidenceSubmitted --> ReadyForConfirmation : (a) first pre-freeze counted approval completes every requirement + assessment
   PartiallyApproved --> ReadyForConfirmation : (a) every per-action required count met + assessment satisfied
-  Accepted --> ReadyForConfirmation : (b) submitForConfirmation — eligible evidence-only kind · no work requirement · at least 1 evidence · declared assessment attached · (c) steward override with reason
+  Accepted --> ReadyForConfirmation : (b) submitForConfirmation — evidence-only kind · no work requirement · evidenceCount ≥ 1 · totalVerifiedCredits > 0 · declared assessment attached · (c) steward override with reason
   ReadyForConfirmation --> [*]
   class Active derived
   class EvidenceSubmitted derived
@@ -1546,7 +1548,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `registerPool` | Protocol: module owner; Garden: garden operator/owner or module owner | One pool per garden |
 | `setPoolCharter`, `markPoolReady` | Resolved pool steward | Ready requires non-empty charter and a previously configured non-zero provider open-commitment cap; Baseline remains an app preflight |
 | `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool` | Resolved pool steward | Exact D4 transition; pause reason mandatory |
-| `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D5 transition; allocation exists only on open and totals 10,000 BPS; cancel reason mandatory |
+| `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D5 transition; allocation exists only on open and totals 10,000 BPS; close/cancel require `liveCommitmentCount == 0`; cancel reason mandatory |
 | `createCommitment` | Pool member for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; stored authorship and `onBehalfOf` determine provider; DomainImpact arrays are valid |
 | `setDeclaredReward`, `setConfirmerRule` | Resolved pool steward | Pre-acceptance only; named confirmer input is bounded by `MAX_CONFIRMERS = 32` before mutation |
 | `claimCommitment` | Garden member; or protocol-pool garden operator/owner / individual garden member according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
@@ -1554,7 +1556,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `linkWork` | Active contributor, lead, or steward | Accepted; schema/provider authorship/provider-garden recipient checks pass; DomainImpact names an exact matching requirement index |
 | `unlinkWork`, `syncApprovedWork` | Resolved pool steward | Unlink only before counting; sync verifies EAS and dedupes |
 | `onWorkApproved` | WorkApprovalResolver only | Non-blocking; unlinked/already-counted approval is a no-op |
-| `attachEvidence` | Creator, counterparty, or steward | Commitment state allows attachment; offline-queueable |
+| `attachEvidence` | Active contributor, lead, or steward | Accepted and unfrozen only; exact credited-contributor vector; offline-queueable but a late job fails without credit |
 | `attachAssessment` | Steward or evaluator of `providerGarden` | Resolver/schema/kind/recipient valid; Ready predicate re-evaluated |
 | `submitForConfirmation` | Creator, counterparty, or steward | Evidence-only eligible kind; no Work requirement; evidence and declared assessment present |
 | `markReadyForConfirmation` | Resolved pool steward | Override reason mandatory and emitted |
