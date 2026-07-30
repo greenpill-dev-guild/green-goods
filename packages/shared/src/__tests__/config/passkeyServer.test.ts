@@ -28,9 +28,9 @@ describe("config/passkeyServer", () => {
     });
 
     it("honors explicit env overrides", () => {
-      expect(
-        isPasskeyServerEnabled({ PROD: true, VITE_PASSKEY_SERVER_ENABLED: "false" })
-      ).toBe(false);
+      expect(isPasskeyServerEnabled({ PROD: true, VITE_PASSKEY_SERVER_ENABLED: "false" })).toBe(
+        false
+      );
       expect(
         isPasskeyServerEnabled({ DEV: true, PROD: false, VITE_PASSKEY_SERVER_ENABLED: "true" })
       ).toBe(true);

@@ -44,9 +44,39 @@ permissions:
   contents: read
 
 jobs:
+  # Inlined rather than calling greenpill-dev-guild/.github's reusable workflow.
+  # The org policy requiring full-length SHA pins applies transitively, and that
+  # reusable workflow still uses `actions/checkout@v4` internally — so pinning
+  # the *reference* to it is not enough and the job is refused before it starts.
+  # develop hit the same wall and inlined it; this mirrors that, keeping the job
+  # id `audit` so the CI Gate required-check name is unchanged.
+  #
+  # Behaviour is identical to the previous `with:` block: mode=ci,
+  # fail-on-warning=false, consumer repo audited at its root.
   audit:
-    uses: greenpill-dev-guild/.github/.github/workflows/supply-chain-guardrails.yml@main
-    with:
-      mode: ci
-      fail-on-warning: false
-      working-directory: "."
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout consumer repo
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          path: consumer
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout guardrail source
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          repository: greenpill-dev-guild/.github
+          ref: 5d33cf1e11c0ed1fae08edd65a09ec390f2aca3b
+          path: _guild-defaults
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run supply-chain guardrails audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          node "$GITHUB_WORKSPACE/_guild-defaults/scripts/audit-supply-chain-guardrails.mjs" \
+            --mode=ci \
+            --fail-on-warning=false \
+            "$GITHUB_WORKSPACE/consumer"
