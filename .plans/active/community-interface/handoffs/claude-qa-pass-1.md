@@ -12,7 +12,7 @@
 
 ## Acceptance
 
-- Member/operator/evaluator/funder flows cover loading/empty/offline/pending/waiting/declined/merged/hidden/retracted/failed/retry; en/es/pt smoke; membership queue omitted unless its gate cleared.
+- Member/operator/evaluator/funder flows cover loading/empty/offline/pending/waiting/declined/merged/hidden/retracted/failed/retry; signal support/non-support, both switches, clear, queued coalescing, revoked-winner/no-fallback, separate counts/no net score, and cross-garden read-only behavior; en/es/pt smoke; membership queue omitted unless its gate cleared.
 
 ## RED / GREEN or proof limit
 

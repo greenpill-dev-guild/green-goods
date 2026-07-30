@@ -48,7 +48,7 @@ These journeys describe planned behavior. They are not evidence that the product
 
 - Coordinates shared foundations, protocol-pool operations, operator enablement, public truthfulness, and cross-package sequencing.
 - Needs explicit trust boundaries, machine-readable gates, role-separated recovery, and a way to see which source or lane is incomplete.
-- Keeps Community identity separate from client, keeps pools/evaluator tools under admin `/community`, and prevents a privacy decision from being smuggled into UI implementation.
+- Keeps Community identity separate from client, keeps Need-specific evaluator tools under admin `/community/needs`, pool/cycle operations under `/community/coordination`, and prevents a privacy decision from being smuggled into UI implementation.
 - Success: “Each lane can implement from an exact handoff, and no surface claims more than its evidence proves.”
 
 ## Journey J1. Member — discover, express, wait, follow, close the loop, and retract
@@ -81,11 +81,11 @@ These journeys describe planned behavior. They are not evidence that the product
 | Stage | Operator action | System response | Decision/evidence | Failure and recovery | Acceptance evidence |
 |---|---|---|---|---|---|
 | Onboard | Confirms contact, language, consent, gathering, example Need, and commitment candidate | Readiness row separates confirmed, invited, and unavailable | RESR-62 + operator confirmation | Missing fields remain gaps; no inferred readiness | Signed readiness row |
-| Prepare | Opens admin `/community` “For the gathering” | Fresh Needs, eligible confirmations, recent changes, print view | Join queue appears only after RESR-64 gate | Partial source names EAS or Envio and keeps known data labeled | Admin source-health fixture |
+| Prepare | Opens admin `/community/needs` “For the gathering” | Fresh Needs, eligible confirmations, recent changes, print view | Join queue appears only in `/community/members` after the RESR-64 gate | Partial source names EAS or Envio and keeps known data labeled | Admin source-health fixture |
 | Triage | Acknowledges, applies zero or more domains, merges, hides, declines, or reopens | NeedStatus uses typed target/rationale and deterministic winner | The member-authored problem and desired outcome remain intact | Rejected signature/tx failure changes nothing and offers Retry | Resolver + admin mutation tests |
 | Convene | Reviews Needs with community | Funding never changes order; status uses plain language | Community agrees what to seed and who can confirm | Private grievances use off-chain private capture, not public record | Gathering rehearsal |
 | Seed | Starts from selected Need | `needUID` and optional domains prefill; confirmation defaults to Request creator or accepted Offer recipient; every field requires review | Direction, pool/cycle, provider, units, action pairs, evidence, confirmation, reward, timing | Provider exclusion, invalid action/domain, or unreachable confirmer group blocks acceptance | Admin + contract integration tests |
-| Run | Operates pools/cycles and monitors evidence under `/community` | Progress derives from linked protocol events | Envio remains protocol-only | Failed/retry/dispute reasons stay visible | Indexer/shared/admin fixtures |
+| Run | Operates pools/cycles under `/community/coordination` and monitors Need evidence under `/community/needs` | Progress derives from linked protocol events | Envio remains protocol-only | Failed/retry/dispute reasons stay visible | Indexer/shared/admin fixtures |
 | Close | Returns status and outcome at gathering | Need thread shows protocol evidence and testimony without scores | Operator is human notification layer | Retraction preserves only tombstone; no cached content | Privacy + comprehension research |
 | Handoff | Transfers responsibilities to backup operator | Decision record/runbook names access, incident, deletion, and support ownership | Required for membership transport | No single-device or single-person queue | RESR-64 operating-model rehearsal |
 
@@ -93,7 +93,7 @@ These journeys describe planned behavior. They are not evidence that the product
 
 | Stage | Evaluator action | System response | Integrity rule | Failure and recovery | Acceptance evidence |
 |---|---|---|---|---|---|
-| Enter | Opens admin `/community` evaluator view | Role-appropriate read-only workspace | No new public evaluator route | Unauthorized viewer sees no private fields | Admin access test |
+| Enter | Opens admin `/community/needs` evaluator view | Role-appropriate read-only workspace | No new public evaluator route | Unauthorized viewer sees no private fields | Admin access test |
 | Trace | Selects Need or commitment | Shared join loads EAS community evidence and Envio protocol lineage | Envio never indexes EAS; all protocol IDs are composite | Each failed source is named | Joined-read source-health fixture |
 | Interpret | Compares Need, Work, Approval, Assessment, and Testimony | Moderation and progress remain separate; testimony is narrative, never scored | Domains remain arrays; action pairs stay positional | Retracted Need becomes content-free tombstone | Selector and privacy tests |
 | Verify funding context | Opens attribution evidence | Only finalized canonical matching receipts count once | Earliest `(timeCreated, uid)` wins duplicate key | Pending/unverified contributes zero | Funding-proof fixtures |
@@ -109,7 +109,7 @@ These journeys describe planned behavior. They are not evidence that the product
 | Understand | Opens detail | Sees Need → promise → work → proof, garden context, cycle, and verified funded-toward line | Community narrative and protocol evidence are labeled | Retracted Need reveals only tombstone when linked | Content/role fixtures |
 | Fund | Uses existing direct donation or endowment action | Funding goes to garden; Need is context only | No per-Need escrow or allocation steering | Failed/canceled funding offers Retry funding | Existing rail integration test |
 | Attribute | Optionally signs FundingAttribution after confirmed tx | Funding remains successful even if attribution is skipped or fails | No Hat gate; no actor inference from `transaction.from` | Retry attribution never replays funding | Separate funding/attribution state test |
-| Verify | Returns after proof adapter check | Matching finalized receipt counts once; duplicate contributes zero | Key is `(needUID, chainId, txHash, rail)` | Pending/unverified contributes zero and offers Check again | Receipt/dedupe fixtures |
+| Verify | Returns after proof adapter check | Matching finalized receipt counts once; duplicate contributes zero | Global receipt key is `(chainId, txHash, rail)` across all Needs | Pending/unverified contributes zero and offers Check again | Receipt/dedupe fixtures |
 
 ## Journey J6. Collaborator or protocol steward — sequence, govern, and communicate
 
@@ -119,7 +119,7 @@ These journeys describe planned behavior. They are not evidence that the product
 | Unblock foundation | Extracts generic runtime/auth/offline/install/update/error/shell primitives in future implementation lane | Client proves behavior before Community starts | Each app retains routes, nav, manifest, SW, telemetry, copy | Client regression blocks Community lane | Shared-foundation handoff GREEN commands |
 | Govern data | Reviews EAS, Envio, and funding-proof boundary | Shared owns deterministic join and source health | Envio never indexes EAS/raw transfers | Boundary regression blocks indexer release | Boundary/codegen/replay tests |
 | Govern membership | Accepts RESR-64 operating model with decision owner | Membership queue becomes dispatchable only after exact evidence | Product writes in `waiting_for_hat` are not join storage | Failed rehearsal keeps lane blocked | Decision record + abuse/privacy review |
-| Operate protocol | Uses admin `/community` pool/evaluator surfaces | Protocol-pool records and garden evidence retain correct roots/recipients | No new top-level `/pools` | Dispute/retry/cancel uses contract plan | Contract/admin handoff proof |
+| Operate protocol | Uses admin `/community/coordination` pool/cycle surfaces and `/community/needs` evaluator surfaces | Protocol-pool records and garden evidence retain correct roots/recipients | No new top-level `/pools` | Dispute/retry/cancel uses contract plan | Contract/admin handoff proof |
 | Communicate | Reviews public copy and research claims | Built, planned, reported, oracle-verified, and evidence-gated labels stay distinct | Pilot targets are not reported results | Docs audit/vocab failure blocks publication | Docs and vocabulary gates |
 
 ## Customer and community journey map
@@ -204,7 +204,7 @@ Gate semantics:
 - T1–T3 produce planning and operator-confirmation evidence, not cohort-success claims.
 - T4 alone may unblock membership-queue implementation, and only when controller, processor, auth, encrypted fields, retention/deletion, cancellation/recovery, abuse controls, cost, incident owner, offline replay, and operator handoff are accepted.
 - T5 reviews implementation with participating operators and rehearses one end-to-end commitment; where settlement is relevant, it separately rehearses the planned Celo path.
-- T6 accepts the independent Community PWA, admin `/community`, joined read, offline recovery, and gathering workflow only with en/es/pt and accessibility evidence.
+- T6 accepts the independent Community PWA, admin `/community/needs` plus `/community/coordination` ownership split, joined read, offline recovery, and gathering workflow only with en/es/pt and accessibility evidence.
 - T7 decides whether evidence-gated hardening work should advance; it does not auto-promote parked follow-ons.
 
 ## Research checkpoints
