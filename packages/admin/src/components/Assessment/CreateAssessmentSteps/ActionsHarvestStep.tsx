@@ -1,6 +1,8 @@
 import {
   cn,
   DatePicker,
+  fromCalendarDateKey,
+  toCalendarDateKey,
   useActions,
   useCreateAssessmentStore,
   useCurrentChain,
@@ -8,31 +10,6 @@ import {
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { LabeledField, resolveDomainLabel, Section } from "./shared";
-
-/**
- * Convert a "YYYY-MM-DD" store string → Unix seconds for DatePicker.
- *
- * Parsed as local midnight, not via `new Date("YYYY-MM-DD")` (which is UTC): the
- * picker hands back local-midnight dates and renders with `toLocaleDateString`,
- * so a UTC parse echoed the previous day back to operators behind UTC.
- */
-function dateStringToTimestamp(dateStr: string): number | null {
-  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
-  if (!parts) return null;
-  const ms = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])).getTime();
-  return Number.isNaN(ms) ? null : Math.floor(ms / 1000);
-}
-
-/** Convert Unix seconds from DatePicker → "YYYY-MM-DD" store string */
-function timestampToDateString(ts: number | null): string {
-  if (!ts || ts <= 0) return "";
-  const date = new Date(ts * 1000);
-  // Local calendar parts, not toISOString() — the picker selects local midnight,
-  // which serializes to the previous day for operators ahead of UTC.
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${date.getFullYear()}-${month}-${day}`;
-}
 
 interface ActionsHarvestStepProps {
   showValidation: boolean;
@@ -96,10 +73,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
               defaultMessage: "End date is required",
             }),
       dateRange: (() => {
-        // Same parser as the pickers — a second `new Date(str)` here would read
+        // Same parser the pickers use — a bare `new Date(str)` here would read
         // these as UTC and drift from the values the fields actually hold.
-        const start = dateStringToTimestamp(form.reportingPeriodStart);
-        const end = dateStringToTimestamp(form.reportingPeriodEnd);
+        const start = fromCalendarDateKey(form.reportingPeriodStart);
+        const end = fromCalendarDateKey(form.reportingPeriodEnd);
         if (start === null || end === null) return null;
         if (end < start) {
           return formatMessage({
@@ -248,8 +225,8 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
           >
             <DatePicker
               id="reportingPeriodStart"
-              value={dateStringToTimestamp(form.reportingPeriodStart)}
-              onChange={(ts) => setField("reportingPeriodStart", timestampToDateString(ts))}
+              value={fromCalendarDateKey(form.reportingPeriodStart)}
+              onChange={(ts) => setField("reportingPeriodStart", toCalendarDateKey(ts))}
               disabled={isSubmitting}
               placeholder={formatMessage({
                 id: "app.admin.assessment.actionsHarvest.reportingStartPlaceholder",
@@ -275,10 +252,10 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
           >
             <DatePicker
               id="reportingPeriodEnd"
-              value={dateStringToTimestamp(form.reportingPeriodEnd)}
-              onChange={(ts) => setField("reportingPeriodEnd", timestampToDateString(ts))}
+              value={fromCalendarDateKey(form.reportingPeriodEnd)}
+              onChange={(ts) => setField("reportingPeriodEnd", toCalendarDateKey(ts))}
               disabled={isSubmitting}
-              minDate={dateStringToTimestamp(form.reportingPeriodStart)}
+              minDate={fromCalendarDateKey(form.reportingPeriodStart)}
               placeholder={formatMessage({
                 id: "app.admin.assessment.actionsHarvest.reportingEndPlaceholder",
                 defaultMessage: "Select end date",

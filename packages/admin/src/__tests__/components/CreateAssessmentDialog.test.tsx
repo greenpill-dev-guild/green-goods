@@ -4,7 +4,7 @@
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { get as idbGet } from "idb-keyval";
+import { del as idbDel, get as idbGet } from "idb-keyval";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -136,8 +136,15 @@ function renderCreateAssessment() {
   return router;
 }
 
+// Every test in this file renders the same garden/operator pair, so they all
+// share one persisted draft key. Any test that dirties the form arms a 600ms
+// debounced write to it, which can land during a later test and make a
+// "pristine" form look dirty. Clear it on both sides of each test.
+const DRAFT_KEY = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
+
 describe("CreateAssessment dialog", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await idbDel(DRAFT_KEY);
     useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
@@ -159,12 +166,14 @@ describe("CreateAssessment dialog", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
     createAssessmentControllerOverride.current = null;
     useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
+    // After cleanup, so a debounce that fires during unmount cannot re-persist.
+    await idbDel(DRAFT_KEY);
   });
 
   it("opens the assessment form from the route garden id without a Zustand selected garden", async () => {
@@ -235,8 +244,7 @@ describe("CreateAssessment dialog", () => {
       await new Promise((resolve) => setTimeout(resolve, 700));
     });
 
-    const draftKey = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
-    expect(await idbGet(draftKey)).toMatchObject({ title: "Should not survive discard" });
+    expect(await idbGet(DRAFT_KEY)).toMatchObject({ title: "Should not survive discard" });
 
     const dialog = screen.getByRole("dialog", { name: "Submit Assessment" });
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -247,7 +255,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    expect(await idbGet(draftKey)).toBeUndefined();
+    expect(await idbGet(DRAFT_KEY)).toBeUndefined();
     expect(useCreateAssessmentStore.getState().form.title).toBe("");
   });
 
