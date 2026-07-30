@@ -804,7 +804,7 @@ function w8(state: W8State): string {
   let next: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${banner("This campaign promise is evidence-confirmed, so it has no garden-work action requirements or assessment gate.", "stone")}${field("Due", input("cycle deadline", { select: true }))}`;
+      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${banner("This campaign promise is evidence-confirmed, so it has no garden-work action requirements or assessment gate.", "stone")}${hot("w8.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join" }, { label: "Lead-managed team", meta: "the lead or steward manages the roster", on: true }], { interactive: true, name: "seed-contributor-policy" })))}${field("Due", input("cycle deadline", { select: true }))}`;
       next = hot("w8.continue-requirements", btn("Continue", { kind: "pri" }));
       break;
     case "step3":
@@ -824,7 +824,7 @@ ${banner("One rail only. External payouts are recorded here after the fact; Celo
       next = hot("w8.continue-reward", btn("Continue", { kind: "pri" }));
       break;
     case "step5":
-      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
+      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Contributor policy", "Lead-managed team · lead or steward manages the roster")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
       next = hot("w8.seed", btn("Seed this commitment", { kind: "pri" }));
       break;
     default:
@@ -849,6 +849,7 @@ ${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title"
 }
 
 const W8_HOTS: HifiDef["hots"] = {
+  "w8.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy at seeding; the review repeats who may join or edit the team." },
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
   "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open." },
   "w8.reward": { l: "Reward rail", info: "Exactly one rail is declared: none, an external payout record, or a Celo G$ settlement. External rewards are references only; G$ uses the settlement module." },
@@ -1175,8 +1176,8 @@ function w11(state: W11State): string {
   if (state === "guard" || state === "campaign-open") {
     const campaign = state === "campaign-open";
     const body = campaign
-      ? `${banner("The pool is already open, so opening this campaign only starts the campaign — it runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`
-      : `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}`;
+      ? `${banner("The pool is already open, so opening this campaign only starts the campaign — it runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Recognition policy", "35% equal participation · 65% verified contribution")}`
+      : `${banner("This pool is Ready but not yet Open. Opening the cycle opens the pool with it, so members can see and make promises straight away.", "amber", "information-line")}${kv("Pool", "Ready — not yet open")}${kv("Cycle", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Recognition policy", "35% equal participation · 65% verified contribution")}`;
     const orderedCalls = campaign
       ? ""
       : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation, recognitionPolicy).", "stone");
@@ -1205,10 +1206,11 @@ function w11(state: W11State): string {
         title: "Gardener recognition",
         steps: [{ title: "Policy", desc: "how the gardener class is shared" }],
         current: 0,
-        body: `${banner("Every fulfilled commitment receives an equal commitment budget inside the gardener class. Within each commitment, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
-${kv("Commitment budget", "equal across fulfilled commitments")}${kv("Within each commitment", "20% equal participation · 80% verified contribution")}
+        body: `${banner("Every fulfilled commitment receives an equal commitment budget inside the gardener class. Choose how each commitment shares that budget between equal participation and verified contribution.", "stone", "information-line")}
+${field("Equal participation", input("35"))}${field("Verified contribution", input("65"))}
+${kv("Policy total", "100% · valid")}${kv("Commitment budget", "equal across fulfilled commitments")}
 ${kv("No eligible contributors", "certificate expansion blocked · no lead fallback")}${kv("Repair", "proof link + steward reason + before/after audit")}
-${banner("Recognition weights are the default for payment, but do not themselves move funds.", "amber")}`,
+${banner("The two editable fields are stored as 3,500 / 6,500 bps when the cycle opens. Recognition weights are the default for payment, but do not themselves move funds.", "amber")}`,
         cancelHot: "w11.cancel",
         next: hot("w11.recognition-done", btn("Use this policy", { kind: "pri" })),
       }),
@@ -1227,6 +1229,7 @@ ${banner("Recognition weights are the default for payment, but do not themselves
   const inner = `<div class="t-meta">Set how each fulfilled promise's units split across the six roles.</div>
 ${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }], { interactive: true, name: "allocation-preset" })))}
 ${rows}${sum}
+${hot("w11.recognition", field("Gardener recognition", `<div class="arow"><div class="grow">${input("35")}<span class="t-meta">% equal</span></div><div class="grow">${input("65")}<span class="t-meta">% verified</span></div></div><div class="quietok">${icon("check-line")}total: 100%</div>`))}
 ${banner("Treasury is at the 15% guidance floor. This split is locked when the cycle opens and reads back unchanged at close.", "stone")}`;
   const campaign = w11IsCampaign(state);
   return deskWin(
@@ -1248,7 +1251,8 @@ ${banner("Treasury is at the 15% guidance floor. This split is locked when the c
 }
 
 const W11_HOTS: HifiDef["hots"] = {
-  "w11.recognition-done": { l: "Use recognition policy", to: "screen:W11", info: "Returns to the six-class allocation with the canonical within-gardener policy attached to the cycle." },
+  "w11.recognition": { l: "Edit recognition policy", to: "screen:W11@recognition-policy", info: "Edits both equal-participation and verified-contribution percentages; the two fields must total 100% and are submitted with openCycle." },
+  "w11.recognition-done": { l: "Use recognition policy", to: "screen:W11", info: "Returns to the six-class allocation with the entered 35/65 within-gardener policy retained for this cycle." },
   "w11.presets": { l: "Allocation presets", info: "Presets prefill an editable percent editor; the protocol allocation class renders as “steward” (Decision Log #28c)." },
   "w11.continue": { l: "Continue to open", to: "screen:W11@guard", info: "Allocation → the open step, which carries the Ready-pool guard prompt." },
   "w11.back": { l: "Back to allocation", to: "screen:W11", info: "Steps back to the six-role split with the entered values retained." },
@@ -1418,8 +1422,8 @@ ${banner("Existing Work stage — approval rails untouched.", "stone")}`,
 }
 
 const HUBWORK_HOTS: HifiDef["hots"] = {
-  "hub.approve": { l: "Approve", to: "screen:HUBWORK", info: "Existing WorkApproval rails → onWorkApproved → ApprovedWorkCounted (CS:737)." },
-  "hub.reject": { l: "Reject", info: "Existing work-rejection rail with a recorded reason; no pooling-specific behavior." },
+  "hub.approve": { l: "Approve", to: "screen:HUBWORK", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted while the linked commitment is Accepted and unfrozen." },
+  "hub.reject": { l: "Reject", info: "A newer rejection decision reaches onWorkDecision and emits ApprovedWorkReversed when it replaces active pre-freeze credit." },
 };
 
 // ---------------------------------------------------------------------------

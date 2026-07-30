@@ -262,6 +262,7 @@ Route `/home/:id/pool/new?direction=offer|request`. Full-screen (AppBar hidden),
 │             ○ Support / service              │   │ How many  [ 6 ]         │
 │   (season/campaign + on-behalf capture are   │   │ Due  {DatePicker}       │
 │    console-seeded only — not shown here)     │   │  or ◉ selected deadline │
+│ team policy ◉ Open team ○ Lead-managed team  │   │                        │
 │ cycle scope [Season: First Rains ▾]          │   │                        │
 │   Season · each open Campaign · no cycle     │   │                        │
 │ title  [ Prune the north beds            ]   │   └────────────────────────┘
@@ -272,7 +273,7 @@ Route `/home/:id/pool/new?direction=offer|request`. Full-screen (AppBar hidden),
                                                    │ ◉ Prune the north beds │
 Step 4 — Review and promise                        │ ○ Plant native seedl…  │
 ┌──────────────────────────────────────────────┐   │ action-card picker from│
-│ summary card (all fields, incl. the line     │   │ the work-flow intro;   │
+│ summary card (all fields, incl. policy and   │   │ the work-flow intro;   │
 │  "needs: Prune × 2 · Plant × 1")             │   │ per-action counts draw │
 │ [ Make this offer ]                          │   │ as repeatable rows;    │
 │  → enqueues `commitment` job, returns to W1  │   │ four visible at first  │
@@ -487,6 +488,7 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ ≡ Prune the north beds   × [ 2 ]  ✕                      │
 │ ≡ Plant native seedlings × [ 1 ]  ✕                      │
 │ [ + Add an action ]     (per-action approved-work counts)│
+│ team policy ○ Open team  ◉ Lead-managed team             │
 │ due [ cycle deadline ]                                   │
 ├──────────────────────────────────────────────────────────┤
 │ Step 3 — Who confirms                                    │
@@ -500,7 +502,7 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ reward rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
 │ external    source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
 ├──────────────────────────────────────────────────────────┤
-│ Step 5 — Review · reward rail: External payout record    │
+│ Step 5 — Review · team: Lead-managed · reward: External  │
 │                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -620,7 +622,7 @@ One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**:
 │ sum: 100% ✓ · treasury 15% is the floor                  │  hard rule: must equal 100%
 ├──────────────────────────────────────────────────────────┤
 │ Gardener recognition                                     │
-│ Cycle policy · default 20% equal / 80% verified          │
+│ equal participation [ 35% ] verified contribution [ 65% ]│  both editable; sum = 100%
 │ Applies within each fulfilled promise; locked at open.   │
 │ At close these shares become the certificate allowlist   │  → W26 wizard
 │                          [ Continue ]                    │  the open action lives on the

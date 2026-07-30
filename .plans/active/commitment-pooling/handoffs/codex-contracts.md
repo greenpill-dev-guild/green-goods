@@ -255,14 +255,18 @@ every conflicting state. Broadcast remains outside this handoff.
   cycle-open `RecognitionPolicy` (protocol default 20% equal participation / 80% verified
   contribution). Equal and verified components each run their own floor-plus-remainder pass before
   their row results are added; equal ties use ascending lowercase address, while verified
-  remainders use descending fractional remainder then ascending lowercase address. The cycle-less
+  remainders use descending fractional remainder then ascending lowercase address. Expand each
+  commitment's final 10,000-bps vector into its integer gardener-unit budget with a final
+  floor-plus-largest-fractional-remainder pass and ascending-address tie break, conserving the
+  commitment budget exactly without changing the recognition hash. The cycle-less
   preset remains 20/80. Zero eligible contributors block certificate expansion; there is no lead
   fallback. Recognition is not a payment transfer.
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 28-feature-slot Commitment Pooling declaration order and `__gap[22]`, including
-  `workRequirementIndexPlusOne` and `workCreditCounted`, but treat the generated compiler baseline plus concrete
+- Implement the 30-feature-slot Commitment Pooling declaration order and `__gap[20]`, including
+  `workRequirementIndexPlusOne`, `workCreditActive`, and the latest Work decision `(time, UID)`
+  key, but treat the generated compiler baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
   measured-bounded credited list, and may increment `evidenceCount`/`evidenceCredits` only while
@@ -275,12 +279,13 @@ every conflicting state. Broadcast remains outside this handoff.
   contributor with uncounted linked Work may leave/be removed. `ContributorRecord` carries the
   O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
   the first countable approval decrements exactly once.
-- `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row,
-  stores index-plus-one, emits it, and increments only that row on approval/sync while Accepted
-  and unfrozen. `approvalCounted` makes one approval-attestation delivery idempotent, while
-  `workCreditCounted` guarantees that distinct approval attestations for the same Work UID can
-  award contributor/requirement credit only once. A first approval after freeze is observed in
-  `approvalCounted` but cannot mutate credit, requirements, units, or recognition.
+- `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row and
+  stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
+  `approvalCounted` makes each decision-attestation delivery idempotent; the greatest
+  `(attestation.time, approvalUID)` pair is the deterministic effective decision. Before freeze,
+  approval activates the exact requirement/contributor credit and a newer rejection reverses it;
+  repeated same-state or older decisions do not double-mutate. After freeze, decisions are
+  observed but cannot mutate credit, requirements, units, or recognition.
   The active contributor, accountable lead, or resolved pool steward may link after all shared
   validation; only the steward may unlink, and unlink is also Accepted-and-unfrozen.
 - Every Ready transition and a direct `Disputed -> Fulfilled` resolution require at least one

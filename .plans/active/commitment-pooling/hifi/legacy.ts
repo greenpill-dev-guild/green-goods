@@ -728,7 +728,7 @@ WFLOW: [
   { m: "[ Submit work ]", l: "Submit work", to: "frame:W2", info: "Existing work job + meta.commitmentId; the queue auto-links after sync (UX:220)." },
 ],
 HUBWORK: [
-  { m: "[ Approve ]", l: "Approve", info: "Existing WorkApproval rails → onWorkApproved → ApprovedWorkCounted (CS:737)." },
+  { m: "[ Approve ]", l: "Approve", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted; a newer pre-freeze rejection emits ApprovedWorkReversed." },
 ],
 C1: [
   { m: "[View] [Agree]", l: "View / Agree", to: "frame:C5", info: "Agree = a NeedSignal; board order is recency + status, never funding (CI-SPEC:257)." },

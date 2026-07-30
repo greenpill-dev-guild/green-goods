@@ -148,10 +148,10 @@ Empty pool (Open but zero commitments): planted-seed illustration slot + two pri
 
 Full-screen flow reusing the work-flow chrome pattern (`TopNav` + `FormProgress`, verified in `packages/client/src/views/Garden/index.tsx:41-44`). Direction (offer vs request) comes from the entry CTA and stays editable in step 1. Steps:
 
-1. **What and cycle scope**: direction, commitment type (DomainImpact or SupportService for member creation; SeasonCampaign and StewardCaptured are console-seeded only), claim type (Individual for member creation), claim mode from the context default, title, note, and one explicit binding: an Open Season, one Open Campaign, or cycle-less where allowed. Seeded cycles are operator-only. Entry from a scoped pool filter prefills that cycle but keeps it visible and editable; the form never guesses from “current cycle.”
+1. **What, team, and cycle scope**: direction, commitment type (DomainImpact or SupportService for member creation; SeasonCampaign and StewardCaptured are console-seeded only), immutable contributor policy (`Open` or `LeadManaged`) with its join-rule explanation, claim type (Individual for member creation), claim mode from the context default, title, note, and one explicit binding: an Open Season, one Open Campaign, or cycle-less where allowed. Seeded cycles are operator-only. Entry from a scoped pool filter prefills that cycle but keeps it visible and editable; the form never guesses from “current cycle.”
 2. **How much and proof**: unit label, target quantity, `requiresAssessment`, due date or cycle deadline default. DomainImpact requires a positive approved-work count per bound action (set beside each action in step 3); SupportService may explicitly carry no work requirement and then requires evidence before Ready.
 3. **Requirements** (DomainImpact only): add repeatable `{ actionUID, requiredCount }` rows reading "This promise needs: [Action] × [count]." The flow validates at least one row, registry existence, and a non-zero count; action UID `0` is valid and actions may share a domain. Domains are derived from ActionRegistry. The UI never presents four as a product maximum; the eventual `MAX_REQUIREMENTS` follows the 8/16/24/32 gas/indexer benchmark. It uses the action-selection card grammar the work flow intro already renders (`views/Garden/index.tsx:54-96`). SupportService skips Work requirements and uses lightweight evidence + confirmation (register #20).
-4. **Review and promise**: summary + "Make this offer" / "Ask for this help". Submission enqueues the `commitment` job kind (§5.11) and returns to the pool tab with the optimistic card visible.
+4. **Review and promise**: summary repeats the immutable contributor policy and its join rule plus every ordered requirement/count row, then "Make this offer" / "Ask for this help". Submission enqueues the `commitment` job kind (§5.11) and returns to the pool tab with the optimistic card visible.
 
 Drafts persist locally per the existing draft pattern (mirror `WorkDraftRecord` semantics, `packages/shared/src/types/job-queue.ts:194-209`); resume prompt on re-entry (client `DraftDialog` precedent, `views/Garden/index.tsx:42`).
 
@@ -286,7 +286,7 @@ Flow AdminDialog + `ActionFlowShell` steps (stepper precedent `CreateAssessment.
 1. **Type and scope**: commitment type (SeasonCampaign, SupportService, DomainImpact, StewardCaptured), direction (offer or request the pool is seeding), cycle binding, title, note. The cycle selector groups the one open Season separately from every open Campaign, labels type on every option, and permits an explicit cycle-less choice where the contract allows it. `AdminTextField` + type cards.
 2. **Requirements and team policy**: unit label + target quantity; repeatable `{ actionUID, requiredCount }` rows; immutable `ContributorPolicy` (`Open` or `LeadManaged`); optional assessment requirement; due date or cycle-deadline default. DomainImpact requires at least one registered row and a positive count per action. SupportService, StewardCaptured, and SeasonCampaign may explicitly choose evidence-only with no Work requirements. The review step shows per-requirement progress and the single commitment's `approvedUnits` use `floor(targetUnits × Σ min(approved[i], required[i]) / Σ required[i])`. No assessment UID is attached at creation because `providerGarden` is not frozen until acceptance.
 3. **Confirmation rule and reward**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accountable lead and every contributor before threshold validation, and the flow blocks an unreachable threshold. Claim mode toggle (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19). The reward section first selects exactly one rail: `None`, `ArbitrumExternal`, or `CeloSettlement`. `None` requires zero source/token/amount. `ArbitrumExternal` captures the external source reference, token, and amount for later payout recording. `CeloSettlement` stores source zero and canonical G$ at seeding because a protocol Request has no provider garden yet; acceptance resolves that garden and SettlementModule stores its active Safe as plan payer. The preview labels this as “payer selected with the provider garden,” then shows the conserved contributor plan with explicit retention after fulfillment. It never enables `Record payout`.
-4. **Review and seed**: summary + seed action. Console actions are online-expected but ride the same queue plumbing (§5.11 note). See Appendix B for the dated five-step amendment to this list.
+4. **Review and seed**: summary repeats the immutable contributor policy and who may join/manage the roster, then exposes the seed action. Console actions are online-expected but ride the same queue plumbing (§5.11 note). See Appendix B for the dated five-step amendment to this list.
 
 ### 6.4 Claims/review queue
 
@@ -613,8 +613,12 @@ placement in §§5–6 while preserving their route and component anchors.
   treasury flow; it does not choose contributors or silently mark their payouts complete.
 - W21 separates **Save draft** from **Finalize payout plan**. Finalization verifies recognition
   and payment hashes, canonical recipients, and exact conservation, then makes every row
-  immutable before dispatch. If every amount is zero and the garden retains the full declaration,
-  the plan becomes Complete immediately and no CCIP message or self-transfer exists.
+  immutable before dispatch. Until then, **Edit draft** reopens the complete ordered vector,
+  retained amount, and reason and resubmits them atomically through `setContributorPayouts`;
+  editing never replaces the stable parent pointer. The finalized screen exposes preparation for
+  every non-zero unprepared row and retains those controls after earlier rows are prepared. If
+  every amount is zero and the garden retains the full declaration, the plan becomes Complete
+  immediately and no CCIP message or self-transfer exists.
 - W22 groups child disbursements by payout plan, supports measured multi-batch teams, and preserves
   per-contributor retry/cancel outcomes. The parent status is derived and has no retry button of
   its own. Child and batch cancellation never clear or replace the stable parent plan pointer.

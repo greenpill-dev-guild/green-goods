@@ -75,7 +75,12 @@
 - Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
 - Claim acceptance consumes the stored request identity and supersedes only still-pending sibling requests through the companion index.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
-- `ApprovedWorkCounted` updates exactly the matching `requirementIndex`, replaces that row's cumulative count, stores event-emitted per-commitment `approvedUnits`, and increments only the matching exact-label pool/cycle summary by `newlyApprovedUnits`. `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values are never summed or re-derived.
+- `ApprovedWorkCounted` and `ApprovedWorkReversed` update exactly the matching
+  `requirementIndex`, replace that row's cumulative count, and store the event-emitted
+  per-commitment `approvedUnits`. The count event adds `newlyApprovedUnits`; the reversal event
+  subtracts `removedApprovedUnits` from only the matching exact-label pool/cycle summary.
+  `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values
+  are never summed or re-derived.
 - `CommitmentAccepted` stores the canonical claimant/counterparty/provider/providerGarden and
   resolves claim-request rows, but it never mutates count exposure. `UnitsCommitted` is the
   sole increment for pool/cycle open counts and `CommitmentProviderExposure`; `UnitsReleased`
@@ -153,11 +158,18 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 
 - Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence
   attribution without positional-domain assumptions. Maintain
-  `CommitmentContributor.uncountedLinkedWorkCount` from WorkLinked, WorkUnlinked, and the first
-  ApprovedWorkCounted for that Work; the unlink handler resolves the contributor from the
+  `CommitmentContributor.uncountedLinkedWorkCount` from WorkLinked, WorkUnlinked,
+  ApprovedWorkCounted, and ApprovedWorkReversed. Track the effective decision key and active-credit
+  state from those explicit events; a reversal restores the uncounted-linked count and removes one
+  contributor credit before freeze. The unlink handler resolves the contributor from the
   existing Work attribution row before removing it. `CommitmentEvidenceAttributionIndex` owns the
   stable IDs loaded on fulfillment; no handler scan is permitted.
-- Materialize the recognition inputs and deterministic gardener-share output: equal budget per fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less 20/80 default among eligible contributors. A Work UID contributes at most once even when distinct approval attestations exist. Zero eligible contributors produce a blocking W26 inconsistent-state review item, never a lead fallback or metadata repair.
+- Materialize the recognition inputs and deterministic gardener-share output: equal budget per
+  fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less
+  20/80 default among eligible contributors. Only the frozen effective Work decision contributes.
+  Expand each commitment's 10,000-bps vector into its integer unit budget using the canonical
+  largest-fractional-remainder and ascending-address tie-break pass. Zero eligible contributors
+  produce a blocking W26 inconsistent-state review item, never a lead fallback or metadata repair.
 - Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each
   later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer.
   Buffer every version-tagged `ContributorPayoutSet` row by `(payoutPlanId,

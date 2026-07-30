@@ -4,10 +4,10 @@ Updated 2026-07-30. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 32 registered screens / 288 rendered states in the full source registry
-- 25 presentation-visible hi-fi screens / 281 states: 10 Client PWA (161 states), 13 Admin console (115 states), 2 Editorial website (5 states)
-- 393 registered hotspots
-- 38 validated source flows / 310 scenes; 37 presentation-visible flows / 301 scenes: 16 Client PWA, 20 Admin console, 1 Editorial website
+- 32 registered screens / 291 rendered states in the full source registry
+- 25 presentation-visible hi-fi screens / 284 states: 10 Client PWA (161 states), 13 Admin console (118 states), 2 Editorial website (5 states)
+- 401 registered hotspots
+- 38 validated source flows / 316 scenes; 37 presentation-visible flows / 307 scenes: 16 Client PWA, 20 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -128,7 +128,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 4 | queue, context-chip, assess, empty |
 | W14 | Admin console | 3 | baseline, delta, discard |
-| W21 | Admin console | 23 | queue, unregistered, payout-plan, payout-finalized, payout-prepared, payout-retained-draft, payout-retained, payout-partial, payout-complete, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
+| W21 | Admin console | 26 | queue, unregistered, payout-plan, payout-plan-edit, payout-finalized, payout-prepared, payout-prepared-2, payout-prepared-all, payout-retained-draft, payout-retained, payout-partial, payout-complete, register-account, registered, failed-recovery, gate-status, requeue-confirm, requeued, batch-create, batch-created, cancel-queued-confirm, cancelled-queued, batch-cancelled, close-delivery-confirm, cancelled-failed, protocol-queue |
 | W22 | Admin console | 9 | ready, dispatched, delivery-delayed, executed, acknowledgment-pending, outcome, role-guard, cancel-batch-confirm, garden-command |
 | W24 | Admin console | 3 | queue, ccip, flows |
 | W26 | Admin console | 9 | review, recognition-blocked, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest |

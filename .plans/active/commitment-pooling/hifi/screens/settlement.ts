@@ -77,8 +77,11 @@ const W12_HOTS: HifiDef["hots"] = {
 
 const W21_STATES = [
   ["queue", "Disbursement queue"], ["unregistered", "No account yet"],
-  ["payout-plan", "Contributor payout plan · draft"], ["payout-finalized", "Contributor payout plan · finalized"],
-  ["payout-prepared", "Contributor payout prepared · queued"],
+  ["payout-plan", "Contributor payout plan · draft"], ["payout-plan-edit", "Contributor payout plan · edit draft"],
+  ["payout-finalized", "Contributor payout plan · finalized"],
+  ["payout-prepared", "Contributor payout prepared · 1 of 3"],
+  ["payout-prepared-2", "Contributor payout prepared · 2 of 3"],
+  ["payout-prepared-all", "Contributor payout prepared · 3 of 3"],
   ["payout-retained-draft", "All support retained · draft"],
   ["payout-retained", "All support retained · complete"], ["payout-partial", "Contributor payouts · partial"],
   ["payout-complete", "Contributor payouts · complete"],
@@ -227,8 +230,17 @@ ${dtable(
   ],
   "Contributor payout plan",
 )}
-${banner("Payment uses the recognition weights without correction. Finalize verifies conservation and canonical recipients, then makes the plan immutable before dispatch.", "amber")}
-<div class="actrow" style="justify-content:flex-end">${hot("w21.finalize-plan", btn("Finalize payout plan", { kind: "pri", sm: true }))}</div>`,
+${banner("Payment uses the recognition weights without correction. The full vector, retained amount, and reason remain editable until explicit finalization.", "amber")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.edit-plan", btn("Edit draft", { kind: "sec", sm: true }))}${hot("w21.finalize-plan", btn("Finalize payout plan", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
+    case "payout-plan-edit":
+      inner = acard(
+        "Edit payout draft",
+        `${banner("Resubmit the complete ordered vector. Saving replaces the Draft snapshot atomically; it does not create a second plan or finalize this one.", "stone", "information-line")}
+${field("Garden retains", input("100 G$"))}${field("Maria · lead", input("160 G$"))}${field("Ana", input("140 G$"))}${field("Kwame", input("100 G$"))}${field("Reason (required while retaining support)", input("Garden operations and follow-up costs"))}
+${kv("Conservation", "100 + 160 + 140 + 100 = 500 G$ · valid")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.edit-cancel", btn("Cancel", { kind: "ghost", sm: true }))}${hot("w21.edit-save", btn("Save complete draft", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "payout-finalized":
@@ -256,10 +268,42 @@ ${dtable(
   ["Contributor", "Payment", "State", ""],
   [
     ["Maria · lead", "160 G$", chip("Queued · settlement 104", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
-    ["Ana", "140 G$", chip("Not prepared", "plain"), ""],
+    ["Ana", "140 G$", chip("Not prepared", "plain"), hot("w21.prepare-ana", btn("Prepare payout", { kind: "sec", sm: true }))],
     ["Kwame", "100 G$", chip("Not prepared", "plain"), ""],
   ],
   "Prepared contributor payout",
+)}`,
+      );
+      break;
+    case "payout-prepared-2":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Maria and Ana now have immutable queued children. Kwame's payable row remains explicitly actionable.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 2 of 3 prepared")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Queued · settlement 104", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Queued · settlement 106", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Kwame", "100 G$", chip("Not prepared", "plain"), hot("w21.prepare-kwame", btn("Prepare payout", { kind: "sec", sm: true }))],
+  ],
+  "Two prepared contributor payouts",
+)}`,
+      );
+      break;
+    case "payout-prepared-all":
+      inner = acard(
+        "Prune the north beds · payout plan",
+        `${banner("Every non-zero frozen payout row has one immutable queued child. The plan can now dispatch individually or enter an optional homogeneous batch.", "stone", "checkbox-circle-fill")}
+${kv("Parent status", "Pending · 3 of 3 prepared")}${kv("Finalized", "Jul 28 · immutable")}${kv("Garden retains", "100 G$")}
+${dtable(
+  ["Contributor", "Payment", "State", ""],
+  [
+    ["Maria · lead", "160 G$", chip("Queued · settlement 104", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Ana", "140 G$", chip("Queued · settlement 106", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+    ["Kwame", "100 G$", chip("Queued · settlement 107", "plain", { dot: true }), hot("w21.dispatch-plan", btn("Dispatch", { kind: "sec", sm: true }))],
+  ],
+  "All contributor payouts prepared",
 )}
 <div class="actrow" style="justify-content:flex-end">${hot("w21.create-batch", btn("Create batch", { kind: "ghost", sm: true }))}</div>`,
       );
@@ -387,9 +431,14 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
+  "w21.edit-plan": { l: "Edit payout draft", to: "screen:W21@payout-plan-edit", info: "Opens the complete Draft vector, retained amount, and reason before finalization." },
+  "w21.edit-cancel": { l: "Cancel payout draft edit", to: "screen:W21@payout-plan", info: "Returns to the unchanged Draft plan." },
+  "w21.edit-save": { l: "Save complete payout draft", to: "screen:W21@payout-plan", info: "Calls setContributorPayouts with the complete ordered contributor vector, retention, totals, and required reason; the stable parent pointer and Draft status remain unchanged.", calls: ["setContributorPayouts"] },
   "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-payout conservation, then freezes this payable plan as Pending without creating child disbursements.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Pending" } },
   "w21.finalize-retained-plan": { l: "Finalize retained-only payout plan", to: "screen:W21@payout-retained", info: "Verifies the all-zero contributor vector and exact full retention, then completes immediately with no child or CCIP command.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Complete" } },
   "w21.prepare-payout": { l: "Prepare contributor payout", to: "screen:W21@payout-prepared", info: "Materializes one immutable queued child from Maria's finalized payout row. An exact repeat returns the same ID without emitting again.", calls: ["prepareContributorPayout"] },
+  "w21.prepare-ana": { l: "Prepare Ana payout", to: "screen:W21@payout-prepared-2", info: "Materializes Ana's one immutable queued child from her frozen non-zero row; Maria's existing child is unchanged.", calls: ["prepareContributorPayout"] },
+  "w21.prepare-kwame": { l: "Prepare Kwame payout", to: "screen:W21@payout-prepared-all", info: "Materializes Kwame's one immutable queued child; every payable row is now prepared exactly once.", calls: ["prepareContributorPayout"] },
   "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@dispatched", info: "Dispatches one child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
   "w21.dispatch-garden": { l: "Dispatch protocol-to-garden funding", to: "screen:W22@garden-command", info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement creates its immutable execution key and sends the data-only command; no commitment reward or payout plan is involved.", calls: ["dispatchDisbursement"] },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
@@ -743,10 +792,11 @@ const W26_HOTS: HifiDef["hots"] = {
 const w21Facts = (state: W21State): StateFacts | undefined => {
   if (state === "unregistered" || state === "register-account") return { settlementAccount: "Unregistered" };
   if (state === "registered") return { settlementAccount: "Registered" };
-  if (state === "payout-plan" || state === "payout-retained-draft")
+  if (state === "payout-plan" || state === "payout-plan-edit" || state === "payout-retained-draft")
     return { payoutPlan: "Draft", settlementAccount: "Active" };
   if (state === "payout-finalized") return { payoutPlan: "Pending", settlementAccount: "Active" };
-  if (state === "payout-prepared") return { payoutPlan: "Pending", disbursement: "Queued", settlementAccount: "Active" };
+  if (state === "payout-prepared" || state === "payout-prepared-2" || state === "payout-prepared-all")
+    return { payoutPlan: "Pending", disbursement: "Queued", settlementAccount: "Active" };
   if (state === "payout-retained") return { payoutPlan: "Complete" };
   if (state === "payout-partial") return { payoutPlan: "Partial" };
   if (state === "payout-complete") return { payoutPlan: "Complete" };

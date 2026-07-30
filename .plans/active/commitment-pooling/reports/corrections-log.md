@@ -817,8 +817,10 @@ repair, and carried smaller UI, fixture, rounding, copy, and coverage drift.
 The binding model now requires every Ready transition and direct `Disputed -> Fulfilled`
 resolution to have at least one verified eligible contributor plus either the cycle's already-opened
 recognition policy or the immutable cycle-less 20/80 default. The direct dispute path freezes the
-roster before its terminal event. `approvalCounted` remains attestation-delivery idempotency, while
-the new `workCreditCounted` storage guard permits only one countable credit per Work UID. A
+roster before its terminal event. `approvalCounted` remains decision-attestation delivery
+idempotency; the later binding review supersedes the first-credit-only guard with
+`workCreditActive` plus the deterministic latest `(attestation.time, approvalUID)` key so a newer
+pre-freeze rejection reverses an approval and a later approval can restore it exactly once. A
 zero-eligible legacy or indexed record is a read-only blocker until governed migration or
 source-data correction restores canonical on-chain credit; mint metadata cannot repair it.
 
@@ -912,3 +914,23 @@ Read, acknowledgment, cancellation, exact-child return, and same-key retry behav
 separate. The admin payout draft requires a real reason for its retained amount, and the protocol
 queue models protocol-Safe-to-garden-Safe value only as Funding/ProtocolToGarden created through
 `queueFunding`, never as a garden-beneficiary commitment reward.
+
+## 2026-07-30 — Effective Work decisions and complete payout controls
+
+Seven follow-up findings were valid. The live WorkApproval resolver supports a newer attestation
+to correct an earlier decision, but the pooling draft treated the first approval as permanent.
+The bridge now forwards approvals and rejections. Before roster freeze, the greatest deterministic
+`(attestation.time, approvalUID)` decision activates or reverses the exact requirement and
+contributor credit; missed/out-of-order hooks converge through the same sync rule, and frozen
+credit remains immutable. The storage target is 30 feature slots plus `__gap[20]`.
+
+Recognition first derives its canonical 10,000-bps vector through the independent equal and
+verified passes, then expands each commitment budget into integer allowlist units with a separate
+largest-fractional-remainder and ascending-address tie-break pass. This conserves even a one-unit
+budget without changing the recognition hash. W11 now edits and validates the actual cycle policy,
+and W2b reads that selected policy rather than presenting the 20/80 protocol default as universal.
+
+Both member and steward commitment-creation flows now choose and review the immutable contributor
+policy. Member review shows every ordered requirement/count row. Draft payout plans expose a
+complete-vector edit path before finalization, and every non-zero finalized contributor row remains
+preparable in sequence until all three fixture children exist.
