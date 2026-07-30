@@ -481,13 +481,13 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
   {
     question: "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
-    verdict: "decision",
+    verdict: "answered",
     finding:
-      "Confirmed manual in the frozen spec — deliberately: `queueFunding(garden, amount)` is callable only by the protocol steward or module owner, the route is locked to `ProtocolToGarden` with source, recipient, and token derived from config (never caller-supplied), and settlement-write automation is explicitly out of scope — later alerts may read indexed health only. Everything after queueing is automated transport (CCIP command → bounded Celo execution → authenticated acknowledgment). No rationale sentence is recorded in the spec; the posture is reconstructed from its adjacent locks. HoA → protocol Safe stays an upstream treasury fact, and the return leg is an open external dependency (PRD-734).",
-    riderLabel: "Postures under consideration",
+      "The protocol pool is the root garden's ordinary commitment pool, so its commitments use the same claim → work/evidence → confirmation → Fulfilled lifecycle and the same provider-garden contributor payout plan as every other pool. The app exposes the existing plan actions from indexed state: create or edit the Draft, finalize it, then prepare frozen non-zero contributor rows. There is no sixth offline settlement job or per-device permissionless queue. The separate `queueFunding(garden, amount)` path stays in the initial version only for discretionary, non-commitment garden seeds or top-ups. It is an explicit Operations form for a current protocol steward or SettlementModule owner; deployer alone cannot submit. Success emits Funding/ProtocolToGarden with no commitment ID. HoA → protocol Safe stays an upstream treasury fact, and PRD-734 remains an external dependency.",
+    riderLabel: "Scope boundary",
     rider:
-      "(a) Keep manual initiation — value moves stay human-initiated and machine-verified, with indexed-health alerts nudging the steward. (b) Post-MVP threshold-triggered `queueFunding` — requires a new authority model, since today no agent or keeper holds settlement write authority. No lean recorded; this is a team call.",
-    cites: "settlement-spec.md §3.1.3 `queueFunding` gates + §9 out-of-scope · PRD-734",
+      "Do not automate `queueFunding` or grant an agent/keeper value authority in this version. Earned support follows the ordinary payout-plan primitives; discretionary seeding remains an explicit treasury decision.",
+    cites: "plan.todo.md Decision Log #37 / register #69 · contract-spec.md 2026-07-30 amendment · settlement-spec.md 2026-07-30 amendment · PRD-759",
   },
   {
     question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
@@ -507,10 +507,18 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
 ];
 
+const openQuestionCounts = OPEN_QUESTIONS.reduce<Record<OpenQuestionVerdict, number>>(
+  (counts, entry) => {
+    counts[entry.verdict] += 1;
+    return counts;
+  },
+  { answered: 0, "answered-gap": 0, decision: 0 },
+);
+
 const openQuestionsSection = `
 <section id="ref-open-questions">
   <h2>Open questions</h2>
-  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — four answered, one answered with an open gap, and two parked as decisions with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
+  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — ${openQuestionCounts.answered} answered, ${openQuestionCounts["answered-gap"]} answered with an open gap, and ${openQuestionCounts.decision} parked as a decision with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
   <div class="qpanel">
     <span class="eyebrow">Audited 2026-07-27</span>
     <ol class="qfindings">

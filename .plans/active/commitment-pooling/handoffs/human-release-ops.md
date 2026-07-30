@@ -161,7 +161,9 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
   separately human-authorized included sponsored first-use Celo Mainnet canonical-G$ transfer.
   The evidence contains UserOperation and transaction receipts, EntryPoint event, deployed-account
   code, exact token balance deltas, and observation block/time, but no API key or passkey material.
-  Failure keeps member delivery disabled without blocking `ProtocolToGarden`.
+  AA/paymaster gate failure keeps contributor-payout preparation and member sends disabled without
+  blocking discretionary non-commitment `ProtocolToGarden` seeding. The funding route is treasury
+  support and does not count as a Garden-claim reward payout.
 - Afolabi Aiyeloja separately authorizes Safe authority, the minimum-value canary, and any later cap increase.
 
 ## Acceptance

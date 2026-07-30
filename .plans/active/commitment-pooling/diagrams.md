@@ -1207,7 +1207,8 @@ The Safe owner set remains exactly protocol recovery multisig, Dev Guild recover
 
 **How to read this**: three separate concerns used to share one canvas, so they are drawn separately — the path a healthy settlement takes (D9.0), what stops a second payment when a message arrives twice (D9.1), and the three independent retry lifecycles (D9.2). Across all three: one immutable execution key, and only the authenticated success acknowledgment for the subject's **current key and attempt** turns Arbitrum state into `Confirmed`.
 
-Every steward action below is taken in the Admin Operations workspace. **Pool steward** creates
+Every steward action below is taken in the capability-gated Admin Operations workspace or the
+garden-scoped W21 detail path. Route visibility never grants a write. **Pool steward** creates
 the contributor payout plan, may edit its complete amount vector while Draft, and explicitly
 finalizes it before preparing any child; **Protocol steward** queues the independent
 ProtocolToGarden funding route. Finalization verifies conservation and freezes the payout plan
@@ -1223,7 +1224,7 @@ command retry additionally accept the configured `dispatcher`.
 sequenceDiagram
   autonumber
   actor OP as Provider-garden steward
-  actor PST as Protocol steward
+  actor PST as Protocol steward / module owner
   actor DSP as Settlement steward / dispatcher
   participant SM as SettlementModule (Arbitrum)
   participant CPM as CommitmentPoolingModule
@@ -1509,7 +1510,8 @@ discipline as D9 and cannot be enabled until the production Safe/Zodiac route is
 sequenceDiagram
   autonumber
   actor HOA as GoodDollar House of Alignment
-  actor OP as Protocol steward
+  actor OP as Protocol steward / module owner
+  participant APP as Admin Operations
   participant SM as SettlementModule (Arbitrum)
   participant CCIP as CCIP routers
   participant CE as CeloSettlementExecutor
@@ -1518,7 +1520,8 @@ sequenceDiagram
 
   HOA->>PS: G$ stream lands in the protocol Safe (upstream fact)
   Note over SM,GS: SettlementModule derives the only allowed ProtocolToGarden route
-  OP->>SM: queueFunding(garden, amount)
+  OP->>APP: review garden + amount and queue seed/top-up
+  APP->>SM: queueFunding(garden, amount)
   SM->>CCIP: data-only command
   CCIP->>CE: authenticated command
   CE->>PS: typed canonical-G$ route to GS
@@ -1526,7 +1529,11 @@ sequenceDiagram
   CCIP->>SM: authenticated success/failure acknowledgment
 ```
 
-If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available while `memberDeliveryEnabled` stays false. There is no garden-custody member-claim fallback.
+If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available while
+`memberDeliveryEnabled` stays false. The form appears only for onchain `canQueueFunding`
+authority (protocol steward or module owner); deployer status alone does not submit. Its emitted
+row is Funding/ProtocolToGarden with no commitment ID. There is no garden-custody member-claim
+fallback.
 
 ## D13. Capability responsibility summary
 
@@ -1535,7 +1542,8 @@ If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available 
 | Role | Pool & cycle control | Create / claim promises | Evidence & work | Approve work | Confirm fulfillment | Queue & execute value | Confirm settlement | Configure protocol |
 |---|---|---|---|---|---|---|---|---|
 | **Module owner** | ✓ fallback steward | — | — | — | — | ✓ queue protocol funding only | — | ✓ pause · peer/module wiring · measured limits · dispatcher assignment · UUPS upgrade |
-| **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for members | ✓ WorkApproval (existing flow) | fallback only, with reason, never as provider | ✓ queue/dispatch/retry/requeue/cancel within resolved scope | — | — |
+| **Protocol steward** | ✓ root-pool stewardship | ✓ seed and adjudicate protocol commitments | ✓ attach within ordinary pool rules | ✓ existing WorkApproval scope | fallback only, with reason, never as provider | ✓ explicit ProtocolToGarden funding; no commitment-reward bypass | — | — |
+| **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for members | ✓ WorkApproval (existing flow) | fallback only, with reason, never as provider | ✓ create/edit/finalize/prepare provider payout plans; dispatch/retry/requeue/cancel within resolved scope | — | — |
 | **Member / gardener** | — | ✓ own Offer / Request · claim open commitments | ✓ own evidence · link work | — | ✓ when eligible confirmer | — | — | — |
 | **Accepted provider** | — | — | ✓ deliver + evidence | — | ✗ never own delivery | — | — | — |
 | **Evaluator** | — | — | ✓ assessments (baseline / delta / technical) | — | ✓ when named confirmer | — | — | — |
@@ -1606,7 +1614,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Assessment config: existing `setSchemaUID`, existing `setKarmaGAPModule`, new `setAssessmentV3SchemaUID` | Existing AssessmentResolver owner (protocol multisig) | v2 selector/event and the deployment-window zero value stay compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; the v3 UID rejects zero and emits old/new |
 | Community Testimony config: `setSchemaUID`, `setCommitmentModule` | CommunityTestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID. Preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | `registerSettlementAccount`, `updateSettlementRecovery`, `setAccountActive` | Steward or `SettlementModule` owner | Registration is write-once for garden/account/Roles modifier/`roleKey`/`allowanceKey` and the immutable permissions hash; `chainId == DESTINATION_EVM_CHAIN_ID()`; the three recovery owners are sorted, unique, non-zero, and **none is a current executor**; threshold fixed at 2. A recovery update may change only owners and the recovery hash. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
-| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks new commitment-reward queues and member sends but never blocks the funding route |
+| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and member sends, but never hides payout plans or historical children and never blocks the funding route |
 | `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Resolved provider-garden settlement steward (operator/owner of immutable `providerGarden`) | Fulfilled commitment; active provider-garden settlement account at every value-authorizing write; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
 | `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members and unique derived recipients share executor garden/source/token/kind/funding route; ContributorReward batches require the provider/executor garden account still Active; duplicate recipients revert before fee quote or mutation; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
@@ -1625,7 +1633,12 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 
 ## D14. Commitment offline job lifecycle
 
-**How to read this**: offline-safe writes are explicit jobs, not optimistic state mutations. A job may wait for the required membership Hat indefinitely without spending a retry. Once membership is present, normal submission attempts begin; only a failed submission consumes one of five attempts. A human can manually retry an exhausted job or discard it.
+**How to read this**: offline-safe writes are explicit jobs, not optimistic state mutations. The
+five kinds are commitment, claim, evidence, workLink, and confirmation; settlement and
+ProtocolToGarden funding are online authority-gated actions and never enter this machine. A job
+may wait for the required membership Hat indefinitely without spending a retry. Once membership
+is present, normal submission attempts begin; only a failed submission consumes one of five
+attempts. A human can manually retry an exhausted job or discard it.
 
 ```mermaid
 stateDiagram-v2

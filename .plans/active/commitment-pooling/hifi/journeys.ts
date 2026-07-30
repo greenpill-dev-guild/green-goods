@@ -276,7 +276,9 @@ export const SBS: SB[] = [
   { f: "W21@payout-prepared", hot: { h: "w21.dispatch-plan", l: "Dispatch" }, st: "Pending · 1 of 3 prepared", ev: "the queued child is immutable before dispatch; an all-retained zero-payable plan would already be Complete without CCIP", cite: "SS §3.1" },
   { f: "W22@individual-dispatched", hot: null, st: "Individual · dispatched", ev: "the unbatched child uses its own execution key and retryCommand; batch #12 remains a separate subject", cite: "SS §3" },
   { f: "W21@payout-partial", hot: null, st: "Partial", ev: "one contributor arrived, one remains pending, and one failed; the stable parent pointer, successful child, and recognition record remain final", cite: "SS §3.1" },
-  { f: "W24@flows", hot: null, marks: ["w24.queue-funding"], st: "Independent funding route", ev: "the cross-garden board may separately show GG protocol Safe → Awka Hub funding; that transfer never substitutes for contributor payout", cite: "SS §3" },
+  { f: "W24@flows", hot: { h: "w24.queue-funding", l: "Seed / top up" }, st: "Independent funding route", ev: "the cross-garden board keeps discretionary GG protocol Safe → garden Safe funding separate from contributor payout plans", cite: "SS §3" },
+  { f: "W24@funding", hot: { h: "w24.queue-funding-confirm", l: "Queue seed / top up" }, st: "Authorized treasury action", ev: "only a protocol steward or SettlementModule owner may submit; deployer status alone is insufficient", cite: "SS §3.1.3" },
+  { f: "W21@protocol-funding-queued", hot: null, st: "Funding · ProtocolToGarden · Queued", ev: "the emitted row has no commitment ID and cannot be mistaken for an earned contributor reward", cite: "SS §3.1.3" },
   { f: "W2@garden-support-arrived", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], st: "Partial / Complete", ev: "each member sees their own recognition and payout child while the garden-retained amount stays explicit", cite: "SS §5" },
 ]},
 // The public surface has its own reader: a neighbour or funder who never signs
