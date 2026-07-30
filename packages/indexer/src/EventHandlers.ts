@@ -1,9 +1,8 @@
 /**
  * Event handler entry point -- re-exports all domain handler modules.
  *
- * Each handler file registers its own Envio event handlers at import time
- * (side-effect imports). The generated code (Generated.res.js) requires this
- * file path at runtime, so it must stay as the stable entry point.
+ * Each handler file registers its own Envio v3 event handlers at import time.
+ * `config.yaml` points every contract at this stable entry point.
  *
  * The actual handler logic lives in src/handlers/:
  *   actionRegistry.ts  -- ActionRegistry events

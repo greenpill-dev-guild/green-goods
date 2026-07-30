@@ -5,20 +5,23 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: claude/ui/commitment-pooling
-- Current state: blocked on state_api
-- Linear context: this is the machine-lane `ui` handoff and owns no lane issue of its own. It aggregates the sub-lane issues PRD-724 (client UI), PRD-725 (admin UI), PRD-726 (editorial), PRD-727 (docs), PRD-728 (docs-guides) under parent PRD-650; PRD-682 is September Community context. Each per-surface handoff carries its own lane issue.
+- Current state: prototype/spec review may continue; runtime implementation is blocked
+- Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, PRD-728 is post-certification walkthrough video, and PRD-682 is September Community context.
 
 ## Inputs
 
 - GREEN shared state/API handoff and exported types/hooks/selectors
 - GREEN indexer query contract
+- Verified non-value mainnet artifacts and live indexer deployment/read-back
+- Completed scoped existing-admin fixes and polish, including PRD-737
 - Corrected uiux-spec.md, wireframes.md, diagrams.md, and settlement status vocabulary
 - acceptance-matrix.md for the final state/copy/public-claim/role proof
 - Admin/client package guides and authenticated Brave access
 
 ## Outputs
 
-- Coordinated August client, admin, editorial, docs, and docs-guide sub-lane evidence. September Community records its own later GREEN and is not part of the August aggregate.
+- Coordinated runtime client, admin, and editorial sub-lane evidence. Post-QA docs, final videos,
+  and September Community record their own later evidence.
 - Cross-surface state/copy consistency for claims, confirmation, disputes, settlement, and recovery.
 - Register #51 placement consistency: `W10@cancel`, `W10@mark-ready-override`, and `W10@attach-assessment` own their admin actions; `WFLOW@review` owns the read-only fulfills row; `W25@context-chooser` owns the pre-claim personal/garden provider chooser. These are locked August states, not optional follow-ups.
 - en/es/pt coverage, accessible names/order/status announcements, responsive/reduced-motion behavior, and real-browser proof.
@@ -66,6 +69,9 @@ Run the shared story commands only when a Storybook-covered shared component cha
 ## Unblock evidence
 
 - state_api is GREEN with indexer codegen/build and shared targeted proof.
-- Every required August UI sub-lane handoff (`ui_client`, `ui_admin`, `editorial`, `docs`, `docs_guides`) has recorded acceptance and proof. `community` is intentionally excluded.
+- The authorized non-value broadcast, artifact persistence, indexer deployment/reindex, and live
+  entity/query read-back are complete.
+- The scoped existing-admin fixes and polish are complete and re-proven.
+- Every runtime UI sub-lane handoff (`ui_client`, `ui_admin`, `editorial`) has recorded acceptance and proof. Post-QA docs, walkthrough videos, and `community` are intentionally excluded.
 - Authenticated Brave covers admin/client visible flows; member PWA also has a real-device pass.
 - Any unavailable external settlement or AA path is reported as a proof limit, never a pass.

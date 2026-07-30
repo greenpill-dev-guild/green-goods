@@ -428,14 +428,14 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
     );
     assert.deepEqual(manifest.lanes[0].labels, [
       "activity:build",
-      "agent:claude",
+      "ai:claude",
       "package:client",
       "protocol:green-goods",
       "source:plans",
     ]);
     assert.deepEqual(manifest.lanes[1].labels, [
       "activity:build",
-      "agent:codex",
+      "ai:codex",
       "package:shared",
       "protocol:green-goods",
       "source:plans",
@@ -654,12 +654,14 @@ test("parent-only lane sync suppresses active lane issue actions and warnings", 
       laneSyncMode: "parent_only",
       lastSyncedAt: "2026-07-06T00:00:00.000Z",
     };
+    status.lanes.ui.status = "in_progress";
     writeStatus(root, "active", "parent-only-linear", status);
 
     const sync = runPlanHub(root, ["linear-sync", "--feature", "parent-only-linear", "--json"]);
     assert.equal(sync.status, 0, sync.stderr);
     const manifest = JSON.parse(sync.stdout);
     assert.equal(manifest.parent.issue, "PRD-900");
+    assert.equal(manifest.parent.state, "In Progress");
     assert.match(manifest.parent.description, /intentionally does not create or update lane issues/);
     assert.equal(manifest.laneSyncMode, "parent_only");
     assert.deepEqual(manifest.lanes, []);
@@ -746,13 +748,13 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.equal(manifest.lanes[0].parentId, "PRD-1000");
     assert.deepEqual(manifest.lanes[0].milestone, { key: "build", targetDate: "2026-07-31" });
     assert.equal(manifest.lanes[0].dueDate, null);
-    assert.ok(manifest.lanes[0].labels.includes("agent:codex"));
+    assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
     assert.equal(manifest.lanes[1].action, "create");
     assert.equal(manifest.lanes[1].title, "Settlement Evidence: Execution Linear");
     assert.equal(manifest.lanes[1].parentId, null);
     assert.equal(manifest.lanes[1].milestone, null);
     assert.equal(manifest.lanes[1].dueDate, "2026-09-30");
-    assert.equal(manifest.lanes[1].labels.some((label) => label.startsWith("agent:")), false);
+    assert.equal(manifest.lanes[1].labels.some((label) => label.startsWith("ai:")), false);
     assert.equal(manifest.lanes.some((lane) => lane.lane === "ui" || lane.lane === "state_api"), false);
     assert.deepEqual(manifest.lanes[2].milestone, { key: "build", targetDate: "2026-07-31" });
     assert.deepEqual(manifest.schedule, {

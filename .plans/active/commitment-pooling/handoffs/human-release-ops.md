@@ -11,6 +11,11 @@
 This handoff never authorizes an agent broadcast. The non-value core-upgrade/deployment tier and
 value-bearing CCIP settlement tier have separate evidence and authorization.
 
+The approved product sequence treats the verified non-value broadcast plus indexer
+deployment/reindex/live read-back as the handoff into scoped existing-admin fixes and polish.
+Commitment Pooling runtime UI implementation follows that foundation work. This sequencing does
+not weaken either broadcast gate or make the value tier a prerequisite for the non-settlement UI.
+
 ## Outputs
 
 - A signed non-value-tier readiness checklist covering the ordered
@@ -19,6 +24,8 @@ value-bearing CCIP settlement tier have separate evidence and authorization.
   backfill.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff, bytecode/proxy/admin/peer verification, exact indexer update, pause state, and rollback owner.
+- For the non-value tier: verified Envio deployment configuration, completed reindex/cutover, and
+  live entity/query read-back suitable for the downstream admin-foundation and UI lanes.
 - For the value tier: live official-directory route evidence, message-only ping/ack, calibrated delivery/acknowledgment service windows, native ETH/CELO fee-reserve health, audited Safe/Zodiac bounds, matching measured batch limits, a manual-execution runbook, minimum-value canary, observation record, and one authenticated-acknowledgment G$ exit proof.
 
 ## Proof limit
@@ -168,3 +175,9 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 ## Out of scope
 
 - Product implementation, autonomous broadcasts, force operations, bridged G$, CCIP token transfer, arbitrary Safe execution, manual settlement confirmation, or CreditRegister/transferable-voucher activation.
+
+## 2026-07-28 release-evidence addition
+
+- Before any value canary, reconcile one parent payout plan against its complete recognition vector/hash, amount-derived payment vector/hash, declared amount, explicit garden-retained amount, no-child finalization, idempotently prepared immutable contributor children, stable commitment pointer, and payer garden Safe. Prove an all-retained zero-child plan completes without CCIP or a self-transfer.
+- The canary must prove a child failure/retry does not duplicate value or alter sibling receipts, commitment fulfillment, or Hypercert recognition.
+- This amendment does not authorize deployment, broadcast, Safe role changes, or value movement.

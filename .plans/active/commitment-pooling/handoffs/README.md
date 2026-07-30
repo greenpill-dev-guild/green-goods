@@ -29,11 +29,13 @@ There are thirteen agent handoffs plus two human handoffs. Human handoffs are au
 
 ## Linear boundary
 
-linear.laneSyncMode is lane_issues (register #37, amended by register #39, 2026-07-20; supersedes register #31 and Decision Log #20). Each execution sub-lane carries a thin Linear issue: PRD-721 contracts · PRD-722 indexer · PRD-723 state/API · PRD-724 client UI · PRD-725 admin UI · PRD-726 editorial · PRD-727 docs · PRD-728 docs-guides · PRD-729 QA pass 1 · PRD-730 QA pass 2 · PRD-731 release ops · COM-11 settlement evidence (formerly PRD-735; moved to the Community team 2026-07-24). PRD-650 is the parent of PRD-721–730 and COM-11; PRD-731 is parentless. PRD-686 tracks settlement implementation and PRD-682 tracks Community. Linear owns status, dates, assignee, and dependencies; these handoffs own content, and a lane issue body must never restate handoff scope. Only ready agent-owned lanes receive `agent:*`; blocked, human, and follow-on records do not. Historical child IDs (PRD-671–681) remain labels, not dispatch targets. Handoffs still never create or dispatch Linear issues themselves — Afo does.
+linear.laneSyncMode is lane_issues (register #37, amended by registers #39 and #62; supersedes register #31 and Decision Log #20). Each execution sub-lane carries a thin Linear issue: PRD-721 contracts · PRD-722 indexer · PRD-723 state/API · PRD-724 client UI · PRD-725 admin UI · PRD-726 editorial · PRD-727 post-QA docs polish · PRD-728 post-certification walkthrough videos · PRD-729 QA pass 1 · PRD-730 QA pass 2 · PRD-731 release ops · COM-11 settlement evidence (formerly PRD-735; moved to the Community team 2026-07-24). PRD-650 is the parent of PRD-721–730 and COM-11; PRD-731 is parentless. PRD-686 tracks settlement implementation and PRD-682 tracks Community. Linear owns status, dates, assignee, and dependencies; these handoffs own content, and a lane issue body must never restate handoff scope. Only ready agent-owned lanes receive `agent:*`; blocked, human, and follow-on records do not. Historical child IDs (PRD-671–681) remain labels, not dispatch targets. Handoffs still never create or dispatch Linear issues themselves — Afo does.
 
 ## Shared safety rules
 
-- Preserve contract -> indexer -> shared -> client/admin/docs ordering.
+- Preserve the register #62 order: Envio -> existing contract cleanup -> architecture freeze ->
+  contracts/indexer/shared -> authorized core deployment/indexer read-back -> admin foundation ->
+  runtime UI -> staging QA1 -> docs polish -> QA2 -> walkthrough videos.
 - Use Bun wrappers; never raw forge.
 - Hooks live in @green-goods/shared.
 - Every user-facing string lands in en, es, and pt.
@@ -41,3 +43,20 @@ linear.laneSyncMode is lane_issues (register #37, amended by register #39, 2026-
 - Visible UI requires authenticated Brave proof; member PWA flows also require a real-device pass.
 - Settlement confirmation is acknowledgment-only. Dispatched or Celo-executed/acknowledgment-pending is not arrived; only an authenticated success acknowledgment for the subject's current execution key and attempt produces Confirmed.
 - No bridged G$, garden-held member-claim path, transferable voucher activation, credit scoring, or leaderboard behavior.
+- The 2026-07-28 amendment plus 2026-07-29/30 review closures are binding across every lane:
+  group commitments use one accountable lead plus contributors; requirements accept only
+  action/count inputs; exact evidence CIDs are de-duplicated and evidence/Work credit records only
+  while Accepted and unfrozen; assessment attachment is write-once before freeze; recognition
+  eligibility additionally requires the commitment to be Fulfilled; each Work UID produces at
+  most one verified credit; the roster and credit ledger freeze at ReadyForConfirmation or before
+  a direct Fulfilled dispute resolution, where contributor-stewards remain blocked. Recognition
+  uses an opened cycle policy or the immutable cycle-less 20/80 default and has no lead or
+  metadata-only fallback, but cycle-less commitments are recognition/payment-only and cannot enter
+  Hypercert bundles without a six-role cycle allocation. Settlement hash-binds recognition,
+  persists contributor order, emits versioned complete payout snapshots, derives payment weights
+  from atomic amounts, treats the canonical full-reward base-unit allocation as
+  rounding-equivalent, finalizes without creating children, rejects duplicate batch recipients,
+  and materializes each immutable child only through idempotent post-finalization preparation. It
+  conserves retained plus payout amounts, completes all-retained plans without CCIP, and never
+  clears the parent pointer on child cancellation. This is a payout plan, not a garden-held member
+  claim.

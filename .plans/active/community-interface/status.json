@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-21"
+    "updated_at": "2026-07-27T02:44:09.639Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,9 +52,10 @@
       "september_needs_app": "PRD-691",
       "hardening": ["PRD-695", "PRD-696"]
     },
-    "lastSyncedAt": "2026-07-10",
+    "lastSyncedAt": "2026-07-27T02:44:09.638Z",
     "lastSyncPreviewAt": "2026-07-10",
-    "instrumentDocumentsAreCanonical": true
+    "instrumentDocumentsAreCanonical": true,
+    "lanes": {}
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -354,6 +355,18 @@
     {
       "date": "2026-07-21",
       "event": "Product model corrected before schema registration: a Need is a problem paired with a desired outcome and has no kind. Request / Offer is commitment direction only. The Need schema, resolver contract, creation flow, filters, analytics, wireframes, journeys, prototype references, and research language were reconciled in the same pass."
+    },
+    {
+      "date": "2026-07-26",
+      "event": "Live Linear parent PRD-687 was refreshed in parent_only mode without creating lane issues. The Community Needs & Signals project now describes unkinded Community Needs with request/offer as commitment direction, and its project target is aligned to the September 30 delivery milestone. The canonical Commitment Pooling Google Doc could not be read or edited through the authenticated browser after repeated timeouts, so linear.lastSyncedAt remains unchanged and no false full-convergence record was written."
+    },
+    {
+      "timestamp": "2026-07-27T02:44:09.639Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }

@@ -1,36 +1,30 @@
 {
   "name": "@green-goods/indexer",
   "version": "1.2.0",
-  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8",
   "scripts": {
-    "clean": "node ../../scripts/dev/node-cli.js tsc --clean",
-    "prebuild": "[ -f generated/src/Handlers.res.js ] || bun run test:setup",
-    "build": "node ../../scripts/dev/node-cli.js tsc --build",
+    "clean": "node ../../scripts/dev/node-cli.js tsc --build --clean",
+    "build": "bun run codegen && node ../../scripts/dev/node-cli.js tsc --noEmit",
     "watch": "node ../../scripts/dev/node-cli.js tsc --watch",
-    "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx \"test/**/*.ts\"",
-    "setup-generated": "cd generated && pnpm install --public-hoist-pattern '@envio-dev/*' && pnpm run build",
-    "codegen": "envio codegen",
-    "dev": "./scripts/dev.sh",
+    "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 \"test/**/*.ts\"",
+    "codegen": "node ../../scripts/dev/node-cli.js envio codegen",
+    "dev": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio dev",
+    "dev:restart": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio dev --restart",
     "dev:docker": "docker compose -f docker-compose.indexer.yaml up --build",
     "dev:docker:detach": "docker compose -f docker-compose.indexer.yaml up --build -d",
     "dev:docker:logs": "docker compose -f docker-compose.indexer.yaml logs -f indexer",
     "dev:docker:down": "docker compose -f docker-compose.indexer.yaml down",
-    "dev:manual": "envio dev",
-    "start": "envio start",
-    "stop": "docker compose -f docker-compose.indexer.yaml down",
-    "doctor": "./scripts/doctor.sh",
-    "doctor:fix": "./scripts/doctor.sh --fix",
+    "dev:manual": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio dev",
+    "start": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio start",
+    "stop": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
+    "doctor": "node ../../scripts/dev/doctor.js --profile full",
     "check:indexing-boundary": "node scripts/check-indexing-boundary.mjs",
-    "db:up": "cd generated && docker compose up -d",
-    "db:down": "cd generated && docker compose down",
-    "db:logs": "cd generated && docker compose logs -f",
-    "test:setup": "bun run codegen && bun run setup-generated",
-    "pretest": "[ -f generated/src/Handlers.res.js ] || bun run test:setup",
-    "test": "bun run mocha",
+    "db:up": "node ../../scripts/dev/node-cli.js envio local docker up",
+    "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
+    "test": "bun run codegen && bun run mocha",
     "test:coverage": "c8 bun run mocha",
-    "test:full": "bun run test:setup && bun run mocha",
+    "test:full": "bun run test",
     "lint": "bun --bun run oxlint src test",
-    "reset": "./scripts/reset.sh"
+    "reset": "node ../../scripts/dev/node-cli.js envio stop"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -40,17 +34,10 @@
     "typescript": "~7.0.2"
   },
   "dependencies": {
-    "envio": "2.32.12",
-    "rescript": "11.1.3"
+    "envio": "3.2.1"
   },
   "engines": {
     "node": ">=22.12.0 <23"
   },
-  "pnpm": {
-    "overrides": {
-      "minimatch@>=5.0.0 <5.1.8": "5.1.8",
-      "minimatch@>=9.0.0 <9.0.7": "9.0.7",
-      "serialize-javascript@<7.0.3": "7.0.5"
-    }
-  }
+  "type": "module"
 }

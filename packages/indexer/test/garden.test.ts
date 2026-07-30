@@ -1,11 +1,5 @@
 import assert from "assert";
-import { createRequire } from "module";
-
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, GardenToken, GardenAccount } = TestHelpers;
+import { Addresses, createTestIndexer, GardenAccount, GardenToken } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -36,8 +30,31 @@ function mockEvent(
 // ============================================================================
 
 describe("GardenToken.GardenMinted", () => {
+  it("registers the minted GardenAccount for dynamic discovery", async () => {
+    const mockDb = createTestIndexer();
+    const gardenAddress = addr(10);
+    const event = GardenToken.GardenMinted.createMockEvent({
+      tokenId: 42n,
+      account: gardenAddress,
+      name: "Dynamic Garden",
+      description: "",
+      location: "",
+      bannerImage: "",
+      openJoining: true,
+      mockEventData: mockEvent(CHAIN_ID, 1000),
+    });
+
+    await GardenToken.GardenMinted.processEvent({ event, mockDb });
+
+    assert.ok(
+      mockDb.chains[CHAIN_ID].GardenAccount.addresses.some(
+        (address) => address.toLowerCase() === gardenAddress.toLowerCase()
+      )
+    );
+  });
+
   it("creates a new garden entity with all fields", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
     const tokenContract = addr(11);
 
@@ -53,7 +70,7 @@ describe("GardenToken.GardenMinted", () => {
     });
 
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.id, gardenAddress);
@@ -71,7 +88,7 @@ describe("GardenToken.GardenMinted", () => {
   });
 
   it("initializes all role arrays as empty", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const event = GardenToken.GardenMinted.createMockEvent({
@@ -86,7 +103,7 @@ describe("GardenToken.GardenMinted", () => {
     });
 
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.deepEqual(garden.gardeners, []);
@@ -104,7 +121,7 @@ describe("GardenToken.GardenMinted", () => {
 
 describe("GardenAccount.NameUpdated", () => {
   it("updates name on existing garden", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     // Create garden first
@@ -126,7 +143,7 @@ describe("GardenAccount.NameUpdated", () => {
       mockEventData: mockEvent(CHAIN_ID, 2000, { srcAddress: gardenAddress }),
     });
     const result = await GardenAccount.NameUpdated.processEvent({ event: updateEvent, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.name, "Updated Name");
@@ -135,7 +152,7 @@ describe("GardenAccount.NameUpdated", () => {
   });
 
   it("creates a default garden if not existing", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const event = GardenAccount.NameUpdated.createMockEvent({
@@ -145,7 +162,7 @@ describe("GardenAccount.NameUpdated", () => {
     });
 
     const result = await GardenAccount.NameUpdated.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.name, "Default Garden");
@@ -156,7 +173,7 @@ describe("GardenAccount.NameUpdated", () => {
 
 describe("GardenAccount.DescriptionUpdated", () => {
   it("updates description on existing garden", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const mintEvent = GardenToken.GardenMinted.createMockEvent({
@@ -181,14 +198,14 @@ describe("GardenAccount.DescriptionUpdated", () => {
       event: updateEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.description, "New description");
   });
 
   it("creates default garden when missing", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const event = GardenAccount.DescriptionUpdated.createMockEvent({
@@ -198,7 +215,7 @@ describe("GardenAccount.DescriptionUpdated", () => {
     });
 
     const result = await GardenAccount.DescriptionUpdated.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.description, "Some description");
@@ -208,7 +225,7 @@ describe("GardenAccount.DescriptionUpdated", () => {
 
 describe("GardenAccount.LocationUpdated", () => {
   it("updates location on existing garden", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const mintEvent = GardenToken.GardenMinted.createMockEvent({
@@ -233,14 +250,14 @@ describe("GardenAccount.LocationUpdated", () => {
       event: updateEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.location, "New York");
   });
 
   it("creates default garden when missing", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const event = GardenAccount.LocationUpdated.createMockEvent({
@@ -250,7 +267,7 @@ describe("GardenAccount.LocationUpdated", () => {
     });
 
     const result = await GardenAccount.LocationUpdated.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.location, "Mars");
@@ -260,7 +277,7 @@ describe("GardenAccount.LocationUpdated", () => {
 
 describe("GardenAccount.BannerImageUpdated", () => {
   it("updates banner image on existing garden", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const mintEvent = GardenToken.GardenMinted.createMockEvent({
@@ -285,14 +302,14 @@ describe("GardenAccount.BannerImageUpdated", () => {
       event: updateEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.bannerImage, "ipfs://new");
   });
 
   it("creates default garden when missing", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const event = GardenAccount.BannerImageUpdated.createMockEvent({
@@ -302,7 +319,7 @@ describe("GardenAccount.BannerImageUpdated", () => {
     });
 
     const result = await GardenAccount.BannerImageUpdated.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.bannerImage, "ipfs://banner");
@@ -312,7 +329,7 @@ describe("GardenAccount.BannerImageUpdated", () => {
 
 describe("GardenAccount.GAPProjectCreated", () => {
   it("sets gapProjectUID on existing garden", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const mintEvent = GardenToken.GardenMinted.createMockEvent({
@@ -338,14 +355,14 @@ describe("GardenAccount.GAPProjectCreated", () => {
       event: gapEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.gapProjectUID, "0xproject-uid-123");
   });
 
   it("does nothing when garden not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const gapEvent = GardenAccount.GAPProjectCreated.createMockEvent({
@@ -360,14 +377,14 @@ describe("GardenAccount.GAPProjectCreated", () => {
       event: gapEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
     assert.equal(garden, undefined);
   });
 });
 
 describe("GardenAccount.OpenJoiningUpdated", () => {
   it("toggles openJoining on existing garden", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const mintEvent = GardenToken.GardenMinted.createMockEvent({
@@ -392,14 +409,14 @@ describe("GardenAccount.OpenJoiningUpdated", () => {
       event: updateEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.openJoining, true);
   });
 
   it("does nothing when garden not found", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
 
     const updateEvent = GardenAccount.OpenJoiningUpdated.createMockEvent({
@@ -412,7 +429,7 @@ describe("GardenAccount.OpenJoiningUpdated", () => {
       event: updateEvent,
       mockDb,
     });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
     assert.equal(garden, undefined);
   });
 });

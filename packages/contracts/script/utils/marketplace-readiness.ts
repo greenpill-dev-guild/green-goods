@@ -90,17 +90,19 @@ export interface IndexerContractDefinition {
 
 export interface IndexerContractConfig {
   name: string;
-  address: string;
+  // Optional: Envio v3 dynamically registered contracts (OctantVault) carry no address.
+  address?: string;
 }
 
-export interface IndexerNetworkConfig {
+export interface IndexerChainConfig {
   id: number;
   contracts: IndexerContractConfig[];
 }
 
 export interface IndexerConfig {
   contracts: IndexerContractDefinition[];
-  networks: IndexerNetworkConfig[];
+  // Envio v3 renamed the top-level `networks` key to `chains`.
+  chains: IndexerChainConfig[];
 }
 
 export interface IndexerCoverageResult {
@@ -397,18 +399,18 @@ export function validateIndexerDeploymentCoverage(
   const skipped: string[] = [];
 
   const definedContracts = new Set((config.contracts ?? []).map((contract) => contract.name));
-  const network = (config.networks ?? []).find((item) => item.id.toString() === chainId);
-  if (!network) {
+  const chain = (config.chains ?? []).find((item) => item.id.toString() === chainId);
+  if (!chain) {
     return {
-      failures: [`Indexer config missing network id ${chainId}`],
+      failures: [`Indexer config missing chain id ${chainId}`],
       checked,
       skipped,
     };
   }
 
-  const networkContracts = new Map<string, string>();
-  for (const contract of network.contracts ?? []) {
-    networkContracts.set(contract.name, contract.address);
+  const chainContracts = new Map<string, string | undefined>();
+  for (const contract of chain.contracts ?? []) {
+    chainContracts.set(contract.name, contract.address);
   }
 
   for (const mapping of INDEXER_MAPPINGS) {
@@ -421,7 +423,7 @@ export function validateIndexerDeploymentCoverage(
     }
 
     checked.push(mapping.indexerName);
-    const indexedAddress = networkContracts.get(mapping.indexerName);
+    const indexedAddress = chainContracts.get(mapping.indexerName);
     if (isZeroAddress(indexedAddress)) {
       failures.push(`Indexer address missing for ${mapping.indexerName}`);
       continue;

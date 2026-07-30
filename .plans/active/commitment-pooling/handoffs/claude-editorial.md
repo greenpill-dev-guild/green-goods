@@ -6,7 +6,8 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: claude/editorial/commitment-pooling
-- Current state: blocked on state_api
+- Current state: prototype/copy review may continue; implementation waits for state_api, verified
+  non-value deployment/indexer output, and the shared admin/UI foundation cleanup
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
@@ -52,5 +53,12 @@
 ## Unblock evidence
 
 - Indexer/shared aggregate selectors and privacy thresholds are GREEN.
+- Verified live indexer output and the scoped shared admin/UI foundation cleanup are complete.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.
+
+## 2026-07-28 public-story amendment
+
+- Public team attribution may name contributors only where privacy/publication rules allow and must reflect approved contribution, not an equal-by-presence split.
+- Hypercert recognition can be described as contribution credit; contributor payment, garden retention, and delivery status remain separate claims with their own proof.
+- A public story must never imply that a Hypercert share itself paid a member or that one failed child payout invalidated the fulfilled commitment.

@@ -1,233 +1,129 @@
-## Green Goods Indexer (Envio)
+# Green Goods Indexer
 
-This package contains the Envio indexer for Green Goods contracts. It exposes a GraphQL API used by the client for gardens, actions, work, approvals, and attestations.
+The Green Goods indexer uses Envio HyperIndex `3.2.1` to process protocol events into PostgreSQL
+and expose them through Hasura GraphQL. It indexes protocol state, not EAS attestations.
 
-> **Dependency Management**: follow the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) before updating indexer dependencies or regenerating lockfiles.
+See the [Indexer package guide](https://docs.greengoods.app/builders/packages/indexer) for the
+architecture and builder contract.
 
-📖 **[Indexer Documentation](https://docs.greengoods.app/builders/packages/indexer)** — Indexer architecture and development guide
+## Prerequisites
 
----
+- Node.js `22.12.x`
+- Bun `1.x`
+- OrbStack or Docker Desktop for a local runtime
+- A completed root `bun install --frozen-lockfile`
 
-### Quick Start
+Use the root `.env` only. `ENVIO_API_TOKEN` is required for reliable live Arbitrum catch-up.
 
-#### Option A: Docker-Based (Recommended for macOS)
-
-The Docker-based setup containerizes everything (PostgreSQL, Hasura, Indexer) and avoids macOS-specific Rust panics:
-
-```bash
-# Start the full stack
-bun run dev:docker
-
-# View logs
-bun run dev:docker:logs
-
-# Stop
-bun run dev:docker:down
-```
-
-This runs:
-- **PostgreSQL**: Port 3008
-- **Hasura GraphQL**: Port 3006 (password: `testing`)
-- **Envio Indexer**: Port 3007
-
-> **Note**: When running `bun run dev` from the monorepo root, the repo-native PM2 stack uses the Docker-based indexer on macOS.
-
-#### Option B: Native (Linux or Dev Container)
-
-If you're on Linux or using the VS Code Dev Container:
+## Development
 
 ```bash
-# Ensure OrbStack or Docker Desktop is running first
-open -a OrbStack  # macOS, if using OrbStack
-# or open -a Docker
-# Wait 30 seconds
+cd packages/indexer
 
-# Start the native indexer
+# Generate Envio v3 declarations in .envio/
+bun run codegen
+
+# Typecheck handlers and tests
+bun run build
+
+# Run the real Envio v3 test indexer
+bun run test
+
+# Start Envio with its local database preserved
 bun run dev
 ```
 
-This command:
-1. Checks Docker is accessible
-2. Stops any running indexer instances
-3. Installs ReScript dependencies in `generated/`
-4. Builds the ReScript code
-5. Starts the indexer
+Native `envio dev` exposes GraphQL at `http://localhost:8080/v1/graphql` with local admin secret
+`testing`. The package Docker Compose profile exposes the same API on port `3006`. Press Ctrl-C
+to stop the attached development process while preserving the database.
 
-Visit http://localhost:3006 for the GraphQL Playground (password: `testing`).
+`envio dev` no longer resets the local database automatically. A destructive local replay must be
+intentional:
 
----
-
-### Development Flows
-
-There are two Docker Compose configurations:
-
-| File | Purpose | Use Case |
-|------|---------|----------|
-| `generated/docker-compose.yaml` | PostgreSQL + Hasura only | Native indexer on Linux |
-| `docker-compose.indexer.yaml` | Full stack (PG + Hasura + Indexer) | macOS or full containerization |
-
-⚠️ **Port Conflict**: Both use ports 5433 and 8080. Stop one before starting the other:
 ```bash
-# Stop generated stack
-cd generated && docker compose down
+bun run dev:restart
+```
 
-# Stop full Docker stack
+`bun run stop` and `bun run db:down` stop the Envio-managed PostgreSQL and Hasura containers
+without removing them, so the `envio-postgres-data` volume and the indexed state survive. They
+select the containers by Envio's `dev.envio.config-hash` label, which leaves the separate
+`docker-compose.indexer.yaml` stack untouched. `bun run clean` removes TypeScript build metadata
+only. `dev:restart` and `reset` are destructive to the local Envio database and require explicit
+intent. Hosted deployment and reindexing are separate release operations and are not performed by
+local validation.
+
+> Do not implement `stop`/`db:down` with `envio local docker down`. Despite its help text naming
+> only containers, it also removes the `envio-postgres-data` volume, which discards the local
+> indexed state and forces a full replay from the configured start blocks.
+
+## Docker-backed runtime
+
+For the full package-local stack:
+
+```bash
+bun run dev:docker
+bun run dev:docker:logs
 bun run dev:docker:down
 ```
 
----
+This exposes PostgreSQL on `3008`, Hasura GraphQL on `3006`, and the Envio service on `3007`.
+The Docker build uses the repository root `bun.lock`; there is no nested generated package install.
 
-### ENS Profile Fields on Gardener
+## Envio v3 contract
 
-`Gardener.ensAvatar`, `ensDescription`, `ensTwitter`, `ensGithub`, and `ensEmail` are schema fields for client consumption, but they are **not** populated by indexer handlers.
+- `config.yaml` uses `chains`, with the existing Arbitrum and Sepolia start blocks preserved.
+- Handlers register through `indexer.onEvent`.
+- Dynamic GardenAccount and OctantVault addresses register through `indexer.contractRegister`.
+- Tests use `createTestIndexer` and simulated chain events.
+- Generated declarations live in `.envio/` and are ignored.
+- `envio-env.d.ts` exposes those declarations to TypeScript.
+- Root and package workflows are Bun-first. Do not restore generated-v2 ReScript or package-local
+  pnpm setup.
 
-These values are resolved client-side from ENS text records (mainnet resolver reads), while the indexer tracks protocol events and ENS registration lifecycle events.
-
----
-
-### Commands Reference
-
-```bash
-# Docker-based development
-bun run dev:docker        # Start full Docker stack
-bun run dev:docker:detach # Start in background
-bun run dev:docker:logs   # Stream logs
-bun run dev:docker:down   # Stop and remove containers
-
-# Native development
-bun run dev               # Start with auto-setup
-bun run dev:manual        # Start without setup (assumes already configured)
-bun stop                  # Stop indexer
-
-# Maintenance
-bun run setup-generated   # Install ReScript dependencies
-bun codegen               # Regenerate from schema changes
-bun reset                 # Full reset (clears all data)
-bun run doctor            # Diagnose issues
-bun run doctor:fix        # Auto-fix common issues
-```
-
-### Generate files from `config.yaml` or `schema.graphql`
+## Commands
 
 ```bash
-bun codegen
+bun run check:indexing-boundary  # verify chain, contract, address, and block invariants
+bun run codegen                  # regenerate .envio/ declarations
+bun run build                    # codegen plus strict TypeScript validation
+bun run test                     # codegen plus Mocha handler tests
+bun run test:coverage            # coverage over the v3 test indexer
+bun run lint                     # indexer source and test lint
+bun run doctor                   # full local-stack readiness checks
+bun run db:up                    # start Envio-managed local containers
+bun run db:down                  # stop (not remove) those containers; keeps the database volume
+bun run stop                     # same volume-preserving stop as db:down
+bun run reset                    # destructive: delete the local database and stop Envio
 ```
 
-After codegen, run `bun run setup-generated` to rebuild ReScript.
+## Dynamic discovery
 
-### Pre-requisites
+Garden accounts are discovered from `GardenToken.GardenMinted`, and vaults are discovered from
+`OctantModule.VaultCreated`. The corresponding contract entries intentionally omit an address
+where registration is fully dynamic. Keep both the runtime registration and focused tests when
+changing either factory path.
 
-- [Node.js (use v20 or newer)](https://nodejs.org/en/download/current)
-- [bun (use v1 or newer)](https://bun.sh)
-- [OrbStack](https://orbstack.dev/) or [Docker Desktop](https://www.docker.com/products/docker-desktop/) - **Required** for the local indexer containers
+## Entities
 
-### Environment Variables
+The full set defined in `schema.graphql` — this list is exhaustive; nothing else is indexed:
 
-**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+- Gardens and actions: `Garden`, `Gardener`, `Action`, `GardenDomains`
+- Vaults and yield: `GardenVault`, `GardenVaultIndex`, `VaultAddressIndex`, `VaultDeposit`,
+  `VaultEvent`, `YieldAllocation`
+- Hypercerts: `Hypercert`, `HypercertClaim` (minimal linkage only)
+- Campaigns: `CampaignCookieJar`
+- GreenWill badges: `GreenWillBadgeDefinition`, `GreenWillBadgeGrant`, `GreenWillBadgeOwnership`
 
-The indexer automatically loads configuration from:
-- Root `.env` file (shared across all packages)
-- `config.yaml` (indexer-specific configuration)
+Garden governance, signal pools, hat trees, grant-failure records, generic cookie jars, and ENS
+registration lifecycle are **not** indexer entities. Hats role membership is folded into `Garden`
+role arrays rather than a separate entity.
 
-**Indexer-relevant environment variables:**
-```bash
-# Required for reliable live Arbitrum catch-up in default full-local and
-# prod-mirror mode.
-ENVIO_API_TOKEN=
-```
+### Entity ID convention
 
-The root `bun run dev` and `bun run dev:prod:mirror` scripts pass the root
-`.env` value into Docker Compose. If you run Docker Compose directly from this
-package, export `ENVIO_API_TOKEN` in that shell first. Without
-`ENVIO_API_TOKEN`, the local mirror can start, but HyperSync may return `429 Too
-Many Requests` and the full-local or production mirror smoke should fail on
-indexer lag instead of pretending the mirror is current.
+Most entities use chain-composite IDs (`${chainId}-${identifier}`) so the same address on two
+chains cannot collide. **`Garden.id` is a deliberate exception**: it is the bare GardenAccount
+address, preserved for GraphQL compatibility with existing consumers. Do not "fix" it to a
+composite ID — that is a breaking change to the public query surface.
 
-### Entities (from `schema.graphql`)
-
-- Gardens and Actions (`Garden`, `Action`, `Gardener`)
-- Garden governance (`GardenCommunity`, `GardenSignalPool`, `GardenHatTree`, `PartialGrantFailure`)
-- Vaults and yield accounting (`GardenVault`, `GardenVaultIndex`, `VaultDeposit`, `VaultEvent`, `VaultAddressIndex`)
-- Yield distribution outputs (`YieldAllocation`, `YieldAccumulation`, `YieldFractionPurchase`, `YieldCookieJarTransfer`, `YieldJuiceboxPayment`, `YieldStranded`)
-- Hypercert ecosystem (`Hypercert`, `HypercertClaim`, `GoodsAirdrop`, `GardenTreasury`)
-- Integrations (`CookieJar`, `ENSRegistration`, `GardenDomains`)
-
-### Client Configuration
-
-- Default dev endpoint: `http://localhost:3006/v1/graphql`
-- Override in client via `VITE_ENVIO_INDEXER_URL`
-
-## Troubleshooting
-
-### Docker Overlay Filesystem Errors
-
-If you encounter errors like `failed to mount /var/lib/docker/rootfs/stargz` or `no such file or directory` with Docker:
-
-**Quick Reset:**
-```bash
-bun reset
-```
-
-Or directly run:
-```bash
-./scripts/reset.sh
-```
-
-**Manual Reset:**
-1. Restart OrbStack or Docker Desktop completely (Quit → Reopen)
-2. Wait for the Docker daemon to fully start (check the menu bar icon)
-3. Run the reset script or manually clean up:
-   ```bash
-   # Stop containers and remove volumes
-   docker compose down -v
-   
-   # Remove any lingering Envio containers
-   docker ps -a --filter "name=generated-envio" --format "{{.ID}}" | xargs docker rm -f
-   
-   # Remove Envio volumes
-   docker volume ls --filter "name=generated" --format "{{.Name}}" | xargs docker volume rm
-   
-   # Clean Envio state
-   rm -rf generated/persisted_state.envio.json .envio
-   
-   # Prune Docker system
-   docker system prune -f
-   ```
-4. Start fresh: `bun run dev`
-
-### ReScript Compilation Errors
-
-If you encounter `Error: Cannot find module 'rescript-envsafe/src/EnvSafe.res.js'` or similar ReScript errors:
-
-**Solution:**
-
-The `bun run dev` command now automatically handles this through the repo-native stack. If you still encounter issues:
-
-```bash
-# Reset and setup
-bun reset
-bun run setup-generated
-bun run dev:manual
-```
-
-**Manual fix:**
-```bash
-cd generated
-pnpm install
-pnpm run build
-cd ..
-bun run dev:manual
-```
-
-**Why this happens:** ReScript needs dependencies installed locally in the `generated/` folder.
-Envio uses the exact pnpm version pinned in this package for proper Node.js module resolution,
-while Bun remains the monorepo package manager and its workspace hoisting puts dependencies at the
-root. Invoke generated-workspace commands with `pnpm`, which honors the `packageManager` pin
-declared in this package; do not replace the root
-`packageManager` declaration.
-
-### Other Common Issues
-
-- **Port 8080 already in use**: Stop other services using port 8080 or change the port in Envio config
-- **Database connection issues**: Ensure OrbStack or Docker Desktop is running and containers are healthy
-- **Code generation failures**: Run `bun codegen` to regenerate after schema changes
+ENS profile text fields on `Gardener` remain schema fields for client consumption; handlers do not
+populate them. The client resolves those values from ENS text records.

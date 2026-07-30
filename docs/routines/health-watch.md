@@ -38,7 +38,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `agent:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary.
+- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
 
 ## Threshold philosophy
 
@@ -54,7 +54,7 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 
 Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues are unprojected on the Product team and use the canonical scheme:
 
-| Check | Linear labels (in addition to `protocol:green-goods` + `activity:qa` + `agent:routine`) |
+| Check | Linear labels (in addition to `protocol:green-goods` + `activity:qa` + `ai:routine`) |
 |---|---|
 | Indexer lag/unreachable | `package:indexer` |
 | Vercel deploy/runtime/web-vitals | `package:client` or `package:admin` (whichever Vercel project tripped) |
@@ -62,7 +62,7 @@ Each category maps to a Linear label combination — old `health:*` GitHub label
 | Agent service down/unreachable | `package:agent` |
 | Client-side error spike | `package:client` or `package:admin` (whichever PostHog project surged) |
 
-**Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `agent:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `agent:routine`→`agent:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
+**Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `ai:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `ai:routine`→`ai:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
 
 ### 1. Indexer
 
@@ -160,7 +160,11 @@ Before opening a new Issue or appending a comment, query Linear for an existing 
 ```
 Linear query (read-only):
   team = Product, type = Issue, state in [Backlog, Todo, In Progress],
-  labels include protocol:green-goods + activity:qa + agent:routine,
+  labels include green-goods + qa,   // bare child names; do NOT require an
+                                     // ai:* child here — the Codex hand-off
+                                     // swaps routine->codex, and matching on
+                                     // it would miss the delegated Issue and
+                                     // open a duplicate
   title contains <category marker>
 ```
 
@@ -190,8 +194,10 @@ if no open Linear Issue matching the canonical labels + category marker:
     team        = Product
     project     = (none — unprojected)
     title       = "<category marker>: <one-line summary>"
-    labels      = protocol:green-goods, activity:qa, agent:routine,
-                  package:<inferred> (when applicable)
+    labels      = "green-goods", "qa", "routine",
+                  <package child, e.g. "indexer"> (when applicable)
+                  // bare child names or IDs only — save_issue rejects the
+                  // group:child display form, and one bad entry rejects all
     status      = Backlog (exploratory) or Todo (well-scoped)
     body        = <findings>
 else:

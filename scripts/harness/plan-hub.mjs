@@ -148,6 +148,7 @@ const EXECUTION_SUB_LANE_PACKAGE_LABELS = {
   editorial: "package:docs",
   docs: "package:docs",
   docs_guides: "package:docs",
+  walkthrough_videos: "package:docs",
   community: "package:client",
 };
 const LANE_DISPLAY_NAMES = {
@@ -746,14 +747,14 @@ function linearLabelsForStatus(status, activityLabel, laneName = null) {
 function linearLabelsForExecutionSubLane(status, laneName, lane) {
   const packageLabel = isResearchOnly(status) ? null : EXECUTION_SUB_LANE_PACKAGE_LABELS[laneName];
   const agentLabel = lane.status === "ready" && (lane.owner === "codex" || lane.owner === "claude")
-    ? `agent:${lane.owner}`
+    ? `ai:${lane.owner}`
     : null;
   return uniqueSorted([...LINEAR_BASE_LABELS, "activity:build", packageLabel, agentLabel]);
 }
 
 function linearLabelsForCanonicalLane(status, activityLabel, laneName, lane) {
   const agentLabel = lane.status === "ready" && (lane.owner === "codex" || lane.owner === "claude")
-    ? `agent:${lane.owner}`
+    ? `ai:${lane.owner}`
     : null;
   return uniqueSorted([...linearLabelsForStatus(status, activityLabel, laneName), agentLabel]);
 }
@@ -782,6 +783,17 @@ function linearStateForStage(stage) {
 
 function linearStateForLane(status, lane) {
   if (lane.status === "in_progress") {
+    return "In Progress";
+  }
+
+  return linearStateForStage(status.feature.stage);
+}
+
+function linearStateForParent(status, laneSyncMode) {
+  if (
+    laneSyncMode === "parent_only" &&
+    Object.values(status.lanes || {}).some((lane) => lane?.status === "in_progress")
+  ) {
     return "In Progress";
   }
 
@@ -969,7 +981,7 @@ function buildLinearSyncManifest(status) {
     issue: parentIssue,
     title: `plan: ${normalized.feature.title}`,
     team,
-    state: linearStateForStage(normalized.feature.stage),
+    state: linearStateForParent(normalized, laneSyncMode),
     priority,
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,

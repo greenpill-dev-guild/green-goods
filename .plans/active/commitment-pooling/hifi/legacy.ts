@@ -624,17 +624,17 @@ W7X: [
   { m: "A · Superseded", l: "Supersession", info: "Indexer side-effect of acceptance/cancel/expiry — never a user action, never a sync failure (DG:696)." },
 ],
 W8: [
-  { m: "[ Seed this commitment ]", l: "Seed this commitment", to: "frame:W7", info: "Console seeding — SeasonCampaign and OperatorCaptured exist only here (UX:150)." },
+  { m: "[ Seed this commitment ]", l: "Seed this commitment", to: "frame:W7", info: "Console seeding — SeasonCampaign and StewardCaptured exist only here (UX:150)." },
   { m: "claim mode  ◉ open   ○ steward-reviewed", l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open (register #19)." },
-  { m: "confirmers  [ + add address ]", l: "Confirmer rule", info: "Named any-N group; the accepted provider is excluded before threshold validation (UX:280)." },
-  { m: "○ none  ◉ external payout  ○ Celo G$", l: "Reward rail", info: "Exactly one rail is stored. ArbitrumExternal records an outside payout; CeloSettlement queues canonical G$ from the owning-pool Safe." },
+  { m: "confirmers  [ + add address ]", l: "Confirmer rule", info: "Named any-N group; every frozen team member is excluded before threshold validation (UX:280)." },
+  { m: "○ none  ◉ external payout  ○ Celo G$", l: "Reward rail", info: "Exactly one rail is stored. ArbitrumExternal records an outside payout; CeloSettlement uses a finalized payout plan to prepare canonical G$ child disbursements from the provider garden Safe." },
 ],
 W9: [
   { m: "search members", l: "Pick the member", info: "The member is the social source; the steward is only the recorder (UX:437)." },
   { m: "◉ their offer  ○ their request  ○ confirmation", l: "Capture kind", info: "Captured confirmations always carry a reason (UX:291)." },
 ],
 W10: [
-  { m: "[ Record payout ]", l: "Record payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here. CeloSettlement uses Queue disbursement instead." },
+  { m: "[ Record payout ]", l: "Record payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here. CeloSettlement uses the contributor payout-plan flow instead." },
   { m: "[ Confirm as fallback… ]", l: "Confirm as fallback", info: "Steward fallback with mandatory reason — provider-steward blocked on-chain (CS:744)." },
   { m: "[ Raise dispute… ]", l: "Raise dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
   { m: "Resolve dispute", l: "Resolve dispute", info: "RestorePrevious / Fulfilled / Cancelled / Expired, each with a required reason; Expired can never resolve Fulfilled (CS:144)." },
@@ -728,7 +728,7 @@ WFLOW: [
   { m: "[ Submit work ]", l: "Submit work", to: "frame:W2", info: "Existing work job + meta.commitmentId; the queue auto-links after sync (UX:220)." },
 ],
 HUBWORK: [
-  { m: "[ Approve ]", l: "Approve", info: "Existing WorkApproval rails → onWorkApproved → ApprovedWorkCounted (CS:737)." },
+  { m: "[ Approve ]", l: "Approve", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted; a newer pre-freeze rejection emits ApprovedWorkReversed." },
 ],
 C1: [
   { m: "[View] [Agree]", l: "View / Agree", to: "frame:C5", info: "Agree = a NeedSignal; board order is recency + status, never funding (CI-SPEC:257)." },

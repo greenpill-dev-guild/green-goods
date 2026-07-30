@@ -1,11 +1,5 @@
 import assert from "assert";
-import { createRequire } from "module";
-
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const { MockDb, Addresses, HypercertMinter } = TestHelpers;
+import { Addresses, createTestIndexer, HypercertMinter, serveJson } from "./v3";
 
 const CHAIN_ID = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -38,7 +32,7 @@ function mockEvent(
 
 describe("HypercertMinter.TransferSingle — mints", () => {
   it("creates new hypercert on first mint (from zero address)", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const tx = txHash(100);
 
     const event = HypercertMinter.TransferSingle.createMockEvent({
@@ -51,7 +45,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
     });
 
     const result = await HypercertMinter.TransferSingle.processEvent({ event, mockDb });
-    const hc = result.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
 
     assert.ok(hc);
     assert.equal(hc.tokenId, 42n);
@@ -64,7 +58,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
   });
 
   it("ignores non-mint transfers (from != zero address)", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
@@ -76,28 +70,24 @@ describe("HypercertMinter.TransferSingle — mints", () => {
     });
 
     const result = await HypercertMinter.TransferSingle.processEvent({ event, mockDb });
-    const hc = result.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
 
     assert.equal(hc, undefined);
   });
 
   it("updates existing hypercert with mint details when mintedBy is empty", async () => {
     // Simulate ClaimStored event arriving first (creates hypercert without mintedBy)
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () => ({
-      ok: true,
-      json: async () => ({}),
-    })) as unknown as typeof fetch;
+    const metadataServer = await serveJson({});
 
     try {
-      let mockDb = MockDb.createMockDb();
+      let mockDb = createTestIndexer();
       const tx1 = txHash(100);
       const tx2 = txHash(200);
 
       // ClaimStored first
       const claimStored = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
-        uri: "ipfs://metadata",
+        uri: metadataServer.url,
         totalUnits: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 4000, { txHash: tx1, logIndex: 1 }),
       });
@@ -114,18 +104,18 @@ describe("HypercertMinter.TransferSingle — mints", () => {
       });
       mockDb = await HypercertMinter.TransferSingle.processEvent({ event: transferEvent, mockDb });
 
-      const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+      const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
       assert.ok(hc);
       assert.equal(hc.mintedBy, addr(1));
       assert.equal(hc.txHash, tx2);
       assert.equal(hc.totalUnits, 1000n);
     } finally {
-      globalThis.fetch = originalFetch;
+      await metadataServer.close();
     }
   });
 
   it("is idempotent: skips same txHash replay", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx = txHash(100);
 
     const event = HypercertMinter.TransferSingle.createMockEvent({
@@ -142,7 +132,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
     // Process same event again
     mockDb = await HypercertMinter.TransferSingle.processEvent({ event, mockDb });
 
-    const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
     // Should still have original values (not double-counted)
     assert.equal(hc.totalUnits, 1000n);
@@ -155,7 +145,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
 
 describe("HypercertMinter.TransferSingle — claims", () => {
   it("treats subsequent mints as claims and updates claimedUnits", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx1 = txHash(100);
     const tx2 = txHash(200);
 
@@ -181,19 +171,19 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     });
     mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim, mockDb });
 
-    const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
     assert.equal(hc.claimedUnits, 300n);
 
     // Verify HypercertClaim entity
-    const claimEntity = mockDb.entities.HypercertClaim.get(`${CHAIN_ID}-42-${addr(3)}`);
+    const claimEntity = await mockDb.HypercertClaim.get(`${CHAIN_ID}-42-${addr(3)}`);
     assert.ok(claimEntity);
     assert.equal(claimEntity.claimant, addr(3));
     assert.equal(claimEntity.units, 300n);
   });
 
   it("transitions status to CLAIMED when fully claimed", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx1 = txHash(100);
     const tx2 = txHash(200);
 
@@ -219,14 +209,14 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     });
     mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim, mockDb });
 
-    const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
     assert.equal(hc.status, "CLAIMED");
     assert.equal(hc.claimedUnits, 1000n);
   });
 
   it("stays ACTIVE when partially claimed", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx1 = txHash(100);
     const tx2 = txHash(200);
 
@@ -250,14 +240,14 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     });
     mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim, mockDb });
 
-    const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
     assert.equal(hc.status, "ACTIVE");
     assert.equal(hc.claimedUnits, 500n);
   });
 
   it("claim is idempotent: skips duplicate claim IDs", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const tx1 = txHash(100);
     const tx2 = txHash(200);
 
@@ -293,7 +283,7 @@ describe("HypercertMinter.TransferSingle — claims", () => {
     });
     mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim2, mockDb });
 
-    const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+    const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
     // Should only count the first claim
     assert.equal(hc.claimedUnits, 300n);
@@ -306,86 +296,72 @@ describe("HypercertMinter.TransferSingle — claims", () => {
 
 describe("HypercertMinter.ClaimStored", () => {
   it("creates new hypercert with metadata from URI", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () => ({
-      ok: true,
-      json: async () => ({
-        name: "Test Hypercert",
-        description: "A test",
-        image: "ipfs://bafk-image",
-        hidden_properties: {
-          gardenId: "0xgarden-address",
-          attestationRefs: [{ uid: "0xatt-1" }, { uid: "0xatt-2" }],
-        },
-      }),
-    })) as unknown as typeof fetch;
+    const metadataServer = await serveJson({
+      name: "Test Hypercert",
+      description: "A test",
+      image: "ipfs://bafk-image",
+      hidden_properties: {
+        gardenId: "0xgarden-address",
+        attestationRefs: [{ uid: "0xatt-1" }, { uid: "0xatt-2" }],
+      },
+    });
 
     try {
-      const mockDb = MockDb.createMockDb();
+      const mockDb = createTestIndexer();
       const tx = txHash(100);
 
       const event = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
-        uri: "ipfs://metadata-uri",
+        uri: metadataServer.url,
         totalUnits: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx, logIndex: 1 }),
       });
 
       const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
-      const hc = result.entities.Hypercert.get(`${CHAIN_ID}-42`);
+      const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
 
       assert.ok(hc);
-      assert.equal(hc.metadataUri, "ipfs://metadata-uri");
+      assert.equal(hc.metadataUri, metadataServer.url);
       assert.equal(hc.totalUnits, 1000n);
       assert.equal(hc.garden, "0xgarden-address");
       assert.equal(hc.attestationCount, 2);
       assert.deepEqual(hc.attestationUIDs, ["0xatt-1", "0xatt-2"]);
     } finally {
-      globalThis.fetch = originalFetch;
+      await metadataServer.close();
     }
   });
 
   it("handles metadata fetch failure gracefully", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () => {
-      throw new Error("Network error");
-    }) as unknown as typeof fetch;
+    const closedServer = await serveJson({});
+    const unreachableUrl = closedServer.url;
+    await closedServer.close();
+    const mockDb = createTestIndexer();
 
-    try {
-      const mockDb = MockDb.createMockDb();
+    const event = HypercertMinter.ClaimStored.createMockEvent({
+      claimID: 42n,
+      uri: unreachableUrl,
+      totalUnits: 1000n,
+      mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
+    });
 
-      const event = HypercertMinter.ClaimStored.createMockEvent({
-        claimID: 42n,
-        uri: "ipfs://unreachable",
-        totalUnits: 1000n,
-        mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
-      });
+    const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
+    const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
 
-      const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
-      const hc = result.entities.Hypercert.get(`${CHAIN_ID}-42`);
-
-      assert.ok(hc);
-      assert.equal(hc.metadataUri, "ipfs://unreachable");
-      assert.equal(hc.totalUnits, 1000n);
-      // Metadata fields should be defaults since fetch failed
-      assert.equal(hc.garden, "");
-      assert.equal(hc.attestationCount, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
+    assert.ok(hc);
+    assert.equal(hc.metadataUri, unreachableUrl);
+    assert.equal(hc.totalUnits, 1000n);
+    // Metadata fields should be defaults since fetch failed
+    assert.equal(hc.garden, "");
+    assert.equal(hc.attestationCount, 0);
   });
 
   it("updates existing hypercert when TransferSingle arrives first", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () => ({
-      ok: true,
-      json: async () => ({
-        hidden_properties: { gardenId: "0xgarden" },
-      }),
-    })) as unknown as typeof fetch;
+    const metadataServer = await serveJson({
+      hidden_properties: { gardenId: "0xgarden" },
+    });
 
     try {
-      let mockDb = MockDb.createMockDb();
+      let mockDb = createTestIndexer();
       const tx1 = txHash(100);
       const tx2 = txHash(200);
 
@@ -403,48 +379,44 @@ describe("HypercertMinter.ClaimStored", () => {
       // ClaimStored second
       const claimStored = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
-        uri: "ipfs://metadata",
+        uri: metadataServer.url,
         totalUnits: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 5001, { txHash: tx2, logIndex: 1 }),
       });
       mockDb = await HypercertMinter.ClaimStored.processEvent({ event: claimStored, mockDb });
 
-      const hc = mockDb.entities.Hypercert.get(`${CHAIN_ID}-42`);
+      const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
       assert.ok(hc);
       assert.equal(hc.mintedBy, addr(1));
-      assert.equal(hc.metadataUri, "ipfs://metadata");
+      assert.equal(hc.metadataUri, metadataServer.url);
       assert.equal(hc.garden, "0xgarden");
     } finally {
-      globalThis.fetch = originalFetch;
+      await metadataServer.close();
     }
   });
 
   it("handles non-OK HTTP response gracefully", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () => ({
-      ok: false,
-      status: 404,
-    })) as unknown as typeof fetch;
+    const metadataServer = await serveJson({ error: "not found" }, 404);
 
     try {
-      const mockDb = MockDb.createMockDb();
+      const mockDb = createTestIndexer();
 
       const event = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
-        uri: "ipfs://not-found",
+        uri: metadataServer.url,
         totalUnits: 500n,
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
       });
 
       const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
-      const hc = result.entities.Hypercert.get(`${CHAIN_ID}-42`);
+      const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
 
       assert.ok(hc);
-      assert.equal(hc.metadataUri, "ipfs://not-found");
+      assert.equal(hc.metadataUri, metadataServer.url);
       assert.equal(hc.totalUnits, 500n);
       assert.equal(hc.garden, "");
     } finally {
-      globalThis.fetch = originalFetch;
+      await metadataServer.close();
     }
   });
 });

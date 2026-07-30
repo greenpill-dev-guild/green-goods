@@ -1,372 +1,215 @@
 # Indexer Package Context
 
-Loaded when working in `packages/indexer/`. Extends CLAUDE.md.
+Loaded when working in `packages/indexer/`. Extends `CLAUDE.md` and
+`packages/indexer/AGENTS.md`.
 
 ## Quick Reference
 
 | Command | Purpose |
-|---------|---------|
-| `bun run dev:docker` | Start Docker-based indexer (recommended for macOS) |
-| `bun run dev:docker:logs` | View Docker indexer logs |
-| `bun run dev:docker:down` | Stop Docker containers |
-| `bun dev` | Start native indexer (Linux/Dev Container) |
-| `bun stop` | Stop native indexer |
-| `bun reset` | Reset state completely |
-| `bun codegen` | Regenerate after schema/config changes |
-| `bun run test` | Run tests |
+| --- | --- |
+| `bun run codegen` | Regenerate Envio v3 declarations in `.envio/` |
+| `bun run build` | Codegen, then strict TypeScript validation |
+| `bun run test` | Codegen, then Envio v3 handler tests |
+| `bun run check:indexing-boundary` | Verify contracts, chains, addresses, and block boundaries |
+| `bun run dev` | Start Envio with the local database preserved |
+| `bun run stop` / `bun run db:down` | Stop (not remove) Envio-managed containers; keeps `envio-postgres-data` |
+| `bun run dev:restart` | Destructive local replay from configured start blocks |
+| `bun run reset` | Delete the local database and stop Envio |
+| `bun run dev:docker` | Validate the package's self-contained Docker image |
 
-**Prerequisite:** Docker Desktop must be running.
-
-> **macOS Note:** Use Docker-based commands (`dev:docker`) to avoid Rust `system-configuration` crate panic. PM2 uses Docker automatically when running `bun dev` from monorepo root.
-
-## Contents
-- [Architecture](#architecture)
-- [EAS Architecture Boundary](#eas-architecture-boundary)
-- [Critical Patterns](#critical-patterns)
-- [Development Workflow](#development-workflow)
-- [Troubleshooting](#troubleshooting)
-- [Testing](#testing)
-- [GraphQL Playground](#graphql-playground)
-- [Reference Files](#reference-files)
+Prerequisites are Node.js 22.12+, Bun, and OrbStack or Docker Desktop. Runtime scripts read the
+repository-root `.env`; never add a package-level `.env`.
 
 ## Architecture
 
-```
+```text
 packages/indexer/
-├── schema.graphql      # Entity definitions
-├── config.yaml         # Network + contract config
+├── config.yaml
+├── schema.graphql
 ├── src/
-│   └── EventHandlers.ts  # Event processing
-├── test/               # Tests
-└── generated/          # Envio-generated code
+│   ├── EventHandlers.ts
+│   └── handlers/
+├── test/
+├── .envio/                 # ephemeral Envio v3 declarations
+└── docker-compose.indexer.yaml
 ```
 
-## EAS Architecture Boundary
+The indexer uses Envio HyperIndex `3.2.1`. `config.yaml` uses the v3 `chains` structure. Handlers
+import `indexer` and entity types from `envio`; do not restore generated-v2 imports, ReScript
+build steps, `MockDb`, package-local pnpm workflows, or package-local Envio skills.
 
-**The Envio indexer does NOT index EAS attestation data.** EAS attestations (assessments, work approvals, work submissions) are queried from EAS's own GraphQL indexer at `easscan.org`.
+## Data Boundary
 
-| Data Source | Indexed By | Queried Via |
-|-------------|-----------|-------------|
-| Green Goods protocol events (Actions, Gardens, Gardeners) | **Envio indexer** | `localhost:8080/v1/graphql` |
-| EAS attestations (Work, WorkApproval, Assessment) | **EAS indexer** | `easscan.org/graphql` |
+The Envio indexer owns Green Goods protocol-event entities, including:
 
-**Why:** EAS already provides a production GraphQL indexer per chain. Re-indexing EAS `Attested` events would duplicate data, require schema UID filtering, and add RPC call overhead for attestation decoding.
+- Actions and Garden domain assignments
+- Gardens and dynamically discovered GardenAccount updates
+- Hats-based Garden roles
+- Octant vaults, deposits, withdrawals, governance events, and dynamic vault registrations
+- Yield allocations
+- Hypercert linkage and claims
+- Campaign Cookie Jar registrations and metadata
+- GreenWill badge definitions and issues
 
-**Where EAS queries happen:** `packages/shared/src/modules/data/eas.ts` — uses schema UIDs from `deployments/{chainId}-latest.json` to query EAS GraphQL directly.
+It does not index EAS attestations. Assessments, work approvals, and work submissions are queried
+from EAS GraphQL through `packages/shared/src/modules/data/eas.ts`.
 
-**Contracts handled by this indexer:**
-- ActionRegistry, GardenToken, GardenAccount
-- HatsModule, OctantModule, OctantVault, YieldSplitter
-- HypercertMinter (minimal linkage + claims)
+## Preserved Runtime Invariants
 
-**Externalized (do not index in Envio):**
-- EAS attestations -> EAS GraphQL
-- Gardens V2 community/pools -> Gardens subgraph
-- Marketplace orders/trades -> on-chain reads/logs
-- ENS registration lifecycle -> RPC reads
-- Cookie jars -> on-chain reads
-- Hypercert display metadata (`title`, `description`, `image`, `workScopes`) -> Hypercert API/IPFS at read time
-- Power registry audit entities -> not needed at app runtime
+- Preserve existing entity IDs and relationships during migrations. Most multichain entities use
+  chain-composite IDs; Garden IDs intentionally remain their GardenAccount address for GraphQL
+  compatibility.
+- Every persisted entity retains its existing `chainId`.
+- Keep relationship updates symmetric where the schema stores both sides.
+- Normalize addresses only where the existing ID or field contract already requires it.
+- Preserve configured start and end blocks exactly.
+- GardenAccount discovery stays attached to `GardenToken.GardenMinted`.
+- OctantVault discovery stays attached to `OctantModule.VaultCreated`; configured OctantVault
+  entries intentionally have no static address.
 
-## Critical Patterns
+## Envio v3 Handler Patterns
 
-### MANDATORY: chainId Field
-
-**All entities must include chainId for multi-chain support:**
-
-```graphql
-type Garden @entity {
-  id: ID!
-  chainId: Int!  # ← REQUIRED
-  tokenAddress: String!
-  # ...
-}
-
-type Action @entity {
-  id: ID!
-  chainId: Int!  # ← REQUIRED
-  actionUID: String!
-  # ...
-}
-```
-
-### Composite ID Pattern (MANDATORY)
-
-Prevent ID collisions across chains:
+Register an event handler with `indexer.onEvent`:
 
 ```typescript
-// Format: chainId-identifier
-const gardenId = `${event.chainId}-${tokenId}`;
-const actionId = `${event.chainId}-${actionUID}`;
-const gardenerId = `${event.chainId}-${address}`;
-```
+import { indexer, type Action } from "envio";
 
-**Why:** Same actionUID on Sepolia vs Arbitrum creates separate entities.
+indexer.onEvent(
+  { contract: "ActionRegistry", event: "ActionTitleUpdated" },
+  async ({ event, context }) => {
+    const id = `${event.chainId}-${event.params.actionUID.toString()}`;
+    const existing = await context.Action.get(id);
+    if (!existing) return;
 
-### Event Handler Pattern
-
-```typescript
-ContractName.EventName.handler(async ({ event, context }) => {
-  const chainId = event.chainId;
-
-  try {
-    // 1. Extract event data
-    const tokenId = event.params.tokenId.toString();
-
-    // 2. Create composite ID
-    const entityId = `${chainId}-${tokenId}`;
-
-    // 3. Fetch additional data if needed
-    const metadata = await context.ContractName.method(tokenId);
-
-    // 4. Set entity
-    context.EntityName.set({
-      id: entityId,
-      chainId: chainId,
-      // ... fields
-      createdAt: event.block.timestamp,
-    });
-  } catch (error) {
-    console.error(`[EventName] Error processing event:`, error);
-    // Graceful degradation — create with minimal data
+    const updated: Action = {
+      ...existing,
+      title: event.params.title,
+    };
+    context.Action.set(updated);
   }
-});
+);
 ```
 
-### Create-If-Not-Exists Pattern
-
-For update events that may arrive before creation events:
+Register a dynamically discovered contract with `indexer.contractRegister`:
 
 ```typescript
-GardenAccount.NameUpdated.handler(async ({ event, context }) => {
-  const gardenId = event.srcAddress;  // Garden TBA address
-  const chainId = event.chainId;
-
-  // Get existing or create minimal entity
-  const existingGarden = await context.Garden.get(gardenId);
-
-  context.Garden.set({
-    // Preserve existing fields or use defaults
-    id: gardenId,
-    chainId: chainId,
-    tokenAddress: existingGarden?.tokenAddress ?? "",
-    tokenID: existingGarden?.tokenID ?? BigInt(0),
-    // Apply update
-    name: event.params.name,
-    // Keep other fields
-    description: existingGarden?.description ?? "",
-  });
-});
-```
-
-### Bidirectional Relationships (MANDATORY)
-
-When updating relationships, update BOTH sides:
-
-```typescript
-GardenAccount.GardenerAdded.handler(async ({ event, context }) => {
-  const chainId = event.chainId;
-  const gardenId = event.srcAddress;
-  const gardenerAddress = event.params.gardener.toLowerCase();
-  const gardenerId = `${chainId}-${gardenerAddress}`;
-
-  // 1. Update Garden.gardeners
-  const garden = await context.Garden.get(gardenId);
-  if (garden) {
-    const gardeners = garden.gardeners || [];
-    if (!gardeners.includes(gardenerAddress)) {
-      context.Garden.set({
-        ...garden,
-        gardeners: [...gardeners, gardenerAddress],
-      });
-    }
+indexer.contractRegister(
+  { contract: "OctantModule", event: "VaultCreated" },
+  async ({ event, context }) => {
+    context.chain.OctantVault.add(event.params.vault);
+    context.log.info(`Registered new OctantVault at ${event.params.vault}`);
   }
-
-  // 2. Update Gardener.gardens
-  const existingGardener = await context.Gardener.get(gardenerId);
-  const gardens = existingGardener?.gardens || [];
-
-  context.Gardener.set({
-    id: gardenerId,
-    chainId: chainId,
-    address: gardenerAddress,
-    gardens: gardens.includes(gardenId) ? gardens : [...gardens, gardenId],
-  });
-});
+);
 ```
+
+Use `context.log`; do not add `console.log`. Create defaults only where existing behavior requires
+update-before-create handling, and preserve every unaffected entity field when updating.
 
 ## Development Workflow
 
-### Starting the Indexer
-
-**Option A: Docker-Based (Recommended for macOS)**
 ```bash
-# Start full Docker stack (PostgreSQL + Hasura + Indexer)
+cd packages/indexer
+bun run codegen
+bun run build
+bun run test
+bun run dev
+```
+
+`bun run dev` is the repository's Bun-first entry point, loads `../../.env`, and launches Envio
+through the supported system Node 22 runtime selected by `scripts/dev/node-cli.js`. Envio manages
+PostgreSQL and Hasura through Docker and preserves the named database volume across normal
+shutdowns. Press Ctrl-C to stop an attached development process.
+
+Use the package Docker profile only when validating the containerized image:
+
+```bash
 bun run dev:docker
-
-# View logs
 bun run dev:docker:logs
-
-# Stop
 bun run dev:docker:down
 ```
 
-**Option B: Native (Linux/Dev Container)**
-```bash
-# Ensure Docker is running
-open -a Docker  # macOS
-# Wait 30 seconds
+The package Docker profile exposes PostgreSQL on `3008`, Hasura GraphQL on `3006`, and the Envio
+service on `3007`. The standard Envio runtime exposes GraphQL at
+`http://localhost:8080/v1/graphql`.
 
-# Start native indexer
-bun dev
-```
+## Database Safety
 
-### Docker Compose Files
-
-| File | Purpose |
-|------|---------|
-| `docker-compose.indexer.yaml` | Full stack (PG + Hasura + Indexer) |
-| `generated/docker-compose.yaml` | PostgreSQL + Hasura only (for native indexer) |
-
-⚠️ **Port Conflict:** Both use ports 5433 and 8080. Stop one before starting the other.
-
-### When to Run Codegen
-
-- After changing `schema.graphql`
-- After updating `config.yaml`
-- After adding new contract events
-- When generated types are missing
+Safe commands:
 
 ```bash
-bun codegen
-bun run setup-generated  # Rebuild ReScript after codegen
+bun run clean     # remove TypeScript build metadata only
+bun run stop      # stop (not remove) Envio-managed containers; keeps envio-postgres-data
+bun run db:down   # same database-preserving container shutdown
 ```
 
-### When to Reset
+Both stop commands select containers by Envio's `dev.envio.config-hash` label, so they never touch
+the separate `docker-compose.indexer.yaml` stack.
 
-- Docker overlay filesystem errors
-- Database schema migrations
-- "Failed to mount" errors
-- Starting fresh after testing
+Destructive commands:
 
 ```bash
-bun reset
+bun run dev:restart  # clear local state, then replay
+bun run reset        # delete local database and stop Envio
 ```
 
-### Docker hot-reload (`develop.watch`)
+`envio local docker down` is also destructive despite help text that names only containers: it
+removes `envio-postgres-data` too. Do not wire it into `stop` or `db:down`.
 
-The PM2 `indexer` app runs `docker compose -f docker-compose.indexer.yaml up --build --watch`. The compose file declares `develop.watch` rules: edits to `packages/indexer/src/**` and `config.yaml` sync into the container and trigger a fast envio restart (~1-2s); `schema.graphql`, `Dockerfile`, and `package.json` changes trigger a full image rebuild. Test handler files (`*.test.ts`, `__tests__/**`) are excluded from the sync. If the watch loop misbehaves, `bun run dev:indexer` runs the native `envio dev` path (faster but can hit the macOS `system-configuration` crate panic in older Rust toolchains).
-
-## Troubleshooting
-
-### Docker Not Running
-
-```bash
-open -a Docker
-# Wait 30 seconds
-docker ps  # Verify working
-bun dev
-```
-
-### Docker Overlay/Mount Errors
-
-```bash
-bun reset  # Quick fix
-
-# Or manual cleanup
-docker compose down -v
-docker ps -a --filter "name=generated-envio" --format "{{.ID}}" | xargs docker rm -f
-docker volume ls --filter "name=generated" --format "{{.Name}}" | xargs docker volume rm
-rm -rf generated/persisted_state.envio.json .envio
-docker system prune -f
-```
-
-### ReScript Compilation Errors
-
-```bash
-bun reset
-bun run setup-generated
-bun run dev:manual
-```
-
-### Port Conflicts
-
-```bash
-# Port 8080 (GraphQL Playground)
-lsof -i :8080
-kill -9 <PID>
-
-# Or use bun stop
-bun stop
-```
+Never use a destructive command merely to resolve a port conflict. Identify the process with
+`lsof`, stop the owning attached process with Ctrl-C, or use the matching database-preserving
+Docker-down command. Hosted deployment and reindex remain separately authorized release actions.
 
 ## Testing
 
-### Basic Test Structure
+Tests import the v3 adapter from `test/v3.ts`:
 
 ```typescript
-import { TestHelpers, ActionRegistry, GardenToken, GardenAccount } from "generated";
-const { MockDb, Addresses } = TestHelpers;
+import { ActionRegistry, createTestIndexer } from "./v3";
 
-it("example test", async () => {
-  // 1. Create mock database
-  let mockDb = MockDb.createMockDb();
-
-  // 2. Pre-seed entities if needed
-  mockDb = mockDb.entities.Garden.set({
-    id: "0x123...",
-    chainId: 42161,
-    // ...
-  });
-
-  // 3. Create mock event
-  const mockEvent = GardenAccount.GardenerAdded.createMockEvent({
-    updater: "0x...",
-    gardener: "0x...",
-    mockEventData: {
-      chainId: 42161,
-      block: { timestamp: 12345 },
-      srcAddress: "0x123...",
-    },
-  });
-
-  // 4. Process event
-  const result = await GardenAccount.GardenerAdded.processEvent({
-    event: mockEvent,
-    mockDb,
-  });
-
-  // 5. Assert results
-  const garden = result.entities.Garden.get("0x123...");
-  assert.ok(garden.gardeners.includes("0x..."));
+const indexer = createTestIndexer();
+const event = ActionRegistry.ActionTitleUpdated.createMockEvent({
+  owner,
+  actionUID: 1n,
+  title: "Updated",
+  mockEventData,
 });
+
+await ActionRegistry.ActionTitleUpdated.processEvent({ event, mockDb: indexer });
+const action = await indexer.Action.get(`${chainId}-1`);
 ```
 
-### Test Categories
+When a test needs several events but does not assert intermediate state, batch them through
+`processEvents` so Envio runs one indexer cycle. Keep distinct blocks and `logIndex` values when
+order is material.
 
-- **Capital Mapping:** All 8 capital types + UNKNOWN fallback
-- **Multi-Chain ID Collision:** Same IDs on different chains stay separate
-- **Bidirectional Updates:** Both sides of relationships update correctly
-- **Create-If-Not-Exists:** Update events work without prior creation
+Required migration checks:
 
-## GraphQL Playground
+```bash
+bun run check:indexing-boundary
+bun run codegen
+bun run build
+bun run test
+```
 
-- **URL:** http://localhost:8080
-- **Password:** `testing`
-- **Health check:** http://localhost:8080/healthz
+Focused migration proof also covers dynamic GardenAccount/OctantVault registration, representative
+retained handlers, clean replay determinism, and the same-store repeated-range guard.
+
+## GraphQL
+
+- Standard Envio runtime: `http://localhost:8080/v1/graphql`
+- Package Docker profile: `http://localhost:3006/v1/graphql`
+- Local Hasura admin secret: `testing`
+
+Before claiming runtime readiness, verify `/healthz`, `_meta` chain progress and start blocks,
+dynamic registrations, and a representative non-empty Green Goods query.
 
 ## Reference Files
 
-- Schema: `schema.graphql`
-- Handlers: `src/EventHandlers.ts`
-- Config: `config.yaml`
-- Tests: `test/test.ts`
-
-## Documentation References (on-demand)
-
-Read these docs pages when you need query patterns or data flow context:
-
-- Querying the Envio indexer (copy-paste GraphQL): `docs/docs/evaluator/query-indexer.mdx`
-- Querying EAS attestations (parameterized queries): `docs/docs/evaluator/query-eas.mdx`
-- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
-- System architecture (data flow diagrams): `docs/docs/developers/architecture.mdx`
+- Schema: `packages/indexer/schema.graphql`
+- Configuration: `packages/indexer/config.yaml`
+- Registration entry point: `packages/indexer/src/EventHandlers.ts`
+- Handler modules: `packages/indexer/src/handlers/`
+- V3 test adapter: `packages/indexer/test/v3.ts`
+- Boundary guard: `packages/indexer/scripts/check-indexing-boundary.mjs`
+- Builder documentation: `docs/docs/builders/packages/indexer.mdx`
+- Deployment documentation: `docs/docs/builders/deployments/indexer-deploy.mdx`

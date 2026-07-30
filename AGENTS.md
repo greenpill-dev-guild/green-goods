@@ -38,7 +38,7 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Project routing**: new Issues default unprojected on the Product team. Graduate into a bounded active project only when one already exists for the work; never route new work into a project whose status is Completed.
 
-**Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code), `agent:codex` (Codex), and `agent:routine` (cron'd routine writes) — they are not synonymous.
+**Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / ai:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `ai:*` family distinguishes `ai:claude` (interactive Claude Code), `ai:codex` (Codex), and `ai:routine` (cron'd routine writes) — they are not synonymous. This family was written as `agent:*` in earlier docs; the live group is `ai`, and `agent` exists only as `package:agent` (the agent runtime package), which is unrelated. **`group:child` above is display shorthand — `save_issue` resolves labels by bare child name or ID**, so pass `["green-goods", "qa"]`, not `["protocol:green-goods", "activity:qa"]`. A single unresolvable entry rejects the whole array and files nothing.
 
 **Cloud routines that write Linear** (cron'd at claude.ai/code/routines, per-routine docs in `docs/routines/`): `bug-intake`, `health-watch`, `growth-pulse`. Codex does not run these — they are Claude Code routines. Codex consumes the Linear surface they produce.
 
@@ -48,7 +48,7 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 ## Linear-Spawned Issue Contract
 
-When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:codex`), **that issue is your spec.** Read it in full, plus this file and — if the issue references a `.plans/<feature>/` lane — that lane's `status.json` and todo.
+When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:codex`), **that issue is your spec.** Read it in full, plus this file and — if the issue references a `.plans/<feature>/` lane — that lane's `status.json` and todo.
 
 - **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same two-phase scope-lock rhythm in `## Codex Workflow`.
 - **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.

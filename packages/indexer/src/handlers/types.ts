@@ -1,4 +1,6 @@
-import type { Domain_t } from "../../generated/src/db/Enums.gen";
+import type { Enum } from "envio";
+
+type Domain = Enum<"Domain">;
 
 // ============================================================================
 // TYPE HELPERS
@@ -106,7 +108,7 @@ export type GardenDomainsEntity = {
   readonly chainId: number;
   readonly garden: string;
   readonly domainMask: number;
-  readonly domains: Domain_t[];
+  readonly domains: Domain[];
   readonly updatedAt: number;
 };
 

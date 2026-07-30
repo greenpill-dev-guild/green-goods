@@ -32,39 +32,45 @@ export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" 
 // Contract-call validation records the cycle's canonical on-chain state here.
 // Draft/InProgress/Reviewing remain UI overlays, matching the ontology sidecar.
 export type CycleLifecycle = "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
+export type CycleLiveCommitments = "Zero" | "NonZero";
 export type CommitmentLifecycle =
   | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
   | "Expired" | "Disputed" | "Reconciled";
-export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "OperatorCaptured";
+export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "StewardCaptured";
 export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
 export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
 // Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
 // never renders as product copy, but keeping it here prevents account readiness
 // or another local concept from being folded into the contract lifecycle.
 export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" | "Failed";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
 // only declare the entities that its controls act on.
 export type StateFacts = {
   pool?: PoolLifecycle;
   cycle?: CycleLifecycle;
+  cycleLiveCommitments?: CycleLiveCommitments;
   commitment?: CommitmentLifecycle;
   kind?: CommitmentKind;
   settlementAccount?: SettlementAccountState;
   beneficiarySettlementAccount?: BeneficiarySettlementAccountState;
   disbursement?: DisbursementLifecycle;
+  payoutPlan?: PayoutPlanLifecycle;
 };
 
 export type ContractCall =
   | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
-  | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
+  | "joinCommitment" | "leaveCommitment" | "addContributor" | "removeContributor"
+  | "setContributorRequirement" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
   | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment"
   | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
-  | "queueDisbursement" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryBatchCommand"
+  | "createCommitmentPayoutPlan" | "setContributorPayouts" | "finalizeCommitmentPayoutPlan"
+  | "prepareContributorPayout" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 
 // Metadata for one registered hotspot (a tappable control on a screen).

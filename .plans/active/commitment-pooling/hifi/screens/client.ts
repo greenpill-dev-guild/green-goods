@@ -368,7 +368,8 @@ const W1_HOTS: HifiDef["hots"] = {
 
 const W2_STATES = [
   ["accepted", "Accepted"], ["offered", "Offered (yours)"], ["requested", "Requested (yours)"],
-  ["active", "Active"], ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
+  ["active", "Active"], ["evidence-queued", "Evidence queued"],
+  ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
   ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
   ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
@@ -410,7 +411,7 @@ type W2ChipState = Exclude<W2State, "loading" | "not-found" | "read-error">;
 
 const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
-  "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
+  "evidence-queued": "Active", "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
   fulfilled: "Fulfilled", "reward-released": "Fulfilled",
   "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
@@ -462,7 +463,7 @@ const W2_CAPTURED = new Set<string>([
   "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
   "captured-fulfilled", "captured-disputed",
 ]);
-const W2_WORK = new Set<W2State>(["accepted", "active", "evidence-submitted", "partially-approved"]);
+const W2_WORK = new Set<W2State>(["accepted", "active", "evidence-queued", "evidence-submitted", "partially-approved"]);
 const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
 type PromiseCast = "offer" | "request" | "campaign-request" | "support" | "captured" | "garden";
 const w2Cast = (state: W2State): PromiseCast =>
@@ -672,6 +673,8 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     { label: "Offered", meta: "Maria · Jul 2" },
     { label: "Accepted", meta: "João took this up · Jul 3" },
   ];
+  if (state === "evidence-queued")
+    return [...opened, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
   if (state === "withdrawn")
     return [
       { label: "Offered", meta: "you · Jul 2" },
@@ -699,12 +702,19 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
 const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: boolean } = {}) => {
   const moments = w2Moments(state, !!opts.overrideNote);
   const cast = w2Cast(state);
+  const rosterFrozen =
+    state.includes("ready") ||
+    state.includes("confirmation-pending") ||
+    state.includes("fulfilled") ||
+    state === "reconciled" ||
+    W2_SETTLED.has(state);
+  const teamHot = rosterFrozen ? "w2.open-team-frozen" : "w2.open-team-forming";
   // Nothing has been done yet on an unclaimed promise — no evidence, no work.
   const preAcceptance =
     state === "offered" || state === "requested" || state === "support-offered" ||
     state === "withdraw-confirm" || state === "withdrawn";
   const evidenceQueued =
-    state === "support-evidence-queued" || state === "request-evidence-queued" ||
+    state === "evidence-queued" || state === "support-evidence-queued" || state === "request-evidence-queued" ||
     state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
   const evidence =
     cast === "support"
@@ -743,6 +753,13 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       "Timeline",
       `${moments.length} ${moments.length === 1 ? "moment" : "moments"}`,
       timeline(moments) + `<div class="t-meta">Recorded on Arbitrum · every steward record shows its reason here.</div>`,
+    ) +
+    disclosure(
+      "People",
+      cast === "garden" ? "garden team · 3 credited" : "1 lead · 2 contributors",
+      cast === "garden"
+        ? `${listRow({ icon: "group-line", primary: "Awka Hub", meta: "Accountable provider garden" })}${listRow({ icon: "user-line", primary: "Leila", meta: "Lead · credited contributor" })}${listRow({ icon: "group-line", primary: "Amara · Chidi", meta: "Contributors · credited from approved work" })}${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}`
+        : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · Kwame", meta: "Contributors · credited from approved work" })}${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}`,
     ) +
     (preAcceptance
       ? ""
@@ -796,6 +813,11 @@ function w2(state: W2State): string {
   if (W2_SETTLED.has(state))
     band = card(`<div class="t-title">Promise kept</div><div class="t-meta">Confirmed by João · Jul 12 — the season's count already grew.</div>`);
   else switch (state) {
+    case "evidence-queued":
+      band = card(
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The credited-contributor vector stays attached to this queued item, and Work progress does not change until sync.</div>`,
+      );
+      break;
     case "request-active":
       band = card(
         `<div class="t-title">João is helping</div><div class="t-meta">Add evidence as it happens — Ana asked for this, so Ana confirms it was done.</div><div class="brow">${hot("w2.add-evidence-request", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
@@ -914,7 +936,7 @@ function w2(state: W2State): string {
       break;
     case "captured-evidence-queued":
       band = card(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The recorded promise keeps its OperatorCaptured path.</div>`,
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The recorded promise keeps its StewardCaptured path.</div>`,
       );
       break;
     case "captured-evidence-submitted":
@@ -1055,7 +1077,7 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
 
   // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
   const evidenceQueued =
-    state === "support-evidence-queued" || state === "request-evidence-queued" ||
+    state === "evidence-queued" || state === "support-evidence-queued" || state === "request-evidence-queued" ||
     state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
   const readinessQueued =
     state === "support-ready-pending" || state === "request-ready-pending" ||
@@ -1080,13 +1102,15 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
 
 const W2_HOTS: HifiDef["hots"] = {
   "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-active", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
+  "w2.open-team-forming": { l: "See editable team and contributions", to: "screen:W2b@forming", info: "Before readiness, the accountable lead can add, remove, and assign contributors through online contract actions." },
+  "w2.open-team-frozen": { l: "See frozen team and contributions", to: "screen:W2b@frozen", info: "After readiness, opens the frozen contributor roster and contribution record without implying that every participant receives an equal share." },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
   "w2.add-evidence-request": { l: "Add request evidence", to: "screen:W2a@compose-request", info: "Keeps Ana's request and João's provider role intact while opening the shared evidence composer." },
   "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@compose-campaign-request", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
   "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@compose-support", info: "Evidence-only SupportService offer: photo / link / note → one offline evidence job (UX:159)." },
-  "w2.add-evidence-captured": { l: "Add captured-promise evidence", to: "screen:W2a@compose-captured", info: "Keeps the OperatorCaptured kind and the member as promise source while opening the evidence composer." },
+  "w2.add-evidence-captured": { l: "Add captured-promise evidence", to: "screen:W2a@compose-captured", info: "Keeps the StewardCaptured kind and the member as promise source while opening the evidence composer." },
   "w2.submit-work": { l: "Submit work for this promise", to: "screen:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
-  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker of your approved/pending works → workLink job (UX:140). The prototype resumes at the linked work's existing approval surface.", calls: ["linkWork"] },
+  "w2.link-work": { l: "Link existing work", to: "screen:HUBWORK", info: "Picker selects an approved/pending Work plus one exact requirement row → workLink job carries requirementIndex (UX:140). Repeated action UIDs never use first-match behavior.", calls: ["linkWork"] },
   "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-pending", info: "Queues the evidence-only readiness transition; DomainImpact is rejected on-chain (CS:138b).", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService promise." },
@@ -1094,7 +1118,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm-request-detail": { l: "Review request confirmation", to: "screen:W4@confirm-request", info: "Opens only after the request readiness update has synced." },
   "w2.send-confirmation-campaign-request": { l: "Send campaign request for confirmation", to: "screen:W2@campaign-request-ready-pending", info: "Queues readiness without losing the Market rides Campaign binding.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-campaign-request-detail": { l: "Review campaign-request confirmation", to: "screen:W4@confirm-campaign-request", info: "Opens the named request creator's confirmation while preserving Campaign scope." },
-  "w2.send-confirmation-captured": { l: "Send captured promise for confirmation", to: "screen:W2@captured-ready-pending", info: "OperatorCaptured is evidence-only and may call submitForConfirmation without linked work.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.send-confirmation-captured": { l: "Send captured promise for confirmation", to: "screen:W2@captured-ready-pending", info: "StewardCaptured is evidence-only and may call submitForConfirmation without linked work.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-captured-detail": { l: "Review captured-promise confirmation", to: "screen:W4@confirm-captured", info: "Opens the named counterparty's confirmation without changing the captured member source." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
   "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
@@ -1104,6 +1128,83 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
   "w2.details": { l: "Details disclosure", info: "Identifiers live behind one Details disclosure; chain vocabulary stays on this engage layer, never on browse cards (UX:436)." },
   "w2.retry": { l: "Try again", info: "Read-surface recovery — retries the commitment read (loading/not-found/read-error; never a “None” chip) (UX:51-52 · AM:12)." },
+};
+
+// ---------------------------------------------------------------------------
+// W2b — commitment team and contribution record (uiux-spec Appendix C)
+// ---------------------------------------------------------------------------
+
+const W2B_STATES = [
+  ["forming", "Team forming"], ["add-contributor", "Add contributor"],
+  ["remove-contributor", "Remove contributor"], ["assign-requirement", "Assign responsibility"],
+  ["open-eligible", "Open team · eligible"], ["join-submitted", "Open team · join submitted"],
+  ["open-member", "Open team · joined"],
+  ["frozen", "Roster frozen"], ["recognition", "Recognition preview"],
+] as const;
+type W2bState = (typeof W2B_STATES)[number][0];
+
+function w2b(state: W2bState): string {
+  const frozen = state === "frozen" || state === "recognition";
+  const body = state === "add-contributor"
+    ? `${banner("This is a Lead-managed team. Its lead or steward may add eligible garden members; Open teams use self-join instead. Team updates are online-only contract actions and are never queued offline.", "stone", "wifi-off-line")}
+${field("Garden member", input("Sofia · 0x74…c2"))}
+${banner("Adding a contributor never changes the accountable lead or grants recognition credit by itself.", "stone")}
+<div class="actrow">${hot("w2b.add-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.add-confirm", btn("Add contributor", { kind: "pri" }))}</div>`
+    : state === "remove-contributor"
+    ? `${banner("Remove Kwame from this Lead-managed promise?", "amber", "user-line")}
+${card(`${kv("Contributor", "Kwame · 0x5b…19")}${kv("Verified credit", "None")}`)}
+${banner("Lead or steward removal exists only for Lead-managed rosters. Open-team members self-leave before credit and freeze. Only a non-lead contributor with no approved Work, pending linked Work, or evidence credit can be removed.", "stone")}
+<div class="actrow">${hot("w2b.remove-cancel", btn("Keep contributor", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`
+    : state === "assign-requirement"
+    ? `${banner("Planned responsibility coordinates the team. It does not award recognition credit.", "stone", "information-line")}
+${field("Contributor", input("Kwame · 0x5b…19", { select: true }))}
+${field("Planned responsibility", input("Beds survey · requirement row 3", { select: true }))}
+<div class="actrow">${hot("w2b.assign-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.assign-confirm", btn("Save responsibility", { kind: "pri" }))}</div>`
+    : state === "open-eligible"
+    ? `${banner("This team is open to eligible garden members. Joining is an online contract action and does not award credit by itself.", "stone")}
+${card(`${kv("Accountable lead", "Maria")}${kv("Your status", "Not on this team")}`)}
+${hot("w2b.join", btn("Join this promise", { kind: "pri", full: true }))}`
+    : state === "join-submitted"
+    ? `${banner("Join submitted. Your wallet transaction is confirmed, and this screen is waiting for the indexed contributor roster before showing you as a member. A missing or stale roster result stays here.", "stone", "loader4-line")}
+${card(`${kv("Your status", "Waiting for roster confirmation")}${kv("Indexed predicate", "Pending · connected account not present in the fresh roster")}${kv("Recognition credit", "None · joining alone does not award credit")}`)}
+${hot("w2b.join-indexed", btn("Check roster", { kind: "sec", full: true }))}`
+    : state === "open-member"
+    ? `${banner("Roster confirmed. You joined this open team.", "stone", "checkbox-circle-fill")}
+${card(`${kv("Your status", "Contributor · no verified credit")}${kv("Indexed predicate", "Pass · fresh roster contains the connected account")}${kv("Leave rule", "Before credit and before roster freeze")}`)}
+${hot("w2b.leave", btn("Leave this promise", { kind: "sec", full: true }))}`
+    : state === "recognition"
+    ? `${banner("Each fulfilled commitment receives an equal budget. This cycle's immutable policy shares 35% equally among eligible contributors and 65% by verified contribution.", "stone", "information-line")}
+${card(`${kv("Cycle policy", "35% equal participation · 65% verified contribution")}${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("Kwame", "25% · evidence + follow-through")}`)}
+${banner("This is the gardener-share recognition preview. New protocol state cannot reach fulfillment with zero eligible contributors; W26 blocks inconsistent legacy/indexed data rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct contributor amounts with a reason. Certificate eligibility additionally requires a non-zero cycle with its six-role allocation; a cycle-less promise is recognition/payment-only.", "amber")}`
+    : `${card(
+        `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead · accepted the commitment", chipHtml: chip("Lead", "offer") })}
+${listRow({ icon: "user-line", primary: "Ana", meta: "Contributor · approved pruning work", chipHtml: chip("Credited", "ok") })}
+${listRow({ icon: "user-line", primary: "Kwame", meta: frozen ? "Contributor · evidence and delivery follow-through" : "Contributor · no verified credit yet", chipHtml: frozen ? chip("Credited", "ok") : chip("Planned", "plain") })}`,
+        { cls: "flat" },
+      )}
+${frozen
+  ? banner("Roster frozen atomically when the commitment entered Ready for confirmation. Roster edits are unavailable after freeze.", "stone", "shield-check-line")
+  : `${banner("Lead-managed team · one person stays accountable. The lead or steward may add or remove eligible uncredited collaborators; Open teams use self-join and self-leave instead.", "stone")}
+<div class="actrow">${hot("w2b.add", btn("Add contributor", { kind: "sec", icon: "add-line" }))}${hot("w2b.assign", btn("Assign Kwame", { kind: "ghost" }))}</div>
+${hot("w2b.remove", btn("Remove Kwame from this promise", { kind: "ghost", full: true }))}`}
+${hot("w2b.preview", btn("Preview recognition", { kind: "pri", full: true }))}`;
+  return phoneFrame(`${hdr("Team and contributions", { back: true })}${pagepad(body)}<div style="flex:1"></div>`, { appBar: false });
+}
+
+const W2B_HOTS: HifiDef["hots"] = {
+  "w2b.add": { l: "Add contributor", to: "screen:W2b@add-contributor", info: "LeadManaged only: opens the online-only eligible garden-member picker. Open teams use joinCommitment; roster updates never enter the offline field queue." },
+  "w2b.add-cancel": { l: "Cancel add contributor", to: "screen:W2b@forming", info: "Closes the picker without changing the roster." },
+  "w2b.add-confirm": { l: "Confirm add contributor", to: "screen:W2b@forming", info: "Calls addContributor for the selected garden member; wallet rejection or a roster-cap/freeze error leaves the selection visible for retry.", calls: ["addContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.remove": { l: "Remove Kwame from this promise", to: "screen:W2b@remove-contributor", info: "LeadManaged only: opens a named confirmation for an uncredited non-lead contributor with no pending linked Work. Open-team members self-leave; managed expulsion is unavailable." },
+  "w2b.remove-cancel": { l: "Keep contributor", to: "screen:W2b@forming", info: "Returns without changing the roster." },
+  "w2b.remove-confirm": { l: "Remove Kwame", to: "screen:W2b@forming", info: "Calls removeContributor online for this LeadManaged roster. The indexed roster changes only after confirmation; an Open policy, freeze, lead, pending-Work, or credit error keeps this confirmation available.", calls: ["removeContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.assign": { l: "Assign planned responsibility to Kwame", to: "screen:W2b@assign-requirement", info: "Opens the requirement-row assignment editor without treating planning as recognition credit." },
+  "w2b.assign-cancel": { l: "Cancel responsibility assignment", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
+  "w2b.assign-confirm": { l: "Save planned responsibility", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the selected contributor and exact requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.join": { l: "Join this promise", to: "screen:W2b@join-submitted", info: "Calls joinCommitment for an eligible Open-team garden member. A successful wallet submission lands in a pending state; membership renders only after indexed roster confirmation and never creates recognition credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.join-indexed": { l: "Check indexed roster", to: "screen:W2b@join-submitted", info: "Refreshes the read model. A missing or stale result, or a fresh roster without the connected account, remains pending. The reactive screen enters open-member only after a fresh indexed contributor roster contains that exact account; this control has no unconditional success route." },
+  "w2b.leave": { l: "Leave this promise", to: "screen:W2b@open-eligible", info: "Calls leaveCommitment only for an active non-lead Open-team member with zero Work/evidence credit before freeze.", calls: ["leaveCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Reads the selected cycle's immutable equal/verified policy and previews its resulting contributor weights, impossible-state blocker, and relationship to the later payment default." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1134,13 +1235,13 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
   let inner: string;
   if (state === "failed") {
     inner =
-      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · couldn't send", chipHtml: chip("Couldn't send", "err"), trailing: hot("w2a.retry-row", btn("Retry", { kind: "sec", sm: true, icon: "refresh-line" })) }) +
+      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · credits Maria, Ana · couldn't send", chipHtml: chip("Couldn't send", "err"), trailing: hot("w2a.retry-row", btn("Retry", { kind: "sec", sm: true, icon: "refresh-line" })) }) +
       listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · sent", chipHtml: chip("Sent", "ok") }) +
       banner("Your evidence is held on this device — nothing is dropped. Retry the one that didn't send whenever you're ready.", "stone", "wifi-off-line") +
       hot("w2a.done", btn("Done", { kind: "ghost", full: true }));
   } else if (state === "queued") {
     inner =
-      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", chipHtml: chip("Queued", "queued") }) +
+      listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · credits Maria, Ana · just now", chipHtml: chip("Queued", "queued") }) +
       banner("It will send when you're back online. Nothing else to do.", "stone", "wifi-off-line") +
       hot("w2a.done", btn("Done", { kind: "sec", full: true }));
   } else {
@@ -1150,7 +1251,7 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
       : request ? "w2a.attach-request"
       : captured ? "w2a.attach-captured"
       : "w2a.attach";
-    inner = `${kinds}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }))}`;
+    inner = `${kinds}${field("Credit contributors", input(captured ? "Maria" : "Maria · Ana"))}${banner("The selected active contributors are saved with this evidence and reused exactly on retry.", "stone", "user-line")}${banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line")}${hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }))}`;
   }
   const cast: PromiseCast =
     campaignRequest ? "campaign-request" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
@@ -1160,11 +1261,11 @@ ${[["camera-line", "Photo", "From your camera or library"], ["link-m", "Link", "
 
 const W2A_HOTS: HifiDef["hots"] = {
   "w2a.kind": { l: "Evidence kind", info: "Photo / link / note → one evidence job per submit (UX:159)." },
-  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-submitted", info: "Enqueues the evidence job → EvidenceAttached after sync (CS:739).", calls: ["attachEvidence"] },
-  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS:739).", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-captured": { l: "Attach captured-promise evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence while preserving OperatorCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-queued", info: "Enqueues media plus the explicit creditedContributors vector; after upload the executor calls attachEvidence with those same addresses (CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence plus explicit attribution for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-captured": { l: "Attach captured-promise evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed evidence job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
   "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the promise with the queued or sent evidence row still visible." },
 };
@@ -1202,22 +1303,28 @@ function w3(state: W3State): string {
       break;
     case "step-anchors":
       body = `${w3Head("Make an offer", 2)}${pagepad(
-        sectionTitle("What kind of garden work?"),
-        `<div class="t-meta">Garden-work offers anchor to the garden's actions so approvals know what to look for.</div>`,
-        radio([{ label: "Prune", meta: "AGRO · trees and beds", on: true }, { label: "Plant", meta: "AGRO · seedlings and starts" }]),
+        sectionTitle("What does this promise require?", chip("2 requirements")),
+        `<div class="t-meta">Add every action the group expects to complete. Each row carries its own count and contribution evidence.</div>`,
+        card(
+          listRow({ icon: "leaf-line", primary: "Prune × 2", meta: "AGRO · trees and beds", chipHtml: chip("Required", "ok") }) +
+            listRow({ icon: "plant-line", primary: "Plant × 12", meta: "AGRO · seedlings and starts", chipHtml: chip("Required", "ok") }) +
+            hot("w3.add-action", btn("Add another requirement", { kind: "ghost", sm: true, icon: "add-line" })),
+          { cls: "flat" },
+        ),
+        `<div class="t-meta">There is no four-item product rule. The implementation cap is set only after contract gas and indexer benchmarks.</div>`,
         hot("w3.continue-anchors", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
     case "step-review":
       body = `${w3Head("Make an offer", 3)}${pagepad(
-        card(`${kv("Direction", "Offer support")}${kv("Kind", "Garden work")}${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("Action", "Prune")}`),
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Garden work")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("Requirements", "Prune × 2 · Plant × 12")}`),
         `<div class="t-meta">Submitting queues the promise on this device and returns you to the pool — it sends when connected.</div>`,
         hot("w3.submit", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
       break;
     case "support-review":
       body = `${w3Head("Make an offer", 2, 3)}${pagepad(
-        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}`),
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}`),
         `<div class="t-meta">Service offers skip action anchors. Evidence and the named recipient carry the proof.</div>`,
         hot("w3.submit-support", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
@@ -1233,7 +1340,7 @@ function w3(state: W3State): string {
       break;
     case "request-variant":
       body = `${w3Head("Ask for help", 2, 3)}${pagepad(
-        card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}`),
+        card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
         hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true })),
       )}`;
@@ -1255,7 +1362,7 @@ function w3(state: W3State): string {
             hot("w3.add-action", btn("Add an action", { kind: "ghost", sm: true, icon: "add-line" })),
           { cls: "flat" },
         ),
-        `<div class="t-meta">Anchor this promise to the garden's actions — up to four, each with a count of 1 or more.</div>`,
+        `<div class="t-meta">Each requirement needs a count of 1 or more. Add as many as the commitment genuinely needs; the measured implementation cap is not presented as a planning rule.</div>`,
         btn("Continue", { kind: "pri", full: true, disabled: true }),
       )}`;
       break;
@@ -1263,6 +1370,7 @@ function w3(state: W3State): string {
       body = `${w3Head("Make an offer", 0)}${pagepad(
         field("Direction", hot("w3.direction", radio([{ label: "Offer support", meta: "something you can give", on: true }, { label: "Request help", meta: "something you need" }], { interactive: true, name: "commitment-direction" }))),
         field("Kind", radio([{ label: "Garden work", meta: "counts toward the garden's actions", on: true }, { label: "Support / service", meta: "rides, meals, repairs — evidence-confirmed", hot: "w3.choose-support" }], { interactive: true, name: "commitment-kind" })),
+        hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy" }))),
         field("Cycle", hot("w3.cycle", input("Season: First Rains", { select: true }))),
         field("Title", input("Prune the north beds")),
         field("Note", input("optional", { placeholder: true })),
@@ -1276,6 +1384,7 @@ function w3(state: W3State): string {
 
 const W3_HOTS: HifiDef["hots"] = {
   "w3.direction": { l: "Direction", info: "Offer vs request — season/campaign seeding and on-behalf capture are console-seeded only, never here (UX:150)." },
+  "w3.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy before creation; the final review repeats the selected join rule." },
   "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:153)." },
   "w3.continue-support-howmuch": { l: "Continue with service amount", to: "screen:W3@support-review", info: "Carries the entered service unit and quantity into review without introducing action anchors." },
   "w3.cycle": { l: "Cycle scope", info: "Every promise names its cycle; Season and Campaigns never blur (UX:127)." },
@@ -1287,7 +1396,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.submit-request": { l: "Ask for this help", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
-  "w3.add-action": { l: "Add an action", info: "DomainImpact requirements builder: 1–4 rows, each count ≥ 1, equal lengths, positional domain match, registry existence; a running summary chip sits in the header. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
+  "w3.add-action": { l: "Add an action", info: "Repeatable DomainImpact requirements: each row binds a registered action to a count ≥ 1, and domains are derived tags that may repeat. Four rows are visible initially; Add action continues to the measured MAX_REQUIREMENTS. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1341,7 +1450,7 @@ function w4(state: W4State): string {
   // confirmed members condense to one row so the sheet leads with the reader's
   // own act (§5.6 keeps the self row distinct).
   const confirmMeter = hot("w4.meter", `<div>${meter(66, { left: "confirmations", right: "2 of 3" })}</div>`) +
-    listRow({ icon: "checkbox-circle-fill", primary: "João and Ana confirmed", meta: "Jul 11 · Jul 12" }) +
+    listRow({ icon: "checkbox-circle-fill", primary: "João and Sofia confirmed", meta: "Jul 11 · Jul 12" }) +
     listRow({ icon: "user-line", primary: "You", chipHtml: chip("Your turn", "warn") });
   const exclusion = hot(
     "w4.provider-note",
@@ -1349,7 +1458,7 @@ function w4(state: W4State): string {
       ? banner("João gave the ride, so João cannot confirm it — the person who asked does. Not even a steward can confirm their own.", "stone", "shield-check-line")
       : captured
         ? banner("Kwame's named provider cannot confirm their own work — the named counterparty does.", "stone", "shield-check-line")
-      : banner("Maria made this promise, so Maria cannot confirm it — not even a steward can confirm their own.", "stone", "shield-check-line"),
+      : banner("Maria, Ana, and Kwame are on the frozen contributor roster, so none can confirm — not even through the steward fallback.", "stone", "shield-check-line"),
   );
 
   let inner: string;
@@ -1458,34 +1567,34 @@ const W4_HOTS: HifiDef["hots"] = {
   "w4.confirm-support": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the evidence-only service promise; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-request": { l: "Confirm — help arrived", to: "screen:W4@confirmed-pending-request", info: "The request creator confirms the claimant's help; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-campaign-request": { l: "Confirm — Campaign help arrived", to: "screen:W4@confirmed-pending-campaign-request", info: "The request creator confirms the Campaign-scoped request without losing that Campaign binding.", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.confirm-captured": { l: "Confirm — recorded promise kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only OperatorCaptured promise.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-captured": { l: "Confirm — recorded promise kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only StewardCaptured promise.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.not-yet": { l: "Not yet", to: "screen:W4@not-yet", info: "Requires a reason → online steward review. It never cancels the promise (UX:167)." },
   "w4.not-yet-support": { l: "Not yet — service", to: "screen:W4@not-yet-support", info: "Keeps the service-offer cast while collecting the required dispute reason." },
   "w4.not-yet-request": { l: "Not yet — request", to: "screen:W4@not-yet-request", info: "Keeps the request cast while collecting the required dispute reason." },
   "w4.not-yet-campaign-request": { l: "Not yet — Campaign request", to: "screen:W4@not-yet-campaign-request", info: "Keeps the Campaign request binding while collecting the required dispute reason." },
-  "w4.not-yet-captured": { l: "Not yet — recorded promise", to: "screen:W4@not-yet-captured", info: "Keeps the OperatorCaptured cast while collecting the required dispute reason." },
+  "w4.not-yet-captured": { l: "Not yet — recorded promise", to: "screen:W4@not-yet-captured", info: "Keeps the StewardCaptured cast while collecting the required dispute reason." },
   "w4.not-yet-send": { l: "Send to the stewards", to: "screen:W2@disputed", info: "Online-only raiseDispute with the reason; the promise freezes at “under review by stewards” (CS:143 · UX:426).", calls: ["raiseDispute"] },
   "w4.not-yet-send-support": { l: "Send service dispute to stewards", to: "screen:W2@support-disputed", info: "raiseDispute preserves the service offer's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
   "w4.not-yet-send-request": { l: "Send request dispute to stewards", to: "screen:W2@request-disputed", info: "raiseDispute preserves the request's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
   "w4.not-yet-send-campaign-request": { l: "Send Campaign request dispute to stewards", to: "screen:W2@campaign-request-disputed", info: "raiseDispute preserves the Campaign request's exact pre-dispute state and scope.", calls: ["raiseDispute"] },
-  "w4.not-yet-send-captured": { l: "Send recorded-promise dispute to stewards", to: "screen:W2@captured-disputed", info: "raiseDispute preserves the OperatorCaptured kind and member source.", calls: ["raiseDispute"] },
-  "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; the accepted provider is excluded before threshold validation (UX:280)." },
+  "w4.not-yet-send-captured": { l: "Send recorded-promise dispute to stewards", to: "screen:W2@captured-disputed", info: "raiseDispute preserves the StewardCaptured kind and member source.", calls: ["raiseDispute"] },
+  "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; every frozen team member is excluded before threshold validation (UX:280 · Appendix C)." },
   "w4.provider-note": { l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
   "w4.done": { l: "Back to the pool", to: "screen:W2@fulfilled", info: "The Commitment Fulfilled hero (High) fires on sync completion, not enqueue; reduced-motion shows a static celebratory frame (UX:169,201,204)." },
   "w4.done-support": { l: "Back to the pool", to: "screen:W2@support-fulfilled", info: "Returns to the same SupportService offer after its fulfillment syncs." },
   "w4.done-request": { l: "Back to the pool", to: "screen:W2@request-fulfilled", info: "Returns to the same request record after its fulfillment syncs." },
   "w4.done-campaign-request": { l: "Back to the pool", to: "screen:W2@campaign-request-fulfilled", info: "Returns to the same Campaign request record after its fulfillment syncs." },
-  "w4.done-captured": { l: "Back to the pool", to: "screen:W2@captured-fulfilled", info: "Returns to the same OperatorCaptured record after its fulfillment syncs." },
+  "w4.done-captured": { l: "Back to the pool", to: "screen:W2@captured-fulfilled", info: "Returns to the same StewardCaptured record after its fulfillment syncs." },
   "w4.pending-done": { l: "Done", to: "screen:W2@confirmation-pending", info: "Returns to the same promise with its queued confirmation visible and no duplicate confirmation act." },
   "w4.pending-support-done": { l: "Done", to: "screen:W2@support-confirmation-pending", info: "Returns to the service promise with its queued confirmation visible and no duplicate submission act." },
   "w4.pending-request-done": { l: "Done", to: "screen:W2@request-confirmation-pending", info: "Returns to the request with its queued confirmation visible and no duplicate submission act." },
   "w4.pending-campaign-request-done": { l: "Done", to: "screen:W2@campaign-request-confirmation-pending", info: "Returns to the Campaign request with its scope and queued confirmation intact." },
-  "w4.pending-captured-done": { l: "Done", to: "screen:W2@captured-confirmation-pending", info: "Returns to the OperatorCaptured promise with its queued confirmation visible." },
+  "w4.pending-captured-done": { l: "Done", to: "screen:W2@captured-confirmation-pending", info: "Returns to the StewardCaptured promise with its queued confirmation visible." },
   "w4.not-yet-retry": { l: "Try again", to: "screen:W2@disputed", info: "“Not yet” is online-only — dispute creation is not an offline queue kind. Failure leaves ReadyForConfirmation and exposes inline retry; success invalidates to under review by stewards (UX:169,221).", calls: ["raiseDispute"] },
   "w4.not-yet-retry-support": { l: "Try service dispute again", to: "screen:W2@support-disputed", info: "Retries the kept reason against the same service promise.", calls: ["raiseDispute"] },
   "w4.not-yet-retry-request": { l: "Try request dispute again", to: "screen:W2@request-disputed", info: "Retries the kept reason against the same request.", calls: ["raiseDispute"] },
   "w4.not-yet-retry-campaign-request": { l: "Try Campaign request dispute again", to: "screen:W2@campaign-request-disputed", info: "Retries the kept reason without dropping Campaign scope.", calls: ["raiseDispute"] },
-  "w4.not-yet-retry-captured": { l: "Try recorded-promise dispute again", to: "screen:W2@captured-disputed", info: "Retries the kept reason against the same OperatorCaptured promise.", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-captured": { l: "Try recorded-promise dispute again", to: "screen:W2@captured-disputed", info: "Retries the kept reason against the same StewardCaptured promise.", calls: ["raiseDispute"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -1513,13 +1622,13 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
 
 const w2Facts = (state: W2State): StateFacts | undefined => {
   const kind: StateFacts["kind"] =
-    W2_CAPTURED.has(state) ? "OperatorCaptured"
+    W2_CAPTURED.has(state) ? "StewardCaptured"
     : W2_REQUEST.has(state) || W2_CAMPAIGN_REQUEST.has(state) || W2_SUPPORT.has(state) ? "SupportService"
     : "DomainImpact";
   const commitment: StateFacts["commitment"] =
     state === "offered" || state === "support-offered" || state === "withdraw-confirm" ? "Offered"
     : state === "requested" ? "Requested"
-    : state === "active" || state === "request-active" || state === "campaign-request-active" ||
+    : state === "active" || state === "evidence-queued" || state === "request-active" || state === "campaign-request-active" ||
       state === "support-active" || state === "support-evidence-queued" ||
       state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
       state === "captured" || state === "captured-evidence-queued" ? "Active"
@@ -1558,7 +1667,7 @@ const w4Facts = (state: W4State): StateFacts => ({
   commitment: state === "confirmed" || state === "confirmed-support" ||
     state === "confirmed-request" || state === "confirmed-campaign-request" ||
     state === "confirmed-captured" ? "Fulfilled" : "ReadyForConfirmation",
-  kind: state.includes("captured") ? "OperatorCaptured"
+  kind: state.includes("captured") ? "StewardCaptured"
     : state.includes("support") || state.includes("request") ? "SupportService"
     : "DomainImpact",
 });
@@ -1571,7 +1680,7 @@ const w2aFacts = (state: W2aState): StateFacts | undefined => {
     pool: "Open",
     cycle: "Open",
     commitment: "Active",
-    kind: state === "compose" ? "DomainImpact" : state === "compose-captured" ? "OperatorCaptured" : "SupportService",
+    kind: state === "compose" ? "DomainImpact" : state === "compose-captured" ? "StewardCaptured" : "SupportService",
   };
 };
 
@@ -1592,6 +1701,7 @@ const mk = <T extends readonly (readonly [string, string])[]>(
 export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1, w1Facts), hots: W1_HOTS },
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts), hots: W2_HOTS },
+  { ...mk("W2b", "W2b · Team and contributions", W2B_STATES, w2b), hots: W2B_HOTS },
   { ...mk("W2a", "W2a · Evidence sheet", [
     ["compose", "Compose"], ["compose-request", "Compose — a request"],
     ["compose-campaign-request", "Compose — Campaign request"],

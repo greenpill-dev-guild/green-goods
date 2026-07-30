@@ -51,7 +51,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 ### Linear API constraints (must respect on every write)
 
 1. **Customer Needs cannot be standalone.** Linear rejects `save_customer_need` calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to a Backlog tracking Issue. The routine never creates standalone "raw signal only" Needs.
-2. **`agent:*` is single-value-per-Issue.** Use `agent:routine` on every Issue this routine creates (cron'd provenance). When a track-only item is later promoted to a delegate (`agent:codex` or `agent:claude`), the interactive `/qa-triage` skill swaps the label — this routine doesn't.
+2. **`ai:*` is single-value-per-Issue.** Use `ai:routine` on every Issue this routine creates (cron'd provenance). When a track-only item is later promoted to a delegate (`ai:codex` or `ai:claude`), the interactive `/qa-triage` skill swaps the label — this routine doesn't.
 3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the Issue body's `## Surface` block.
 
 ### Labels applied to the Backlog tracking Issues this routine creates
@@ -61,7 +61,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 - `activity:qa` for confirmed bugs with a clear surface; `activity:maintenance` for ideas / UX polish / unactionable feedback that still warrant tracking
 - `source:drive` — provenance
 - `source:qa-triage-pulse` — distinguishes routine-pre-staged Issues from `bug-intake`'s Drive-source Issues
-- `agent:routine` — cron'd provenance (single `agent:*` value)
+- `ai:routine` — cron'd provenance (single `ai:*` value)
 - `qa-sync:<YYYY-MM-DD>` — meeting-date slug so `/qa-triage` can resume the right batch (resolve or create on first use)
 
 ### Customer Needs
@@ -150,7 +150,7 @@ For each extracted item:
 Linear requires every Customer Need to link to an Issue. For each non-duplicate item:
 
 1. **First, create the Backlog tracking Issue** on the Product team. Title: prefix with `[tracking]`, then use an action-verb-led one-line distillation (e.g., "[tracking] Investigate PWA install hang on Android" rather than "Install hangs"). Body: Summary + Surface + Suggested fix + Source + safe evidence — no Reproduction/Expected/Actual sections at this routine stage.
-   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `agent:routine` + `qa-sync:<YYYY-MM-DD>`.
+   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:qa` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `qa-sync:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
 
@@ -224,7 +224,7 @@ The interactive skill's Phase 1 step 0 *Resume from pre-staged Customer Needs* p
 2. If ≥1 exists, offers: "Resume from {N} pre-staged item(s) from {date}'s sync, or run a fresh extract?"
 3. On resume, Phases 1-3 of the skill are skipped (already done by this routine). The triage gate fires immediately with the pre-staged set as the numbered list.
 4. The user's scope-lock decisions:
-   - **Promote** a pre-staged tracking Issue to a main Issue: relabel from `activity:maintenance` → `activity:qa` when needed, move from `Backlog` → `Todo`, set priority, assign, swap `agent:routine` → `agent:claude` or `agent:codex` per the delegation choice, append a Defects-tab row to the QA Sheet via the Apps Script webhook.
+   - **Promote** a pre-staged tracking Issue to a main Issue: relabel from `activity:maintenance` → `activity:qa` when needed, move from `Backlog` → `Todo`, set priority, assign, swap `ai:routine` → `ai:claude` or `ai:codex` per the delegation choice, append a Defects-tab row to the QA Sheet via the Apps Script webhook.
    - **Keep as-is**: leave the tracking Issue in `Backlog` as low-urgency tracked work. The Customer Need stays attached.
    - **Defer**: leave both as-is for the next sync's interactive run to revisit.
 
@@ -242,7 +242,7 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 | Paste Vercel runtime logs into Customer Need bodies | Deploy metadata is public, log content is not — that's `health-watch` territory |
 | Skip the Phase 5 privacy grep | The verbatim-quote field can leak reporter handles if the notes captured them |
 | Try to create a Customer Need without an `issue` parameter | Linear's API rejects with `Exactly one of projectId or issueId must be defined`. This routine ALWAYS creates the Backlog tracking Issue first, then the Customer Need linked to it. There is no standalone Need path. |
-| Apply multiple `agent:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families. The routine uses `agent:routine` (single value) and one `package:*` (primary surface; secondary noted in body). |
+| Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families. The routine uses `ai:routine` (single value) and one `package:*` (primary surface; secondary noted in body). |
 | Push commits | Linear-only — this routine never touches code |
 | Run if notes file is older than 6h | The window is the safety guard against picking up last week's notes |
 | Create >15 Customer Need + Issue pairs in one run | Overflow protection; the user can pick up the rest interactively |

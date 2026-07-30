@@ -1,17 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es2020", //required for use with BigInt types
-    "lib": ["es2020", "dom"],
+    "target": "es2022",
+    "lib": ["es2022"],
     "allowJs": true,
     "checkJs": false,
-    "outDir": "build",
-    "strict": true,
-    "noImplicitAny": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "module": "CommonJS",
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
     "types": ["node", "mocha"]
   },
-  "include": ["src", "test"]
+  "include": ["envio-env.d.ts", "src", "test"]
 }
