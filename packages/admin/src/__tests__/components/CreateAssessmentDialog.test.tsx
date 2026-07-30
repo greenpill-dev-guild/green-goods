@@ -160,6 +160,7 @@ describe("CreateAssessment dialog", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     createAssessmentControllerOverride.current = null;
     useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
@@ -178,6 +179,12 @@ describe("CreateAssessment dialog", () => {
   });
 
   it("keeps the reporting-period calendars interactive above the assessment dialog", async () => {
+    // An empty DatePicker opens on the runtime's current month, so the fixed
+    // July 2026 days below only exist with the clock pinned. Only Date is faked
+    // — real timers keep findBy*/waitFor and the debounced draft save working.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-27T12:00:00Z"));
+
     useCreateAssessmentStore.setState({ currentStep: 2 });
 
     await act(async () => {
@@ -185,29 +192,31 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Select start date" }));
-    const day = await screen.findByRole("button", { name: /Monday, July 27th, 2026/i });
-    expect(day.closest('[data-component="DatePickerPopover"]')).toHaveStyle({
+    // LabeledField wraps each DatePicker in a <label>, and a <button> is a
+    // labelable element — so the trigger's accessible name is the whole field
+    // (label + help text + display value), not just its placeholder.
+    const startTrigger = await screen.findByRole("button", { name: /Reporting period start/ });
+    fireEvent.click(startTrigger);
+
+    const startDay = await screen.findByRole("button", { name: /Monday, July 27th, 2026/i });
+    expect(startDay.closest('[data-component="DatePickerPopover"]')).toHaveStyle({
       zIndex: "calc(var(--z-modal) + 1)",
     });
-    fireEvent.click(day);
+    fireEvent.click(startDay);
 
     expect(useCreateAssessmentStore.getState().form.reportingPeriodStart).toBe("2026-07-27");
-    expect(screen.getByRole("button", { name: /Jul 27, 2026/i })).toHaveAttribute(
-      "aria-expanded",
-      "false"
-    );
+    expect(startTrigger).toHaveTextContent("Jul 27, 2026");
+    expect(startTrigger).toHaveAttribute("aria-expanded", "false");
 
-    fireEvent.click(screen.getByRole("button", { name: "Select end date" }));
+    const endTrigger = screen.getByRole("button", { name: /Reporting period end/ });
+    fireEvent.click(endTrigger);
+
     const endDay = await screen.findByRole("button", { name: /Tuesday, July 28th, 2026/i });
-    endDay.focus();
     fireEvent.click(endDay);
 
     expect(useCreateAssessmentStore.getState().form.reportingPeriodEnd).toBe("2026-07-28");
-    expect(screen.getByRole("button", { name: /Jul 28, 2026/i })).toHaveAttribute(
-      "aria-expanded",
-      "false"
-    );
+    expect(endTrigger).toHaveTextContent("Jul 28, 2026");
+    expect(endTrigger).toHaveAttribute("aria-expanded", "false");
   });
 
   it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {

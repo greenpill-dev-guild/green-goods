@@ -168,9 +168,12 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
               data-component="DatePickerPopover"
               align="start"
               sideOffset={4}
+              // Inline, not a `z-*` utility: the popover portals to document.body and
+              // has to clear a host dialog surface at `z-modal`, and admin/client
+              // Tailwind content scans do not reach packages/shared/src.
               style={{ zIndex: "calc(var(--z-modal) + 1)" }}
               className={cn(
-                "z-overlay rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
+                "rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
