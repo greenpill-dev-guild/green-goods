@@ -3,7 +3,7 @@ title: Changelog / Release Notes
 slug: /reference/changelog
 audience: all
 owner: docs
-last_verified: 2026-07-08
+last_verified: 2026-07-30
 feature_status: Live
 source_of_truth:
   - https://github.com/greenpill-dev-guild/green-goods/releases
@@ -25,6 +25,16 @@ The complete, auto-generated changelog lives on [GitHub Releases](https://github
 ---
 
 ## 2026
+
+### v1.2.1 - July 2026
+
+**Reliability hotfixes for the installed app**
+
+- **Recovery screen** — if the app can't finish starting, you now get a readable screen in your language with a Reload button, instead of a blank page.
+- **Passkey sign-in** — enabled by default in production, rather than depending on exact configuration being present.
+- **Installing and updating** — an app update no longer disturbs the tabs you already have open, and the app recovers on its own after a new version ships instead of showing an "Unexpected Application Error".
+
+Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
 
 ### v1.2.0 - July 2026
 
