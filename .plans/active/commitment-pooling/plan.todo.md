@@ -330,15 +330,20 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     commitment, 20% is shared equally among eligible contributors and 80% follows verified
     contribution weights from approved linked Work plus evidence attribution on the Fulfilled commitment.
     Deterministic rounding follows highest weight then ascending address. The policy is frozen at
-    cycle open, while cycle-less commitments use the immutable protocol 20/80 default. There is no
-    automatic lead or metadata-only fallback: Ready and direct Fulfilled dispute resolution require
-    non-zero pre-freeze verified credit, and W26 blocks any inconsistent legacy/indexed state.
+    cycle open, while cycle-less commitments use the immutable protocol 20/80 default for
+    recognition and payout defaults only. Because they have no six-role `CycleOpened` allocation,
+    cycle-less commitments are ineligible for COMMITMENT-bundle Hypercert minting and the UI must
+    disable them before composition. There is no automatic lead or metadata-only fallback: Ready
+    and direct Fulfilled dispute resolution require non-zero pre-freeze verified credit, and W26
+    blocks any inconsistent legacy/indexed state.
 65. Payout-plan amendment (2026-07-28, Afo authorization): a fulfilled CeloSettlement commitment
     receives a garden-managed payout plan. Its initial contributor weights copy the final
     Hypercert recognition weights. Plan creation asks CommitmentPooling to recompute the complete
     sorted recognition vector and hash from frozen on-chain credits and cycle policy. A
     provider-garden steward may atomically edit the complete amount vector before
-    finalization; payment weights derive from amounts. The canonical full-reward integer
+    finalization; the plan persists the immutable ascending contributor order, and creation plus
+    each edit emits version-tagged complete rows followed by one summary/hash commit marker.
+    Payment weights derive from amounts. The canonical full-reward integer
     base-unit allocation is rounding-equivalent to recognition and needs no reason; every
     noncanonical amount or retention divergence requires a visible reason. The plan carries an
     explicit `gardenRetainedAmount`; declared reward must
@@ -352,7 +357,8 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     child states and is never acknowledged as a separate cross-chain subject. Explicit
     finalization freezes the plan before dispatch; a finalized zero-child all-retained plan is
     Complete immediately without queue or CCIP. Child and batch cancellation never clear
-    the stable one-plan-per-commitment pointer. Large teams split across measured batches;
+    the stable one-plan-per-commitment pointer. Large teams split across measured batches, but
+    `createBatch` rejects duplicate derived recipients before any fee or dispatch;
     authenticated failures requeue per contributor. Envio indexes only protocol/executor events,
     not raw G$ transfers.
 67. Alignment-pass boundary (2026-07-28, Afo authorization): amend the complete in-repo planning

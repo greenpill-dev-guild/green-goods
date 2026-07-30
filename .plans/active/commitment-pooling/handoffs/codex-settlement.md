@@ -146,7 +146,7 @@
 
 ## RED / GREEN
 
-- RED: focused tests fail for tuple compatibility, exact decimal-string selector parsing/round-trip without JS number coercion, disbursement/batch execution-key domain separation, homogeneous batch kind/funding-route enforcement, source/sender/version/token validation, originating-message-to-key binding, per-command destination snapshot and previous-peer forgery/cross-executor retry rejection, paused-first initialization, unpaused/zero trust-root rejection, exact old/new dependency events, incomplete-unpause rejection, write-once canonical configuration, dispatcher scope, observable fee floors, unbatched-Queued/Failed individual cancellation, failed-batch member requeue clearing only the active batch association, atomic Queued-batch cancellation with no partial-member path, disabled/configured/hard batch bounds, same-key duplicate/out-of-order delivery, acknowledgment retry, stale/duplicate acknowledgment, bounded failure codes, fee shortage, pause, previous-peer command acknowledgment back to its exact originating module, UUPS immutable-router cutover with unchanged G$, Safe owner/role/native-allowance separation, exact-net GoodDollar fee modes, token pause, proportional/absolute fee policy, and balance deltas, direct-G$ role scoping with no executor self-call permission, cap failure, and compiler-generated storage layouts with concrete slot/offset assertions.
+- RED: focused tests fail for tuple compatibility, exact decimal-string selector parsing/round-trip without JS number coercion, disbursement/batch execution-key domain separation, homogeneous batch kind/funding-route and duplicate-recipient rejection before mutation, source/sender/version/token validation, originating-message-to-key binding, per-command destination snapshot and previous-peer forgery/cross-executor retry rejection, paused-first initialization, unpaused/zero trust-root rejection, exact old/new dependency events, incomplete-unpause rejection, write-once canonical configuration, dispatcher scope, persisted contributor-order enumeration, version-1 creation snapshot and later versioned full-vector replacement with incomplete/mismatched trailing-summary rejection, observable fee floors, unbatched-Queued/Failed individual cancellation, failed-batch member requeue clearing only the active batch association, atomic Queued-batch cancellation with no partial-member path, disabled/configured/hard batch bounds, same-key duplicate/out-of-order delivery, acknowledgment retry, stale/duplicate acknowledgment, bounded failure codes, fee shortage, pause, previous-peer command acknowledgment back to its exact originating module, UUPS immutable-router cutover with unchanged G$, Safe owner/role/native-allowance separation, exact-net GoodDollar fee modes, token pause, proportional/absolute fee policy, and balance deltas, direct-G$ role scoping with no executor self-call permission, cap failure, and compiler-generated storage layouts with concrete slot/offset assertions.
 - GREEN: the same tests pass; a deterministic two-router local harness and separate fork processes prove asynchronous command/ack behavior without broadcasting.
 
 ## Exact Bun commands
@@ -205,9 +205,13 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   executor garden's operator/owner Hats. A root-pool steward cannot spend a claimant garden Safe;
   the optional dispatcher may only execute an already-finalized immutable plan.
 - Creation calls `CommitmentPoolingModule.validateRecognitionSnapshot` and rejects a
-  self-consistent but noncanonical vector/hash. It emits `CommitmentPayoutPlanCreated` followed by
-  one ordered `ContributorPayoutSet` for every initial row so an untouched draft is enumerable
-  from events.
+  self-consistent but noncanonical vector/hash. It persists the immutable ascending contributor
+  order used by full-vector edits and finalization. Creation and every edit emit one complete
+  version-tagged ordered `ContributorPayoutSet` sequence followed by
+  `CommitmentPayoutSnapshotCommitted(rowCount, retainedAmount, contributorTotal,
+  paymentSnapshotHash, reasonCID, actor)`. The indexer buffers by plan/version and publishes the
+  atomic replacement only after the trailing summary matches, so untouched drafts and later
+  edits are fully observable without RPC enumeration.
 - The measured payout-vector bound equals `MAX_CONTRIBUTORS_PER_COMMITMENT` (provisional 32).
   Tests cover max and max-plus-one before any plan storage/event mutation.
 - A zero contributor-payment total derives an explicit all-zero payment-weight vector without
@@ -220,3 +224,5 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   amount or retention difference.
 - Child or batch cancellation retains `payoutPlanOfCommitment` and never permits a second plan or
   replacement child. Only authenticated-failure requeue creates a later logical attempt.
+- `createBatch` rejects a duplicate derived recipient before fee quote, storage mutation, or
+  dispatch even when the two children belong to different payout plans.

@@ -600,7 +600,7 @@ stateDiagram-v2
   Disputed --> Accepted : resolveDispute (RestorePrevious)
   Disputed --> ReadyForConfirmation : resolveDispute (RestorePrevious)
   Disputed --> Expired : resolveDispute (RestorePrevious or Expired)
-  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired); require policy + verified contributor; freeze roster first when needed
+  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired); reject contributor-steward SelfConfirmation; require policy + verified contributor; freeze roster first when needed
   Disputed --> Cancelled : resolveDispute (Cancelled)
   Fulfilled --> Reconciled : CycleClosed
   Cancelled --> Reconciled : CycleClosed
@@ -973,8 +973,10 @@ erDiagram
     Int confirmedPayoutCount "authenticated arrivals"
     Int failedPayoutCount "authenticated failures"
     Int cancelledPayoutCount "terminally closed children"
+    Int paymentSnapshotVersion "creation 1; one increment per full replacement"
     String recognitionSnapshotHash "Hypercert weights input"
     String paymentSnapshotHash "amount-derived payment vector"
+    String[] contributorOrder "immutable ascending addresses for edit and finalization"
     Boolean finalized "freezes plan before dispatch"
     Int finalizedAt "zero-child plans complete here"
     CommitmentPayoutPlanStatus status "finalization + conservation + child states; zero-child finalization is Complete"
@@ -1206,7 +1208,7 @@ sequenceDiagram
   alt ContributorReward — one child of a fulfilled commitment
     OP->>SM: create plan with recognition vector + hash
     SM->>CPM: validate canonical frozen recognition vector + hash
-    SM-->>IDX: PayoutPlanCreated + every ordered initial ContributorPayoutSet
+    SM-->>IDX: PayoutPlanCreated + versioned ordered rows + PayoutSnapshotCommitted
     OP->>SM: setContributorPayouts (optional atomic draft edit)
     OP->>SM: finalizeCommitmentPayoutPlan
     SM-->>IDX: CommitmentPayoutPlanFinalized
@@ -1276,7 +1278,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   autonumber
-  actor DSP as Stored steward, owner, or configured dispatcher
+  actor DSP as Stored steward or configured dispatcher
   actor STW as Resolved settlement steward only
   actor ANY as Anyone (permissionless)
   participant SM as SettlementModule (Arbitrum)
@@ -1504,7 +1506,7 @@ If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available 
 
 | Role | Pool & cycle control | Create / claim promises | Evidence & work | Approve work | Confirm fulfillment | Queue & execute value | Confirm settlement | Configure protocol |
 |---|---|---|---|---|---|---|---|---|
-| **Module owner** | ✓ fallback steward | — | — | — | — | ✓ queue protocol funding · dispatch/retry within frozen routes | — | ✓ pause · peer/module wiring · measured limits · UUPS upgrade |
+| **Module owner** | ✓ fallback steward | — | — | — | — | ✓ queue protocol funding only | — | ✓ pause · peer/module wiring · measured limits · dispatcher assignment · UUPS upgrade |
 | **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for members | ✓ WorkApproval (existing flow) | fallback only, with reason, never as provider | ✓ queue/dispatch/retry/requeue/cancel within resolved scope | — | — |
 | **Member / gardener** | — | ✓ own Offer / Request · claim open commitments | ✓ own evidence · link work | — | ✓ when eligible confirmer | — | — | — |
 | **Accepted provider** | — | — | ✓ deliver + evidence | — | ✗ never own delivery | — | — | — |
@@ -1528,7 +1530,8 @@ If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available 
 
 ```mermaid
 flowchart LR
-  OWN["SettlementModule owner<br/>queues / dispatches / pauses"] -->|"data-only command"| SM["SettlementModule"]
+  OWN["SettlementModule owner<br/>protocol funding / config / pause"] -->|"bounded configuration or funding queue"| SM["SettlementModule"]
+  DSP["Resolved garden steward<br/>or configured dispatcher"] -->|"data-only dispatch / retry"| SM
   SM -->|"CCIP command"| EX["CeloSettlementExecutor<br/>typed G$ route only"]
   EX -->|"CCIP acknowledgment"| SM
   RO["Recovery owners<br/>rotate Safe modules, never executor owners"] -->|"reviewed no-overlap gate"| EX
@@ -1557,14 +1560,14 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `unlinkWork`, `syncApprovedWork` | Resolved pool steward | Unlink only before counting; sync verifies EAS and dedupes |
 | `onWorkApproved` | WorkApprovalResolver only | Non-blocking; unlinked/already-counted approval is a no-op |
 | `attachEvidence` | Active contributor, lead, or steward | Accepted and unfrozen only; exact credited-contributor vector; offline-queueable but a late job fails without credit |
-| `attachAssessment` | Steward or evaluator of `providerGarden` | Resolver/schema/kind/recipient valid; Ready predicate re-evaluated |
+| `attachAssessment` | Steward or evaluator of `providerGarden` | Accepted and unfrozen; no assessment already attached; resolver/schema/kind/recipient valid; the write-once UID may trigger Ready predicate re-evaluation |
 | `submitForConfirmation` | Creator, counterparty, or steward | Evidence-only eligible kind; no Work requirement; evidence and declared assessment present |
 | `markReadyForConfirmation` | Resolved pool steward | Override reason mandatory and emitted |
 | `confirmFulfillment` | Named confirmer, Offer counterparty, or Request creator | ReadyForConfirmation; every frozen team member excluded; once per confirmer |
 | `confirmFulfillmentAsFallback` | Resolved pool steward | Mandatory reason; any steward who is on the frozen team is excluded |
 | `cancelCommitment` | Creator or steward before acceptance; steward after acceptance | Allowed state only; accepted record releases units and one slot once |
 | `expireCommitment` | Anyone | Past due date/cycle end; accepted record releases units and one slot once |
-| `raiseDispute`, `resolveDispute` | Creator/counterparty/named confirmer/steward may raise; steward resolves | Allowed state and mandatory reason; prior slot state preserved; expired prior state cannot resolve Fulfilled; a direct Fulfilled result requires an opened/cycle-less policy and verified contributor, freezing the roster first when it was not already Ready |
+| `raiseDispute`, `resolveDispute` | Creator/counterparty/named confirmer/steward may raise; steward resolves | Allowed state and mandatory reason; prior slot state preserved; expired prior state cannot resolve Fulfilled; a direct Fulfilled result rejects a resolving contributor-steward, requires an opened/cycle-less policy and verified contributor, and freezes the roster first when it was not already Ready |
 | `recordRewardPaid` | Resolved pool steward | Fulfilled; `reward.rail == ArbitrumExternal`; one record; earned-reward facts derive from storage; every other rail reverts |
 | `setGardenToken`, `setHatsModule`, `setActionRegistry`, `setCommitmentRegister`, `setWorkApprovalResolver`, `setEAS`, `setSchemaUIDs` | Module owner | Module initialized paused and must remain paused for dependency/schema changes; dependencies reject zero; all four schema UIDs reject zero/collision; every real change emits old/new facts |
 | Pooling-module `setPaused` | Module owner | Pause always available; unpause requires every dependency plus four non-zero, pairwise-distinct schema UIDs |
@@ -1578,8 +1581,8 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks new commitment-reward queues and member sends but never blocks the funding route |
 | `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Commitment-pool steward | Fulfilled commitment; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
-| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members share executor garden/source/token/kind/funding route; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
-| `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Stored steward, `SettlementModule` owner, or configured dispatcher | Parent plan explicitly finalized before contributor dispatch; frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID |
+| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members and unique derived recipients share executor garden/source/token/kind/funding route; duplicate recipients revert before fee quote or mutation; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
+| `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Resolved settlement steward for immutable `executorGarden`, or exact configured dispatcher | Parent plan explicitly finalized before contributor dispatch; frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID. The module owner has no independent value-moving bypass |
 | `requeue` | Resolved settlement steward | Authenticated `Failed` member only; increments the individual attempt; immutable failed batch is never rewritten |
 | `cancelDisbursement` | Resolved settlement steward | unbatched `Queued` or authenticated `Failed` only, with reason; dispatched work cannot be cancelled for a timeout or missing acknowledgment; parent commitment-plan pointer remains stable |
 | `cancelBatch` | Resolved batch steward | whole immutable batch while `Queued`, with reason; no partial-member cancellation; parent commitment-plan pointers remain stable |

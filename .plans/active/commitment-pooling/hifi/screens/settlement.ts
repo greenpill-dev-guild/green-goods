@@ -79,6 +79,7 @@ const W21_STATES = [
   ["queue", "Disbursement queue"], ["unregistered", "No account yet"],
   ["payout-plan", "Contributor payout plan · draft"], ["payout-finalized", "Contributor payout plan · finalized"],
   ["payout-prepared", "Contributor payout prepared · queued"],
+  ["payout-retained-draft", "All support retained · draft"],
   ["payout-retained", "All support retained · complete"], ["payout-partial", "Contributor payouts · partial"],
   ["payout-complete", "Contributor payouts · complete"],
   ["register-account", "Register account"], ["registered", "Account registered"],
@@ -264,6 +265,15 @@ ${dtable(
 <div class="actrow" style="justify-content:flex-end">${hot("w21.create-batch", btn("Create batch", { kind: "ghost", sm: true }))}</div>`,
       );
       break;
+    case "payout-retained-draft":
+      inner = acard(
+        "All support retained · payout plan",
+`${banner("Draft. The garden retains the full declared support and every contributor payment weight is the canonical zero vector.", "stone", "information-line")}
+${kv("Declared support", "500 G$")}${kv("Garden retains", "500 G$")}${kv("Contributor total", "0 G$")}${kv("Divergence reason", "Shared materials and follow-up costs · recorded")}
+${banner("Finalization rechecks the recognition and payment snapshots, then completes locally because there is no payable child.", "amber")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.finalize-retained-plan", btn("Finalize retained plan", { kind: "pri", sm: true }))}</div>`,
+      );
+      break;
     case "payout-retained":
       inner = acard(
         "All support retained · payout plan",
@@ -378,7 +388,8 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
-  "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-payout conservation, then freezes the payable plan as Pending without creating child disbursements. A retained-only plan instead resolves Complete.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Pending" } },
+  "w21.finalize-plan": { l: "Finalize payout plan", to: "screen:W21@payout-finalized", info: "Verifies recognition/payment snapshot integrity, canonical recipients, and exact retained-plus-payout conservation, then freezes this payable plan as Pending without creating child disbursements.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Pending" } },
+  "w21.finalize-retained-plan": { l: "Finalize retained-only payout plan", to: "screen:W21@payout-retained", info: "Verifies the all-zero contributor vector and exact full retention, then completes immediately with no child or CCIP command.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Complete" } },
   "w21.prepare-payout": { l: "Prepare contributor payout", to: "screen:W21@payout-prepared", info: "Materializes one immutable queued child from Maria's finalized payout row. An exact repeat returns the same ID without emitting again.", calls: ["prepareContributorPayout"] },
   "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@dispatched", info: "Dispatches one child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
   "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "dispatchDisbursement creates the immutable execution key and sends the data-only command for this garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe.", calls: ["dispatchDisbursement"] },
@@ -387,7 +398,7 @@ const W21_HOTS: HifiDef["hots"] = {
   "w21.register-confirm": { l: "Register settlement account", to: "screen:W21@registered", info: "registerSettlementAccount stores the verified Celo Safe route for this pool.", calls: ["registerSettlementAccount"] },
   "w21.open-queue": { l: "Open disbursement queue", to: "screen:W21", info: "Returns to the garden's settlement queue." },
   "w21.gate-row": { l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
-  "w21.dispatch": { l: "Dispatch", to: "screen:W22", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance." },
+  "w21.dispatch": { l: "Dispatch", to: "screen:W22", info: "The resolved settlement steward or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance. The module owner has no independent dispatch authority." },
   "w21.requeue": { l: "Source follow-up", to: "screen:W21@requeue-confirm", info: "A next attempt requires an authenticated failure and the future source integration." },
   "w21.requeue-dismiss": { l: "Keep failed", to: "screen:W21@failed-recovery", info: "Leaves the authenticated failure available for a later source follow-up." },
   "w21.requeue-confirm": { l: "Requeue attempt", to: "screen:W21@requeued", info: "requeue clears the old batch id and increments attempts; the new execution key is created only on the next unbatched dispatch.", calls: ["requeue"] },
@@ -550,7 +561,7 @@ const W22_HOTS: HifiDef["hots"] = {
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },
   "w22.cancel-dismiss": { l: "Keep batch queued", to: "screen:W22", info: "Closes the confirmation with the batch untouched." },
   "w22.cancel-batch-confirm": { l: "Cancel batch (confirm)", to: "screen:W21@batch-cancelled", info: "cancelBatch atomically marks the Queued batch and every immutable member Cancelled-from-Queued (SS §3.1.3).", calls: ["cancelBatch"] },
-  "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The stored steward, module owner, or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance.", calls: ["dispatchBatch"] },
+  "w22.dispatch-command": { l: "Dispatch command", to: "screen:W22@dispatched", info: "The resolved settlement steward or configured dispatcher sends the immutable queued command from the monitored unreserved native ETH balance. The module owner has no independent dispatch authority.", calls: ["dispatchBatch"] },
   "w22.open-command-explorer": { l: "Open command in CCIP Explorer", to: "screen:W22@delivery-delayed", info: "The command message ID opens transport status. This prototype advances to the derived delayed example." },
   "w22.manual-execution-guide": { l: "Manual-execution guidance", info: "Manual execution is an external CCIP recovery procedure and appears only when CCIP Explorer reports the message eligible; it never marks payment complete." },
   "w22.retry-command": { l: "Retry command", to: "screen:W22@executed", info: "A transport retry preserves the execution key and payload, and cannot create a second Celo execution.", calls: ["retryBatchCommand"] },
@@ -733,7 +744,8 @@ const W26_HOTS: HifiDef["hots"] = {
 const w21Facts = (state: W21State): StateFacts | undefined => {
   if (state === "unregistered" || state === "register-account") return { settlementAccount: "Unregistered" };
   if (state === "registered") return { settlementAccount: "Registered" };
-  if (state === "payout-plan") return { payoutPlan: "Draft", settlementAccount: "Active" };
+  if (state === "payout-plan" || state === "payout-retained-draft")
+    return { payoutPlan: "Draft", settlementAccount: "Active" };
   if (state === "payout-finalized") return { payoutPlan: "Pending", settlementAccount: "Active" };
   if (state === "payout-prepared") return { payoutPlan: "Pending", disbursement: "Queued", settlementAccount: "Active" };
   if (state === "payout-retained") return { payoutPlan: "Complete" };

@@ -153,9 +153,18 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 
 - Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence attribution without positional-domain assumptions. `CommitmentEvidenceAttributionIndex` owns the stable IDs loaded on fulfillment; no handler scan is permitted.
 - Materialize the recognition inputs and deterministic gardener-share output: equal budget per fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less 20/80 default among eligible contributors. A Work UID contributes at most once even when distinct approval attestations exist. Zero eligible contributors produce a blocking W26 inconsistent-state review item, never a lead fallback or metadata repair.
-- Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer. Verify recognition/payment snapshot hashes from emitted vectors, keep payment weights amount-derived, and derive parent status from finalization, unprepared payable rows, and child counters; do not infer payment from Hypercert weights or raw token transfers.
+- Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each
+  later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer.
+  Buffer every version-tagged `ContributorPayoutSet` row by `(payoutPlanId,
+  paymentSnapshotVersion)` and atomically publish a replacement only when the trailing
+  `CommitmentPayoutSnapshotCommitted` row count and payment hash match; that event owns retention,
+  contributor total, version, reason, and actor without an RPC read. Keep payment weights
+  amount-derived and derive parent status from finalization, unprepared payable rows, and child
+  counters; do not infer payment from Hypercert weights or raw token transfers.
 - Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
   `ReadyForConfirmation` and direct `Disputed -> Fulfilled`, one-credit-per-Work replay, opened
   cycle policy and cycle-less default, zero-eligible inconsistent-state blocking with no metadata
-  repair, reasoned payment correction, all-retained zero-child finalization, idempotent
-  preparation, stable pointer after child/batch cancellation, partial payout, retry, and complete payout.
+  repair, version-1 untouched-plan replay, a later complete version replacement, incomplete or
+  mismatched snapshot rejection, reasoned payment correction, all-retained zero-child finalization,
+  idempotent preparation, stable pointer after child/batch cancellation, duplicate-recipient batch
+  rejection, partial payout, retry, and complete payout.

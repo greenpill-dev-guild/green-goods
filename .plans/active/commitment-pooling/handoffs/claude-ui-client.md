@@ -100,6 +100,7 @@ Both named client test files do not exist yet; they are intentional to-be-create
 - W3 uses repeatable action/count requirements and never tells people they may add only four. W4 excludes every team member from confirmation.
 - Recognition preview uses the opened cycle policy or immutable cycle-less 20/80 default. It
   presents zero-eligible legacy/indexed state as a blocking inconsistency with no lead or
-  metadata-only repair action.
+  metadata-only repair action. For a cycle-less commitment, the preview explicitly labels the
+  split as recognition/payment-only and “Not certificate eligible · no cycle allocation.”
 - W23 contributor receipts distinguish Hypercert recognition from garden-funded child payment, name the garden payer and retained amount, and never say “arrived” before authenticated confirmation.
 - The hi-fi artifact and SB-33 are the interaction reference; all new user-facing copy lands in en/es/pt and requires authenticated Brave plus real-device proof.

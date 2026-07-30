@@ -352,6 +352,12 @@ equal/verified recognition fields to bps and submits both immutable structs atom
 
 Presets prefill the custom editor (`AdminTextField` numeric row per class); every field stays editable. **Display unit is percent** (audit 2026-07-18): the editor renders % values (Model 1 = 60 / 15 / 10 / 5 / 5 / 5) with a "stored on-chain as basis points (×100)" helper line — bare "bps" labels proved unreadable; bps remains the on-chain/spec unit, and the on-chain `operator` allocation class renders as "steward" in UI copy. Validation: sum must equal 100% / 10000 bps (mirror the `InvalidSplitRatio` guard grammar from `packages/contracts/src/resolvers/Yield.sol`, corrections-log §2); soft warning when treasury < 15% (the guidance floor is 15 to 20 percent). The chosen classes snapshot onto the cycle (emitted at cycle open; indexer stores the bps snapshot) and drive the fulfilled-commitment Hypercert allowlist computation at mint time (allowlist/merkle pipeline stays app-side, corrections-log §2). The `CreateHypercert` flow (`packages/admin/src/views/Hub/CreateHypercert.tsx`) gains a bundle-source toggle at cut-over: legacy approved-work bundle vs fulfilled-commitment bundle (work nested as evidence), per contract-spec. The full cycle-close ritual — review unresolved → read-only shares → certificate mint → reconcile + compost — is choreographed by the W26 `ActionFlowShell` wizard launched from the cycle console; it sequences `closeCycle`, the certificate mint, and `compostCycle` without new contract surface.
 
+The fulfilled-commitment bundle option accepts only fulfilled commitments from the selected
+non-zero cycle. Cycle-less commitments keep their immutable 20/80 contributor recognition and
+payment-default preview, but have no six-role `CycleOpened` allocation snapshot. They remain
+visible in history and are disabled in certificate selection with “No cycle allocation · not
+certificate eligible”; the composer rejects them before allowlist or metadata construction.
+
 ### 6.11 Operations workspace NET-NEW (decision 2026-07-18)
 
 A NEW deployer-gated admin workspace tab — gating pattern copied exactly from Actions: a conditional nav slot (`showOperations: isDeployer` beside `showActions` in `useEffectiveToolbarPermissions`) plus a `RequireRole ["deployer"]` route branch. Stage rail: **Queue · CCIP · Flows** (W24 draws it).

@@ -132,6 +132,11 @@ by `CcipRoute` and the packed `memberDeliveryEnabled` / `batchSizeLimit` / `disp
 The generated compiler baseline and concrete slot/offset assertions are final if prose arithmetic
 or a future compiler layout differs.
 
+`CommitmentPayoutPlan.contributorOrder` is a dynamic array nested in the value stored at
+`payoutPlans[payoutPlanId]`; it does not add a top-level module storage entry. Creation persists
+the complete ascending recognition order once, edits must match it exactly, and finalization plus
+`payoutContributors` enumerate it rather than attempting to enumerate `contributorPayouts`.
+
 The implementation constructor takes exactly
 `(address ccipRouter_, uint64 sourceChainSelector_, uint64 destinationEvmChainId_)`.
 All three are non-zero immutable arguments exposed as `CCIP_ROUTER()`,
@@ -239,8 +244,10 @@ struct CommitmentPayoutPlan {
     uint32 confirmedPayoutCount;
     uint32 failedPayoutCount;
     uint32 cancelledPayoutCount;
+    uint32 paymentSnapshotVersion; // 1 at creation; increments once per full-vector edit
     bytes32 recognitionSnapshotHash;
     bytes32 paymentSnapshotHash;
+    address[] contributorOrder; // immutable ascending recognition order used by edit/finalize/views
     string latestEditReasonCID;
     bool finalized;        // explicit finalization freezes every entry before dispatch
     uint64 createdAt;
@@ -398,12 +405,12 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | `setDispatcher(dispatcher)` | module owner behind the deployment timelock | requires pause; zero disables delegated dispatch; dispatcher can dispatch/retry only |
 | `setFeeReserveMinimum(minimum)` | module owner behind the deployment timelock | requires pause; the new floor is immediately observable and every dispatch/retry/withdrawal must preserve it |
 | `setMemberDeliveryEnabled(bool)` | module owner | enabling requires the Celo AA/paymaster exit evidence recorded in the settlement handoff; disabling blocks new contributor-payout preparation and member sends but never blocks the funding route |
-| `createCommitmentPayoutPlan(commitmentId, recognitionEntries[], recognitionSnapshotHash)` | resolved provider-garden settlement steward | commitment `Fulfilled`; no existing plan; caller is an operator/owner steward of immutable `providerGarden`; declared reward rail exactly `CeloSettlement`; declared source is zero; token canonical G$; active `settlementAccounts[providerGarden]` becomes stored source/executor garden. `CommitmentPoolingModule.validateRecognitionSnapshot` independently recomputes the complete sorted vector and hash from the frozen roster, credit counters, and cycle policy; caller-selected weights are rejected. The plan begins with zero garden retention and a deterministic full-reward payment default: allocate integer token base units by `floor(declaredAmount * recognitionWeightBps / 10_000)`, then award remaining units by descending fractional remainder and ascending lowercase contributor address. If normalizing those integer amounts produces `paymentWeightBps` that differ only because token base units cannot represent the recognition bps exactly, the vector is canonically **rounding-equivalent**, not a reason-required steward divergence. Creation emits `CommitmentPayoutPlanCreated` followed by one ordered `ContributorPayoutSet` per initial row, so an untouched draft is fully observable. No child exists while Draft; `memberDeliveryEnabled` is not a creation gate |
-| `setContributorPayouts(planId, gardenRetainedAmount, payouts[], reasonCID)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only. Replaces the complete payout vector atomically; inputs contain exactly one sorted, unique row for every recognition entry. Recipient derives from the contributor's approved Celo account profile. The module derives each `paymentWeightBps` from payout amounts using largest-remainder rounding (descending fractional remainder, then ascending lowercase address) and recomputes `paymentSnapshotHash`; callers never author payment weights independently. When contributor payout total is zero, every payment weight is canonically zero with no division or remainder pass. An edit needs no reason only when zero retention and its complete amount vector exactly equals the canonical full-reward base-unit allocation created above; any other amount/retention vector that differs from recognition requires a non-empty reason. Zero amounts remain visible comparison rows and create no child |
-| `finalizeCommitmentPayoutPlan(planId)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only; rechecks recognition through the canonical CommitmentPooling validator, derived payment weights, canonical recipients, and `declaredAmount == gardenRetainedAmount + contributorPayoutTotal`, then freezes every row. It creates no child. A plan with no non-zero row completes immediately without CCIP or a self-transfer; otherwise it becomes Pending. `memberDeliveryEnabled` is not a finalization gate |
+| `createCommitmentPayoutPlan(commitmentId, recognitionEntries[], recognitionSnapshotHash)` | resolved provider-garden settlement steward | commitment `Fulfilled`; no existing plan; caller is an operator/owner steward of immutable `providerGarden`; declared reward rail exactly `CeloSettlement`; declared source is zero; token canonical G$; active `settlementAccounts[providerGarden]` becomes stored source/executor garden. `CommitmentPoolingModule.validateRecognitionSnapshot` independently recomputes the complete sorted vector and hash from the frozen roster, credit counters, and cycle policy; caller-selected weights are rejected. The plan persists the immutable ascending contributor order, begins at `paymentSnapshotVersion = 1` with zero garden retention, and builds a deterministic full-reward payment default: allocate integer token base units by `floor(declaredAmount * recognitionWeightBps / 10_000)`, then award remaining units by descending fractional remainder and ascending lowercase contributor address. If normalizing those integer amounts produces `paymentWeightBps` that differ only because token base units cannot represent the recognition bps exactly, the vector is canonically **rounding-equivalent**, not a reason-required steward divergence. Creation emits `CommitmentPayoutPlanCreated`, one ordered version-tagged `ContributorPayoutSet` per initial row, then `CommitmentPayoutSnapshotCommitted` with the row count, retention, total, and payment hash. No child exists while Draft; `memberDeliveryEnabled` is not a creation gate |
+| `setContributorPayouts(planId, gardenRetainedAmount, payouts[], reasonCID)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only. Replaces the complete payout vector atomically; inputs match the stored contributor order exactly, with one unique row per recognition entry. Recipient derives from the contributor's approved Celo account profile. The module derives each `paymentWeightBps` from payout amounts using largest-remainder rounding (descending fractional remainder, then ascending lowercase address) and recomputes `paymentSnapshotHash`; callers never author payment weights independently. When contributor payout total is zero, every payment weight is canonically zero with no division or remainder pass. An edit needs no reason only when zero retention and its complete amount vector exactly equals the canonical full-reward base-unit allocation created above; any other amount/retention vector that differs from recognition requires a non-empty reason. Zero amounts remain visible comparison rows and create no child. After all validation succeeds, the module increments `paymentSnapshotVersion` exactly once, writes the full replacement, emits every row tagged with that version, and emits one trailing `CommitmentPayoutSnapshotCommitted`; handlers publish the replacement only after that matching summary arrives |
+| `finalizeCommitmentPayoutPlan(planId)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; draft plan only; enumerates the stored immutable contributor order to recheck recognition through the canonical CommitmentPooling validator, derived payment weights, canonical recipients, and `declaredAmount == gardenRetainedAmount + contributorPayoutTotal`, then freezes every row. It creates no child. A plan with no non-zero row completes immediately without CCIP or a self-transfer; otherwise it becomes Pending. `memberDeliveryEnabled` is not a finalization gate |
 | `prepareContributorPayout(planId, contributor)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; finalized plan; contributor is included with non-zero amount and a non-zero canonical recipient frozen at finalization. If the row already has a child, return that ID and emit nothing even when the parent/child later became Complete, Failed, Cancelled, paused, or delivery-disabled. Only a first preparation requires source unpaused, `memberDeliveryEnabled`, and parent status Pending/Partial; it allocates one immutable Queued child, stores its `disbursementId`, increments `preparedPayoutCount`, and emits `DisbursementQueued(kind=ContributorReward)` |
 | `queueFunding(garden, amount)` | protocol steward or module owner | the single modeled route is ProtocolToGarden, recorded on the disbursement's immutable `fundingRoute` fact; target garden must differ from `protocolGarden`; executorGarden is snapshotted as protocolGarden; source, recipient, and canonical G$ derive from funding config + active settlement accounts; no arbitrary addresses/tokens; event `DisbursementQueued(kind=Funding)` |
-| `createBatch(ids[])` | resolved settlement steward for the immutable executorGarden | 1–`batchSizeLimit` unique ids, all Queued + same executorGarden, derived source, token, kind, and fundingRoute; mixed funding/reward or mixed route batches revert because the command carries one kind; contributor payouts from different plans may batch only when payer/token/kind match; the protocol executor is not a human role and cannot create source batches; member ids are persisted and immutable; event `BatchCreated` |
+| `createBatch(ids[])` | resolved settlement steward for the immutable executorGarden | 1–`batchSizeLimit` unique ids, all Queued + same executorGarden, derived source, token, kind, and fundingRoute, and every derived recipient unique across the batch (`DuplicateBatchRecipient` before any fee quote or mutation); mixed funding/reward or mixed route batches revert because the command carries one kind; contributor payouts from different plans may batch only when payer/token/kind match and their recipients differ; the protocol executor is not a human role and cannot create source batches; member ids are persisted and immutable; event `BatchCreated` |
 | `dispatchDisbursement(id)` / `dispatchBatch(batchId)` | resolved settlement steward for immutable `executorGarden`, or exact configured `dispatcher` | subject is Queued; every ContributorReward parent was created, edited, and finalized by its provider-garden steward, so delegated dispatch executes only that immutable approval; module owner has no independent value-moving bypass. Native fee balance covers the quote without falling below `feeReserveMinimum`; builds the fixed versioned payload with no target/token/calldata override; sends no token amounts; persists execution key/message ID; Queued → Dispatched; emits `SettlementCommandDispatched` |
 | `retryCommand(id)` / `retryBatchCommand(batchId)` | resolved settlement steward for immutable `executorGarden`, or exact configured `dispatcher` | subject remains Dispatched without authenticated acknowledgment; native fee balance covers the quote without falling below `feeReserveMinimum`; uses the command's snapshotted selector/executor/gas/version/payload hash, never the later active route; records a new CCIP message ID; never creates a second payment authority |
 | CCIP acknowledgment receiver | the implementation's immutable CCIP router only | zero token amounts; supported snapshotted version; execution key maps to the current subject/attempt; `originatingCommandMessageId` must already map to that same key; source selector and encoded sender must equal that `CommandRecord`'s snapshotted destination selector/executor (which must still be the active or unexpired previous global peer); success requires `FailureCode.None`, failure requires a bounded non-zero code. Success → Confirmed; execution failure → Failed. Duplicate/stale acknowledgments are emitted and ignored without mutating settled state |
@@ -414,7 +421,7 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | fee operations (`fundFees`, `withdrawExcessFees`, `quoteCommandFee`, balance/readiness views) | anyone / owner / public | fees use native ETH; dispatch/retry and withdrawal preserve `feeReserveMinimum`; funding, floor changes, withdrawals, current balance, and low-balance state are observable |
 | dependency setters (`setHatsModule`, `setCommitmentPoolingModule`) | module owner | source must be paused; zero rejected; every real change emits exact old/new addresses |
 | `setPaused` | module owner | initialize paused; pausing is always allowed. Unpause requires non-zero dependencies, a complete non-zero CCIP route, active protocol settlement account, and non-zero fee reserve floor; paused source blocks contributor preparation, funding queue, batch creation, dispatch, command retry, and requeue while permitting configuration, fee funding/guarded excess withdrawal, Queued/Failed terminal cancellation, and authenticated acknowledgment receipt |
-| views (`getDisbursement`, `getBatch`, `getPayoutPlan`, `contributorPayoutOf`, `payoutPlanOfCommitment`, `payoutPlanStatus`, `settlementAccountOf`, `isAcknowledgmentPending`, `memberDeliveryEnabled`, `ccipRoute`, `dispatcher`, fee floor/balance/low state) | public | indexed read model derives plan status, partial completion, and delivery delay from child states plus Celo executor events; live write preflight refreshes the current native balance |
+| views (`getDisbursement`, `getBatch`, `getPayoutPlan`, `contributorPayoutOf`, `payoutContributors`, `payoutPlanOfCommitment`, `payoutPlanStatus`, `settlementAccountOf`, `isAcknowledgmentPending`, `memberDeliveryEnabled`, `ccipRoute`, `dispatcher`, fee floor/balance/low state) | public | `payoutContributors` returns the immutable ascending order used by edit/finalization; indexed read model derives plan status, partial completion, and delivery delay from child states plus Celo executor events; live write preflight refreshes the current native balance |
 
 Target event/error contract (the indexer config must not use these signatures until the
 corresponding contracts exist):
@@ -470,11 +477,25 @@ event CommitmentPayoutPlanCreated(
 ///         complete replacement sequence with the supplied reason.
 event ContributorPayoutSet(
     uint256 indexed payoutPlanId,
+    uint32 indexed paymentSnapshotVersion,
     address indexed contributor,
     address recipient,
     uint16 recognitionWeightBps,
     uint16 paymentWeightBps,
     uint256 amount,
+    string reasonCID,
+    address editedBy
+);
+/// @notice Trailing commit marker for creation and every complete Draft replacement.
+///         Indexers buffer rows by (payoutPlanId, paymentSnapshotVersion) and
+///         atomically publish only when this summary's rowCount and hash match.
+event CommitmentPayoutSnapshotCommitted(
+    uint256 indexed payoutPlanId,
+    uint32 indexed paymentSnapshotVersion,
+    uint32 rowCount,
+    uint256 gardenRetainedAmount,
+    uint256 contributorPayoutTotal,
+    bytes32 paymentSnapshotHash,
     string reasonCID,
     address editedBy
 );
@@ -585,6 +606,7 @@ error RecognitionPaymentDivergenceRequiresReason();
 error PayoutPlanInvariantMismatch(uint256 declaredAmount, uint256 retainedAmount, uint256 contributorTotal);
 error BatchSizeOutOfBounds(uint256 supplied, uint256 maximum);
 error DuplicateBatchMember(uint256 disbursementId);
+error DuplicateBatchRecipient(address recipient);
 error BatchMemberMismatch(uint256 disbursementId);
 error InvalidCcipSource();
 error InvalidCcipSender();
@@ -668,6 +690,7 @@ interface ISettlementModule {
         uint256 payoutPlanId,
         address contributor
     ) external view returns (ContributorPayout memory);
+    function payoutContributors(uint256 payoutPlanId) external view returns (address[] memory);
     function payoutPlanOfCommitment(uint256 commitmentId) external view returns (uint256);
     function payoutPlanStatus(uint256 payoutPlanId) external view returns (PayoutPlanStatus);
     function MAX_PAYOUT_CONTRIBUTORS() external pure returns (uint256);
@@ -859,19 +882,22 @@ CCIP manual-execution eligibility and native-fee shortage are operational condit
   duplicate, inactive, non-contributor, or self-Safe recipients are impossible. Tests cover
   full sorted recognition-vector/hash verification against
   `CommitmentPoolingModule.validateRecognitionSnapshot`, rejection of a self-consistent but
-  noncanonical vector/hash, recognition-copy defaults, creation-time ordered
-  `ContributorPayoutSet` emission for every initial row, caller-inaccessible
+  noncanonical vector/hash, recognition-copy defaults, immutable ascending contributor-order
+  persistence and public enumeration, creation-time version-1 ordered `ContributorPayoutSet`
+  emission for every initial row plus a matching trailing snapshot summary, caller-inaccessible
   payment weights, amount-derived deterministic weights, canonical full-reward base-unit
   apportionment, a one-base-unit/multiple-contributor rounding-only default with no reason,
   deterministic fractional-remainder/address ties, reason-required noncanonical divergence,
   canonical all-zero payment weights without division, reason-required all-retained divergence,
-  zero-payment exclusion, explicit retention, exact invariant equality, atomic full-vector edits,
+  zero-payment exclusion, explicit retention, exact invariant equality, versioned atomic
+  full-vector edits with a trailing summary/hash commit marker,
   explicit finalization before preparation/dispatch, idempotent one-child preparation from a
   frozen row, no draft/finalization orphan children, zero-child all-retained completion without CCIP,
   exact preparation retry after Confirmed/Failed/Cancelled and while paused/delivery-disabled,
   immutable `payoutPlanOfCommitment` across child/batch cancellation, partial completion,
   a Failed/Cancelled plus Queued/Dispatched mix remaining Pending until a child confirms or all
-  active delivery ends, independent failure/requeue, and multi-batch teams. No reward, wrong rail/token, inactive payer,
+  active delivery ends, duplicate-recipient batch rejection before any fee quote or dispatch,
+  independent failure/requeue, and multi-batch teams. No reward, wrong rail/token, inactive payer,
   non-Fulfilled commitment, or a second plan reverts. Core `recordRewardPaid` symmetrically rejects
   `CeloSettlement`. ProtocolToGarden still derives its source/recipient/token independently.
 - Gating tests: non-steward queue/dispatch reverts; source pause blocks queue/batch/dispatch/
@@ -1508,6 +1534,7 @@ type CommitmentPayoutPlan {
   cancelledPayoutCount: Int!
   recognitionSnapshotHash: String!
   paymentSnapshotHash: String!
+  paymentSnapshotVersion: Int!
   latestEditReasonCID: String
   finalized: Boolean!
   status: CommitmentPayoutPlanStatus! # derived from child disbursements
@@ -1528,6 +1555,7 @@ type ContributorPayout {
   contributor: String!
   contributorEntityId: String!
   recipient: String!
+  paymentSnapshotVersion: Int!
   recognitionWeightBps: Int!
   paymentWeightBps: Int!
   amount: BigInt!
@@ -1616,7 +1644,8 @@ rehearsal (addresses remain deployment-artifact placeholders until broadcast):
     - event: CommitmentPoolingModuleUpdated(address indexed previousModule, address indexed newModule)
     - event: PausedSet(bool paused)
     - event: CommitmentPayoutPlanCreated(uint256 indexed payoutPlanId, uint256 indexed commitmentId, address indexed providerGarden, address source, address token, uint256 declaredAmount, uint256 gardenRetainedAmount, bytes32 recognitionSnapshotHash, address createdBy)
-    - event: ContributorPayoutSet(uint256 indexed payoutPlanId, address indexed contributor, address recipient, uint16 recognitionWeightBps, uint16 paymentWeightBps, uint256 amount, string reasonCID, address editedBy)
+    - event: ContributorPayoutSet(uint256 indexed payoutPlanId, uint32 indexed paymentSnapshotVersion, address indexed contributor, address recipient, uint16 recognitionWeightBps, uint16 paymentWeightBps, uint256 amount, string reasonCID, address editedBy)
+    - event: CommitmentPayoutSnapshotCommitted(uint256 indexed payoutPlanId, uint32 indexed paymentSnapshotVersion, uint32 rowCount, uint256 gardenRetainedAmount, uint256 contributorPayoutTotal, bytes32 paymentSnapshotHash, string reasonCID, address editedBy)
     - event: CommitmentPayoutPlanFinalized(uint256 indexed payoutPlanId, uint256 contributorPayoutTotal, uint256 gardenRetainedAmount, bytes32 recognitionSnapshotHash, bytes32 paymentSnapshotHash, bool completedWithoutDispatch, uint64 finalizedAt)
     - event: DisbursementQueued(uint256 indexed disbursementId, uint256 indexed commitmentId, address indexed garden, uint256 payoutPlanId, address contributor, address executorGarden, uint8 kind, uint8 fundingRoute, address source, address recipient, address token, uint256 amount)
     - event: BatchCreated(uint256 indexed batchId, address indexed executorGarden, address indexed source, address token, uint8 kind, uint8 fundingRoute, uint256[] disbursementIds)
@@ -1632,11 +1661,15 @@ rehearsal (addresses remain deployment-artifact placeholders until broadcast):
     - event: ExcessFeesWithdrawn(address indexed recipient, uint256 amount)
 ```
 
-The source handler treats `CommitmentPayoutPlanCreated` plus its immediately following ordered
-`ContributorPayoutSet` rows as one complete creation snapshot. It therefore materializes every
-initial `ContributorPayout` even when the draft is never edited. A later full-vector edit replaces
-all rows atomically from its complete event sequence; it never relies on an RPC-only enumerable
-mapping.
+The source handler treats `CommitmentPayoutPlanCreated`, its version-1 ordered
+`ContributorPayoutSet` rows, and the trailing version-1
+`CommitmentPayoutSnapshotCommitted` as one complete creation snapshot. It buffers rows by
+`(payoutPlanId, paymentSnapshotVersion)`, verifies the trailing row count and hash, and only then
+publishes the plan summary and atomic replacement vector. It therefore materializes every initial
+`ContributorPayout` even when the draft is never edited. A later full-vector edit increments the
+version once, re-emits every ordered row even when unchanged, and commits one trailing summary;
+an incomplete or mismatched sequence never replaces the prior published snapshot. Handlers never
+need an RPC read to infer retention, total, version completeness, or the payment hash.
 
 Exact Celo network block for Celo Mainnet `42220` and the Celo Sepolia `11142220`
 rehearsal (the rehearsal network uses explicit `rpc_config`):
@@ -1677,9 +1710,12 @@ records the Celo transaction. Only
 
 Handlers follow `commitmentPool.ts` patterns (create-if-not-exists, dedup, composite IDs,
 `bun codegen`). `CommitmentPayoutPlanCreated` materializes the one stable
-commitment-to-plan pointer and the hash-bound recognition snapshot. Each atomic draft edit emits
-the complete ordered `ContributorPayoutSet` sequence; handlers store emitted amount-derived
-weights without accepting a conflicting local recomputation. `CommitmentPayoutPlanFinalized`
+commitment-to-plan pointer and the hash-bound recognition snapshot. Creation and each atomic draft
+edit emit the complete ordered, version-tagged `ContributorPayoutSet` sequence followed by
+`CommitmentPayoutSnapshotCommitted`; handlers buffer by version, require exact row count/hash,
+and atomically replace the vector and plan-level retention/totals only at that commit marker.
+Handlers store emitted amount-derived weights without accepting a conflicting local recomputation.
+`CommitmentPayoutPlanFinalized`
 records the payment snapshot hash and finalization time, then derives zero-payable Complete or
 unprepared Pending. A later `DisbursementQueued(kind=ContributorReward)` binds the newly
 prepared immutable child to the already-indexed contributor row and increments the prepared

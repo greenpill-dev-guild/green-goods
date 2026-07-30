@@ -103,6 +103,10 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 - Recognition review shows the canonical equal-commitment then policy-defined gardener formula.
   The payment editor starts from those weights, makes garden retention explicit, and requires a
   reason only when a steward changes the contributor weights.
+- Hypercert commitment-bundle selection includes only fulfilled commitments from the selected
+  non-zero cycle. Cycle-less rows remain visible for recognition/payment history but are disabled
+  with “No cycle allocation · not certificate eligible”; they never reach allowlist or metadata
+  construction.
 - Settlement separates Save draft, Finalize payout plan, and per-contributor Prepare payout. Finalization creates no child; preparation is visibly idempotent and creates one Queued child from a frozen non-zero row. The surface shows recognition/payment hashes, amount-derived weights, reasoned divergence, all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent pointer.
 - Payout-plan draft actions render only when the provider-garden settlement account is Active;
   external-record and Celo allocation actions remain mutually exclusive by reward rail.

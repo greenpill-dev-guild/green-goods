@@ -673,6 +673,8 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     { label: "Offered", meta: "Maria · Jul 2" },
     { label: "Accepted", meta: "João took this up · Jul 3" },
   ];
+  if (state === "evidence-queued")
+    return [...opened, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
   if (state === "withdrawn")
     return [
       { label: "Offered", meta: "you · Jul 2" },
@@ -1135,7 +1137,8 @@ const W2_HOTS: HifiDef["hots"] = {
 const W2B_STATES = [
   ["forming", "Team forming"], ["add-contributor", "Add contributor"],
   ["remove-contributor", "Remove contributor"], ["assign-requirement", "Assign responsibility"],
-  ["open-eligible", "Open team · eligible"], ["open-member", "Open team · joined"],
+  ["open-eligible", "Open team · eligible"], ["join-submitted", "Open team · join submitted"],
+  ["open-member", "Open team · joined"],
   ["frozen", "Roster frozen"], ["recognition", "Recognition preview"],
 ] as const;
 type W2bState = (typeof W2B_STATES)[number][0];
@@ -1161,14 +1164,18 @@ ${field("Planned responsibility", input("Beds survey · requirement row 3", { se
     ? `${banner("This team is open to eligible garden members. Joining is an online contract action and does not award credit by itself.", "stone")}
 ${card(`${kv("Accountable lead", "Maria")}${kv("Your status", "Not on this team")}`)}
 ${hot("w2b.join", btn("Join this promise", { kind: "pri", full: true }))}`
+    : state === "join-submitted"
+    ? `${banner("Join submitted. Your wallet transaction is confirmed, and this screen is waiting for the indexed contributor roster before showing you as a member.", "stone", "loader4-line")}
+${card(`${kv("Your status", "Waiting for roster confirmation")}${kv("Recognition credit", "None · joining alone does not award credit")}`)}
+${hot("w2b.join-indexed", btn("Check roster", { kind: "sec", full: true }))}`
     : state === "open-member"
-    ? `${banner("You joined this open team. The indexed roster remains authoritative while the wallet action confirms.", "stone")}
+    ? `${banner("Roster confirmed. You joined this open team.", "stone", "checkbox-circle-fill")}
 ${card(`${kv("Your status", "Contributor · no verified credit")}${kv("Leave rule", "Before credit and before roster freeze")}`)}
 ${hot("w2b.leave", btn("Leave this promise", { kind: "sec", full: true }))}`
     : state === "recognition"
     ? `${banner("Each fulfilled commitment receives an equal budget. Within it, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
 ${card(`${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("Kwame", "25% · evidence + follow-through")}`)}
-${banner("This is the Hypercert gardener-share preview. New protocol state cannot reach fulfillment with zero eligible contributors; W26 blocks inconsistent legacy/indexed data rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct contributor amounts with a reason.", "amber")}`
+${banner("This is the gardener-share recognition preview. New protocol state cannot reach fulfillment with zero eligible contributors; W26 blocks inconsistent legacy/indexed data rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct contributor amounts with a reason. Certificate eligibility additionally requires a non-zero cycle with its six-role allocation; a cycle-less promise is recognition/payment-only.", "amber")}`
     : `${card(
         `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead · accepted the commitment", chipHtml: chip("Lead", "offer") })}
 ${listRow({ icon: "user-line", primary: "Ana", meta: "Contributor · approved pruning work", chipHtml: chip("Credited", "ok") })}
@@ -1194,7 +1201,8 @@ const W2B_HOTS: HifiDef["hots"] = {
   "w2b.assign": { l: "Assign planned responsibility to Kwame", to: "screen:W2b@assign-requirement", info: "Opens the requirement-row assignment editor without treating planning as recognition credit." },
   "w2b.assign-cancel": { l: "Cancel responsibility assignment", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
   "w2b.assign-confirm": { l: "Save planned responsibility", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the selected contributor and exact requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.join": { l: "Join this promise", to: "screen:W2b@open-member", info: "Calls joinCommitment for an eligible Open-team garden member. This online-only action waits for indexed roster confirmation and never creates recognition credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.join": { l: "Join this promise", to: "screen:W2b@join-submitted", info: "Calls joinCommitment for an eligible Open-team garden member. A successful wallet submission lands in a pending state; membership renders only after indexed roster confirmation and never creates recognition credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.join-indexed": { l: "Check indexed roster", to: "screen:W2b@open-member", info: "Refreshes the read model. The joined state appears only once the indexed contributor roster contains the connected member." },
   "w2b.leave": { l: "Leave this promise", to: "screen:W2b@open-eligible", info: "Calls leaveCommitment only for an active non-lead Open-team member with zero Work/evidence credit before freeze.", calls: ["leaveCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
   "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Shows the 20% equal-participation plus 80% verified-contribution Hypercert weights, the impossible-state blocker, and their relationship to the later payment default." },
 };

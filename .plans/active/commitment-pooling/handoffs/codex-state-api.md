@@ -45,7 +45,11 @@
   credited contributors, and canonical per-commitment `approvedUnits`; one `requirementIndex` can
   credit only its matching registered action requirement.
 - Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
-- Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles require fulfilled lineage.
+- Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique
+  `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle`
+  (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles
+  require fulfilled lineage from one non-zero cycle and reject every `cycleId == 0` selection
+  before allowlist or metadata construction because no six-role allocation snapshot exists.
 - Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
 - Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
 - Exported shared API with no client/admin hooks.

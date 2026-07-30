@@ -858,3 +858,32 @@ floor-plus-largest-remainder full-reward allocation is rounding-equivalent witho
 when normalized payment bps cannot exactly equal recognition; only noncanonical amount or
 retention choices require a reason. The executable registry validates 286 states and 391 hotspots
 with no warnings.
+
+## 2026-07-30 — Snapshot observability and terminal-authority closure
+
+Thirteen of fourteen new review comments were valid. The localization comment was not: the hi-fi
+tree is a standalone English planning artifact rendered to static HTML at build time and has no
+runtime locale layer or catalogs. Production client implementation still remains bound to the
+en/es/pt rule in its lane handoff.
+
+The binding settlement model now persists the immutable ascending contributor order inside each
+payout plan so full-vector edits and finalization are enumerable on-chain. Creation starts payment
+snapshot version 1; creation and every later Draft replacement emit the complete version-tagged
+row sequence followed by one summary/hash commit marker carrying expected row count, retention,
+contributor total, reason, and actor. Indexers buffer by plan/version and publish atomically only
+after the trailing marker matches. Batch creation rejects duplicate derived recipients before any
+fee quote, storage mutation, or dispatch, and module ownership no longer grants independent
+dispatch or command-retry authority.
+
+Assessment attachment is one-time, Accepted-and-unfrozen only. Direct dispute fulfillment applies
+the same `SelfConfirmation` guard to a contributor-steward before roster freeze and terminal
+mutation. Evidence-only readiness uses `requirements.length == 0`, and the primary contract
+handoff now applies the Garden-Request `requestedBy` lead exception consistently.
+
+Cycle-less commitments retain the immutable protocol 20/80 contributor split for recognition and
+payout defaults, but cannot enter a COMMITMENT-bundle Hypercert because no six-role
+`CycleOpened` allocation exists. The composer rejects them before allowlist/metadata construction,
+and client/admin surfaces label the limitation. Prototype flows now keep generic queued evidence
+out of the ready timeline, hold Open-team joins in a submitted state until the indexed roster
+confirms membership, and split payable-plan Pending finalization from retained-only Complete
+finalization.
