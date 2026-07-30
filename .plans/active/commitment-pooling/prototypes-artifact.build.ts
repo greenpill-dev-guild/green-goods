@@ -286,8 +286,8 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-assertBuild(visibleScreens.length === 24, `expected 24 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 9 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 9 client / 13 admin / 2 editorial`);
+assertBuild(visibleScreens.length === 25, `expected 25 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 10 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 10 client / 13 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,

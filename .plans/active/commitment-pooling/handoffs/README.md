@@ -43,3 +43,20 @@ linear.laneSyncMode is lane_issues (register #37, amended by registers #39 and #
 - Visible UI requires authenticated Brave proof; member PWA flows also require a real-device pass.
 - Settlement confirmation is acknowledgment-only. Dispatched or Celo-executed/acknowledgment-pending is not arrived; only an authenticated success acknowledgment for the subject's current execution key and attempt produces Confirmed.
 - No bridged G$, garden-held member-claim path, transferable voucher activation, credit scoring, or leaderboard behavior.
+- The 2026-07-28 amendment plus 2026-07-29/30 review closures are binding across every lane:
+  group commitments use one accountable lead plus contributors; requirements accept only
+  action/count inputs; exact evidence CIDs are de-duplicated and evidence/Work credit records only
+  while Accepted and unfrozen; assessment attachment is write-once before freeze; recognition
+  eligibility additionally requires the commitment to be Fulfilled; each Work UID produces at
+  most one verified credit; the roster and credit ledger freeze at ReadyForConfirmation or before
+  a direct Fulfilled dispute resolution, where contributor-stewards remain blocked. Recognition
+  uses an opened cycle policy or the immutable cycle-less 20/80 default and has no lead or
+  metadata-only fallback, but cycle-less commitments are recognition/payment-only and cannot enter
+  Hypercert bundles without a six-role cycle allocation. Settlement hash-binds recognition,
+  persists contributor order, emits versioned complete payout snapshots, derives payment weights
+  from atomic amounts, treats the canonical full-reward base-unit allocation as
+  rounding-equivalent, finalizes without creating children, rejects duplicate batch recipients,
+  and materializes each immutable child only through idempotent post-finalization preparation. It
+  conserves retained plus payout amounts, completes all-retained plans without CCIP, and never
+  clears the parent pointer on child cancellation. This is a payout plan, not a garden-held member
+  claim.

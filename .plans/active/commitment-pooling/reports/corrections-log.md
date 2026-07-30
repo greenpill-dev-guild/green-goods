@@ -726,3 +726,233 @@ Out of boundary, reported not edited: the stale `settlement-spec.md` §3.2/§3.3
 `acceptance-matrix.md:78`, `prototypes.md:6`, `wireframes.md:519`, and `settlement-spec.md:1150`
 itself. No product code, dependency installation, codegen, deployment, broadcast, transaction,
 Safe/Zodiac authority mutation, or Linear write is part of this pass.
+
+## 2026-07-28 — Group commitments, recognition, and garden-funded payout correction
+
+The earlier planning model accidentally collapsed fulfillment into one provider and rendered the requirement editor as a maximum of four actions. That was too narrow for commitments completed by a team and would have made contributor recognition and payment an after-the-fact spreadsheet exercise.
+
+The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or evidence while the commitment is Accepted and unfrozen; Fulfilled is the additional recognition-eligibility gate. The roster and credit ledger freeze atomically on the transition to ReadyForConfirmation, and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
+
+Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead or metadata-only fallback: every Ready transition and direct Fulfilled dispute resolution requires an available recognition policy plus at least one verified contributor, while W26 blocks inconsistent legacy/indexed zero-eligible state. Evidence fulfillment loads a bounded commitment attribution index rather than scanning, evidence jobs persist their explicit credited-contributor vector, each contributor receives at most one evidence-derived recognition participation credit, and each Work UID produces at most one reviewed credit even when multiple approval attestations exist. Commitment bps remain stable while integer units are certificate-scoped; recognition remains separate from payment and does not transfer funds.
+
+The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; the canonical full-reward integer allocation is rounding-equivalent without a reason, while noncanonical amount or retention edits require a reason. Explicit finalization proves retained-plus-payout conservation, creates no child, completes all-retained plans without CCIP, and makes the plan immutable. A later idempotent preparation materializes one queued child per payable frozen row. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
+
+Propagation includes `plan.todo.md` registers #63–#68, contract and settlement specs, acceptance matrix, UI/UX spec, wireframes, diagrams D7.2/D17, the hi-fi W2b/W3/W10/W11/W21/W23/W26 states and SB-33, all implementation/QA/docs handoffs, the shared ontology sidecar and generated docs, design-research/glossary prose, the canonical Google Doc, and live Linear mirrors. The existing runtime implementation, deployment, broadcast, and value-movement gates remain unchanged.
+
+## 2026-07-29 — Storage, evidence, and payout-child review closure
+
+A merge-readiness review found three specification hazards in the 2026-07-28 amendment. The
+Commitment Pooling prose omitted contributor mappings from its storage accounting and carried an
+invalid interface-level mapping declaration; evidence readiness depended on a missing on-chain
+counter and could replay the same CID; and draft payout edits implicitly assigned child IDs before
+the plan became immutable. The settlement storage table also duplicated ordinal rows and omitted
+its payout-plan ID counter.
+
+The corrected storage tables now state canonical declaration order and defer final truth to the
+compiler-generated storage baseline plus concrete slot/offset assertions. Commitment Pooling
+accounts for 28 feature slots and a 22-slot gap after the exact Work-to-requirement binding and
+one-credit-per-Work guard added in the follow-up below. Settlement accounts for 21 feature slots and a
+29-slot gap, including `nextPayoutPlanId`, the three-slot `CcipRoute`, and the packed delivery
+configuration slot. The existing Hats runtime comment is aligned with its generated baseline:
+`gardenHats` is slot 161 and `gardensModule` is slot 162.
+
+Evidence now has an on-chain `evidenceCount`, exact `(commitmentId, cidHash)` de-duplication, and a
+non-empty, unique, measured-bounded credited-contributor list. Each active contributor's first
+attribution changes `evidenceCredits` from 0 to 1; later distinct CIDs remain provenance without
+increasing recognition. Eligibility additionally requires the commitment to be Fulfilled, so
+recorded attribution cannot be mistaken for verified completion.
+
+Payout-plan creation and draft edits create no disbursement. Finalization verifies and freezes the
+complete vectors but also creates no disbursement. The separate
+`prepareContributorPayout(planId, contributor)` action materializes exactly one immutable Queued
+child from a frozen non-zero row; an exact repeat returns the same ID and emits nothing. Parent
+status counts unprepared payable rows as Pending and uses stored prepared/confirmed/failed/
+cancelled counters, preserving bounded status reads and the stable one-plan-per-commitment pointer.
+The hi-fi adds the finalized-unprepared and prepared-queued states and validates the call sequence.
+
+The provisional evidence-recipient and payout-contributor bounds are 32 only as transaction-safety
+benchmarks. Implementation must measure 8/16/24/32 before freezing either constant; neither is a
+four-person product rule or a semantic team-size ceiling.
+
+## 2026-07-29 — Review-comment authority and completeness closure
+
+The PR review identified a second layer of valid implementation blockers. The resolution keeps the
+group model while making its transaction and authority boundaries explicit:
+
+- `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector cap, provisionally 32. It is
+  enforced before add/join mutation and matches the payout-vector bound. Open contributors gain a
+  pre-freeze self-leave call, but the lead and any credited contributor cannot leave or be removed.
+- Work links now name one exact requirement index. The module stores index-plus-one beside the
+  Work-to-commitment mapping, so repeated action UIDs remain legal without ambiguous first-match
+  counting.
+- Garden-claimed Requests keep the GardenAccount as counterparty/provider scope while the stored
+  authenticated `requestedBy` operator becomes the accountable lead. CeloSettlement declarations
+  store source zero until acceptance selects the provider garden; Settlement stores the active
+  provider Safe as payer.
+- CommitmentPooling exposes canonical recognition validation from frozen roster counts, verified
+  credits, and immutable policy. Hypercert composition and Settlement use that recomputation; a
+  caller-supplied self-consistent vector/hash is not authority. Cross-commitment remainder units go
+  to ascending commitment IDs before contributor rounding.
+- Only provider-garden operator/owner stewardship may create, edit, finalize, prepare, requeue, or
+  cancel its payout plan. A dispatcher can execute only the frozen approved plan. Creation emits
+  every initial payout row for indexer observability.
+- Delivery-disabled mode still permits plan bookkeeping and an all-retained local completion.
+  Zero-total payment weights are an explicit all-zero vector with a required divergence reason,
+  never a division-by-zero case.
+
+The ontology now watches `PayoutPlanStatus`, freezes rosters on entry to
+ReadyForConfirmation, and includes `settlement-spec.md` in both workflow and CI-gate matching.
+Claim-time team-policy choices, mixed external/Celo actions, invalid contributor confirmation
+fixtures, stale queue ABI, and stale prototype counts were removed or reconciled. The generated
+ontology reference and executable prototype registry validate those mirrors.
+
+## 2026-07-29 — Recognition lifecycle and offline-attribution closure
+
+The next review pass found fifteen valid cross-surface inconsistencies. Direct dispute resolution
+could reach Fulfilled without freezing the roster, recognition could be attempted before a cycle
+policy existed, repeated approval attestations could award one Work more than once, and the offline
+evidence job omitted the contributors it was required to credit. The plan also promised offline
+roster edits that the queue did not implement, described an impossible metadata-only attribution
+repair, and carried smaller UI, fixture, rounding, copy, and coverage drift.
+
+The binding model now requires every Ready transition and direct `Disputed -> Fulfilled`
+resolution to have at least one verified eligible contributor plus either the cycle's already-opened
+recognition policy or the immutable cycle-less 20/80 default. The direct dispute path freezes the
+roster before its terminal event. `approvalCounted` remains decision-attestation delivery
+idempotency; the later binding review supersedes the first-credit-only guard with
+`workCreditActive` plus a WorkApprovalResolver-owned monotonic per-Work decision sequence so a
+newer pre-freeze rejection reverses an approval and a later approval can restore it exactly once,
+including when both attestations land in the same block. A
+zero-eligible legacy or indexed record is a read-only blocker until governed migration or
+source-data correction restores canonical on-chain credit; mint metadata cannot repair it.
+
+Evidence jobs serialize their explicit bounded `creditedContributors` vector and reuse it unchanged
+on retry. Roster changes are online-only wallet mutations, and frozen rosters expose no edit action.
+DomainImpact creation serializes ordered action/count requirements but no caller-authored domain
+tags; evidence-only commitment types retain optional validated tags. Settlement uses one
+fractional-remainder/address order for payment weights. The admin prototype supplies an Active
+payer account for payout drafts, the Settlement 103 recovery fixture uses Kwame and 100 G$, and the
+executable registry now validates 281 states and 382 hotspots with no warnings.
+
+## 2026-07-29 — Ready, credit-freeze, roster-action, and rounding closure
+
+The latest review exposed ten valid gaps. Evidence-only commitments were using a
+post-fulfillment recognition count as a pre-fulfillment Ready gate, cycle reconciliation could
+strand non-terminal commitments, and evidence or a first Work approval could still mutate credit
+after the recognition boundary. The prototype also omitted four roster mutations, modeled
+all-retained finalization as Pending only, and sent one offline evidence action to a non-queued
+target. Two Markdown table rows used unescaped union separators, the roster queue contract
+contradicted itself, and a canonical integer payout could be misclassified as a steward-authored
+divergence.
+
+The binding correction uses `totalVerifiedCredits > 0` as the pre-freeze Ready/direct-Fulfilled
+predicate for all paths, including evidence-only SupportService, StewardCaptured, and
+SeasonCampaign commitments. Recognition still additionally requires Fulfilled. Evidence, Work
+linking, and new countable approval credit are accepted only while Accepted and unfrozen; a late
+approval remains observable but cannot change requirements, units, contributor credit, or
+recognition. Every cycle-scoped commitment increments an O(1) `liveCommitmentCount`, its first
+Fulfilled/Cancelled/Expired transition decrements once, and reconciliation or cycle cancellation
+requires zero. Ready and Disputed commitments therefore remain live until terminal.
+
+W2b now draws online add, join, remove, leave, and exact-requirement assignment states with
+validated contract calls, credit/freeze restrictions, and no offline queue. W2 distinguishes an
+editable pre-ready roster from the frozen recognition record. Evidence attachment lands on a
+pending queued state. Payout finalization permits Pending or immediate Complete, and the canonical
+floor-plus-largest-remainder full-reward allocation is rounding-equivalent without a reason even
+when normalized payment bps cannot exactly equal recognition; only noncanonical amount or
+retention choices require a reason. The executable registry validates 286 states and 391 hotspots
+with no warnings.
+
+## 2026-07-30 — Snapshot observability and terminal-authority closure
+
+Thirteen of fourteen new review comments were valid. The localization comment was not: the hi-fi
+tree is a standalone English planning artifact rendered to static HTML at build time and has no
+runtime locale layer or catalogs. Production client implementation still remains bound to the
+en/es/pt rule in its lane handoff.
+
+The binding settlement model now persists the immutable ascending contributor order inside each
+payout plan so full-vector edits and finalization are enumerable on-chain. Creation starts payment
+snapshot version 1; creation and every later Draft replacement emit the complete version-tagged
+row sequence followed by one summary/hash commit marker carrying expected row count, retention,
+contributor total, reason, and actor. Indexers buffer by plan/version and publish atomically only
+after the trailing marker matches. Batch creation rejects duplicate derived recipients before any
+fee quote, storage mutation, or dispatch, and module ownership no longer grants independent
+dispatch or command-retry authority.
+
+Assessment attachment is one-time, Accepted-and-unfrozen only. Direct dispute fulfillment applies
+the same `SelfConfirmation` guard to a contributor-steward before roster freeze and terminal
+mutation. Evidence-only readiness uses `requirements.length == 0`, and the primary contract
+handoff now applies the Garden-Request `requestedBy` lead exception consistently.
+
+Cycle-less commitments retain the immutable protocol 20/80 contributor split for recognition and
+payout defaults, but cannot enter a COMMITMENT-bundle Hypercert because no six-role
+`CycleOpened` allocation exists. The composer rejects them before allowlist/metadata construction,
+and client/admin surfaces label the limitation. Prototype flows now keep generic queued evidence
+out of the ready timeline, hold Open-team joins in a submitted state until the indexed roster
+confirms membership, and split payable-plan Pending finalization from retained-only Complete
+finalization. The roster refresh itself is fail-closed: missing/stale results and fresh rosters
+without the connected account stay on the submitted state, while the joined state is rendered
+only when the fresh indexed roster contains that exact account.
+
+## 2026-07-30 — Linkage, recognition rounding, and payer-activity closure
+
+Nine additional review findings were valid. The canonical Work-link narrative still named the
+retired claimant-only authority, contributors could exit while an unapproved linked Work remained,
+and unlinking was not frozen with the contribution ledger. The recognition algorithm also left the
+equal and verified component remainders underspecified, while the ontology described the 20/80
+default as if every cycle were fixed to it.
+
+The contributor record now carries an O(1) uncounted-linked-Work total. Link increments it; an
+Accepted-and-unfrozen steward unlink or the first countable approval decrements it once; leave and
+remove require the total and both credit counters to be zero. Link authority consistently resolves
+to the active contributor, accountable lead, or pool steward. Equal-policy and verified-policy bps
+run independent deterministic remainder passes before their row results are added, and the
+ontology treats the immutable cycle policy as authoritative with 20/80 only as the protocol default
+and cycle-less preset.
+
+Settlement now rechecks the provider-garden account before every new value-authorizing payout
+write: edit, finalization, first preparation, ContributorReward batching, and initial dispatch.
+Read, acknowledgment, cancellation, exact-child return, and same-key retry behavior remain
+separate. The admin payout draft requires a real reason for its retained amount, and the protocol
+queue models protocol-Safe-to-garden-Safe value only as Funding/ProtocolToGarden created through
+`queueFunding`, never as a garden-beneficiary commitment reward.
+
+## 2026-07-30 — Effective Work decisions and complete payout controls
+
+The follow-up findings were valid. The live WorkApproval resolver supports a newer attestation
+to correct an earlier decision, but the pooling draft treated the first approval as permanent.
+The bridge now forwards approvals and rejections with a resolver-assigned monotonic sequence in
+actual EVM execution order. Before roster freeze, the greatest non-zero sequence activates or
+reverses the exact requirement and contributor credit; missed/out-of-order hooks converge through
+the same sync rule, same-block decisions remain chronological, and frozen credit stays immutable.
+The storage target is 31 feature slots plus `__gap[19]`: the added
+`commitmentWorkUIDs` active-link array lets every readiness/freeze path prove whole-commitment
+decision freshness instead of trusting the caller's catch-up subset.
+
+Recognition first derives its canonical 10,000-bps vector through the independent equal and
+verified passes, then expands each commitment budget into integer allowlist units with a separate
+largest-fractional-remainder and ascending-address tie-break pass. This conserves even a one-unit
+budget without changing the recognition hash. W11 now edits and validates the actual cycle policy,
+and W2b reads that selected policy rather than presenting the 20/80 protocol default as universal.
+
+Both member and steward commitment-creation flows now choose and review the immutable contributor
+policy. Member review shows every ordered requirement/count row. Draft payout plans expose a
+complete-vector edit path before finalization, and every non-zero finalized contributor row remains
+preparable in sequence until all three fixture children exist.
+
+## 2026-07-30 — Final catch-up, cycle-close, and snapshot-hash closure
+
+Catch-up now preflights each Work's greatest supplied decision sequence against the resolver's
+current maximum before mutation, applies only the current decision, and evaluates Ready after the
+complete batch. An omitted rejection cannot freeze stale approval credit. Current inactive credit,
+not historical approval delivery, gates unlinking after a reversal.
+
+Acceptance revalidates every resolved lead against current provider-garden membership before
+register or roster mutation. `CommitmentCycle.liveCommitmentCount` is indexed from creation through
+the first terminal transition and includes Offered/Requested records. Every shared Hypercert
+composer entry point requires exact on-chain Reconciled state.
+
+Payment snapshots now hash one explicit immutable ordered tuple:
+chain, plan, version, retention, contributor total, and
+`{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Child IDs and
+lifecycle counters are excluded, so preparation cannot mutate the frozen hash.
