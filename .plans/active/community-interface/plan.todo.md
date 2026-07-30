@@ -35,7 +35,7 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/un-signal only); NeedS
 
 - [x] Research evidence recorded: `corrections-log.md` (every research-pass repo claim verified, corrected, or superseded, with file paths)
 - [x] Existing repo patterns identified: IGardenAccessControl resolver gating, badge-schemas standalone registration, AudioRecorder/useAudioRecording + audioNotes IPFS path, agent transcription service, job-queue kind extension points, two-indexer read path
-- [x] Human judgment points surfaced and decided: 12 locked decisions; join-request storage intentionally remains open with options and exit criteria rather than an assumed backend
+- [x] Human judgment points surfaced and decided: 13 locked decisions; join-request storage intentionally remains open with options and exit criteria rather than an assumed backend
 - [x] Out of scope defined: claim flow, leaderboards/funding-ranked boards, per-need escrow, push notifications, settlement, eligibility module (parked), ActionSignalPool wiring
 - [x] Lightest honest validation chosen per lane (see Validation)
 - [x] UX/research artifacts landed: ERDs + sequences, low-fi screens, six personas, six role journeys, customer/community journey map, operator service blueprint, consent/readiness protocol, and Linear-aligned onboarding schedule
