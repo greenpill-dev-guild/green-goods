@@ -642,7 +642,7 @@ Chain: `contracts` (blocked on CP registration-helper freeze) → `indexer` (nee
 1. **P1-4 / §20**: can `shared_foundation` be dispatched **now** (with an extraction inventory + named auth/offline reviewer), decoupled from the August substrate? This is the single biggest lever on 09-30.
 2. **P1-1**: for the extraction inventory — should i18n runtime, PostHog init, QueryClient/persistence, and the toast system be **extracted to shared** or **owned per-app** (each app already owns telemetry identity + copy)?
 3. **Survey evidence timing**: by what date must outcome #2 review the locked Needs vocabulary before append-only schema registration? The review may refine copy and translations but does not reopen the Need/commitment layer boundary.
-4. **MF batch**: accept, reject, or defer the nine proposed micro-frames (MF-1/2/3/4/6/7/8/9/10) into `wireframes.md`?
+4. **MF batch**: accept, reject, or defer the eight proposed micro-frames (MF-1/3/4/6/7/8/9/10) into `wireframes.md`?
 
 ---
 

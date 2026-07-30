@@ -33,11 +33,17 @@ const warn: string[] = [];
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
-  | "pool" | "cycle" | "commitment"
-  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement";
+  | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
+  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
+  | "disbursementKind" | "disbursementRoute" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement",
+  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
+  "disbursement", "disbursementKind", "disbursementRoute", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
+type ConditionalRequirement = {
+  when: Partial<Record<FactKey, string>>;
+  requires: Partial<Record<FactKey, readonly string[]>>;
+};
 type CallRule = {
   key: FactKey;
   allowed: readonly string[];
@@ -45,6 +51,7 @@ type CallRule = {
   effects?: Partial<Record<FactKey, string>>;
   kinds?: readonly string[];
   requires?: Partial<Record<FactKey, readonly string[]>>;
+  requiresWhen?: readonly ConditionalRequirement[];
   resultAllowed?: readonly string[];
 };
 
@@ -56,6 +63,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
+  joinCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  leaveCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  addContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  removeContributor: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
+  setContributorRequirement: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachEvidence: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "EvidenceSubmitted" },
   linkWork: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], kinds: ["DomainImpact"] },
   attachAssessment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "ReadyForConfirmation", kinds: ["DomainImpact"] },
@@ -80,22 +92,73 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   reopenPool: { key: "pool", allowed: ["Composted"], next: "Ready" },
   seedCycle: { key: "pool", allowed: ["Ready", "Open"], effects: { cycle: "Seeded" } },
   openCycle: { key: "cycle", allowed: ["Seeded"], next: "Open", requires: { pool: ["Open"] } },
-  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled" },
+  closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled", requires: { cycleLiveCommitments: ["Zero"] } },
   compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
-  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled" },
+  cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled", requires: { cycleLiveCommitments: ["Zero"] } },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
-  queueDisbursement: {
+  createCommitmentPayoutPlan: {
     key: "commitment",
     allowed: ["Fulfilled"],
-    effects: { disbursement: "Queued" },
-    requires: {
-      settlementAccount: ["Active"],
-      beneficiarySettlementAccount: ["NotRequired", "Active"],
-    },
+    effects: { payoutPlan: "Draft" },
+    requires: { settlementAccount: ["Active"] },
   },
-  createBatch: { key: "disbursement", allowed: ["Queued"] },
-  dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
-  dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched" },
+  setContributorPayouts: {
+    key: "payoutPlan",
+    allowed: ["Draft"],
+    requires: { settlementAccount: ["Active"] },
+  },
+  finalizeCommitmentPayoutPlan: {
+    key: "payoutPlan",
+    allowed: ["Draft"],
+    resultAllowed: ["Pending", "Complete"],
+    requires: { settlementAccount: ["Active"] },
+  },
+  prepareContributorPayout: {
+    key: "payoutPlan",
+    allowed: ["Pending", "Partial"],
+    effects: { disbursement: "Queued" },
+    requires: { settlementAccount: ["Active"] },
+  },
+  queueFunding: {
+    key: "settlementAccount",
+    allowed: ["Active"],
+    effects: {
+      disbursement: "Queued",
+      disbursementKind: "Funding",
+      disbursementRoute: "ProtocolToGarden",
+    },
+    requires: { beneficiarySettlementAccount: ["Active"] },
+  },
+  createBatch: {
+    key: "disbursement",
+    allowed: ["Queued"],
+    requires: { settlementAccount: ["Active"] },
+    requiresWhen: [{
+      when: { disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden" },
+      requires: { beneficiarySettlementAccount: ["Active"] },
+    }],
+  },
+  dispatchDisbursement: {
+    key: "disbursement",
+    allowed: ["Queued"],
+    next: "Dispatched",
+    requires: { settlementAccount: ["Active"] },
+    requiresWhen: [{
+      when: { disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden" },
+      requires: { beneficiarySettlementAccount: ["Active"] },
+    }],
+  },
+  dispatchBatch: {
+    key: "disbursement",
+    allowed: ["Queued"],
+    next: "Dispatched",
+    requires: { settlementAccount: ["Active"] },
+    requiresWhen: [{
+      when: { disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden" },
+      requires: { beneficiarySettlementAccount: ["Active"] },
+    }],
+  },
+  retryCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryBatchCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
   cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },
@@ -134,6 +197,17 @@ function validateCalls(
       const requiredValue = current[requiredKey];
       if (!requiredValue || !allowed.includes(requiredValue))
         err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} requires ${requiredKey} ${allowed.join(" or ")}, drew ${requiredValue ?? "<missing>"}`);
+    }
+    for (const conditional of rule.requiresWhen ?? []) {
+      const matches = Object.entries(conditional.when).every(
+        ([factKey, expected]) => current[factKey as FactKey] === expected,
+      );
+      if (!matches) continue;
+      for (const [requiredKey, allowed] of Object.entries(conditional.requires) as [FactKey, readonly string[]][]) {
+        const requiredValue = current[requiredKey];
+        if (!requiredValue || !allowed.includes(requiredValue))
+          err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} requires ${requiredKey} ${allowed.join(" or ")} for ${Object.entries(conditional.when).map(([key, expected]) => `${key} ${expected}`).join(" and ")}, drew ${requiredValue ?? "<missing>"}`);
+      }
     }
     if (rule.next) {
       (current as Record<string, string>)[rule.key] = rule.next;

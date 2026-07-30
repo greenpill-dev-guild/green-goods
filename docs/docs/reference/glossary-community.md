@@ -57,6 +57,16 @@ The 10 entities the system tracks. Use the canonical form in code (types, hooks,
 | **Hat** | entity | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. |
 | **Season** | entity | admin · client · agent · public · docs | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. |
 
+### Planned Commitment Pooling entities
+
+These terms are `spec`, not live product claims. They are included here so plans, prototypes, and implementation handoffs use the same language, but they are not part of the live ten-entity table above.
+
+- **Commitment**: a promise with one accountable lead, an optional contributor team, repeatable requirements, evidence or Work, and direction-aware confirmation.
+- **Commitment Contributor**: a person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead.
+- **Commitment Payout Plan**: a garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch.
+
+For planned pooled commitments, recognition and payment are related but distinct. Hypercert gardener shares record contribution to impact. Within each fulfilled commitment, 20% is shared equally among eligible contributors and 80% follows verified contribution; zero eligible contributors block certificate expansion rather than defaulting to the lead. Recognition seeds a payout plan, while the garden may retain an explicit amount and a steward may change the atomic amount vector only with a stored reason when the derived payment weights diverge. Finalization proves conservation before any child dispatch.
+
 ---
 
 ## Personas

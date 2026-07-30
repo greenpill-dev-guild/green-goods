@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE: four-schema/two-resolver/refUID architecture locked 2026-07-27; this is architecture/planning convergence only, implementation has not started, and every implementation lane remains subject to its named gates`
 **Created**: 2026-07-04
-**Last Updated**: 2026-07-28
+**Last Updated**: 2026-07-30
 
 Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-dev-guild/project/community-needs-and-signals-083dd7e556c2). Milestones: Needs substrate (2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The Product Commitment Pooling cycle runs 2026-07-16 through 2026-07-30; Research alignment runs through 2026-07-30. Active September delivery tracker PRD-682 stays in [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354); canceled PRD-683 remains historical traceability only. Artifacts: `spec.md`, `corrections-log.md`, `diagrams.md`, `wireframes.md`, `journeys.md`, `research-plan.md`.
 
@@ -22,13 +22,14 @@ Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-
 | 5 | Fund action: embedded donate + endowment (the /fund paths) in need context; `FundingAttribution` attestation in v1; funded-toward on detail only, never a sort key; no per-need escrow. |
 | 6 | Voice: audio always as evidence; dictation + transcription on BOTH statement and outcome; local-first (feasibility spike), server transcribe-on-sync fallback via the agent package; never blocks submission. |
 | 7 | Discovery: global read-only browse; my garden is the scoped default; signal rights same-garden only. |
-| 8 | No claim flow in v1; the need→operator triage binding is first-class (time-sensitive triage, seed-from-signal). |
+| 8 | No claim flow in v1; the need→operator triage binding is first-class (time-sensitive triage, seed-from-Need). |
 | 9 | A Need is a problem paired with a desired outcome; it has no kind. Request / Offer is commitment direction only. Domains are operator-applied, optional, and multi-valued; commitments use the same optional multi-domain shape, with action pairing required only for DomainImpact. |
 | 10 | Join requests use the minimal encrypted garden-scoped service queue specified in `join-queue-spec.md`. The architecture is selected; PRD-691's membership-queue slice remains blocked until RESR-64 accepts the controller, access, retention/deletion, encryption, recovery, abuse, cost, incident-owner, and operator-handoff operating record. |
 | 11 | `packages/community` is an independent PWA at `community.greengoods.app` / local 3010; a prerequisite shared-foundation lane extracts generic runtime/auth/offline/install/update/error/shell primitives for both client and Community without sharing routes, manifests, service-worker scope, telemetry identity, or copy. |
 | 12 | Need moderation and progress are separate axes; declined is author/operator-only, hidden is operator-only, merge redirects, acknowledgement with rationale reopens, and author retraction leaves a content-free lineage tombstone. |
-| 13 | Keep four EAS schemas but deploy two resolvers: `CommunityNeedsResolver` for Need/NeedSignal/NeedStatus and a separate `FundingAttributionResolver`; `recipient` is the garden and child `refUID` is the Need UID. |
-| 14 | NeedSignal carries only `bool support`. Latest unsigned `(timeCreated, uid)` per `(refUID, attester)` wins before revocation/expiry filtering; support/non-support display separately; switching writes a newer attestation; clearing revokes the winner; pending queue intents coalesce by Need/member/chain/garden. |
+| 13 | PRD-758 is the Community Needs architecture gate for PRD-682. It must close before PRD-682 implementation, but it does not block PRD-721/722/723 or the core Commitment Pooling backend. |
+| 14 | Keep four EAS schemas but deploy two resolvers: `CommunityNeedsResolver` for Need/NeedSignal/NeedStatus and a separate `FundingAttributionResolver`; `recipient` is the garden and child `refUID` is the Need UID. |
+| 15 | NeedSignal carries only `bool support`. Latest unsigned `(timeCreated, uid)` per `(refUID, attester)` wins before revocation/expiry filtering; support/non-support display separately; switching writes a newer attestation; clearing revokes the winner; pending queue intents coalesce by Need/member/chain/garden. |
 
 Sub-decisions: Need/NeedSignal revocable (self-retraction/clear only); NeedStatus moderation 1 acknowledged / 2 merged / 3 hidden / 4 declined; progress open/committed/in-progress/addressed derives separately; `need`, `needSignal`, and `testimony` may wait in `waiting_for_hat`; NeedStatus/FundingAttribution stay online; FundingAttribution displays once globally per verified receipt key `(chainId, txHash, rail)`, including across different Needs; Envio never indexes EAS; all four attestations are non-expiring in v1.
 
@@ -36,7 +37,7 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/clear only); NeedStatu
 
 - [x] Research evidence recorded: `corrections-log.md` (every research-pass repo claim verified, corrected, or superseded, with file paths)
 - [x] Existing repo patterns identified: IGardenAccessControl resolver gating, badge-schemas standalone registration, AudioRecorder/useAudioRecording + audioNotes IPFS path, agent transcription service, job-queue kind extension points, two-indexer read path
-- [x] Human judgment points surfaced and decided: 14 locked decisions; the join-request service-queue architecture is selected, while implementation remains blocked on the RESR-64 operating-record acceptance criteria
+- [x] Human judgment points surfaced and decided: 15 locked decisions; the join-request service-queue architecture is selected, while implementation remains blocked on the RESR-64 operating-record acceptance criteria
 - [x] Out of scope defined: claim flow, leaderboards/funding-ranked boards, per-need escrow, push notifications, settlement, eligibility module (parked), ActionSignalPool wiring
 - [x] Lightest honest validation chosen per lane (see Validation)
 - [x] UX/research artifacts landed: ERDs + sequences, low-fi screens, six personas, six role journeys, customer/community journey map, operator service blueprint, consent/readiness protocol, and Linear-aligned onboarding schedule
@@ -79,7 +80,7 @@ Commitment Pooling amendment history (2026-07-04): historical PRD-672 added `nee
 
 ### Track A: September needs app
 
-7. [ ] PRD-682 scaffolds the independent Community PWA only after shared-foundation, state/API, and paymaster proof; member UI exposes Support / Do not support / Clear with separate counts. PRD-691 admin `/community/needs` owns triage, moderation, gathering, seed-from-Need, and Need lineage/export; existing `/community/coordination` retains pool/cycle operations. Membership queue remains gated in `/community/members`
+7. [ ] PRD-682 scaffolds the independent Community PWA only after PRD-758 closes and shared-foundation, state/API, and paymaster proof are complete; member UI exposes Support / Do not support / Clear with separate counts. PRD-691 admin `/community/needs` owns triage, moderation, gathering, seed-from-Need, and Need lineage/export; existing `/community/coordination` retains pool/cycle operations. PRD-758 does not block the core Commitment Pooling backend, and the membership queue remains gated in `/community/members`
 8. [ ] PRD-691 funder-lens sub-lane after the PRD-687 state/API aggregate and editorial grammar are GREEN (historical PRD-692 is not dispatchable)
 9. [ ] PRD-691 admin seeding-gate intake after the Community state/API aggregate and Commitment Pooling admin substrate are GREEN (canceled PRD-683 is not dispatchable)
 10. [ ] PRD-691 docs sub-lane after Community PWA, admin, and funder surfaces ship for screenshots (historical PRD-693 is not dispatchable)

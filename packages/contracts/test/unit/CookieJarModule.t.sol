@@ -98,6 +98,10 @@ contract MockHatsModuleForCookieJar is IHatsModule {
         return false;
     }
 
+    function isStewardOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
     function isOwnerOf(address, address) external pure returns (bool) {
         return false;
     }

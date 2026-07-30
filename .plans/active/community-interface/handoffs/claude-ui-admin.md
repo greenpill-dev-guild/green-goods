@@ -12,12 +12,12 @@
 
 ## Acceptance
 
-- No `/pools` or top-level `/needs` root and no duplicate pool/cycle controls in `/community/needs`; triage rows show support and non-support separately; default ordering is support count, then recency, then alphabetical tie-break; non-support never subtracts into a net score.
+- No `/pools` or top-level `/needs` root and no duplicate pool/cycle controls in `/community/needs`; triage rows show support and non-support separately. Week-horizon alerts are grouped first and are never signal-gated; within the remaining Month+ group, order by support count descending, then recency descending, then alphabetical tie-break. Non-support never subtracts into a net score.
 - Online status writes expose signature/pending/failed/retry; declined/hidden access is enforced; partial lineage cannot export; membership queue is not implemented before its gate.
 
 ## RED / GREEN
 
-- RED: route, separate-count/no-net-score ordering, moderation transition/access, export completeness, and recovery tests fail first.
+- RED: route, week-first grouping, Month+ separate-count/no-net-score ordering, moderation transition/access, export completeness, and recovery tests fail first.
 - GREEN: targeted admin tests/build, stories where applicable, and authenticated Brave proof pass.
 
 ## Exact commands

@@ -161,7 +161,9 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
   separately human-authorized included sponsored first-use Celo Mainnet canonical-G$ transfer.
   The evidence contains UserOperation and transaction receipts, EntryPoint event, deployed-account
   code, exact token balance deltas, and observation block/time, but no API key or passkey material.
-  Failure keeps member delivery disabled without blocking `ProtocolToGarden`.
+  AA/paymaster gate failure keeps contributor-payout preparation and member sends disabled without
+  blocking discretionary non-commitment `ProtocolToGarden` seeding. The funding route is treasury
+  support and does not count as a Garden-claim reward payout.
 - Afolabi Aiyeloja separately authorizes Safe authority, the minimum-value canary, and any later cap increase.
 
 ## Acceptance
@@ -175,3 +177,9 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 ## Out of scope
 
 - Product implementation, autonomous broadcasts, force operations, bridged G$, CCIP token transfer, arbitrary Safe execution, manual settlement confirmation, or CreditRegister/transferable-voucher activation.
+
+## 2026-07-28 release-evidence addition
+
+- Before any value canary, reconcile one parent payout plan against its complete recognition vector/hash, amount-derived payment vector/hash, declared amount, explicit garden-retained amount, no-child finalization, idempotently prepared immutable contributor children, stable commitment pointer, and payer garden Safe. Prove an all-retained zero-child plan completes without CCIP or a self-transfer.
+- The canary must prove a child failure/retry does not duplicate value or alter sibling receipts, commitment fulfillment, or Hypercert recognition.
+- This amendment does not authorize deployment, broadcast, Safe role changes, or value movement.

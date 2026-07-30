@@ -104,6 +104,7 @@ const WORKFLOW_MATCHERS = new Map([
         ".github/workflows/ontology.yml",
         ".plans/active/commitment-pooling/contract-spec.md",
         ".plans/active/community-interface/spec.md",
+        ".plans/active/commitment-pooling/settlement-spec.md",
         "docs/docs/builders/architecture/erd.mdx",
         "docs/docs/builders/specs/v1-0.mdx",
         "packages/contracts/script/DeployBadgeSchema.s.sol",
