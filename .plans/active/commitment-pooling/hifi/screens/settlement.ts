@@ -439,7 +439,7 @@ const W21_HOTS: HifiDef["hots"] = {
   "w21.prepare-payout": { l: "Prepare contributor payout", to: "screen:W21@payout-prepared", info: "Materializes one immutable queued child from Maria's finalized payout row. An exact repeat returns the same ID without emitting again.", calls: ["prepareContributorPayout"] },
   "w21.prepare-ana": { l: "Prepare Ana payout", to: "screen:W21@payout-prepared-2", info: "Materializes Ana's one immutable queued child from her frozen non-zero row; Maria's existing child is unchanged.", calls: ["prepareContributorPayout"] },
   "w21.prepare-kwame": { l: "Prepare Kwame payout", to: "screen:W21@payout-prepared-all", info: "Materializes Kwame's one immutable queued child; every payable row is now prepared exactly once.", calls: ["prepareContributorPayout"] },
-  "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@dispatched", info: "Dispatches one child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
+  "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@individual-dispatched", info: "Dispatches one unbatched child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
   "w21.dispatch-garden": { l: "Dispatch protocol-to-garden funding", to: "screen:W22@garden-command", info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement creates its immutable execution key and sends the data-only command; no commitment reward or payout plan is involved.", calls: ["dispatchDisbursement"] },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
   "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
@@ -471,6 +471,7 @@ const W22_STATES = [
   ["ready", "Queued"], ["dispatched", "Dispatched"], ["delivery-delayed", "Delivery delayed"], ["executed", "Celo executed"],
   ["acknowledgment-pending", "Acknowledgment pending"], ["outcome", "Confirmed / failed"], ["role-guard", "Route gate"],
   ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Protocol-to-garden funding command"],
+  ["individual-dispatched", "Contributor payout — dispatched"],
 ] as const;
 type W22State = (typeof W22_STATES)[number][0];
 
@@ -525,6 +526,29 @@ function w22(state: W22State): string {
 ${banner("Funding/ProtocolToGarden was queued independently through queueFunding, then dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges — arrival is not proven until that acknowledgment lands.", "stone")}
 ${kv("Disbursement kind", "Funding")}${kv("Funding route", "ProtocolToGarden")}${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
 <div class="actrow" style="justify-content:flex-end">${hot("w22.garden-open-ops", btn("Open Operations", { kind: "sec", icon: "external-link-line" }))}</div>`,
+        ),
+      }),
+    );
+  }
+
+  if (state === "individual-dispatched") {
+    const header = pageHeader({
+      title: "Settlement 104",
+      eyebrow: "Individual command/ack console",
+      description: "One finalized contributor child is dispatched independently from every batch.",
+    });
+    return deskWin(
+      "admin.greengoods.app/dashboard/garden/settlement/104",
+      adminCanvas("garden", "garden", {
+        screenId: "W22",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Contributor payout",
+          `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 1)}
+${banner("Maria's unbatched command keeps its own execution key. A same-key retry changes only the CCIP message ID and cannot target batch #12.", "stone")}
+${kv("Recipient", "Maria · 0x12…9a")}${kv("Amount", "160 G$")}${kv("Command message", "0xab…14 · CCIP Explorer ↗")}${kv("Batch", "None · individual child")}
+<div class="actrow" style="justify-content:flex-end">${hot("w22.retry-individual-command", btn("Retry same command", { kind: "pri" }))}</div>`,
         ),
       }),
     );
@@ -613,6 +637,7 @@ const W22_HOTS: HifiDef["hots"] = {
   "w22.open-command-explorer": { l: "Open command in CCIP Explorer", to: "screen:W22@delivery-delayed", info: "The command message ID opens transport status. This prototype advances to the derived delayed example." },
   "w22.manual-execution-guide": { l: "Manual-execution guidance", info: "Manual execution is an external CCIP recovery procedure and appears only when CCIP Explorer reports the message eligible; it never marks payment complete." },
   "w22.retry-command": { l: "Retry command", to: "screen:W22@executed", info: "A transport retry preserves the execution key and payload, and cannot create a second Celo execution.", calls: ["retryBatchCommand"] },
+  "w22.retry-individual-command": { l: "Retry individual command", to: "screen:W22@individual-dispatched", info: "Retries only settlement 104 with retryCommand; batch #12 and every other contributor child remain untouched.", calls: ["retryCommand"] },
   "w22.open-destination-explorer": { l: "Open destination transaction", info: "The destination transaction is evidence of Celo execution, but arrival remains unconfirmed until the authenticated acknowledgment reaches Arbitrum." },
   "w22.retry-acknowledgment": { l: "Retry acknowledgment", to: "screen:W22@acknowledgment-pending", info: "Permissionless destination retry sends the stored outcome without moving G$ again.", calls: ["retryAcknowledgment"] },
   "w22.retry-acknowledgment-again": { l: "Retry acknowledgment", info: "CELO reserve or delivery recovery may retry the stored acknowledgment independently.", calls: ["retryAcknowledgment"] },
@@ -812,7 +837,7 @@ const w21Facts = (state: W21State): StateFacts | undefined => {
 const w22Facts = (state: W22State): StateFacts | undefined => {
   if (state === "ready" || state === "role-guard" || state === "cancel-batch-confirm")
     return { disbursement: "Queued", settlementAccount: "Active" };
-  if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command"].includes(state))
+  if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command", "individual-dispatched"].includes(state))
     return { disbursement: "Dispatched" };
   return undefined;
 };

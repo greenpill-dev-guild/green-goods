@@ -784,9 +784,11 @@ interface ICommitmentPoolingModule {
     function leaveCommitment(uint256 commitmentId) external;
 
     /// @notice LeadManaged roster mutation. The lead provider or pool steward
-    ///         may add/remove contributors before the roster freezes. A
-    ///         contributor with linked Work or credit cannot be removed through
-    ///         roster editing.
+    ///         may add/remove contributors before the roster freezes. An added
+    ///         contributor must satisfy the same resolved providerGarden
+    ///         membership gate as self-join and a Work author. A contributor
+    ///         with linked Work or credit cannot be removed through roster
+    ///         editing.
     function addContributor(uint256 commitmentId, address contributor) external;
     function removeContributor(uint256 commitmentId, address contributor) external;
 
@@ -999,7 +1001,7 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible member | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
-| Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy LeadManaged for add unless steward correction; roster not frozen; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
+| Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy LeadManaged for add unless steward correction; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
 | Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment |
 | Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while the approval is not yet counted |
@@ -1060,7 +1062,9 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   provisionally 32 and is enforced before lead initialization, self-join, or add mutates state;
   implementation benchmarks 8/16/24/32 and freezes the largest measured-safe end-to-end
   creation/finalization vector. Open policy allows eligible self-join and pre-freeze self-leave;
-  LeadManaged requires the lead or steward. The lead can never leave or be removed, and any
+  LeadManaged requires the lead or steward and permits adding only an eligible member of the
+  resolved `providerGarden`; arbitrary external addresses cannot enter recognition or payout
+  eligibility through managed addition. The lead can never leave or be removed, and any
   contributor with approved Work or evidence credit can be removed only through a separately
   specified reasoned correction that preserves attribution and confirmation exclusion, not the
   roster edit API. Membership,
@@ -1972,6 +1976,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: WorkLinked(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, uint16 requirementIndex, address linker)
       - event: WorkUnlinked(uint256 indexed commitmentId, bytes32 indexed workUID, address unlinker)
       - event: ApprovedWorkCounted(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 approvalUID, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 newlyApprovedUnits)
+      - event: ApprovedWorkReversed(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 decisionUID, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 removedApprovedUnits)
       - event: EvidenceAttached(uint256 indexed commitmentId, string cid, address indexed attacher, address[] creditedContributors)
       - event: AssessmentAttached(uint256 indexed commitmentId, bytes32 indexed assessmentUID, address attacher)
       - event: CommitmentReadyForConfirmation(uint256 indexed commitmentId, bool overridden, string reason)
@@ -2032,7 +2037,7 @@ enum CommitmentUnitScope { POOL CYCLE }
   CYCLE_SEEDED CYCLE_OPENED CYCLE_CLOSED CYCLE_COMPOSTED CYCLE_CANCELLED
   CREATED REWARD_DECLARED CONFIRMER_RULE_SET CLAIM_REQUESTED CLAIM_DECLINED ACCEPTED
   CONTRIBUTOR_ADDED CONTRIBUTOR_REMOVED CONTRIBUTOR_REQUIREMENT_ASSIGNED CONTRIBUTOR_ROSTER_FROZEN
-  WORK_LINKED WORK_UNLINKED APPROVED_WORK_COUNTED EVIDENCE_ATTACHED
+  WORK_LINKED WORK_UNLINKED APPROVED_WORK_COUNTED APPROVED_WORK_REVERSED EVIDENCE_ATTACHED
   ASSESSMENT_ATTACHED READY_FOR_CONFIRMATION CONFIRMATION_RECORDED FULFILLED
   CANCELLED EXPIRED DISPUTED DISPUTE_RESOLVED REWARD_PAID
   UNITS_COMMITTED UNITS_RELEASED UNITS_FULFILLED
@@ -2225,6 +2230,7 @@ type CommitmentContributor {
   isLead: Boolean!
   approvedWorkCredits: Int!
   evidenceCredits: Int!
+  uncountedLinkedWorkCount: Int!
   requirementIndexes: [Int!]!
   recognitionWeightBps: Int
   recognitionUnits: BigInt
@@ -2232,6 +2238,26 @@ type CommitmentContributor {
   addedAt: Int!
   removedBy: String
   removedAt: Int
+  updatedAt: Int!
+}
+
+type CommitmentWorkAttribution {
+  id: ID! # chainId-lowercaseWorkUID
+  chainId: Int!
+  workUID: String!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  contributorEntityId: String!
+  requirementIndex: Int!
+  linked: Boolean!
+  creditActive: Boolean!
+  latestDecisionTime: BigInt
+  latestDecisionUID: String
+  linkedBy: String!
+  linkedAt: Int!
+  unlinkedBy: String
+  unlinkedAt: Int
   updatedAt: Int!
 }
 
@@ -2344,6 +2370,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 - **ID helpers**: add `getGardenId(chainId, garden)`, `getCommitmentPoolId(chainId, poolId)`,
   `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`,
   `getCommitmentContributorId(chainId, commitmentId, contributor)`,
+  `getCommitmentWorkAttributionId(chainId, workUID)`,
   `getCommitmentEvidenceAttributionId(chainId, commitmentId, cid, contributor)`,
   `getCommitmentEvidenceAttributionIndexId(chainId, commitmentId)`,
   `getCommitmentClaimRequestId(chainId, commitmentId, claimant)`,
@@ -2379,7 +2406,12 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   claimant/counterparty/leadProvider/providerGarden, marks the matching request `ACCEPTED`, marks
   siblings `SUPERSEDED`, and relies on the same-transaction `ContributorAdded` event to create the
   lead's roster row. Contributor add/remove/assignment events update the composite contributor
-  row and stable contributor index. `ContributorRosterFrozen` locks the read model. Every
+  row and stable contributor index. `WorkLinked` creates or activates the workUID-keyed
+  `CommitmentWorkAttribution`, preserves its contributor and requirement index, and increments
+  that contributor's `uncountedLinkedWorkCount` only on an unlinked-to-linked transition.
+  `WorkUnlinked` loads that attribution before mutation, decrements the contributor's uncounted
+  count only when the linked row has no active credit, then records the unlink actor/time.
+  `ContributorRosterFrozen` locks the read model. Every
   `EvidenceAttached` event increments the commitment's `evidenceCount` exactly once, then walks
   `creditedContributors` in emitted order. For each address it upserts the
   `(commitmentId, cid, contributor)` attribution row, appends that row ID exactly once to
@@ -2389,12 +2421,17 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   attribution confirmed, never using a database-wide scan. The indexer never increments
   on-chain-style contributor credits again at fulfillment.
 - **Address normalization**: `normalizeAddress` for every address field (`helpers.ts:68-70`). Generic `CommitmentEvent.actor` is nullable and is populated only from an explicit actor parameter; never infer account-abstraction identity from `transaction.from`.
-- **Approved-unit delta**: `ApprovedWorkCounted.approvedUnits` replaces the commitment's cumulative
-  value. The handler asserts `new cumulative == prior cumulative + delta`, writes the matching
-  `CommitmentRequirement.approvedCount`, increments the emitted contributor's
-  `approvedWorkCredits`, and increments only the exact-label pool/cycle
-  `CommitmentUnitSummary.approvedUnits` by emitted `newlyApprovedUnits`. An exact event replay
-  changes nothing; cumulative event values are never summed.
+- **Effective Work-credit delta**: `ApprovedWorkCounted` loads the durable Work attribution,
+  transitions `creditActive` false → true, stores the effective decision key, decrements
+  `uncountedLinkedWorkCount`, writes the emitted cumulative requirement/commitment values,
+  increments the contributor credit, and adds only `newlyApprovedUnits` to the exact-label
+  pool/cycle summaries. `ApprovedWorkReversed` transitions true → false, stores the newer
+  decision key, restores `uncountedLinkedWorkCount`, decrements the contributor credit, writes the
+  emitted cumulative requirement/commitment values, and subtracts only
+  `removedApprovedUnits` from those summaries. Same-state, stale, and exact-event replays do not
+  mutate counters; cumulative values are assigned, never summed. Replay coverage includes
+  approval → reversal, reversal before surrounding lifecycle events, unlink after a non-counted
+  link, and duplicate delivery of every Work event.
 - **Register events and count safety**: the three unit events carry `poolId`, `cycleId`, and the
   exact stored `unitLabel`; handlers never need a Commitment lookup or RPC call to choose their
   keys. `UnitsCommitted` increments `CommitmentPool.openCommitmentCount` and

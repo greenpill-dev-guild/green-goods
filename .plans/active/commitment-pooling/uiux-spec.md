@@ -613,7 +613,11 @@ placement in §§5–6 while preserving their route and component anchors.
   treasury flow; it does not choose contributors or silently mark their payouts complete.
 - W21 separates **Save draft** from **Finalize payout plan**. Finalization verifies recognition
   and payment hashes, canonical recipients, and exact conservation, then makes every row
-  immutable before dispatch. Until then, **Edit draft** reopens the complete ordered vector,
+  immutable before dispatch. Initial setup is also two recoverable wallet steps:
+  `createCommitmentPayoutPlan` first persists the stable parent and canonical default, then
+  `setContributorPayouts` saves a custom complete vector. If the second write is rejected or
+  fails, the indexed Draft resumes directly in the editor and retries only that second write;
+  the client never calls creation again for an existing parent. Until finalization, **Edit draft** reopens the complete ordered vector,
   retained amount, and reason and resubmits them atomically through `setContributorPayouts`;
   editing never replaces the stable parent pointer. The finalized screen exposes preparation for
   every non-zero unprepared row and retains those controls after earlier rows are prepared. If

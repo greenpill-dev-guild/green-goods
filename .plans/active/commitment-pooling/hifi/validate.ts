@@ -115,6 +115,7 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   createBatch: { key: "disbursement", allowed: ["Queued"], requires: { settlementAccount: ["Active"] } },
   dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
   dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
+  retryCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryBatchCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
   cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },

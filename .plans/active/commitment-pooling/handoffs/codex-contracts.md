@@ -82,7 +82,10 @@
   and is the only unit account and open-commitment-count subject. The active contributor roster
   begins with that lead, preserves Work/evidence attribution, freezes roster and credit
   accounting before confirmation, and is wholly excluded from confirmation. Garden claims use
-  gardeners/operators of `providerGarden`;
+  gardeners/operators of `providerGarden`; `addContributor` applies the same resolved
+  provider-garden membership predicate as self-join and Work attribution, so a lead/steward
+  cannot add an arbitrary external address. Tests prove an eligible member succeeds and a
+  non-member reverts before roster, confirmer, credit, or event mutation.
   UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
   exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
   retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
