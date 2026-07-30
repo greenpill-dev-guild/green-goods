@@ -213,12 +213,42 @@
       "id": "commitment",
       "display": "Commitment",
       "status": "spec",
-      "definition": "A module-native promise record (offer or request) with direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
+      "definition": "A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "relationships": [
         { "to": "commitment-pool", "kind": "registered-in" },
         { "to": "commitment-cycle", "kind": "optionally-scoped-to" },
-        { "to": "work", "kind": "fulfilled-by", "note": "operator-curated workUID linkage" }
+        {
+          "to": "work",
+          "kind": "fulfilled-by",
+          "note": "operator-curated workUID linkage with contributor attribution"
+        },
+        { "to": "commitment-contributor", "kind": "performed-by" },
+        { "to": "commitment-payout-plan", "kind": "optionally-paid-through" }
+      ]
+    },
+    {
+      "id": "commitment-contributor",
+      "display": "Commitment Contributor",
+      "status": "spec",
+      "definition": "A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "relationships": [
+        { "to": "commitment", "kind": "contributes-to" },
+        { "to": "work", "kind": "credited-by" },
+        { "to": "hypercert", "kind": "recognized-in" }
+      ]
+    },
+    {
+      "id": "commitment-payout-plan",
+      "display": "Commitment Payout Plan",
+      "status": "spec",
+      "definition": "A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "relationships": [
+        { "to": "commitment", "kind": "pays-for" },
+        { "to": "garden", "kind": "paid-by" },
+        { "to": "commitment-contributor", "kind": "pays" }
       ]
     }
   ],
@@ -1081,6 +1111,23 @@
       "mappings": []
     },
     {
+      "id": "contributor-policy",
+      "status": "spec",
+      "definition": "How contributor membership is established before the commitment roster freezes.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Open", "LeadManaged"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "ContributorPolicy"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
       "id": "claim-mode",
       "status": "spec",
       "definition": "Whether claiming transitions immediately (Open) or awaits operator acceptance (ApprovalGated).",
@@ -1144,6 +1191,23 @@
       "planned_anchor": {
         "file": "packages/contracts/src/interfaces/ICommitmentRegister.sol",
         "symbol": "AccountingState"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-payout-plan-status",
+      "status": "spec",
+      "definition": "Derived progress of a frozen commitment payout plan across its contributor child disbursements.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Draft", "Pending", "Partial", "Complete", "Failed"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+        "symbol": "PayoutPlanStatus"
       },
       "representations": [],
       "mappings": []
@@ -1346,8 +1410,32 @@
       "id": "pooling-provider-confirmation-disjoint",
       "kind": "disjoint",
       "status": "spec",
-      "statement": "A commitment's unit provider is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator).",
+      "statement": "Every member of a commitment's accountable lead/contributor team is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator).",
       "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "pooling-recognition-allocation-sum",
+      "kind": "sum",
+      "status": "spec",
+      "statement": "The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then the immutable cycle-open RecognitionPolicy allocates its equal-participation and verified-contribution components through separate deterministic remainder passes before the row results are added. The protocol default and immutable cycle-less preset are 20% equal / 80% verified, but an opened cycle may select any two values summing to 10000 bps. Zero eligible contributors block certificate expansion; there is no lead fallback.",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "pooling-payout-plan-conservation",
+      "kind": "sum",
+      "status": "spec",
+      "statement": "An explicitly finalized commitment payout plan conserves the declared support amount exactly: garden-retained amount plus all contributor child amounts equals the parent amount. A zero-child all-retained plan completes at finalization without a transfer.",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/settlement-spec.md" }],
+      "holes": []
+    },
+    {
+      "id": "pooling-payout-plan-integrity",
+      "kind": "functional",
+      "status": "spec",
+      "statement": "Each fulfilled commitment has at most one stable payout-plan pointer. The complete recognition vector matches its snapshot hash, payment weights derive from the atomic amount vector, finalization precedes dispatch, and child or batch cancellation never clears the parent pointer.",
+      "enforced_at": [{ "file": ".plans/active/commitment-pooling/settlement-spec.md" }],
       "holes": []
     },
     {
@@ -1470,7 +1558,7 @@
           "from": "Seeded",
           "to": "Open",
           "layer": "on-chain",
-          "mechanism": "openCycle(cycleId, allocation) — six-role bps must sum to 10000, stored immutably → CycleOpened"
+          "mechanism": "openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened"
         },
         {
           "from": "Open",
@@ -1488,7 +1576,7 @@
           "from": "Reviewing",
           "to": "Reconciled",
           "layer": "on-chain",
-          "mechanism": "closeCycle (the reconcile act) → CycleClosed; commitment-level Reconciled derives from this event"
+          "mechanism": "closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event"
         },
         {
           "from": "Reconciled",
@@ -1500,7 +1588,7 @@
           "from": "Seeded | Open",
           "to": "Cancelled",
           "layer": "on-chain",
-          "mechanism": "cancelCycle(reasonCID) → CycleCancelled; Draft is discarded off-chain"
+          "mechanism": "cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain"
         }
       ]
     },
@@ -1509,7 +1597,7 @@
       "status": "spec",
       "vocabulary": "commitment-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
-      "note": "Direction-aware fulfillment: the party receiving the provider's work confirms by default (Offer → recipient, Request → creator); provider self-confirmation is blocked everywhere; disputes restore an explicitly stored prior state.",
+      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits > 0, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.",
       "states": [
         { "name": "Draft", "storage": "off-chain" },
         { "name": "Offered", "storage": "on-chain" },
@@ -1560,13 +1648,13 @@
           "from": "…",
           "to": "ReadyForConfirmation",
           "layer": "on-chain",
-          "mechanism": "automatic once every per-action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason"
+          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus pre-freeze totalVerifiedCredits > 0; contributor roster and credit ledger freeze atomically before the ready event"
         },
         {
           "from": "ReadyForConfirmation",
           "to": "Fulfilled",
           "layer": "on-chain",
-          "mechanism": "confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; provider excluded from every path"
+          "mechanism": "confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path"
         },
         {
           "from": "Fulfilled",
@@ -1596,7 +1684,7 @@
           "from": "Disputed",
           "to": "previous | Fulfilled | Cancelled | Expired",
           "layer": "on-chain",
-          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled"
+          "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved"
         }
       ]
     }

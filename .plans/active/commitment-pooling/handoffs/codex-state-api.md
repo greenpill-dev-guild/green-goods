@@ -21,7 +21,14 @@
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
-- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, positional `domains[]` / `requiredActionUIDs[]` / `requiredApprovedWorkCounts[]`, need, reward rail/source/token/amount, evidence and timing; claim preserves kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, assessment attach, Ready submission, and override remain explicit online mutations.
+- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
+  `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
+  rail/source/token/amount, evidence, and timing. DomainImpact creation never accepts caller-authored
+  domain tags; the contract derives them from ActionRegistry, while evidence-only types preserve
+  their optional validated tags. Evidence jobs serialize the explicit non-empty bounded
+  `creditedContributors` address vector and retry with the same vector; claim preserves
+  kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, contributor changes, roster freeze,
+  assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
   Kernel `0.2.4` on both testnets for same-address mechanics evidence and Kernel `0.3.1` on
@@ -32,11 +39,24 @@
   only the separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or
   provider-list presence cannot enable the production action.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
-- Direction-aware confirmation eligibility and provider exclusion.
+- Direction-aware confirmation eligibility with every frozen team member excluded.
 - Pool/cycle/commitment/dispute recovery selectors.
-- Per-action progress exposes `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` and canonical per-commitment `approvedUnits`; one `requirementIndex` can credit only its matching domain/action position.
-- Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
-- Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle` (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles require fulfilled lineage.
+- Per-action progress exposes `approvedCount / requiredCount`, the registry-derived domain tag,
+  credited contributors, and canonical per-commitment `approvedUnits`; one `requirementIndex` can
+  credit only its matching registered action requirement.
+- Pool/cycle selectors expose state counts, accepted-only `openCommitmentCount`, exact on-chain
+  `liveCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. W26 uses
+  `liveCommitmentCount` for close/cancel preflight because it includes Offered/Requested rows.
+  `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment
+  percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress
+  percentage.
+- Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique
+  `needUIDs`, certificate-scoped contributor allocation rows, and the immutable six-field
+  allocation snapshot accepted atomically by `openCycle`
+  (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles
+  require fulfilled lineage from one non-zero cycle whose current on-chain state is exactly
+  Reconciled. The shared composer used by W26 and `/hub/certify/create` rejects cycle zero and
+  every other state before allowlist or metadata construction.
 - Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
 - Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
 - Exported shared API with no client/admin hooks.
@@ -47,8 +67,26 @@
 - Mutations use the shared error pattern and event-driven invalidation.
 - Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
-- Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
+- Garden requests expose both canonical GardenAccount claimant and requestedBy operator;
+  Individual requests expose the same address for both. Runtime claim type cannot diverge from
+  the stored creation type. Claim preflight disables a creator-operated Garden request, and the
+  mutation maps the on-chain acceptance-time requester recheck to the same self-claim error.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
+- Ready selectors expose the non-zero verified-contributor gate and either the selected cycle's
+  already-opened recognition policy or the immutable cycle-less 20/80 default. Direct
+  `Disputed -> Fulfilled` resolution exposes the same gates and frozen-roster outcome.
+- Roster mutation selectors expose uncounted linked Work separately from approved Work/evidence
+  credit. Leave/remove remains disabled until all three are zero; unlink is available only to the
+  steward while the commitment is Accepted, unfrozen, and current Work credit is inactive,
+  including after a newer rejection reverses a historical approval.
+- Evidence selectors expose every attribution row but treat `evidenceCredits` as a 0-or-1
+  participation signal per contributor. Hypercert selectors join integer recognition units
+  through `(hypercertId, commitmentId, contributor)` and never read them from or write them onto
+  the commitment contributor row.
+- The shared payment snapshot helper ABI-encodes chain ID, plan ID, version, retention,
+  contributor total, and ordered
+  `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows exactly.
+  It accepts no child IDs or lifecycle fields, so preparation cannot change the hash.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
@@ -93,3 +131,17 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
 - Composite Garden replay proof is required before switching shared reads, but the live cutover itself is owned by `human-release-ops.md`.
 - Manual status.json gate is explicitly cleared.
 - RED proof is recorded before shared implementation; final GREEN includes targeted tests and typecheck.
+
+## Binding architecture amendment — 2026-07-28
+
+- Shared types/selectors must expose `leadProvider`, contributor policy/roster/freeze state,
+  repeatable requirement inputs versus derived stored fields, the evidence attribution index,
+  one-credit-per-Work state, 0-or-1 evidence participation credit, opened cycle policy or
+  cycle-less default, zero-eligible inconsistent-state blocking, certificate-scoped Hypercert
+  contributor units, recognition/payment snapshot hashes, garden retention, parent
+  finalization, stable plan pointer, and contributor child status.
+- Mutations cover online-only roster management before the ReadyForConfirmation freeze, atomic
+  full-vector payout saves, explicit payout-plan finalization, idempotent per-contributor
+  preparation, and child dispatch/recovery through the existing job queue. There is no
+  metadata-only recognition-repair mutation. Hooks remain in `@green-goods/shared`.
+- Keep recognition and payment as separate read models. Payment weights derive from amounts and may default from recognition, but a receipt is shown only from authenticated settlement confirmation. An all-retained finalized plan completes without creating a child receipt.

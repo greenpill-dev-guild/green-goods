@@ -40,7 +40,9 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 | **Season** | live | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
 | **Commitment Pool** | spec | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | spec |
 | **Commitment Cycle** | spec | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | spec |
-| **Commitment** | spec | A module-native promise record (offer or request) with direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | spec |
+| **Commitment** | spec | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | spec |
+| **Commitment Contributor** | spec | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | spec |
+| **Commitment Payout Plan** | spec | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | spec |
 
 ## Personas
 
@@ -328,6 +330,14 @@ Immutable claimant-eligibility class set at commitment creation; runtime claim k
 
 _Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `ClaimType`. The drift gate flags arrival so the status flips to live with declared representations._
 
+### `contributor-policy`
+
+How contributor membership is established before the commitment roster freezes.
+
+**Canonical members:** Open (0) · LeadManaged (1)
+
+_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `ContributorPolicy`. The drift gate flags arrival so the status flips to live with declared representations._
+
 ### `claim-mode`
 
 Whether claiming transitions immediately (Open) or awaits operator acceptance (ApprovalGated).
@@ -359,6 +369,14 @@ CommitmentRegister unit-class accounting states (non-transferable, ERC-1155-styl
 **Canonical members:** Registered (0) · Committed (1) · Released (2) · Fulfilled (3)
 
 _Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentRegister.sol` · `AccountingState`. The drift gate flags arrival so the status flips to live with declared representations._
+
+### `commitment-payout-plan-status`
+
+Derived progress of a frozen commitment payout plan across its contributor child disbursements.
+
+**Canonical members:** Draft (0) · Pending (1) · Partial (2) · Complete (3) · Failed (4)
+
+_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `PayoutPlanStatus`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ## EAS Schemas
 
@@ -461,7 +479,10 @@ Cross-layer invariants and where they are enforced. This catalog is documentatio
 - **`resolver-schema-pinning`** · existence · live — Each core resolver validates that incoming attestations use its pinned schema UID. _(enforced at: `packages/contracts/src/resolvers/Work.sol:87-95`, `packages/contracts/src/resolvers/WorkApproval.sol:115-123`, `packages/contracts/src/resolvers/Assessment.sol:98-106`)_
   - ⚠️ Hole: Schema validation is skipped while the stored schemaUID is zero (the deployment window) — a documented gap the commitment-pooling spec explicitly refuses to inherit (its module deploys fail-closed). _(`packages/contracts/src/resolvers/Work.sol:60-62`, `packages/contracts/src/resolvers/WorkApproval.sol:81-83`, `packages/contracts/src/resolvers/Assessment.sol:71-73`)_
 - **`pooling-allocation-bps-sum`** · sum · spec — The six-role allocation snapshot stored at cycle open must sum to exactly 10000 bps and is immutable for the cycle. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`pooling-provider-confirmation-disjoint`** · disjoint · spec — A commitment's unit provider is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator). _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
+- **`pooling-provider-confirmation-disjoint`** · disjoint · spec — Every member of a commitment's accountable lead/contributor team is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator). _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
+- **`pooling-recognition-allocation-sum`** · sum · spec — The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then the immutable cycle-open RecognitionPolicy allocates its equal-participation and verified-contribution components through separate deterministic remainder passes before the row results are added. The protocol default and immutable cycle-less preset are 20% equal / 80% verified, but an opened cycle may select any two values summing to 10000 bps. Zero eligible contributors block certificate expansion; there is no lead fallback. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
+- **`pooling-payout-plan-conservation`** · sum · spec — An explicitly finalized commitment payout plan conserves the declared support amount exactly: garden-retained amount plus all contributor child amounts equals the parent amount. A zero-child all-retained plan completes at finalization without a transfer. _(enforced at: `.plans/active/commitment-pooling/settlement-spec.md`)_
+- **`pooling-payout-plan-integrity`** · functional · spec — Each fulfilled commitment has at most one stable payout-plan pointer. The complete recognition vector matches its snapshot hash, payment weights derive from the atomic amount vector, finalization precedes dispatch, and child or batch cancellation never clears the parent pointer. _(enforced at: `.plans/active/commitment-pooling/settlement-spec.md`)_
 - **`pooling-one-open-season`** · functional · spec — A pool may have at most one open Season at a time (O(1) openSeasonCycleId guard); Campaigns may overlap freely. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
 - **`commitment-register-non-transferable`** · non-transferable · spec — CommitmentRegister unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
 
@@ -526,16 +547,16 @@ One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Su
 | From | To | Layer | Mechanism |
 |---|---|---|---|
 | Draft | Seeded | on-chain | seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet |
-| Seeded | Open | on-chain | openCycle(cycleId, allocation) — six-role bps must sum to 10000, stored immutably → CycleOpened |
+| Seeded | Open | on-chain | openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened |
 | Open | InProgress | derived | first CommitmentAccepted for the cycle OR block time ≥ startTime |
 | InProgress | Reviewing | derived | block time &gt; endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back |
-| Reviewing | Reconciled | on-chain | closeCycle (the reconcile act) → CycleClosed; commitment-level Reconciled derives from this event |
+| Reviewing | Reconciled | on-chain | closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event |
 | Reconciled | Composted | on-chain | compostCycle → CycleComposted |
-| Seeded \| Open | Cancelled | on-chain | cancelCycle(reasonCID) → CycleCancelled; Draft is discarded off-chain |
+| Seeded \| Open | Cancelled | on-chain | cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain |
 
 #### `commitment`
 
-Direction-aware fulfillment: the party receiving the provider's work confirms by default (Offer → recipient, Request → creator); provider self-confirmation is blocked everywhere; disputes restore an explicitly stored prior state.
+Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits &gt; 0, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.
 
 | State | Storage |
 |---|---|
@@ -560,13 +581,13 @@ Direction-aware fulfillment: the party receiving the provider's work confirms by
 | Accepted | Active | derived | first WorkLinked or EvidenceAttached after acceptance |
 | Active | EvidenceSubmitted | derived | any EvidenceAttached or WorkLinked event |
 | EvidenceSubmitted | PartiallyApproved | derived | ApprovedWorkCounted with some requirement counters below their required counts |
-| … | ReadyForConfirmation | on-chain | automatic once every per-action requirement is met and any declared assessment attached; submitForConfirmation for no-work-requirement types; steward markReadyForConfirmation with reason |
-| ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; provider excluded from every path |
+| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus pre-freeze totalVerifiedCredits &gt; 0; contributor roster and credit ledger freeze atomically before the ready event |
+| ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path |
 | Fulfilled | Reconciled | derived | CycleClosed for the commitment's cycle (or PoolClosed when cycle-less) |
 | … | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
 | … | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted \| ReadyForConfirmation \| Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled |
+| Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
 
 ## Known Issues
 
