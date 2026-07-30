@@ -733,7 +733,7 @@ The earlier planning model accidentally collapsed fulfillment into one provider 
 
 The corrected model keeps one accountable lead while adding a contribution-bearing roster. Only the lead consumes the register slot; every contributor may link approved Work or evidence while the commitment is Accepted and unfrozen; Fulfilled is the additional recognition-eligibility gate. The roster and credit ledger freeze atomically on the transition to ReadyForConfirmation, and the whole team is excluded from confirmation. DomainImpact now uses repeatable action/count inputs containing only `actionUID` and `requiredCount`; stored domain and approval counters remain module-derived, and any implementation ceiling is set only after the named gas/indexer benchmark.
 
-Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead or metadata-only fallback: every Ready transition and direct Fulfilled dispute resolution requires an available recognition policy plus at least one verified contributor, while W26 blocks inconsistent legacy/indexed zero-eligible state. Evidence fulfillment loads a bounded commitment attribution index rather than scanning, evidence jobs persist their explicit credited-contributor vector, and each Work UID produces at most one credit even when multiple approval attestations exist. Recognition weights remain separate from payment and do not transfer funds.
+Hypercert and settlement semantics are now explicit. The gardener class gives each fulfilled commitment an equal budget, then shares 20% equally among eligible contributors and allocates 80% by verified contribution. There is no lead or metadata-only fallback: every Ready transition and direct Fulfilled dispute resolution requires an available recognition policy plus at least one verified contributor, while W26 blocks inconsistent legacy/indexed zero-eligible state. Evidence fulfillment loads a bounded commitment attribution index rather than scanning, evidence jobs persist their explicit credited-contributor vector, each contributor receives at most one evidence-derived recognition participation credit, and each Work UID produces at most one reviewed credit even when multiple approval attestations exist. Commitment bps remain stable while integer units are certificate-scoped; recognition remains separate from payment and does not transfer funds.
 
 The provider garden Safe is the payout boundary. Plan creation verifies the complete recognition vector against its hash; the canonical full-reward integer allocation is rounding-equivalent without a reason, while noncanonical amount or retention edits require a reason. Explicit finalization proves retained-plus-payout conservation, creates no child, completes all-retained plans without CCIP, and makes the plan immutable. A later idempotent preparation materializes one queued child per payable frozen row. Child or batch cancellation preserves the one-plan-per-commitment pointer, while a failed child never reverses fulfillment, recognition, or successful siblings.
 
@@ -757,9 +757,10 @@ configuration slot. The existing Hats runtime comment is aligned with its genera
 `gardenHats` is slot 161 and `gardensModule` is slot 162.
 
 Evidence now has an on-chain `evidenceCount`, exact `(commitmentId, cidHash)` de-duplication, and a
-non-empty, unique, measured-bounded credited-contributor list. Each active contributor's
-`evidenceCredits` increments once at attachment. Eligibility additionally requires the commitment
-to be Fulfilled, so recorded attribution cannot be mistaken for verified completion.
+non-empty, unique, measured-bounded credited-contributor list. Each active contributor's first
+attribution changes `evidenceCredits` from 0 to 1; later distinct CIDs remain provenance without
+increasing recognition. Eligibility additionally requires the commitment to be Fulfilled, so
+recorded attribution cannot be mistaken for verified completion.
 
 Payout-plan creation and draft edits create no disbursement. Finalization verifies and freezes the
 complete vectors but also creates no disbursement. The separate

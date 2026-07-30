@@ -66,7 +66,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 4. **Two-contract shape** (register #15, register #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegister` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so transferable settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
 5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkDecision(...)` for both approved and rejected decisions in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Steward-callable `syncWorkDecisions` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: an active contributor, accountable lead, or resolved pool steward links workUID to commitmentId before a roster freeze. The module applies the deterministic latest valid decision and freezes that effective credit at ReadyForConfirmation.
 6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
-7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
+7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). Neither identity may equal the commitment creator; ApprovalGated acceptance rechecks the stored requester. The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
 8. **Rewards are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit reward rail, token, and amount. `ArbitrumExternal` also stores its exact source for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores a zero source at creation because a protocol-pool Request has no provider garden yet; after acceptance the SettlementModule derives and stores the selected provider garden Safe as payer. That rail is ineligible for `recordRewardPaid`; protocol-to-garden support first names the provider garden, then the garden Safe funds a conserved parent plan with an explicit retained amount and contributor child payouts. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
 9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
 10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and StewardCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
@@ -143,7 +143,7 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 |---|---|---|
 | Draft (exists) | off-chain | Client/admin IndexedDB draft (offline-first). |
 | Draft -> Offered or Requested | on-chain | `createCommitment(params)`. Event `CommitmentCreated` (direction Offer or Request sets the initial state). |
-| Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` consumes the canonical claimant-keyed terms and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Register records committed units (`UnitsCommitted`). |
+| Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`; either identity matching the creator reverts. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` rechecks the stored requester against the creator, consumes the canonical claimant-keyed terms, and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Register records committed units (`UnitsCommitted`). |
 | Accepted -> Active | derived | First `WorkLinked` or `EvidenceAttached` after acceptance. |
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
@@ -362,7 +362,7 @@ interface ICommitmentPoolingModule {
         uint256 targetUnits;
         uint32 contributorCount;
         uint32 eligibleContributorCount; // contributors with pre-freeze credit; recognition additionally requires Fulfilled
-        uint64 totalVerifiedCredits;      // approved Work + evidence credits, for canonical recognition validation
+        uint64 totalVerifiedCredits;      // approved Work + at most one evidence participation credit per contributor
         uint32 evidenceCount;
         bool contributorsFrozen;
         uint32 confirmationThreshold;    // N of the named group; 1 under the counterparty default
@@ -415,7 +415,7 @@ interface ICommitmentPoolingModule {
         bool active;
         uint32 uncountedLinkedWorkCount;
         uint32 approvedWorkCredits;
-        uint32 evidenceCredits;
+        uint32 evidenceCredits;           // canonical 0-or-1 recognition credit; evidence provenance remains repeatable
     }
 
     struct RecognitionEntry {
@@ -634,7 +634,7 @@ interface ICommitmentPoolingModule {
     error NotEligibleClaimant(address claimant);
     error ClaimModeMismatch(uint256 commitmentId);
     error ClaimTypeMismatch(uint256 commitmentId, ClaimType expected, ClaimType actual);
-    error SelfCounterparty(); // creator cannot claim their own commitment
+    error SelfCounterparty(); // creator cannot be the canonical claimant or authenticated Garden requester
     error SelfConfirmation(); // provider cannot confirm own fulfillment (WorkApproval SelfAttestation precedent)
     error NotConfirmer(address caller);
       error AlreadyConfirmed(address confirmer);
@@ -763,7 +763,8 @@ interface ICommitmentPoolingModule {
     ///         hat in gardenContext; claimant = requestedBy = counterparty = caller.
     ///         ClaimMode.Open transitions to Accepted; ApprovalGated only emits
     ///         ClaimRequested and persists one pending request per canonical claimant.
-    ///         Creator cannot claim own commitment.
+    ///         Creator cannot be the canonical claimant or, for a Garden
+    ///         claim, its authenticated requestedBy caller.
     function claimCommitment(uint256 commitmentId, ClaimType kind, address gardenContext) external;
 
     /// @notice Gating: pool steward. ApprovalGated acceptance path; validates
@@ -864,8 +865,10 @@ interface ICommitmentPoolingModule {
     ///         commitment must still be Accepted and its roster/credit ledger
     ///         unfrozen. The non-empty exact CID may be attached only once per
     ///         commitment. The credited list is non-empty, unique, bounded,
-    ///         and every address must be active. Credits are recorded now and
-    ///         become recognition-eligible only after Fulfilled.
+    ///         and every address must be active. The first evidence attribution
+    ///         for a contributor sets their recognition credit from 0 to 1;
+    ///         later distinct evidence remains provenance and adds no weight.
+    ///         The credit becomes recognition-eligible only after Fulfilled.
     ///         Offline-queueable; a job that lands after freeze fails visibly
     ///         and never changes credit.
     function attachEvidence(
@@ -1006,8 +1009,8 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID; `liveCommitmentCount == 0` |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements |
 | Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source plus canonical G$ token because its payer is derived from the accepted provider garden |
-| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; claimant != creator; Open accepts, ApprovalGated emits `ClaimRequested` |
-| Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext and re-validates eligibility |
+| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
+| Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible member | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
@@ -1017,7 +1020,7 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while the approval is not yet counted |
 | Linkage | `onWorkDecision` | WorkApprovalResolver only | never reverts; applies only the newer effective pre-freeze decision |
 | Linkage | `syncWorkDecisions` | steward | verifies decision history on EAS and the resolver-owned non-zero sequence; dedupes and converges by greatest sequence |
-| Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active |
+| Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active; each contributor receives at most one evidence-derived recognition credit per commitment |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
 | Confirmation | `submitForConfirmation` | counterparty, creator, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected |
 | Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
@@ -1083,9 +1086,10 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   specified reasoned correction that preserves attribution and confirmation exclusion, not the
   roster edit API. Membership,
   requirement assignment, Work credit, and evidence credit are distinct. Assignment expresses
-  planned responsibility only. Work credit is derived from the approved Work attester; evidence
-  credit is recorded once when the exact CID is attached and contributes to eligibility only
-  after the commitment is fulfilled.
+  planned responsibility only. Work credit is derived from the approved Work attester; a
+  contributor's first evidence attribution records one participation credit, while later
+  distinct evidence remains provenance without increasing recognition weight. That 0-or-1
+  evidence credit contributes to eligibility only after the commitment is fulfilled.
   The transition to ReadyForConfirmation emits `ContributorRosterFrozen` atomically before the
   ready event and freezes both roster membership and contribution-credit accounting. No
   add/remove/assignment, new evidence credit, new Work link, or late approval credit is valid
@@ -1093,8 +1097,10 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 - **Evidence identity and bounded crediting**: `attachEvidence` rejects an empty CID, hashes the exact CID bytes, and
   rejects a repeated `(commitmentId, cidHash)` before any counter or event mutation. It requires
   1 through `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` unique active contributors, increments
-  `Commitment.evidenceCount` once, and increments each credited contributor's `evidenceCredits`
-  once only while the commitment is on-chain Accepted and `contributorsFrozen == false`; a queued
+  `Commitment.evidenceCount` once. For each credited contributor, the first attribution changes
+  `evidenceCredits` from 0 to 1 and increments `totalVerifiedCredits`; later distinct CIDs create
+  indexed provenance rows but do not increment either recognition counter. All attribution must
+  land while the commitment is on-chain Accepted and `contributorsFrozen == false`; a queued
   attachment that lands after freeze reverts without writing the CID or any credit. The
   provisional bound is 32 and must be checked against 8/16/24/32 gas and event-payload
   benchmarks before implementation freezes it. The bound is transaction safety, not a product
@@ -1107,7 +1113,10 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   `closeCycle` and `cancelCycle` require the O(1) count to be zero, which forces stewards to
   confirm, cancel, or expire every cycle commitment before reconciliation or cycle cancellation
   and prevents a later fulfillment from changing the certified recognition set.
-- **Self-checks**: `claimCommitment` reverts `SelfCounterparty` when claimant == creator.
+- **Self-checks**: `claimCommitment` reverts `SelfCounterparty` when the canonical claimant equals
+  the creator or when a Garden claim's authenticated `requestedBy` caller equals the creator.
+  `acceptClaim` repeats the latter check against the stored pending request before consuming it,
+  so neither Open nor ApprovalGated Garden claims provide a creator-self-claim bypass.
   `confirmFulfillment` and fallback confirmation revert `SelfConfirmation` for every active
   contributor in the frozen roster, mirroring the existing WorkApproval separation-of-duties
   rule rather than checking only one provider.
@@ -1125,7 +1134,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   `Fulfilled` are terminal register states, so a module upgrade or erroneous repeat call cannot
   reacquire or release the slot. Offered/Requested never release. Raising or restoring a dispute
   makes no register call and preserves the pre-dispute slot state.
-- **Canonical claim identity + traceability**: creation-time `claimType` is immutable eligibility; `claimCommitment` reverts `ClaimTypeMismatch` when runtime `kind` differs. Individual: `claimant = requestedBy = msg.sender`. Garden: `claimant = gardenContext`, `requestedBy = msg.sender`, after operator/owner authorization. Open accepts immediately and derives the Garden Request lead from that authenticated caller without creating a pending row. ApprovalGated stores `{claimant, requestedBy, kind, gardenContext, requestedAt, active}` keyed by `(commitmentId, canonical claimant)`, rejects an active duplicate, and later `acceptClaim`/`declineClaim` consume that exact key. Envio marks accepted and sibling requests without an arbitrary scan.
+- **Canonical claim identity + traceability**: creation-time `claimType` is immutable eligibility; `claimCommitment` reverts `ClaimTypeMismatch` when runtime `kind` differs. Individual: `claimant = requestedBy = msg.sender`. Garden: `claimant = gardenContext`, `requestedBy = msg.sender`, after operator/owner authorization. Both identities are checked against the creator, so the creator cannot hide behind an operated GardenAccount. Open accepts immediately and derives the Garden Request lead from that authenticated caller without creating a pending row. ApprovalGated stores `{claimant, requestedBy, kind, gardenContext, requestedAt, active}` keyed by `(commitmentId, canonical claimant)`, rejects an active duplicate, and later `acceptClaim` revalidates the stored requester before it or `declineClaim` consumes that exact key. Envio marks accepted and sibling requests without an arbitrary scan.
 - **Provider-garden anchor**: acceptance stores `providerGarden` (Offer: pool garden; Request:
   accepted claimant's validated gardenContext) and emits both `leadProvider` and `providerGarden`
   in `CommitmentAccepted`. DomainImpact Work must use a required action, resolve its Work attester
@@ -1190,8 +1199,10 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   runs after either effective transition and can occur only after all decision effects in that
   transaction have been applied.
 - **Canonical recognition validation**: the module maintains `eligibleContributorCount` when a
-  contributor receives their first verified credit and `totalVerifiedCredits` on every
-  de-duplicated credit. Cycle-scoped commitments may enter ReadyForConfirmation or resolve a
+  contributor receives their first verified credit and `totalVerifiedCredits` for each active
+  approved Work credit plus each contributor's first evidence participation credit. Additional
+  evidence attributed to the same contributor does not change either counter. Cycle-scoped
+  commitments may enter ReadyForConfirmation or resolve a
   dispute as Fulfilled only after their cycle is Open and its two-part policy is snapshotted.
   Cycle-less commitments use the immutable protocol policy returned by
   `cyclelessRecognitionPolicy()` (2_000 equal / 8_000 verified). After fulfillment,
@@ -2271,11 +2282,26 @@ type CommitmentContributor {
   uncountedLinkedWorkCount: Int!
   requirementIndexes: [Int!]!
   recognitionWeightBps: Int
-  recognitionUnits: BigInt
   addedBy: String!
   addedAt: Int!
   removedBy: String
   removedAt: Int
+  updatedAt: Int!
+}
+
+type HypercertCommitmentContributorAllocation {
+  id: ID! # chainId-hypercertId-commitmentId-lowercaseContributor
+  chainId: Int!
+  hypercertId: BigInt!
+  hypercertEntityId: String!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  contributorEntityId: String!
+  recognitionWeightBps: Int!
+  commitmentGardenersClassUnits: BigInt!
+  recognitionUnits: BigInt!
+  createdAt: Int!
   updatedAt: Int!
 }
 
@@ -2452,14 +2478,16 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `WorkUnlinked` loads that attribution before mutation, decrements the contributor's uncounted
   count only when the linked row has no active credit, then records the unlink actor/time.
   `ContributorRosterFrozen` locks the read model. Every
-  `EvidenceAttached` event increments the commitment's `evidenceCount` exactly once, then walks
+  `EvidenceAttached` increments the commitment's `evidenceCount` exactly once, then walks
   `creditedContributors` in emitted order. For each address it upserts the
   `(commitmentId, cid, contributor)` attribution row, appends that row ID exactly once to
-  `CommitmentEvidenceAttributionIndex.attributionEntityIds`, and increments that contributor's
-  `evidenceCredits` exactly once. Work events separately increment the named contributor's
-  `approvedWorkCredits`. Fulfillment loads the bounded attribution index and marks each referenced
-  attribution confirmed, never using a database-wide scan. The indexer never increments
-  on-chain-style contributor credits again at fulfillment.
+  `CommitmentEvidenceAttributionIndex.attributionEntityIds`, and mirrors the emitted ledger
+  semantics: only the contributor's first evidence attribution changes `evidenceCredits` from
+  0 to 1; later distinct CIDs remain separately queryable provenance without adding recognition
+  weight. Work events separately increment the named contributor's `approvedWorkCredits`.
+  Fulfillment loads the bounded attribution index and marks each referenced attribution
+  confirmed, never using a database-wide scan. The indexer never increments on-chain-style
+  contributor credits again at fulfillment.
 - **Address normalization**: `normalizeAddress` for every address field (`helpers.ts:68-70`). Generic `CommitmentEvent.actor` is nullable and is populated only from an explicit actor parameter; never infer account-abstraction identity from `transaction.from`.
 - **Effective Work-credit delta**: `ApprovedWorkCounted` loads the durable Work attribution,
   transitions `creditActive` false → true, stores the emitted non-zero sequence and decision UID,
@@ -2532,7 +2560,21 @@ enum HypercertBundleKind { WORK_LEGACY COMMITMENT }
 #   needUIDs: [String!]                  (ascending unique non-zero UIDs from bundled commitments)
 ```
 
-Populated by extending `parseHypercertMetadata` in the ClaimStored handler (`packages/indexer/src/handlers/hypercerts.ts:131-177`); absent or unrecognized metadata resolves to `WORK_LEGACY`.
+`recognitionWeightBps` remains on `CommitmentContributor` because it is fixed by that commitment's
+frozen credits and immutable cycle policy. Integer `recognitionUnits` is certificate-specific
+because each Hypercert supplies a different gardeners-class unit budget, so it lives only on
+`HypercertCommitmentContributorAllocation`, keyed by
+`chainId-hypercertId-commitmentId-lowercaseContributor`. The row stores the Hypercert and
+commitment relationship IDs, contributor relationship, stable bps weight, that commitment's
+gardeners-class unit budget, and the resulting integer units.
+
+The ClaimStored metadata handler extends `parseHypercertMetadata`
+(`packages/indexer/src/handlers/hypercerts.ts:131-177`) to populate the bundle fields; absent or
+unrecognized metadata resolves to `WORK_LEGACY`. For a `COMMITMENT` bundle, the same
+replay-idempotent handler runs the canonical §9.3 expansion and upserts one
+`HypercertCommitmentContributorAllocation` row per commitment/contributor result. A later
+certificate containing the same commitment creates rows under its own Hypercert key and never
+overwrites commitment-level weights or a prior certificate's units.
 
 ### 9.3 Allocation classes
 
@@ -2605,6 +2647,11 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
   indexed Hypercert with `bundleKind: COMMITMENT` and populated `commitmentIds`, and rejects any
   `cycleId == 0` selection before metadata or allowlist construction. A legacy mint still resolves
   `WORK_LEGACY`.
+- Every COMMITMENT-bundle mint persists certificate-scoped
+  `HypercertCommitmentContributorAllocation` rows. Minting a second certificate containing the
+  same fulfilled commitment creates distinct rows and may produce different `recognitionUnits`
+  without overwriting the stable commitment-level `recognitionWeightBps` or the first
+  certificate's allocations.
 - Cycle-open bps snapshot drives the allowlist; each commitment's integer unit expansion uses the
   specified floor plus descending fractional-remainder/ascending-address pass and conserves its
   assigned budget exactly, including a one-unit budget shared across multiple contributors.
@@ -2615,6 +2662,10 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
   canonical on-chain credit before expansion. Once every fulfilled commitment has an eligible
   contributor, the result sums exactly to the gardeners-class units.
 - No change to `HypercertsModule` bytecode; `createAllowlistAndRegister` call shape is identical.
+- Contract tests cover Garden claims where the creator is the authenticated operator for both
+  Open and ApprovalGated modes, including the acceptance-time requester recheck. Evidence tests
+  attach multiple distinct CIDs to one contributor and prove their evidence-derived recognition
+  credit remains 1, while the first attribution to a second contributor adds exactly one credit.
 
 ## 10. Package-Level Backlog
 

@@ -745,7 +745,8 @@ from racing an otherwise dispatchable command.
 `commitment.providerGarden`, including a garden that claims a protocol-pool commitment.
 `executorGarden = providerGarden`. The Arbitrum GardenAccount is attribution only and never a G$
 recipient. A plan accepts only contributors from the commitment's frozen eligible roster
-(`approvedWorkCredits + evidenceCredits > 0`). Each contributor recipient derives from
+(`approvedWorkCredits + evidenceCredits > 0`, where `evidenceCredits` is the canonical 0-or-1
+participation credit and never the number of evidence CIDs). Each contributor recipient derives from
 the shared Celo account profile; callers never type an arbitrary recipient. Creation receives the
 complete sorted Hypercert recognition vector and calls
 `CommitmentPoolingModule.validateRecognitionSnapshot`. That view requires the complete eligible

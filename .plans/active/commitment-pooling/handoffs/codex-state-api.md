@@ -46,7 +46,8 @@
   credit only its matching registered action requirement.
 - Pool/cycle selectors expose state counts, `openCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress percentage.
 - Hypercert metadata composer plus `bundleKind`, fulfilled `commitmentIds`, ascending unique
-  `needUIDs`, and the immutable six-field allocation snapshot accepted atomically by `openCycle`
+  `needUIDs`, certificate-scoped contributor allocation rows, and the immutable six-field
+  allocation snapshot accepted atomically by `openCycle`
   (never `seedCycle`). Legacy `WORK_LEGACY` bundles remain readable; new commitment bundles
   require fulfilled lineage from one non-zero cycle and reject every `cycleId == 0` selection
   before allowlist or metadata construction because no six-role allocation snapshot exists.
@@ -60,7 +61,10 @@
 - Mutations use the shared error pattern and event-driven invalidation.
 - Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
-- Garden requests expose both canonical GardenAccount claimant and requestedBy operator; Individual requests expose the same address for both. Runtime claim type cannot diverge from the stored creation type.
+- Garden requests expose both canonical GardenAccount claimant and requestedBy operator;
+  Individual requests expose the same address for both. Runtime claim type cannot diverge from
+  the stored creation type. Claim preflight disables a creator-operated Garden request, and the
+  mutation maps the on-chain acceptance-time requester recheck to the same self-claim error.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
 - Ready selectors expose the non-zero verified-contributor gate and either the selected cycle's
   already-opened recognition policy or the immutable cycle-less 20/80 default. Direct
@@ -68,6 +72,10 @@
 - Roster mutation selectors expose uncounted linked Work separately from approved Work/evidence
   credit. Leave/remove remains disabled until all three are zero; unlink is available only to the
   steward while the commitment is Accepted, unfrozen, and that Work has not been counted.
+- Evidence selectors expose every attribution row but treat `evidenceCredits` as a 0-or-1
+  participation signal per contributor. Hypercert selectors join integer recognition units
+  through `(hypercertId, commitmentId, contributor)` and never read them from or write them onto
+  the commitment contributor row.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
@@ -117,8 +125,9 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
 
 - Shared types/selectors must expose `leadProvider`, contributor policy/roster/freeze state,
   repeatable requirement inputs versus derived stored fields, the evidence attribution index,
-  one-credit-per-Work state, opened cycle policy or cycle-less default, zero-eligible
-  inconsistent-state blocking, recognition/payment snapshot hashes, garden retention, parent
+  one-credit-per-Work state, 0-or-1 evidence participation credit, opened cycle policy or
+  cycle-less default, zero-eligible inconsistent-state blocking, certificate-scoped Hypercert
+  contributor units, recognition/payment snapshot hashes, garden retention, parent
   finalization, stable plan pointer, and contributor child status.
 - Mutations cover online-only roster management before the ReadyForConfirmation freeze, atomic
   full-vector payout saves, explicit payout-plan finalization, idempotent per-contributor

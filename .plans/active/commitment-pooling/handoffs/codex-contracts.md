@@ -77,15 +77,18 @@
   cannot change progress, units, credit, or recognition. Domain tags are derived from
   ActionRegistry and may repeat across rows.
 - The accountable lead is stored once at acceptance (`Offer -> creator`; non-Garden `Request ->
-  counterparty`; Garden-claimed `Request -> authenticated pending claim.requestedBy`, while the
-  GardenAccount remains counterparty and provider scope)
+  counterparty`; Garden-claimed `Request -> authenticated Open caller or consumed ApprovalGated
+  pending claim.requestedBy`, while the GardenAccount remains counterparty and provider scope)
   and is the only unit account and open-commitment-count subject. The active contributor roster
   begins with that lead, preserves Work/evidence attribution, freezes roster and credit
   accounting before confirmation, and is wholly excluded from confirmation. Garden claims use
   gardeners/operators of `providerGarden`; `addContributor` applies the same resolved
   provider-garden membership predicate as self-join and Work attribution, so a lead/steward
   cannot add an arbitrary external address. Tests prove an eligible member succeeds and a
-  non-member reverts before roster, confirmer, credit, or event mutation.
+  non-member reverts before roster, confirmer, credit, or event mutation. A creator who operates
+  a GardenAccount cannot request their own commitment through that garden: `claimCommitment`
+  checks both canonical claimant and authenticated requester, and `acceptClaim` rechecks the
+  stored ApprovalGated requester before mutation.
   UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
   exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
   retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
@@ -161,10 +164,12 @@
 - RED: add focused tests in test/unit/CommitmentPooling.t.sol and
   test/unit/CommitmentRegister.t.sol; include write-once Accepted-and-unfrozen assessment
   attachment (replacement and post-freeze rejection), contributor-steward direct-dispute
-  Fulfilled rejection, Garden-Request `requestedBy` lead accounting, evidence-only
-  `requirements.length == 0`, and cycle-less Hypercert-composer rejection while recognition
-  validation remains available for payout defaults. Run them before implementation and record
-  the expected behavioral failures.
+  Fulfilled rejection, Garden-Request `requestedBy` lead accounting, creator-operated Garden
+  rejection in both Open and ApprovalGated modes (including acceptance-time revalidation),
+  evidence-only `requirements.length == 0`, one evidence-derived recognition credit per
+  contributor across multiple distinct CIDs, and cycle-less Hypercert-composer rejection while
+  recognition validation remains available for payout defaults. Run them before implementation
+  and record the expected behavioral failures.
 - GREEN: run the same files after the minimum implementation, then storage, script, and full contract checks.
 
 ## Exact Bun commands
@@ -272,9 +277,12 @@ every conflicting state. Broadcast remains outside this handoff.
   sequence plus audit UID, but treat the generated compiler baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
-  measured-bounded credited list, and may increment `evidenceCount`/`evidenceCredits` only while
-  the commitment is Accepted and unfrozen. A queued job that lands after freeze fails without a
-  partial write. `isEligibleContributor` additionally requires `Fulfilled`.
+  measured-bounded credited list, and may mutate recognition credit only while the commitment is
+  Accepted and unfrozen. `evidenceCount` still records every distinct evidence object, but each
+  contributor's first attribution alone changes `evidenceCredits` from 0 to 1 and increments
+  `totalVerifiedCredits`; later CIDs remain provenance without multiplying recognition. A queued
+  job that lands after freeze fails without a partial write. `isEligibleContributor` additionally
+  requires `Fulfilled`.
 - The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark selects the transaction-safe value. It is not a semantic team-size cap.
 - `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector bound (provisional 32);
   add/join reject max-plus-one before mutation. Open contributors may self-leave only before
@@ -305,8 +313,10 @@ every conflicting state. Broadcast remains outside this handoff.
   Disputed remain live, and `closeCycle` plus `cancelCycle` require the O(1) count to be zero.
 - Garden-claimed Requests use the authenticated Open `claimCommitment` caller or the consumed
   ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
-  GardenAccount as counterparty/provider scope. CeloSettlement declarations require source zero;
-  the accepted provider-garden Safe becomes authoritative only in SettlementModule.
+  GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
+  checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
+  declarations require source zero; the accepted provider-garden Safe becomes authoritative only
+  in SettlementModule.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
   than trust a caller-selected vector/hash. Hypercert composition uses it only for non-zero-cycle

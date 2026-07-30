@@ -659,7 +659,9 @@ erDiagram
   COMMITMENT ||--o{ COMMITMENT_CONTRIBUTOR : "lead plus active/removed contributors"
   COMMITMENT ||--o| COMMITMENT_CONTRIBUTOR_INDEX : "stable direct lookup"
   COMMITMENT_CONTRIBUTOR_INDEX ||--o{ COMMITMENT_CONTRIBUTOR : "contributor IDs"
-  COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "evidence credit; eligible after fulfillment"
+  COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "repeatable provenance; first row grants one recognition credit"
+  HYPERCERT ||--o{ HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION : "certificate-scoped units"
+  COMMITMENT_CONTRIBUTOR ||--o{ HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION : "stable commitment weight"
   COMMITMENT_POOL |o--o{ COMMITMENT_EVENT : "audit trail; poolId is null for pool-less authority and configuration events"
   COMMITMENT_CYCLE |o--o{ COMMITMENT_EVENT : "cycle events"
   COMMITMENT |o--o{ COMMITMENT_EVENT : "commitment events"
@@ -784,7 +786,9 @@ erDiagram
   COMMITMENT ||--o{ COMMITMENT_CONTRIBUTOR : "roster"
   COMMITMENT ||--o| COMMITMENT_CONTRIBUTOR_INDEX : "direct roster lookup"
   COMMITMENT_CONTRIBUTOR_INDEX ||--o{ COMMITMENT_CONTRIBUTOR : "stable contributor IDs"
-  COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "evidence credit"
+  COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "repeatable provenance; first attribution grants one credit"
+  HYPERCERT ||--o{ HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION : "certificate-scoped units"
+  COMMITMENT_CONTRIBUTOR ||--o{ HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION : "stable commitment weight"
   COMMITMENT ||--o| COMMITMENT_EVIDENCE_ATTRIBUTION_INDEX : "direct evidence lookup"
   COMMITMENT_EVIDENCE_ATTRIBUTION_INDEX ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "stable attribution IDs"
   NEED_COMMITMENT_INDEX |o--o{ COMMITMENT : "zero or many commitments for one non-zero needUID"
@@ -841,9 +845,19 @@ erDiagram
     Boolean isLead "accountability flag"
     Int uncountedLinkedWorkCount "linked Work awaiting first countable approval"
     Int approvedWorkCredits "verified Work count"
-    Int evidenceCredits "attached evidence count; eligible only after fulfillment"
+    Int evidenceCredits "0-or-1 evidence participation credit; eligible only after fulfillment"
     Int[] requirementIndexes "optional assignments; not credit"
     Int recognitionWeightBps "final certificate weight"
+  }
+
+  HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION {
+    ID id "chainId-hypercertId-commitmentId-contributor"
+    BigInt hypercertId "certificate relationship key"
+    BigInt commitmentId "commitment relationship key"
+    String contributor "normalized address"
+    Int recognitionWeightBps "stable commitment weight"
+    BigInt commitmentGardenersClassUnits "certificate-specific commitment budget"
+    BigInt recognitionUnits "certificate-specific contributor units"
   }
 
   COMMITMENT_CONTRIBUTOR_INDEX {
@@ -1059,11 +1073,11 @@ flowchart LR
     FUL["Fulfilled Commitment<br/>immutable terms + exact unitLabel"]
     LINEAGE["NeedCommitmentIndex<br/>Need UID + fulfilled lineage"]
     EVIDENCE["Approved Work + evidence links"]
-    TEAM["Eligible contributors on Fulfilled commitment<br/>approved Work or evidence credit"]
+    TEAM["Eligible contributors on Fulfilled commitment<br/>approved Work or one evidence participation credit"]
     POLICY["Gardener split policy<br/>cycle RecognitionPolicy · default 20/80"]
     COMPOSE["Commitment certificate composer<br/>bundleKind=COMMITMENT"]
     BPS["Six BPS classes<br/>gardener class expands to contributors"]
-    HCIDX["Hypercert read-model delta<br/>commitmentIds · needUIDs · bundleKind"]
+    HCIDX["Hypercert read-model delta<br/>commitmentIds · needUIDs · bundleKind<br/>certificate-scoped contributor allocation rows"]
   end
 
   WORK --> IPFS
