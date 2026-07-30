@@ -6,12 +6,12 @@ import {
   STORYBOOK_OPERATOR_ADDRESS,
 } from "../../../../shared/.storybook/adminFixtures";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
-import { FIXTURE_IMAGE_PROFILE } from "../../../../shared/.storybook/fixtures";
 import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 
+const PROFILE_AVATAR_URI = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd";
 const PROFILE_AVATAR = {
   address: STORYBOOK_OPERATOR_ADDRESS,
-  avatarUri: FIXTURE_IMAGE_PROFILE,
+  avatarUri: PROFILE_AVATAR_URI,
   chainId: DEFAULT_CHAIN_ID,
   updatedAt: "2026-07-29T00:00:00.000Z",
   version: 1,
