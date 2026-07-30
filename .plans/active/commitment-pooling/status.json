@@ -57,7 +57,7 @@
         "milestone": "release"
       }
     },
-    "lastSyncedAt": "2026-07-28T09:14:53Z",
+    "lastSyncedAt": "2026-07-29T08:14:48.210Z",
     "lastSyncPreviewAt": "2026-07-20",
     "consolidatedTrackers": {
       "note": "Historical aggregate trackers remain for context; thin execution sub-lane issues are the current dispatch mirrors. Lane content and proof remain in this hub. linear.lastSyncedAt intentionally records the last completed external write/re-read and is not advanced by local review corrections; live convergence must update it only after verified Linear/source-document writes.",
@@ -101,7 +101,7 @@
     "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in ../../backlog/commitment-credit-follow-on/spec.md, not part of the Build phase, and not dispatchable without an explicit unblock.",
     "Plan-hub machine lanes are intentionally canonical: contracts, state_api, ui, qa_pass_1, qa_pass_2. Detailed execution sub-lanes live in execution_sub_lanes and plan.todo.md; do not add custom keys to lanes unless plan-hub supports them.",
     "linear.laneSyncMode is lane_issues (register #37, 2026-07-20, supersedes register #31 and Decision Log #20): each execution sub-lane carries a THIN Linear issue of roughly three lines plus a handoff link. Linear owns status, dates, assignee, and dependencies; this hub owns content, and lane bodies must not restate handoff scope. PRD-650 remains the parent of the lane issues; PRD-686 (settlement) and PRD-682 (community) context stays in consolidatedTrackers and execution_sub_lanes.",
-    "Approved dependency order as of 2026-07-28 is Envio foundation -> PRD-747/748 Steward contract/live-hat closure -> PRD-762 signed offchain app avatars -> Afo architecture freeze -> contracts/indexer/shared -> authorized non-value broadcast and live indexer read-back -> scoped existing-admin/UI foundation -> runtime client/admin/editorial -> develop/staging QA Pass 1 -> documentation polish -> QA Pass 2 -> walkthrough videos. PRD-747/748 acceptance completed on 2026-07-28: Sepolia and Arbitrum HatsModule upgrades passed focused verification, all 18 Arbitrum live hats were relabeled, the fixed-block re-read returned zero failures, and the official Hats app visibly rendered the exact Steward label for three sampled gardens. Only branch review and merge hygiene remain. PRD-575 GreenWill is deferred to a coordinated Green Pill Dev Guild Council Safe release, and PRD-663 ENS avatar records are deferred; neither blocks Commitment Pooling. Settlement may run in parallel after its interface freeze, but its selectors and value tier retain their separate evidence and authorization gates.",
+    "Approved dependency order as of 2026-07-29 is Envio foundation -> PRD-747/748 Steward contract/live-hat closure plus PRD-762 signed app-avatar API path -> PRD-757/759 architecture decisions -> PRD-649 architecture freeze -> PRD-721 contracts -> PRD-722 indexer -> PRD-723 state/API -> authorized non-value broadcast and live indexer read-back -> PRD-737 existing-admin foundation -> PRD-760 prototype readiness -> PRD-724/725/726 runtime interfaces -> develop/staging -> PRD-729 QA Pass 1 -> PRD-727 documentation polish -> PRD-730 QA Pass 2 -> PRD-728 walkthrough videos. No client, admin, or editorial implementation begins before PRD-723 and PRD-760 close. PRD-758 is parallel Community Needs architecture and blocks PRD-682 only. PRD-747/748 acceptance completed on 2026-07-28; only branch review and merge hygiene remain. PRD-762 is the canonical avatar lane and requires no Commitment Pooling contract change, indexer work, or deployment broadcast. Settlement may run in parallel after its interface freeze, but its selectors and value tier retain their separate evidence and authorization gates.",
     "Indexer acceptance includes Envio regeneration preserving every new contract block/signature, a full Garden.id cutover to chainId-address, composite IDs for every entity relation, and nullable audit actor populated only from explicit event fields. Envio never indexes EAS or raw Celo token transfers.",
     "The September Community surface remains a separate independent PWA at community.greengoods.app and local port 3010; it consumes extracted shared runtime/auth/offline/shell foundations without sharing routes, navigation, manifest, service-worker scope, telemetry identity, or application copy with packages/client.",
     "Machine lane ownership follows plan-hub conventions: Codex owns contracts, state_api, and qa_pass_2; Claude owns ui and qa_pass_1. Detailed sub-lane ownership remains: Codex executes contracts, settlement, indexer, state/API, and blocked credit follow-on; Claude executes client/admin UI, editorial, post-QA docs, post-certification walkthrough videos, and community; July dry run stays human-owned. Per-issue dispatch stays with Afo.",
@@ -137,7 +137,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "PRD-747/748 Steward acceptance is complete; branch review and merge hygiene remain. Do not dispatch PRD-721 until PRD-557 lands corrected PR #649 with Envio 3.2.1 proof, PRD-762 delivers signed offchain app avatars, and Afo closes the final PRD-649 architecture fine-comb. PRD-575 GreenWill and PRD-663 ENS avatar records are deferred and do not block this lane.",
+      "blocked_reason": "PRD-747/748 Steward acceptance is complete; branch review and merge hygiene remain. Do not dispatch PRD-721 until PRD-557 lands corrected PR #649 with Envio 3.2.1 proof, PRD-762 delivers the signed app-avatar API path, and Afo closes the final PRD-649 architecture fine-comb.",
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -241,7 +241,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "PRD-747/748 Steward acceptance is complete; branch review and merge hygiene remain. PRD-557 corrected PR #649 and Envio 3.2.1 proof, PRD-762 signed offchain app avatars, and Afo's final PRD-649 architecture fine-comb remain prerequisites. PRD-575 GreenWill and PRD-663 ENS avatar records are deferred and do not block this lane. PRD-721 stays Todo until the active gates close.",
+      "blocked_reason": "PRD-747/748 Steward acceptance is complete; branch review and merge hygiene remain. PRD-557 corrected PR #649 and Envio 3.2.1 proof, PRD-762's signed app-avatar API path, and Afo's final PRD-649 architecture fine-comb remain prerequisites. PRD-721 stays Todo until the active gates close.",
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -317,7 +317,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Prototype and journey review may continue, but product implementation waits for state_api GREEN, the authorized non-value contract broadcast, verified live indexer deployment/read-back, and the scoped admin-foundation cleanup. W6 survives only as a compatibility alias to W5. W23, settlement reward rows, and Celo transfer additionally wait for settlement/state_api full GREEN.",
+      "blocked_reason": "Prototype and journey review may continue, but product implementation waits for PRD-760 prototype closure, state_api GREEN, the authorized non-value contract broadcast, verified live indexer deployment/read-back, and the scoped admin-foundation cleanup. W6 survives only as a compatibility alias to W5. W23, settlement reward rows, and Celo transfer additionally wait for settlement/state_api full GREEN.",
       "branch": "claude/ui-client/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
@@ -336,7 +336,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Prototype and journey review may continue, but Commitment Pooling admin implementation waits for state_api GREEN, the authorized non-value contract broadcast, verified live indexer deployment/read-back, and completion of the scoped existing-admin fixes and polish led by PRD-737. Batch/CCIP/Safe and all-garden controls additionally wait for settlement/state_api full GREEN.",
+      "blocked_reason": "Prototype and journey review may continue, but Commitment Pooling admin implementation waits for PRD-760 prototype closure, state_api GREEN, the authorized non-value contract broadcast, verified live indexer deployment/read-back, and completion of the scoped existing-admin fixes and polish led by PRD-737. Batch/CCIP/Safe and all-garden controls additionally wait for settlement/state_api full GREEN.",
       "branch": "claude/ui-admin/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
@@ -355,7 +355,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Prototype/copy review may continue, but implementation waits for state_api aggregate/read-model GREEN, the authorized non-value broadcast plus verified live indexer output, the admin/UI foundation cleanup, a public planned/live copy freeze, and partner confirmation for the Foundation-pilot mechanism and receiving-address claims.",
+      "blocked_reason": "Prototype/copy review may continue, but implementation waits for PRD-760 prototype closure, state_api aggregate/read-model GREEN, the authorized non-value broadcast plus verified live indexer output, the admin/UI foundation cleanup, a public planned/live copy freeze, and partner confirmation for the Foundation-pilot mechanism and receiving-address claims.",
       "branch": "claude/editorial/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
@@ -774,12 +774,36 @@
       "note": "PRD-747/748 acceptance completed. Sepolia and Arbitrum HatsModule upgrades passed focused post-upgrade verification; the authorized direct-admin Arbitrum relabel broadcast produced 18 successful receipts from block 488773296 through 488773365; an independent fixed-block re-read at 488774048 confirmed all 18 exact Steward labels, active and mutable status, authorized caller admin, and zero failures; and the official Hats app visibly rendered the exact Steward label for Green Goods Community Garden, TAS HUB, and AgroforestDAO. Branch review and merge hygiene remain."
     },
     {
+      "timestamp": "2026-07-29T05:27:11.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_reconciled",
+      "branch": "codex/commitment-pooling-avatar-api-sequence",
+      "note": "Afo removed PRD-575 GreenWill and PRD-663 ENS avatar updates from the active Commitment Pooling development sequence. PRD-762 is the canonical app-avatar lane: agent-backed API persistence and signed mutations, shared hooks, and client Profile controls. Its existing PRD-762 -> PRD-721 blocker remains the only avatar prerequisite for backend dispatch. Historical evidence remains dated history; no product implementation or deployment is authorized by this planning correction."
+    },
+    {
       "timestamp": "2026-07-29T08:02:35Z",
       "actor": "codex",
       "lane": "system",
       "status": "review_findings_reconciled",
       "branch": "polish/explore-hypercert-share-allocation",
       "note": "Focused review fixes align compiler-baseline storage accounting, exact-CID evidence de-duplication and fulfillment-gated eligibility, and the payout child lifecycle. Draft edits and finalization create no child; idempotent post-finalization preparation creates one immutable Queued child per frozen non-zero contributor row. Provisional 32-item evidence and payout bounds remain measurement gates rather than team-size product rules. Prototype artifacts validate the new finalized-unprepared and prepared-queued states. No Linear, source-document, deployment, broadcast, or value mutation was performed."
+    },
+    {
+      "timestamp": "2026-07-29T08:06:35.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "sequence_reconciled",
+      "branch": "codex/commitment-pooling-avatar-api-sequence",
+      "note": "Afo locked the backend-first execution order: PRD-757/759 close PRD-649 architecture, then PRD-721 contracts, PRD-722 indexer, PRD-723 state/API, and verified core activation complete before PRD-737 existing-admin foundation, PRD-760 prototype readiness, or PRD-724/725/726 runtime interface implementation. PRD-758 remains parallel and blocks PRD-682 only. This planning correction authorizes no product implementation or deployment."
+    },
+    {
+      "timestamp": "2026-07-29T08:14:48.210Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-27T02:44:09.639Z"
+    "updated_at": "2026-07-29T08:16:43.843Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,7 +52,7 @@
       "september_needs_app": "PRD-691",
       "hardening": ["PRD-695", "PRD-696"]
     },
-    "lastSyncedAt": "2026-07-27T02:44:09.638Z",
+    "lastSyncedAt": "2026-07-29T08:16:43.843Z",
     "lastSyncPreviewAt": "2026-07-10",
     "instrumentDocumentsAreCanonical": true,
     "lanes": {}
@@ -84,6 +84,7 @@
     "The selected join-request architecture is a minimal encrypted garden-scoped service queue inside the existing Garden Manage Members dialog; the membership-queue slice remains manually blocked until RESR-64 accepts the proposed retention, EIP-6492/auth, encryption/key-owner, recovery, abuse, cost, and operator-handoff record.",
     "FundingAttribution displays once per verified (needUID, chainId, txHash, rail); mergedIntoNeedUID is typed separately from noteCID.",
     "packages/community is an independent PWA at community.greengoods.app and local port 3010; client and Community consume prerequisite shared runtime/auth/offline/install/update/error/shell foundations but retain separate app identities.",
+    "PRD-758 is the Community Needs architecture prerequisite for PRD-682 and must close before PRD-682 implementation. It does not block PRD-721, PRD-722, PRD-723, or the core Commitment Pooling backend.",
     "No claim flow, no leaderboards, no funding-ranked boards, no per-need escrow, no push notifications; the gathering is the notification layer.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable lane-level execution truth; Linear is the parent-only roadmap and coordination mirror, not a 1:1 lane mirror.",
@@ -244,6 +245,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
+      "blocked_reason": "PRD-758 must close before PRD-682 implementation. This Community Needs architecture gate does not block the core Commitment Pooling backend.",
       "branch": "claude/ui-community/community-interface",
       "depends_on": ["shared_foundation", "state_api", "ops_paymaster"],
       "handoff": "handoffs/claude-ui-community.md",
@@ -362,6 +364,14 @@
     },
     {
       "timestamp": "2026-07-27T02:44:09.639Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-29T08:16:43.843Z",
       "actor": "codex",
       "lane": "system",
       "status": "linear_recorded",
