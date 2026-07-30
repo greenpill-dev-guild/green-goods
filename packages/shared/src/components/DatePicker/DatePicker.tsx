@@ -136,6 +136,15 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           </label>
         )}
 
+        {/*
+          Always modal, deliberately. Every consumer renders inside an AdminDialog
+          flow, and a non-modal popover portalled to document.body inherits that
+          dialog's `pointer-events: none`, which is what made these calendars
+          unclickable. A `modal` prop defaulting to false would put that bug one
+          forgotten prop away; defaulting to true would just be dead config.
+          Revisit if a standalone consumer appears — focus trap and scroll lock
+          are heavier than a plain form field needs.
+        */}
         <Popover.Root open={open} onOpenChange={setOpen} modal>
           <Popover.Trigger asChild>
             <button

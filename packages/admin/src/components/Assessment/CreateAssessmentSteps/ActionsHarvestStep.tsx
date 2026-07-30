@@ -96,9 +96,11 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
               defaultMessage: "End date is required",
             }),
       dateRange: (() => {
-        if (!form.reportingPeriodStart || !form.reportingPeriodEnd) return null;
-        const start = new Date(form.reportingPeriodStart);
-        const end = new Date(form.reportingPeriodEnd);
+        // Same parser as the pickers — a second `new Date(str)` here would read
+        // these as UTC and drift from the values the fields actually hold.
+        const start = dateStringToTimestamp(form.reportingPeriodStart);
+        const end = dateStringToTimestamp(form.reportingPeriodEnd);
+        if (start === null || end === null) return null;
         if (end < start) {
           return formatMessage({
             id: "app.admin.assessment.actionsHarvest.endAfterStart",
