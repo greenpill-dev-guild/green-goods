@@ -11,13 +11,18 @@
 
 ## Inputs
 
+Every item below is a required prerequisite, and each stays outstanding until its own verified
+completion evidence exists. None may be treated as satisfied ahead of that evidence.
+
 - Corrected and merged GitHub PR #649 with Envio `3.2.1` generation/build/test/migration proof.
-- PRD-747/748 Steward contract/live-hat work closed after branch review and merge hygiene.
-- Closed PRD-762 signed app-avatar API path, with its PRD-721 blocker removed. This prerequisite is
-  agent/shared/client work and requires no Commitment Pooling contract change, indexer work, or
-  deployment broadcast.
-- Afo's completed PRD-649 architecture fine-comb with every resulting correction reconciled into
-  the contract/event/indexer/state/API boundaries.
+- PRD-747/748 Steward contract/live-hat work, still pending branch review and merge hygiene.
+- PRD-762's signed app-avatar API path, with its PRD-721 blocker still to be closed. This
+  prerequisite is agent/shared/client work and requires no Commitment Pooling contract change,
+  indexer work, or deployment broadcast.
+- The PRD-757 contributor-share and PRD-759 protocol-pool funding decisions, both of which must
+  close before PRD-649.
+- Afo's PRD-649 architecture fine-comb, with every resulting correction reconciled into the
+  contract/event/indexer/state/API boundaries.
 - contract-spec.md, especially sections 5-8
 - acceptance-matrix.md for canonical identity, permissions, payout, and final state proof
 - packages/contracts/AGENTS.md and the approved append-only schema policy
@@ -251,9 +256,12 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Unblock evidence
 
+Each line below is a condition to be met, not a statement of current state. None is satisfied yet.
+
 - GitHub PR #649 is corrected, merged, and proven on Envio `3.2.1`.
 - PRD-747 and PRD-748 have complete live upgrade/broadcast verification and branch merge hygiene.
 - PRD-762's signed app-avatar API path is complete and its PRD-721 blocker is closed.
+- PRD-757 and PRD-759 have closed the contributor-share and protocol-pool funding decisions.
 - Afo explicitly closes the PRD-649 final architecture fine-comb.
 - status.json then marks the contracts lane ready and the user explicitly dispatches it.
 - Corrected handoff and exact count-cap contract interface/event tables are present.
