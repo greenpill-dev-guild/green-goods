@@ -14,6 +14,10 @@ import type { PinataUploadSignerConfig } from "../../services/pinata-upload-sign
 import type { SubscriptionClient } from "../../services/subscriptions";
 import type { InMemoryPublicRateLimiter, TrustedProxyConfig } from "../public-protection";
 import type { ThirdwebCheckoutClient } from "../funding/thirdweb";
+import type {
+  ProfileAvatarSignatureVerifier,
+  ProfileAvatarStore,
+} from "../../services/profile-avatars";
 
 export interface ServerConfig {
   port: number;
@@ -67,6 +71,9 @@ export interface ServerDeps {
     vaultAddress: string;
     ownerAddress: string;
   }) => Promise<bigint>;
+  profileAvatarStore?: ProfileAvatarStore;
+  profileAvatarChainId?: number;
+  profileAvatarSignatureVerifier?: ProfileAvatarSignatureVerifier;
   now?: () => number;
 }
 

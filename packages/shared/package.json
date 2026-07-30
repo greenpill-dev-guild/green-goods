@@ -32,6 +32,8 @@
     "./sentry": "./src/modules/app/sentry.ts",
     "./sentry-redaction": "./src/modules/app/sentry-redaction.ts",
     "./providers": "./src/providers/index.ts",
+    "./profile-avatar": "./src/profile-avatar/index.ts",
+    "./profile-avatar/protocol": "./src/profile-avatar/protocol.ts",
     "./public-contracts": "./src/public-contracts/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",

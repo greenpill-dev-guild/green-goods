@@ -57,6 +57,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     useEnsAvatar: () => ({ data: null }),
     useEnsName: () => ({ data: null }),
+    useOffline: () => ({ isOnline: true }),
+    mediaResourceManager: {
+      cleanupUrls: vi.fn(),
+      getOrCreateUrl: vi.fn(() => "blob:preview"),
+    },
     useGardenUrlSync: () => ({
       setGarden: accountProfilePanelMocks.setGarden,
     }),
@@ -65,8 +70,32 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       selector({ closeSheet: accountProfilePanelMocks.closeSheet }),
   };
 });
+vi.mock("@green-goods/shared/profile-avatar", () => ({
+  useProfileAvatarEditor: () => ({
+    clear: vi.fn(),
+    continueAfterReconnect: vi.fn(),
+    discardDraft: vi.fn(),
+    draft: null,
+    isSaving: false,
+    save: vi.fn(),
+    stage: "idle",
+  }),
+  useResolvedProfileAvatar: () => ({
+    avatarUri: null,
+    error: null,
+    isLoading: false,
+    record: null,
+    source: "fallback",
+  }),
+}));
 
 describe("AccountProfilePanel", () => {
+  it("offers the same accessible avatar editor from the account inspector", () => {
+    render(<AccountProfilePanel />);
+
+    expect(screen.getByRole("button", { name: /edit profile photo/i })).toBeVisible();
+  });
+
   it("switches garden context and closes the account sheet", async () => {
     const user = userEvent.setup();
 

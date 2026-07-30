@@ -11,6 +11,12 @@ export const gardenerProfileKeys = {
     ["greengoods", "gardener-profile", address, chainId] as const,
 } as const;
 
+export const profileAvatarKeys = {
+  all: ["greengoods", "profile-avatars"] as const,
+  record: (chainId: number, address: Address | string) =>
+    ["greengoods", "profile-avatars", chainId, address.toLowerCase()] as const,
+} as const;
+
 export const ensKeys = {
   all: ["greengoods", "ens"] as const,
   name: (address: Address | string) => ["greengoods", "ens", "name", address] as const,
