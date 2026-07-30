@@ -120,6 +120,9 @@
   ERC-777 reentrancy,
   source-as-recipient, and duplicate-recipient cases.
 - Every fulfilled commitment payout plan sources G$ from the registered `providerGarden` Safe.
+  The pooling declaration supplies zero source/token sentinels; SettlementModule derives the
+  payer from that registered Safe and the plan token exclusively from its write-once
+  `gDollarToken`.
   Its explicit retained amount plus contributor child disbursements conserves declared support;
   each non-zero eligible contributor target is derived from the frozen plan. If protocol support
   must reach that garden first, `ProtocolToGarden` is the separate and only funding route from the

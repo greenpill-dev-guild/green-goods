@@ -358,7 +358,7 @@ sequenceDiagram
   end
   opt decision landed before linkWork or hook was missed
     OP->>M: syncWorkDecisions(commitmentId, decisionUIDs) — bounded recovery
-    Note over M,WAR: preflight requires greatest supplied sequence = resolver current maximum before mutation<br/>apply only current decision per Work; evaluate Ready after whole batch<br/>inactive credit permits unlink even after historical approval
+    Note over M,WAR: preflight requires greatest supplied sequence = resolver current maximum before mutation<br/>then complete active-link enumeration proves every Work current before Ready<br/>inactive credit permits unlink even after historical approval
   end
   Note over M,EAS: every per-action required count met (requirementIndex credits<br/>exactly one requirement) and assessment satisfied → auto-flip
   M-->>IDX: ContributorRosterFrozen
@@ -1585,7 +1585,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `claimCommitment` | Garden member; or protocol-pool garden operator/owner / individual garden member according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
 | `acceptClaim`, `declineClaim` | Resolved pool steward | Named pending claimant exists; acceptance consumes stored terms and one provider count slot; decline reason mandatory |
 | `linkWork` | Active contributor, lead, or steward | Accepted; schema/provider authorship/provider-garden recipient checks pass; DomainImpact names an exact matching requirement index |
-| `unlinkWork`, `syncWorkDecisions` | Resolved pool steward | Unlink whenever current credit is inactive, including after rejection; sync preflights each supplied Work against the resolver's current maximum before mutation, applies only current decisions, and evaluates Ready after the complete batch |
+| `unlinkWork`, `syncWorkDecisions` | Resolved pool steward | Unlink whenever current credit is inactive, including after rejection; sync preflights supplied decisions, applies only current decisions, and the complete bounded active-link set must match resolver maxima before any readiness freeze |
 | `onWorkDecision` | WorkApprovalResolver only | Non-blocking; applies only a newer effective pre-freeze approval/rejection |
 | `attachEvidence` | Active contributor, lead, or steward | Accepted and unfrozen only; exact credited-contributor vector; offline-queueable but a late job fails without credit |
 | `attachAssessment` | Steward or evaluator of `providerGarden` | Accepted and unfrozen; no assessment already attached; resolver/schema/kind/recipient valid; the write-once UID may trigger Ready predicate re-evaluation |

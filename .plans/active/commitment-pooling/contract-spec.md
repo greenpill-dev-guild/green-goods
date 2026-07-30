@@ -67,7 +67,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkDecision(...)` for both approved and rejected decisions in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Steward-callable `syncWorkDecisions` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: an active contributor, accountable lead, or resolved pool steward links workUID to commitmentId before a roster freeze. The module applies the deterministic latest valid decision and freezes that effective credit at ReadyForConfirmation.
 6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
 7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). Neither identity may equal the commitment creator; ApprovalGated acceptance rechecks the stored requester. The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
-8. **Rewards are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit reward rail, token, and amount. `ArbitrumExternal` also stores its exact source for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores a zero source at creation because a protocol-pool Request has no provider garden yet; after acceptance the SettlementModule derives and stores the selected provider garden Safe as payer. That rail is ineligible for `recordRewardPaid`; protocol-to-garden support first names the provider garden, then the garden Safe funds a conserved parent plan with an explicit retained amount and contributor child payouts. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
+8. **Rewards are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit reward rail and amount. `ArbitrumExternal` also stores its exact source and token for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores zero source/token sentinels because pooling has no canonical-G$ configuration and a protocol-pool Request has no provider garden yet; after acceptance the SettlementModule derives and stores both its write-once `gDollarToken` and the selected provider garden Safe as payer. That rail is ineligible for `recordRewardPaid`; protocol-to-garden support first names the provider garden, then the garden Safe funds a conserved parent plan with an explicit retained amount and contributor child payouts. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
 9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
 10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and StewardCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
 11. **Schema registration is the first PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`).
@@ -148,13 +148,13 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
 | PartiallyApproved <-> EvidenceSubmitted | derived | New evidence/work after partial approvals flips forward; the counter events flip back. |
-| -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy for contributor recognition and payout defaults only), freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkDecision`, `syncWorkDecisions`, or the one-time `attachAssessment` call once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with `requirements.length == 0`, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy or verified-credit prerequisites. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
+| -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy for contributor recognition and payout defaults only), proving every active linked Work is current against `WorkApprovalResolver.latestDecisionSequence`, freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkDecision`, `syncWorkDecisions`, or the one-time `attachAssessment` call once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with `requirements.length == 0`, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy, verified-credit, or linked-Work freshness prerequisites. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
 | ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator); each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled`. Every frozen contributor is excluded from every confirmation path. Fallback: `confirmFulfillmentAsFallback(commitmentId, reason)` operator/owner with mandatory reason, also forbidden when the caller is a contributor. Register converts the lead provider's units (`UnitsFulfilled`). |
 | Fulfilled -> Reconciled | derived | `CycleClosed` for the commitment's cycleId; cycle-less commitments (cycleId == 0) derive Reconciled from `PoolClosed`. |
 | -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. Offered/Requested have no committed units and emit no register release; Accepted releases exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
 | -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. Offered/Requested emit no register release; Accepted/ReadyForConfirmation release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
 | -> Disputed | on-chain | `raiseDispute(commitmentId, reasonCID)` from Accepted/ReadyForConfirmation/Expired (the locked EvidenceSubmitted/PartiallyApproved entries map to on-chain Accepted). Before setting Disputed, the module stores the exact prior state in `preDisputeState`. Raiser: creator, counterparty, named confirmer, or steward. Event `CommitmentDisputed`. |
-| Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious / Fulfilled / Cancelled / Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution applies the ordinary anti-farming guard first: a resolving steward who is on the current or already-frozen contributor roster reverts `SelfConfirmation`. It then requires the same opened-policy and `totalVerifiedCredits > 0` predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and contribution-credit accounting and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
+| Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious / Fulfilled / Cancelled / Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution applies the ordinary anti-farming guard first: a resolving steward who is on the current or already-frozen contributor roster reverts `SelfConfirmation`. It then requires the same opened-policy, `totalVerifiedCredits > 0`, and complete linked-Work freshness predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and contribution-credit accounting and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
 | Cancelled/Expired -> Reconciled at cycle close | derived | `CycleClosed` event; no on-chain per-commitment write (no unbounded loops at close). |
 
 Fulfillment posture (locked): the party receiving the provider's work confirms by default—Offer recipient/counterparty or Request creator/requester—provider self-confirmation is blocked, and operator/owner fallback requires a reason and is also blocked for a provider who is an operator.
@@ -223,8 +223,9 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 28 | `workCreditActive` | `mapping(bytes32 workUID => bool)` (current effective pre-freeze Work decision contributes credit) |
 | 29 | `latestWorkDecisionSequence` | `mapping(bytes32 workUID => uint64 sequence)` (resolver-assigned chronological order; 0 = no sequenced decision) |
 | 30 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (identity/audit only; never an ordering key) |
+| 31 | `commitmentWorkUIDs` | `mapping(uint256 commitmentId => bytes32[] activeWorkUIDs)` (bounded enumerable active-link set used by every readiness/freeze preflight) |
 
-Gap: `uint256[20] private __gap;` (30 named + 20 reserved = 50 total). This declaration-order
+Gap: `uint256[19] private __gap;` (31 named + 19 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
 slot/offset assertions remain authoritative at implementation time.
 
@@ -325,8 +326,8 @@ interface ICommitmentPoolingModule {
     /// @notice Declared reward is a reference, never custody (register #18).
     struct DeclaredReward {
         RewardRail rail;
-        address source; // ArbitrumExternal payer; must be zero for CeloSettlement until provider selection
-        address token;
+        address source; // ArbitrumExternal payer; zero sentinel for CeloSettlement
+        address token;  // ArbitrumExternal token; zero sentinel for CeloSettlement
         uint256 amount; // 0 = no declared reward
     }
 
@@ -654,6 +655,7 @@ interface ICommitmentPoolingModule {
     error EvidenceContributorsRequired();
     error TooManyEvidenceContributors(uint256 supplied, uint256 maximum);
     error TooManyContributors(uint256 supplied, uint256 maximum);
+    error TooManyLinkedWorks(uint256 supplied, uint256 maximum);
     error AssessmentRequired(uint256 commitmentId);
     error WorkApprovalRequired(uint256 commitmentId);
     error OpenCommitmentCapRequired(uint256 poolId);
@@ -846,8 +848,11 @@ interface ICommitmentPoolingModule {
     ///         resolver-owned sequence. Before any mutation, a bounded first
     ///         pass proves that the greatest supplied sequence for each Work
     ///         equals WorkApprovalResolver.latestDecisionSequence(workUID).
-    ///         A second pass applies only that current decision per Work, then
-    ///         evaluates Ready once after the whole batch.
+    ///         A second pass applies only that current decision per Work. Before
+    ///         Ready can be evaluated, the module enumerates the commitment's
+    ///         complete bounded active Work set and proves every stored sequence
+    ///         equals the resolver's current sequence. Omitting any stale linked
+    ///         Work therefore reverts the whole catch-up before freeze.
     ///         Pre-upgrade decisions with no sequence are rejected and require
     ///         the operator to attest the current decision again.
     ///         Gating: pool steward.
@@ -955,12 +960,14 @@ interface ICommitmentPoolingModule {
     function getPendingClaim(uint256 commitmentId, address claimant) external view returns (PendingClaim memory);
     function getConfirmers(uint256 commitmentId) external view returns (address[] memory);
     function workCommitmentOf(bytes32 workUID) external view returns (uint256 commitmentId);
+    function getLinkedWorkUIDs(uint256 commitmentId) external view returns (bytes32[] memory);
     function isApprovalCounted(bytes32 approvalUID) external view returns (bool);
     function isEvidenceAttached(uint256 commitmentId, bytes32 cidHash) external view returns (bool);
     function MAX_CONFIRMERS() external pure returns (uint256);
     function MAX_REQUIREMENTS() external pure returns (uint256);
     function MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT() external pure returns (uint256);
     function MAX_CONTRIBUTORS_PER_COMMITMENT() external pure returns (uint256);
+    function MAX_LINKED_WORKS_PER_COMMITMENT() external pure returns (uint256);
     function cyclelessRecognitionPolicy() external pure returns (RecognitionPolicy memory);
     function paused() external view returns (bool);
 
@@ -1013,8 +1020,8 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation-class bps sum == 10_000; recognition-policy bps sum == 10_000 (protocol default 2_000 equal / 8_000 verified); both become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID; `liveCommitmentCount == 0` |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements |
-| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source plus canonical G$ token because its payer is derived from the accepted provider garden |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` or cycle exists in the same pool; member-created commitments require an Open cycle, while steward seeding permits Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements |
+| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the accepted provider-garden payer |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
@@ -1022,10 +1029,10 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
 | Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
-| Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment |
+| Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment; append to the bounded enumerable active-link set and reject max-plus-one before mutation |
 | Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while `workCreditActive[workUID] == false`; a historical approval followed by an effective rejection may be unlinked |
 | Linkage | `onWorkDecision` | WorkApprovalResolver only | never reverts; applies only the newer effective pre-freeze decision |
-| Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision and evaluates Ready after the complete batch |
+| Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision, then enumerates the complete active-link set and requires every local sequence to equal the resolver before evaluating Ready; omission of any stale linked Work reverts the batch |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active; each contributor receives at most one evidence-derived recognition credit per commitment |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
 | Confirmation | `submitForConfirmation` | counterparty, creator, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected |
@@ -1090,6 +1097,12 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   creation/finalization vector. Open policy allows eligible self-join and pre-freeze self-leave;
   LeadManaged alone permits lead/steward add and remove, and permits adding only an eligible member of the
   resolved `providerGarden`; arbitrary external addresses cannot enter recognition or payout
+- **Linked-Work enumeration**: `commitmentWorkUIDs` contains exactly the active linked Work set.
+  `MAX_LINKED_WORKS_PER_COMMITMENT` is provisionally 32 and uses the same required
+  8/16/24/32 gas benchmark before implementation freezes it. Link rejects max-plus-one before
+  mutation; unlink swap-removes the UID. Every readiness or direct-fulfillment freeze path scans
+  this complete bounded set and proves each stored decision sequence equals the resolver's
+  current sequence. Callers never declare the authoritative set.
   eligibility through managed addition. Open rosters remain self-join/self-leave only and have no
   ordinary expulsion path. The lead can never leave or be removed, and any
   contributor with approved Work or evidence credit can be removed only through a separately
@@ -1152,9 +1165,10 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   including protocol-pool commitments that remain owned by the root pool.
 - **Reward binding**: `RewardRail.None` is valid only with zero source/token/amount.
   `ArbitrumExternal` requires a non-zero exact source/token/amount. `CeloSettlement` requires
-  zero declared source, canonical G$, and a non-zero amount because a protocol-pool Request
-  cannot know its payer garden at creation. Acceptance resolves `providerGarden`; the
-  SettlementModule then derives and stores that garden's active Celo Safe as the plan source.
+  zero declared source/token sentinels and a non-zero amount because pooling neither owns a
+  canonical-G$ authority nor knows a protocol-pool Request's payer garden at creation. Acceptance
+  resolves `providerGarden`; the SettlementModule then derives and stores its write-once
+  `gDollarToken` and that garden's active Celo Safe as the plan token/source.
   `recordRewardPaid` remains the Arbitrum-rail total-payment record: it emits the stored source,
   lead provider, token/amount, payout ref, and recorder without moving value or claiming an
   on-chain contributor split. `CeloSettlement` rejects that function and instead requires the
@@ -1166,7 +1180,9 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 - **Domain/action scope and measured bound**: `Domain` remains the closed four-value ActionRegistry
   taxonomy, but it no longer limits requirement count. DomainImpact accepts 1 through
   `MAX_REQUIREMENTS` rows; each row has a registered action UID (including valid UID `0`) and
-  non-zero `requiredCount`. Actions and derived domains may repeat. The stored `domains` list is
+  non-zero `requiredCount`; their total may not exceed
+  `MAX_LINKED_WORKS_PER_COMMITMENT`, so creation cannot encode an unfulfillable Work quota.
+  Actions and derived domains may repeat. The stored `domains` list is
   the unique derived tag set for filtering, not a positional array. Non-DomainImpact kinds carry
   optional validated `domainTags` and no requirements. `MAX_REQUIREMENTS = 16` is provisional;
   before implementation freezes it, contract/indexer benchmarks must compare 8/16/24/32 for
@@ -1208,13 +1224,17 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   contributor's final verified credit), increments `uncountedLinkedWorkCount`, recomputes units,
   and emits `ApprovedWorkReversed` with the new cumulative values and positive removed-unit delta.
   Repeated same-state decisions update only the latest sequence/UID. Older, duplicate, unlinked,
-  or post-freeze decisions are observed but cannot mutate the frozen ledger. Catch-up is a
-  bounded two-pass operation: it first verifies all supplied attestations and proves the greatest
-  submitted sequence for each included Work equals the resolver's current
-  `latestDecisionSequence(workUID)`. Any omitted newer decision reverts
-  `IncompleteDecisionHistory` before credit, readiness, or freeze can change. It then applies
-  only each Work's current decision and evaluates Ready once after the complete batch. This
-  prevents an earlier approval from freezing the ledger ahead of a supplied or omitted rejection.
+  or post-freeze decisions are observed but cannot mutate the frozen ledger. Active links are
+  stored in `commitmentWorkUIDs`; `linkWork` rejects `MAX_LINKED_WORKS_PER_COMMITMENT + 1`, and
+  `unlinkWork` removes the UID from that bounded array. Catch-up first verifies all supplied
+  attestations and proves the greatest submitted sequence for each included Work equals the
+  resolver's current `latestDecisionSequence(workUID)`, then applies only those current
+  decisions. Before any automatic, submitted, overridden, or dispute-resolution path can freeze
+  credit, the module enumerates the complete active-link array and requires each stored sequence
+  to equal the resolver's current sequence. In `onWorkDecision`, a failed freshness read or stale
+  sibling merely suppresses the Ready transition so the resolver hook remains non-blocking; in
+  `syncWorkDecisions` or an explicit readiness call it reverts `IncompleteDecisionHistory`.
+  Omitting linked Work A while syncing Work B therefore cannot freeze A's stale approval.
 - **Canonical recognition validation**: the module maintains `eligibleContributorCount` when a
   contributor receives their first verified credit and `totalVerifiedCredits` for each active
   approved Work credit plus each contributor's first evidence participation credit. Additional
@@ -1287,12 +1307,13 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   unreachable confirmer
   threshold rejection, lead-only register exposure, assessment gating, claim identity,
   cancel/expiry/dispute count effects, reward derivation, provider-garden Work/assessment
-  validation, and decision-sync dedupe/convergence. A separate benchmark records worst-case 8/16/24/32 requirement
-  create/credit/readiness/event gas and payload size before the constant is frozen. App/shared
+  validation, and decision-sync dedupe/convergence. A separate benchmark records worst-case
+  8/16/24/32 requirement and active-linked-Work create/credit/readiness/event gas and payload
+  size before either constant is frozen. App/shared
   tests cover the current non-revoked Baseline preflight and deterministic Hypercert recognition
   expansion.
 - The compiler-generated baseline and concrete slot/offset assertions prove the expected
-  30-feature-slot layout and reserved gap; arithmetic alone is not proof. The Bun-wrapped
+  31-feature-slot layout and reserved gap; arithmetic alone is not proof. The Bun-wrapped
   storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
 
@@ -1820,7 +1841,7 @@ if (address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS, reads its non-zero `decisionSequenceByUID`, and preflights the greatest supplied sequence per Work against the resolver's public `latestDecisionSequence(workUID)` getter before any mutation. Only the current decision per Work is applied, and Ready is evaluated once after the complete batch. `approvalCounted` de-duplicates one decision attestation; `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals, and the now-inactive Work may be unlinked even though its old approval UID remains counted for delivery idempotency. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. Every active link is also appended to the commitment's bounded enumerable Work array, and unlink removes it, so readiness never relies on a caller-declared subset. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS, reads its non-zero `decisionSequenceByUID`, and preflights the greatest supplied sequence per Work against the resolver's public `latestDecisionSequence(workUID)` getter before any mutation. Only current supplied decisions are applied; before Ready, the module additionally enumerates every active linked Work and proves its stored sequence equals the resolver maximum. `approvalCounted` de-duplicates one decision attestation; `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals, and the now-inactive Work may be unlinked even though its old approval UID remains counted for delivery idempotency. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
 
 Trust model: linkage is roster-aware: the active Work attester may link their Work, while the accountable lead or resolved pool steward may curate links for the team. Every path verifies the Work attester is active, the provider-garden scope matches, and the commitment remains Accepted and unfrozen. The resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
@@ -1831,9 +1852,10 @@ module is configured, every fully validated decision receives one stored per-Wor
 if the module hook later reverts; a linked approval activates credit; a newer linked rejection
 reverses it before freeze; a still-newer approval restores it once; two decisions in separate
 transactions in the same block retain execution order; catch-up rejects an omitted current
-resolver decision before mutation, applies only each Work's current maximum, and converges under
-out-of-order input; sequence zero rejects with the re-attestation recovery; post-freeze decisions
-cannot mutate credit; and a reverting module never blocks either decision. Exact proof:
+resolver decision for any active linked Work, including a stale Work omitted while another Work
+is supplied, and no automatic/explicit/override/dispute path freezes until the complete
+enumerable set is current; sequence zero rejects with the re-attestation recovery; post-freeze
+decisions cannot mutate credit; and a reverting module never blocks either decision. Exact proof:
 `bun run --filter @green-goods/contracts test:match -- test/unit/WorkApprovalResolver.t.sol`,
 extended with unset/unlinked/approval/rejection/re-approval/same-block/out-of-order/unsequenced/
 frozen/reverting-module cases, plus

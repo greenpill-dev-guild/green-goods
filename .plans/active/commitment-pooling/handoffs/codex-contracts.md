@@ -98,7 +98,9 @@
 - `DeclaredReward` carries `RewardRail { None, ArbitrumExternal, CeloSettlement }`. Zero reward
   requires `None` plus zero source/token/amount; `recordRewardPaid` accepts only
   `ArbitrumExternal`, so a Celo settlement declaration cannot also be recorded on the external
-  rail.
+  rail. `CeloSettlement` accepts a non-zero amount with zero source/token sentinels; pooling has
+  no canonical-token dependency, and SettlementModule exclusively derives its write-once
+  `gDollarToken`.
 - Commitment creation rejects an empty exact unit label and zero target. The register's per-class
   accounting state enforces only `Registered -> Committed -> Released|Fulfilled`; commit accepts
   exactly the full non-zero quota, and release/fulfillment accept exactly the full live committed
@@ -262,6 +264,9 @@ every conflicting state. Broadcast remains outside this handoff.
 
 - Replace the single-provider fulfillment model with one accountable `leadProvider` plus a contributor roster. Only the lead consumes the non-transferable register slot; every roster member is excluded from confirmation.
 - Accept repeatable `CommitmentRequirementInput` rows containing only `actionUID` and `requiredCount`; derive stored `domain` and `approvedCount` inside the module. There is no four-requirement product rule; set `MAX_REQUIREMENTS` only from the named gas/indexer benchmark.
+- Reject a DomainImpact requirement-total above the separately measured
+  `MAX_LINKED_WORKS_PER_COMMITMENT`; the active Work array is the authoritative enumerable
+  readiness set, so creation must never accept a quota that the link bound makes unfulfillable.
 - Freeze the roster and contribution-credit accounting atomically on the transition to
   `ReadyForConfirmation`. Emit contributor, work/evidence attribution, and recognition inputs
   needed by the indexer.
@@ -278,9 +283,9 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 30-feature-slot Commitment Pooling declaration order and `__gap[20]`, including
+- Implement the 31-feature-slot Commitment Pooling declaration order and `__gap[19]`, including
   `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
-  sequence plus audit UID, but treat the generated compiler baseline plus concrete
+  sequence plus audit UID and the bounded enumerable active Work set, but treat the generated compiler baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
   measured-bounded credited list, and may mutate recognition credit only while the commitment is
@@ -306,8 +311,10 @@ every conflicting state. Broadcast remains outside this handoff.
   repeated same-state or older decisions do not double-mutate. A sequence-zero historical
   decision rejects catch-up and requires re-attestation. Before mutation, catch-up must prove the
   greatest supplied sequence for every included Work equals the resolver's current public
-  maximum, apply only that current decision, and evaluate Ready after the full batch. An omitted
-  newer rejection reverts without credit or freeze. After freeze, decisions are
+  maximum and apply only that current decision. Before any readiness or direct-fulfillment
+  freeze, enumerate the complete bounded active Work set and require every stored sequence to
+  equal the resolver maximum; omitting stale Work A while syncing Work B reverts without credit
+  or freeze. After freeze, decisions are
   observed but cannot mutate credit, requirements, units, or recognition.
   The active contributor, accountable lead, or resolved pool steward may link after all shared
   validation; only the steward may unlink, and unlink is Accepted-and-unfrozen with current
@@ -326,8 +333,8 @@ every conflicting state. Broadcast remains outside this handoff.
   ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
   GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
   checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
-  declarations require source zero; the accepted provider-garden Safe becomes authoritative only
-  in SettlementModule.
+  declarations require zero source/token sentinels; SettlementModule exclusively derives its
+  configured G$ token, and the accepted provider-garden Safe becomes authoritative only there.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
   than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments
