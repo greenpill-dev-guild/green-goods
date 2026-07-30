@@ -56,3 +56,9 @@
 - Verified live indexer output and the scoped shared admin/UI foundation cleanup are complete.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.
+
+## 2026-07-28 public-story amendment
+
+- Public team attribution may name contributors only where privacy/publication rules allow and must reflect approved contribution, not an equal-by-presence split.
+- Hypercert recognition can be described as contribution credit; contributor payment, garden retention, and delivery status remain separate claims with their own proof.
+- A public story must never imply that a Hypercert share itself paid a member or that one failed child payout invalidated the fulfilled commitment.

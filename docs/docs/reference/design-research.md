@@ -3,7 +3,7 @@ title: Design & Research
 slug: /reference/design-research
 audience: all
 owner: docs
-last_verified: 2026-07-10
+last_verified: 2026-07-29
 feature_status: Live
 source_of_truth:
   - docs/docs/community/operator-guide/creating-a-garden.mdx
@@ -14,7 +14,7 @@ source_of_truth:
 
 Design resources, research materials, and product vision documents for Green Goods.
 
-The page and current design practice are **live**. Commitment Pooling and Community Needs & Signals are **planned** until implementation and runtime proof exist. In this page, **reported** means an authorized executor recorded a Celo transaction reference; it does not prove receipt. **Oracle-verified** means the mandatory Chainlink Functions callback verified the finalized Celo receipt, successful Safe/module execution, and the exact canonical-G$ `Transfer` logs from the registered Safe to the expected recipients and amounts. The outer transaction sender may be a scoped Zodiac executor. **Evidence-gated** behavior remains blocked until its named research or operational proof exists.
+The page and current design practice are **live**. Commitment Pooling and Community Needs & Signals are **planned** until implementation and runtime proof exist. In this page, **reported** means an authorized executor recorded a Celo transaction reference; it does not prove receipt. **Oracle-confirmed** means an authenticated CCIP acknowledgment reported the bounded executor outcome for the expected execution key and attempt. The executor checks call success and exact balance deltas, but the acknowledgment tuple does not carry or authenticate a finalized receipt or exact `Transfer` logs. The outer transaction sender may be a scoped Zodiac executor. **Evidence-gated** behavior remains blocked until its named research or operational proof exists.
 
 **Researching impact methodology? Read these four in order.** The [Regenerative Design Framework](/reference/regenerative-design-framework) sets the design lens. The [Glossary](/glossary) defines the four action domains and the entities every record uses. [How It Works](/community/how-it-works) explains the work and approval attestations that count as evidence. [Reporting and GAP](/community/operator-guide/reporting-and-gap) shows how approved work rolls up into reports funders can read. The materials below are the source documents behind that chain.
 
@@ -99,13 +99,17 @@ Green Goods uses a holistic framework for impact measurement:
 
 The page itself documents the live Green Goods design and research practice. The five scenarios below are **target personas and planned journeys** for Commitment Pooling and Community Needs & Signals; they are research inputs, not claims that those product flows are already available. Live feature documentation remains in the linked operator and gardener guides until implementation ships.
 
-The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; operator pools, triage, and evaluator lineage/export live in admin under `/community`; public funder discovery stays in existing Green Goods browser surfaces. Need kinds are Request, Offer, and Initiative. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). Domains are optional arrays; DomainImpact commitments pair each positional domain with a registered, domain-matching action UID, and UID `0` remains valid.
+The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; operator pools, triage, and evaluator lineage/export live in admin under `/community`; public funder discovery stays in existing Green Goods browser surfaces. Need kinds are Request, Offer, and Initiative. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). Domains are derived from repeatable commitment requirements rather than entered as a second positional array. A DomainImpact requirement pairs a registered action UID with a required count, and action UID `0` remains valid. The eventual implementation bound is set by contract-gas and indexer benchmarks, not presented as a four-action product rule.
+
+Planned commitments support a team from the start: one accountable lead plus zero or more contributors tied to approved Work or confirmed evidence. The roster freezes atomically on every transition to ReadyForConfirmation and on direct dispute resolution to Fulfilled, every team member is excluded from confirming their own delivery, and only the lead consumes the commitment register's accountable-provider slot. At certification, fulfilled commitments receive equal budgets inside the Hypercert gardener class; within each commitment, the cycle's opened policy, or the immutable cycle-less 20/80 default, divides units among eligible contributors with deterministic remainder handling. New commitments cannot become Ready or resolve directly to Fulfilled without verified contribution. An inconsistent legacy or indexed commitment with no eligible contributor blocks certificate expansion until governed migration or source-data correction restores canonical on-chain credit; there is no automatic lead or metadata-only fallback.
+
+Settlement stays simple by making the garden account the funding boundary. Commitment support reaches or is held by the garden Safe, then one stable Commitment Payout Plan accounts for the garden-retained amount and separate contributor child payouts. Its complete recognition vector is bound to a snapshot hash; payment weights derive from an atomic amount vector, and any divergence requires a stored reason. Explicit finalization verifies conservation before dispatch and completes a zero-child all-retained plan without CCIP or a self-transfer. Child cancellation never clears the parent pointer, and a failed child payout never reverses commitment fulfillment, Hypercert recognition, or successful sibling receipts.
 
 #### Gardener: Maria
 
 **Who she is**: Community volunteer at a campus garden in Awka, Nigeria. Uses a mid-range Android phone with intermittent mobile data. No prior experience with apps beyond WhatsApp. Paid by the day for solar panel maintenance and tree planting.
 
-**Target journey (planned)**: Maria arrives before her solar-panel cleaning shift. She captures a photo and short voice note; Green Goods saves it even when the connection drops. At the weekly gathering she also offers two hours to help repair the tool shed. The operator records the promise with Maria as its source, the beneficiary confirms it when complete, and any G$ reward is shown as received only after the mandatory Chainlink Functions callback verifies the finalized Celo receipt. G$ remains on Celo, and Maria never bridges a token or holds CELO. If the Celo account-abstraction/paymaster gate fails, member delivery remains unavailable; the garden does not custody a claim for her.
+**Target journey (planned)**: Maria arrives before her solar-panel cleaning shift. She captures a photo and short voice note; Green Goods saves it even when the connection drops. At the weekly gathering she takes the accountable lead on a tool-shed commitment and adds Ana and João as contributors. Approved Work and evidence preserve who contributed instead of flattening the group into one provider. The beneficiary confirms the team result, the Hypercert records their contribution-weighted recognition, and the garden Safe pays each member through a finalized child payout plan while retaining an explicit amount for shared costs. A member reward is shown as received only after the authenticated CCIP acknowledgment records successful Celo execution. G$ remains on Celo, and Maria never bridges a token or holds CELO.
 
 **What success feels like**: "I shared the work, kept my promise, and can see that the support arrived." The app never asks her to think about chains, attestations, or transaction mechanics.
 
@@ -119,7 +123,7 @@ The planned surface boundary is explicit: Community Needs & Signals is an indepe
 
 **Who he is**: Community coordinator managing a coastal restoration project in Muizenberg, Cape Town. Oversees 20 gardeners across waste collection and food systems actions. Web3-familiar but not a developer. Spends 2-4 hours per week on garden management.
 
-**Target journey (planned)**: David opens admin `/community` before a community gathering. He reviews new Requests, Offers, and Initiatives, acknowledges them with zero or more domains, merges one duplicate with a visible rationale, and prepares a print-legible gathering view. After the group agrees on priorities, he seeds bounded commitments with units, positional domain/action pairs where DomainImpact requires them, evidence, confirmation rules, and rewards. He can review work, membership, reported settlement, and oracle-verified settlement without maintaining a second spreadsheet.
+**Target journey (planned)**: David opens admin `/community` before a community gathering. He reviews new Requests, Offers, and Initiatives, acknowledges them with zero or more domains, merges one duplicate with a visible rationale, and prepares a print-legible gathering view. After the group agrees on priorities, he seeds bounded commitments with units, repeatable action/count requirements where DomainImpact requires them, an accountable lead, contributor policy, evidence, confirmation rules, and declared support. After fulfillment he reviews the contribution-derived recognition weights, records any reasoned payment correction, makes the garden-retained amount explicit, and follows each contributor child payout without maintaining a second spreadsheet.
 
 **What success feels like**: "I turned what the community agreed into clear work without losing anyone's words." The workspace feels like an operating tool, not a protocol console.
 
@@ -210,7 +214,7 @@ When the Operator archetype is ambiguous, these constraint profiles differentiat
 
 **Why**: Build trust with funders and community.
 
-**How**: Named data ownership, public protocol records where appropriate, open source, and precise evidence labels. A reported Celo transaction is not receipt proof; only the mandatory Chainlink Functions callback may produce an oracle-verified settlement state.
+**How**: Named data ownership, public protocol records where appropriate, open source, and precise evidence labels. A reported Celo transaction is not receipt proof; only the authenticated CCIP acknowledgment may produce an oracle-verified settlement state.
 
 ### 5. Community-Governed
 

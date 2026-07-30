@@ -66,3 +66,15 @@
 - All retested lane commands pass.
 - Authenticated Brave/real-device evidence is current or its proof limit is explicit.
 - Plan-hub validation and dispatch listing agree with status.json before QA Pass 2 can turn GREEN.
+
+## 2026-07-28 amendment regression set
+
+- Re-run the group-commitment and contributor-payout matrix from QA Pass 1 against the exact reviewed SHA.
+- Verify the indexer, shared selectors, client/admin screens, Hypercert output, parent payout status,
+  and contributor receipts agree on the same Ready/direct-dispute-frozen roster, exact-CID
+  evidence de-duplication, one countable credit per Work UID, fulfillment-gated eligibility,
+  opened cycle policy or cycle-less default, zero-eligible inconsistent-state block with no
+  metadata repair, recognition/payment snapshot hashes, amount-derived payment weights,
+  garden-retained amount, no-child finalization, idempotent per-contributor preparation, stable
+  parent pointer, child amounts, and reasons.
+- Treat any single-provider fallback, four-item product cap, equal-by-presence allocation, garden-retention omission, or fulfillment reversal after child failure as a release blocker.

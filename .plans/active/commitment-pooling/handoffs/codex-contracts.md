@@ -36,14 +36,27 @@
 ## Acceptance
 
 - Empty confirmer rules resolve to Offer recipient or Request creator; named inputs are bounded by
-  `MAX_CONFIRMERS = 32` before mutation; the unit provider is excluded from ordinary, named-group,
-  and fallback confirmation. RED covers 32, 33, duplicate-heavy, provider-filtered, and
-  threshold-after-filtering cases.
+  `MAX_CONFIRMERS = 32` before mutation; every active contributor is excluded from ordinary,
+  named-group, and fallback confirmation. RED covers 32, 33, duplicate-heavy,
+  contributor-filtered, and threshold-after-filtering cases.
 - Pending claims store canonical claimant, authenticated requestedBy, immutable claim type, provider garden context, requested time, and active state. Runtime kind must equal the creation-time claim type. Acceptance consumes the canonical claimant-keyed terms; decline clears only that request; terminal pre-acceptance cancel/expiry are emitted for deterministic indexed supersession.
-- Disputes store pre-dispute state and RestorePrevious restores it. An expired commitment can never resolve Fulfilled.
+- Disputes store pre-dispute state and RestorePrevious restores it. An expired commitment can
+  never resolve Fulfilled, and a contributor-steward cannot select the direct Fulfilled result
+  because the same `SelfConfirmation` invariant applies.
 - A pool permits one open Season and concurrent Campaigns through bounded O(1) checks.
+  `Cycle.liveCommitmentCount` increments after successful cycle-scoped creation, decrements once
+  on the first Fulfilled/Cancelled/Expired transition, and must be zero before `closeCycle` or
+  `cancelCycle`. Tests include Offered/Requested commitments, which count as live before
+  acceptance even while accepted-only `openCommitmentCount` is zero.
 - Creating a commitment with a cycle requires that cycle to belong to the same pool and still accept commitments. Cycle-less commitments remain explicit.
-- DomainImpact requires 1–4 registered domain/action pairs, every positional `requiredApprovedWorkCounts[i]` quota to be met by provider/provider-garden-valid Work links, and any declared assessment before non-override Ready. Approval-first and assessment-first ordering both reach Ready because `attachAssessment` re-evaluates all completed Work quotas. SupportService, StewardCaptured, and SeasonCampaign require evidence plus any declared assessment; every non-override Ready path has its assessment gate.
+- DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable registered action/count requirements. Actions
+  may share a domain, every non-zero quota must be met by contributor/provider-garden-valid Work
+  links, and any declared assessment must exist before non-override Ready. Approval-first and
+  assessment-first ordering both reach Ready because the one-time `attachAssessment` call
+  re-evaluates all completed requirements. It is Accepted-and-unfrozen only and rejects any
+  replacement UID. SupportService, StewardCaptured, and SeasonCampaign require pre-freeze
+  `evidenceCount >= 1`, `totalVerifiedCredits > 0`, plus any declared assessment; every
+  non-override Ready path has its assessment gate.
 - The onchain Ready predicate requires a charter and non-zero register provider open-commitment cap. A current, non-revoked Baseline assessment is an app/shared/admin preflight and is never added to the contract predicate. `pausePool` requires a reason CID and blocks only the operational mutations enumerated in contract-spec §6.1.
 - `CommitmentPoolingModule` initializes paused. All six dependency setters and `setSchemaUIDs`
   require pause, reject zero/collision before mutation, and emit exact old/new facts; unpause
@@ -53,18 +66,43 @@
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
   the register's replacement guard calls that selector; interface/implementation ABI proof must
   fail before deployment if it is absent.
-- `seedCycle` stores no allocation. `openCycle(cycleId, AllocationBps allocation)` validates all six fields sum to 10,000, stores the immutable cycle snapshot, and emits that snapshot in `CycleOpened`.
-- DomainImpact creation stores equal-length positional `domains`, `requiredActionUIDs`, and `requiredApprovedWorkCounts` arrays (1–4, every required count non-zero). Every Work approval carries a `requirementIndex`, validates the matching domain/action pair, and increments only `approvedWorkCounts[requirementIndex]`; Ready requires every position to meet its requirement.
-- Provider is stored once at acceptance (`Offer -> creator`, `Request -> counterparty`) and is the
-  only unit account, open-commitment-count subject, Arbitrum-rail `RewardPaid` recipient, and
-  self-confirmation exclusion. Individual DomainImpact Work equals provider; Garden claims use a
-  gardener/operator of `providerGarden`; UID 0 remains valid through the concrete ActionRegistry
-  ABI. Celo G$ beneficiary/source derivation belongs exclusively to `SettlementModule`:
-  Individual → provider AA, Garden → registered `providerGarden` Safe, payer → owning-pool Safe.
+- `seedCycle` stores no allocation or recognition policy.
+  `openCycle(cycleId, AllocationBps allocation, RecognitionPolicy recognitionPolicy)` validates
+  the six allocation fields sum to 10,000 and the equal/verified recognition fields separately
+  sum to 10,000, stores both immutable snapshots, and emits all eight fields in `CycleOpened`.
+  Update every downstream call site and ABI fixture; tests prove invalid sums reject before
+  storage/event mutation and a valid policy cannot change after opening.
+- DomainImpact creation stores repeatable `CommitmentRequirement { actionUID, requiredCount }` rows
+  (1–`MAX_REQUIREMENTS`, every required count non-zero). Every Work approval carries a
+  `requirementIndex`, validates the matching registered action and contributor attribution, and
+  increments only that requirement's approved count while the commitment is Accepted and
+  unfrozen; Ready requires every row to meet its quota. A late approval remains observable but
+  cannot change progress, units, credit, or recognition. Domain tags are derived from
+  ActionRegistry and may repeat across rows.
+- The accountable lead is stored once at acceptance (`Offer -> creator`; non-Garden `Request ->
+  counterparty`; Garden-claimed `Request -> authenticated Open caller or consumed ApprovalGated
+  pending claim.requestedBy`, while the GardenAccount remains counterparty and provider scope)
+  and is the only unit account and open-commitment-count subject. The active contributor roster
+  begins with that lead, preserves Work/evidence attribution, freezes roster and credit
+  accounting before confirmation, and is wholly excluded from confirmation. Garden claims use
+  gardeners/operators of `providerGarden`; `addContributor` applies the same resolved
+  provider-garden membership predicate as self-join and Work attribution, so a lead/steward
+  cannot add an arbitrary external address. Tests prove an eligible member succeeds and a
+  non-member reverts before roster, confirmer, credit, or event mutation. A creator who operates
+  a GardenAccount cannot request their own commitment through that garden: `claimCommitment`
+  checks both canonical claimant and authenticated requester, and `acceptClaim` rechecks the
+  stored ApprovalGated requester before mutation. Before register or roster mutation, every
+  resolved lead must also pass the current `providerGarden` membership predicate; tests cover an
+  Offer creator who lost their Hat and an ineligible StewardCaptured `onBehalfOf`.
+  UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
+  exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
+  retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
 - `DeclaredReward` carries `RewardRail { None, ArbitrumExternal, CeloSettlement }`. Zero reward
   requires `None` plus zero source/token/amount; `recordRewardPaid` accepts only
   `ArbitrumExternal`, so a Celo settlement declaration cannot also be recorded on the external
-  rail.
+  rail. `CeloSettlement` accepts a non-zero amount with zero source/token sentinels; pooling has
+  no canonical-token dependency, and SettlementModule exclusively derives its write-once
+  `gDollarToken`.
 - Commitment creation rejects an empty exact unit label and zero target. The register's per-class
   accounting state enforces only `Registered -> Committed -> Released|Fulfilled`; commit accepts
   exactly the full non-zero quota, and release/fulfillment accept exactly the full live committed
@@ -130,7 +168,18 @@
 
 ## RED / GREEN
 
-- RED: add focused tests in test/unit/CommitmentPooling.t.sol and test/unit/CommitmentRegister.t.sol; run them before implementation and record the expected behavioral failures.
+- RED: add focused tests in test/unit/CommitmentPooling.t.sol and
+  test/unit/CommitmentRegister.t.sol; include write-once Accepted-and-unfrozen assessment
+  attachment (replacement and post-freeze rejection), contributor-steward direct-dispute
+  Fulfilled rejection, Garden-Request `requestedBy` lead accounting, creator-operated Garden
+  rejection in both Open and ApprovalGated modes (including acceptance-time revalidation),
+  evidence-only `requirements.length == 0`, one evidence-derived recognition credit per
+  contributor across multiple distinct CIDs, stale catch-up omission before mutation, unlink
+  after effective rejection, current provider-garden eligibility for Offer/StewardCaptured
+  leads, live count including Offered/Requested, and non-Reconciled/cycle-less
+  Hypercert-composer rejection while recognition validation remains available for payout
+  defaults. Run them before implementation
+  and record the expected behavioral failures.
 - GREEN: run the same files after the minimum implementation, then storage, script, and full contract checks.
 
 ## Exact Bun commands
@@ -212,3 +261,91 @@ every conflicting state. Broadcast remains outside this handoff.
 - The two Arbitrum Sepolia post-deploy verifier targets are created by this lane before any
   broadcast, alongside the `421614` network record.
 - RED proof is recorded before implementation; GREEN cannot be claimed without the same test passing plus storage/deploy evidence.
+
+## Binding architecture amendment — 2026-07-28
+
+- Replace the single-provider fulfillment model with one accountable `leadProvider` plus a contributor roster. Only the lead consumes the non-transferable register slot; every roster member is excluded from confirmation.
+- Accept repeatable `CommitmentRequirementInput` rows containing only `actionUID` and `requiredCount`; derive stored `domain` and `approvedCount` inside the module. There is no four-requirement product rule; set `MAX_REQUIREMENTS` only from the named gas/indexer benchmark.
+- Reject a DomainImpact requirement-total above the separately measured
+  `MAX_LINKED_WORKS_PER_COMMITMENT`; the active Work array is the authoritative enumerable
+  readiness set, so creation must never accept a quota that the link bound makes unfulfillable.
+- Freeze the roster and contribution-credit accounting atomically on the transition to
+  `ReadyForConfirmation`. Emit contributor, work/evidence attribution, and recognition inputs
+  needed by the indexer.
+- The gardener Hypercert class uses equal fulfilled-commitment budgets, then the immutable
+  cycle-open `RecognitionPolicy` (protocol default 20% equal participation / 80% verified
+  contribution). Equal and verified components each run their own floor-plus-remainder pass before
+  their row results are added; equal ties use ascending lowercase address, while verified
+  remainders use descending fractional remainder then ascending lowercase address. Expand each
+  commitment's final 10,000-bps vector into its integer gardener-unit budget with a final
+  floor-plus-largest-fractional-remainder pass and ascending-address tie break, conserving the
+  commitment budget exactly without changing the recognition hash. The cycle-less
+  preset remains 20/80. Zero eligible contributors block certificate expansion; there is no lead
+  fallback. Recognition is not a payment transfer.
+
+## Binding review closure — 2026-07-29
+
+- Implement the 31-feature-slot Commitment Pooling declaration order and `__gap[19]`, including
+  `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
+  sequence plus audit UID and the bounded enumerable active Work set, but treat the generated compiler baseline plus concrete
+  slot/offset assertions as authoritative.
+- `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
+  measured-bounded credited list, and may mutate recognition credit only while the commitment is
+  Accepted and unfrozen. `evidenceCount` still records every distinct evidence object, but each
+  contributor's first attribution alone changes `evidenceCredits` from 0 to 1 and increments
+  `totalVerifiedCredits`; later CIDs remain provenance without multiplying recognition. A queued
+  job that lands after freeze fails without a partial write. `isEligibleContributor` additionally
+  requires `Fulfilled`.
+- The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark selects the transaction-safe value. It is not a semantic team-size cap.
+- `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector bound (provisional 32);
+  add/join reject max-plus-one before mutation. Open contributors may self-leave only before
+  freeze with zero linked Work and zero credit; neither the lead, a credited contributor, nor a
+  contributor with uncounted linked Work may leave/be removed. `ContributorRecord` carries the
+  O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
+  the first countable approval decrements exactly once.
+- `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row and
+  stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
+  `approvalCounted` makes each decision-attestation delivery idempotent; WorkApprovalResolver
+  assigns and persists a monotonic per-Work sequence in EVM execution order, including same-block
+  transactions, and the greatest non-zero sequence is the deterministic effective decision.
+  Before freeze,
+  approval activates the exact requirement/contributor credit and a newer rejection reverses it;
+  repeated same-state or older decisions do not double-mutate. A sequence-zero historical
+  decision rejects catch-up and requires re-attestation. Before mutation, catch-up must prove the
+  greatest supplied sequence for every included Work equals the resolver's current public
+  maximum and apply only that current decision. Before any readiness or direct-fulfillment
+  freeze, enumerate the complete bounded active Work set and require every stored sequence to
+  equal the resolver maximum; omitting stale Work A while syncing Work B reverts without credit
+  or freeze. After freeze, decisions are
+  observed but cannot mutate credit, requirements, units, or recognition.
+  The active contributor, accountable lead, or resolved pool steward may link after all shared
+  validation; only the steward may unlink, and unlink is Accepted-and-unfrozen with current
+  `workCreditActive == false`, including after an effective rejection despite a historical
+  delivered approval UID.
+- Every Ready transition and a direct `Disputed -> Fulfilled` resolution require at least one
+  pre-freeze verified credit (`totalVerifiedCredits > 0`) plus either the cycle's opened
+  recognition policy or the
+  immutable cycle-less 20/80 default. The direct dispute path freezes and validates the roster
+  before emitting the Fulfilled resolution, and rejects the resolving steward when that address
+  is a current or frozen contributor.
+- Each non-zero-cycle commitment increments `Cycle.liveCommitmentCount` after successful
+  creation; the first Fulfilled/Cancelled/Expired transition decrements exactly once. Ready and
+  Disputed remain live, and `closeCycle` plus `cancelCycle` require the O(1) count to be zero.
+- Garden-claimed Requests use the authenticated Open `claimCommitment` caller or the consumed
+  ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
+  GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
+  checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
+  declarations require zero source/token sentinels; SettlementModule exclusively derives its
+  configured G$ token, and the accepted provider-garden Safe becomes authoritative only there.
+- Maintain eligible-contributor/verified-credit totals and expose
+  `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
+  than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments
+  from one non-zero cycle whose current on-chain state is exactly Reconciled; the shared composer
+  rejects every other cycle state before allowlist/metadata construction.
+- For the gardeners-class cross-commitment split, sort fulfilled commitment IDs ascending, assign
+  the floor share to each, and give one remainder unit to the lowest IDs before applying the
+  within-commitment contributor policy. Within a commitment, allocate the equal-policy bps and
+  verified-policy bps in two independent passes. Finish the equal remainder pass first by
+  ascending lowercase address; then finish the verified remainder pass by descending fractional
+  remainder and ascending lowercase address. Add the two row results only after both passes;
+  remainders are never pooled, and one contributor may receive one remainder unit from each pass.

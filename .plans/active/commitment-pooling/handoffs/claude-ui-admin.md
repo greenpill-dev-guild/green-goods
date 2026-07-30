@@ -27,14 +27,20 @@
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
 - Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
   reward fields, `ArbitrumExternal` explains the later record-only payout action, and
-  `CeloSettlement` requires the owning-pool Safe/canonical-G$ readiness without exposing
-  `recordRewardPaid`. It also enforces cycle/pool and DomainImpact positional array shape, shows
+  `CeloSettlement` requires provider-garden Safe/canonical-G$ readiness without exposing
+  `recordRewardPaid`. It also enforces cycle/pool and repeatable DomainImpact requirements, shows
   the app-preflight Baseline alongside the onchain charter/provider-open-commitment-cap blockers,
   supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready
   submission/authorized override.
-- DomainImpact creation uses 1–4 ordered domain/action requirement rows, encodes equal-length `domains[]`, `requiredActionUIDs[]`, and `requiredApprovedWorkCounts[]`, and renders `approvedWorkCounts[i] / requiredApprovedWorkCounts[i]` plus canonical per-commitment `approvedUnits`.
+- DomainImpact creation uses 1–`MAX_REQUIREMENTS` ordered `{ actionUID, requiredCount }` rows,
+  derives domain tags through ActionRegistry, permits actions in the same domain, and renders
+  `approvedCount / requiredCount` plus canonical per-commitment `approvedUnits`. The UI starts
+  with four rows and adds more; it never presents four as the product maximum.
 - Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
-- Cycle seeding carries no allocation. The open-cycle step accepts percentages, converts all six fields to basis points, requires an exact 10,000 total, and submits the complete allocation atomically through `openCycle(cycleId, allocation)`.
+- Cycle seeding carries no allocation or recognition policy. The open-cycle step accepts the six
+  allocation percentages plus equal/verified recognition percentages, converts both groups to
+  basis points, requires each group to total exactly 10,000, and submits both snapshots atomically
+  through `openCycle(cycleId, allocation, recognitionPolicy)`.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
 - `W10@accepted` uses one locked action row: “Send for confirmation” is available only when required evidence is complete; “Cancel promise” opens the reason-required `W10@cancel` steward dialog; “Mark ready” opens the authorized reason-required `W10@mark-ready-override` flow and is visually distinct from ordinary evidence completion. The row never implies that acceptance alone made the commitment Ready.
 - `W10@attach-assessment` is the only assessment-attachment placement. It filters to eligible Assessment v3 records for the commitment’s accepted `providerGarden`, records the selected assessment before Ready submission, and exposes an empty/ineligible state instead of attaching an unrelated garden’s assessment.
@@ -87,3 +93,40 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 - /community placement and corrected admin wireframes are recorded.
 - RED proof precedes implementation.
 - GREEN includes targeted tests, build, and authenticated Brave proof for seeding, claims, dispute recovery, batching, command dispatch, execution/acknowledgment status, failure, fee/delivery delay, and each distinct retry action.
+
+## Binding architecture amendment — 2026-07-28
+
+- Seeding and detail surfaces expose the accountable lead, contributor policy/roster, repeatable requirements, and roster freeze.
+- Ready and direct dispute-fulfillment controls expose the non-zero verified-contributor gate and
+  either the opened cycle policy or immutable cycle-less 20/80 default. A direct Fulfilled
+  dispute result shows the roster as frozen before recognition or payment becomes available.
+- Recognition review shows the canonical equal-commitment then policy-defined gardener formula.
+  The payment editor starts from those weights, makes garden retention explicit, and requires a
+  reason only when a steward changes the contributor weights.
+- Hypercert commitment-bundle selection includes only fulfilled commitments from the selected
+  non-zero cycle. Cycle-less rows remain visible for recognition/payment history but are disabled
+  with “No cycle allocation · not certificate eligible”; they never reach allowlist or metadata
+  construction.
+- Settlement separates Save draft, Finalize payout plan, and per-contributor Prepare payout.
+  Finalization creates no child; preparation is visibly idempotent and creates one Queued child
+  from a frozen non-zero row. Any non-zero retained amount is a divergence and requires visible
+  non-empty reason input even when contributor payment weights still mirror recognition. The
+  surface shows recognition/payment hashes, amount-derived weights, reasoned divergence,
+  all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without
+  rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent
+  pointer.
+- Protocol Safe to garden Safe value appears only as Funding / ProtocolToGarden created through
+  `queueFunding`; the admin queue never labels or routes it as a garden-beneficiary commitment
+  reward.
+- Payout-plan draft actions render only when the provider-garden settlement account is Active;
+  external-record and Celo allocation actions remain mutually exclusive by reward rail.
+- W10 filters dispute-resolution outcomes against the connected steward. When that steward is an
+  active contributor, Fulfilled is hidden or disabled with a `SelfConfirmation` explanation; only
+  an eligible non-contributor steward may submit the separately policy/credit-gated outcome.
+- W26 requires every commitment terminal and `liveCommitmentCount == 0`, calls `closeCycle` first,
+  and only then exposes share review and certificate minting from the locked Reconciled bundle.
+  The count comes from `CommitmentCycle.liveCommitmentCount`, not accepted-only exposure.
+  The shared composer independently requires exact on-chain Reconciled state for both W26 and
+  `/hub/certify/create`; route entry cannot bypass close. `compostCycle` is the final post-mint
+  action; mint-before-close is never offered.
+- Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

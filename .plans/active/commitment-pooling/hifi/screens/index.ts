@@ -21,7 +21,7 @@ const DISSOLVED = new Set(["W1P", "W1S", "MF3", "MF5", "MF6", "MF10", "W23G", "M
 
 // Screens-tab groups (order = display order). W6 dropped from Client PWA.
 const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
-  { name: "Client PWA", surface: "client", ids: ["W1", "W2", "W2a", "W3", "W4", "W5", "W23", "W25", "WFLOW"] },
+  { name: "Client PWA", surface: "client", ids: ["W1", "W2", "W2a", "W2b", "W3", "W4", "W5", "W23", "W25", "WFLOW"] },
   { name: "Admin console", surface: "admin", ids: ["W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W21", "W22", "W24", "W26", "HUBWORK"] },
   { name: "Editorial website", surface: "editorial", ids: ["W15", "W16"] },
   { name: "Community PWA — September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },

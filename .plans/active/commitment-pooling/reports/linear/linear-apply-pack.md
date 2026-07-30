@@ -53,7 +53,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 
 * Commitments are module-native on Arbitrum; EAS is not the commitment state machine.
 * Offer recipient confirms; Request creator confirms; the provider cannot self-confirm.
-* Optional `domains[]` and positional `requiredActionUIDs[]` are registry-validated; UID `0` is valid.
+* DomainImpact uses repeatable `{ actionUID, requiredCount }` requirements; domain tags are derived from registry-validated actions, may repeat across requirements, and UID `0` is valid.
 * G$ stays on Celo. House of Alignment funds stream directly to the GG protocol Safe; Green Goods models only `ProtocolToGarden`.
 * A Celo transaction report is not proof. Chainlink Functions verifies one finalized receipt; only a valid current request callback may produce `Verified`. There is no human fallback.
 * Community is a planned independent PWA; operator/evaluator tools live in admin `/community`; funder discovery remains in existing client public surfaces.
@@ -124,7 +124,7 @@ The three named candidates together exercise all four action domains (SOLAR, EDU
 
 ### Reward-path matrix
 
-Labels follow the external-communications evidence vocabulary (Built / Planned / Reported / Oracle-verified / Evidence-gated). No G$ moves in the July dry run. In August every focus garden is G$-settlement-capable — one Celo Safe per garden, deployed on demand; Tech and Sun Hub is the first-execution hypothesis, and Pass-2 evidence (steward, local relevance, in-pool spend sink) orders the rollout. A reported Celo transaction is never proof; only the Chainlink Functions callback produces Oracle-verified.
+Labels follow the external-communications evidence vocabulary (Built / Planned / Reported / Oracle-verified / Evidence-gated). No G$ moves in the July dry run. In August every focus garden is G$-settlement-capable — one Celo Safe per garden, deployed on demand; Tech and Sun Hub is the first-execution hypothesis, and Pass-2 evidence (steward, local relevance, in-pool spend sink) orders the rollout. A reported Celo transaction is never proof; only the authenticated CCIP acknowledgment produces Oracle-verified.
 
 | Garden | July dry run | August reward path |
 | -- | -- | -- |
@@ -141,21 +141,21 @@ The hub already runs on the mix the synthesis describes: skills traded for skill
 
 **Worked example — one workshop cycle at the Awka hub** (quantities illustrative; rewards read "declared at seeding"):
 
-1. **Mutual-aid Offer (S1, no domains).** A member offers one two-hour design workshop (unit: 1 session). The attending cohort is the named confirmation group (for example 3-of-5 attendees; the provider is excluded). Evidence: lightweight CID — a photo plus the attendance list. Reward: none — confirmation is the settlement.
+1. **Mutual-aid Offer (S1, no domains).** A member offers one two-hour design workshop (unit: 1 session). The attending cohort is the named confirmation group (for example 3-of-5 attendees; every member of the delivery team is excluded). Evidence: lightweight CID — a photo plus the attendance list. Reward: none — confirmation is the settlement.
 2. **Skill swap pair (S1 × 2).** Design work is exchanged against catering for the next gathering, and separately against node configuration (unit: hours). Two support-service commitments, each closed by its recipient's confirmation; no token movement.
-3. **Install-day Request (S2).** The hub requests one crew day at the container hub (unit: 1 crew day). The accepted claimant provides; the hub operator who created the Request confirms; provider self-confirmation is rejected.
-4. **Bootcamp Campaign (S4 + S5).** A SOLAR+EDU DomainImpact commitment pairs `domains[SOLAR, EDU]` with positional registered actions (UID `0` valid where the generic action applies) inside a Campaign running concurrently with the open Season. Work is attested by the accepted counterparty; approval rides pre-linked workUIDs; full MDR evidence. Reward: Cookie Jar, declared at seeding.
+3. **Install-day Request (S2).** The hub requests one crew day at the container hub (unit: 1 crew day). The accepted team provides; the hub operator who created the Request confirms; every frozen team member is excluded.
+4. **Bootcamp Campaign (S4 + S5).** A SOLAR+EDU DomainImpact commitment carries repeatable registered action/count requirements (UID `0` valid where the generic action applies) inside a Campaign running concurrently with the open Season; SOLAR and EDU are derived tags. Work is attributed to the accepted team through pre-linked workUIDs; full MDR evidence. Reward: Cookie Jar, declared at seeding.
 5. **Forward (Planned / Evidence-gated): first G$ execution (S8–S9).** A fulfilled paid-work commitment (for example bootcamp facilitation) derives a G$ reward queue entry; the operator executes from the TAS garden Safe on Celo; Reported → Functions callback → Oracle-verified; member delivery only if the AA gate passes.
 
 **Open questions → Pass 1/2**: workshop cadence and the units the hub actually uses; named confirmation groups per commitment type; which ActionRegistry actions pair with SOLAR/EDU; hub-sink pricing readiness for G$ recirculation.
 
 ### B2. Greenpill Cape Town — waste with partner legibility (S2, S5, S7, S10, S11)
 
-The Muizenberg / Deep South Circles waste value-chain work (the "Mountain of Waste" mapping, the **UNICEF-funded** trash-bin and cleanup program) already counts kilograms diverted, recycling rate, and area cleaned. The operator seeds cleanup and bin-maintenance Requests — the creator confirms; providers never self-confirm (S2). The UNICEF-funded program runs as a Campaign concurrent with the garden's open Season (S5). Beach cleanups include members without devices, so the operator records promises analog with the member as social source (S7). UNICEF holds no account, wears no Hat, and has no confirmation role: the partner deliverable is aggregate progress, evaluator CSV/JSON export, and receipt-checked FundingAttribution for the program funding (S11 composing S10). Pass 1 captures the reporting cadence and deadline UNICEF expects and the funding path that FundingAttribution receipts must check.
+The Muizenberg / Deep South Circles waste value-chain work (the "Mountain of Waste" mapping, the **UNICEF-funded** trash-bin and cleanup program) already counts kilograms diverted, recycling rate, and area cleaned. The operator seeds cleanup and bin-maintenance Requests — the creator confirms; delivery-team members never self-confirm (S2). The UNICEF-funded program runs as a Campaign concurrent with the garden's open Season (S5). Beach cleanups include members without devices, so the operator records promises analog with the member as social source (S7). UNICEF holds no account, wears no Hat, and has no confirmation role: the partner deliverable is aggregate progress, evaluator CSV/JSON export, and receipt-checked FundingAttribution for the program funding (S11 composing S10). Pass 1 captures the reporting cadence and deadline UNICEF expects and the funding path that FundingAttribution receipts must check.
 
 **Worked example — one cleanup cycle under the UNICEF campaign** (quantities illustrative):
 
-1. **Weekly cleanup Request (S2).** The operator seeds "one beach cleanup — 20 collection bags" (unit: bags; kilograms diverted where scales exist). Accepted claimants provide; the operator as Request creator confirms; self-confirmation is rejected.
+1. **Weekly cleanup Request (S2).** The operator seeds "one beach cleanup — 20 collection bags" (unit: bags; kilograms diverted where scales exist). The accepted team provides; the operator as Request creator confirms; every frozen team member is excluded.
 2. **Bin-maintenance cycle (S5).** Bin checks recur inside the UNICEF Campaign while the Season stays open; an unclaimed week expires and releases committed units exactly once.
 3. **Analog promise at a gathering (S7).** A device-free member takes a cleanup slot; the operator records it with the member as social source and operator as `recordedBy` — never when the operator is the provider.
 4. **Domain evidence (S4).** Where the commitment claims the WASTE domain, photo-plus-weight evidence carries the MDR path; kilograms diverted, recycling rate, and area cleaned map to the garden's existing metrics.
@@ -165,13 +165,13 @@ The Muizenberg / Deep South Circles waste value-chain work (the "Mountain of Was
 
 ### B3. AgroforestDAO / Redemption Hill — agroforestry and the farm-school ladder (S1, S2–S3, S4, S6–S7)
 
-The garden ties agroforestry to a biogas→electricity Revnet and a farm-school internship ladder (apprentice → intern → mentor). Planting and nursery Requests run approval-gated where crew slots are scarce: stored claim terms, one decline clearing one request, deterministic acceptance and supersession (S3). Commitments pair AGRO and EDU domains positionally (S4), so one planting-education cycle can claim both honestly. Rural connectivity makes offline the default: drafts, `waiting_for_hat`, retry/edit/cancel/delete, and analog capture ride S6–S7, and this journey carries the pt-BR locale proof for every new string. The education ladder is the named-group confirmation case: cohort members confirm a training delivery with the provider excluded. The Revnet itself stays outside v1 scope — the module never custodies funds and no Revnet integration ships.
+The garden ties agroforestry to a biogas→electricity Revnet and a farm-school internship ladder (apprentice → intern → mentor). Planting and nursery Requests run approval-gated where crew slots are scarce: stored claim terms, one decline clearing one request, deterministic acceptance and supersession (S3). Commitments carry registered AGRO and EDU action/count requirements (S4), so one planting-education cycle can claim both honestly without coupling requirements to unique domains. Rural connectivity makes offline the default: drafts, `waiting_for_hat`, retry/edit/cancel/delete, and analog capture ride S6–S7, and this journey carries the pt-BR locale proof for every new string. The education ladder is the named-group confirmation case: cohort members confirm a training delivery with every member of the delivery team excluded. The Revnet itself stays outside v1 scope — the module never custodies funds and no Revnet integration ships.
 
 **Worked example — one planting-education cycle** (quantities illustrative):
 
 1. **Approval-gated planting Request (S3).** "Plant 200 seedlings across two weekend crews" (unit: seedlings). Crew slots are scarce, so claims are steward-reviewed: claimants A and B store kind, provider garden, and timestamp; declining A clears only A; accepting B supersedes the other pending requests through the commitment-keyed index.
-2. **Multi-domain cycle (S4).** The planting Campaign pairs `domains[AGRO, EDU]` with positional registered actions — the same cycle counts the planting and the apprentices trained, without double machinery.
-3. **Grafting workshop Offer (S1).** A mentor offers one grafting workshop; the learner cohort is the named confirmation group (provider excluded; acceptance fails if exclusion makes the threshold unreachable).
+2. **Multi-domain cycle (S4).** The planting Campaign carries registered planting and training requirements; AGRO and EDU are derived domain tags, so the same cycle counts the planting and the apprentices trained without double machinery.
+3. **Grafting workshop Offer (S1).** A mentor offers one grafting workshop; the learner cohort is the named confirmation group (every frozen delivery-team member is excluded; acceptance fails if exclusion makes the threshold unreachable).
 4. **Offline-first field capture (S6–S7).** Drafts and evidence save offline and sync later; a new member's job waits in `waiting_for_hat` without consuming retries; the operator captures analog promises at gatherings. Every new string ships en/es/pt, with this journey as the pt-BR proof.
 5. **Ladder Initiative (S10).** "Apprentice cohort #2" is seeded as an Initiative Need; the commitments it seeds carry `needUID`, so the ladder's progress is traceable end-to-end.
 
@@ -179,7 +179,7 @@ The garden ties agroforestry to a biogas→electricity Revnet and a farm-school 
 
 ### B4. Garden 4 — mature-organization MRV adoption (S12 composing S10)
 
-Reserved for the deep-research selection. Journey skeleton: an operationally mature organization arrives with an existing methodology and existing funders. An operator- or evaluator-authored assessment v3 baseline records current state; historical records stay in evidence CIDs and documents, never as retroactive on-chain work. Its existing program becomes commitments — optional `domains[]`, positional registry-matched `requiredActionUIDs[]` where DomainImpact is claimed, UID `0` valid. The standard loop (work → approval → delta by Evaluator Hat → testimony by Community Hat → Hypercert `needUID` lineage → evaluator exports → receipt-checked FundingAttribution) makes the impact legible to the capital they already reach. No mechanism is new in this journey — that is the point: adoption must not require special machinery.
+Reserved for the deep-research selection. Journey skeleton: an operationally mature organization arrives with an existing methodology and existing funders. An operator- or evaluator-authored assessment v3 baseline records current state; historical records stay in evidence CIDs and documents, never as retroactive on-chain work. Its existing program becomes commitments with repeatable registry-matched action/count requirements where DomainImpact is claimed; UID `0` remains valid and domain tags are derived. The standard loop (work → approval → delta by Evaluator Hat → testimony by Community Hat → Hypercert `needUID` lineage → evaluator exports → receipt-checked FundingAttribution) makes the impact legible to the capital they already reach. No mechanism is new in this journey — that is the point: adoption must not require special machinery.
 
 ## Part C — Normative mechanism scenarios
 
@@ -200,7 +200,7 @@ Claimants A and B each submit claimant kind, provider garden, and timestamp. Dec
 
 ### Scenario 4 — DomainImpact provider garden
 
-`domains[]` and positional `requiredActionUIDs[]` are both present and each action exists/matches its domain; UID `0` is valid. Individual Work attester equals the accepted counterparty. Garden Work attester is a gardener/operator of the stored provider garden. Protocol-pool Work and assessments use the provider garden as EAS recipient while the commitment stays in the root pool.
+Each DomainImpact requirement has a registry-valid action UID and non-zero required count; UID `0` is valid, and domain tags are derived rather than positional. Work keeps the credited contributor while Garden Work remains scoped to a gardener/operator of the stored provider garden. Protocol-pool Work and assessments use the provider garden as EAS recipient while the commitment stays in the root pool.
 *Pilot threads*: B1 SOLAR+EDU workshop cycles; B3 AGRO+EDU planting-education cycles.
 
 ### Scenario 5 — Cycle and dispute recovery
@@ -240,7 +240,7 @@ An operator seeds an Initiative or Request linked to a named partner program. Th
 
 ### Scenario 12 — Mature-organization MRV adoption (added 2026-07-10)
 
-A mature organization with an existing methodology joins without changing how it works. An assessment v3 baseline authored by an evaluator or operator records current state; historical records stay in evidence CIDs and documents, never retroactive on-chain work. Its program maps to commitments (optional `domains[]`; positional registry-matched `requiredActionUIDs[]` where DomainImpact is claimed; UID `0` valid). The standard loop — work, approval, delta by Evaluator Hat, testimony by Community Hat, Hypercert `needUID` lineage, evaluator exports, receipt-checked FundingAttribution — produces funder-legible lineage. This scenario introduces no new mechanism; it is the composition proof that adoption requires none.
+A mature organization with an existing methodology joins without changing how it works. An assessment v3 baseline authored by an evaluator or operator records current state; historical records stay in evidence CIDs and documents, never retroactive on-chain work. Its program maps to commitments with repeatable registry-matched action/count requirements where DomainImpact is claimed; UID `0` remains valid and domain tags are derived. The standard loop — work, approval, delta by Evaluator Hat, testimony by Community Hat, Hypercert `needUID` lineage, evaluator exports, receipt-checked FundingAttribution — produces funder-legible lineage. This scenario introduces no new mechanism; it is the composition proof that adoption requires none.
 *Pilot threads*: B4 (Garden 4 — TBD).
 
 ## Acceptance mapping
