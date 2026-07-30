@@ -819,8 +819,9 @@ resolution to have at least one verified eligible contributor plus either the cy
 recognition policy or the immutable cycle-less 20/80 default. The direct dispute path freezes the
 roster before its terminal event. `approvalCounted` remains decision-attestation delivery
 idempotency; the later binding review supersedes the first-credit-only guard with
-`workCreditActive` plus the deterministic latest `(attestation.time, approvalUID)` key so a newer
-pre-freeze rejection reverses an approval and a later approval can restore it exactly once. A
+`workCreditActive` plus a WorkApprovalResolver-owned monotonic per-Work decision sequence so a
+newer pre-freeze rejection reverses an approval and a later approval can restore it exactly once,
+including when both attestations land in the same block. A
 zero-eligible legacy or indexed record is a read-only blocker until governed migration or
 source-data correction restores canonical on-chain credit; mint metadata cannot repair it.
 
@@ -919,10 +920,11 @@ queue models protocol-Safe-to-garden-Safe value only as Funding/ProtocolToGarden
 
 Seven follow-up findings were valid. The live WorkApproval resolver supports a newer attestation
 to correct an earlier decision, but the pooling draft treated the first approval as permanent.
-The bridge now forwards approvals and rejections. Before roster freeze, the greatest deterministic
-`(attestation.time, approvalUID)` decision activates or reverses the exact requirement and
-contributor credit; missed/out-of-order hooks converge through the same sync rule, and frozen
-credit remains immutable. The storage target is 30 feature slots plus `__gap[20]`.
+The bridge now forwards approvals and rejections with a resolver-assigned monotonic sequence in
+actual EVM execution order. Before roster freeze, the greatest non-zero sequence activates or
+reverses the exact requirement and contributor credit; missed/out-of-order hooks converge through
+the same sync rule, same-block decisions remain chronological, and frozen credit stays immutable.
+The storage target is 30 feature slots plus `__gap[20]`.
 
 Recognition first derives its canonical 10,000-bps vector through the independent equal and
 verified passes, then expands each commitment budget into integer allowlist units with a separate

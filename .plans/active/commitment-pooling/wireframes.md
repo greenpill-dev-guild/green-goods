@@ -937,10 +937,10 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 
 ```text
 ┌── Close cycle: Season of First Rains ── Step 1 of 4 ─────┐
-│ Step 1 — Review        9 promises · 7 kept               │
-│   unresolved first: 1 expired [ Re-seed… ]               │
-│              1 under steward review [ Resolve… ]         │
-│ Step 2 — Shares (read-only; locked at open, W11)         │
+│ Step 1 — Close         9 promises · all terminal         │
+│   7 kept · 1 expired · 1 cancelled after review         │
+│   live commitment count: 0  [ Close cycle and continue ]│
+│ Step 2 — Shares (read-only; cycle now Reconciled)        │
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
 │   Gardener contributors:                                 │
@@ -954,13 +954,13 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │   and need lineage → allowlist from the shares above     │
 │   [ Mint impact certificate ]   (existing Hypercert      │
 │   pipeline; the garden account holds the certificate)    │
-│ Step 4 — Rest the cycle  [ Reconcile and compost cycle ] │
+│ Step 4 — Rest the cycle       [ Compost closed cycle ]   │
 │   aggregates roll into pool history; the next season     │
 │   seeds fresh on this pool (D5)                          │
 └──────────────────────────────────────────────────────────┘
 ```
 
-- The wizard invents no contract surface — it choreographs `closeCycle` → certificate mint → `compostCycle` so stewards experience cycle close as one coherent ritual instead of three consoles. No unit percentage appears in Step 1 (units are incommensurable across commitments), and primary copy never says "disputed" — "under steward review" is the ceiling.
+- The wizard invents no contract surface — it choreographs `closeCycle` → certificate mint → `compostCycle` so stewards experience cycle close as one coherent ritual instead of three consoles. `closeCycle` succeeds only after every commitment is terminal and `liveCommitmentCount == 0`; its Reconciled result is the certificate composer's prerequisite, so no new commitment can enter the bundle between mint and close. No unit percentage appears in Step 1 because units are incommensurable across commitments.
 
 ## 7. Coverage check
 

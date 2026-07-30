@@ -771,22 +771,21 @@ ${banner("Uses the garden's existing impact-certificate pipeline.", "stone")}`;
       break;
     case "rest":
       inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "seeds fresh on this pool")}
-${hot(h("compost"), btn("Reconcile and compost cycle", { kind: "pri" }))}
+${hot(h("compost"), btn("Compost closed cycle", { kind: "pri" }))}
 <div class="quietok">${icon("check-line")}Certificate minted · 7 promises bundled.</div>`;
       break;
     default:
       inner = `${kv("Season of First Rains", "9 promises · 7 kept")}
-<div class="arow"><div class="grow">Unresolved first: <b>1 expired</b></div>${hot("w26.reseed", btn("Re-seed…", { kind: "sec", sm: true }))}</div>
-<div class="arow"><div class="grow"><b>1 under steward review</b></div>${hot("w26.resolve", btn("Resolve…", { kind: "sec", sm: true }))}</div>
-${banner("Closing runs as one sequence: settle what's unresolved, read back the shares, certify, then rest the cycle.", "stone")}
-${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
+${kv("Terminal set", "7 fulfilled · 1 expired · 1 cancelled after steward review")}
+${banner("Every commitment is terminal and liveCommitmentCount is zero. Close the cycle now to lock this exact bundle before shares are reviewed or the certificate is minted.", "stone")}
+${hot(h("continue-shares"), btn("Close cycle and continue", { kind: "pri" }))}`;
   }
   if (paused)
-    inner = `${banner("The pool remains paused throughout this cycle close. Only the cycle advances from Reviewing to Reconciled to Composted.", "amber", "error-warning-line")}${inner}`;
+    inner = `${banner("The pool remains paused throughout this cycle close. Step 1 closes the cycle to Reconciled; the final step composts it.", "amber", "error-warning-line")}${inner}`;
   const header = pageHeader({
     title: "Close cycle",
     eyebrow: `${paused ? "Pool paused · " : ""}Step ${stepIx + 1} of 4`,
-    description: "Season of First Rains — review, share, certify, then reconcile and rest.",
+    description: "Season of First Rains — close, share, certify, then rest.",
     actions: stepDots(4, stepIx),
   });
   return deskWin(
@@ -796,20 +795,15 @@ ${hot(h("continue-shares"), btn("Continue", { kind: "pri" }))}`;
 }
 
 const W26_HOTS: HifiDef["hots"] = {
-  "w26.recognition-blocked-back": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to unresolved review; no metadata-only action can mutate canonical recognition credit." },
-  "w26.continue-shares": { l: "Continue to shares", to: "screen:W26@shares", info: "Moves from unresolved-item review to the locked six-role allocation snapshot." },
+  "w26.recognition-blocked-back": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to the terminal-set review; no metadata-only action can mutate canonical recognition credit." },
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
-  // Unresolved items are handled in a dialog over the wizard. Sending the
-  // steward off to another workspace mid-close abandoned a four-step sequence
-  // with no described way back.
-  "w26.reseed": { l: "Re-seed expired", info: "Opens the seeding console prefilled from the lapsed promise, in a dialog over this step — the close sequence stays where it is (UX:94)." },
-  "w26.resolve": { l: "Resolve under-review", info: "Opens the dispute resolution dialog over this step; cycle close sequences unresolved commitments before reconcile without leaving the flow (WF:691)." },
+  "w26.continue-shares": { l: "Close cycle and continue to shares", to: "screen:W26@shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact fulfilled bundle before any share review or certificate mint.", calls: ["closeCycle"] },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.compost": { l: "Reconcile and compost cycle", to: "screen:W7@cycle-composted", info: "After every cycle commitment is Fulfilled, Cancelled, or Expired and liveCommitmentCount is zero, closeCycle changes Reviewing/Open-on-chain → Reconciled; compostCycle then archives it.", calls: ["closeCycle", "compostCycle"] },
-  "w26.paused-continue-shares": { l: "Continue to shares while pool paused", to: "screen:W26@paused-shares", info: "Moves through the reconciliation report without changing the Paused pool." },
+  "w26.compost": { l: "Compost closed cycle", to: "screen:W7@cycle-composted", info: "The certificate already uses the Reconciled cycle's locked bundle; compostCycle now archives it without another close call.", calls: ["compostCycle"] },
+  "w26.paused-continue-shares": { l: "Close cycle and continue while pool paused", to: "screen:W26@paused-shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact bundle while leaving the pool Paused.", calls: ["closeCycle"] },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },
   "w26.paused-mint": { l: "Mint impact certificate while pool paused", to: "screen:W26@paused-rest", info: "Uses the existing certificate pipeline without changing pool or cycle lifecycle state." },
-  "w26.paused-compost": { l: "Reconcile and compost cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "With liveCommitmentCount zero, closeCycle then compostCycle changes only the cycle from Reviewing/Open-on-chain → Reconciled → Composted; the pool remains Paused.", calls: ["closeCycle", "compostCycle"] },
+  "w26.paused-compost": { l: "Compost closed cycle while pool paused", to: "screen:W7@paused-cycle-composted", info: "The cycle was closed before minting; compostCycle archives it while the pool remains Paused.", calls: ["compostCycle"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -862,8 +856,8 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
       label,
       facts: {
         pool: id.startsWith("paused-") ? "Paused" : "Open",
-        cycle: "Open",
-        cycleLiveCommitments: id === "rest" || id === "paused-rest" ? "Zero" : "NonZero",
+        cycle: id === "review" || id === "paused-review" || id === "recognition-blocked" ? "Open" : "Reconciled",
+        cycleLiveCommitments: "Zero",
       } satisfies StateFacts,
       html: w26(id),
     })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },

@@ -120,4 +120,10 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   reward.
 - Payout-plan draft actions render only when the provider-garden settlement account is Active;
   external-record and Celo allocation actions remain mutually exclusive by reward rail.
+- W10 filters dispute-resolution outcomes against the connected steward. When that steward is an
+  active contributor, Fulfilled is hidden or disabled with a `SelfConfirmation` explanation; only
+  an eligible non-contributor steward may submit the separately policy/credit-gated outcome.
+- W26 requires every commitment terminal and `liveCommitmentCount == 0`, calls `closeCycle` first,
+  and only then exposes share review and certificate minting from the locked Reconciled bundle.
+  `compostCycle` is the final post-mint action; mint-before-close is never offered.
 - Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

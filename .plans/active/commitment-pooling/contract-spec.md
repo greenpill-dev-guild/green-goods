@@ -143,7 +143,7 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 |---|---|---|
 | Draft (exists) | off-chain | Client/admin IndexedDB draft (offline-first). |
 | Draft -> Offered or Requested | on-chain | `createCommitment(params)`. Event `CommitmentCreated` (direction Offer or Request sets the initial state). |
-| Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`. Open mode transitions immediately. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` consumes the canonical claimant-keyed terms. Event `CommitmentAccepted`. Register records committed units (`UnitsCommitted`). |
+| Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` consumes the canonical claimant-keyed terms and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Register records committed units (`UnitsCommitted`). |
 | Accepted -> Active | derived | First `WorkLinked` or `EvidenceAttached` after acceptance. |
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
@@ -221,8 +221,8 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 26 | `evidenceAttached` | `mapping(uint256 commitmentId => mapping(bytes32 cidHash => bool))` |
 | 27 | `workRequirementIndexPlusOne` | `mapping(bytes32 workUID => uint16 requirementIndexPlusOne)` (0 = no DomainImpact requirement binding) |
 | 28 | `workCreditActive` | `mapping(bytes32 workUID => bool)` (current effective pre-freeze Work decision contributes credit) |
-| 29 | `latestWorkDecisionTime` | `mapping(bytes32 workUID => uint64 attestationTime)` |
-| 30 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (same-time deterministic tiebreaker) |
+| 29 | `latestWorkDecisionSequence` | `mapping(bytes32 workUID => uint64 sequence)` (resolver-assigned chronological order; 0 = no sequenced decision) |
+| 30 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (identity/audit only; never an ordering key) |
 
 Gap: `uint256[20] private __gap;` (30 named + 20 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
@@ -347,7 +347,7 @@ interface ICommitmentPoolingModule {
         uint256 cycleId;                 // 0 = not cycle-scoped
         address creator;                 // social source (StewardCaptured: the member, not the recorder)
         address counterparty;            // provider (Request) or engager (Offer); zero until Accepted
-        address leadProvider;            // Offer creator; Individual Request counterparty; Garden Request requestedBy
+        address leadProvider;            // Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
         ClaimType counterpartyKind;
         CommitmentDirection direction;
         CommitmentType commitmentType;
@@ -544,6 +544,7 @@ interface ICommitmentPoolingModule {
         bytes32 indexed workUID,
         address indexed contributor,
         bytes32 approvalUID,
+        uint64 decisionSequence,
         uint16 requirementIndex,
         uint32 approvedWorkCount,
         uint256 approvedUnits,
@@ -554,6 +555,7 @@ interface ICommitmentPoolingModule {
         bytes32 indexed workUID,
         address indexed contributor,
         bytes32 decisionUID,
+        uint64 decisionSequence,
         uint16 requirementIndex,
         uint32 approvedWorkCount,
         uint256 approvedUnits,
@@ -783,7 +785,7 @@ interface ICommitmentPoolingModule {
     ///         before freeze.
     function leaveCommitment(uint256 commitmentId) external;
 
-    /// @notice LeadManaged roster mutation. The lead provider or pool steward
+    /// @notice LeadManaged-only roster mutation. The lead provider or pool steward
     ///         may add/remove contributors before the roster freezes. An added
     ///         contributor must satisfy the same resolved providerGarden
     ///         membership gate as self-join and a Work author. A contributor
@@ -819,20 +821,28 @@ interface ICommitmentPoolingModule {
 
     /// @notice Called by WorkApprovalResolver inside try/catch after every fully
     ///         validated approval or rejection decision. The module loads the
-    ///         attestation and accepts a decision as effective only when
-    ///         `(attestation.time, approvalUID)` is greater than the stored key.
+    ///         attestation and accepts a decision as effective only when the
+    ///         resolver-assigned sequence is greater than the stored sequence.
     ///         An effective approval activates credit; an effective rejection
     ///         reverses it. Unlinked, duplicate, older, or frozen-ledger decisions
     ///         are observed without changing requirements, units, or recognition.
     ///         Never reverts on state it does not recognize: the Work decision
     ///         attestation must stand regardless.
     ///         Gating: workApprovalResolver only.
-    function onWorkDecision(bytes32 workUID, bytes32 approvalUID, address garden, bool approved) external;
+    function onWorkDecision(
+        bytes32 workUID,
+        bytes32 approvalUID,
+        uint64 decisionSequence,
+        address garden,
+        bool approved
+    ) external;
 
     /// @notice Steward-callable catch-up when resolver hooks were missed.
-    ///         Verifies every decision UID through EAS, applies only newer
-    ///         `(time, UID)` keys, and processes approvals and rejections through
+    ///         Verifies every decision UID through EAS and loads its non-zero,
+    ///         resolver-owned sequence; applies only greater sequences through
     ///         the same effective-decision transition as the live hook.
+    ///         Pre-upgrade decisions with no sequence are rejected and require
+    ///         the operator to attest the current decision again.
     ///         Gating: pool steward.
     function syncWorkDecisions(uint256 commitmentId, bytes32[] calldata decisionUIDs) external;
 
@@ -1001,12 +1011,12 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible member | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
-| Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy LeadManaged for add unless steward correction; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
+| Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
 | Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment |
 | Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while the approval is not yet counted |
 | Linkage | `onWorkDecision` | WorkApprovalResolver only | never reverts; applies only the newer effective pre-freeze decision |
-| Linkage | `syncWorkDecisions` | steward | verifies decision history on EAS; dedupes and converges by `(time, UID)` |
+| Linkage | `syncWorkDecisions` | steward | verifies decision history on EAS and the resolver-owned non-zero sequence; dedupes and converges by greatest sequence |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
 | Confirmation | `submitForConfirmation` | counterparty, creator, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected |
@@ -1051,20 +1061,24 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   would remain. The named group is data, not a hat.
 - **Lead-provider identity (one formula everywhere)**: acceptance stores the Offer creator for
   every Offer; an Individual Request stores the accepted counterparty; and a Garden-claimed
-  Request stores the accepted pending claim's authenticated `requestedBy` operator/owner.
+  Request stores the authenticated operator/owner who requested the claim: the current
+  `msg.sender` for immediate Open acceptance, or the consumed pending claim's stored
+  `requestedBy` for ApprovalGated acceptance.
   `counterparty` remains the GardenAccount for that Garden claim and `providerGarden` remains the
   group scope. The resolved lead is immediately activated as the first contributor.
   The lead provider alone is the `CommitmentRegister` account and open-commitment-count subject.
   `counterparty` remains the accepted recipient for an Offer and the accepted claimant for a
-  Request; only the Garden-Request exception resolves its human lead from stored `requestedBy`.
+  Request; only the Garden-Request exception resolves its human lead from the authenticated
+  requester while keeping the GardenAccount as counterparty.
 - **Contributor roster**: contributor membership is event-indexed and incrementally mutated and
   is never coupled to the four-value domain enum. `MAX_CONTRIBUTORS_PER_COMMITMENT` is
   provisionally 32 and is enforced before lead initialization, self-join, or add mutates state;
   implementation benchmarks 8/16/24/32 and freezes the largest measured-safe end-to-end
   creation/finalization vector. Open policy allows eligible self-join and pre-freeze self-leave;
-  LeadManaged requires the lead or steward and permits adding only an eligible member of the
+  LeadManaged alone permits lead/steward add and remove, and permits adding only an eligible member of the
   resolved `providerGarden`; arbitrary external addresses cannot enter recognition or payout
-  eligibility through managed addition. The lead can never leave or be removed, and any
+  eligibility through managed addition. Open rosters remain self-join/self-leave only and have no
+  ordinary expulsion path. The lead can never leave or be removed, and any
   contributor with approved Work or evidence credit can be removed only through a separately
   specified reasoned correction that preserves attribution and confirmation exclusion, not the
   roster edit API. Membership,
@@ -1111,7 +1125,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   `Fulfilled` are terminal register states, so a module upgrade or erroneous repeat call cannot
   reacquire or release the slot. Offered/Requested never release. Raising or restoring a dispute
   makes no register call and preserves the pre-dispute slot state.
-- **Canonical claim identity + traceability**: creation-time `claimType` is immutable eligibility; `claimCommitment` reverts `ClaimTypeMismatch` when runtime `kind` differs. Individual: `claimant = requestedBy = msg.sender`. Garden: `claimant = gardenContext`, `requestedBy = msg.sender`, after operator/owner authorization. The module stores `{claimant, requestedBy, kind, gardenContext, requestedAt, active}` keyed by `(commitmentId, canonical claimant)` and rejects an active duplicate. `acceptClaim`/`declineClaim` consume that key. Envio marks accepted and sibling requests without an arbitrary scan.
+- **Canonical claim identity + traceability**: creation-time `claimType` is immutable eligibility; `claimCommitment` reverts `ClaimTypeMismatch` when runtime `kind` differs. Individual: `claimant = requestedBy = msg.sender`. Garden: `claimant = gardenContext`, `requestedBy = msg.sender`, after operator/owner authorization. Open accepts immediately and derives the Garden Request lead from that authenticated caller without creating a pending row. ApprovalGated stores `{claimant, requestedBy, kind, gardenContext, requestedAt, active}` keyed by `(commitmentId, canonical claimant)`, rejects an active duplicate, and later `acceptClaim`/`declineClaim` consume that exact key. Envio marks accepted and sibling requests without an arbitrary scan.
 - **Provider-garden anchor**: acceptance stores `providerGarden` (Offer: pool garden; Request:
   accepted claimant's validated gardenContext) and emits both `leadProvider` and `providerGarden`
   in `CommitmentAccepted`. DomainImpact Work must use a required action, resolve its Work attester
@@ -1158,9 +1172,12 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   while an approval could later create credit for an inactive roster address; a denied or
   abandoned Work must be unlinked by a steward before exit.
 - **Effective Work decision before freeze**: `approvalCounted` makes delivery of each decision
-  attestation idempotent. For a linked Work, the canonical effective decision is the greatest
-  `(EAS attestation.time, approvalUID)` pair; the UID is an ascending bytes32 tiebreaker when two
-  decisions share a timestamp, so live hooks and out-of-order catch-up converge. While the
+  attestation idempotent. After full validation, WorkApprovalResolver increments the Work's
+  monotonic `uint64` decision sequence in actual EVM execution order, stores that sequence by
+  decision UID, and passes it to the module. The greatest non-zero sequence is canonical, so
+  separate transactions in the same block remain chronological and out-of-order catch-up
+  converges without treating a hash UID as order. A historical decision with sequence zero is
+  not eligible for catch-up; the operator must attest the current decision again. While the
   commitment is Accepted and unfrozen, an effective `approved == true` transition from inactive
   to active sets `workCreditActive`, decrements `uncountedLinkedWorkCount`, increments the exact
   requirement and contributor credit, updates eligibility/totals/units, and emits
@@ -1168,7 +1185,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   clears `workCreditActive`, reverses those same counters (including eligibility when that was the
   contributor's final verified credit), increments `uncountedLinkedWorkCount`, recomputes units,
   and emits `ApprovedWorkReversed` with the new cumulative values and positive removed-unit delta.
-  Repeated same-state decisions update only the latest-decision key. Older, duplicate, unlinked,
+  Repeated same-state decisions update only the latest sequence/UID. Older, duplicate, unlinked,
   or post-freeze decisions are observed but cannot mutate the frozen ledger. Ready evaluation
   runs after either effective transition and can occur only after all decision effects in that
   transaction have been applied.
@@ -1231,7 +1248,8 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   evidence de-duplication, non-empty/unique/max evidence-credit lists, all three evidence-only
   kinds reaching Ready from pre-freeze evidence credit, fulfillment-gated recognition eligibility,
   newer pre-freeze rejection reversing an approval, later re-approval restoring credit exactly
-  once, out-of-order decision sync converging by `(time, UID)`, late evidence rejection, and
+  once, same-block and out-of-order decision sync converging by resolver sequence, unsequenced
+  historical-decision rejection with re-attestation recovery, late evidence rejection, and
   post-freeze decision observation without credit mutation, cycle close/cancel
   rejection while any live commitment remains, roster
   and credit freeze on every Ready path, every-contributor confirmation exclusion, explicit repeated-action
@@ -1744,17 +1762,26 @@ Never use `--update-schemas`: that mode reloads the three legacy resolvers and r
 
 Changes to `packages/contracts/src/resolvers/WorkApproval.sol`:
 
-1. New storage: `ICommitmentPoolingModule public commitmentModule;` + `setCommitmentModule(address)` onlyOwner + `CommitmentModuleUpdated` event. Gap 48 to 47 with comment update (`WorkApproval.sol:47-53`).
+1. New storage: `ICommitmentPoolingModule public commitmentModule;`,
+   `mapping(bytes32 workUID => uint64) public latestDecisionSequence`, and
+   `mapping(bytes32 decisionUID => uint64) public decisionSequenceByUID`.
+   `setCommitmentModule(address)` remains owner-only with `CommitmentModuleUpdated`.
+   Existing slots 1–2 remain `karmaGAPModule` and `schemaUID`; the append uses slots 3–5 and
+   reduces the gap from 48 to 45 (`WorkApproval.sol:47-53`). Sequence 0 is reserved for
+   pre-upgrade/unsequenced decisions.
 2. In `onAttest`, after ALL existing validation passes and alongside the GAP block (`WorkApproval.sol:179-183`):
 
 ```solidity
 // COMMITMENT BRIDGE: reconcile the effective decision for pre-linked Work.
 // Non-blocking: the decision attestation must succeed even if the module call fails.
 if (address(commitmentModule) != address(0)) {
+    uint64 decisionSequence = ++latestDecisionSequence[schema.workUID];
+    decisionSequenceByUID[attestation.uid] = decisionSequence;
     // solhint-disable-next-line no-empty-blocks
     try commitmentModule.onWorkDecision(
         schema.workUID,
         attestation.uid,
+        decisionSequence,
         attestation.recipient,
         schema.approved
     ) {
@@ -1765,13 +1792,24 @@ if (address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID and forwards both approvals and rejections. Missed hooks or decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS. `approvalCounted` de-duplicates one decision attestation; the greatest `(attestation.time, approvalUID)` key is canonical, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS and reads its non-zero `decisionSequenceByUID` from WorkApprovalResolver. `approvalCounted` de-duplicates one decision attestation; the greatest sequence is canonical, `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
 
 Trust model: linkage is roster-aware: the active Work attester may link their Work, while the accountable lead or resolved pool steward may curate links for the team. Every path verifies the Work attester is active, the provider-garden scope matches, and the commitment remains Accepted and unfrozen. The resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
 Upgrade mechanics: WorkApprovalResolver is a live UUPS proxy at `0x166732eD81Ab200A099215cF33F6A712309B69F7` (`packages/contracts/deployments/42161-latest.json:59`); baseline entry already exists (`packages/contracts/script/check-storage-layout.sh:30`); regenerate baseline in the same PR; broadcast via `contracts:*` scripts.
 
-Acceptance criteria: a decision with module unset behaves byte-identically to today; a decision with module set and Work unlinked emits nothing from the module and still validates; linked approval activates credit; a newer linked rejection reverses it before freeze; a still-newer approval restores it once; out-of-order catch-up converges to the same `(time, UID)` winner; post-freeze decisions cannot mutate credit; and a reverting module never blocks either decision. Exact proof: `bun run --filter @green-goods/contracts test:match -- test/unit/WorkApprovalResolver.t.sol`, extended with unset/unlinked/approval/rejection/re-approval/out-of-order/frozen/reverting-module cases, plus `bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol` for the 48-to-47 gap change.
+Acceptance criteria: a decision with module unset behaves byte-identically to today; when the
+module is configured, every fully validated decision receives one stored per-Work sequence even
+if the module hook later reverts; a linked approval activates credit; a newer linked rejection
+reverses it before freeze; a still-newer approval restores it once; two decisions in separate
+transactions in the same block retain execution order; out-of-order catch-up converges to the
+greatest sequence; sequence zero rejects with the re-attestation recovery; post-freeze decisions
+cannot mutate credit; and a reverting module never blocks either decision. Exact proof:
+`bun run --filter @green-goods/contracts test:match -- test/unit/WorkApprovalResolver.t.sol`,
+extended with unset/unlinked/approval/rejection/re-approval/same-block/out-of-order/unsequenced/
+frozen/reverting-module cases, plus
+`bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol` for the
+48-to-45 gap change.
 
 ## 7. Deployment
 
@@ -1975,8 +2013,8 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: ContributorRosterFrozen(uint256 indexed commitmentId, uint32 contributorCount)
       - event: WorkLinked(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, uint16 requirementIndex, address linker)
       - event: WorkUnlinked(uint256 indexed commitmentId, bytes32 indexed workUID, address unlinker)
-      - event: ApprovedWorkCounted(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 approvalUID, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 newlyApprovedUnits)
-      - event: ApprovedWorkReversed(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 decisionUID, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 removedApprovedUnits)
+      - event: ApprovedWorkCounted(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 approvalUID, uint64 decisionSequence, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 newlyApprovedUnits)
+      - event: ApprovedWorkReversed(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 decisionUID, uint64 decisionSequence, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 removedApprovedUnits)
       - event: EvidenceAttached(uint256 indexed commitmentId, string cid, address indexed attacher, address[] creditedContributors)
       - event: AssessmentAttached(uint256 indexed commitmentId, bytes32 indexed assessmentUID, address attacher)
       - event: CommitmentReadyForConfirmation(uint256 indexed commitmentId, bool overridden, string reason)
@@ -2158,7 +2196,7 @@ type Commitment {
   creator: String!
   recordedBy: String!
   counterparty: String # null until accepted
-  leadProvider: String # Offer creator; Individual Request counterparty; Garden Request requestedBy
+  leadProvider: String # Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
   providerGarden: String # EAS recipient/provider role scope after acceptance
   providerGardenId: String # relationship: chainId-lowercaseProviderGarden
   counterpartyKind: CommitmentClaimType
@@ -2252,7 +2290,7 @@ type CommitmentWorkAttribution {
   requirementIndex: Int!
   linked: Boolean!
   creditActive: Boolean!
-  latestDecisionTime: BigInt
+  latestDecisionSequence: BigInt
   latestDecisionUID: String
   linkedBy: String!
   linkedAt: Int!
@@ -2404,7 +2442,9 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `requestedBy`, kind, context, and requestedAt, then appends that ID once to the request index.
   `ClaimDeclined` marks that key `DECLINED`. `CommitmentAccepted` carries
   claimant/counterparty/leadProvider/providerGarden, marks the matching request `ACCEPTED`, marks
-  siblings `SUPERSEDED`, and relies on the same-transaction `ContributorAdded` event to create the
+  siblings `SUPERSEDED` only when an ApprovalGated request row exists; Open acceptance has no
+  request row and stores the emitted authenticated caller as the Garden Request lead. It relies
+  on the same-transaction `ContributorAdded` event to create the
   lead's roster row. Contributor add/remove/assignment events update the composite contributor
   row and stable contributor index. `WorkLinked` creates or activates the workUID-keyed
   `CommitmentWorkAttribution`, preserves its contributor and requirement index, and increments
@@ -2422,13 +2462,16 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   on-chain-style contributor credits again at fulfillment.
 - **Address normalization**: `normalizeAddress` for every address field (`helpers.ts:68-70`). Generic `CommitmentEvent.actor` is nullable and is populated only from an explicit actor parameter; never infer account-abstraction identity from `transaction.from`.
 - **Effective Work-credit delta**: `ApprovedWorkCounted` loads the durable Work attribution,
-  transitions `creditActive` false → true, stores the effective decision key, decrements
+  transitions `creditActive` false → true, stores the emitted non-zero sequence and decision UID,
+  decrements
   `uncountedLinkedWorkCount`, writes the emitted cumulative requirement/commitment values,
   increments the contributor credit, and adds only `newlyApprovedUnits` to the exact-label
   pool/cycle summaries. `ApprovedWorkReversed` transitions true → false, stores the newer
   decision key, restores `uncountedLinkedWorkCount`, decrements the contributor credit, writes the
   emitted cumulative requirement/commitment values, and subtracts only
-  `removedApprovedUnits` from those summaries. Same-state, stale, and exact-event replays do not
+  `removedApprovedUnits` from those summaries. A row with a sequence below the stored sequence,
+  or the same sequence with a different UID, is rejected as inconsistent input; UID never orders
+  two decisions. Same-state, stale, and exact-event replays do not
   mutate counters; cumulative values are assigned, never summed. Replay coverage includes
   approval → reversal, reversal before surrounding lifecycle events, unlink after a non-counted
   link, and duplicate delivery of every Work event.

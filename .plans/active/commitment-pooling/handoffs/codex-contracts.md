@@ -268,8 +268,8 @@ every conflicting state. Broadcast remains outside this handoff.
 ## Binding review closure — 2026-07-29
 
 - Implement the 30-feature-slot Commitment Pooling declaration order and `__gap[20]`, including
-  `workRequirementIndexPlusOne`, `workCreditActive`, and the latest Work decision `(time, UID)`
-  key, but treat the generated compiler baseline plus concrete
+  `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
+  sequence plus audit UID, but treat the generated compiler baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
   measured-bounded credited list, and may increment `evidenceCount`/`evidenceCredits` only while
@@ -284,10 +284,13 @@ every conflicting state. Broadcast remains outside this handoff.
   the first countable approval decrements exactly once.
 - `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row and
   stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
-  `approvalCounted` makes each decision-attestation delivery idempotent; the greatest
-  `(attestation.time, approvalUID)` pair is the deterministic effective decision. Before freeze,
+  `approvalCounted` makes each decision-attestation delivery idempotent; WorkApprovalResolver
+  assigns and persists a monotonic per-Work sequence in EVM execution order, including same-block
+  transactions, and the greatest non-zero sequence is the deterministic effective decision.
+  Before freeze,
   approval activates the exact requirement/contributor credit and a newer rejection reverses it;
-  repeated same-state or older decisions do not double-mutate. After freeze, decisions are
+  repeated same-state or older decisions do not double-mutate. A sequence-zero historical
+  decision rejects catch-up and requires re-attestation. After freeze, decisions are
   observed but cannot mutate credit, requirements, units, or recognition.
   The active contributor, accountable lead, or resolved pool steward may link after all shared
   validation; only the steward may unlink, and unlink is also Accepted-and-unfrozen.
@@ -300,7 +303,8 @@ every conflicting state. Broadcast remains outside this handoff.
 - Each non-zero-cycle commitment increments `Cycle.liveCommitmentCount` after successful
   creation; the first Fulfilled/Cancelled/Expired transition decrements exactly once. Ready and
   Disputed remain live, and `closeCycle` plus `cancelCycle` require the O(1) count to be zero.
-- Garden-claimed Requests use stored `requestedBy` as the accountable lead while retaining the
+- Garden-claimed Requests use the authenticated Open `claimCommitment` caller or the consumed
+  ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
   GardenAccount as counterparty/provider scope. CeloSettlement declarations require source zero;
   the accepted provider-garden Safe becomes authoritative only in SettlementModule.
 - Maintain eligible-contributor/verified-credit totals and expose

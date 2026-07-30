@@ -1146,14 +1146,14 @@ type W2bState = (typeof W2B_STATES)[number][0];
 function w2b(state: W2bState): string {
   const frozen = state === "frozen" || state === "recognition";
   const body = state === "add-contributor"
-    ? `${banner("Team updates are online-only contract actions. Nothing is queued while this device is offline.", "stone", "wifi-off-line")}
+    ? `${banner("This is a Lead-managed team. Its lead or steward may add eligible garden members; Open teams use self-join instead. Team updates are online-only contract actions and are never queued offline.", "stone", "wifi-off-line")}
 ${field("Garden member", input("Sofia · 0x74…c2"))}
 ${banner("Adding a contributor never changes the accountable lead or grants recognition credit by itself.", "stone")}
 <div class="actrow">${hot("w2b.add-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.add-confirm", btn("Add contributor", { kind: "pri" }))}</div>`
     : state === "remove-contributor"
-    ? `${banner("Remove Kwame from this promise?", "amber", "user-line")}
+    ? `${banner("Remove Kwame from this Lead-managed promise?", "amber", "user-line")}
 ${card(`${kv("Contributor", "Kwame · 0x5b…19")}${kv("Verified credit", "None")}`)}
-${banner("Only a non-lead contributor with no approved Work or evidence credit can be removed. Credited people stay in the attribution and confirmation-exclusion record.", "stone")}
+${banner("Lead or steward removal exists only for Lead-managed rosters. Open-team members self-leave before credit and freeze. Only a non-lead contributor with no approved Work, pending linked Work, or evidence credit can be removed.", "stone")}
 <div class="actrow">${hot("w2b.remove-cancel", btn("Keep contributor", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`
     : state === "assign-requirement"
     ? `${banner("Planned responsibility coordinates the team. It does not award recognition credit.", "stone", "information-line")}
@@ -1184,7 +1184,7 @@ ${listRow({ icon: "user-line", primary: "Kwame", meta: frozen ? "Contributor · 
       )}
 ${frozen
   ? banner("Roster frozen atomically when the commitment entered Ready for confirmation. Roster edits are unavailable after freeze.", "stone", "shield-check-line")
-  : `${banner("One person stays accountable. Add collaborators now; only people tied to approved work or evidence become credited contributors.", "stone")}
+  : `${banner("Lead-managed team · one person stays accountable. The lead or steward may add or remove eligible uncredited collaborators; Open teams use self-join and self-leave instead.", "stone")}
 <div class="actrow">${hot("w2b.add", btn("Add contributor", { kind: "sec", icon: "add-line" }))}${hot("w2b.assign", btn("Assign Kwame", { kind: "ghost" }))}</div>
 ${hot("w2b.remove", btn("Remove Kwame from this promise", { kind: "ghost", full: true }))}`}
 ${hot("w2b.preview", btn("Preview recognition", { kind: "pri", full: true }))}`;
@@ -1192,12 +1192,12 @@ ${hot("w2b.preview", btn("Preview recognition", { kind: "pri", full: true }))}`;
 }
 
 const W2B_HOTS: HifiDef["hots"] = {
-  "w2b.add": { l: "Add contributor", to: "screen:W2b@add-contributor", info: "Opens the online-only garden-member picker; roster updates never enter the offline field queue." },
+  "w2b.add": { l: "Add contributor", to: "screen:W2b@add-contributor", info: "LeadManaged only: opens the online-only eligible garden-member picker. Open teams use joinCommitment; roster updates never enter the offline field queue." },
   "w2b.add-cancel": { l: "Cancel add contributor", to: "screen:W2b@forming", info: "Closes the picker without changing the roster." },
   "w2b.add-confirm": { l: "Confirm add contributor", to: "screen:W2b@forming", info: "Calls addContributor for the selected garden member; wallet rejection or a roster-cap/freeze error leaves the selection visible for retry.", calls: ["addContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.remove": { l: "Remove Kwame from this promise", to: "screen:W2b@remove-contributor", info: "Opens a named confirmation for an uncredited non-lead contributor; credited removal remains unavailable." },
+  "w2b.remove": { l: "Remove Kwame from this promise", to: "screen:W2b@remove-contributor", info: "LeadManaged only: opens a named confirmation for an uncredited non-lead contributor with no pending linked Work. Open-team members self-leave; managed expulsion is unavailable." },
   "w2b.remove-cancel": { l: "Keep contributor", to: "screen:W2b@forming", info: "Returns without changing the roster." },
-  "w2b.remove-confirm": { l: "Remove Kwame", to: "screen:W2b@forming", info: "Calls removeContributor online. The indexed roster changes only after confirmation; a freeze, lead, or credit error keeps this confirmation available.", calls: ["removeContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.remove-confirm": { l: "Remove Kwame", to: "screen:W2b@forming", info: "Calls removeContributor online for this LeadManaged roster. The indexed roster changes only after confirmation; an Open policy, freeze, lead, pending-Work, or credit error keeps this confirmation available.", calls: ["removeContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
   "w2b.assign": { l: "Assign planned responsibility to Kwame", to: "screen:W2b@assign-requirement", info: "Opens the requirement-row assignment editor without treating planning as recognition credit." },
   "w2b.assign-cancel": { l: "Cancel responsibility assignment", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
   "w2b.assign-confirm": { l: "Save planned responsibility", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the selected contributor and exact requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },

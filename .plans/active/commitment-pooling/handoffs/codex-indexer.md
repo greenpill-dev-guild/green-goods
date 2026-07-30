@@ -73,7 +73,9 @@
   and never translate selectors into EVM chain IDs or substitute the local Celo event chain.
 - Full replay produces no raw-address Garden lookup and shared consumers are cut over to the replayed dataset.
 - Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
-- Claim acceptance consumes the stored request identity and supersedes only still-pending sibling requests through the companion index.
+- ApprovalGated claim acceptance consumes the stored request identity and supersedes only
+  still-pending sibling requests through the companion index; Open acceptance has no request row
+  and stores the emitted authenticated requester as the Garden Request lead.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
 - `ApprovedWorkCounted` and `ApprovedWorkReversed` update exactly the matching
   `requirementIndex`, replace that row's cumulative count, and store the event-emitted
@@ -159,8 +161,9 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 - Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence
   attribution without positional-domain assumptions. Maintain
   `CommitmentContributor.uncountedLinkedWorkCount` from WorkLinked, WorkUnlinked,
-  ApprovedWorkCounted, and ApprovedWorkReversed. Track the effective decision key and active-credit
-  state from those explicit events; a reversal restores the uncounted-linked count and removes one
+  ApprovedWorkCounted, and ApprovedWorkReversed. Track the emitted resolver-owned
+  `latestDecisionSequence`, audit UID, and active-credit state from those explicit events; a
+  reversal restores the uncounted-linked count and removes one
   contributor credit before freeze. The unlink handler resolves the contributor from the
   existing Work attribution row before removing it. `CommitmentEvidenceAttributionIndex` owns the
   stable IDs loaded on fulfillment; no handler scan is permitted.

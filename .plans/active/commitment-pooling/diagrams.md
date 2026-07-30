@@ -263,7 +263,14 @@ Trust rules: no provider may confirm their own delivery, including steward fallb
 
 **How to read this**: the full happy path of one promise, left to right in time — created, claimed, delivered through the existing Work → WorkApproval rail, confirmed by the counterparty, and rewarded. The steward performs every one of their steps in the Admin app (Hub work stage + garden Pool tab — W7/W13); the member acts in the client PWA. The payout lane at the end covers **non-G$ declared rewards only** — G$ rewards leave this diagram and queue on the SettlementModule (D9, D12).
 
-Preconditions: pool `Open`; an optional cycle exists, belongs to the pool, and is `Open`. For an Offer, the creator is lead provider and accepted recipient confirms. For a Request, the accepted claimant is lead provider and the creator confirms. The lead plus any later teammates form the contributor roster. The stored `providerGarden` controls DomainImpact Work and assessment validation even when the commitment remains in the root protocol pool. Every contributor is excluded from confirmation.
+Preconditions: pool `Open`; an optional cycle exists, belongs to the pool, and is `Open`. For an
+Offer, the creator is lead provider and accepted recipient confirms. For an Individual Request,
+the accepted claimant is lead provider; for a Garden Request, the authenticated requester is lead
+(Open caller or stored ApprovalGated `requestedBy`) while the GardenAccount remains claimant and
+provider scope. The Request creator confirms. The lead plus any later teammates form the
+contributor roster. The stored `providerGarden` controls DomainImpact Work and assessment
+validation even when the commitment remains in the root protocol pool. Every contributor is
+excluded from confirmation.
 
 The single all-steps diagram was accurate but carried 32 messages across ten participants, so it is drawn as one compact overview plus three acts on the **same act boundaries as D6** — D2.1 is D6a, D2.2 is D6b, D2.3 is D6c, seen from the message side instead of the state side. The acts zoom into the overview and never disagree with it.
 
@@ -314,7 +321,7 @@ sequenceDiagram
   M-->>IDX: CommitmentCreated (Offered or Requested)
   B->>M: claimCommitment(commitmentId, kind, gardenContext)
   Note over M,R: ClaimMode.Open — the garden campaign default.<br/>ApprovalGated is D11's whole subject and is not redrawn here
-  Note over M,R: leadProvider is creator for Offer, claimant for Request<br/>providerGarden is the pool garden for Offer, validated gardenContext for Request<br/>confirmer is claimant for Offer, creator for Request
+  Note over M,R: leadProvider is creator for Offer, claimant for Individual Request,<br/>and authenticated caller B for this Open Garden Request<br/>(ApprovalGated uses stored pending requestedBy)<br/>providerGarden is the pool garden for Offer, validated gardenContext for Request<br/>confirmer is claimant for Offer, creator for Request
   M->>R: commitUnits(class, leadProvider, units)
   R-->>IDX: UnitsCommitted (one lead-provider slot acquired)
   M-->>IDX: CommitmentAccepted + ContributorAdded(leadProvider)
@@ -342,7 +349,8 @@ sequenceDiagram
   M-->>IDX: WorkLinked(contributor) (derived state flips to Active)
   OP->>EAS: attest WorkApproval decision (existing approval/rejection flow)
   EAS->>WAR: onAttest — full existing validation
-  WAR->>M: onWorkDecision(workUID, decisionUID, garden, approved) in try/catch
+  WAR->>WAR: increment per-Work decisionSequence; store it by decisionUID
+  WAR->>M: onWorkDecision(workUID, decisionUID, decisionSequence, garden, approved) in try/catch
   alt newer effective approval before freeze
     M-->>IDX: ApprovedWorkCounted(contributor, requirementIndex, approvedWorkCount, approvedUnits, newlyApprovedUnits, …)
   else newer effective rejection before freeze
@@ -350,7 +358,7 @@ sequenceDiagram
   end
   opt decision landed before linkWork or hook was missed
     OP->>M: syncWorkDecisions(commitmentId, decisionUIDs) — bounded recovery
-    Note over M,EAS: approvalCounted dedupes delivery; greatest (time, UID) is effective<br/>workCreditActive freezes at ReadyForConfirmation
+    Note over M,WAR: approvalCounted dedupes delivery; greatest non-zero resolver sequence is effective<br/>sequence zero requires a new attestation; workCreditActive freezes at ReadyForConfirmation
   end
   Note over M,EAS: every per-action required count met (requirementIndex credits<br/>exactly one requirement) and assessment satisfied → auto-flip
   M-->>IDX: ContributorRosterFrozen
@@ -1556,13 +1564,13 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `registerPool` | Protocol: module owner; Garden: garden operator/owner or module owner | One pool per garden |
 | `setPoolCharter`, `markPoolReady` | Resolved pool steward | Ready requires non-empty charter and a previously configured non-zero provider open-commitment cap; Baseline remains an app preflight |
 | `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool` | Resolved pool steward | Exact D4 transition; pause reason mandatory |
-| `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D5 transition; allocation exists only on open and totals 10,000 BPS; close/cancel require `liveCommitmentCount == 0`; cancel reason mandatory |
+| `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D5 transition; allocation exists only on open and totals 10,000 BPS; close/cancel require `liveCommitmentCount == 0`; a commitment-bundle certificate may compose only after close writes Reconciled, then compost follows mint; cancel reason mandatory |
 | `createCommitment` | Pool member for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; stored authorship and `onBehalfOf` determine provider; DomainImpact arrays are valid |
 | `setDeclaredReward`, `setConfirmerRule` | Resolved pool steward | Pre-acceptance only; named confirmer input is bounded by `MAX_CONFIRMERS = 32` before mutation |
 | `claimCommitment` | Garden member; or protocol-pool garden operator/owner / individual garden member according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
 | `acceptClaim`, `declineClaim` | Resolved pool steward | Named pending claimant exists; acceptance consumes stored terms and one provider count slot; decline reason mandatory |
 | `linkWork` | Active contributor, lead, or steward | Accepted; schema/provider authorship/provider-garden recipient checks pass; DomainImpact names an exact matching requirement index |
-| `unlinkWork`, `syncWorkDecisions` | Resolved pool steward | Unlink before active credit; sync verifies EAS decisions and converges by `(time, UID)` |
+| `unlinkWork`, `syncWorkDecisions` | Resolved pool steward | Unlink before active credit; sync verifies EAS decisions plus resolver-owned sequence and converges by greatest non-zero sequence |
 | `onWorkDecision` | WorkApprovalResolver only | Non-blocking; applies only a newer effective pre-freeze approval/rejection |
 | `attachEvidence` | Active contributor, lead, or steward | Accepted and unfrozen only; exact credited-contributor vector; offline-queueable but a late job fails without credit |
 | `attachAssessment` | Steward or evaluator of `providerGarden` | Accepted and unfrozen; no assessment already attached; resolver/schema/kind/recipient valid; the write-once UID may trigger Ready predicate re-evaluation |

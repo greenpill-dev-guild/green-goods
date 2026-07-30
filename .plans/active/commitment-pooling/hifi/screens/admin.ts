@@ -710,8 +710,8 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.open-pool": { l: "Open pool", to: "screen:W7@open-no-cycle", info: "openPool → PoolOpened. The pool opens without inventing an active cycle; seeding remains the next act (CS:100, CS:727).", calls: ["openPool"] },
   "w7.close-pool": { l: "Close pool", to: "screen:W7@close-pool-confirm", info: "Offered only once the last cycle composts (uiux §6.2 · CS:102); closePool(poolId) takes no reason (CS:556). Compost/reopen follow per §4.1." },
   "w7.close-pool-paused": { l: "Close paused pool", to: "screen:W7@paused-close-pool-confirm", info: "Offered after the paused pool's last cycle composts; closePool may move Paused → Closed and stores no reason." },
-  "w7.close-season": { l: "Close season", to: "screen:W26", info: "Opens the close wizard while the cycle remains Reviewing/Open on-chain. The wizard resolves outstanding items before its final ordered closeCycle → compostCycle action." },
-  "w7.close-season-paused": { l: "Close paused season", to: "screen:W26@paused-review", info: "Opens the same close wizard without resuming the Paused pool; reconciliation happens only after unresolved review." },
+  "w7.close-season": { l: "Close season", to: "screen:W26", info: "Opens the close wizard while the cycle remains Reviewing/Open on-chain. Once every commitment is terminal and liveCommitmentCount is zero, the first write closes the cycle before shares or mint." },
+  "w7.close-season-paused": { l: "Close paused season", to: "screen:W26@paused-review", info: "Opens the same close wizard without resuming the Paused pool; a terminal zero-live-count cycle closes before certificate composition." },
   "w7.cancel-cycle": { l: "Cancel a cycle (reason)", to: "screen:W7@cancel-cycle-confirm", info: "cancelCycle → quiet member banner with reason (UX:77 · CS:104)." },
   "w7.cancel-cycle-paused": { l: "Cancel a paused cycle (reason)", to: "screen:W7@paused-cancel-cycle-confirm", info: "Opens the reason confirmation while preserving the Paused pool context." },
   "w7.new-campaign": { l: "New campaign", to: "screen:W7@seed-cycle", info: "seedCycle — any number of concurrent campaigns; a second Season is blocked (UX:66)." },
@@ -1002,7 +1002,7 @@ ${banner("This rail records a jar or treasury payment that happens outside the a
       actions = `${dismiss()}${hot("w10.dispute-confirm", btn("Raise dispute", { kind: "pri" }))}`;
       break;
     case "resolve-dispute":
-      body = `${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Fulfilled" }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("An Expired prior state can never resolve to Fulfilled. Every outcome renders its reason in the member timeline.", "stone")}`;
+      body = `${kv("Your role", "Steward · contributor on this promise")}${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("Fulfilled is unavailable because your connected steward address is on the contributor roster. A non-contributor steward may see that outcome only when its policy and verified-credit gates pass. Every available outcome renders its reason in the member timeline.", "stone")}`;
       actions = `${dismiss()}${hot("w10.resolve", btn("Resolve", { kind: "pri" }))}`;
       break;
     case "attach-assessment":
@@ -1109,7 +1109,7 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.fallback-confirm": { l: "Fallback (confirm)", to: "screen:W2@fulfilled", info: "confirmFulfillmentAsFallback stores the steward's required reason; the member timeline renders the override marker.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
   "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143).", calls: ["raiseDispute"] },
-  "w10.resolve-options": { l: "Resolution outcomes", info: "RestorePrevious / Fulfilled / Cancelled / Expired, each with a required reason (CS:144)." },
+  "w10.resolve-options": { l: "Resolution outcomes", info: "This contributor-steward fixture exposes RestorePrevious / Cancelled / Expired only. Fulfilled is hidden because the on-chain SelfConfirmation guard would reject this actor; eligible non-contributor stewards receive the separately gated Fulfilled option (CS:144)." },
   "w10.resolve": { l: "Resolve", to: "screen:W2@ready-confirmer", info: "This fixture selects RestorePrevious, returning the exact stored ReadyForConfirmation state with no unit movement (LAP:186).", calls: ["resolveDispute"], resultFacts: { commitment: "ReadyForConfirmation" } },
   "w10.assessment-pick": { l: "Assessment picker", info: "Attach re-runs the auto-Ready check → CommitmentReadyForConfirmation (CS:740)." },
   "w10.attach": { l: "Attach assessment", to: "screen:W2@ready-confirmer", info: "attachAssessment → auto-Ready re-run (UX:287). Adopted MF-13 placement.", calls: ["attachAssessment"] },
