@@ -136,7 +136,16 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
           </label>
         )}
 
-        <Popover.Root open={open} onOpenChange={setOpen}>
+        {/*
+          Always modal, deliberately. Every consumer renders inside an AdminDialog
+          flow, and a non-modal popover portalled to document.body inherits that
+          dialog's `pointer-events: none`, which is what made these calendars
+          unclickable. A `modal` prop defaulting to false would put that bug one
+          forgotten prop away; defaulting to true would just be dead config.
+          Revisit if a standalone consumer appears — focus trap and scroll lock
+          are heavier than a plain form field needs.
+        */}
+        <Popover.Root open={open} onOpenChange={setOpen} modal>
           <Popover.Trigger asChild>
             <button
               ref={ref}
@@ -165,10 +174,15 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
 
           <Popover.Portal>
             <Popover.Content
+              data-component="DatePickerPopover"
               align="start"
               sideOffset={4}
+              // Inline, not a `z-*` utility: the popover portals to document.body and
+              // has to clear a host dialog surface at `z-modal`, and admin/client
+              // Tailwind content scans do not reach packages/shared/src.
+              style={{ zIndex: "calc(var(--z-modal) + 1)" }}
               className={cn(
-                "z-overlay rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
+                "rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
