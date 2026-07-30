@@ -1418,7 +1418,7 @@
       "id": "pooling-recognition-allocation-sum",
       "kind": "sum",
       "status": "spec",
-      "statement": "The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then 20% shared equally among eligible contributors and 80% by verified contribution, with deterministic remainder handling. Zero eligible contributors block certificate expansion; there is no lead fallback.",
+      "statement": "The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then the immutable cycle-open RecognitionPolicy allocates its equal-participation and verified-contribution components through separate deterministic remainder passes before the row results are added. The protocol default and immutable cycle-less preset are 20% equal / 80% verified, but an opened cycle may select any two values summing to 10000 bps. Zero eligible contributors block certificate expansion; there is no lead fallback.",
       "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
       "holes": []
     },

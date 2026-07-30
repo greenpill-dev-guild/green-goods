@@ -89,7 +89,7 @@ const W21_STATES = [
   ["cancel-queued-confirm", "Cancel queued — confirm"], ["cancelled-queued", "Queued item cancelled"],
   ["batch-cancelled", "Batch cancelled"],
   ["close-delivery-confirm", "Close delivery — confirm"], ["cancelled-failed", "Failed item cancelled"],
-  ["protocol-queue", "Protocol queue — garden beneficiary"],
+  ["protocol-queue", "Protocol queue — garden funding"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -185,21 +185,20 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
     );
 
   if (state === "protocol-queue") {
-    // The protocol pool's own queue. Every other row in this artifact pays an
-    // individual; here the beneficiary is a garden's Celo Safe, which is what
-    // a garden-claimed protocol commitment settles to (AM:43).
+    // The protocol pool's own queue. Protocol-to-garden value is a discretionary
+    // Funding disbursement created through queueFunding, never a commitment reward.
     const rows = dtable(
       ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
       [
-        ["105 · attempt 0", "Awka Hub — garden Safe", "Reward — garden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
-        ["98 · attempt 0", "Leila", "Reward — member", `<span class="num">10 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
+        ["105 · attempt 0", "Awka Hub — garden Safe", "Funding · ProtocolToGarden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
+        ["98 · attempt 0", "Leila", "Contributor payout", `<span class="num">10 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
       ],
       "Protocol pool settlement queue",
     );
     const header = pageHeader({
       title: "Settlement",
       eyebrow: "Protocol · Celo",
-      description: "The protocol pool's Celo settlement account — garden-beneficiary rewards sit beside member ones.",
+      description: "The protocol pool's Celo settlement account — garden funding and contributor payouts remain distinct rails.",
     });
     return deskWin(
       "admin.greengoods.app/dashboard/community/pools/settlement",
@@ -207,7 +206,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
         screenId: "W21",
         garden: "Rocinha",
         header,
-        body: acard("Settlement (Celo) — protocol pool", `${rows}${banner("Source is the GG protocol Safe; a garden beneficiary is the providing garden's registered Celo Safe, never its Arbitrum account.", "stone")}`),
+        body: acard("Settlement (Celo) — protocol pool", `${rows}${banner("Settlement 105 was created by queueFunding. Its kind is Funding and its immutable route is ProtocolToGarden; it is not tied to commitment fulfillment or a payout plan.", "stone")}`),
       }),
     );
   }
@@ -392,7 +391,7 @@ const W21_HOTS: HifiDef["hots"] = {
   "w21.finalize-retained-plan": { l: "Finalize retained-only payout plan", to: "screen:W21@payout-retained", info: "Verifies the all-zero contributor vector and exact full retention, then completes immediately with no child or CCIP command.", calls: ["finalizeCommitmentPayoutPlan"], resultFacts: { payoutPlan: "Complete" } },
   "w21.prepare-payout": { l: "Prepare contributor payout", to: "screen:W21@payout-prepared", info: "Materializes one immutable queued child from Maria's finalized payout row. An exact repeat returns the same ID without emitting again.", calls: ["prepareContributorPayout"] },
   "w21.dispatch-plan": { l: "Dispatch contributor payout", to: "screen:W22@dispatched", info: "Dispatches one child contributor payout from the garden Safe after explicit parent finalization.", calls: ["dispatchDisbursement"] },
-  "w21.dispatch-garden": { l: "Dispatch to the garden Safe", to: "screen:W22@garden-command", info: "dispatchDisbursement creates the immutable execution key and sends the data-only command for this garden-beneficiary reward; the Celo executor delivers G$ from the GG protocol Safe to the providing garden's Safe.", calls: ["dispatchDisbursement"] },
+  "w21.dispatch-garden": { l: "Dispatch protocol-to-garden funding", to: "screen:W22@garden-command", info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement creates its immutable execution key and sends the data-only command; no commitment reward or payout plan is involved.", calls: ["dispatchDisbursement"] },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
   "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
   "w21.register-confirm": { l: "Register settlement account", to: "screen:W21@registered", info: "registerSettlementAccount stores the verified Celo Safe route for this pool.", calls: ["registerSettlementAccount"] },
@@ -422,7 +421,7 @@ const W21_HOTS: HifiDef["hots"] = {
 const W22_STATES = [
   ["ready", "Queued"], ["dispatched", "Dispatched"], ["delivery-delayed", "Delivery delayed"], ["executed", "Celo executed"],
   ["acknowledgment-pending", "Acknowledgment pending"], ["outcome", "Confirmed / failed"], ["role-guard", "Route gate"],
-  ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Garden-beneficiary command"],
+  ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Protocol-to-garden funding command"],
 ] as const;
 type W22State = (typeof W22_STATES)[number][0];
 
@@ -474,8 +473,8 @@ function w22(state: W22State): string {
         body: acard(
           "Command",
           `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 1)}
-${banner("Dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges — arrival is not proven until that acknowledgment lands.", "stone")}
-${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
+${banner("Funding/ProtocolToGarden was queued independently through queueFunding, then dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges — arrival is not proven until that acknowledgment lands.", "stone")}
+${kv("Disbursement kind", "Funding")}${kv("Funding route", "ProtocolToGarden")}${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
 <div class="actrow" style="justify-content:flex-end">${hot("w22.garden-open-ops", btn("Open Operations", { kind: "sec", icon: "external-link-line" }))}</div>`,
         ),
       }),
@@ -752,9 +751,9 @@ const w21Facts = (state: W21State): StateFacts | undefined => {
   if (state === "payout-partial") return { payoutPlan: "Partial" };
   if (state === "payout-complete") return { payoutPlan: "Complete" };
   if (state === "failed-recovery" || state === "requeue-confirm" || state === "close-delivery-confirm")
-    return { disbursement: "Failed" };
+    return { disbursement: "Failed", settlementAccount: "Active" };
   if (["queue", "requeued", "batch-create", "batch-created", "cancel-queued-confirm", "protocol-queue"].includes(state))
-    return { disbursement: "Queued" };
+    return { disbursement: "Queued", settlementAccount: "Active" };
   if (state === "cancelled-queued" || state === "batch-cancelled" || state === "cancelled-failed")
     return { disbursement: "Cancelled" };
   return undefined;
@@ -762,7 +761,7 @@ const w21Facts = (state: W21State): StateFacts | undefined => {
 
 const w22Facts = (state: W22State): StateFacts | undefined => {
   if (state === "ready" || state === "role-guard" || state === "cancel-batch-confirm")
-    return { disbursement: "Queued" };
+    return { disbursement: "Queued", settlementAccount: "Active" };
   if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command"].includes(state))
     return { disbursement: "Dispatched" };
   return undefined;

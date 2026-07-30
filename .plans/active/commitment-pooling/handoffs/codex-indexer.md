@@ -151,7 +151,12 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
 
 ## Binding architecture amendment — 2026-07-28
 
-- Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence attribution without positional-domain assumptions. `CommitmentEvidenceAttributionIndex` owns the stable IDs loaded on fulfillment; no handler scan is permitted.
+- Index `CommitmentRequirement`, `CommitmentContributor`, contributor indexes, and Work/evidence
+  attribution without positional-domain assumptions. Maintain
+  `CommitmentContributor.uncountedLinkedWorkCount` from WorkLinked, WorkUnlinked, and the first
+  ApprovedWorkCounted for that Work; the unlink handler resolves the contributor from the
+  existing Work attribution row before removing it. `CommitmentEvidenceAttributionIndex` owns the
+  stable IDs loaded on fulfillment; no handler scan is permitted.
 - Materialize the recognition inputs and deterministic gardener-share output: equal budget per fulfilled commitment, then the cycle's opened recognition policy or the immutable cycle-less 20/80 default among eligible contributors. A Work UID contributes at most once even when distinct approval attestations exist. Zero eligible contributors produce a blocking W26 inconsistent-state review item, never a lead fallback or metadata repair.
 - Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each
   later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer.

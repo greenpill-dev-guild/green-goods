@@ -107,7 +107,17 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   non-zero cycle. Cycle-less rows remain visible for recognition/payment history but are disabled
   with “No cycle allocation · not certificate eligible”; they never reach allowlist or metadata
   construction.
-- Settlement separates Save draft, Finalize payout plan, and per-contributor Prepare payout. Finalization creates no child; preparation is visibly idempotent and creates one Queued child from a frozen non-zero row. The surface shows recognition/payment hashes, amount-derived weights, reasoned divergence, all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent pointer.
+- Settlement separates Save draft, Finalize payout plan, and per-contributor Prepare payout.
+  Finalization creates no child; preparation is visibly idempotent and creates one Queued child
+  from a frozen non-zero row. Any non-zero retained amount is a divergence and requires visible
+  non-empty reason input even when contributor payment weights still mirror recognition. The
+  surface shows recognition/payment hashes, amount-derived weights, reasoned divergence,
+  all-retained zero-child completion, and Draft / Pending / Partial / Complete / Failed without
+  rewriting fulfillment. Recovery acts on the failed child and never clears the stable parent
+  pointer.
+- Protocol Safe to garden Safe value appears only as Funding / ProtocolToGarden created through
+  `queueFunding`; the admin queue never labels or routes it as a garden-beneficiary commitment
+  reward.
 - Payout-plan draft actions render only when the provider-garden settlement account is Active;
   external-record and Celo allocation actions remain mutually exclusive by reward rail.
 - Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.

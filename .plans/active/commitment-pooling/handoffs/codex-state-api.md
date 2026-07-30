@@ -65,6 +65,9 @@
 - Ready selectors expose the non-zero verified-contributor gate and either the selected cycle's
   already-opened recognition policy or the immutable cycle-less 20/80 default. Direct
   `Disputed -> Fulfilled` resolution exposes the same gates and frozen-roster outcome.
+- Roster mutation selectors expose uncounted linked Work separately from approved Work/evidence
+  credit. Leave/remove remains disabled until all three are zero; unlink is available only to the
+  steward while the commitment is Accepted, unfrozen, and that Work has not been counted.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core

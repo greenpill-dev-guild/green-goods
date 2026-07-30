@@ -620,7 +620,7 @@ One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**:
 │ sum: 100% ✓ · treasury 15% is the floor                  │  hard rule: must equal 100%
 ├──────────────────────────────────────────────────────────┤
 │ Gardener recognition                                     │
-│ 20% shared equally · 80% verified contribution           │
+│ Cycle policy · default 20% equal / 80% verified          │
 │ Applies within each fulfilled promise; locked at open.   │
 │ At close these shares become the certificate allowlist   │  → W26 wizard
 │                          [ Continue ]                    │  the open action lives on the
@@ -943,7 +943,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │   evaluator 5% · community 5% · funder 5%                │
 │   Gardener contributors:                                 │
 │   Maria 38% · Kwame 37% · Ana 25%                        │
-│   20% equal + 80% verified contribution                  │
+│   Cycle policy · default 20% equal / 80% verified        │
 │   Recognition is read-only from frozen on-chain credit.  │
 │   If eligible contributors = 0: certificate blocked as   │
 │   inconsistent legacy/indexed data; no metadata override.│

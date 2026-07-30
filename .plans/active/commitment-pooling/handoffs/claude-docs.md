@@ -73,6 +73,9 @@
 ## Binding documentation amendment — 2026-07-28
 
 - Document commitments as one accountable lead plus optional contributors, repeatable requirements, roster freeze, and all-team confirmation exclusion.
-- Explain the gardener Hypercert formula in plain language: equal commitment budgets, then 20% equal participation among eligible contributors plus 80% verified contribution; zero eligible contributors block instead of defaulting to the lead.
+- Explain the gardener Hypercert formula in plain language: equal commitment budgets, then the
+  cycle's immutable recognition policy across equal participation and verified contribution
+  (20/80 is the protocol default, not a fixed invariant); zero eligible contributors block instead
+  of defaulting to the lead.
 - Explain that the garden Safe pays eligible contributors through child disbursements, garden retention is explicit, recognition is hash-bound, payment weights derive from amounts, and payment corrections require reasons. Finalization freezes the plan without creating children; idempotent per-contributor preparation creates one Queued child from a frozen non-zero row. Include zero-child all-retained completion and stable parent-pointer rules.
 - Preserve planned/live and proof labels: this architecture is specified and prototyped, not shipped or deployed.

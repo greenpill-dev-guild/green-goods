@@ -411,6 +411,7 @@ interface ICommitmentPoolingModule {
 
     struct ContributorRecord {
         bool active;
+        uint32 uncountedLinkedWorkCount;
         uint32 approvedWorkCredits;
         uint32 evidenceCredits;
     }
@@ -766,12 +767,14 @@ interface ICommitmentPoolingModule {
     function joinCommitment(uint256 commitmentId) external;
 
     /// @notice Open-policy self-exit. Only an active non-lead contributor with
-    ///         zero approved Work and evidence credit may leave before freeze.
+    ///         zero linked Work and zero approved Work/evidence credit may leave
+    ///         before freeze.
     function leaveCommitment(uint256 commitmentId) external;
 
     /// @notice LeadManaged roster mutation. The lead provider or pool steward
-    ///         may add/remove contributors before the roster freezes. A credited
-    ///         contributor cannot be removed through roster editing.
+    ///         may add/remove contributors before the roster freezes. A
+    ///         contributor with linked Work or credit cannot be removed through
+    ///         roster editing.
     function addContributor(uint256 commitmentId, address contributor) external;
     function removeContributor(uint256 commitmentId, address contributor) external;
 
@@ -796,7 +799,8 @@ interface ICommitmentPoolingModule {
     ///         on-chain state Accepted and contributorsFrozen == false.
     function linkWork(uint256 commitmentId, bytes32 workUID, uint16 requirementIndex) external;
 
-    /// @notice Gating: pool steward; only while the approval is not yet counted.
+    /// @notice Gating: pool steward; on-chain state Accepted, roster/credit
+    ///         ledger unfrozen, and the Work approval not yet counted.
     function unlinkWork(bytes32 workUID) external;
 
     /// @notice Called by WorkApprovalResolver inside try/catch after full
@@ -985,11 +989,11 @@ blocks new commitments, claims, Ready submissions, and confirmations on that poo
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext and re-validates eligibility |
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible member | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
-| Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero Work/evidence credit; every mutation revalidates confirmer reachability |
-| Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy LeadManaged for add unless steward correction; roster not frozen; max-contributor guard runs before add; lead or any credited contributor cannot be removed; every mutation revalidates confirmer reachability |
+| Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
+| Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy LeadManaged for add unless steward correction; roster not frozen; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
 | Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment |
-| Linkage | `unlinkWork` | steward | only while the approval is not yet counted |
+| Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while the approval is not yet counted |
 | Linkage | `onWorkApproved` | WorkApprovalResolver only | never reverts; no-op when unlinked or already counted |
 | Linkage | `syncApprovedWork` | steward | verifies each approval on EAS; dedupes via `approvalCounted` |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active |
@@ -1134,6 +1138,12 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   only that exact row. Repeated action UIDs therefore remain legal without first-match,
   first-unmet, or all-match ambiguity. Non-DomainImpact Work links use index `0` as a
   non-counting compatibility value and never write the plus-one mapping.
+- **Linked-Work roster lock**: linking increments the Work attester's
+  `uncountedLinkedWorkCount`; an Accepted-and-unfrozen `unlinkWork` or the Work's first countable
+  approval decrements it exactly once. `leaveCommitment` and `removeContributor` require that
+  count plus approved Work and evidence credits to be zero. A contributor therefore cannot exit
+  while an approval could later create credit for an inactive roster address; a denied or
+  abandoned Work must be unlinked by a steward before exit.
 - **One countable approval per Work**: `approvalCounted` makes delivery of one approval attestation
   idempotent, while `workCreditCounted` is the recognition/accounting guard. The first valid
   approved attestation for a linked `workUID` while its commitment is Accepted and unfrozen marks
@@ -1196,13 +1206,17 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   max-plus-one rejection before mutation, per-requirement approval counts,
   solo/Open/LeadManaged contributor paths, lead
   initialization, add/remove/join/leave/assignment, max-plus-one contributor rejection before
-  mutation, credited/lead removal rejection, active-contributor Work/evidence credit, empty-CID rejection, exact-CID
+  mutation, credited/lead removal rejection, linked-but-uncounted Work blocking leave/removal,
+  Accepted-and-unfrozen unlink with exact pending-count decrement, active-contributor Work/evidence
+  credit, empty-CID rejection, exact-CID
   evidence de-duplication, non-empty/unique/max evidence-credit lists, all three evidence-only
   kinds reaching Ready from pre-freeze evidence credit, fulfillment-gated recognition eligibility,
   late evidence rejection and late approval observation without credit, cycle close/cancel
   rejection while any live commitment remains, roster
   and credit freeze on every Ready path, every-contributor confirmation exclusion, explicit repeated-action
-  requirement binding, canonical recognition-vector recomputation/hash rejection, unreachable confirmer
+  requirement binding, canonical recognition-vector recomputation/hash rejection including
+  independent equal/verified remainder passes and a contributor receiving one remainder from each,
+  unreachable confirmer
   threshold rejection, lead-only register exposure, assessment gating, claim identity,
   cancel/expiry/dispute count effects, reward derivation, provider-garden Work/assessment
   validation, and sync dedupe. A separate benchmark records worst-case 8/16/24/32 requirement
@@ -1724,9 +1738,9 @@ if (schema.approved && address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: claimant or steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after the approval. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID: the module looks up both bindings; if unlinked it returns without effect. Approvals landing before linkage are recovered by steward-called `syncApprovedWork(commitmentId, approvalUIDs)`, which verifies each approval on EAS. `approvalCounted` de-duplicates delivery of one approval attestation; `workCreditCounted` independently guarantees that distinct approval attestations for the same Work can never increment the requirement, contributor credit, or units twice.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after approval while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. The resolver hook matches by workUID: the module looks up both bindings; if unlinked it returns without effect. Approvals landing before linkage are recovered by steward-called `syncApprovedWork(commitmentId, approvalUIDs)`, which verifies each approval on EAS. `approvalCounted` de-duplicates delivery of one approval attestation; `workCreditCounted` independently guarantees that distinct approval attestations for the same Work can never increment the requirement, contributor credit, or units twice.
 
-Trust model: linkage is operator-curated (steward and claimant are the only linkers), the resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
+Trust model: linkage is roster-aware: the active Work attester may link their Work, while the accountable lead or resolved pool steward may curate links for the team. Every path verifies the Work attester is active, the provider-garden scope matches, and the commitment remains Accepted and unfrozen. The resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
 Upgrade mechanics: WorkApprovalResolver is a live UUPS proxy at `0x166732eD81Ab200A099215cF33F6A712309B69F7` (`packages/contracts/deployments/42161-latest.json:59`); baseline entry already exists (`packages/contracts/script/check-storage-layout.sh:30`); regenerate baseline in the same PR; broadcast via `contracts:*` scripts.
 
@@ -2429,10 +2443,20 @@ Populated by extending `parseHypercertMetadata` in the ClaimStored handler (`pac
      order;
   2. within each commitment, eligible contributors are frozen contributors with at least one
      approved linked Work credit or evidence credit on the now-Fulfilled commitment;
-  3. allocate `recognitionPolicy.equalParticipationBps` equally across eligible contributors;
-  4. allocate `recognitionPolicy.verifiedContributionBps` in proportion to each contributor's
-     verified credit count (`approvedWorkCredits + evidenceCredits`);
-  5. assign integer remainders by descending verified weight, then ascending lowercase address.
+  3. run the equal-participation component as its own exact integer pass: give every eligible
+     contributor `floor(equalParticipationBps / eligibleContributorCount)`, then give one
+     additional bps to the first `equalParticipationBps % eligibleContributorCount` addresses in
+     ascending lowercase-address order;
+  4. run the verified-contribution component independently: for contributor `i`, compute
+     `floor(verifiedContributionBps * verifiedCredits[i] / totalVerifiedCredits)`, retain the
+     fractional numerator remainder, then give one additional bps to the first
+     `verifiedContributionBps - sum(floors)` contributors ordered by descending fractional
+     remainder and ascending lowercase address;
+  5. add each contributor's equal and verified component results. The passes are never pooled or
+     interleaved: equal remainder units are assigned first, verified remainder units second, and
+     the same contributor may receive one unit from both passes. Within either pass the remainder
+     is smaller than the eligible row count, so no row receives more than one remainder unit from
+     that pass. The final vector sums to exactly 10_000 bps.
   The protocol preset is 2_000 equal / 8_000 verified. The steward selects the policy at cycle
   open, where it snapshots immutably and must sum to 10_000; cycle-less commitments use the same
   immutable protocol preset for contributor recognition and payout defaults only. They are

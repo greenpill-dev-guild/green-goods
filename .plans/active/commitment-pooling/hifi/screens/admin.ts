@@ -975,7 +975,7 @@ function w10(state: W10State): string {
 ${banner("Start from the Hypercert gardener-share weights. Recognition remains an impact record; this editor prepares how the garden will pay its members.", "stone", "information-line")}
 ${kv("Declared support", "500 G$")}${kv("Garden retains", "100 G$ · operations and follow-up")}${kv("Available to contributors", "400 G$")}
 ${acard("Contributor split", `${kv("Maria · lead", "160 G$ · 40% recognition")}${kv("Ana", "140 G$ · 35% recognition")}${kv("Kwame", "100 G$ · 25% recognition")}`)}
-${field("Reason for changes (required only if weights change)", input("No correction — uses recognition weights"))}
+${field("Reason for retained amount (required)", input("Garden operations and follow-up costs"))}
 ${banner("The garden Safe is the payer. Save keeps this editable as a draft; a separate Finalize action verifies both vector hashes and conservation before any child can dispatch.", "amber")}
 <div class="actrow">${hot("w10.all-retained-preview", btn("Preview all-retained case", { kind: "ghost", sm: true }))}</div>`;
       actions = `${dismiss("Close")}${hot("w10.save-contributor-allocation", btn("Save draft", { kind: "pri" }))}`;
@@ -1100,7 +1100,7 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
 
 const W10_HOTS: HifiDef["hots"] = {
   "w10.allocate-contributors": { l: "Set recognition and payment", to: "screen:W10@contributor-allocation", info: "Opens the steward editor with Hypercert recognition weights as the default payment weights." },
-  "w10.save-contributor-allocation": { l: "Save payout draft", to: "screen:W21@payout-plan", info: "Creates the recognition-bound payout plan, atomically stores the complete amount vector and garden retention, derives payment weights, and keeps the plan editable until explicit finalization.", calls: ["createCommitmentPayoutPlan", "setContributorPayouts"] },
+  "w10.save-contributor-allocation": { l: "Save payout draft", to: "screen:W21@payout-plan", info: "Creates the recognition-bound payout plan, stores the complete amount vector and reasoned garden retention atomically, derives payment weights, and keeps the plan editable until explicit finalization.", calls: ["createCommitmentPayoutPlan", "setContributorPayouts"] },
   "w10.all-retained-preview": { l: "Preview all-retained case", to: "screen:W21@payout-retained", info: "Shows the zero-child path: finalization completes the plan without CCIP or a self-transfer." },
   "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
   "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },

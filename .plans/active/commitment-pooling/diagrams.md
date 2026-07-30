@@ -827,6 +827,7 @@ erDiagram
     String contributor "normalized address"
     Boolean active "current roster membership"
     Boolean isLead "accountability flag"
+    Int uncountedLinkedWorkCount "linked Work awaiting first countable approval"
     Int approvedWorkCredits "verified Work count"
     Int evidenceCredits "attached evidence count; eligible only after fulfillment"
     Int[] requirementIndexes "optional assignments; not credit"
@@ -1047,7 +1048,7 @@ flowchart LR
     LINEAGE["NeedCommitmentIndex<br/>Need UID + fulfilled lineage"]
     EVIDENCE["Approved Work + evidence links"]
     TEAM["Eligible contributors on Fulfilled commitment<br/>approved Work or evidence credit"]
-    POLICY["Gardener split policy<br/>20% equal + 80% verified"]
+    POLICY["Gardener split policy<br/>cycle RecognitionPolicy · default 20/80"]
     COMPOSE["Commitment certificate composer<br/>bundleKind=COMMITMENT"]
     BPS["Six BPS classes<br/>gardener class expands to contributors"]
     HCIDX["Hypercert read-model delta<br/>commitmentIds · needUIDs · bundleKind"]
@@ -1579,10 +1580,10 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Community Testimony config: `setSchemaUID`, `setCommitmentModule` | CommunityTestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID. Preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | `registerSettlementAccount`, `updateSettlementRecovery`, `setAccountActive` | Steward or `SettlementModule` owner | Registration is write-once for garden/account/Roles modifier/`roleKey`/`allowanceKey` and the immutable permissions hash; `chainId == DESTINATION_EVM_CHAIN_ID()`; the three recovery owners are sorted, unique, non-zero, and **none is a current executor**; threshold fixed at 2. A recovery update may change only owners and the recovery hash. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
 | `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks new commitment-reward queues and member sends but never blocks the funding route |
-| `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Commitment-pool steward | Fulfilled commitment; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
+| `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Resolved provider-garden settlement steward (operator/owner of immutable `providerGarden`) | Fulfilled commitment; active provider-garden settlement account at every value-authorizing write; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
-| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members and unique derived recipients share executor garden/source/token/kind/funding route; duplicate recipients revert before fee quote or mutation; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
-| `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Resolved settlement steward for immutable `executorGarden`, or exact configured dispatcher | Parent plan explicitly finalized before contributor dispatch; frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID. The module owner has no independent value-moving bypass |
+| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members and unique derived recipients share executor garden/source/token/kind/funding route; ContributorReward batches require the provider/executor garden account still Active; duplicate recipients revert before fee quote or mutation; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
+| `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Resolved settlement steward for immutable `executorGarden`, or exact configured dispatcher | Parent plan explicitly finalized before contributor dispatch; initial ContributorReward dispatch rechecks the provider/executor garden account Active; frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID. The module owner has no independent value-moving bypass |
 | `requeue` | Resolved settlement steward | Authenticated `Failed` member only; increments the individual attempt; immutable failed batch is never rewritten |
 | `cancelDisbursement` | Resolved settlement steward | unbatched `Queued` or authenticated `Failed` only, with reason; dispatched work cannot be cancelled for a timeout or missing acknowledgment; parent commitment-plan pointer remains stable |
 | `cancelBatch` | Resolved batch steward | whole immutable batch while `Queued`, with reason; no partial-member cancellation; parent commitment-plan pointers remain stable |
@@ -1785,7 +1786,7 @@ flowchart LR
     W --> CREDIT["Verified contribution credits"]
     E --> CREDIT
 
-    POLICY["Cycle policy<br/>20% equal + 80% verified"] --> REC["Recognition weights"]
+    POLICY["Cycle RecognitionPolicy<br/>default 20/80"] --> REC["Recognition weights"]
     CR --> REC
     CREDIT --> REC
     ZERO["Inconsistent zero-eligible legacy/indexed state"] -->|blocks W26; governed migration or source correction| REC

@@ -251,7 +251,13 @@ every conflicting state. Broadcast remains outside this handoff.
 - Freeze the roster and contribution-credit accounting atomically on the transition to
   `ReadyForConfirmation`. Emit contributor, work/evidence attribution, and recognition inputs
   needed by the indexer.
-- The gardener Hypercert class uses equal fulfilled-commitment budgets, then 20% equal participation among eligible contributors plus 80% verified contribution with deterministic rounding. Zero eligible contributors block certificate expansion; there is no lead fallback. Recognition is not a payment transfer.
+- The gardener Hypercert class uses equal fulfilled-commitment budgets, then the immutable
+  cycle-open `RecognitionPolicy` (protocol default 20% equal participation / 80% verified
+  contribution). Equal and verified components each run their own floor-plus-remainder pass before
+  their row results are added; equal ties use ascending lowercase address, while verified
+  remainders use descending fractional remainder then ascending lowercase address. The cycle-less
+  preset remains 20/80. Zero eligible contributors block certificate expansion; there is no lead
+  fallback. Recognition is not a payment transfer.
 
 ## Binding review closure — 2026-07-29
 
@@ -265,13 +271,18 @@ every conflicting state. Broadcast remains outside this handoff.
 - The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark selects the transaction-safe value. It is not a semantic team-size cap.
 - `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector bound (provisional 32);
   add/join reject max-plus-one before mutation. Open contributors may self-leave only before
-  freeze with zero credit; neither the lead nor a credited contributor may leave/be removed.
+  freeze with zero linked Work and zero credit; neither the lead, a credited contributor, nor a
+  contributor with uncounted linked Work may leave/be removed. `ContributorRecord` carries the
+  O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
+  the first countable approval decrements exactly once.
 - `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row,
   stores index-plus-one, emits it, and increments only that row on approval/sync while Accepted
   and unfrozen. `approvalCounted` makes one approval-attestation delivery idempotent, while
   `workCreditCounted` guarantees that distinct approval attestations for the same Work UID can
   award contributor/requirement credit only once. A first approval after freeze is observed in
   `approvalCounted` but cannot mutate credit, requirements, units, or recognition.
+  The active contributor, accountable lead, or resolved pool steward may link after all shared
+  validation; only the steward may unlink, and unlink is also Accepted-and-unfrozen.
 - Every Ready transition and a direct `Disputed -> Fulfilled` resolution require at least one
   pre-freeze verified credit (`totalVerifiedCredits > 0`) plus either the cycle's opened
   recognition policy or the
@@ -291,4 +302,8 @@ every conflicting state. Broadcast remains outside this handoff.
   six-role allocation snapshot exists.
 - For the gardeners-class cross-commitment split, sort fulfilled commitment IDs ascending, assign
   the floor share to each, and give one remainder unit to the lowest IDs before applying the
-  within-commitment contributor policy.
+  within-commitment contributor policy. Within a commitment, allocate the equal-policy bps and
+  verified-policy bps in two independent passes. Finish the equal remainder pass first by
+  ascending lowercase address; then finish the verified remainder pass by descending fractional
+  remainder and ascending lowercase address. Add the two row results only after both passes;
+  remainders are never pooled, and one contributor may receive one remainder unit from each pass.

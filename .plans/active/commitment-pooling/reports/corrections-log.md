@@ -889,3 +889,26 @@ confirms membership, and split payable-plan Pending finalization from retained-o
 finalization. The roster refresh itself is fail-closed: missing/stale results and fresh rosters
 without the connected account stay on the submitted state, while the joined state is rendered
 only when the fresh indexed roster contains that exact account.
+
+## 2026-07-30 — Linkage, recognition rounding, and payer-activity closure
+
+Nine additional review findings were valid. The canonical Work-link narrative still named the
+retired claimant-only authority, contributors could exit while an unapproved linked Work remained,
+and unlinking was not frozen with the contribution ledger. The recognition algorithm also left the
+equal and verified component remainders underspecified, while the ontology described the 20/80
+default as if every cycle were fixed to it.
+
+The contributor record now carries an O(1) uncounted-linked-Work total. Link increments it; an
+Accepted-and-unfrozen steward unlink or the first countable approval decrements it once; leave and
+remove require the total and both credit counters to be zero. Link authority consistently resolves
+to the active contributor, accountable lead, or pool steward. Equal-policy and verified-policy bps
+run independent deterministic remainder passes before their row results are added, and the
+ontology treats the immutable cycle policy as authoritative with 20/80 only as the protocol default
+and cycle-less preset.
+
+Settlement now rechecks the provider-garden account before every new value-authorizing payout
+write: edit, finalization, first preparation, ContributorReward batching, and initial dispatch.
+Read, acknowledgment, cancellation, exact-child return, and same-key retry behavior remain
+separate. The admin payout draft requires a real reason for its retained amount, and the protocol
+queue models protocol-Safe-to-garden-Safe value only as Funding/ProtocolToGarden created through
+`queueFunding`, never as a garden-beneficiary commitment reward.

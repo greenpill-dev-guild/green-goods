@@ -196,6 +196,13 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   even when its normalized payment bps cannot exactly equal recognition; every noncanonical
   amount/retention divergence requires a stored reason.
 - Explicit finalization verifies declared amount = garden-retained amount + all contributor payout amounts, freezes the plan, and creates no child. A later idempotent `prepareContributorPayout` call materializes exactly one `ContributorReward` disbursement from a frozen non-zero row; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
+- Re-read the immutable provider-garden settlement account before every value-authorizing payout
+  write: edit, finalization, first child preparation, ContributorReward batch creation, and initial
+  dispatch all require it to remain Active. Deactivation does not erase history or block public
+  reads, authenticated acknowledgments, terminal cancellation, exact-child idempotent returns, or
+  same-execution-key retry paths under their existing gates.
+- A protocol Safe payment to a garden Safe is only `Funding` through `queueFunding` with
+  `FundingRoute.ProtocolToGarden`; it is never a garden-beneficiary `ContributorReward`.
 - Parent status is derived from finalization, unprepared payable rows, and children as Draft / Pending / Partial / Complete / Failed. Child or batch cancellation never clears `payoutPlanOfCommitment`, so a second plan cannot bypass the audit trail.
 - A failed child never reverses commitment fulfillment, recognition, or successful siblings. No garden-held member claim, custody voucher, manual arrival flag, or arbitrary Safe execution is introduced.
 
@@ -222,6 +229,13 @@ Deployment commands must be added through the existing deploy wrapper and verifi
   recognition share, assigns residual units by fractional remainder then lowercase address,
   records no reason for that canonical vector, and still requires a reason for any steward-edited
   amount or retention difference.
+- Tests deactivate the provider account after plan creation and prove that edit, finalization,
+  first preparation, ContributorReward batch creation, and initial dispatch fail before fee quote
+  or mutation. Exact existing-child preparation, reads, acknowledgments, cancellation, and
+  same-key retry retain their documented behavior.
+- Tests prove protocol-to-garden value is queued only through `queueFunding` as
+  `DisbursementKind.Funding` plus `FundingRoute.ProtocolToGarden`; no commitment payout-plan or
+  garden-beneficiary reward path can encode the same transfer.
 - Child or batch cancellation retains `payoutPlanOfCommitment` and never permits a second plan or
   replacement child. Only authenticated-failure requeue creates a later logical attempt.
 - `createBatch` rejects a duplicate derived recipient before fee quote, storage mutation, or
