@@ -85,15 +85,15 @@ export async function publishProfileAvatar(
     await dependencies.clearDraft();
     return record;
   } catch (error) {
-    const recoverable =
-      error instanceof ProfileAvatarTransportError &&
-      (error.isAmbiguous || error.errorCode === "version_conflict");
-    if (!recoverable) throw error;
+    if (!(error instanceof ProfileAvatarTransportError)) throw error;
+    const isVersionConflict = error.errorCode === "version_conflict";
+    if (!error.isAmbiguous && !isVersionConflict) throw error;
     const refreshed = await dependencies.get(chainId, address);
     if (refreshed.avatarUri === avatarUri) {
       await dependencies.clearDraft();
       return refreshed;
     }
+    if (isVersionConflict) throw error;
     mutation = await signedMutation(dependencies, chainId, address, avatarUri, refreshed.version);
     dependencies.onStage?.("saving");
     const record = await dependencies.save(chainId, address, mutation);

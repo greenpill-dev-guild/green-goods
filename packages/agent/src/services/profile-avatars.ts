@@ -116,7 +116,8 @@ export function createViemProfileAvatarSignatureVerifier(options: {
     // Calling the validator directly preserves provider failures for the route's 503 response.
     try {
       const result = await client.call({ data });
-      return hexToBool(result.data ?? "0x0");
+      if (!result.data || result.data === "0x") return false;
+      return hexToBool(result.data);
     } catch (error) {
       if (isExecutionRevert(error)) return false;
       throw error;

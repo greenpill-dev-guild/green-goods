@@ -18,6 +18,8 @@
     "./config": "./src/config/index.ts",
     "./config/blockchain": "./src/config/blockchain.ts",
     "./hooks": "./src/hooks/index.ts",
+    "./hooks/admin-ui/useCanvasChromeProbe": "./src/hooks/admin-ui/useCanvasChromeProbe.ts",
+    "./hooks/app/useOnlineStatus": "./src/hooks/app/useOnlineStatus.ts",
     "./i18n": "./src/i18n/index.ts",
     "./lib/env": "./src/lib/env.ts",
     "./i18n/en": "./src/i18n/en.json",

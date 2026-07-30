@@ -7,6 +7,18 @@ import {
 } from "../../public-contracts/profile-avatar";
 import { ProfileAvatarTransportError } from "./types";
 
+const PROFILE_AVATAR_REQUEST_TIMEOUT_MS = 10_000;
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PROFILE_AVATAR_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function apiBaseUrl(): string {
   return (
     import.meta.env.VITE_API_BASE_URL ||
@@ -44,7 +56,7 @@ export const profileAvatarTransport = {
   ): Promise<ProfileAvatarRecord> {
     let response: Response;
     try {
-      response = await fetch(`${baseUrl.replace(/\/$/, "")}${route(chainId, address)}`);
+      response = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}${route(chainId, address)}`);
     } catch {
       throw new ProfileAvatarTransportError(
         "Profile avatar could not be loaded.",
@@ -68,7 +80,7 @@ export const profileAvatarTransport = {
   ): Promise<ProfileAvatarRecord> {
     let response: Response;
     try {
-      response = await fetch(`${baseUrl.replace(/\/$/, "")}${route(chainId, address)}`, {
+      response = await fetchWithTimeout(`${baseUrl.replace(/\/$/, "")}${route(chainId, address)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mutation),

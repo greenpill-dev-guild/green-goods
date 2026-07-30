@@ -6,7 +6,10 @@ export function resolveProfileAvatar(
   ensAvatarUri: string | null | undefined,
   fallbackAvatarUri: string | null | undefined
 ): ProfileAvatarResolution {
-  if (appAvatarUri) return { avatarUri: resolveAvatarUrl(appAvatarUri), source: "app" };
+  if (appAvatarUri) {
+    const resolved = resolveAvatarUrl(appAvatarUri, "");
+    if (resolved) return { avatarUri: resolved, source: "app" };
+  }
   if (ensAvatarUri) return { avatarUri: ensAvatarUri, source: "ens" };
   if (fallbackAvatarUri) return { avatarUri: fallbackAvatarUri, source: "fallback" };
   return { avatarUri: null, source: null };

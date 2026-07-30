@@ -15,6 +15,8 @@ const ADDRESS_B = "0x2222222222222222222222222222222222222222";
 const avatarEditorMocks = vi.hoisted(() => ({
   clear: vi.fn(),
   continueAfterReconnect: vi.fn(),
+  createPreviewUrl: vi.fn((file: File) => `blob:${file.name}`),
+  cleanupPreviewUrl: vi.fn(),
   discardDraft: vi.fn(),
   save: vi.fn(),
   editor: {
@@ -22,7 +24,7 @@ const avatarEditorMocks = vi.hoisted(() => ({
     clear: vi.fn(),
     continueAfterReconnect: vi.fn(),
     discardDraft: vi.fn(),
-    draft: null,
+    draft: null as { action?: "set" | "clear"; file: File | null } | null,
     error: null as Error | null,
     isSaving: false,
     save: vi.fn(),
@@ -54,10 +56,12 @@ vi.mock("@green-goods/shared", () => ({
   }) => (open ? <section aria-label={title}>{children}</section> : null),
   cn: (...values: unknown[]) => values.filter(Boolean).join(" "),
   mediaResourceManager: {
-    cleanupUrls: vi.fn(),
-    getOrCreateUrl: vi.fn(() => "blob:preview"),
+    cleanupUrl: avatarEditorMocks.cleanupPreviewUrl,
+    createUrl: avatarEditorMocks.createPreviewUrl,
   },
-  useOffline: () => avatarEditorMocks.online,
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => avatarEditorMocks.online.isOnline,
 }));
 vi.mock("@green-goods/shared/profile-avatar", () => ({
   useProfileAvatarEditor: () => avatarEditorMocks.editor,
@@ -76,6 +80,8 @@ describe("ProfileAvatarEditor", () => {
   beforeEach(() => {
     avatarEditorMocks.clear.mockReset();
     avatarEditorMocks.continueAfterReconnect.mockReset();
+    avatarEditorMocks.createPreviewUrl.mockClear();
+    avatarEditorMocks.cleanupPreviewUrl.mockClear();
     avatarEditorMocks.discardDraft.mockReset();
     avatarEditorMocks.save.mockReset();
     avatarEditorMocks.editor.address = ADDRESS_A;
@@ -92,13 +98,32 @@ describe("ProfileAvatarEditor", () => {
     renderEditor();
 
     await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
-    const input = screen.getByLabelText(/choose photo/i);
+    const input = screen.getByLabelText(/choose photo/i) as HTMLInputElement;
     const file = new File(["image"], "profile.webp", { type: "image/webp" });
     await user.upload(input, file);
 
+    expect(input.files).toHaveLength(0);
     expect(screen.getByText(/draft photo has not been published/i)).toBeVisible();
     await user.click(screen.getByRole("button", { name: /replace photo/i }));
     expect(avatarEditorMocks.save).toHaveBeenCalledWith(file);
+  });
+
+  it("revokes a superseded preview and accepts the same file again", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    const input = screen.getByLabelText(/choose photo/i) as HTMLInputElement;
+    const first = new File(["first"], "first.webp", { type: "image/webp" });
+    const second = new File(["second"], "second.webp", { type: "image/webp" });
+
+    await user.upload(input, first);
+    await user.upload(input, second);
+
+    await waitFor(() =>
+      expect(avatarEditorMocks.cleanupPreviewUrl).toHaveBeenCalledWith("blob:first.webp")
+    );
+    await user.upload(input, second);
+    expect(input.files).toHaveLength(0);
   });
 
   it("offers recovery controls for an offline draft", async () => {
@@ -251,7 +276,31 @@ describe("ProfileAvatarEditor", () => {
 
     await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/we could not save your profile photo/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not restore your saved/i);
+  });
+
+  it("reports remove, continue, and discard failures with action-specific copy", async () => {
+    const user = userEvent.setup();
+    avatarEditorMocks.clear.mockRejectedValueOnce(new Error("remove failed"));
+    const rendered = renderEditor();
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    await user.click(screen.getByRole("button", { name: /remove photo/i }));
+    await user.click(screen.getAllByRole("button", { name: /remove photo/i })[1]!);
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not remove/i);
+
+    avatarEditorMocks.editor.draft = { action: "clear", file: null };
+    avatarEditorMocks.continueAfterReconnect.mockRejectedValueOnce(new Error("publish failed"));
+    rendered.rerender(
+      <IntlProvider locale="en" messages={{}}>
+        <ProfileAvatarEditor fallbackAvatar="/images/avatar.png" />
+      </IntlProvider>
+    );
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not publish/i);
+
+    avatarEditorMocks.discardDraft.mockRejectedValueOnce(new Error("discard failed"));
+    await user.click(screen.getByRole("button", { name: /discard draft/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not discard/i);
   });
 
   it("drops a staged preview when the active account changes", async () => {

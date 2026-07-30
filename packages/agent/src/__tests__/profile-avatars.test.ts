@@ -20,7 +20,13 @@ const OTHER_ADDRESS = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
 const NOW = 1_753_777_600_000;
 const URI = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
 
-function createAvatarApp(options: { verify?: ReturnType<typeof vi.fn>; now?: number } = {}) {
+function createAvatarApp(
+  options: {
+    verify?: ReturnType<typeof vi.fn>;
+    now?: number;
+    configuredChainId?: number | null;
+  } = {}
+) {
   const store = new MemoryProfileAvatarStore();
   const verify = options.verify ?? vi.fn(async () => true);
   const now = options.now ?? NOW;
@@ -29,7 +35,8 @@ function createAvatarApp(options: { verify?: ReturnType<typeof vi.fn>; now?: num
     allowedOrigins: new Set([ORIGIN]),
     publicRateLimiter: new InMemoryPublicRateLimiter(),
     profileAvatarStore: store,
-    profileAvatarChainId: CHAIN_ID,
+    profileAvatarChainId:
+      options.configuredChainId === null ? undefined : (options.configuredChainId ?? CHAIN_ID),
     profileAvatarSignatureVerifier: verify,
     now: () => now,
   });
@@ -165,6 +172,49 @@ describe("profile avatar public API", () => {
     }
   });
 
+  it("normalizes mixed-case addresses at the SQLite boundary", () => {
+    const database = new Database(":memory:");
+    initSchema(database);
+    const mixedCaseAddress = "0x1234567890aBcDeF1234567890AbCdEf12345678" as `0x${string}`;
+
+    try {
+      expect(
+        compareAndSwapProfileAvatar(database, {
+          chainId: CHAIN_ID,
+          address: mixedCaseAddress,
+          avatarUri: URI,
+          expectedVersion: 0,
+          updatedAt: new Date(NOW).toISOString(),
+        })
+      ).toMatchObject({
+        ok: true,
+        record: { address: ADDRESS, version: 1 },
+      });
+      expect(
+        compareAndSwapProfileAvatar(database, {
+          chainId: CHAIN_ID,
+          address: ADDRESS as `0x${string}`,
+          avatarUri: null,
+          expectedVersion: 1,
+          updatedAt: new Date(NOW + 1).toISOString(),
+        })
+      ).toMatchObject({
+        ok: true,
+        record: { address: ADDRESS, version: 2, avatarUri: null },
+      });
+      expect(getProfileAvatar(database, CHAIN_ID, mixedCaseAddress)).toMatchObject({
+        address: ADDRESS,
+        version: 2,
+      });
+      expect(getProfileAvatar(database, CHAIN_ID, ADDRESS as `0x${string}`)).toMatchObject({
+        address: ADDRESS,
+        version: 2,
+      });
+    } finally {
+      database.close();
+    }
+  });
+
   it("does not allow a stale mutation to resurrect a clear tombstone", async () => {
     const { app } = createAvatarApp();
     await app.request(avatarUrl(), {
@@ -213,6 +263,17 @@ describe("profile avatar public API", () => {
     await expectErrorCode(wrongChain, 400, "chain_unsupported");
     await expectErrorCode(expired, 400, "signature_expired");
     await expectErrorCode(future, 400, "signature_expired");
+  });
+
+  it("returns provider unavailable when avatar verification is not configured", async () => {
+    const { app } = createAvatarApp({ configuredChainId: null });
+    const response = await app.request(avatarUrl(), {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(mutation()),
+    });
+
+    await expectErrorCode(response, 503, "provider_unavailable");
   });
 
   it("verifies a canonical EOA signature through the production verifier", async () => {
@@ -274,6 +335,26 @@ describe("profile avatar public API", () => {
     });
     await expectErrorCode(forgedResponse, 401, "signature_invalid");
     expect(healthyClient.call).toHaveBeenCalledTimes(1);
+
+    const emptyClient = {
+      call: vi.fn(async () => ({ data: "0x" as const })),
+    };
+    const empty = createAvatarApp({
+      verify: vi.fn(
+        createViemProfileAvatarSignatureVerifier({
+          chain: arbitrum,
+          rpcUrl: "http://unused.invalid",
+          client: emptyClient,
+        })
+      ),
+    });
+    const emptyResponse = await empty.app.request(avatarUrl(), {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(mutation()),
+    });
+    await expectErrorCode(emptyResponse, 401, "signature_invalid");
+    expect(emptyClient.call).toHaveBeenCalledTimes(1);
 
     const revertedClient = {
       call: vi.fn(async () => {

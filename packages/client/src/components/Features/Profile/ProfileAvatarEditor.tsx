@@ -1,4 +1,5 @@
-import { cn, DialogShell, mediaResourceManager, useOffline } from "@green-goods/shared";
+import { cn, DialogShell, mediaResourceManager } from "@green-goods/shared";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
@@ -8,6 +9,7 @@ import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 
 const AVATAR_PREVIEW_TRACKING_ID = "profile-avatar-editor";
+type AvatarFailureAction = "save" | "remove" | "continue" | "discard";
 
 interface ProfileAvatarEditorProps {
   fallbackAvatar: string;
@@ -31,6 +33,31 @@ function stageMessage(
   }
 }
 
+function failureMessage(
+  action: AvatarFailureAction,
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
+): string {
+  const messages = {
+    save: {
+      id: "profile.avatar.saveError",
+      defaultMessage: "We could not save your profile photo. Please try again.",
+    },
+    remove: {
+      id: "profile.avatar.removeError",
+      defaultMessage: "We could not remove your profile photo. Please try again.",
+    },
+    continue: {
+      id: "profile.avatar.continueError",
+      defaultMessage: "We could not publish your profile photo. Please try again.",
+    },
+    discard: {
+      id: "profile.avatar.discardError",
+      defaultMessage: "We could not discard your profile photo draft. Please try again.",
+    },
+  } as const;
+  return formatMessage(messages[action]);
+}
+
 /**
  * Client-owned avatar affordance for the authenticated profile header. The
  * shared editor owns normalization, durable drafts, signing, and query refresh;
@@ -40,27 +67,23 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
   const { formatMessage } = useIntl();
   const editor = useProfileAvatarEditor();
   const resolved = useResolvedProfileAvatar(undefined, fallbackAvatar);
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const inputId = useId();
   const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+  const [draftPreview, setDraftPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const displayedError =
     error ??
     (editor.error
       ? formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
+          id: "profile.avatar.restoreError",
+          defaultMessage: "We could not restore your saved profile photo draft.",
         })
       : null);
-  const selectedPreview = selectedFile
-    ? mediaResourceManager.getOrCreateUrl(selectedFile, AVATAR_PREVIEW_TRACKING_ID)
-    : null;
   const draftFile = editor.draft?.file ?? null;
-  const draftPreview = draftFile
-    ? mediaResourceManager.getOrCreateUrl(draftFile, AVATAR_PREVIEW_TRACKING_ID)
-    : null;
   const previewSrc = selectedPreview ?? draftPreview ?? resolved.avatarUri ?? fallbackAvatar;
   const status = stageMessage(editor.stage, formatMessage);
   const recoverableDraft = Boolean(editor.draft) && !selectedFile;
@@ -71,9 +94,26 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace photo" })
       : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save photo" });
 
-  useEffect(() => () => mediaResourceManager.cleanupUrls(AVATAR_PREVIEW_TRACKING_ID), []);
   useEffect(() => {
-    mediaResourceManager.cleanupUrls(AVATAR_PREVIEW_TRACKING_ID);
+    setSelectedPreview(null);
+    if (!selectedFile) return;
+    const url = mediaResourceManager.createUrl(
+      selectedFile,
+      `${AVATAR_PREVIEW_TRACKING_ID}:selected`
+    );
+    setSelectedPreview(url);
+    return () => mediaResourceManager.cleanupUrl(url);
+  }, [selectedFile]);
+
+  useEffect(() => {
+    setDraftPreview(null);
+    if (!draftFile) return;
+    const url = mediaResourceManager.createUrl(draftFile, `${AVATAR_PREVIEW_TRACKING_ID}:draft`);
+    setDraftPreview(url);
+    return () => mediaResourceManager.cleanupUrl(url);
+  }, [draftFile]);
+
+  useEffect(() => {
     setSelectedFile(null);
     setError(null);
     setRemoveConfirmOpen(false);
@@ -93,12 +133,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       setSelectedFile(null);
     } catch {
       setSelectedFile(null);
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("save", formatMessage));
     }
   };
 
@@ -108,12 +143,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       await editor.clear();
       setSelectedFile(null);
     } catch {
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("remove", formatMessage));
     }
   };
 
@@ -122,12 +152,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
     try {
       await editor.continueAfterReconnect();
     } catch {
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("continue", formatMessage));
     }
   };
 
@@ -137,12 +162,7 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
       await editor.discardDraft();
       setSelectedFile(null);
     } catch {
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("discard", formatMessage));
     }
   };
 
@@ -221,7 +241,11 @@ export function ProfileAvatarEditor({ fallbackAvatar, className }: ProfileAvatar
                 defaultMessage: "Choose photo",
               })}
               className="sr-only"
-              onChange={(event) => chooseFile(event.currentTarget.files?.[0] ?? null)}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                event.currentTarget.value = "";
+                chooseFile(file);
+              }}
               disabled={busy}
             />
             <RiImageAddLine className="h-4 w-4" aria-hidden="true" />

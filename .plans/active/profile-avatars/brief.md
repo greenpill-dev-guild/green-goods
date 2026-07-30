@@ -20,5 +20,5 @@ fallback.
 In scope: shared protocol and browser state, agent SQLite/API verification, client Profile UI,
 admin Profile UI, translations, tests, and authenticated Brave proof.
 
-Out of scope: contracts, ENS writes, indexer behavior, deployment broadcasts, new dependencies,
+Out of scope: on-chain contracts and deployment, ENS writes, indexer behavior, new dependencies,
 and environment changes.

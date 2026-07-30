@@ -1,10 +1,13 @@
-import { openDB } from "idb";
+import { openDB, type DBSchema } from "idb";
 import type { Address } from "../../types/domain";
 import { deserializeFile, serializeFile } from "../../utils/storage/file-serialization";
 import type { ProfileAvatarDraft, ProfileAvatarPublishInput } from "./types";
 
-interface ProfileAvatarDraftDB {
-  drafts: ProfileAvatarDraft;
+interface ProfileAvatarDraftDB extends DBSchema {
+  drafts: {
+    key: string;
+    value: ProfileAvatarDraft & { key: string };
+  };
 }
 
 const DRAFT_DB_NAME = "green-goods-profile-avatar-drafts";
@@ -35,7 +38,7 @@ export async function saveProfileAvatarDraft(
     action: input.action,
     ...(input.cid ? { cid: input.cid } : {}),
     updatedAt: Date.now(),
-  } as ProfileAvatarDraft & { key: string });
+  });
 }
 
 export async function loadProfileAvatarDraft(
@@ -43,9 +46,7 @@ export async function loadProfileAvatarDraft(
   address: Address
 ): Promise<(ProfileAvatarDraft & { file: File | null }) | null> {
   const db = await openDraftDatabase();
-  const draft = (await db.get("drafts", DRAFT_KEY(chainId, address))) as
-    | ProfileAvatarDraft
-    | undefined;
+  const draft = await db.get("drafts", DRAFT_KEY(chainId, address));
   if (!draft) return null;
   return {
     ...draft,

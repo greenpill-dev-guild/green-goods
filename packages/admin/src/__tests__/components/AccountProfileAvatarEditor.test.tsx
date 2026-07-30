@@ -11,6 +11,8 @@ const ADDRESS_B = "0x2222222222222222222222222222222222222222";
 const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
   continue: vi.fn(),
+  createPreviewUrl: vi.fn((file: File) => `blob:${file.name}`),
+  cleanupPreviewUrl: vi.fn(),
   discard: vi.fn(),
   save: vi.fn(),
   editor: {
@@ -18,7 +20,7 @@ const mocks = vi.hoisted(() => ({
     clear: vi.fn(),
     continueAfterReconnect: vi.fn(),
     discardDraft: vi.fn(),
-    draft: null as any,
+    draft: null as { action?: "set" | "clear"; file: File | null } | null,
     error: null as Error | null,
     isSaving: false,
     save: vi.fn(),
@@ -40,8 +42,13 @@ mocks.editor.save = mocks.save;
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...values: unknown[]) => values.filter(Boolean).join(" "),
-  mediaResourceManager: { cleanupUrls: vi.fn(), getOrCreateUrl: vi.fn(() => "blob:preview") },
-  useOffline: () => mocks.online,
+  mediaResourceManager: {
+    cleanupUrl: mocks.cleanupPreviewUrl,
+    createUrl: mocks.createPreviewUrl,
+  },
+}));
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => mocks.online.isOnline,
 }));
 vi.mock("@green-goods/shared/profile-avatar", () => ({
   useProfileAvatarEditor: () => mocks.editor,
@@ -72,6 +79,8 @@ describe("AccountProfileAvatarEditor", () => {
   beforeEach(() => {
     mocks.clear.mockReset();
     mocks.continue.mockReset();
+    mocks.createPreviewUrl.mockClear();
+    mocks.cleanupPreviewUrl.mockClear();
     mocks.discard.mockReset();
     mocks.save.mockReset();
     mocks.editor.address = ADDRESS_A;
@@ -107,12 +116,24 @@ describe("AccountProfileAvatarEditor", () => {
     const file = new File(["image"], "profile.webp", { type: "image/webp" });
     await user.upload(screen.getByLabelText(/choose photo/i), file);
 
+    expect((screen.getByLabelText(/choose photo/i) as HTMLInputElement).files).toHaveLength(0);
     expect(screen.getByText(/draft photo has not been published/i)).toBeVisible();
     const replace = screen.getByRole("button", { name: /replace photo/i });
     expect(replace).toHaveAttribute("data-component", "AdminButton");
     await user.click(replace);
 
     expect(mocks.save).toHaveBeenCalledWith(file);
+  });
+  it("revokes superseded previews while the editor remains open", async () => {
+    const user = userEvent.setup();
+    render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    const input = screen.getByLabelText(/choose photo/i) as HTMLInputElement;
+    await user.upload(input, new File(["first"], "first.webp", { type: "image/webp" }));
+    await user.upload(input, new File(["second"], "second.webp", { type: "image/webp" }));
+
+    await waitFor(() => expect(mocks.cleanupPreviewUrl).toHaveBeenCalledWith("blob:first.webp"));
+    expect(input.files).toHaveLength(0);
   });
   it("announces save errors in the dialog", async () => {
     mocks.save.mockRejectedValueOnce(new Error("unavailable"));
@@ -134,7 +155,26 @@ describe("AccountProfileAvatarEditor", () => {
 
     await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/we could not save your profile photo/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not restore your saved/i);
+  });
+  it("reports remove, continue, and discard failures with action-specific copy", async () => {
+    const user = userEvent.setup();
+    mocks.clear.mockRejectedValueOnce(new Error("remove failed"));
+    const rendered = render(<AccountProfileAvatarEditor fallbackInitials="GG" />);
+    await user.click(screen.getByRole("button", { name: /edit profile photo/i }));
+    await user.click(screen.getByRole("button", { name: /remove photo/i }));
+    await user.click(screen.getAllByRole("button", { name: /remove photo/i })[1]!);
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not remove/i);
+
+    mocks.editor.draft = { action: "clear", file: null };
+    mocks.continue.mockRejectedValueOnce(new Error("publish failed"));
+    rendered.rerender(<AccountProfileAvatarEditor fallbackInitials="GG" />);
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not publish/i);
+
+    mocks.discard.mockRejectedValueOnce(new Error("discard failed"));
+    await user.click(screen.getByRole("button", { name: /discard draft/i }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not discard/i);
   });
   it("drops a staged preview when the active account changes", async () => {
     const user = userEvent.setup();

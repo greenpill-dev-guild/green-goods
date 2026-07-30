@@ -15,11 +15,12 @@ export function getProfileAvatar(
   chainId: number,
   address: Address
 ): ProfileAvatarRecord | undefined {
+  const normalizedAddress = address.toLowerCase() as Address;
   const row = db
     .query(
       "SELECT chainId, address, avatarUri, version, updatedAt FROM profile_avatars WHERE chainId = ? AND address = ?"
     )
-    .get(chainId, address) as StoredProfileAvatar | null;
+    .get(chainId, normalizedAddress) as StoredProfileAvatar | null;
   return row ? toRecord(row) : undefined;
 }
 
@@ -35,7 +36,8 @@ export function compareAndSwapProfileAvatar(
 ): { ok: true; record: ProfileAvatarRecord } | { ok: false; record?: ProfileAvatarRecord } {
   db.run("BEGIN IMMEDIATE");
   try {
-    const existing = getProfileAvatar(db, input.chainId, input.address);
+    const normalizedAddress = input.address.toLowerCase() as Address;
+    const existing = getProfileAvatar(db, input.chainId, normalizedAddress);
     const currentVersion = existing?.version ?? 0;
     if (currentVersion !== input.expectedVersion) {
       db.run("ROLLBACK");
@@ -44,7 +46,7 @@ export function compareAndSwapProfileAvatar(
 
     const record: ProfileAvatarRecord = {
       chainId: input.chainId,
-      address: input.address,
+      address: normalizedAddress,
       avatarUri: input.avatarUri,
       version: currentVersion + 1,
       updatedAt: input.updatedAt,

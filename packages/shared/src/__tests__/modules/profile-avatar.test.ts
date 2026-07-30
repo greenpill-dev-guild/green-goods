@@ -66,6 +66,19 @@ describe("profile avatar resolution", () => {
       source: "fallback",
     });
   });
+
+  it("does not label an unresolved app pointer as an app avatar", () => {
+    expect(
+      resolveProfileAvatar("invalid-avatar-pointer", "https://ens.example/avatar", "fallback.png")
+    ).toEqual({
+      avatarUri: "https://ens.example/avatar",
+      source: "ens",
+    });
+    expect(resolveProfileAvatar("invalid-avatar-pointer", null, "fallback.png")).toEqual({
+      avatarUri: "fallback.png",
+      source: "fallback",
+    });
+  });
 });
 
 describe("profile avatar normalization", () => {
@@ -161,14 +174,6 @@ describe("profile avatar drafts", () => {
     await clearProfileAvatarDraft(42161, address);
     await expect(loadProfileAvatarDraft(42161, address)).resolves.toBeNull();
   });
-
-  it("does not sign merely by restoring a draft", async () => {
-    const sign = vi.fn();
-    await saveProfileAvatarDraft(42161, address, { action: "clear" });
-    await loadProfileAvatarDraft(42161, address);
-    expect(sign).not.toHaveBeenCalled();
-    await clearProfileAvatarDraft(42161, address);
-  });
 });
 
 describe("explicit profile avatar publish workflow", () => {
@@ -204,28 +209,44 @@ describe("explicit profile avatar publish workflow", () => {
     expect(dependencies.saveDraft).toHaveBeenCalledWith({ action: "set", cid });
   });
 
-  it("refreshes, signs again, and retries once for a version conflict", async () => {
+  it("does not overwrite a divergent record after a version conflict", async () => {
     const { dependencies } = workflow();
     (dependencies.get as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(record(1))
-      .mockResolvedValueOnce(record(2));
-    (dependencies.save as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(new ProfileAvatarTransportError("Conflict", 409, "version_conflict"))
-      .mockResolvedValueOnce(record(3, avatarUri));
-    await publishProfileAvatar(42161, address, { file: file(), action: "set" }, dependencies);
-    expect(dependencies.sign).toHaveBeenCalledTimes(2);
+      .mockResolvedValueOnce(record(2, "ipfs://concurrent-avatar"));
+    const conflict = new ProfileAvatarTransportError("Conflict", 409, "version_conflict");
+    (dependencies.save as ReturnType<typeof vi.fn>).mockRejectedValueOnce(conflict);
+
+    await expect(
+      publishProfileAvatar(42161, address, { file: file(), action: "set" }, dependencies)
+    ).rejects.toBe(conflict);
+
+    expect(dependencies.sign).toHaveBeenCalledOnce();
+    expect(dependencies.save).toHaveBeenCalledOnce();
+    expect(dependencies.clearDraft).not.toHaveBeenCalled();
     expect(dependencies.save).toHaveBeenNthCalledWith(
       1,
       42161,
       address,
       expect.objectContaining({ expectedVersion: 1 })
     );
-    expect(dependencies.save).toHaveBeenNthCalledWith(
-      2,
-      42161,
-      address,
-      expect.objectContaining({ expectedVersion: 2 })
+  });
+
+  it("treats a matching version-conflict refresh as idempotent success", async () => {
+    const { dependencies } = workflow();
+    (dependencies.get as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(record(1))
+      .mockResolvedValueOnce(record(2, avatarUri));
+    (dependencies.save as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new ProfileAvatarTransportError("Conflict", 409, "version_conflict")
     );
+
+    await expect(
+      publishProfileAvatar(42161, address, { file: file(), action: "set" }, dependencies)
+    ).resolves.toEqual(record(2, avatarUri));
+    expect(dependencies.sign).toHaveBeenCalledOnce();
+    expect(dependencies.save).toHaveBeenCalledOnce();
+    expect(dependencies.clearDraft).toHaveBeenCalledOnce();
   });
 
   it("recovers an ambiguous POST if the refreshed record already matches", async () => {

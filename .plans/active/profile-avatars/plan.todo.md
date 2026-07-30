@@ -43,4 +43,4 @@
 
 ## Validation
 
-See `eval.md`. Contracts and indexer lanes are explicitly not applicable.
+See `eval.md`. On-chain contract and indexer lanes are explicitly not applicable.

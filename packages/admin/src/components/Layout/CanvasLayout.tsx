@@ -30,6 +30,7 @@ import {
   type OpenAccountSheetEventDetail,
   type ToolbarSlot,
 } from "@green-goods/shared";
+import { useCanvasChromeProbe } from "@green-goods/shared/hooks/admin-ui/useCanvasChromeProbe";
 import { useResolvedProfileAvatar } from "@green-goods/shared/profile-avatar";
 import { RiUserLine } from "@remixicon/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,11 +42,7 @@ import { LeftSheetProvider } from "./leftSheetChannel";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
-import {
-  FabAwareNavigationBar,
-  ProfiledNavigationBar,
-  useCanvasChromeProbe,
-} from "./canvasChromeProbe";
+import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProbe";
 import { CommandPalette } from "./CommandPalette";
 import { LeftInspectorDialog } from "./LeftInspectorDialog";
 import { PageTransition } from "./PageTransition";

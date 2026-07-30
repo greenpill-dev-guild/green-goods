@@ -1,4 +1,5 @@
-import { mediaResourceManager, useOffline } from "@green-goods/shared";
+import { mediaResourceManager } from "@green-goods/shared";
+import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
 import {
   useProfileAvatarEditor,
   useResolvedProfileAvatar,
@@ -10,6 +11,7 @@ import { AdminButton } from "../AdminButton";
 import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
 
 const AVATAR_PREVIEW_TRACKING_ID = "admin-profile-avatar-editor";
+type AvatarFailureAction = "save" | "remove" | "continue" | "discard";
 
 interface AccountProfileAvatarEditorProps {
   fallbackInitials: string;
@@ -32,32 +34,53 @@ function stageMessage(
   }
 }
 
+function failureMessage(
+  action: AvatarFailureAction,
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"]
+): string {
+  const messages = {
+    save: {
+      id: "profile.avatar.saveError",
+      defaultMessage: "We could not save your profile photo. Please try again.",
+    },
+    remove: {
+      id: "profile.avatar.removeError",
+      defaultMessage: "We could not remove your profile photo. Please try again.",
+    },
+    continue: {
+      id: "profile.avatar.continueError",
+      defaultMessage: "We could not publish your profile photo. Please try again.",
+    },
+    discard: {
+      id: "profile.avatar.discardError",
+      defaultMessage: "We could not discard your profile photo draft. Please try again.",
+    },
+  } as const;
+  return formatMessage(messages[action]);
+}
+
 /** The admin account inspector's avatar trigger and single-purpose editor. */
 export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileAvatarEditorProps) {
   const { formatMessage } = useIntl();
   const editor = useProfileAvatarEditor();
   const resolved = useResolvedProfileAvatar();
-  const { isOnline } = useOffline();
+  const isOnline = useOnlineStatus();
   const inputId = useId();
   const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
+  const [draftPreview, setDraftPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const displayedError =
     error ??
     (editor.error
       ? formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
+          id: "profile.avatar.restoreError",
+          defaultMessage: "We could not restore your saved profile photo draft.",
         })
       : null);
-  const selectedPreview = selectedFile
-    ? mediaResourceManager.getOrCreateUrl(selectedFile, AVATAR_PREVIEW_TRACKING_ID)
-    : null;
   const draftFile = editor.draft?.file ?? null;
-  const draftPreview = draftFile
-    ? mediaResourceManager.getOrCreateUrl(draftFile, AVATAR_PREVIEW_TRACKING_ID)
-    : null;
   const previewSrc = selectedPreview ?? draftPreview ?? resolved.avatarUri;
   const status = stageMessage(editor.stage, formatMessage);
   const busy = editor.isSaving || Boolean(status);
@@ -68,9 +91,26 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       ? formatMessage({ id: "profile.avatar.replace", defaultMessage: "Replace photo" })
       : formatMessage({ id: "profile.avatar.save", defaultMessage: "Save photo" });
 
-  useEffect(() => () => mediaResourceManager.cleanupUrls(AVATAR_PREVIEW_TRACKING_ID), []);
   useEffect(() => {
-    mediaResourceManager.cleanupUrls(AVATAR_PREVIEW_TRACKING_ID);
+    setSelectedPreview(null);
+    if (!selectedFile) return;
+    const url = mediaResourceManager.createUrl(
+      selectedFile,
+      `${AVATAR_PREVIEW_TRACKING_ID}:selected`
+    );
+    setSelectedPreview(url);
+    return () => mediaResourceManager.cleanupUrl(url);
+  }, [selectedFile]);
+
+  useEffect(() => {
+    setDraftPreview(null);
+    if (!draftFile) return;
+    const url = mediaResourceManager.createUrl(draftFile, `${AVATAR_PREVIEW_TRACKING_ID}:draft`);
+    setDraftPreview(url);
+    return () => mediaResourceManager.cleanupUrl(url);
+  }, [draftFile]);
+
+  useEffect(() => {
     setSelectedFile(null);
     setError(null);
     setRemoveConfirmOpen(false);
@@ -84,12 +124,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       setSelectedFile(null);
     } catch {
       setSelectedFile(null);
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("save", formatMessage));
     }
   };
 
@@ -99,12 +134,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       await editor.clear();
       setSelectedFile(null);
     } catch {
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("remove", formatMessage));
     }
   };
 
@@ -113,12 +143,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
     try {
       await editor.continueAfterReconnect();
     } catch {
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("continue", formatMessage));
     }
   };
 
@@ -128,12 +153,7 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
       await editor.discardDraft();
       setSelectedFile(null);
     } catch {
-      setError(
-        formatMessage({
-          id: "profile.avatar.error",
-          defaultMessage: "We could not save your profile photo. Please try again.",
-        })
-      );
+      setError(failureMessage("discard", formatMessage));
     }
   };
 
@@ -231,8 +251,10 @@ export function AccountProfileAvatarEditor({ fallbackInitials }: AccountProfileA
               })}
               className="sr-only"
               onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                event.currentTarget.value = "";
                 setError(null);
-                setSelectedFile(event.currentTarget.files?.[0] ?? null);
+                setSelectedFile(file);
               }}
               disabled={busy}
             />

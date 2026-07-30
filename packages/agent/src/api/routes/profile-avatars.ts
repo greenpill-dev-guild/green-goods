@@ -77,13 +77,21 @@ async function handleMutation(
     return publicBrowserCorsResponse(c, ctx.deps, bodyResult.error, bodyResult.status);
 
   const configuredChainId = ctx.deps.profileAvatarChainId;
+  if (configuredChainId === undefined) {
+    return publicBrowserCorsResponse(
+      c,
+      ctx.deps,
+      safeError("provider_unavailable", "Avatar verification is unavailable right now."),
+      503
+    );
+  }
   const validation = validateProfileAvatarRequest(
     Number(c.req.param("chainId")),
     c.req.param("address"),
     bodyResult.value,
     {
       now: () => Math.floor((ctx.deps.now?.() ?? Date.now()) / 1000),
-      allowedChainIds: configuredChainId === undefined ? [] : [configuredChainId],
+      allowedChainIds: [configuredChainId],
       maxIssuedAtAgeSeconds: SIGNATURE_MAX_AGE_SECONDS,
       maxFutureSkewSeconds: SIGNATURE_MAX_FUTURE_SKEW_SECONDS,
     }

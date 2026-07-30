@@ -13,14 +13,25 @@
 
 ## Proof
 
-- Fresh targeted proof: agent avatar 9/9, shared avatar 24/24, client avatar 11/11, and admin avatar/layout 34/34 tests pass.
-- Fresh Repo Quick Gate: shared 288 files / 3,383 passed + 1 skipped; client 84 / 651; admin hub 13 / 102; agent 22 passed + 1 skipped / 241 passed + 1 skipped.
-- Passed: agent and shared typechecks, plus deterministic Sepolia client and admin builds.
-- Passed: format, lint, source structure, vocabulary, DesignMD, generated design, design tokens, ontology, Codex docs, shared story coverage (201/201), story quality (173 files), and the test-quality guardrail.
+- Same-turn command output is attached in
+  [`evidence/2026-07-30-pr-review.md`](evidence/2026-07-30-pr-review.md). Historical summaries
+  without retained output are not treated as current proof.
+- Fresh targeted proof: shared avatar/runtime 23/23, client avatar 18/18, admin avatar 17/17, and
+  agent avatar 13/13 tests pass.
+- Fresh Repo Quick Gate: shared 291 files / 3,392 passed + 1 skipped; client 84 / 658; admin hub
+  13 / 102; agent 22 passed + 1 skipped / 245 passed + 1 skipped.
+- Passed: agent and shared typechecks, deterministic Sepolia client and admin builds, format, lint,
+  source structure, vocabulary, DesignMD, generated design, design tokens, shared story coverage
+  (201/201), and story quality (173 files).
 - Blocked outside the changed surfaces: the full build stops in unchanged contracts because checked-out Foundry submodules are missing.
 - Blocked outside the changed surfaces: the full test run reaches unchanged indexer tests that cannot bind loopback ports in this sandbox. Shared, client, and agent full suites passed; the one admin guard failure caused by this feature was corrected, and the full admin suite then passed.
 - Blocked: `agentic:check` reaches the repository browser-policy guard, which reports four required phrases missing from unchanged `CLAUDE.md`; agent operating docs are outside PRD-762.
-- Blocked before execution: the Storybook interaction runner cannot launch its checked-in Chromium process because macOS denies its Mach rendezvous registration, including after an approved unsandboxed retry. No Storybook interaction test ran.
+- Blocked before execution locally: the Storybook interaction runner cannot launch its checked-in
+  Chromium process because macOS denies its Mach rendezvous registration. No local Storybook
+  interaction test ran; GitHub Actions is the authoritative runner.
+- Blocked before execution locally: Admin Playwright cannot write its mkcert output under
+  `~/.vite-plugin-mkcert`. No local Admin Playwright test ran; GitHub Actions is the authoritative
+  runner.
 - Blocked: authenticated Brave proof cannot start local client/admin HTTPS without an unapproved machine trust-store mutation, and the local agent cannot start without `TELEGRAM_BOT_TOKEN`. No isolated-browser result is substituted for authenticated proof.
 
 ## Review Remediation

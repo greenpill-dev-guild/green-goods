@@ -10,7 +10,7 @@
     "overall_status": "in_progress",
     "priority": "p1",
     "created_at": "2026-07-29T00:00:00.000Z",
-    "updated_at": "2026-07-30T00:11:22.000Z"
+    "updated_at": "2026-07-30T23:25:19.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -36,7 +36,7 @@
   },
   "notes": [
     "PRD-762 is the parent-only Linear mirror and blocks PRD-721.",
-    "Contracts, ENS writes, indexer behavior, deployment, dependency, and environment changes are out of scope."
+    "On-chain contracts and deployment, ENS writes, indexer behavior, dependency changes, and environment changes are out of scope."
   ],
   "execution_sub_lanes": {
     "shared_protocol": {
@@ -94,12 +94,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "Targeted client and admin avatar component tests",
-          "evidence": "Behavior tests were added with the UI implementation; intermediate failing output was not retained."
+          "command": "bun run --filter @green-goods/client test -- src/__tests__/components/ProfileAvatarEditor.test.tsx && bun run --filter @green-goods/admin test -- src/__tests__/components/AccountProfileAvatarEditor.test.tsx",
+          "evidence": "Historical RED output was not retained and is not treated as verified proof."
         },
         "green": {
-          "command": "bun run --filter @green-goods/admin test; targeted client avatar tests; deterministic client/admin builds",
-          "evidence": "Admin: 75 files and 546 tests passed. Client avatar tests and both deterministic package builds passed."
+          "command": "bun run --filter @green-goods/client test -- src/__tests__/components/ProfileAvatarEditor.test.tsx && bun run --filter @green-goods/admin test -- src/__tests__/components/AccountProfileAvatarEditor.test.tsx && VITE_CHAIN_ID=11155111 bun run --filter @green-goods/client build && VITE_CHAIN_ID=11155111 bun run --filter @green-goods/admin build",
+          "evidence": "Client: 1 file and 18 tests passed. Admin: 1 file and 17 tests passed. Both deterministic package builds exited 0. See evidence/2026-07-30-pr-review.md."
         },
         "note": "The admin source-wide dialog tone guard also passes after explicitly applying the hub tone."
       },
@@ -115,12 +115,12 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "Targeted agent and shared avatar tests",
-          "evidence": "Behavior tests were added with the protocol and state implementation; intermediate failing output was not retained."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/profile-avatar.test.ts src/__tests__/modules/profile-avatar-transport.test.ts src/__tests__/hooks/app/useOnlineStatus.test.tsx && bun run --filter @green-goods/agent test -- src/__tests__/profile-avatars.test.ts",
+          "evidence": "Historical RED output was not retained and is not treated as verified proof."
         },
         "green": {
-          "command": "Targeted agent/shared tests and typechecks; node scripts/dev/ci-local.js --quick",
-          "evidence": "Agent avatar suite: 52 passed. Shared avatar suite: 41 passed. Agent/shared typechecks and Repo Quick Gate passed."
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/profile-avatar.test.ts src/__tests__/modules/profile-avatar-transport.test.ts src/__tests__/hooks/app/useOnlineStatus.test.tsx && bun run --filter @green-goods/agent test -- src/__tests__/profile-avatars.test.ts && bun run --filter @green-goods/shared typecheck && bun run --filter @green-goods/agent typecheck && node scripts/dev/ci-local.js --quick",
+          "evidence": "Shared: 3 files and 23 tests passed. Agent: 1 file and 13 tests passed. Both typechecks and Repo Quick Gate passed. See evidence/2026-07-30-pr-review.md."
         },
         "note": "SQLite compare-and-swap and tombstone coverage runs against an in-memory SQLite adapter."
       },
@@ -143,7 +143,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "PRD-762 explicitly excludes contract and deployment behavior."
+        "note": "PRD-762 explicitly excludes on-chain contract and deployment behavior."
       },
       "skill_tags": ["contracts"]
     },
@@ -210,7 +210,7 @@
       "lane": "qa_pass_1",
       "status": "blocked",
       "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
-      "note": "Automated proof passes; authenticated Brave proof remains blocked by local HTTPS trust and runtime credential requirements."
+      "note": "Historical run summary; raw output was not retained and is not treated as current proof. Authenticated Brave remained blocked by local HTTPS trust and runtime credential requirements."
     },
     {
       "timestamp": "2026-07-29T09:35:19.686Z",
@@ -226,7 +226,7 @@
       "lane": "qa_pass_1",
       "status": "review_findings_addressed",
       "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
-      "note": "Hardened CID parsing, restored persisted draft recovery after reload, moved destructive admin confirmation to the canonical primitive, updated the visible FAQ, and removed remote story-image dependencies. Fresh typechecks and targeted static guards pass; authenticated Brave remains blocked."
+      "note": "Historical remediation summary; raw validation output was not retained and is not treated as current proof. Authenticated Brave remained blocked."
     },
     {
       "timestamp": "2026-07-30T00:11:22.000Z",
@@ -234,7 +234,15 @@
       "lane": "qa_pass_1",
       "status": "review_findings_addressed",
       "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
-      "note": "Resolved the source-structure, passkey draft-ordering, generated-design, deterministic fixture, initials-fallback story, and scoped admin test-mock findings. Targeted tests, deterministic app builds, static guards, and Repo Quick Gate pass; authenticated Brave and the local Storybook browser runner remain environment-blocked."
+      "note": "Historical remediation summary; raw validation output was not retained and is not treated as current proof. Authenticated Brave and the local Storybook browser runner remained environment-blocked."
+    },
+    {
+      "timestamp": "2026-07-30T23:25:19.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "review_findings_addressed",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Addressed verified PR review findings and failing-check root causes. Exact focused tests, typechecks, deterministic builds, design/source guards, and Repo Quick Gate are recorded in evidence/2026-07-30-pr-review.md. GitHub Actions remains the browser-test authority because local Storybook and Admin Playwright are sandbox-blocked before test execution."
     }
   ]
 }
