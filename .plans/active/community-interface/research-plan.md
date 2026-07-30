@@ -16,7 +16,7 @@ Before product onboarding begins, the team needs evidence for six decisions:
 5. **What anchors measurement** — what each garden already tracks, wants to track, and must report to funders (UNICEF cadence; existing MRV methodology); decides the assessment templates, metric sets, and baseline authorship that make baseline→delta credible enough to aggregate into impact certificates (absorbs canceled RESR-53).
 6. **G$ rollout order** — per-garden settlement relevance now and a real local circulation path; decides the August settlement order after the Tech and Sun Hub first-execution hypothesis, and the circulation support each garden needs.
 
-Coordination-channel and join-flow observations feed RESR-64 (join-request persistence decision, below) — not an outcome of the survey itself.
+Coordination-channel and join-flow observations feed the RESR-64 operating record for the selected join-request service queue below — not an outcome of the survey itself.
 
 ## Cohort and readiness
 
@@ -76,7 +76,7 @@ Not selected for v1: gathering-session-only handoff (cannot reliably support rem
 
 Rejected for v1: public on-chain join requests, Linear-as-queue, and implicit localStorage transport. They expose personal intent, cross trust boundaries, or cannot support shared operator handoff and recovery. `waiting_for_hat` may persist the pending Need/Signal/Testimony payload, but never substitutes for the join-request transport.
 
-Decision exit criteria:
+Operating-record acceptance criteria:
 
 - operator can review and hand off requests;
 - member can understand waiting, approval, and deletion;
@@ -93,7 +93,7 @@ The decision record must say why the selected option won, why the other two were
 | Linear window | Research/engagement outcome | Product consequence |
 |---|---|---|
 | Product current cycle, through 2026-07-16 | Begin operator outreach, consent script, and facilitation kit; do not claim cohort completion | Outreach underway; COM-3 kickoff package due 2026-07-30 |
-| Product Commitment Pooling cycle, 2026-07-16 to 2026-07-30; Research alignment cycle through 2026-07-30 | Run the two-pass instrument, return mandate drafts for confirmation, test problem/desired-outcome language, commitment direction, and domain language, and evaluate join-request options | Copy, translations, and seed rows can be corrected before the July checkpoint; the Need/commitment layer boundary is already locked |
+| Product Commitment Pooling cycle, 2026-07-16 to 2026-07-30; Research alignment cycle through 2026-07-30 | Run the two-pass instrument, return mandate drafts for confirmation, test problem/desired-outcome language, commitment direction, and domain language, and validate the selected join-request queue's operating assumptions | Copy, translations, and seed rows can be corrected before the July checkpoint; the Need/commitment layer boundary is already locked |
 | July dry-run milestone, 2026-07-31 | Publish confirmed mandate artifacts and a readiness matrix with gaps; no garden marked ready without operator confirmation | Go/no-go input for August seeding, not a promise that every garden onboards |
 | August release: Cycle 1 opens **early August**; milestone closes 2026-08-31 | Pair implementation reviews with participating stewards; rehearse one end-to-end commitment and, where relevant, one G$ settlement on Celo | Release evidence and steward runbook |
 | RESR-64 decision, 2026-08-12 | Publish and link the engagement-model decision with controller/auth/retention/deletion/recovery/abuse/cost/owner evidence | Only then may the membership-queue handoff become dispatchable |

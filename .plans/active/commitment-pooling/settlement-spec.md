@@ -23,6 +23,16 @@
 > Pending/Partial/Complete/Failed display state is derived from finalization and child
 > disbursements and is never a separate CCIP subject. `ProtocolToGarden` remains an independent
 > funding/top-up route. Raw G$ transfers remain outside Envio.
+>
+> **Amendment 2026-07-30 (approved PRD-759 architecture lock)**: protocol-pool commitments use
+> that same provider-garden payout-plan lifecycle. Fulfillment unlocks the existing
+> create/edit/finalize/prepare app actions from canonical indexed state; it does not create a
+> sixth offline `settlement` job, a per-device retry record, or a permissionless
+> `queueDisbursement(commitmentId)` call. `queueFunding(garden, amount)` remains the separate
+> discretionary garden seed/top-up action. The Operations route is visible to deployer, funding,
+> or settlement capability, but the funding form itself requires protocol-steward or
+> SettlementModule-owner authority and creates only a typed Funding/ProtocolToGarden Queued row
+> with no commitment ID.
 
 **Current transport-availability fact (externally verified 2026-07-24; recheck at every
 dry-run)**: Chainlink's official mainnet directory publishes the direct route in both
@@ -82,6 +92,15 @@ intermediate owner-supplied settlement-facts API: queue functions derive eligibi
 kind, recipients, and amounts from frozen CommitmentPoolingModule state, derive accounts from
 the settlement registry, and derive canonical G$ only from SettlementModule's write-once
 `gDollarToken`.
+
+**App orchestration boundary.** The offline queue remains exactly the five field-write kinds
+(`commitment`, `claim`, `evidence`, `workLink`, `confirmation`). A fulfilled protocol-pool
+commitment follows the same indexed payout-plan UI and authority checks as a fulfilled garden-pool
+commitment: a provider-garden steward creates and, when needed, edits the Draft, explicitly
+finalizes it, then idempotently prepares each frozen non-zero contributor row. Fulfillment is the
+economic approval; none of those actions add a second reward-approval state. Discretionary
+ProtocolToGarden funding is entered in the capability-gated Operations form and remains a
+deliberate treasury write rather than a background agent or keeper action.
 
 The source state is `None → Queued → Dispatched → Confirmed | Failed`, with `Cancelled`
 available for an unbatched Queued item, an atomically cancelled whole Queued batch, or an
@@ -1805,7 +1824,13 @@ Exact indexer proof from the repo root: `bun run --filter @green-goods/indexer c
 - **W23 WalletDrawer G$ section (settlement delta to W5)**: only after the AA gate, G$ balance section (Celo) + received-support rows; send action → chain-aware transfer flow. When disabled, no balance/send affordance renders and explanatory copy points to the blocked delivery gate.
 - **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, cap snapshot, plus read-only member-delivery status) + disbursement queue. The CCIP command/ack console is **W22** and distinguishes retrying the same command from retrying a stored acknowledgment or creating a new attempt.
 - **W10 commitment dialog**: `CeloSettlement` exposes the recognition-aligned contributor payout draft and never "Record payout"; W21 finalizes the plan and prepares each payable row. `ArbitrumExternal` exposes "Record payout" and never creates a settlement plan. Batch actions remain in W21/W22.
-- **Admin Operations tab funding view (deployer-gated)**: protocol-Safe inflow, GG→garden funding hops, Safe balances, native ETH/CELO fee reserves, command/ack message IDs and explorer links, delivery/manual-execution guidance, Safe/Roles/cap health, and batch console.
+- **Admin Operations tab funding view (capability-gated)**: route visibility derives from
+  `isDeployer || canQueueFunding || canOperateSettlement`, while each write keeps its exact
+  onchain authority. The form is shown only for `canQueueFunding` (protocol steward or module
+  owner), and deployer alone cannot submit. Protocol-Safe inflow, GG→garden funding hops, Safe
+  balances, native ETH/CELO fee reserves, command/ack message IDs and explorer links,
+  delivery/manual-execution guidance, Safe/Roles/cap health, and batch console stay in this
+  workspace.
 - Editorial/community: no change (aggregates only; settlement is not a public story before its separately authorized Release gate).
 
 i18n families extend `app.pool.*`, `cockpit.garden.pool.*`, `cockpit.community.pools.*` with `settlement.*` keys (en/es/pt, same gate). Banned-vocab rules apply to all new copy.
@@ -2135,7 +2160,7 @@ Named sinks: garden store; seed/tool bank, equipment hire, water/solar service f
 4. **A pool-balance time series.** Velocity divides by "average pool G$ balance over the season," which needs sampled balances over time for the pool's Celo Safe. The admin Operations funding view currently plans a point-in-time Celo balance *read*, not a series.
 5. **A registry of in-pool counterparties per garden per season.** "In-pool spend" is only decidable against a known set (garden store, seed/tool bank, participating merchant, steward accounts). Without an allowlist, every transfer out of a member wallet is indistinguishable from a cash-out.
 6. **Season cohort identity carried through settlement,** so "this season's G$" is separable for the per-season cohort view.
-7. **Denominator risk from `memberDeliveryEnabled`.** Contributor delivery is gated on the Celo AA/paymaster spike; if it fails, `memberDeliveryEnabled` stays false and contributor-payout preparation plus member G$ sends are blocked while `ProtocolToGarden` continues. If member delivery is off in season one, "total G$ paid out" — the recirculation denominator — is near-empty and no circulation metric has a meaningful base.
+7. **Denominator risk from `memberDeliveryEnabled`.** Contributor delivery is gated on the Celo AA/paymaster spike; if it fails, `memberDeliveryEnabled` stays false and contributor-payout preparation plus member G$ sends are blocked while `ProtocolToGarden` continues. ProtocolToGarden is treasury funding, not a contributor payout, so it does not populate the “total G$ paid out” denominator. If member delivery is off in season one, that denominator is near-empty and no circulation metric has a meaningful base.
 8. **Numeric threshold values remain an operational assignment.** "Majority" and "minority" are not implementable gates. The two-key capacity-plus-safeguard model and stop-condition classes are approved in `pilot-evidence-spec.md`; each garden's meaningful-change and warning values must be dated before comparison-cycle outcomes are reviewed.
 
 ### 11.9 Why this section exists

@@ -324,12 +324,12 @@ On the commitment AdminDialog detail:
 
 Registration path (all verified anchor points):
 1. Add `"pools"` to `AdminCommunityMode` and use the existing `adminRoutes.communityMode("pools")` helper in `packages/shared/src/utils/navigation/admin-routes.ts`; do not add an `AdminWorkspaceId` or top-level root.
-2. Add `/community/pools` inside the existing Community route branch in `packages/admin/src/routes/views.tsx`, using the same Community authorization boundary. It renders the Protocol pool plus the current garden only. Protocol-only actions remain deployer-gated inside the mode; cross-garden inspection belongs exclusively to the deployer-gated Operations workspace.
+2. Add `/community/pools` inside the existing Community route branch in `packages/admin/src/routes/views.tsx`, using the same Community authorization boundary. It renders the Protocol pool plus the current garden only. Protocol-only actions retain their exact capability gates inside the mode; cross-garden inspection belongs exclusively to the capability-gated Operations workspace.
 3. Add Pools to the existing Community mode rail. The NavigationBar and command palette continue to target the canonical `/community` workspace; no fifth workspace tab or top-level command route is introduced.
 4. Pools inherits the Community workspace tone through `data-tone="community"`; dialogs pass that same tone.
 
 View at `/community/pools` — **rescoped 2026-07-18**: the admin stays garden-focused, so this mode shows exactly **the Protocol pool + this garden's pool**; other gardens' pools never render here (the cross-garden overview moved to the Operations workspace, §6.11). The inner `AdminTabRail` carries two focused views:
-- **Protocol pool tab**: the root-garden pool console (tokenId 1, `rootGarden 0xf401f34378384713222d1d21f63359cc4E8a858a`, corrections-log §6), framed for the garden steward: **claimable by your gardeners** (open protocol commitments — surveys, community activations — with the W25 claim journey), **your garden's involvement** (this garden's claims/accepted rows + confirmations queue, mirroring the Hub Confirm grammar §6.9 scoped to the protocol pool), and the **funding view** (declared reward references only; co-funded references name the owning garden). Protocol-only *actions* stay deployer-gated inline.
+- **Protocol pool tab**: the root-garden pool console (tokenId 1, `rootGarden 0xf401f34378384713222d1d21f63359cc4E8a858a`, corrections-log §6), framed for the garden steward: **claimable by your gardeners** (open protocol commitments — surveys, community activations — with the W25 claim journey), **your garden's involvement** (this garden's claims/accepted rows + confirmations queue, mirroring the Hub Confirm grammar §6.9 scoped to the protocol pool), and the **funding view** (declared reward references only; co-funded references name the owning garden). Protocol-only actions keep their exact capability gates; deployer status never substitutes for `queueFunding` authority.
 - **This garden tab**: one tap into the same §6.2 pool console (W7) — no duplicated grammar, with the Open · Confirmed · Past chips carrying history in place.
 
 ### 6.9 Hub: Confirm stage on the existing rail NET-NEW
@@ -358,13 +358,18 @@ payment-default preview, but have no six-role `CycleOpened` allocation snapshot.
 visible in history and are disabled in certificate selection with “No cycle allocation · not
 certificate eligible”; the composer rejects them before allowlist or metadata construction.
 
-### 6.11 Operations workspace NET-NEW (decision 2026-07-18)
+### 6.11 Operations workspace NET-NEW (decision 2026-07-18; authority amended 2026-07-30)
 
-A NEW deployer-gated admin workspace tab — gating pattern copied exactly from Actions: a conditional nav slot (`showOperations: isDeployer` beside `showActions` in `useEffectiveToolbarPermissions`) plus a `RequireRole ["deployer"]` route branch. Stage rail: **Queue · CCIP · Flows** (W24 draws it).
+A NEW capability-gated admin workspace tab. The nav and route use
+`showOperations = isDeployer || canQueueFunding || canOperateSettlement`; route visibility does
+not confer write authority. `canQueueFunding` resolves from current protocol-steward or
+SettlementModule-owner authority, and deployer alone cannot submit funding. Settlement dispatch,
+retry, requeue, cancellation, and configuration retain their own contract-specific capabilities.
+Stage rail: **Queue · CCIP · Flows** (W24 draws it).
 
-- **Queue**: every queued/failed disbursement and funding hop across all gardens, with batch composition and the W22 command/ack console. Source controls are dispatch, same-key command retry, authenticated-failure requeue, and queued-only cancel; the protocol executor is an automated Celo contract, not a human role or report control.
+- **Queue**: every emitted Queued/Failed disbursement and funding hop across all gardens, with batch composition and the W22 command/ack console. An unsubmitted funding form never appears as a Draft queue row. Source controls are dispatch, same-key command retry, authenticated-failure requeue, and queued-only cancel; the protocol executor is an automated Celo contract, not a human role or report control.
 - **CCIP**: command/destination/acknowledgment message IDs and Explorer links, immutable-router plus active/previous-peer health, native ETH/CELO reserves, acknowledgment deferrals, derived delivery delay, same-key retry, stored-outcome acknowledgment retry, and manual-execution guidance only when CCIP Explorer marks the command eligible. No row or control manually marks delay, execution, receipt, or confirmation.
-- **Flows**: the cross-chain funds board — GoodDollar pool → GG protocol Safe (a **Celo balance read**, since HoA→protocol is an upstream fact the module never records, corrections-log §9) → garden Safes → members, each downstream figure distinguishing queued, dispatched, Celo-executed/ack-pending, confirmed, failed, and delayed. The cross-garden pool oversight rows (formerly §6.8's Gardens tab) live here: alphabetical, `promiseKeptRate` + `openCommitmentCount`, never ranked.
+- **Flows**: the cross-chain funds board — GoodDollar pool → GG protocol Safe (a **Celo balance read**, since HoA→protocol is an upstream fact the module never records, corrections-log §9) → garden Safes → members, each downstream figure distinguishing queued, dispatched, Celo-executed/ack-pending, confirmed, failed, and delayed. `canQueueFunding` exposes **Seed / top up garden**, with persistent labels for garden and amount plus derived source/recipient review. Submit calls `queueFunding` and lands on a typed `Funding` / `ProtocolToGarden` Queued result with no commitment ID; cancel returns without creating state. A viewer who reaches Operations through another capability sees a calm funding-unavailable state instead of a reverting control. The cross-garden pool oversight rows (formerly §6.8's Gardens tab) live here: alphabetical, `promiseKeptRate` + `openCommitmentCount`, never ranked.
 
 ---
 
@@ -457,7 +462,7 @@ PostHog project routing per repo rule: client PWA + editorial + community events
 - `cycle_opened` / `cycle_closed` / `cycle_composted` {cycle_type, allocation_preset}
 - `reward_paid_recorded` {rail: "cookie_jar"|"treasury"}
 - Community-interface events are owned by `.plans/active/community-interface/spec.md` §12 (`need_created`, `need_signal_created`, `need_status_set`, `seeded_from_need`, and related events); this spec does not define a second signal vocabulary.
-- Offline queue health rides the existing job analytics (`packages/shared/src/modules/job-queue/job-analytics.ts`): the five offline queue kinds inherit job_added/completed/failed tracking automatically. Online wallet `transfer` uses transaction lifecycle analytics, not job replay analytics.
+- Offline queue health rides the existing job analytics (`packages/shared/src/modules/job-queue/job-analytics.ts`): the five offline queue kinds inherit job_added/completed/failed tracking automatically. Those events exclude raw wallet and garden addresses, local job/session IDs, transaction hashes, raw errors, and address-bearing breadcrumbs; only non-identifying queue kind/state, bounded counts, timing, chain, action UID, and local health metadata may leave the device. Online wallet `transfer` uses transaction lifecycle analytics, not job replay analytics.
 
 Privacy boundary: no counterparty addresses, commitment titles, or reason texts in event properties; counts, enums, and booleans only (matches the Linear/PostHog privacy rule in CLAUDE.md).
 
@@ -478,7 +483,7 @@ Privacy boundary: no counterparty addresses, commitment titles, or reason texts 
 2. **Non-custodial phrasing for operator-assisted capture**: fixed pattern "Recorded by {operator} on your behalf. The promise stays yours." on both the admin capture flow header (§6.5) and the member's commitment detail chip (§5.3). The member is always the named source on the record; the recorder is metadata.
 3. **Public stats for small communities**: threshold rule in §7.2 (rates only at >= 5 due commitments and >= 3 distinct promisers; counts-only sentences below). Applies to editorial and the WalletDrawer Commitments summary; in-garden members always see full numbers. There is no Home card.
 4. **Which commitment types may live outside a domain action**: SupportService, SeasonCampaign, and StewardCaptured may have no Work requirements. DomainImpact carries repeatable action/count requirements; each action is registry-validated and its domain is derived, so no second positional domain array can drift. UID `0` is valid. The eventual `MAX_REQUIREMENTS` is a benchmarked implementation bound, never a four-action product rule.
-5. **Where settlement controls sit**: G$ settlement uses `SettlementModule` + bounded Celo executor events, not the reserved pool `settlementEnabled` flag. Admin Garden Pool gains the settlement status section; PWA commitment detail gains settlement-status rows only after the canonical contract/indexer interfaces are GREEN; `/community/pools` shows the Protocol pool plus the current garden only. Cross-garden command/ack health and funding controls live in the deployer-gated Operations workspace. Later transferable-voucher controls sit behind `settlementEnabled` when PRD-651 unblocks. There is no top-level `/pools` route (§2).
+5. **Where settlement controls sit**: G$ settlement uses `SettlementModule` + bounded Celo executor events, not the reserved pool `settlementEnabled` flag. Admin Garden Pool gains the settlement status section; PWA commitment detail gains settlement-status rows only after the canonical contract/indexer interfaces are GREEN; `/community/pools` shows the Protocol pool plus the current garden only. Cross-garden command/ack health and funding controls live in the capability-gated Operations workspace, with each write independently authorized. Later transferable-voucher controls sit behind `settlementEnabled` when PRD-651 unblocks. There is no top-level `/pools` route (§2).
 
 ---
 
@@ -615,7 +620,9 @@ placement in §§5–6 while preserving their route and component anchors.
   language: “Declared support = kept in the garden + sent to contributors.” Retention never
   renders as a payment to the garden itself.
 - W21 shows funding readiness separately from payout-plan readiness. ProtocolToGarden top-up is a
-  treasury flow; it does not choose contributors or silently mark their payouts complete.
+  treasury flow; it does not choose contributors or silently mark their payouts complete. W24 is
+  the explicit authority-gated form; after submission W21 shows the emitted Queued Funding row
+  with no commitment identity. The queue never fabricates a local Draft funding entity.
 - W21 separates **Save draft** from **Finalize payout plan**. Finalization verifies recognition
   and payment hashes, canonical recipients, and exact conservation, then makes every row
   immutable before dispatch. Initial setup is also two recoverable wallet steps:
@@ -633,6 +640,11 @@ placement in §§5–6 while preserving their route and component anchors.
   its own. Child and batch cancellation never clear or replace the stable parent plan pointer.
 - W23 shows each contributor only their receipt plus the transparent plan summary: their
   recognition weight, payment weight, amount, garden-retained amount, and partial/complete state.
+- `memberDeliveryEnabled == false` blocks only first preparation of a non-zero contributor child
+  and member sends. The fulfilled commitment, provider-garden payout plan, retention, unprepared
+  rows, and any historical child states remain visible; no retry appears for an unprepared row.
+  ProtocolToGarden funding remains independently available because it is treasury funding, not a
+  Garden-beneficiary reward bypass.
 
 ### C.5 Cross-surface cascade and accessibility
 

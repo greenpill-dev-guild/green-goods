@@ -8,24 +8,28 @@
 
 ## Outputs
 
-- Need types/hooks, two-axis joined read, exact two-rail funding verifier/global receipt de-dup, `NeedCommitmentIndex` adapter, evaluator export, `need`/`needSignal`/`testimony` jobs, `waiting_for_hat` recovery, voice/transcription adapter, en/es/pt key substrate.
+- Need types/hooks, EAS envelope builders/decoders, two-axis joined read, canonical directional-signal derivation, exact two-rail funding verifier/global receipt de-dup, `NeedCommitmentIndex` adapter, evaluator export, `need`/`needSignal`/`testimony` jobs, durable signal-intent coalescing, `waiting_for_hat` recovery, voice/transcription adapter, en/es/pt key substrate.
 
 ## Acceptance
 
 - Partial sources never look empty; revoked Needs become tombstones in lineage; NeedStatus ordering matches the resolver's unsigned `(timeCreated, uid)` head; waiting consumes no retry and supports edit/retry/delete.
+- Normalize `garden = recipient` and child `needUID = refUID`; custom payload fields never override the envelope relationship.
+- NeedSignal queries include revoked records. Select the greatest unsigned `(timeCreated, uid)` per `(refUID, attester)` before revoked/expired filtering; a revoked/expired winner yields no signal and never falls back. Return separate support/non-support counts with no net score.
+- Switching direction creates a newer attestation. Clearing revokes the current winner. Pending intents coalesce by `(chainId, garden, needUID, attester)` so an older queued direction can never flush after a newer one.
 - Rail 0 accepts only a strict terminal public funding-intent tuple and recorded receiver identity; rail 1 accepts only finalized canonical GardenVault ERC-4626 Deposit evidence with owner identity. `transaction.from` is never identity.
 - The lowest `(timeCreated, uid)` per global `(chainId, txHash, rail)` is the only attribution that contributes, including across different Need UIDs; retry never replays funding.
 - Community member routes remain in the independent PWA; public adapters feed only existing client `/gardens`, `/gardens/:id`, `/impact`, and `/fund?garden=<slug>&need=<uid>` surfaces.
 
 ## RED / GREEN
 
-- RED: tests cover offline restart, membership wait/reject, same-timestamp status UID ordering, same-receipt cross-Need duplication, both exact funding rails, AA identity not transaction.from, revoked Need, failed source/receipt/transcription, and incomplete export.
+- RED: tests cover envelope normalization, support/non-support, both switch directions, same-timestamp signal/status UID ordering, revoked/expired signal winner without fallback, queue replacement/clear across restart, membership wait/reject, same-receipt cross-Need duplication, both exact funding rails, AA identity not transaction.from, revoked Need, failed source/receipt/transcription, and incomplete export.
 - GREEN: focused tests and typecheck pass with no client/admin-local hooks.
 
 ## Exact commands
 
 ```sh
 bun run --filter @green-goods/shared test -- src/__tests__/modules/job-queue.core.test.ts src/__tests__/modules/job-queue.db.test.ts src/__tests__/providers/JobQueueProvider.test.tsx
+bun run --filter @green-goods/shared test -- src/__tests__/modules/community-needs.signals.test.ts src/__tests__/modules/community-needs.data.test.ts src/__tests__/utils/community-needs.transaction-builder.test.ts
 bun run --filter @green-goods/shared typecheck
 bun run --filter @green-goods/shared check:stories
 bun run --filter @green-goods/shared check:story-quality

@@ -44,6 +44,8 @@ export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" |
 // never renders as product copy, but keeping it here prevents account readiness
 // or another local concept from being folded into the contract lifecycle.
 export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+export type DisbursementKind = "Reward" | "Funding";
+export type DisbursementRoute = "ContributorReward" | "ProtocolToGarden";
 export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" | "Failed";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
@@ -57,6 +59,8 @@ export type StateFacts = {
   settlementAccount?: SettlementAccountState;
   beneficiarySettlementAccount?: BeneficiarySettlementAccountState;
   disbursement?: DisbursementLifecycle;
+  disbursementKind?: DisbursementKind;
+  disbursementRoute?: DisbursementRoute;
   payoutPlan?: PayoutPlanLifecycle;
 };
 
@@ -70,7 +74,7 @@ export type ContractCall =
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
   | "createCommitmentPayoutPlan" | "setContributorPayouts" | "finalizeCommitmentPayoutPlan"
-  | "prepareContributorPayout" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
+  | "prepareContributorPayout" | "queueFunding" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 
 // Metadata for one registered hotspot (a tappable control on a screen).

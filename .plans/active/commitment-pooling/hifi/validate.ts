@@ -34,10 +34,16 @@ const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
   | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
-  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement" | "payoutPlan";
+  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
+  | "disbursementKind" | "disbursementRoute" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement", "payoutPlan",
+  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
+  "disbursement", "disbursementKind", "disbursementRoute", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
+type ConditionalRequirement = {
+  when: Partial<Record<FactKey, string>>;
+  requires: Partial<Record<FactKey, readonly string[]>>;
+};
 type CallRule = {
   key: FactKey;
   allowed: readonly string[];
@@ -45,6 +51,7 @@ type CallRule = {
   effects?: Partial<Record<FactKey, string>>;
   kinds?: readonly string[];
   requires?: Partial<Record<FactKey, readonly string[]>>;
+  requiresWhen?: readonly ConditionalRequirement[];
   resultAllowed?: readonly string[];
 };
 
@@ -112,9 +119,45 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     effects: { disbursement: "Queued" },
     requires: { settlementAccount: ["Active"] },
   },
-  createBatch: { key: "disbursement", allowed: ["Queued"], requires: { settlementAccount: ["Active"] } },
-  dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
-  dispatchBatch: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
+  queueFunding: {
+    key: "settlementAccount",
+    allowed: ["Active"],
+    effects: {
+      disbursement: "Queued",
+      disbursementKind: "Funding",
+      disbursementRoute: "ProtocolToGarden",
+    },
+    requires: { beneficiarySettlementAccount: ["Active"] },
+  },
+  createBatch: {
+    key: "disbursement",
+    allowed: ["Queued"],
+    requires: { settlementAccount: ["Active"] },
+    requiresWhen: [{
+      when: { disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden" },
+      requires: { beneficiarySettlementAccount: ["Active"] },
+    }],
+  },
+  dispatchDisbursement: {
+    key: "disbursement",
+    allowed: ["Queued"],
+    next: "Dispatched",
+    requires: { settlementAccount: ["Active"] },
+    requiresWhen: [{
+      when: { disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden" },
+      requires: { beneficiarySettlementAccount: ["Active"] },
+    }],
+  },
+  dispatchBatch: {
+    key: "disbursement",
+    allowed: ["Queued"],
+    next: "Dispatched",
+    requires: { settlementAccount: ["Active"] },
+    requiresWhen: [{
+      when: { disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden" },
+      requires: { beneficiarySettlementAccount: ["Active"] },
+    }],
+  },
   retryCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryBatchCommand: { key: "disbursement", allowed: ["Dispatched"] },
   retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
@@ -154,6 +197,17 @@ function validateCalls(
       const requiredValue = current[requiredKey];
       if (!requiredValue || !allowed.includes(requiredValue))
         err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} requires ${requiredKey} ${allowed.join(" or ")}, drew ${requiredValue ?? "<missing>"}`);
+    }
+    for (const conditional of rule.requiresWhen ?? []) {
+      const matches = Object.entries(conditional.when).every(
+        ([factKey, expected]) => current[factKey as FactKey] === expected,
+      );
+      if (!matches) continue;
+      for (const [requiredKey, allowed] of Object.entries(conditional.requires) as [FactKey, readonly string[]][]) {
+        const requiredValue = current[requiredKey];
+        if (!requiredValue || !allowed.includes(requiredValue))
+          err.push(`CALL ${screen.id}@${stateId} ${hid}: ${call} requires ${requiredKey} ${allowed.join(" or ")} for ${Object.entries(conditional.when).map(([key, expected]) => `${key} ${expected}`).join(" and ")}, drew ${requiredValue ?? "<missing>"}`);
+      }
     }
     if (rule.next) {
       (current as Record<string, string>)[rule.key] = rule.next;

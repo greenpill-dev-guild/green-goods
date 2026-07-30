@@ -445,9 +445,9 @@ C1: `┌────────────────────────
 │ THIS MONTH · IN PROGRESS                     │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
-│ Agro · Education · 8 neighbors agree        │
+│ Agro · Education · 8 support · 2 do not     │
 │ Acknowledged · In progress                  │
-│                          [View] [Agree]      │
+│         [View] [Support] [Do not support]   │
 ├──────────────────────────────────────────────┤
 │    Needs          ＋ Create          Profile │
 └──────────────────────────────────────────────┘`,
@@ -499,7 +499,8 @@ C5: `┌────────────────────────
 │ 120 G$ funding attribution verified         │
 │ Funding supports the garden; it is not escrow│
 ├──────────────────────────────────────────────┤
-│ [Agree]                       [Add testimony]│
+│ [Support] [Do not support] [Clear my signal]│
+│                              [Add testimony]│
 └──────────────────────────────────────────────┘`,
 C6: `┌──────────────────────────────────────────────┐
 │ Profile                                      │
@@ -731,7 +732,9 @@ HUBWORK: [
   { m: "[ Approve ]", l: "Approve", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted; a newer pre-freeze rejection emits ApprovedWorkReversed." },
 ],
 C1: [
-  { m: "[View] [Agree]", l: "View / Agree", to: "frame:C5", info: "Agree = a NeedSignal; board order is recency + status, never funding (CI-SPEC:257)." },
+  { m: "[View]", l: "View", to: "frame:C5", info: "Open the Need thread; board order is recency + status, never funding (CI-SPEC §8)." },
+  { m: "[Support]", l: "Support", info: "Writes the latest NeedSignal direction; support and non-support stay separate (CI-SPEC §6)." },
+  { m: "[Do not support]", l: "Do not support", info: "Writes the latest NeedSignal direction without producing a net score (CI-SPEC §6)." },
   { m: "＋ Create", l: "Create", to: "frame:C3" },
   { m: "[Explore]", l: "Explore", info: "Global read-only discovery — no signal buttons outside your garden (CI-WF:64)." },
 ],
@@ -745,7 +748,9 @@ C4: [
   { m: "[Edit] [Cancel] [Delete]", l: "Draft controls", info: "Offline draft verbs: edit/retry/cancel/delete with media retained (LAP:191)." },
 ],
 C5: [
-  { m: "[Agree]", l: "Agree", info: "NeedSignal — same-garden Community Hat members only (CI-WF:64)." },
+  { m: "[Support]", l: "Support", info: "NeedSignal — same-garden Community Hat members only (CI-WF:65)." },
+  { m: "[Do not support]", l: "Do not support", info: "Directional NeedSignal; non-support never subtracts into a net score (CI-WF:65)." },
+  { m: "[Clear my signal]", l: "Clear my signal", info: "Revoke the canonical winning signal; an older direction never returns (CI-SPEC §6)." },
   { m: "[Add testimony]", l: "Add testimony", info: "Community-Hat EAS attestation — September-realized (register #34g; CS:762)." },
   { m: "[▶ audio]", l: "Play audio", info: "The neighbor's own words stay primary; protocol evidence renders separately (CI-WF:162)." },
 ],
