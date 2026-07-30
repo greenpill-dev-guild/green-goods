@@ -886,4 +886,6 @@ payout defaults, but cannot enter a COMMITMENT-bundle Hypercert because no six-r
 and client/admin surfaces label the limitation. Prototype flows now keep generic queued evidence
 out of the ready timeline, hold Open-team joins in a submitted state until the indexed roster
 confirms membership, and split payable-plan Pending finalization from retained-only Complete
-finalization.
+finalization. The roster refresh itself is fail-closed: missing/stale results and fresh rosters
+without the connected account stay on the submitted state, while the joined state is rendered
+only when the fresh indexed roster contains that exact account.

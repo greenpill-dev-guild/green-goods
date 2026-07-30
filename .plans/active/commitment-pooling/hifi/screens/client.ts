@@ -1165,12 +1165,12 @@ ${field("Planned responsibility", input("Beds survey · requirement row 3", { se
 ${card(`${kv("Accountable lead", "Maria")}${kv("Your status", "Not on this team")}`)}
 ${hot("w2b.join", btn("Join this promise", { kind: "pri", full: true }))}`
     : state === "join-submitted"
-    ? `${banner("Join submitted. Your wallet transaction is confirmed, and this screen is waiting for the indexed contributor roster before showing you as a member.", "stone", "loader4-line")}
-${card(`${kv("Your status", "Waiting for roster confirmation")}${kv("Recognition credit", "None · joining alone does not award credit")}`)}
+    ? `${banner("Join submitted. Your wallet transaction is confirmed, and this screen is waiting for the indexed contributor roster before showing you as a member. A missing or stale roster result stays here.", "stone", "loader4-line")}
+${card(`${kv("Your status", "Waiting for roster confirmation")}${kv("Indexed predicate", "Pending · connected account not present in the fresh roster")}${kv("Recognition credit", "None · joining alone does not award credit")}`)}
 ${hot("w2b.join-indexed", btn("Check roster", { kind: "sec", full: true }))}`
     : state === "open-member"
     ? `${banner("Roster confirmed. You joined this open team.", "stone", "checkbox-circle-fill")}
-${card(`${kv("Your status", "Contributor · no verified credit")}${kv("Leave rule", "Before credit and before roster freeze")}`)}
+${card(`${kv("Your status", "Contributor · no verified credit")}${kv("Indexed predicate", "Pass · fresh roster contains the connected account")}${kv("Leave rule", "Before credit and before roster freeze")}`)}
 ${hot("w2b.leave", btn("Leave this promise", { kind: "sec", full: true }))}`
     : state === "recognition"
     ? `${banner("Each fulfilled commitment receives an equal budget. Within it, 20% is shared equally among eligible contributors and 80% follows verified contribution.", "stone", "information-line")}
@@ -1202,7 +1202,7 @@ const W2B_HOTS: HifiDef["hots"] = {
   "w2b.assign-cancel": { l: "Cancel responsibility assignment", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
   "w2b.assign-confirm": { l: "Save planned responsibility", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the selected contributor and exact requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
   "w2b.join": { l: "Join this promise", to: "screen:W2b@join-submitted", info: "Calls joinCommitment for an eligible Open-team garden member. A successful wallet submission lands in a pending state; membership renders only after indexed roster confirmation and never creates recognition credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.join-indexed": { l: "Check indexed roster", to: "screen:W2b@open-member", info: "Refreshes the read model. The joined state appears only once the indexed contributor roster contains the connected member." },
+  "w2b.join-indexed": { l: "Check indexed roster", to: "screen:W2b@join-submitted", info: "Refreshes the read model. A missing or stale result, or a fresh roster without the connected account, remains pending. The reactive screen enters open-member only after a fresh indexed contributor roster contains that exact account; this control has no unconditional success route." },
   "w2b.leave": { l: "Leave this promise", to: "screen:W2b@open-eligible", info: "Calls leaveCommitment only for an active non-lead Open-team member with zero Work/evidence credit before freeze.", calls: ["leaveCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
   "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Shows the 20% equal-participation plus 80% verified-contribution Hypercert weights, the impossible-state blocker, and their relationship to the later payment default." },
 };
