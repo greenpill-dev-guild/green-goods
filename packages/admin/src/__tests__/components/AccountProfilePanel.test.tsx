@@ -71,6 +71,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 vi.mock("@green-goods/shared/profile-avatar", () => ({
+  getProfileAvatarStageMessage: () => null,
   useProfileAvatarEditor: () => ({
     clear: vi.fn(),
     continueAfterReconnect: vi.fn(),
