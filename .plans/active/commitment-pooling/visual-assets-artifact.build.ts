@@ -1902,4 +1902,9 @@ console.log(`local preview: ${LOCAL_OUT} (${Buffer.byteLength(localDocument).toL
 console.log(`Artifact body: ${ARTIFACT_OUT} (${Buffer.byteLength(artifactBody).toLocaleString()} bytes, host-rendered Mermaid)`);
 console.log(`sections: story ${storyAssetCount} · architecture ${architectureSectionCount} · screens ${wfOut.body.split("<section").length - 1} · reference ${referenceSectionCount}`);
 console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount} · wireframe screens: ${wfScreenCount} · wf-only tags: ${WF_ONLY_FRAMES.length}`);
-console.log("publish only the Artifact body; open the local preview directly with file://");
+console.log(
+  "NOT directly publishable: <pre class=\"mermaid\"> blocks refuse public sharing (prerender header, confirmed 2026-07-22).",
+);
+console.log(
+  "Deploy via visual-assets-prerender.ts and publish its SHAREABLE_OUT; open the local preview directly with file://",
+);
