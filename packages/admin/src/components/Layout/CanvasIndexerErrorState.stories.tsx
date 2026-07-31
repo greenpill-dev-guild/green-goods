@@ -84,7 +84,7 @@ export const ToneMatrix: Story = {
           className="rounded-2xl border border-stroke-soft bg-bg-white-0 p-6"
         >
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
-            [data-tone="{tone}"]
+            [data-tone=&quot;{tone}&quot;]
           </div>
           <CanvasIndexerErrorState {...args} />
         </div>

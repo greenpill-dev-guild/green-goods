@@ -45,7 +45,7 @@
     "./testing": "./src/__tests__/test-utils/index.ts"
   },
   "scripts": {
-    "lint": "bun --bun run oxlint src",
+    "lint": "bun --bun run oxlint src --deny-warnings",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "build": "echo 'Shared package uses source files directly - no build needed'",

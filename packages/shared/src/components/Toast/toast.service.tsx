@@ -610,8 +610,10 @@ function ToastMessage({
     };
 
     return (
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- live-region container is the dismiss target; nested <button>s forbid role="button"
       <div
         role="status"
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- container must be focusable to dismiss by keyboard and to pause auto-dismiss on focus
         tabIndex={0}
         className={containerClassName}
         aria-label={ariaLabel}

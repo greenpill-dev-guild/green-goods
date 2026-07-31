@@ -23,7 +23,7 @@
     "test": "bun run codegen && bun run mocha",
     "test:coverage": "c8 bun run mocha",
     "test:full": "bun run test",
-    "lint": "bun --bun run oxlint src test",
+    "lint": "bun --bun run oxlint src test --deny-warnings",
     "reset": "node ../../scripts/dev/node-cli.js envio stop"
   },
   "devDependencies": {

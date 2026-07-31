@@ -244,6 +244,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       )}
       {/* Speed dial items — animate upward from FAB */}
       {speedDialOpen && !isSingleAction && (
+        // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- menu items are focusable <button role="menuitem"> children; focus moves to the first on open
         <div
           className="speed-dial-list"
           style={{

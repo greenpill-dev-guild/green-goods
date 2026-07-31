@@ -174,10 +174,13 @@ const CarouselItem = React.forwardRef<
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focusable slide; Enter/Space opens the image preview
     <div
       ref={ref}
       role="group"
       aria-roledescription="slide"
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- preview slides must be reachable or the Enter/Space handler below is unreachable
+      tabIndex={enablePreview ? 0 : undefined}
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full max-w-[90%]",
         orientation === "horizontal" ? "pl-4" : "pt-4",

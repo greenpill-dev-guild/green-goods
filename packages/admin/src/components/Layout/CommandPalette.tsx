@@ -113,6 +113,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            aria-label={formatMessage({
+              id: "app.admin.nav.search",
+              defaultMessage: "Search",
+            })}
             placeholder={formatMessage({
               id: "app.admin.nav.searchPlaceholder",
               defaultMessage: "Search pages, gardens, actions...",

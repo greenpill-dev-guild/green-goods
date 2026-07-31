@@ -397,6 +397,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       }}
       tabIndex={-1}
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler only stops propagation to the overlay */}
       <div
         ref={dialogRef}
         className={cn(

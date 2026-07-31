@@ -218,6 +218,10 @@ function MockCommandPalette({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label={formatMessage({
+              id: "app.admin.nav.search",
+              defaultMessage: "Search",
+            })}
             placeholder={formatMessage({
               id: "app.admin.nav.searchPlaceholder",
               defaultMessage: "Search pages, gardens, actions...",
