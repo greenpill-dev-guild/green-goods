@@ -1,5 +1,5 @@
 import type { Address } from "@green-goods/shared";
-import { afterEach, beforeEach, vi } from "vitest";
+import { vi } from "vitest";
 
 // Logger mock that tracks calls for assertions
 export const mockLogger = {
@@ -9,8 +9,6 @@ export const mockLogger = {
   error: vi.fn(),
   child: vi.fn(() => mockLogger),
 };
-
-// Telegram bot mock
 
 // Blockchain mocks
 export const mockPublicClient = {
@@ -34,19 +32,3 @@ export const mockWalletClient = {
   writeContract: vi.fn().mockResolvedValue("0x" + "a".repeat(64)),
   signMessage: vi.fn().mockResolvedValue("0x" + "b".repeat(130)),
 };
-
-// AI service mock response types
-export interface AIMockResponses {
-  parseWork?: {
-    actions: { actionUID: string; quantity: number }[];
-    description: string;
-    confidence: number;
-  };
-  generateResponse?: string;
-}
-
-// AI service mock with configurable responses
-
-// Storage mock with in-memory implementation
-
-// Mock timers utilities

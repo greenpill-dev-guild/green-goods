@@ -1,0 +1,248 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "profile-avatars",
+    "title": "App Profile Avatars",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "in_progress",
+    "priority": "p1",
+    "created_at": "2026-07-29T00:00:00.000Z",
+    "updated_at": "2026-07-30T23:25:19.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-762",
+    "project": "Commitment Pooling",
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-07-29T09:35:19.683Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "identity-wallet",
+    "tracks": ["agent", "shared", "client", "admin"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/shared", "packages/agent", "packages/client", "packages/admin"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "PRD-762 is the parent-only Linear mirror and blocks PRD-721.",
+    "On-chain contracts and deployment, ENS writes, indexer behavior, dependency changes, and environment changes are out of scope."
+  ],
+  "execution_sub_lanes": {
+    "shared_protocol": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "completed",
+      "depends_on": [],
+      "handoff": "handoffs/shared-protocol.md"
+    },
+    "agent_api": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "completed",
+      "depends_on": ["shared_protocol"],
+      "handoff": "handoffs/agent-api.md"
+    },
+    "shared_state": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "completed",
+      "depends_on": ["shared_protocol"],
+      "handoff": "handoffs/shared-state.md"
+    },
+    "client_ui": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "completed",
+      "depends_on": ["shared_state"],
+      "handoff": "handoffs/client-ui.md"
+    },
+    "admin_ui": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "completed",
+      "depends_on": ["shared_state"],
+      "handoff": "handoffs/admin-ui.md"
+    },
+    "qa": {
+      "machine_lane": "qa_pass_1",
+      "owner": "codex",
+      "status": "blocked",
+      "blocked_reason": "Automated feature proof passes. Authenticated Brave proof is blocked because the local HTTPS servers require an unapproved trusted-certificate change and the local agent lacks TELEGRAM_BOT_TOKEN.",
+      "depends_on": ["agent_api", "client_ui", "admin_ui"],
+      "handoff": "handoffs/qa.md"
+    }
+  },
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "claude/ui/profile-avatars",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --filter @green-goods/client test -- src/__tests__/components/ProfileAvatarEditor.test.tsx && bun run --filter @green-goods/admin test -- src/__tests__/components/AccountProfileAvatarEditor.test.tsx",
+          "evidence": "Historical RED output was not retained and is not treated as verified proof."
+        },
+        "green": {
+          "command": "bun run --filter @green-goods/client test -- src/__tests__/components/ProfileAvatarEditor.test.tsx && bun run --filter @green-goods/admin test -- src/__tests__/components/AccountProfileAvatarEditor.test.tsx && VITE_CHAIN_ID=11155111 bun run --filter @green-goods/client build && VITE_CHAIN_ID=11155111 bun run --filter @green-goods/admin build",
+          "evidence": "Client: 1 file and 18 tests passed. Admin: 1 file and 17 tests passed. Both deterministic package builds exited 0. See evidence/2026-07-30-pr-review.md."
+        },
+        "note": "The admin source-wide dialog tone guard also passes after explicitly applying the hub tone."
+      },
+      "skill_tags": ["ui", "accessibility", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/profile-avatars",
+      "depends_on": [],
+      "handoff": "handoffs/state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/profile-avatar.test.ts src/__tests__/modules/profile-avatar-transport.test.ts src/__tests__/hooks/app/useOnlineStatus.test.tsx && bun run --filter @green-goods/agent test -- src/__tests__/profile-avatars.test.ts",
+          "evidence": "Historical RED output was not retained and is not treated as verified proof."
+        },
+        "green": {
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/profile-avatar.test.ts src/__tests__/modules/profile-avatar-transport.test.ts src/__tests__/hooks/app/useOnlineStatus.test.tsx && bun run --filter @green-goods/agent test -- src/__tests__/profile-avatars.test.ts && bun run --filter @green-goods/shared typecheck && bun run --filter @green-goods/agent typecheck && node scripts/dev/ci-local.js --quick",
+          "evidence": "Shared: 3 files and 23 tests passed. Agent: 1 file and 13 tests passed. Both typechecks and Repo Quick Gate passed. See evidence/2026-07-30-pr-review.md."
+        },
+        "note": "SQLite compare-and-swap and tombstone coverage runs against an in-memory SQLite adapter."
+      },
+      "skill_tags": ["api", "auth", "offline", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/profile-avatars",
+      "depends_on": [],
+      "handoff": "handoffs/contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "PRD-762 explicitly excludes on-chain contract and deployment behavior."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "blocked_reason": "Authenticated Brave cannot reach local HTTPS without changing the machine trust store; the local agent also lacks its required runtime token.",
+      "branch": "claude/qa-pass-1/profile-avatars",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/qa-pass-1.md",
+      "skill_tags": ["testing", "browser", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "blocked_reason": "Depends on authenticated Brave QA pass 1.",
+      "branch": "codex/qa-pass-2/profile-avatars",
+      "branch_trigger": "claude/qa-pass-1/profile-avatars",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-29T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Created the active parent-only feature hub from the approved PRD-762 implementation plan."
+    },
+    {
+      "timestamp": "2026-07-29T08:59:23.979Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-29T09:35:00.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Completed the shared protocol, agent persistence/API, shared editor state, and targeted automated proof."
+    },
+    {
+      "timestamp": "2026-07-29T09:35:00.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Completed client and admin editors, admin AppBar display, localization, tests, stories, and deterministic builds."
+    },
+    {
+      "timestamp": "2026-07-29T09:35:00.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Historical run summary; raw output was not retained and is not treated as current proof. Authenticated Brave remained blocked by local HTTPS trust and runtime credential requirements."
+    },
+    {
+      "timestamp": "2026-07-29T09:35:19.686Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-07-29T23:15:00.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "review_findings_addressed",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Historical remediation summary; raw validation output was not retained and is not treated as current proof. Authenticated Brave remained blocked."
+    },
+    {
+      "timestamp": "2026-07-30T00:11:22.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "review_findings_addressed",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Historical remediation summary; raw validation output was not retained and is not treated as current proof. Authenticated Brave and the local Storybook browser runner remained environment-blocked."
+    },
+    {
+      "timestamp": "2026-07-30T23:25:19.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "review_findings_addressed",
+      "branch": "afo/prd-762-app-profile-avatars-signed-offchain-address-to-ipfs-pointer",
+      "note": "Addressed verified PR review findings and failing-check root causes. Exact focused tests, typechecks, deterministic builds, design/source guards, and Repo Quick Gate are recorded in evidence/2026-07-30-pr-review.md. GitHub Actions remains the browser-test authority because local Storybook and Admin Playwright are sandbox-blocked before test execution."
+    }
+  ]
+}

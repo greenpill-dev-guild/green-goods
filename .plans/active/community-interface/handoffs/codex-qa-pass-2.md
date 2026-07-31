@@ -12,11 +12,11 @@
 
 ## Acceptance
 
-- No false-ready lane; parent_only preserved; all accepted QA1 defects rerun; status/visual/copy names match specs; release claims are limited to evidence.
+- No false-ready lane; parent_only preserved; all accepted QA1 defects rerun; status/visual/copy names match specs; four-schema/two-resolver artifact routing and EAS envelope normalization match the contracts; directional-signal edge cases and stale offline intent are rerun; release claims are limited to evidence.
 
 ## RED / GREEN
 
-- RED: replay each fixed QA1 defect and machine-readable blocker invariant.
+- RED: replay each fixed QA1 defect, wrong-ref-schema/cross-garden/revoked-parent contract cases, same-timestamp signal tie, revoked winner without fallback, both direction switches, clear, stale offline coalescing, and every machine-readable blocker invariant.
 - GREEN: targeted regressions, quick gate, plan validation, drift, docs/vocab, and available authenticated evidence pass.
 
 ## Exact commands

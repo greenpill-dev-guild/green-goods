@@ -119,8 +119,6 @@ class JobQueueEventBus extends EventTarget {
 // Export singleton instance
 export const jobQueueEventBus = new JobQueueEventBus();
 
-// React hook for using the event bus
-
 // React hook for using multiple events
 export function useJobQueueEvents<T extends JobQueueEventType>(
   types: T[],

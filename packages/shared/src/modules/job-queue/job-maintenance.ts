@@ -1,12 +1,12 @@
 import { logger } from "../app/logger";
-import { track } from "../app/posthog";
 import type { jobQueueDB as JobQueueDBType } from "./db";
+import { trackPrivateQueueEvent } from "./job-analytics";
 
 /** Default interval for orphaned job cleanup (5 minutes) */
 const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
 
-/** Threshold for alerting on failed delete count */
-const FAILED_DELETE_ALERT_THRESHOLD = 10;
+/** Threshold for alerting on failed delete count. Exported for the telemetry-privacy test. */
+export const FAILED_DELETE_ALERT_THRESHOLD = 10;
 
 /**
  * Manages cleanup of orphaned synced jobs that failed to delete.
@@ -67,7 +67,7 @@ export class JobMaintenance {
     logger.warn("[JobQueue] Failed to delete synced job", { jobId });
 
     if (this.failedDeleteCount >= FAILED_DELETE_ALERT_THRESHOLD) {
-      track("job_queue_delete_failures_threshold", {
+      trackPrivateQueueEvent("job_queue_delete_failures_threshold", {
         failed_count: this.failedDeleteCount,
         pending_cleanup_count: this.failedDeleteJobIds.size,
       });
@@ -112,7 +112,7 @@ export class JobMaintenance {
     await this.persistFailedDeleteIds();
 
     if (cleaned > 0 || failed > 0) {
-      track("job_queue_orphan_cleanup", {
+      trackPrivateQueueEvent("job_queue_orphan_cleanup", {
         cleaned,
         failed,
         remaining: this.failedDeleteJobIds.size,

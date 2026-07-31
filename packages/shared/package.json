@@ -1,6 +1,6 @@
 {
   "name": "@green-goods/shared",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,6 +18,8 @@
     "./config": "./src/config/index.ts",
     "./config/blockchain": "./src/config/blockchain.ts",
     "./hooks": "./src/hooks/index.ts",
+    "./hooks/admin-ui/useCanvasChromeProbe": "./src/hooks/admin-ui/useCanvasChromeProbe.ts",
+    "./hooks/app/useOnlineStatus": "./src/hooks/app/useOnlineStatus.ts",
     "./i18n": "./src/i18n/index.ts",
     "./lib/env": "./src/lib/env.ts",
     "./i18n/en": "./src/i18n/en.json",
@@ -32,6 +34,8 @@
     "./sentry": "./src/modules/app/sentry.ts",
     "./sentry-redaction": "./src/modules/app/sentry-redaction.ts",
     "./providers": "./src/providers/index.ts",
+    "./profile-avatar": "./src/profile-avatar/index.ts",
+    "./profile-avatar/protocol": "./src/profile-avatar/protocol.ts",
     "./public-contracts": "./src/public-contracts/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",

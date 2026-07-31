@@ -39,7 +39,6 @@ src/
 │   ├── Action.sol      # Action registry
 │   └── ENS.sol         # ENS subdomain registration (CCIP)
 ├── resolvers/           # EAS schema resolvers
-│   ├── GreenGoods.sol  # Central fan-out resolver
 │   ├── Assessment.sol  # Assessment attestations
 │   ├── Work.sol        # Work submission attestations
 │   └── WorkApproval.sol # Work approval attestations
@@ -78,7 +77,10 @@ src/
 
 ### Single Responsibility (SOLID)
 
-- Each resolver handles one schema type (WorkResolver, WorkApprovalResolver, AssessmentResolver)
+- Each resolver owns one coherent trust and authorization boundary. A resolver may serve multiple
+  exact EAS schema UIDs when their branches share that boundary, provided dispatch fails closed,
+  every UID is explicitly configured and distinct, and branch-specific revocation and role rules
+  remain independently tested.
 - Each module handles one integration (OctantModule, UnlockModule, HatsModule)
 - Registries separate from tokens
 
@@ -243,7 +245,6 @@ function invariant_totalSupplyMatchesBalance() public {
 
 ### Open/Closed (SOLID)
 
-- GreenGoodsResolver fan-out pattern: add modules without modifying core
 - Module enable/disable without redeployment
 - New resolvers can be added without changing existing ones
 
@@ -262,32 +263,6 @@ function invariant_totalSupplyMatchesBalance() public {
 ---
 
 ## Core Contracts
-
-### GreenGoodsResolver (Central Fan-Out)
-
-Central resolver for protocol integrations. Called by other resolvers after attestation validation.
-
-**Key features:**
-- UUPS upgradeable
-- Module enable/disable via owner
-- Try/catch isolation (one module failure doesn't block others)
-- Events for observability (success/failure per module)
-
-**Location:** `src/resolvers/GreenGoods.sol`
-
-**Architecture:**
-```solidity
-// Resolvers call this after validation
-function onWorkApproved(address garden, string name, bytes32 workUID, address worker) {
-    // Each module isolated with try/catch
-    if (isModuleEnabled(MODULE_OCTANT)) {
-        try octantModule.onWorkApproved(garden, name) { ... } catch { ... }
-    }
-    if (isModuleEnabled(MODULE_UNLOCK)) {
-        try unlockModule.onWorkApproved(garden, worker, workUID) { ... } catch { ... }
-    }
-}
-```
 
 ### Integration Modules
 
@@ -345,7 +320,7 @@ Registry for garden actions (planting, cleanup, etc.).
 Process attestations for the Ethereum Attestation Service:
 
 - **WorkResolver** — Validates work submissions
-- **WorkApprovalResolver** — Validates approvals, calls GreenGoodsResolver
+- **WorkApprovalResolver** — Validates approvals and optionally creates Karma GAP impacts
 - **AssessmentResolver** — Validates assessments
 
 **Location:** `src/resolvers/`
@@ -514,7 +489,7 @@ test/
 │   └── ...
 ├── integration/             # Multi-contract flows
 │   ├── GardenAccessControl.t.sol
-│   ├── GreenGoodsResolver.t.sol
+│   ├── GreenWillWorkflow.t.sol
 │   └── HatsModule.t.sol
 ├── schema/                  # Schema validation
 │   └── KarmaGAPSchemaValidation.t.sol
@@ -573,7 +548,7 @@ require(addr != address(0), "Zero address");
 
 ```solidity
 // Calculate: 50 total - used slots = gap
-uint256[46] private __gap;  // GreenGoodsResolver: 50 - 4 = 46
+uint256[48] private __gap;  // WorkApprovalResolver: 50 - 2 = 48
 ```
 
 ### 4. UUPS Upgrade Safety

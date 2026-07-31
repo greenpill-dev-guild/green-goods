@@ -13,7 +13,6 @@ import {
   useAuthActions,
   useAuthState,
   useEligibleAdminGardens,
-  useEnsAvatar,
   useEnsName,
   useGardenUrlSync,
   useRole,
@@ -30,6 +29,7 @@ import { useCallback, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
+import { AccountProfileAvatarEditor } from "./AccountProfileAvatarEditor";
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
   deployer: {
@@ -100,7 +100,6 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
   const { signOut } = useAuthActions();
   const { role } = useRole();
   const { data: ensName } = useEnsName(eoaAddress as Address | null | undefined);
-  const { data: avatarUrl } = useEnsAvatar(eoaAddress as Address | null | undefined);
   const { eligibleGardens } = useEligibleAdminGardens();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { setGarden } = useGardenUrlSync();
@@ -133,20 +132,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
       <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
         {/* Identity header — who is signed in, at headline weight. */}
         <div className="flex items-center gap-4">
-          <div className="account-avatar-tile relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={formatMessage({
-                  id: "cockpit.profile.title",
-                  defaultMessage: "Profile",
-                })}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-sm font-semibold">{avatarFallback}</span>
-            )}
-          </div>
+          <AccountProfileAvatarEditor fallbackInitials={avatarFallback} />
           <div className="min-w-0">
             <p className="truncate text-base font-semibold text-text-strong" title={headline}>
               {headline}

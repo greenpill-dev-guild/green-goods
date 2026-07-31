@@ -44,7 +44,7 @@ flowchart LR
 What each surface owns:
 
 - **Community PWA** (independent app at `community.greengoods.app` — own manifest, service-worker scope, telemetry, routes): Needs · Create · Profile; offline need/signal/testimony.
-- **Admin**: steward triage, pool/cycle consoles, seeding, evaluator lineage + CSV/JSON export, and the deployer-gated Operations workspace (W24).
+- **Admin**: steward triage, pool/cycle consoles, seeding, evaluator lineage + CSV/JSON export, and the capability-gated Operations workspace (W24).
 - **Client installed PWA**: commitment claim, work, evidence, confirmation, member settlement status, WalletDrawer.
 - **Client editorial website**: garden and impact stories, funder discovery — aggregates only, never rankings.
 - **Shared read model**: auth/passkey, offline status, install/update, EAS Needs + Envio protocol progress joined in shared query composition.
@@ -186,7 +186,7 @@ TIMELINE — EXPANDED DISCLOSURE
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Cancellation placement: while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`, register #34b/MF-2a). The Accepted steward path is locked at W10 `[ Cancel promise… ]` with its own required-reason dialog (register #51/MF-2b).
 - Hi-fi guidance (audit 2026-07-18, drawn above since 2026-07-27): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind the single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
-- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (64 states across the five commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
+- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (65 states across the six commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
 
 ### W2a — Evidence sheet (uiux-spec §5.5)
 
@@ -530,7 +530,7 @@ Flow `{AdminDialog}` at `/garden/pool/capture` with its **own three-step rail** 
 
 ### W10 — Commitment detail dialog (uiux-spec §6.2/§6.7)
 
-Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (15 states; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
+Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (16 states; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
 
 ```text
 ┌── Prune the north beds ──────────────── (Offer)(Ready) ──┐
@@ -634,7 +634,7 @@ One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**:
 
 ### W12 — Pools mode inside admin `/community` (uiux-spec §6.8)
 
-Pools view inside the existing admin `/community` workspace, reached through that workspace's tab rail/command palette. **Rescoped 2026-07-18**: the admin stays garden-focused — this mode shows exactly **your garden's pools + the Protocol pool**, never other gardens' pools. (The cross-garden oversight table that used to sit here moved to the deployer-gated Operations workspace, W24.) The Protocol pool is visible to garden stewards because their gardeners claim and fulfill its commitments — surveys, community activations, methodology work.
+Pools view inside the existing admin `/community` workspace, reached through that workspace's tab rail/command palette. **Rescoped 2026-07-18**: the admin stays garden-focused — this mode shows exactly **your garden's pools + the Protocol pool**, never other gardens' pools. (The cross-garden oversight table that used to sit here moved to the capability-gated Operations workspace, W24.) The Protocol pool is visible to garden stewards because their gardeners claim and fulfill its commitments — surveys, community activations, methodology work.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -819,7 +819,7 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 
 ### W22 — Command/ack operations console (Operations workspace + per-garden)
 
-A full **canvas route** reached from W21 and from the NEW deployer-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18; only the cancel-batch confirmation is a dialog. **Hi-fi**: [`#screens/W22@ready`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W22@ready) (9 states).
+A full **canvas route** reached from W21 and from the NEW capability-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18; only the cancel-batch confirmation is a dialog. **Hi-fi**: [`#screens/W22@ready`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W22@ready) (10 states).
 
 ```text
 ┌── Payout plan 18 · child 104 / attempt 0 — Rocinha ────────────┐
@@ -878,18 +878,25 @@ Gate-failed variant (same frame, no substitute custody flow):
 └──────────────────────────────────────────────┘
 ```
 
-### W24 — Operations workspace (NET-NEW, deployer-gated)
+### W24 — Operations workspace (NET-NEW, capability-gated)
 
-New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · CCIP · Flows**. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused. **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue) (3 states; the queue renders as a dtable with a protocol funding row).
+New admin workspace tab (uiux-spec **§6.11**) with
+`showOperations = isDeployer || canQueueFunding || canOperateSettlement`. Route visibility does
+not confer write authority: each control keeps its exact onchain capability, and the funding form
+requires `canQueueFunding` (protocol steward or SettlementModule owner; deployer alone is
+insufficient). Stage rail: **Queue · CCIP · Flows**. This is the protocol-admin execution home —
+everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused.
+**Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue)
+(6 states, including authorized and unavailable funding views).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Operations        ◉ queue (4) · CCIP · flows                           │  deployer-gated tab
+│ Operations        ◉ queue (3) · CCIP · flows                           │  capability-gated tab
 ├────────────────────────────────────────────────────────────────────────┤
 │ QUEUE — all gardens                                                    │
 │ ≡ Rocinha settlement 104 / attempt 0 (Queued) [ Dispatch ▸ ]           │  ▸ W22
 │ ≡ Awka settlement 103 / attempt 1 (Failed ▸) [ source follow-up ]      │
-│ Funding/commitment rows wait for canonical contract/indexer GREEN      │
+│ ≡ Muizenberg Funding / ProtocolToGarden / no commitment (Queued)  ▸    │
 ├────────────────────────────────────────────────────────────────────────┤
 │ CCIP — command/ack health                                              │
 │ Arbitrum native reserve ✓ · Celo native reserve ✓ · peers configured ✓ │
@@ -897,13 +904,23 @@ New admin workspace tab (uiux-spec **§6.11**) gated exactly like Actions (`show
 ├────────────────────────────────────────────────────────────────────────┤
 │ FLOWS — cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
-│ GG protocol Safe → garden Safes       source integration gate           │
+│ GG protocol Safe → garden Safes       [ Seed / top up ]                 │
 │ garden Safes → members                planned commitment rewards         │
 │ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │  oversight rows moved
+├────────────────────────────────────────────────────────────────────────┤
+│ SEED / TOP UP — canQueueFunding only                                   │
+│ Garden [ Awka Hub · registered Celo Safe ▾ ] · Amount [ 500 G$ ]       │
+│ Source: GG protocol Safe · Recipient: selected registered garden Safe   │
+│ This does not fulfill, reward, or alter a commitment.                   │
+│                                      [ Cancel ] [ Queue seed / top up ] │
+│ → emitted Funding / ProtocolToGarden / Queued · no commitment ID        │
 └────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
 ```
 
 - The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module does not record an upstream hop. The planned read model distinguishes queued, dispatched, Celo-executed/ack-pending, confirmed, failed, and delayed.
+- The Queue contains only emitted protocol/indexer records. An untouched funding form is not a
+  Draft disbursement. A connected account without `canQueueFunding` sees the funding-unavailable
+  state even when another Operations capability grants route access.
 - The production route authority gate applies to every value-execution control here, as described in W22.
 
 ### W25 — Protocol-pool claim flow (client PWA)
@@ -984,7 +1001,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 | §6.9 Hub confirm stage | W13 + W13b commitment-context chip |
 | Existing Hub Work approval stage | HUBWORK |
 | §6.6 assessment v3 | W14 |
-| §6.11 Operations workspace (NET-NEW, deployer-gated) | W24 |
+| §6.11 Operations workspace (NET-NEW, capability-gated) | W24 |
 | Protocol-pool claim journey (client) | W25 |
 | Cycle close → allocation → certificate | W26 |
 | §7.1 garden pool story | W15 |

@@ -6,6 +6,8 @@ export type PublicRouteClass =
   | "funding_proof"
   | "receipt_read"
   | "upload_sign"
+  | "profile_avatar_read"
+  | "profile_avatar_mutation"
   | "webhook_pre"
   | "webhook_post";
 
@@ -37,6 +39,8 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
+  profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  profile_avatar_mutation: { limit: 10, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;

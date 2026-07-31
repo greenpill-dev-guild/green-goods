@@ -123,6 +123,16 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/profile-avatar", () => ({
+  useResolvedProfileAvatar: () => ({
+    avatarUri: null,
+    error: null,
+    isLoading: false,
+    record: null,
+    source: "fallback",
+  }),
+}));
+
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return {

@@ -160,7 +160,7 @@ class JobQueue {
       synced: false,
     };
 
-    trackJobCreated(jobId, kind, isOnline, chainId, userAddress);
+    trackJobCreated(kind, isOnline, chainId);
 
     if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       let mediaCount = 0;
@@ -249,7 +249,7 @@ class JobQueue {
       await jobQueueDB.markJobFailed(jobId, errorMessage);
 
       jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
-      trackJobPermanentlyFailed(jobId, job);
+      trackJobPermanentlyFailed(job);
 
       return { success: false, error: errorMessage };
     }
@@ -262,10 +262,8 @@ class JobQueue {
     jobQueueEventBus.emit("job:processing", { jobId, job });
 
     addBreadcrumb("job_processing_started", {
-      job_id: jobId,
       job_kind: job.kind,
       attempt: job.attempts + 1,
-      garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
     });
 
     const chainId = job.chainId || DEFAULT_CHAIN_ID;
@@ -307,7 +305,7 @@ class JobQueue {
       };
 
       jobQueueEventBus.emit("job:completed", { jobId, job: completedJob, txHash });
-      trackJobProcessed(jobId, job.kind, Date.now() - startTime, job.attempts + 1, txHash);
+      trackJobProcessed(job.kind, Date.now() - startTime, job.attempts + 1);
 
       return { success: true, txHash };
     } catch (error) {
@@ -318,7 +316,7 @@ class JobQueue {
       const updated = (await jobQueueDB.getJob(jobId)) ?? job;
 
       jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: errorMessage });
-      await trackJobProcessingError(jobId, job, error, processingDuration, chainId, MAX_RETRIES);
+      await trackJobProcessingError(job, processingDuration, chainId, MAX_RETRIES);
 
       return { success: false, error: errorMessage };
     }

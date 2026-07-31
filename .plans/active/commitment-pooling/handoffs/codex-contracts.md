@@ -24,6 +24,12 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - Afo's PRD-649 architecture fine-comb, with every resulting correction reconciled into the
   contract/event/indexer/state/API boundaries.
 - contract-spec.md, especially sections 5-8
+- settlement-spec.md, which holds the canonical `validateRecognitionSnapshot` hash preimage this
+  lane must implement: `recognitionSnapshotHash = keccak256(abi.encode(block.chainid,
+  commitmentId, recognitionEntries))` (`settlement-spec.md` §3.1.3, mirrored into contract-spec
+  §6.1). Every off-chain caller — SettlementModule payout-plan creation and Hypercert
+  composition — reproduces that exact encoding, so the on-chain view may not invent a different
+  domain separator.
 - acceptance-matrix.md for canonical identity, permissions, payout, and final state proof
 - packages/contracts/AGENTS.md and the approved append-only schema policy
 - Existing ActionRegistry, GardenToken, WorkApprovalResolver, UUPS, deploy.ts, and storage-layout patterns
@@ -37,13 +43,42 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - CommitmentPoolingModule and non-transferable CommitmentRegister with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
 - GardenToken and WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks.
 - Contract tests and deployment-script tests that become the frozen ABI/event source for indexer and shared lanes.
+- The `421614` toolchain that every `--network arbitrum-sepolia` command below depends on and
+  that does not exist today: an `arbitrum-sepolia` / `421614` record in
+  `packages/contracts/deployments/networks.json` (which currently holds only mainnet, sepolia,
+  localhost, arbitrum, celo) plus its RPC/NetworkManager and `.env.schema` wiring; the
+  `packages/contracts/deployments/421614-latest.json` artifact path; an extended
+  `script/DeployBadgeSchema.s.sol` `_getNetworkName` chain map, which today reverts
+  `UnsupportedChain(421614)` (`:65-76`); and an explicit `421614` posture in
+  `script/utils/release-gate.ts`, which today pins only `SEPOLIA_CHAIN_ID = "11155111"`.
+- The `upgrade.ts` sender contract, also NET-NEW: `--sender` becomes mandatory on every
+  transaction plan and is validated against the live proxy `owner()` before plan persistence.
+  Today the flag is optional, falls back to `process.env.SENDER_ADDRESS`, persists
+  `sender: null` (`script/upgrade.ts:425`), and `owner()` is never read anywhere in the script.
+  The grouped `commitment-pooling` upgrade target is likewise NET-NEW and ships with its own
+  check that GardenToken and WorkApprovalResolver report the same live owner before one plan
+  persists.
+- `packages/contracts/test/CommitmentPoolingBounds.t.sol`, the NET-NEW Foundry gas/payload
+  benchmark harness that selects every `MAX_*` constant.
 
 ## Acceptance
 
-- Empty confirmer rules resolve to Offer recipient or Request creator; named inputs are bounded by
-  `MAX_CONFIRMERS = 32` before mutation; every active contributor is excluded from ordinary,
-  named-group, and fallback confirmation. RED covers 32, 33, duplicate-heavy,
-  contributor-filtered, and threshold-after-filtering cases.
+- Empty confirmer rules resolve to Offer recipient or Request creator; when that party is a
+  GardenAccount the module resolves it to the claiming garden's operator/owner Hat wearers and
+  accepts those addresses as direct callers, never an ERC-6551 `execute` and never the
+  GardenAccount address itself. Named inputs are bounded by
+  `MAX_CONFIRMERS = 32` before mutation; `threshold == 0` with a non-empty named list rejects
+  `InvalidConfirmerRule` before any mutation; duplicates never change the stored threshold, which
+  stays the caller-supplied value and is validated at acceptance against the de-duplicated
+  eligible count; every active contributor is excluded from ordinary,
+  named-group, and fallback confirmation, including a garden steward who is also on the roster.
+  RED covers 32, 33, zero-threshold, duplicate-heavy,
+  contributor-filtered, threshold-after-filtering, Garden-claimed wearer confirmation, and
+  GardenAccount-caller rejection cases.
+- `submitForConfirmation` accepts the counterparty, creator, accountable lead provider, or
+  steward. The lead is explicitly included so a Garden-claimed Request — whose counterparty is an
+  uncallable GardenAccount — is still submittable by the human who did the work; submitting is
+  not confirming and the lead stays excluded from every confirmation path.
 - Pending claims store canonical claimant, authenticated requestedBy, immutable claim type, provider garden context, requested time, and active state. Runtime kind must equal the creation-time claim type. Acceptance consumes the canonical claimant-keyed terms; decline clears only that request; terminal pre-acceptance cancel/expiry are emitted for deterministic indexed supersession.
 - Disputes store pre-dispute state and RestorePrevious restores it. An expired commitment can
   never resolve Fulfilled, and a contributor-steward cannot select the direct Fulfilled result
@@ -128,7 +163,15 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   deterministic Envio handlers without RPC backfill.
 - `ClassRegistered` and every unit mutation carry `poolId`, `cycleId`, and the exact stored
   `unitLabel`; a unit handler can update pool/provider/exact-label rows even when it arrives
-  before `CommitmentCreated`. `cycleId == 0` means no cycle-scoped row.
+  before `CommitmentCreated`, because the three unit events also carry `address indexed account`.
+  `ClassRegistered` carries no account, so it writes only the class row and the placeholder pool
+  and exact-label rows its keys imply plus the recorded `quota`. It never writes a
+  `CommitmentProviderExposure` row — that entity is keyed `chainId-poolId-lowercaseProvider`, and
+  no provider exists in the event or in the commitment at registration time, since the lead is
+  resolved at acceptance; the first `UnitsCommitted` for an account creates it. `ClassRegistered`
+  mutates no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class
+  registered at creation but never accepted reads as a known label with zero units. Expected/open
+  units move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
 - `recordRewardPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-reward facts.
 - AssessmentResolver dual-schema config ABI, setter, event, errors, no-new-initializer UUPS
   upgrade, v2 state-preservation proof, and 3+47 storage layout match contract-spec §6.4.3
@@ -189,14 +232,16 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 
 ## Exact Bun commands
 
-`CommitmentPooling.t.sol`, `CommitmentRegister.t.sol`, and
-`CommunityTestimonyResolver.t.sol` do not exist yet; each is an intentional to-be-created
+`CommitmentPooling.t.sol`, `CommitmentRegister.t.sol`,
+`CommunityTestimonyResolver.t.sol`, and `CommitmentPoolingBounds.t.sol` do not exist yet; each is
+an intentional to-be-created
 RED-first deliverable. The existing `AssessmentResolver.t.sol` is extended with the in-place
 upgrade and dual-schema cases. `WorkApprovalResolver.t.sol` and `StorageLayout.t.sol` are
 existing regression surfaces.
 
 - bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentRegister.t.sol
+- bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/unit/AssessmentResolver.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/unit/CommunityTestimonyResolver.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/unit/WorkApprovalResolver.t.sol
@@ -217,6 +262,12 @@ separate pure-simulation process changed chain state. The AssessmentResolver tar
 The grouped `commitment-pooling` upgrade target upgrades GardenToken and WorkApprovalResolver,
 wires and verifies both reverse links, and unpauses only after the complete chain-2/chain-3
 readiness plan passes. `backfill-pools.ts` runs only after that verified unpause.
+
+Every `--network arbitrum-sepolia` line below is unrunnable against the current tree and stays
+unrunnable until this lane ships the `421614` toolchain named in Outputs: the networks.json
+`arbitrum-sepolia` record, the `421614-latest.json` artifact path, the `DeployBadgeSchema.s.sol`
+chain-map extension, and the `release-gate.ts` `421614` posture. Do not treat any of them as
+existing infrastructure.
 
 - bun script/upgrade.ts assessment-resolver --network arbitrum-sepolia --dry-run --pure-simulation
 - bun script/upgrade.ts assessment-resolver --network arbitrum-sepolia --tx-plan --sender <verified-421614-assessment-owner>
@@ -242,12 +293,32 @@ upgrade and reverse wiring while paused → complete readiness verification → 
 pool backfill and operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
 first. Every tx-plan sender
 must equal the relevant live proxy `owner()` before plan persistence; the grouped upgrade fails
-unless both proxies share that verified owner. After verified module/register deployment, run
+unless both proxies share that verified owner. That is the contract this lane builds, not current
+behavior: `upgrade.ts` today accepts `--sender` optionally, falls back to
+`process.env.SENDER_ADDRESS`, persists `sender: null`, and never reads `owner()`.
+After verified module/register deployment, run
 `commitment-schemas --finalize-community-testimony --dry-run`; it must source the module from the
 deployment artifact and prove UID pin -> exact registry reconciliation -> module activation,
 including the allowed empty-record/zero-module, exact-record/zero-module, and
 exact-record/exact-module retry states. It rejects module-before-UID, module-before-record, and
 every conflicting state. Broadcast remains outside this handoff.
+
+## Bounded-constant benchmark results
+
+The table below is the recording surface for
+`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It is
+empty because the harness does not exist yet; no `MAX_*` constant may be frozen, and no value
+above may stop being called provisional, until every row carries measured numbers from that run.
+Record worst-case gas and event-payload size per bound per size, then name the selected value and
+say why the next size up was rejected.
+
+| Bound | 8 | 16 | 24 | 32 | Selected | Rejection reason for the next size |
+|---|---|---|---|---|---|---|
+| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | | | | | provisional 16 | |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | | | | | provisional 32 | |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | | | | | provisional 32 | |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | | | | | provisional 32 | |
+| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | | | | | provisional 32 | |
 
 ## Out of scope
 
@@ -274,6 +345,15 @@ Each line below is a condition to be met, not a statement of current state. None
 
 - Replace the single-provider fulfillment model with one accountable `leadProvider` plus a contributor roster. Only the lead consumes the non-transferable register slot; every roster member is excluded from confirmation.
 - Accept repeatable `CommitmentRequirementInput` rows containing only `actionUID` and `requiredCount`; derive stored `domain` and `approvedCount` inside the module. There is no four-requirement product rule; set `MAX_REQUIREMENTS` only from the named gas/indexer benchmark.
+- That benchmark is one named NET-NEW Foundry harness,
+  `packages/contracts/test/CommitmentPoolingBounds.t.sol`, sitting beside the existing top-level
+  `test/GasBenchmarks.t.sol` and `test/StorageLayout.t.sol`, and run as
+  `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It
+  measures all five bounded vectors — `MAX_REQUIREMENTS`, `MAX_LINKED_WORKS_PER_COMMITMENT`,
+  `MAX_CONTRIBUTORS_PER_COMMITMENT`, `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and
+  `MAX_CONFIRMERS` — at 8/16/24/32 each, for worst-case creation, approval credit, Ready
+  evaluation, event payload, and replay cost. The 8/16/24/32 result table is recorded in this
+  handoff, below, and no constant may be frozen before that table exists.
 - Reject a DomainImpact requirement-total above the separately measured
   `MAX_LINKED_WORKS_PER_COMMITMENT`; the active Work array is the authoritative enumerable
   readiness set, so creation must never accept a quota that the link bound makes unfulfillable.
@@ -304,7 +384,7 @@ Each line below is a condition to be met, not a statement of current state. None
   `totalVerifiedCredits`; later CIDs remain provenance without multiplying recognition. A queued
   job that lands after freeze fails without a partial write. `isEligibleContributor` additionally
   requires `Fulfilled`.
-- The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark selects the transaction-safe value. It is not a semantic team-size cap.
+- The provisional evidence-recipient bound is 32 only until the required 8/16/24/32 benchmark in `test/CommitmentPoolingBounds.t.sol` selects the transaction-safe value and its result table is recorded here. It is not a semantic team-size cap.
 - `MAX_CONTRIBUTORS_PER_COMMITMENT` is the measured end-to-end vector bound (provisional 32);
   add/join reject max-plus-one before mutation. Open contributors may self-leave only before
   freeze with zero linked Work and zero credit; neither the lead, a credited contributor, nor a

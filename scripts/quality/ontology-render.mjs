@@ -234,7 +234,11 @@ export function renderOntologyMdx(ontology) {
     const meta = [
       `status: ${schema.status}`,
       `revocable: ${schema.revocable}`,
-      schema.resolver ? `resolver: \`${schema.resolver}\`` : "resolver: none",
+      schema.resolver
+        ? `resolver: \`${schema.resolver}\``
+        : schema.status === "spec" && schema.planned_resolver
+          ? `planned resolver: \`${schema.planned_resolver}\``
+          : "resolver: none",
     ].join(" · ");
     lines.push(meta);
     lines.push("");

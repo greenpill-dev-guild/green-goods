@@ -25,6 +25,8 @@ import { registerHealthRoutes } from "./routes/health";
 import { registerMessageRoutes } from "./routes/messages";
 import { registerSubscribeRoutes } from "./routes/subscribe";
 import { registerUploadSignRoutes } from "./routes/upload-sign";
+import { registerProfileAvatarRoutes } from "./routes/profile-avatars";
+import { createSqliteProfileAvatarStore } from "../services/profile-avatars";
 
 const log = loggers.api;
 
@@ -120,6 +122,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerUploadSignRoutes(app, routeContext);
   registerMessageRoutes(app, routeContext);
   registerSubscribeRoutes(app, routeContext);
+  registerProfileAvatarRoutes(app, {
+    ...routeContext,
+    profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),
+  });
 
   const fundingRouteContext: FundingRouteContext = {
     deps,

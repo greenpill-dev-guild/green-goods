@@ -194,7 +194,7 @@ class InMemoryDatabase {
 
   run(sql: string): void {
     const normalized = sql.trim().toUpperCase();
-    if (normalized === "BEGIN") {
+    if (normalized === "BEGIN" || normalized === "BEGIN IMMEDIATE") {
       this.transactionSnapshot = this.cloneTables();
       return;
     }
@@ -226,6 +226,12 @@ class InMemoryDatabase {
 
     return {
       get(...params: unknown[]): unknown {
+        if (/FROM profile_avatars/i.test(sql)) {
+          const table = self.tables.get("profile_avatars");
+          if (!table) return null;
+          return table.get(`${params[0]}:${params[1]}`) ?? null;
+        }
+
         // SELECT COUNT(*) FROM chat_messages WHERE status = 'new' AND postedAt < ?
         if (/SELECT COUNT\(\*\).*FROM chat_messages/i.test(sql)) {
           const table = self.tables.get("chat_messages");
@@ -368,13 +374,33 @@ class InMemoryDatabase {
             chat_message_attachments: 11,
             funding_intents: 34,
             funding_intent_events: 6,
+            profile_avatars: 5,
           };
 
           // Determine key based on table
           let key: string;
           let row: Record<string, unknown>;
 
-          if (tableName === "users") {
+          if (tableName === "profile_avatars") {
+            if (params.length !== EXPECTED_PARAMS.profile_avatars) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.profile_avatars} params for profile_avatars, got ${params.length}`
+              );
+            }
+            key = `${params[0]}:${params[1]}`;
+            if (table.has(key)) {
+              throw new Error(
+                "UNIQUE constraint failed: profile_avatars.chainId, profile_avatars.address"
+              );
+            }
+            row = {
+              chainId: params[0],
+              address: params[1],
+              avatarUri: params[2],
+              version: params[3],
+              updatedAt: params[4],
+            };
+          } else if (tableName === "users") {
             if (params.length !== EXPECTED_PARAMS.users) {
               throw new Error(
                 `Mock DB: Expected ${EXPECTED_PARAMS.users} params for users, got ${params.length}`
@@ -571,7 +597,18 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return;
 
-          if (tableName === "idempotency_keys") {
+          if (tableName === "profile_avatars") {
+            const key = `${params[3]}:${params[4]}`;
+            const existingRow = table.get(key);
+            if (existingRow && existingRow.version === params[5]) {
+              existingRow.avatarUri = params[0];
+              existingRow.version = params[1];
+              existingRow.updatedAt = params[2];
+              table.set(key, existingRow);
+              return { changes: 1, lastInsertRowid: 0 };
+            }
+            return { changes: 0, lastInsertRowid: 0 };
+          } else if (tableName === "idempotency_keys") {
             const key = String(params[params.length - 1]);
             const existingRow = table.get(key);
             if (existingRow) {

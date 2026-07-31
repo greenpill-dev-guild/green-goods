@@ -445,9 +445,9 @@ C1: `┌────────────────────────
 │ THIS MONTH · IN PROGRESS                     │
 │ Elders need reliable market rides           │
 │ Better: two rides each market day           │
-│ Agro · Education · 8 neighbors agree        │
+│ Agro · Education · 8 support · 2 do not     │
 │ Acknowledged · In progress                  │
-│                          [View] [Agree]      │
+│         [View] [Support] [Do not support]   │
 ├──────────────────────────────────────────────┤
 │    Needs          ＋ Create          Profile │
 └──────────────────────────────────────────────┘`,
@@ -499,7 +499,8 @@ C5: `┌────────────────────────
 │ 120 G$ funding attribution verified         │
 │ Funding supports the garden; it is not escrow│
 ├──────────────────────────────────────────────┤
-│ [Agree]                       [Add testimony]│
+│ [Support] [Do not support] [Clear my signal]│
+│                              [Add testimony]│
 └──────────────────────────────────────────────┘`,
 C6: `┌──────────────────────────────────────────────┐
 │ Profile                                      │
@@ -589,7 +590,7 @@ W2: [
   { m: "[ Submit work for this promise ]", l: "Submit work for this promise", to: "frame:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
   { m: "[ Link existing work ]", l: "Link existing work", info: "Picker of your approved/pending works → workLink job (UX:140)." },
   { m: "[ Confirm: promise kept ]", l: "Confirm", to: "frame:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
-  { m: "Reward: 20 DAI from the garden jar · pending", l: "Declared reward row", info: "Reference only — no custody. When a G$ disbursement exists, settlement status replaces this line (SS:532)." },
+  { m: "Reward: 20 DAI from the garden jar · pending", l: "Declared reward row", info: "Reference only — no custody. When a G$ disbursement exists, settlement status replaces this line (SS §7)." },
   { m: "recorded on Arbitrum", l: "Chain phrasing", info: "Chain vocabulary lives on the detail engage layer only — never on browse cards (UX:436)." },
 ],
 W3: [
@@ -663,9 +664,9 @@ W16: [
 ],
 W21: [
   { m: "[ Review registration requirements ]", l: "Review registration requirements", info: "Read-only prerequisite summary. Release governance deploys and verifies the 2-of-3 Safe/Roles route; registration binds only the existing account." },
-  { m: "member delivery: enabled", l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The flip is owner-only ops (SS:172)." },
+  { m: "member delivery: enabled", l: "Delivery-gate status row", info: "Read-only (register #34f): enabled/disabled · changed by · date · evidence. The owner-only flip gates Individual reward delivery and member send, never Garden rewards or non-commitment garden seeding." },
   { m: "[ Create batch (2) ]", l: "Create batch", to: "frame:W22", info: "Batches hold immutable members up to the measured configured limit; the hard ceiling is 24." },
-  { m: "[ Requeue ]", l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
+  { m: "[ Requeue ]", l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS §3.1.3)." },
   { m: "[close]", l: "Close failed delivery", info: "Failed → Cancelled; preserves the attempt/failure history and creates no new execution key." },
   { m: "[ dispatch ]", l: "Dispatch command", info: "Sends the immutable data-only command through CCIP; G$ stays on Celo." },
   { m: "[ retry ack ]", l: "Retry acknowledgment", info: "Resends only the stored Celo outcome and cannot move G$ again." },
@@ -685,11 +686,11 @@ W23: [
   { m: "[ Send ]", l: "Send", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
 ],
 W23G: [
-  { m: "[ View technical status ]", l: "Technical status", info: "AA/paymaster gate failed: member delivery + sends stay off; Safe-to-Safe garden funding continues (SS:425)." },
+  { m: "[ View technical status ]", l: "Technical status", info: "AA/paymaster gate failed: first contributor-child preparation + member sends stay off; steward-authorized non-commitment garden seeding continues Safe-to-Safe (SS §5)." },
 ],
 W24: [
   { m: "[ Execute ▸ ]", l: "Execute batch", to: "frame:W22", info: "Cross-garden execution home (WF:643). Executor-role guard (register #34e) applies to every execute/report control here, same as W22." },
-  { m: "[ Requeue ]", l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS:182)." },
+  { m: "[ Requeue ]", l: "Requeue", info: "Failed → Queued; clears the old batchId, attempts++ (SS §3.1.3)." },
   { m: "GoodDollar pool → GG protocol Safe", l: "Inflow row (Celo read)", info: "Protocol-Safe inflow is a Celo balance read — the module records no upstream hop (corrections-log §9)." },
   { m: "(alphabetical)", l: "No-ranking invariant", info: "Cross-garden oversight rows sort alphabetically; never ranked (UX:314)." },
 ],
@@ -731,7 +732,9 @@ HUBWORK: [
   { m: "[ Approve ]", l: "Approve", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted; a newer pre-freeze rejection emits ApprovedWorkReversed." },
 ],
 C1: [
-  { m: "[View] [Agree]", l: "View / Agree", to: "frame:C5", info: "Agree = a NeedSignal; board order is recency + status, never funding (CI-SPEC:257)." },
+  { m: "[View]", l: "View", to: "frame:C5", info: "Open the Need thread; board order is recency + status, never funding (CI-SPEC §8)." },
+  { m: "[Support]", l: "Support", info: "Writes the latest NeedSignal direction; support and non-support stay separate (CI-SPEC §6)." },
+  { m: "[Do not support]", l: "Do not support", info: "Writes the latest NeedSignal direction without producing a net score (CI-SPEC §6)." },
   { m: "＋ Create", l: "Create", to: "frame:C3" },
   { m: "[Explore]", l: "Explore", info: "Global read-only discovery — no signal buttons outside your garden (CI-WF:64)." },
 ],
@@ -745,7 +748,9 @@ C4: [
   { m: "[Edit] [Cancel] [Delete]", l: "Draft controls", info: "Offline draft verbs: edit/retry/cancel/delete with media retained (LAP:191)." },
 ],
 C5: [
-  { m: "[Agree]", l: "Agree", info: "NeedSignal — same-garden Community Hat members only (CI-WF:64)." },
+  { m: "[Support]", l: "Support", info: "NeedSignal — same-garden Community Hat members only (CI-WF:65)." },
+  { m: "[Do not support]", l: "Do not support", info: "Directional NeedSignal; non-support never subtracts into a net score (CI-WF:65)." },
+  { m: "[Clear my signal]", l: "Clear my signal", info: "Revoke the canonical winning signal; an older direction never returns (CI-SPEC §6)." },
   { m: "[Add testimony]", l: "Add testimony", info: "Community-Hat EAS attestation — September-realized (register #34g; CS:762)." },
   { m: "[▶ audio]", l: "Play audio", info: "The neighbor's own words stay primary; protocol evidence renders separately (CI-WF:162)." },
 ],
