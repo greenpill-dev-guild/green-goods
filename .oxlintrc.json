@@ -16,7 +16,7 @@
     "**/__tests__/**"
   ],
   "rules": {
-    "react/rules-of-hooks": "warn",
+    "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "warn",
     "react/react-in-jsx-scope": "off",
     "react/no-unescaped-entities": "warn",
@@ -51,6 +51,12 @@
     },
     {
       "files": ["packages/shared/src/modules/app/logger.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["packages/contracts/script/**/*.{ts,mjs}"],
       "rules": {
         "no-console": "off"
       }

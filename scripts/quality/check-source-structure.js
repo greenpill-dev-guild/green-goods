@@ -9,39 +9,82 @@ const NEW_FILE_MAX_LINES = 350;
 const MODIFIED_FILE_MAX_LINES = 500;
 const ZERO_SHA = "0000000000000000000000000000000000000000";
 
+// Frozen ceilings for files that were already above MODIFIED_FILE_MAX_LINES when
+// the gate was adopted. An entry may never grow; touching a file above its ceiling
+// fails until it is brought back down. When a file shrinks, lower its entry to the
+// new count. When a file drops below MODIFIED_FILE_MAX_LINES, delete its entry so
+// the normal cap governs it again.
+//
+// Re-baselined 2026-07-30: the original ceilings were captured months before the
+// check was wired into CI, and 17 entries had drifted above them in the meantime —
+// which meant the next edit to any of those files owed an unrelated shrink before it
+// could merge. Ceilings now reflect measured reality, and every oversized file is
+// listed (the previous list covered 32 of 63, so 31 oversized files had no ceiling
+// at all and would have tripped the blanket cap on first touch).
 const FROZEN_ALLOWLIST = {
-  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 542,
-  "packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx": 503,
-  "packages/admin/src/components/Layout/CommandPalette.tsx": 559,
-  "packages/admin/src/views/Garden/CreateAssessment.tsx": 580,
-  "packages/admin/src/views/Garden/SubmitWork.tsx": 513,
-  "packages/admin/src/views/Hub/index.tsx": 591,
-  "packages/agent/src/api/server.ts": 209,
-  "packages/agent/src/services/db.ts": 298,
-  "packages/client/src/components/Dialogs/ConvictionDrawer.tsx": 538,
-  "packages/client/src/views/Garden/index.tsx": 601,
-  "packages/client/src/views/Garden/Media.tsx": 534,
-  "packages/client/src/views/Home/Garden/Work.tsx": 646,
-  "packages/client/src/views/Home/WorkDashboard/index.tsx": 503,
-  "packages/contracts/src/modules/Gardens.sol": 845,
+  "packages/admin/src/components/Action/ActionTranslationEditor.tsx": 746,
+  "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx": 546,
+  "packages/admin/src/components/Garden/GardenSettingsEditor.tsx": 630,
+  "packages/admin/src/components/Layout/CanvasLayout.tsx": 741,
+  "packages/admin/src/views/Actions/ActionDetail.tsx": 545,
+  "packages/admin/src/views/Actions/EditAction.tsx": 532,
+  "packages/admin/src/views/Community/components/CommunityTab.tsx": 830,
+  "packages/admin/src/views/Garden/HypercertDetail.tsx": 501,
+  "packages/admin/src/views/Garden/SubmitWork.tsx": 1170,
+  "packages/agent/src/handlers/index.ts": 508,
+  "packages/agent/src/platforms/telegram.ts": 590,
+  "packages/agent/src/services/blockchain.ts": 627,
+  "packages/client/src/components/Dialogs/ConvictionDrawer.tsx": 569,
+  "packages/client/src/components/Errors/AppErrorBoundary.tsx": 529,
+  "packages/client/src/components/Errors/RouteErrorBoundary.tsx": 541,
+  "packages/client/src/components/Public/PublicCookieJarCard.tsx": 797,
+  "packages/client/src/components/Public/PublicEndowmentPanel.tsx": 726,
+  "packages/client/src/components/Public/PublicFundingCard.tsx": 1015,
+  "packages/client/src/components/Public/VaultCardEndowFlow.tsx": 1509,
+  "packages/client/src/components/Public/VaultCardPaymentPanel.tsx": 709,
+  "packages/client/src/components/Public/VaultCardWalletManage.tsx": 726,
+  "packages/client/src/components/Public/VaultCheckoutDialog.tsx": 1174,
+  "packages/client/src/components/Public/VaultManagePositionsPanel.tsx": 928,
+  "packages/client/src/components/Public/atoms/EditorialAtoms.tsx": 565,
+  "packages/client/src/components/Public/vaultCheckoutShell.tsx": 530,
+  "packages/client/src/views/Garden/Media.tsx": 828,
+  "packages/client/src/views/Garden/index.tsx": 821,
+  "packages/client/src/views/Home/Garden/Work.tsx": 668,
+  "packages/client/src/views/Login/index.tsx": 641,
+  "packages/client/src/views/Profile/ENSSection.tsx": 651,
+  "packages/client/src/views/Public/Fund.tsx": 776,
+  "packages/client/src/views/Public/GardenDialog.tsx": 523,
+  "packages/client/src/views/Public/Impact.tsx": 638,
+  "packages/client/src/views/Public/Vaults.tsx": 706,
+  "packages/contracts/src/modules/Gardens.sol": 914,
   "packages/contracts/src/modules/Hats.sol": 851,
   "packages/contracts/src/modules/Octant.sol": 769,
-  "packages/contracts/src/resolvers/Yield.sol": 841,
+  "packages/contracts/src/resolvers/Yield.sol": 899,
   "packages/contracts/src/tokens/Garden.sol": 527,
-  "packages/shared/src/components/Toast/toast.service.tsx": 664,
-  "packages/shared/src/hooks/work/useWorkApproval.ts": 535,
-  "packages/shared/src/hooks/work/useWorkMutation.ts": 612,
-  "packages/shared/src/index.ts": 1024,
-  "packages/shared/src/modules/app/posthog.ts": 528,
+  "packages/shared/src/components/Canvas/NavigationBar.tsx": 579,
+  "packages/shared/src/components/Toast/toast.service.tsx": 870,
+  "packages/shared/src/hooks/app/useServiceWorkerUpdate.ts": 581,
+  "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 731,
+  "packages/shared/src/hooks/index.ts": 604,
+  "packages/shared/src/hooks/work/useWorkApproval.ts": 544,
+  "packages/shared/src/hooks/work/useWorkMutation.ts": 721,
+  "packages/shared/src/index.ts": 1431,
+  "packages/shared/src/modules/app/analytics-events.ts": 520,
+  "packages/shared/src/modules/app/posthog.ts": 579,
   "packages/shared/src/modules/data/eas.ts": 618,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 540,
-  "packages/shared/src/modules/job-queue/index.ts": 544,
-  "packages/shared/src/providers/Auth.tsx": 633,
-  "packages/shared/src/types/domain.ts": 553,
-  "packages/shared/src/utils/errors/contract-errors.ts": 605,
+  "packages/shared/src/modules/job-queue/index.ts": 545,
+  "packages/shared/src/modules/vault-crowdfunding.ts": 1646,
+  "packages/shared/src/providers/Auth.tsx": 739,
+  "packages/shared/src/public-contracts/index.ts": 698,
+  "packages/shared/src/types/domain.ts": 614,
+  "packages/shared/src/utils/action/translations.ts": 564,
+  "packages/shared/src/utils/cookie-jar-campaign.ts": 501,
+  "packages/shared/src/utils/errors/contract-errors.ts": 823,
   "packages/shared/src/utils/time.ts": 576,
-  "packages/shared/src/workflows/authMachine.ts": 722,
+  "packages/shared/src/workflows/authMachine.ts": 724,
+  "packages/shared/src/workflows/authServices.ts": 814,
 };
 
 function runGit(args, { allowFailure = false } = {}) {
@@ -206,7 +249,7 @@ function printFailure(messageLines) {
     "Remediation: split responsibilities into smaller modules, extract helpers/components, or reduce the touched file back under its frozen ceiling before merge.",
   );
   console.error(
-    "Wave 1 does not raise allowlist ceilings in the same change. If a ceiling is wrong after a shrink, lower the allowlist to the new line count instead.",
+    "Do not raise an allowlist ceiling to make a change fit. If a ceiling is wrong after a shrink, lower it to the new line count instead.",
   );
   process.exit(1);
 }
@@ -251,7 +294,7 @@ for (const filePath of relevantFiles) {
 
     if (lineCount > frozenCeiling) {
       failures.push(
-        `- ${filePath}: ${lineCount} lines, above frozen ceiling ${frozenCeiling}. Reduce this file back to ${frozenCeiling} lines or below before merge; Wave 1 does not allow this file to grow.`,
+        `- ${filePath}: ${lineCount} lines, above frozen ceiling ${frozenCeiling}. Reduce this file back to ${frozenCeiling} lines or below before merge; an allowlisted file may not grow.`,
       );
     }
     continue;
@@ -259,7 +302,7 @@ for (const filePath of relevantFiles) {
 
   if (added.has(filePath) && lineCount > NEW_FILE_MAX_LINES) {
     failures.push(
-      `- ${filePath}: new file at ${lineCount} lines (limit ${NEW_FILE_MAX_LINES}). Split the new implementation into smaller files; new files do not get Wave 1 allowlist entries.`,
+      `- ${filePath}: new file at ${lineCount} lines (limit ${NEW_FILE_MAX_LINES}). Split the new implementation into smaller files; new files do not get allowlist entries.`,
     );
     continue;
   }

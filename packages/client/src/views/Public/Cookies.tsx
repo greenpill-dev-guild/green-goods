@@ -179,7 +179,7 @@ function CookiesCampaignSurface() {
     return map;
   }, [gardens]);
 
-  const { jarAddress, campaignSlug, invalidJar, campaign } = useMemo(
+  const { jarAddress, campaignSlug, invalidJar } = useMemo(
     () => resolveCampaignJar(searchParams, campaigns),
     [campaigns, searchParams]
   );

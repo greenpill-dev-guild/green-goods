@@ -119,11 +119,11 @@ jobs:
         run: bun run test:env-schema
 
       - name: Check source structure
-        if: github.event_name == 'pull_request'
-        run: node scripts/quality/check-source-structure.js --base "origin/${{ github.base_ref }}"
+        env:
+          SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: node scripts/quality/check-source-structure.js
 
       - name: Check test quality
-        if: github.event_name == 'pull_request'
         run: bun run check:test-quality
 
       - name: Run admin lint

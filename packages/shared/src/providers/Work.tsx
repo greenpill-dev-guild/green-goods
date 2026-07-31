@@ -197,6 +197,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
             isGardenMember(userAddress, garden.gardeners, garden.operators, garden.id)
           )
         : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
     [userAddress, gardensData, pendingJoinsVersion]
   );
 

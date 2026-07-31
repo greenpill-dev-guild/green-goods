@@ -22,8 +22,6 @@ interface BadgeSchemaArtifact {
 }
 
 const GREEN_GOODS_BADGE_SCHEMA = "string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier";
-const GREEN_GOODS_BADGE_NAME = "GreenGoodsBadge";
-const GREEN_GOODS_BADGE_DESCRIPTION = "Shared EAS schema for GreenWill reputation badges";
 const REVOCABLE = true;
 
 const schemaRegistryInterface = new Interface([

@@ -112,24 +112,16 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Actions/GreenWillPanel.tsx",
   "Actions/index.tsx",
   "Community/index.tsx",
-  "Garden/Assessment.tsx",
   "Garden/CreateGarden.tsx",
   "Garden/HypercertDetail.tsx",
   "Garden/SignalPool.tsx",
   "Garden/Strategies.tsx",
   "Garden/SubmitWork.tsx",
   "Garden/Vault.tsx",
-  "Garden/WorkTab.tsx",
   "Garden/index.tsx",
   "Hub/CreateAssessment.tsx",
   "Hub/CreateHypercert.tsx",
   "Hub/index.tsx",
-  // Route-level Manage Members flow (route-driven, added by the Manage Members
-  // refactor). A controller composition around AddMember/Members/ManageRoles
-  // sub-modals gated on wallet-bound useGardenOperations writes — reviewed
-  // through its child dialogs, not a whole-route story. Same class as the
-  // other route-level flow views above.
-  "Garden/ManageMembers.tsx",
   "NotFound.tsx",
   "Profile/index.tsx",
 
