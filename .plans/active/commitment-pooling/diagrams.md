@@ -351,7 +351,7 @@ sequenceDiagram
   M-->>IDX: WorkLinked(contributor) (derived state flips to Active)
   OP->>EAS: attest WorkApproval decision (existing approval/rejection flow)
   EAS->>WAR: onAttest — full existing validation
-  WAR->>WAR: increment per-Work decisionSequence; store it by decisionUID
+  WAR->>WAR: increment per-Work decisionSequence · store it by decisionUID
   WAR->>M: onWorkDecision(workUID, decisionUID, decisionSequence, garden, approved) in try/catch
   alt newer effective approval before freeze
     M-->>IDX: ApprovedWorkCounted(contributor, requirementIndex, approvedWorkCount, approvedUnits, newlyApprovedUnits, …)
@@ -614,7 +614,7 @@ stateDiagram-v2
   Disputed --> Accepted : resolveDispute (RestorePrevious)
   Disputed --> ReadyForConfirmation : resolveDispute (RestorePrevious)
   Disputed --> Expired : resolveDispute (RestorePrevious or Expired)
-  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired); reject contributor-steward SelfConfirmation; require policy + verified contributor; freeze roster first when needed
+  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired) · reject contributor-steward SelfConfirmation · require policy + verified contributor · freeze roster first when needed
   Disputed --> Cancelled : resolveDispute (Cancelled)
   Fulfilled --> Reconciled : CycleClosed
   Cancelled --> Reconciled : CycleClosed
