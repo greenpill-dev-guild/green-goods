@@ -35,10 +35,10 @@ const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 type FactKey =
   | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
   | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
-  | "disbursementKind" | "disbursementRoute" | "payoutPlan";
+  | "disbursementKind" | "disbursementRoute" | "queueFundingAuthority" | "payoutPlan";
 const FACT_KEYS = [
   "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
-  "disbursement", "disbursementKind", "disbursementRoute", "payoutPlan",
+  "disbursement", "disbursementKind", "disbursementRoute", "queueFundingAuthority", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type ConditionalRequirement = {
   when: Partial<Record<FactKey, string>>;
@@ -127,7 +127,12 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
       disbursementKind: "Funding",
       disbursementRoute: "ProtocolToGarden",
     },
-    requires: { beneficiarySettlementAccount: ["Active"] },
+    requires: {
+      beneficiarySettlementAccount: ["Active"],
+      // Deployer status can never satisfy this: the submit control is gated on
+      // onchain queueFunding authority, not on Operations route visibility.
+      queueFundingAuthority: ["ProtocolSteward", "ModuleOwner"],
+    },
   },
   createBatch: {
     key: "disbursement",

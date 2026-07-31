@@ -46,6 +46,9 @@ export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" |
 export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
 export type DisbursementKind = "Reward" | "Funding";
 export type DisbursementRoute = "ContributorReward" | "ProtocolToGarden";
+// Onchain queueFunding capability, not deployer status: route visibility never
+// implies submit authority (register #69).
+export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
 export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" | "Failed";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
@@ -61,6 +64,7 @@ export type StateFacts = {
   disbursement?: DisbursementLifecycle;
   disbursementKind?: DisbursementKind;
   disbursementRoute?: DisbursementRoute;
+  queueFundingAuthority?: QueueFundingAuthority;
   payoutPlan?: PayoutPlanLifecycle;
 };
 

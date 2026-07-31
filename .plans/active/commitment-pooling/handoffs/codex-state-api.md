@@ -61,6 +61,15 @@
   every other state before allowlist or metadata construction.
 - Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
 - Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
+- **Operations capability selectors (this lane owns them; register #69).** `canQueueFunding`
+  resolves current protocol-steward authority or `SettlementModule.owner()`; `canOperateSettlement`
+  resolves the dispatch/retry/requeue/cancel/configure capabilities the settlement writes already
+  check. Both are typed, fail-closed shared selectors — an unresolved or errored read is `false`,
+  never an optimistic `true`. `showOperations = isDeployer || canQueueFunding || canOperateSettlement`
+  is route visibility only and confers no write authority; the admin lane consumes these rather than
+  re-deriving them from `isDeployer`. Deployer status alone can never satisfy `canQueueFunding`, and
+  a focused test proves a deployer-only account renders the funding-unavailable state instead of a
+  submittable form.
 - Exported shared API with no client/admin hooks.
 
 ## Acceptance
