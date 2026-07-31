@@ -39,7 +39,7 @@ A Discord brief (max two messages — see Phase 7's budget) containing:
 - a doc-freshness + risk scan (contracts / auth / migrations that need extra QA);
 - a draft, plain-language announcement for gardeners;
 
-with the full commit enumeration linked as the live GitHub compare view rather than pasted into Discord.
+with the full commit enumeration linked as the live GitHub compare view for **the same range Phase 1 counted** (`main...develop`) rather than pasted into Discord.
 
 ## Cadence
 
@@ -104,9 +104,9 @@ Post the brief to `DISCORD_ENGINEERING_CHANNEL_ID` with a **message budget of at
 
 - **Message 1 — the decision surface**: a 1–2 sentence lede (what's shipping and when), the version + bump/check commands, per-type commit counts on ONE line (`{N} commits · {a} feat / {b} fix / {c} chore …`), the Phase 5 risk flags (these are why a human reads the brief), and the Phase 4 doc-freshness flags.
 - **Message 2 — the copy**: the draft release notes (highlights, not the full commit enumeration) and the 3–5 line gardener announcement.
-- **The full commit enumeration never goes to Discord**: Message 1 links the live GitHub compare view (`https://github.com/greenpill-dev-guild/green-goods/compare/{last-tag}...develop`, wrapped in `<>`), which IS the complete, always-current commit list. The routine stays read-only everywhere (no Linear writes, no GitHub writes) — the budget is met by linking, not by relocating content.
+- **The full commit enumeration never goes to Discord**: Message 1 links the live GitHub compare view for **the exact range Phase 1 counted** — `https://github.com/greenpill-dev-guild/green-goods/compare/main...develop`, wrapped in `<>` — so the linked list and the per-type counts can never disagree. (Resolve the range once in Phase 1 and reuse it here; do not substitute a `{last-tag}...develop` range, which covers different commits whenever main and the tag differ.) The routine stays read-only everywhere (no Linear writes, no GitHub writes) — the budget is met by linking, not by relocating content.
 
-@mention `DISCORD_USER_ID_AFO` only when a Phase 5 risk needs a decision or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, open PRs, or create tags.
+Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when a Phase 5 risk needs a decision or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, open PRs, or create tags.
 
 ## Anti-patterns
 

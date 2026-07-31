@@ -47,10 +47,10 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 
 Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO` env var):
 
-- `bug-intake` — when its own bug-intake-sourced Issues awaiting triage (raw-signal tracking + accepted bugs) exceed 3, or when a setup failure (missing Linear project/label, Linear auth error, or a Telegram intake auth failure) needs attention
+- `bug-intake` — when its own bug-intake-sourced Issues awaiting triage (raw-signal tracking + accepted bugs) exceed 3, or when any run failure needs attention (missing Linear project/label, Linear auth error, Telegram intake auth failure, PostHog unreachable, privacy-grep hit, or a failed in-thread acknowledgement)
 - `health-watch` — on real (🔴) anomalies only
 - `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
-- `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from the Wednesday Build Sync (signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. Silent on quiet weeks.
+- `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from **either** source it reads (the Wednesday Build Sync, or the biweekly Engineering Sync on on-weeks; signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. A run with nothing to pre-stage and nothing failing posts one line without a mention.
 
 `pr-review` posts its review to Linear (the referenced issue), never to GitHub — in-PR commentary is CodeRabbit's and Codex's lane; its only Discord output is the `#engineering` missing-issue flag line. Healthy weekly heartbeats with zero anomalies = no @mention.
 

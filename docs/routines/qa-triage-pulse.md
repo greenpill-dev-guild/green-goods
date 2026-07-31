@@ -179,7 +179,7 @@ Before posting, grep every Customer Need body created this run for `replay`, `se
 
 **House style v2** (see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)): ONE message, lede first, items over counts. Post to `#product` (`DISCORD_PRODUCT_CHANNEL_ID`):
 
-```
+```text
 {if N >= 1 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**📋 QA Sync · {meeting-title} · {YYYY-MM-DD}**
 
 {Lede: 1–2 sentences a teammate would write — what the sync surfaced and whether anything is urgent. e.g. "Six items from today's Build Sync, two matching live telemetry — the Android install hang is the one to look at first."}
@@ -198,9 +198,11 @@ Counts by surface, PostHog match tallies, and other run telemetry stay OUT of th
 
 **No-sync day (0 notes found) or 0 new items: post exactly one line, no mention** — never the full skeleton:
 
-```
+```text
 📋 QA sync · {YYYY-MM-DD}: {no sync notes found today · nothing to pre-stage | notes read, nothing new to pre-stage ({dedup_n} already tracked)}.
 ```
+
+**Failures take precedence over the one-line form.** If anything failed this run — Drive unreadable, Linear write rejected, PostHog degraded, privacy grep hit — post the full template with the @mention even when zero items were pre-staged, so a broken run is never indistinguishable from a quiet Wednesday. In that case the item list is empty and the lede states what failed.
 
 The summary is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here — same privacy boundary as `bug-intake`'s Discord summary.
 

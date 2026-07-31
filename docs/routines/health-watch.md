@@ -237,13 +237,13 @@ POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/mess
 
 **All-green run (every check 🟢, no Issues created/updated, no recoveries): post exactly one line** — this is most runs (house style v2, see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)):
 
-```
+```text
 🩺 Health watch · {YYYY-MM-DD}: all green · indexer, deploys, contracts, agent, client errors all OK{, {K} Issue(s) still open <links>}
 ```
 
 **Anything non-green, or any state change (new/updated Issue, recovery): post the per-check breakdown**, non-green lines first, 🟢 lines folded into one:
 
-```
+```text
 {if any 🔴: "<@${DISCORD_USER_ID_AFO}> "}**🩺 Health Watch · {YYYY-MM-DD}**
 
 {Lede: 1 sentence on what changed — e.g. "The indexer fell 3,400 blocks behind overnight; everything else is healthy."}

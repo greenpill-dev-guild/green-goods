@@ -105,7 +105,7 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 
 **House style v2** (see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)): ONE message (~900 chars target, ~1,500 ceiling — cut content rather than chunk), a lede before any bullets, and only metrics that **moved** appear as bullets. The Linear status update carries every full table; Discord carries what changed and what it means.
 
-```
+```text
 {if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**📈 Growth Pulse · week {YYYY-WW}**
 
 {Lede: 1–2 plain sentences on what the week means — e.g. "Steady week: onboarding held and no anomalies fired." or "Work submissions jumped after the template fix; one retention signal is worth watching." Not a metrics recital.}
@@ -118,18 +118,22 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 - {e.g. "First work submitted: **12** (+50% WoW) · the template fix landed Tuesday"}
 
 {if anomaly_count > 0: "**📋 Anomalies** · {anomaly_count} new{, {open_count} open} · {IDs with <Linear URLs>}"}
-{if funnel_thin AND open_p0_qa: "**🔎 Context** · {step(s)} thin; {N} open P0 defect(s) on {surface} ({PRD-ids}) likely suppress conversion."}
+{if funnel_thin OR any advisory delta (Phase 2, bootstrapped/absent baseline): "**🔎 Context** · {when open P0 defects plausibly explain it: '{step(s)} thin; {N} open P0 defect(s) on {surface} ({PRD-ids}) likely suppress conversion.' · otherwise the plain reading: '{step} moved {delta} on a {bootstrapped|absent} baseline — advisory, no Issue filed.'}"}
 {if intent_verdict != "coherent": "**🧭 Intent** · {drifting|unclear}: {underserved_stage or 'plans glance unavailable'}"}
 
-**📄 Full digest** → {linear_status_update_url}
+**📄 Full digest** → {linear_status_update_url or the degraded line below}
 {if any_failure: "⚠ {short failure list}"}
 ```
 
 Everything that did NOT move stays out of the post entirely — no funnel block, no retention block, no engagement block, no per-section skeleton. The reader who wants the steady numbers clicks the digest link.
 
-**Steady week (nothing moved, no anomalies, no failures):** exactly one line —
+**Conditional lines are part of the schema, not optional extras.** "Only what moved" governs the *metrics* bullets; the 🔴 Watch, 📋 Anomalies, 🔎 Context, 🧭 Intent, and ⚠ failure lines each render whenever their own condition is true, on a steady week too.
 
-```
+**When the Linear status update failed** (Phase 3 says post anyway): there is no digest URL to link, so replace the `📄 Full digest` line with `⚠ Full digest unavailable · Linear status update failed this run ({reason}) — numbers below are this run's only record.` and keep the moved-metrics bullets in the post even if they would otherwise have been folded away. This is the one case where the post carries more, not less: the durable artifact does not exist.
+
+**Steady week (nothing moved, no anomalies, no failures, digest written):** exactly one line —
+
+```text
 📈 Growth Pulse · week {YYYY-WW}: steady · funnel {headline}, {A}/{T} gardens active, no anomalies. Full digest → {linear_status_update_url}
 ```
 
@@ -314,7 +318,7 @@ Before posting:
 
 ## Phase 5: Discord post + cross-post
 
-Post the primary message to `#growth` per the schema — a lede saying what the week means, then ONLY the metrics that moved (max 3 bullets), the 🔴 Watch block when something is red, and the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. On a steady week the post is the single steady-week line. Never drop the digest link — meaning lives in Discord, numbers live in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
+Post the primary message to `#growth` per the schema — a lede saying what the week means, then the metrics that moved (max 3 bullets), plus every conditional schema line whose condition is true this run (🔴 Watch, 📋 Anomalies, 🔎 Context, 🧭 Intent, ⚠ failures) and the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. On a steady week the post is the single steady-week line. Never drop the digest link when a status update exists; when the Phase 3 write failed, use the degraded `⚠ Full digest unavailable` line from the schema instead of omitting it silently. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
 
 `<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 

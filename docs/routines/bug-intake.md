@@ -246,7 +246,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 2. **Filter actionable reports** — skip:
    - Bot messages (including yours)
    - Simple reactions, emojis, "me too" replies
-   - Already acknowledged (✅ reaction from your bot)
+   - Already acknowledged — **either** a ✅ reaction from your bot **or** an existing bot-authored `Tracked →` reply to that message (check both; a prior run may have landed one and not the other, and re-replying would double-post)
    - General discussion not framed as a report
    - Native `/linear issue` invocations — the team is using the Linear/Discord integration directly; Linear already owns the record, do not create a duplicate
 
@@ -350,7 +350,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
-7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
+7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
    ```
    POST https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages
@@ -359,6 +359,8 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    ```
    PUT https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages/{message_id}/reactions/%E2%9C%85/@me
    ```
+
+   **Treat the reply and the reaction as two independent steps.** Attempt both and record each outcome separately, so a later run retries only the one that failed — the step-2 filter recognizes either signal, so a message that got a reply but no ✅ is never re-replied to, it only gets its reaction retried. Surface any step still failing at the end of the run in the Phase 7 failures block: a report whose reply never landed is the one case where a reporter gets nothing back at all.
 
 ## Phase 2: Telegram capture topics
 
@@ -387,7 +389,9 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    GET ${BOT_API_URL}/api/messages?inferred_type=${TYPE}&status=processing&limit=100
    Authorization: Bearer ${BOT_API_TOKEN}
    ```
-   For `processing` rows, only attempt recovery when `updatedAt` is more than 6 hours old. The response is `{ messages: [...], count }`. Each message carries `id`, `chatId`, `threadId`, `senderPlatformId`, `senderDisplayName`, `text`, `inferredType`, `postedAt`, `updatedAt`, and `attachments[]` with embedded `downloadUrl`s. `chatId` and `threadId` are informational (useful for constructing `t.me/c/<chat>/<thread>/<message>` deep links in Linear bodies and digest item lines) — do not hardcode them.
+   For `processing` rows, only attempt recovery when `updatedAt` is more than 6 hours old. The response is `{ messages: [...], count }`. Each message carries `id`, `platform`, `chatId`, `threadId`, **`messageId`**, `senderPlatformId`, `senderDisplayName`, `text`, `replyToMessageId`, `inferredType`, `status`, `postedAt`, `updatedAt`, and `attachments[]` with embedded `downloadUrl`s.
+
+   **Source identity — use one field, consistently.** `id` is a **composite** the agent builds as `{platform}:{chatId}:{messageId}`; it is the claim/PATCH handle, not a Telegram message id. The raw Telegram message id is its own field, **`messageId`**. Use `messageId` (with `chatId` and `threadId`) everywhere a Telegram message must be identified: the `t.me/c/<chat>/<thread>/<message>` deep link, the Customer Need `## Source` block, the Phase 7 digest item line, and the Phase 2 step 4 dedupe. Never parse a message id back out of the composite `id`, and never hardcode chat or thread ids.
 
 2. **Claim before processing** — for every candidate, immediately claim it before any PostHog, Linear, Discord, or media-upload work:
    ```
@@ -399,7 +403,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
 3. **Filter actionable reports** — apply the same filter as Phase 1 step 2 (skip reactions / "me too" / general discussion). Pure media-only messages are kept if they look like reports (a screenshot in the bug topic almost always is). Non-actionable claimed messages should be marked `rejected`, not returned to `new`.
 
-4. **Dedupe against Linear** — list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on `chat_messages.id`, the message-id segment of it, garden context, and described behavior. When a duplicate exists, comment on the existing record with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 7 so the duplicate capture is still visible in the digest's merged-duplicates line.
+4. **Dedupe against Linear** — list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on the capture's `messageId` (with its `chatId`), the composite `chat_messages.id`, garden context, and described behavior. When a duplicate exists, comment on the existing record with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 7 so the duplicate capture is still visible in the digest's merged-duplicates line.
 
 5. **Enrich with PostHog + optional Sentry (private context)** — same procedure as Phase 1 step 4. Treat `senderPlatformId` as private. `senderDisplayName` is allowed only in the Customer Need `## Source` block and the Phase 7 digest item line; do not use it in the PostHog or Sentry evidence block or telemetry lookup unless the reporter explicitly consented.
 
@@ -414,7 +418,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
    ```markdown
    ## Source
-   Telegram · {bug topic | idea topic} — message `{message.id}`
+   Telegram · {bug topic | idea topic} — message `{message.messageId}` (capture `{message.id}`)
    Reported by **{senderDisplayName or "anonymous"}** on {ISO timestamp from postedAt}
 
    > {message.text — verbatim, scrubbed of any wallet/email/replay accidentally pasted}
@@ -556,7 +560,7 @@ Post to `#product`:
 POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages
 ```
 
-Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — `ai:routine` **plus** a `source:{discord|telegram|drive}` origin label **plus** an `activity:{qa|maintenance}` label. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; qa-triage-pulse uses `source:qa-triage-pulse`, not the three origins.
+Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — a `source:{discord|telegram|drive}` origin label **plus** an `activity:{qa|maintenance}` label. Query by `ai:routine` first because it is the cheapest single-value `label` filter the API accepts, but do **not** require an `ai:*` value when narrowing the results: delegation swaps `ai:routine` for `ai:codex` or `ai:claude`, and a delegated Issue is still awaiting triage. The source-plus-activity pair is what actually scopes the count. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; qa-triage-pulse uses `source:qa-triage-pulse`, not the three origins.
 
 ```
 # list_issues' `label` param is single-value: query by ai:routine, then narrow
@@ -577,7 +581,7 @@ accepted_count   = count Issues on team=Product where:
 
 **When the run captured or merged anything, or anything failed:**
 
-```
+```text
 {if raw_signal_count + accepted_count > 3 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**🐛 Bug Intake · {YYYY-MM-DD}**
 
 {Lede: 1–2 sentences a teammate would write — what came in and what matters most. e.g. "Three new reports; the passkey-register failure from Telegram matches live telemetry and is the one to look at."}
@@ -595,13 +599,13 @@ Source-by-source count breakdowns, ack tallies, and enrichment telemetry stay OU
 
 **Quiet run (zero captured, zero merged, zero failures): exactly one line, no mention** — never a skeleton of zero-count bullets:
 
-```
+```text
 🐛 Bug intake · {YYYY-MM-DD}: quiet run · nothing new in #bug-report, Telegram, or Drive.
 ```
 
 This digest is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here. If a private replay link needs to reach Afo, send it via DM to `<@${DISCORD_USER_ID_AFO}>` in a separate message — never inline in this `#product` digest.
 
-The @mention only fires when triage is piling up OR a setup failure needs human attention. This keeps Discord notifications signal-heavy and matches the existing notification policy.
+The @mention fires when triage is piling up (`raw_signal_count + accepted_count > 3`) or when anything in `any_failure` needs human attention — that covers setup and wiring failures, an unreachable PostHog, a privacy-grep hit, and a failed in-thread acknowledgement. This keeps Discord notifications signal-heavy and matches the existing notification policy.
 
 ## Caps and guardrails
 
@@ -618,5 +622,5 @@ The @mention only fires when triage is piling up OR a setup failure needs human 
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
 - **Project routing discipline.** Customer Needs and accepted-bug Issues live unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects. Graduate to a bounded active project only when one already exists for this work.
-- **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${linear_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
+- **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
 - **Fail loud, not silent.** A missing Linear project, a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
