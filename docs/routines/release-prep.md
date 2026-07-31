@@ -32,12 +32,14 @@ It **reads and drafts only**. It never cuts the release, opens PRs, or tags anyt
 
 ## What it produces
 
-A single Discord brief containing:
+A Discord brief (max two messages — see Phase 7's budget) containing:
 
-- a summary of everything unreleased on `develop`, grouped by change type;
-- draft release notes and the version to bump to;
+- a one-line per-type summary of everything unreleased on `develop`;
+- draft release notes (highlights) and the version to bump to;
 - a doc-freshness + risk scan (contracts / auth / migrations that need extra QA);
-- a draft, plain-language announcement for gardeners.
+- a draft, plain-language announcement for gardeners;
+
+with the full commit enumeration linked as the live GitHub compare view rather than pasted into Discord.
 
 ## Cadence
 
@@ -98,7 +100,13 @@ Write 3-5 plain-language lines announcing the release. **Self-check the prose ag
 
 ## Phase 7 — Post and exit
 
-Post one brief to `DISCORD_ENGINEERING_CHANNEL_ID`. @mention `DISCORD_USER_ID_AFO` only when a Phase 5 risk needs a decision or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, open PRs, or create tags.
+Post the brief to `DISCORD_ENGINEERING_CHANNEL_ID` with a **message budget of at most TWO Discord messages** (the stated house-style-v2 exception — every other routine gets one; see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)). Structure:
+
+- **Message 1 — the decision surface**: a 1–2 sentence lede (what's shipping and when), the version + bump/check commands, per-type commit counts on ONE line (`{N} commits · {a} feat / {b} fix / {c} chore …`), the Phase 5 risk flags (these are why a human reads the brief), and the Phase 4 doc-freshness flags.
+- **Message 2 — the copy**: the draft release notes (highlights, not the full commit enumeration) and the 3–5 line gardener announcement.
+- **The full commit enumeration never goes to Discord**: Message 1 links the live GitHub compare view (`https://github.com/greenpill-dev-guild/green-goods/compare/{last-tag}...develop`, wrapped in `<>`), which IS the complete, always-current commit list. The routine stays read-only everywhere (no Linear writes, no GitHub writes) — the budget is met by linking, not by relocating content.
+
+@mention `DISCORD_USER_ID_AFO` only when a Phase 5 risk needs a decision or a setup step failed. Keep the privacy boundary (no session IDs, replay URLs, wallet addresses, or reporter identifiers). Never commit, open PRs, or create tags.
 
 ## Anti-patterns
 

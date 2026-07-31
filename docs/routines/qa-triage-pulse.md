@@ -38,7 +38,7 @@ This routine is the **async sibling** of `/qa-triage`. The skill's Phase 1 step 
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID. Use `<@${DISCORD_USER_ID_AFO}>` to @mention.
-- `DISCORD_PRODUCT_CHANNEL_ID` is the `#product` channel where this routine's daily summary posts.
+- `DISCORD_PRODUCT_CHANNEL_ID` is the `#product` channel where this routine's Phase 6 summary posts.
 - Google Drive connector is available for reading shared documents.
 - Linear connector is available — resolve team/label/status IDs by name at run-start; never hardcode.
 - PostHog connector is available — three projects (App `163591`, Admin `262122`, Agent `262124` — Agent unused here).
@@ -91,7 +91,7 @@ Only safe-summary fields cross into the Customer Need body. Replay URLs, session
    (name contains 'Build Sync' or name contains 'Product Sync') and name contains 'Notes by Gemini' and modifiedTime > '<6h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
    ```
 
-   The legacy 'Product Sync' clause covers the meeting's pre-June-2026 name (a straggling calendar title still produces old-name notes); drop it once it stops matching. The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the silent-week summary (Phase 6) and exit cleanly. Do not fail loud; not every Wednesday has a sync.
+   The legacy 'Product Sync' clause covers the meeting's pre-June-2026 name (a straggling calendar title still produces old-name notes); drop it once it stops matching. The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the Phase 6 one-line no-sync note and exit cleanly. Do not fail loud; not every Wednesday has a sync.
 
 2. **Multi-match handling**: if >1 candidate (rare — separate "Build Sync — Engineering" vs "Build Sync — Growth"), pick the newest. Surface the alternates in the Discord summary so the user knows.
 
@@ -177,32 +177,30 @@ Before posting, grep every Customer Need body created this run for `replay`, `se
 
 ## Phase 6: Discord summary to #product
 
-Post one summary message to `#product` (`DISCORD_PRODUCT_CHANNEL_ID`):
+**House style v2** (see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)): ONE message, lede first, items over counts. Post to `#product` (`DISCORD_PRODUCT_CHANNEL_ID`):
 
 ```
-{if N >= 1 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**QA Sync Pre-Stage — <meeting-title> · <YYYY-MM-DD>**
+{if N >= 1 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**📋 QA Sync · {meeting-title} · {YYYY-MM-DD}**
 
-📋 Pre-staged {N} Customer Needs from the Build Sync
-🔗 Drive doc: <drive-url>
-🏷️ Linear label: `qa-sync:<YYYY-MM-DD>`
+{Lede: 1–2 sentences a teammate would write — what the sync surfaced and whether anything is urgent. e.g. "Six items from today's Build Sync, two matching live telemetry — the Android install hang is the one to look at first."}
 
-Surface breakdown:
-• Public Website: {n}
-• PWA iOS: {n}
-• PWA Android: {n}
-• Admin Dashboard: {n}
-• Cross Surface: {n}
-• Docs: {n}
+{Top items — up to 3, the most notable by telemetry match or severity, each one line:}
+- **{one-line item}** · {surface}{ · matches telemetry: {n} sessions/7d} → <{linear-url}>
 
-PostHog matches: {n}/{N} items matched recent telemetry
-Deduplicated: {n} items merged into existing Customer Needs
+{if N > 3: "…plus {N−3} more, all pre-staged under `qa-sync:<YYYY-MM-DD>`."}
+{if dedup_n >= 1: "{dedup_n} item(s) merged into existing Customer Needs."}
 
-{if N >= 1: "Ready for triage — run `/qa-triage qa-sync:<YYYY-MM-DD>` to promote these into Issues + QA-sheet rows."}
-
-{if any_failure: "⚠ Failures this run: {short list}"}
+Ready for triage → run `/qa-triage qa-sync:<YYYY-MM-DD>` · notes: <drive-url>
+{if any_failure: "⚠ {short failure list}"}
 ```
 
-@mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention. Silent weeks (0 notes found OR 0 new items) post the structured summary without the @mention.
+Counts by surface, PostHog match tallies, and other run telemetry stay OUT of the post — they're visible in Linear via the `qa-sync:*` label. @mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention.
+
+**No-sync day (0 notes found) or 0 new items: post exactly one line, no mention** — never the full skeleton:
+
+```
+📋 QA sync · {YYYY-MM-DD}: {no sync notes found today · nothing to pre-stage | notes read, nothing new to pre-stage ({dedup_n} already tracked)}.
+```
 
 The summary is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here — same privacy boundary as `bug-intake`'s Discord summary.
 
