@@ -427,6 +427,13 @@ export const SBS: SB[] = [
   { f: "W21@payout-partial", hot: null, st: "Partial · 2 of 3 arrived", ev: "one failed child never reverses fulfillment, recognition, or successful contributor receipts", cite: "SS §3" },
   { f: "W23@contributor-receipt", hot: null, surface: "pwa", echo: true, st: "Contributor payout arrived", ev: "the member receipt distinguishes Hypercert recognition from the garden-funded payment", cite: "UX Appendix C" },
 ]},
+// The other money leg: treasury support that is deliberately NOT a reward. It
+// shares the transport queue with contributor payouts and nothing else.
+{ id: "sb34", n: 34, title: "Seed or top up a garden outside a commitment", persona: "Protocol steward / module owner", scen: "S9 · discretionary treasury support", reviewVisible: true, reviewGroup: "admin", steps: [
+  { f: "W24@flows", hot: { h: "w24.queue-funding", l: "Seed / top up" }, ev: "the funds board separates commitment-earned contributor payout plans from an explicitly authorized non-commitment treasury action", cite: "register #69 · SS §3.1.3" },
+  { f: "W24@funding", hot: { h: "w24.queue-funding-confirm", l: "Queue seed / top up" }, st: "Explicit treasury review", ev: "queueFunding derives the GG protocol Safe, selected registered garden Safe, and canonical G$; it carries no commitmentId and grants no agent or keeper value authority", cite: "SS §3.1.3 · AM §2" },
+  { f: "W21@protocol-funding-queued", hot: null, st: "Queued funding", ev: "the resulting row has no commitment ID, shares the transport queue, and remains typed as Funding rather than a commitment reward", cite: "SS §3.1.2" },
+]},
 { id: "sb14", n: 14, title: "Turn a neighbor's need into a seeded promise", persona: "Neighbour (Kwame) + steward", scen: "S10 · September", reviewVisible: false, reviewGroup: "admin", steps: [
   { f: "C3", hot: { m: "What is your community trying to solve?", l: "Describe the problem by voice or text" }, who: "Kwame", surface: "community", ev: "kind-free Need · words captured by voice or typing · Request/Offer belongs to commitment seeding", cite: "CI-WF:96" },
   { f: "C4", hot: { m: "[Share with my garden]", l: "Share with my garden" }, surface: "community", marks: ["Waiting for garden membership. No send"], ev: "offline-queueable Need — may wait for membership without consuming sends", cite: "CI-WF:150" },

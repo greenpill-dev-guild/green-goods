@@ -1925,10 +1925,13 @@ help-documented `settlement:dual-chain:up`, `settlement:dual-chain:down`, and
 `settlement:courier` package commands.
 
 - **Processes.** Two Anvil instances with distinct ports and chain IDs, chosen so the pair runs
-  beside the existing single local chain on `3009`: Arbitrum-side `--chain-id 421614 --port 3010`
-  and Celo-side `--chain-id 11142220 --port 3011`, each with its own
+  beside the existing single local chain on `3009`: Arbitrum-side `--chain-id 421614 --port 3012`
+  and Celo-side `--chain-id 11142220 --port 3013`, each with its own
   `--config-out .generated/runtime/dual-chain-{arbitrum,celo}.json`. Neither process forks the
-  other's head and neither is a fork of the other.
+  other's head and neither is a fork of the other. Ports `3010` and `3011` are deliberately skipped:
+  `3010` is the September Community PWA's reserved local port
+  (`.plans/active/community-interface/spec.md` decision 11), and leaving `3011` free keeps a spare
+  beside it. Confirm both ports are still unclaimed before adding a third local chain.
 - **Routers.** Both chains deploy a paired router derived from the existing
   `packages/contracts/src/registries/LocalCCIPRouter.sol`. It keeps that contract's `getFee` and
   `ccipSend` signatures and its deterministic `messageId` derivation, but replaces the inline

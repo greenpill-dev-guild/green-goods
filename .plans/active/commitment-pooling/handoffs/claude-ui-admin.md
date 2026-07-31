@@ -22,7 +22,13 @@
 ## Outputs
 
 - Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
-- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools route. Alphabetical all-garden oversight and batch/CCIP operations live only in the deployer-gated Operations workspace.
+- Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools
+  route. Alphabetical all-garden oversight and batch/CCIP operations live only in the
+  capability-gated Operations workspace, whose nav and route use
+  `showOperations = isDeployer || canQueueFunding || canOperateSettlement` from shared selectors.
+  Route visibility confers no write authority: the seed/top-up form requires `canQueueFunding`
+  (protocol steward or `SettlementModule` owner), deployer alone cannot submit it, and an
+  unauthorized viewer sees the funding-unavailable state rather than a reverting control.
 - Immutable batch-membership view with the measured configured 0–24 limit and hard ceiling of 24, whole-batch cancellation while Queued, per-member retry/cancel only after authenticated failure, command/execution/acknowledgment states, native ETH/CELO fee floors and low-balance state, active/previous peer expiry, Safe/Roles/cap health, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
 - Core seeding emits the full creation payload, including the explicit reward rail. `None` clears

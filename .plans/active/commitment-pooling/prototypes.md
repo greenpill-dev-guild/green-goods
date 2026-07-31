@@ -47,7 +47,7 @@
 
 ## Storyboard index
 
-**At a glance** — thirty-three numbered storyboards mapped to personas, scenarios, and surfaces.
+**At a glance** — thirty-four numbered storyboards (thirty-nine validated source flows after surface/task splits) mapped to personas, scenarios, and surfaces.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
@@ -84,8 +84,9 @@
 | SB-31 | Cancel an immutable queued batch | Settlement steward | S8 batch recovery | Admin |
 | SB-32 | Wind down a season while its pool stays paused | Steward | S5 paused wind-down | Admin (+ member echo) |
 | SB-33 | Recognize and pay a commitment team | Lead + contributors + steward | S1 group commitment | Client PWA + Admin |
+| SB-34 | Seed or top up a garden outside a commitment | Protocol steward / module owner | S9 discretionary treasury support | Admin |
 
-Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33 proves recognition and payment stay linked but distinct.
+Grouping: member journeys SB-1–7, SB-15–18, and SB-26–30 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · treasury SB-34 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33 proves recognition and payment stay linked but distinct.
 
 ---
 

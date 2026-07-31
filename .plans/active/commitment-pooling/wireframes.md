@@ -791,7 +791,7 @@ G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new f
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
-Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (26 states, incl. payout planning, preparation, and the full recovery set).
+Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (27 states, incl. payout planning, preparation, the queued protocol-funding row, and the full recovery set).
 
 ```text
 ┌─ Settlement · Garden · Celo ───────────────────────────────────────────┐
@@ -887,7 +887,7 @@ requires `canQueueFunding` (protocol steward or SettlementModule owner; deployer
 insufficient). Stage rail: **Queue · CCIP · Flows**. This is the protocol-admin execution home —
 everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused.
 **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue)
-(5 states, including authorized and unavailable funding views).
+(6 states, including authorized and unavailable funding views).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐

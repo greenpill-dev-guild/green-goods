@@ -480,14 +480,14 @@ const W21_HOTS: HifiDef["hots"] = {
     to: "screen:W22@garden-command",
     info: "Settlement 105 was created by queueFunding as Funding/ProtocolToGarden. dispatchDisbursement rechecks both settlement accounts, creates its immutable execution key, and sends the data-only command; no commitment reward or payout plan is involved.",
     calls: ["dispatchDisbursement"],
-    facts: { disbursement: "Queued", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+    facts: { disbursement: "Queued", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
   },
   "w21.dispatch-funding": {
     l: "Dispatch queued garden funding",
     to: "screen:W22@garden-command",
     info: "Dispatches the typed Funding/ProtocolToGarden row created by queueFunding after rechecking both settlement accounts; no commitment or payout-plan identity is attached.",
     calls: ["dispatchDisbursement"],
-    facts: { disbursement: "Queued", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
+    facts: { disbursement: "Queued", settlementAccount: "Active", beneficiarySettlementAccount: "Active" },
   },
   "w21.setup": { l: "Register existing account", to: "screen:W21@register-account", info: "Opens registration only for an already-deployed and verified Celo Safe." },
   "w21.register-dismiss": { l: "Cancel registration", to: "screen:W21@unregistered", info: "Leaves the garden without a registered settlement account." },
@@ -980,8 +980,6 @@ const w21Facts = (state: W21State): StateFacts | undefined => {
   if (state === "protocol-funding-queued")
     return {
       disbursement: "Queued",
-      disbursementKind: "Funding",
-      disbursementRoute: "ProtocolToGarden",
       settlementAccount: "Active",
       beneficiarySettlementAccount: "Active",
     };
@@ -1002,15 +1000,21 @@ const w24Facts = (state: W24State): StateFacts | undefined => {
   if (state === "queue")
     return {
       disbursement: "Queued",
-      disbursementKind: "Funding",
-      disbursementRoute: "ProtocolToGarden",
       settlementAccount: "Active",
       beneficiarySettlementAccount: "Active",
     };
+  // Authority, not deployer status, is what the funding form validates against.
   if (state === "funding")
     return {
       settlementAccount: "Active",
       beneficiarySettlementAccount: "Active",
+      queueFundingAuthority: "ProtocolSteward",
+    };
+  if (state === "funding-unauthorized")
+    return {
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+      queueFundingAuthority: "None",
     };
   return undefined;
 };

@@ -394,9 +394,10 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     write or value authority.
 70. Final pre-build review closure (2026-07-30, Afo authorization): four parallel read-only
     reviews — contract spec, settlement spec, visual assets, and repo gates — ran before PRD-721
-    dispatch and found one compile-blocking interface defect plus twenty-nine further
-    specification and artifact corrections — sixteen in the contract spec, seven in settlement,
-    seven in the visual assets — all now corrected in repo truth. `ContributorRosterFrozen` was declared as both an event and an error, so the canonical
+    dispatch and found thirty corrections in all: one compile-blocking interface defect plus
+    twenty-nine further specification and artifact gaps, split sixteen in the contract spec (the
+    blocker among them), seven in settlement, and seven in the visual assets — all now corrected
+    in repo truth. `ContributorRosterFrozen` was declared as both an event and an error, so the canonical
     `ICommitmentPoolingModule` could not compile; the event name stands and the error becomes
     `RosterAlreadyFrozen`. Members may create cycle-less commitments, so the Open-cycle
     requirement binds only when `cycleId != 0`, while cycle-less commitments keep the immutable

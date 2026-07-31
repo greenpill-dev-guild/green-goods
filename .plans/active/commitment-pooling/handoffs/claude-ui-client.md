@@ -53,7 +53,16 @@
 - Reward presentation follows the declared rail: an external payout record never appears as a
   Celo settlement, and a `CeloSettlement` declaration never exposes the external
   `recordRewardPaid` path.
-- Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders “confirming arrival”; only Confirmed renders “support arrived”; authenticated failure renders “still arranging support”; Cancelled renders different locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
+- Before an onchain row exists, a readiness blocker renders with no attempt or retry; this
+  device's eligible attempt renders “arranging settlement” while queued or retrying and a
+  distinct “couldn't arrange support” state with retry only after eligibility + pointer are
+  rechecked. Onchain
+  Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds
+  “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders
+  “confirming arrival”; only Confirmed renders “support arrived”; authenticated execution failure
+  remains distinct from the job-exhausted state; Cancelled renders different locked copy for
+  Queued versus Failed origin and can never return to arranging. Existing settlement history
+  always outranks the member-delivery availability gate.
 - AA failure shows delivery unavailable with a calm recovery explanation; it never offers a garden-custody claim path.
 - Every flow includes loading, empty, offline, pending, declined, superseded, failed, retry, and terminal states where applicable.
 - Controls have accessible names, logical focus order, 44px targets, sufficient contrast, and reduced-motion behavior.

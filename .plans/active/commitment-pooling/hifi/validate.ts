@@ -34,9 +34,10 @@ const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
   | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
-  | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement" | "payoutPlan";
+  | "settlementAccount" | "beneficiarySettlementAccount" | "queueFundingAuthority" | "disbursement" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount", "disbursement", "payoutPlan",
+  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
+  "queueFundingAuthority", "disbursement", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type CallRule = {
   key: FactKey;
@@ -111,6 +112,18 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     allowed: ["Pending", "Partial"],
     effects: { disbursement: "Queued" },
     requires: { settlementAccount: ["Active"] },
+  },
+  // Discretionary treasury funding, never a commitment reward: the subject is the
+  // protocol source account, and authority is the onchain queueFunding capability
+  // rather than deployer status (register #69).
+  queueFunding: {
+    key: "settlementAccount",
+    allowed: ["Active"],
+    effects: { disbursement: "Queued" },
+    requires: {
+      beneficiarySettlementAccount: ["Active"],
+      queueFundingAuthority: ["ProtocolSteward", "ModuleOwner"],
+    },
   },
   createBatch: { key: "disbursement", allowed: ["Queued"], requires: { settlementAccount: ["Active"] } },
   dispatchDisbursement: { key: "disbursement", allowed: ["Queued"], next: "Dispatched", requires: { settlementAccount: ["Active"] } },
@@ -275,7 +288,7 @@ const ADMIN_HERO: [RegExp, string][] = [
 ];
 
 // The contract's reason-taking confirmable acts (CS:795 + pausePool CS:725,
-// cancelCycle CS:104, cancelDisbursement/cancelBatch SS:297-298). Enforced in
+// cancelCycle CS:104, cancelDisbursement/cancelBatch SS §3.1.2). Enforced in
 // BOTH directions: a confirm for one of these must show the reason field, and a
 // confirm for anything else must NOT invent one — a required reason on
 // closePool (which takes none, CS:556) is how the artifact once taught a
