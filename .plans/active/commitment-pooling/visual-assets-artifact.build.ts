@@ -481,22 +481,23 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
   {
     question: "Funds flow from the protocol safe to a garden appears manual; should it be automated?",
-    verdict: "decision",
+    verdict: "answered",
     finding:
-      "Confirmed manual in the frozen spec — deliberately: `queueFunding(garden, amount)` is callable only by the protocol steward or module owner, the route is locked to `ProtocolToGarden` with source, recipient, and token derived from config (never caller-supplied), and settlement-write automation is explicitly out of scope — later alerts may read indexed health only. Everything after queueing is automated transport (CCIP command → bounded Celo execution → authenticated acknowledgment). No rationale sentence is recorded in the spec; the posture is reconstructed from its adjacent locks. HoA → protocol Safe stays an upstream treasury fact, and the return leg is an open external dependency (PRD-734).",
-    riderLabel: "Postures under consideration",
+      "The protocol pool is the root garden's ordinary commitment pool, so its commitments use the same claim → work/evidence → confirmation → Fulfilled lifecycle and the same provider-garden contributor payout plan as every other pool. The app exposes the existing plan actions from indexed state: create or edit the Draft, finalize it, then prepare frozen non-zero contributor rows. There is no sixth offline settlement job or per-device permissionless queue. The separate `queueFunding(garden, amount)` path stays in the initial version only for discretionary, non-commitment garden seeds or top-ups. It is an explicit Operations form for a current protocol steward or SettlementModule owner; deployer alone cannot submit. Success emits Funding/ProtocolToGarden with no commitment ID. HoA → protocol Safe stays an upstream treasury fact, and PRD-734 remains an external dependency.",
+    riderLabel: "Scope boundary",
     rider:
-      "(a) Keep manual initiation — value moves stay human-initiated and machine-verified, with indexed-health alerts nudging the steward. (b) Post-MVP threshold-triggered `queueFunding` — requires a new authority model, since today no agent or keeper holds settlement write authority. No lean recorded; this is a team call.",
-    cites: "settlement-spec.md §3.1.3 `queueFunding` gates + §9 out-of-scope · PRD-734",
+      "Do not automate `queueFunding` or grant an agent/keeper value authority in this version. Earned support follows the ordinary payout-plan primitives; discretionary seeding remains an explicit treasury decision.",
+    cites: "plan.todo.md Decision Log #37 / register #69 · contract-spec.md 2026-07-30 amendment · settlement-spec.md 2026-07-30 amendment · PRD-759",
   },
   {
     question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
-    verdict: "decision",
+    verdict: "answered",
     finding:
-      "Two layers. Resolvers — one-per-schema is a repo convention, not an EAS requirement: EAS binds a resolver per schema at registration but lets one contract serve many (the resolver receives `attestation.schema`), and the frozen AssessmentResolver upgrade already runs two schemas through one proxy. No recorded decision defends four Need resolvers. Schemas — the four-schema set looks load-bearing on analysis: each is a distinct attester-gate / revocability / payload / volume tuple, and merging NeedSignal + NeedStatus would put the union payload on the highest-volume record while demoting schema-level revocability into resolver branches. The schema count stays open for the team design session rather than being recorded as settled here.",
+      "Answered 2026-07-27. Keep four immutable EAS schema records because Need, NeedSignal, NeedStatus, and FundingAttribution each retain a distinct payload, attester gate, volume, and schema-visible revocability policy. Deploy two UUPS resolver proxies: `CommunityNeedsResolver` serves Need/NeedSignal/NeedStatus through exact schema-UID dispatch, and `FundingAttributionResolver` stays separate as the only ungated branch with chain policy. EAS `recipient` is the canonical garden; child `refUID` is the Need UID; custom data no longer duplicates those relationships. NeedSignal carries only `bool support`, with latest-winner support/non-support state derived reader-side.",
+    riderLabel: "Implementation lock",
     rider:
-      "Collapse 4 → 2 resolvers: `CommunityNeedsResolver` (Need + NeedSignal + NeedStatus — hat-gated branches, branched `onRevoke` defaulting false, no zero-UID wildcard, pairwise UID distinctness) plus a separate `FundingAttributionResolver` (the only ungated one — keep the blast wall). Cheap now while the contracts lane is unstarted, expensive after. Schema count: bring the keep-4 analysis to the design session; do not treat it as decided.",
-    cites: "EAS SchemaRegistry (per-schema binding; resolver address in the UID preimage) · contract-spec.md AssessmentV3 dispatch · community-interface/spec.md §3.1–3.2",
+      "Root Need uses zero `refUID`; every child resolver validates an exact, same-recipient, live Need reference. All v1 attestations are non-expiring. Signal switching writes a newer attestation, clear revokes the winner, pending directions coalesce, and support/non-support counts never become a net score.",
+    cites: "community-interface/spec.md decisions #13–14 + §§3.1–3.3/6 · PRD-758",
   },
   {
     question: "Do the wireframes mirror our UI prototypes?",
@@ -507,10 +508,18 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
 ];
 
+const openQuestionCounts = OPEN_QUESTIONS.reduce<Record<OpenQuestionVerdict, number>>(
+  (counts, entry) => {
+    counts[entry.verdict] += 1;
+    return counts;
+  },
+  { answered: 0, "answered-gap": 0, decision: 0 },
+);
+
 const openQuestionsSection = `
 <section id="ref-open-questions">
   <h2>Open questions</h2>
-  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — four answered, one answered with an open gap, and two parked as decisions with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
+  <p class="lede">Audited 2026-07-27 against the frozen specs, the recorded decisions, and the shipped hi-fi registry — ${openQuestionCounts.answered} answered, ${openQuestionCounts["answered-gap"]} answered with an open gap, and ${openQuestionCounts.decision} parked as a decision with the evidence laid out. The questions are kept verbatim; the verdict and finding sit under each.</p>
   <div class="qpanel">
     <span class="eyebrow">Audited 2026-07-27</span>
     <ol class="qfindings">

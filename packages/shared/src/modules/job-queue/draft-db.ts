@@ -19,7 +19,7 @@ import {
   deserializeFile,
   serializeFile,
 } from "../../utils/storage/file-serialization";
-import { trackStorageError } from "../app/error-tracking";
+import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const DB_NAME = "green-goods-drafts";
@@ -211,10 +211,8 @@ class DraftDatabase {
     try {
       fileData = await serializeFile(file);
     } catch (serializeError) {
-      trackStorageError(serializeError, {
-        source: "DraftDatabase.addImageToDraft",
-        userAction: "serializing file for IndexedDB storage",
-        metadata: buildFileMetadata(file, draftId),
+      trackPrivateQueueEvent("job_queue_draft_file_serialization_failed", {
+        ...buildFileMetadata(file),
       });
       throw serializeError;
     }
@@ -228,14 +226,8 @@ class DraftDatabase {
         createdAt: Date.now(),
       } as DraftImage);
     } catch (storeError) {
-      trackStorageError(storeError, {
-        source: "DraftDatabase.addImageToDraft",
-        userAction: "storing image in IndexedDB",
-        metadata: {
-          ...buildFileMetadata(file, draftId),
-          error_name: storeError instanceof Error ? storeError.name : "Unknown",
-          error_message: storeError instanceof Error ? storeError.message : String(storeError),
-        },
+      trackPrivateQueueEvent("job_queue_draft_storage_failed", {
+        ...buildFileMetadata(file),
       });
       throw storeError;
     }

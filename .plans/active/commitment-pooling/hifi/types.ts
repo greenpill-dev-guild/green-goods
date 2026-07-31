@@ -40,11 +40,15 @@ export type CommitmentLifecycle =
 export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "StewardCaptured";
 export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
 export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
-export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
 // Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
 // never renders as product copy, but keeping it here prevents account readiness
 // or another local concept from being folded into the contract lifecycle.
 export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
+export type DisbursementKind = "Reward" | "Funding";
+export type DisbursementRoute = "ContributorReward" | "ProtocolToGarden";
+// Onchain queueFunding capability, not deployer status: route visibility never
+// implies submit authority (register #69).
+export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
 export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" | "Failed";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
@@ -57,8 +61,10 @@ export type StateFacts = {
   kind?: CommitmentKind;
   settlementAccount?: SettlementAccountState;
   beneficiarySettlementAccount?: BeneficiarySettlementAccountState;
-  queueFundingAuthority?: QueueFundingAuthority;
   disbursement?: DisbursementLifecycle;
+  disbursementKind?: DisbursementKind;
+  disbursementRoute?: DisbursementRoute;
+  queueFundingAuthority?: QueueFundingAuthority;
   payoutPlan?: PayoutPlanLifecycle;
 };
 
@@ -72,8 +78,7 @@ export type ContractCall =
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
   | "createCommitmentPayoutPlan" | "setContributorPayouts" | "finalizeCommitmentPayoutPlan"
-  | "prepareContributorPayout" | "queueFunding"
-  | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
+  | "prepareContributorPayout" | "queueFunding" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 
 // Metadata for one registered hotspot (a tappable control on a screen).

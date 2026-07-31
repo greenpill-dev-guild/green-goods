@@ -1,7 +1,14 @@
 import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garden";
 import { greenWillKeys } from "./greenwill";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
-import { communityKeys, ensKeys, gardenerProfileKeys, gardenersKeys, roleKeys } from "./identity";
+import {
+  communityKeys,
+  ensKeys,
+  gardenerProfileKeys,
+  gardenersKeys,
+  profileAvatarKeys,
+  roleKeys,
+} from "./identity";
 import { draftsKeys, mediaKeys, offlineKeys, queueKeys } from "./misc";
 import { publicKeys } from "./public";
 import { tokensKeys } from "./tokens";
@@ -29,6 +36,7 @@ export const queryKeys = {
   assessments: assessmentsKeys,
   gardeners: gardenersKeys,
   gardenerProfile: gardenerProfileKeys,
+  profileAvatars: profileAvatarKeys,
   ens: ensKeys,
   role: roleKeys,
   drafts: draftsKeys,

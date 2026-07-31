@@ -12,7 +12,7 @@
 
 ## Acceptance
 
-- Community owns Needs/Create/Profile; admin `/community` owns triage/pools/evaluator; existing public client owns funder discovery; every loading/empty/offline/pending/waiting/declined/merged/hidden/retracted/failed/retry state has one owner.
+- Community owns Needs/Create/Profile and Support / Do not support / Clear with separate counts; admin `/community/needs` owns triage, moderation, gathering, seed-from-Need, and Need lineage/export; `/community/coordination` retains pool/cycle operations; `/community/members` retains membership management; existing public client owns funder discovery; every loading/empty/offline/pending/waiting/declined/merged/hidden/retracted/failed/retry state has one owner.
 
 ## RED / GREEN
 

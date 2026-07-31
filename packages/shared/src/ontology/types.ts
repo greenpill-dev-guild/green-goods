@@ -126,6 +126,8 @@ export interface OntologySchema {
   name: string;
   revocable: boolean;
   resolver?: string | null;
+  /** Planned resolver contract name for spec-only schemas whose source file does not exist yet. */
+  planned_resolver?: string | null;
   note?: string;
   fields: OntologySchemaField[];
 }

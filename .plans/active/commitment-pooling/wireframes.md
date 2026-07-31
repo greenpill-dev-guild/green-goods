@@ -186,7 +186,7 @@ TIMELINE — EXPANDED DISCLOSURE
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Cancellation placement: while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`, register #34b/MF-2a). The Accepted steward path is locked at W10 `[ Cancel promise… ]` with its own required-reason dialog (register #51/MF-2b).
 - Hi-fi guidance (audit 2026-07-18, drawn above since 2026-07-27): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind the single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
-- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (65 states across the five commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
+- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (64 states across the five commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
 
 ### W2a — Evidence sheet (uiux-spec §5.5)
 
@@ -610,7 +610,7 @@ MARK READY WITH OVERRIDE           STEWARD CANCEL (MF-2b)
 
 ### W11 — Open-cycle allocation step (uiux-spec §6.10)
 
-One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**: [`#screens/W11@presets`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W11@presets) (8 states, incl. guard, invalid-sum, the recognition-policy step, and the campaign variants).
+One step inside the open-cycle flow launched from W7's cycle console. **Hi-fi**: [`#screens/W11@presets`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W11@presets) (7 states, incl. guard, invalid-sum, and the campaign variants).
 
 ```text
 ┌── Open cycle: allocation policy ─────────────────────────┐
@@ -791,7 +791,7 @@ G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new f
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
-Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (27 states, incl. payout planning, preparation, the queued protocol-funding row, and the full recovery set).
+Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eyebrow `Garden · Celo`) linked from the garden Pool tab — not an `{AdminCard}` inside `/garden/pool`. **Hi-fi**: [`#screens/W21@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W21@queue) (22 states, incl. payout planning, preparation, and the full recovery set).
 
 ```text
 ┌─ Settlement · Garden · Celo ───────────────────────────────────────────┐
@@ -846,7 +846,7 @@ A full **canvas route** reached from W21 and from the NEW capability-gated **Ope
 
 ### W23 — WalletDrawer: G$ section + member send (delta to W5)
 
-Lives in the drawer's **Tokens tab** — G$ is a token balance, so it joins the existing token list rather than claiming a second panel from the Commitments tab W5 owns. **Hi-fi**: [`#screens/W23@balance`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W23@balance) (6 states, incl. `send-pending` / `send-failed` and the absorbed `delivery-blocked` gate).
+Lives in the drawer's **Tokens tab** — G$ is a token balance, so it joins the existing token list rather than claiming a second panel from the Commitments tab W5 owns. **Hi-fi**: [`#screens/W23@balance`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W23@balance) (5 states, incl. `send-pending` / `send-failed`).
 
 ```text
 ├──────────────────────────────────────────────┤
@@ -950,7 +950,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 
 ### W26 — Cycle close → allocation → certificate wizard (admin)
 
-A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9). **Hi-fi**: [`#screens/W26@review`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W26@review) (10 states, including the read-only inconsistent-recognition blocker, the legacy approved-work bundle variant, and four `paused-*` variants).
+A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9). **Hi-fi**: [`#screens/W26@review`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W26@review) (9 states, including the read-only inconsistent-recognition blocker and four `paused-*` variants).
 
 ```text
 ┌── Close cycle: Season of First Rains ── Step 1 of 4 ─────┐
@@ -961,21 +961,14 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
 │   Gardener contributors:                                 │
-│   Maria · lead 40% · Ana 35% · Kwame 25%                 │
-│   Cycle policy · 35% equal / 65% verified (set at open)  │
-│   20% equal / 80% verified is the protocol default.      │
+│   Maria 38% · Kwame 37% · Ana 25%                        │
+│   Cycle policy · default 20% equal / 80% verified        │
 │   Recognition is read-only from frozen on-chain credit.  │
 │   If eligible contributors = 0: certificate blocked as   │
 │   inconsistent legacy/indexed data; no metadata override.│
 │ Step 3 — Impact certificate                              │
-│   bundle source ◉ fulfilled commitments (this cycle)     │
-│                 ○ approved work (legacy bundle)          │
 │   bundle: 7 fulfilled promises + their work, evidence,   │
 │   and need lineage → allowlist from the shares above     │
-│   ≡ Tend the seedling nursery  [ Include ] — disabled    │
-│     "No cycle allocation · not certificate eligible"     │
-│     (cycle-less; composer rejects it before the allowlist│
-│     is built — it keeps its 20/80 payment-default view)  │
 │   [ Mint impact certificate ]   (existing Hypercert      │
 │   pipeline; the garden account holds the certificate)    │
 │ Step 4 — Rest the cycle       [ Compost closed cycle ]   │
@@ -984,7 +977,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 └──────────────────────────────────────────────────────────┘
 ```
 
-- The wizard invents no contract surface — it choreographs `closeCycle` → certificate mint → `compostCycle` so stewards experience cycle close as one coherent ritual instead of three consoles. `closeCycle` succeeds only after every commitment is terminal and `liveCommitmentCount == 0`; its Reconciled result is the certificate composer's prerequisite, so no new commitment can enter the bundle between mint and close. No unit percentage appears in Step 1 because units are incommensurable across commitments. Step 2 reviews **both** snapshots read-only — the six-role class split and the within-gardener contributor recognition the allowlist is cut from — because recognition has no close-time slider: source attribution must already be valid before a commitment reaches Ready. Step 3 carries `CreateHypercert`'s cut-over **bundle-source toggle** (fulfilled-commitment bundle vs the legacy approved-work bundle, uiux-spec §6.10); a cycle-less commitment appears in that selection list **disabled** with the locked string “No cycle allocation · not certificate eligible”, since it has no `CycleOpened` six-role snapshot to expand and the composer rejects it before allowlist or metadata work.
+- The wizard invents no contract surface — it choreographs `closeCycle` → certificate mint → `compostCycle` so stewards experience cycle close as one coherent ritual instead of three consoles. `closeCycle` succeeds only after every commitment is terminal and `liveCommitmentCount == 0`; its Reconciled result is the certificate composer's prerequisite, so no new commitment can enter the bundle between mint and close. No unit percentage appears in Step 1 because units are incommensurable across commitments.
 
 ## 7. Coverage check
 

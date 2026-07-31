@@ -1,8 +1,7 @@
 import {
+  type Address,
   formatEnsNameForDisplay,
-  resolveAvatarUrl,
   useAuthState,
-  useEnsAvatar,
   useEnsName,
   useGardenerProfile,
   useUser,
@@ -12,6 +11,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { Profile as UserProfile } from "@/components/Features";
+import { ProfileAvatarEditor } from "@/components/Features/Profile/ProfileAvatarEditor";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { ProfileAccount } from "./Account";
 import { ProfileBadges } from "./Badges";
@@ -38,11 +38,10 @@ const Profile: React.FC = () => {
     requestedTab === "help" || requestedTab === "badges" ? requestedTab : "account";
   const [activeTab, setActiveTab] = useState<"account" | "badges" | "help">(initialTab);
 
-  const primaryAddress = user?.id;
+  const primaryAddress = user?.id as Address | undefined;
 
   // ENS resolution - called directly here since we're inside QueryClientProvider
   const { data: ensName } = useEnsName(primaryAddress);
-  const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress ?? undefined);
   const displayEnsName = formatEnsNameForDisplay(ensName);
 
   const fallbackDisplayName = intl.formatMessage({
@@ -57,10 +56,6 @@ const Profile: React.FC = () => {
   // Raw addresses are intentionally not part of the gardener-default identity surface;
   // they live behind the "Account details" disclosure on the Account tab.
   const displayName = profile?.name?.trim() || displayEnsName || userSetName || fallbackDisplayName;
-
-  const headerAvatar = profile?.imageURI
-    ? resolveAvatarUrl(profile.imageURI)
-    : ensAvatar || DEFAULT_AVATAR;
 
   const tabs: StandardTab[] = [
     {
@@ -96,8 +91,8 @@ const Profile: React.FC = () => {
         <div className="px-4 pt-6 pb-4">
           <UserProfile
             displayName={displayName}
-            avatar={headerAvatar}
-            isLoadingAvatar={isLoadingAvatar && !profile?.imageURI}
+            avatar={DEFAULT_AVATAR}
+            avatarAction={<ProfileAvatarEditor fallbackAvatar={DEFAULT_AVATAR} />}
             location={profile?.location?.trim() || undefined}
           />
         </div>

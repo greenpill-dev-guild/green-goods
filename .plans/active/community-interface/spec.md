@@ -9,7 +9,7 @@ Community members name what better looks like before any commitment exists. A **
 
 ---
 
-## 1. Canonical decisions (locked 2026-07-04, 2026-07-09, and 2026-07-21)
+## 1. Canonical decisions (locked 2026-07-04, 2026-07-09, 2026-07-21, and 2026-07-27)
 
 | # | Decision | Rationale |
 |---|---|---|
@@ -20,17 +20,20 @@ Community members name what better looks like before any commitment exists. A **
 | 5 | Fund action: embedded **direct donation + endowment** (same paths as `/fund`) in need context; **`FundingAttribution` attestation ships in v1** so funding-per-need is durable. Totals display on the need detail only — never board sort/rank. No per-need escrow; funding goes to the garden. | Funders never direct yield; ranked-by-funding is banned; Afo wants funding-per-need trackable. |
 | 6 | Voice: audio is always stored as evidence. Dictation with transcription on **both** the statement and desired-outcome steps; local/on-device first, server transcribe at flush as fallback (reuse agent transcription), never blocking submission. | Authorship barrier is the point; audio is the durable artifact, transcript the convenience. |
 | 7 | Discovery: **global read-only browse** of other gardens' needs for members and funders; my garden is the scoped default experience. Signal rights always same-garden (Community Hat). | Inspiration across gardens is powerful; the same-garden signal gate is the brigading guard. |
-| 8 | No claim flow in v1 (view / signal / confirm / testify). The need→operator binding is first-class instead: time-sensitive triage + seed-from-signal. Raise-hand ping parked (§16). | Matches PRD-682's locked cut; operators capture offers via analog capture. |
+| 8 | No claim flow in v1 (view / signal / confirm / testify). The need→operator binding is first-class instead: time-sensitive triage + seed-from-Need. Raise-hand ping parked (§16). | Matches PRD-682's locked cut; operators capture offers via analog capture. |
 | 9 | A Need has no Request/Offer/Initiative kind. It is the problem to address. **Request / Offer belongs only to the linked commitment's direction**, where it determines provider and confirmer behavior. Need domains are operator-applied, optional, and multi-valued (`uint8[] domains`, unique, max 4); commitments use the same optional multi-domain shape, with at least one domain required only for `DomainImpact`. | Avoids asking members to classify a problem as a form of help and removes duplicate direction vocabulary from the Need and commitment layers. |
 | 10 | The member join experience uses a **minimal garden-scoped service queue**: a passkey-account-signed request is stored by the agent and read by an operator, who uses the existing gardener-add transaction. `join-queue-spec.md` is the canonical design. RESR-64 still gates implementation on its operating record for controller, access, retention/deletion, encryption, recovery, abuse, cost, and incident ownership. | Keeps the request off-chain and off the permission boundary while giving members and operators one recoverable handoff; the operating record prevents personal-data policy from being assumed. |
 | 11 | Community ships as an independent PWA in **`packages/community`**, hosted at **`community.greengoods.app`** and served locally on **3010**. Before that package starts, generic runtime, auth/passkey, offline status, install/update, error, and shell foundations move into `@green-goods/shared`; client and Community consume the same foundations while retaining separate routes, navigation, manifests, service-worker scopes, telemetry identities, and copy. | Community needs a focused installed experience without cloning security- and lifecycle-sensitive client machinery. |
 | 12 | Need presentation has two independent axes: operator-written moderation (`none / acknowledged / merged / hidden / declined`) and commitment-derived progress (`open / committed / in-progress / addressed`). Retraction removes the Need from boards but preserves a content-free withdrawn tombstone wherever protocol lineage already references it. | Moderation must not erase progress, and a member's revocation must not break immutable commitment/evaluator lineage. |
+| 13 | PRD-758 is the Community Needs architecture gate for PRD-682. It must close before PRD-682 implementation, but it does not block PRD-721/722/723 or the core Commitment Pooling backend. | Keeps the September Community PWA behind its architecture decision without delaying independent Commitment Pooling backend execution. |
+| 14 | The **Needs** substrate uses four immutable EAS schemas across two trust-boundary resolvers. `CommunityNeedsResolver` serves `Need`, `NeedSignal`, and `NeedStatus`; `FundingAttributionResolver` remains separate. EAS `recipient` is the canonical garden, and every child schema references its Need through EAS `refUID`. | Four schema records preserve distinct payload, role, volume, and revocability guarantees. Two resolvers remove deployment/upgrade duplication without mixing the ungated funding branch into member/operator authorization. |
+| 15 | `NeedSignal` carries only `bool support`. The canonical current signal is the greatest unsigned `(timeCreated, uid)` per `(refUID, attester)`, selected before revocation/expiry filtering; a revoked or expired winner clears the signal without fallback. Switching writes a newer attestation, clearing revokes the winner, pending intents coalesce, and the UI shows separate support/non-support counts with no net score. | Keeps the schema minimal while making direction changes, offline convergence, and reader results deterministic and auditable. Separate counts avoid turning disagreement into a misleading ranking score. |
 
-Sub-decisions: (a) `Need` + `NeedSignal` are **revocable** — EAS revocation is attester-only, so this grants self-retraction and un-signal, nothing more; operator moderation is never revocation (§4). `NeedStatus` + `FundingAttribution` are non-revocable. (b) A later acknowledged status may reopen merged/hidden/declined only with a non-empty rationale. (c) FundingAttribution has no hat gate, is verified against canonical funding evidence, and one receipt displays at most once globally per `(chainId, txHash, rail)` (§10). (d) Status derivation is an app-side EAS/Envio join; Envio never indexes EAS. (e) A merge target is a typed `mergedIntoNeedUID`; `noteCID` never doubles as an identifier. (f) `need`, `needSignal`, and `testimony` are offline job kinds and may wait in `waiting_for_hat` without consuming retry attempts; `NeedStatus` and `FundingAttribution` remain online writes.
+Sub-decisions: (a) `Need` + `NeedSignal` are **revocable** — EAS revocation is attester-only, so this grants self-retraction and signal clearing, nothing more; operator moderation is never revocation (§4). `NeedStatus` + `FundingAttribution` are non-revocable. (b) A later acknowledged status may reopen merged/hidden/declined only with a non-empty rationale. (c) FundingAttribution has no hat gate, is verified against canonical funding evidence, and one receipt displays at most once globally per `(chainId, txHash, rail)` (§10). (d) Status derivation is an app-side EAS/Envio join; Envio never indexes EAS. (e) A merge target is a typed `mergedIntoNeedUID`; `noteCID` never doubles as an identifier. (f) `need`, `needSignal`, and `testimony` are offline job kinds and may wait in `waiting_for_hat` without consuming retry attempts; `NeedStatus` and `FundingAttribution` remain online writes.
 
 ## 2. Scope
 
-**In**: four exact EAS schemas + resolvers + append-only registration; prerequisite shared foundations; shared job kinds, hooks, joined reads, and voice; independent `packages/community` PWA; admin `/community` triage, pools, evaluator lineage/export, and gathering views; the minimal service-backed membership queue specified in `join-queue-spec.md` as a section of the existing Garden Manage Members dialog once its RESR-64 operating gate clears; funder discovery in existing client public garden/impact/funding surfaces; paymaster policy extension; docs; TAS dogfood instrumentation; research and operator-onboarding operations in `research-plan.md`.
+**In**: four exact EAS schemas across two resolvers + append-only registration; prerequisite shared foundations; shared job kinds, hooks, joined reads, and voice; independent `packages/community` PWA; admin `/community/needs` triage, moderation, gathering, seed-from-Need, and Need lineage/export; existing `/community/coordination` pool/cycle operations; the minimal service-backed membership queue specified in `join-queue-spec.md` as a section of the existing `/community/members` Manage Members dialog once its RESR-64 operating gate clears; funder discovery in existing client public garden/impact/funding surfaces; paymaster policy extension; docs; TAS dogfood instrumentation; research and operator-onboarding operations in `research-plan.md`.
 
 **Out (deferred, §16)**: eligibility module, raise-hand ping, on-chain seeding gate, push notifications, deeper on-chain funding, ActionSignalPool wiring, solution objects, claim flow, settlement anything.
 
@@ -38,58 +41,54 @@ Sub-decisions: (a) `Need` + `NeedSignal` are **revocable** — EAS revocation is
 
 ### 3.1 Exact EAS schemas
 
-Every attestation sets EAS `recipient` to the garden account. The encoded `garden` field, where present, must equal `recipient`; the duplicate is intentional so payloads remain self-describing outside EAS. Schema field order is immutable once registered.
+Every attestation sets EAS `recipient` to the garden account. The EAS envelope is canonical: readers normalize `garden = recipient`, and child attestations normalize `needUID = refUID`. Custom data does not duplicate either relationship. All four schemas use `expirationTime = 0` in v1. Schema field order is immutable once registered.
 
 **`Need`** — attester: member smart account (the author); revocable **true** (self-retraction only).
 
 ```text
-address garden,string statementCID,string desiredOutcomeCID,uint8 horizon,string mediaCID
+string statementCID,string desiredOutcomeCID,uint8 horizon,string mediaCID
 ```
 
 | Field | Type | Purpose |
 |---|---|---|
-| `garden` | `address` | Garden TBA; scopes the Community Hat check and the board. |
 | `statementCID` | `string` | IPFS: statement text + optional audio CID + transcript + `transcriptionSource` (`none\|dictation\|server`). |
 | `desiredOutcomeCID` | `string` | IPFS: mandatory desired outcome (text + optional audio + transcript). Locked framing: a need always arrives paired with what better looks like. |
 | `horizon` | `uint8` | 0 week, 1 month, 2 season, 3 years. Routes (§6), does not just describe. |
 | `mediaCID` | `string` | Optional photos manifest; `""` = none. In-step attachment, never a separate step. |
 
-No domain field — domains are optional protocol vocabulary the operator tags at triage (`NeedStatus`). No `author` field — the attester is the author.
+No garden, domain, or author field — EAS `recipient` is the garden, domains are operator-applied in `NeedStatus`, and `attester` is the author. A root Need must use `refUID = 0`.
 
-**`NeedSignal`** — attester: member smart account; revocable **true** (un-signal). EAS `refUID` also set to `needUID`.
+**`NeedSignal`** — attester: member smart account; revocable **true** (clear signal). EAS `refUID` is the Need UID.
 
 ```text
-bytes32 needUID,address garden
+bool support
 ```
 
 | Field | Type | Purpose |
 |---|---|---|
-| `needUID` | `bytes32` | The Need being supported. |
-| `garden` | `address` | Same-garden enforcement (resolver checks signer wears THIS garden's Community Hat). |
+| `support` | `bool` | `true` = support; `false` = do not support. Switching direction writes a newer attestation. |
 
-**`NeedStatus`** — attester: operator; revocable **false**. The greatest tuple `(timeCreated, uid)` wins reader-side, comparing UID as an unsigned `bytes32` when timestamps tie; multiple attestations over a Need's life are expected.
+**`NeedStatus`** — attester: operator; revocable **false**. EAS `refUID` is the Need UID. The greatest tuple `(timeCreated, uid)` wins reader-side, comparing UID as an unsigned `bytes32` when timestamps tie; multiple attestations over a Need's life are expected.
 
 ```text
-bytes32 needUID,uint8 status,uint8[] domains,bytes32 mergedIntoNeedUID,string noteCID
+uint8 status,uint8[] domains,bytes32 mergedIntoNeedUID,string noteCID
 ```
 
 | Field | Type | Purpose |
 |---|---|---|
-| `needUID` | `bytes32` | The Need. |
 | `status` | `uint8` | Moderation: 1 acknowledged · 2 merged · 3 hidden · 4 declined. No status attestation means `none`. |
 | `domains` | `uint8[]` | Optional operator tags using the existing 0–3 domain enum. Empty is valid; entries must be unique; max length 4. Readers preserve the latest acknowledged domains even when later moderation statuses omit them. |
 | `mergedIntoNeedUID` | `bytes32` | Required and non-zero only for status 2 (merged); zero for acknowledge/hide/decline. References another valid Need in the same garden. |
 | `noteCID` | `string` | Human rationale. Required for merge/hide/decline and when acknowledge reopens any of those states; `""` allowed only for the first acknowledge or a repeated acknowledge. Never parsed as an identifier. |
 
-**`FundingAttribution`** — attester: funder wallet (app-composed, post-tx); revocable **false**; no hat gate.
+**`FundingAttribution`** — attester: funder wallet (app-composed, post-tx); revocable **false**; no hat gate. EAS `refUID` is the Need UID.
 
 ```text
-bytes32 needUID,uint256 chainId,bytes32 txHash,address token,uint256 amount,uint8 rail
+uint256 chainId,bytes32 txHash,address token,uint256 amount,uint8 rail
 ```
 
 | Field | Type | Purpose |
 |---|---|---|
-| `needUID` | `bytes32` | The Need this funding was given toward. |
 | `chainId` | `uint256` | Chain on which the funding receipt exists; required because transaction hashes are not globally unique. |
 | `txHash` | `bytes32` | The donation/deposit transaction being attributed. |
 | `token` | `address` | Asset funded. |
@@ -98,64 +97,86 @@ bytes32 needUID,uint256 chainId,bytes32 txHash,address token,uint256 amount,uint
 
 ### 3.2 Resolver ABI, storage, and validation contract
 
-All four are `SchemaResolver + OwnableUpgradeable + UUPSUpgradeable`, non-payable, and use flat-tuple `abi.decode`. Hat checks call `IGardenAccessControl` on the recipient garden; garden existence calls immutable `IGardensModule.isGardenInitialized(recipient)`. They never call Hats directly.
+Both are `SchemaResolver + OwnableUpgradeable + UUPSUpgradeable`, non-payable, and use flat-tuple `abi.decode`. Hat checks call `IGardenAccessControl` on the recipient garden; garden existence calls immutable `IGardensModule.isGardenInitialized(recipient)`. They never call Hats directly.
 
 Exact external/configuration ABI (EAS calls inherited resolver entrypoints; `onAttest`/`onRevoke` remain internal overrides):
 
 ```solidity
-interface INeedResolverConfig {
-    event SchemaUIDUpdated(bytes32 indexed oldUID, bytes32 indexed newUID);
+interface ICommunityNeedsResolverConfig {
+    event SchemaUIDsUpdated(
+        bytes32 indexed oldNeedUID,
+        bytes32 indexed newNeedUID,
+        bytes32 oldSignalUID,
+        bytes32 newSignalUID,
+        bytes32 oldStatusUID,
+        bytes32 newStatusUID
+    );
     // implementation constructor: constructor(address eas, address gardensModule)
     function initialize(address owner_) external;
-    function setSchemaUID(bytes32 uid) external;
-    function schemaUID() external view returns (bytes32);
+    function setSchemaUIDs(bytes32 needUID, bytes32 signalUID, bytes32 statusUID) external;
+    function needSchemaUID() external view returns (bytes32);
+    function needSignalSchemaUID() external view returns (bytes32);
+    function needStatusSchemaUID() external view returns (bytes32);
     function GARDENS_MODULE() external view returns (address);
     function isPayable() external pure returns (bool);
 }
 
-interface INeedReferenceResolverConfig is INeedResolverConfig {
-    event NeedSchemaUIDUpdated(bytes32 indexed oldUID, bytes32 indexed newUID);
-    function setNeedSchemaUID(bytes32 uid) external;
+interface IFundingAttributionResolverConfig {
+    event SchemaUIDsUpdated(
+        bytes32 indexed oldNeedUID,
+        bytes32 indexed newNeedUID,
+        bytes32 oldFundingUID,
+        bytes32 newFundingUID
+    );
+    // implementation constructor: constructor(address eas, address gardensModule)
+    function initialize(address owner_) external;
+    function setSchemaUIDs(bytes32 needUID, bytes32 fundingUID) external;
     function needSchemaUID() external view returns (bytes32);
-}
-
-interface IFundingAttributionResolverConfig is INeedReferenceResolverConfig {
+    function fundingAttributionSchemaUID() external view returns (bytes32);
     event NativeDirectFundingPolicyUpdated(uint256 indexed chainId, bool allowed);
     function setNativeDirectFundingAllowed(uint256 chainId, bool allowed) external;
     function nativeDirectFundingAllowed(uint256 chainId) external view returns (bool);
+    function GARDENS_MODULE() external view returns (address);
+    function isPayable() external pure returns (bool);
 }
 ```
 
-Every setter and `_authorizeUpgrade` is `onlyOwner`; constructors call `_disableInitializers`; `initialize` rejects zero owner, calls `__Ownable_init`, and transfers ownership. UID zero is allowed only during the deploy/register transaction window and every post-deploy check requires both own and dependent UIDs non-zero. Exact setter events include old and new values. NeedResolver stores `schemaUID` and reserves `[49]`; Signal stores `schemaUID` + `needSchemaUID` and reserves `[48]`; Funding stores those two UIDs plus `mapping(uint256 => bool) nativeDirectFundingAllowed` and reserves `[47]`.
-
-NeedStatus stores its two UIDs plus:
+Every setter and `_authorizeUpgrade` is `onlyOwner`; constructors call `_disableInitializers`; `initialize` rejects zero owner, calls `__Ownable_init`, and transfers ownership. Each atomic UID setter rejects zero values and pairwise equality before mutating storage. `CommunityNeedsResolver` stores the three schema UIDs plus:
 
 ```solidity
 struct ModerationHead { uint64 timeCreated; bytes32 uid; uint8 status; }
 mapping(bytes32 needUID => ModerationHead) moderationHead;
 ```
 
-and reserves `[47]`. Before validating an acknowledgement rationale, the resolver reads the current canonical head. After validation it replaces the head only when `(attestation.time, attestation.uid)` is lexicographically greater, treating UID as unsigned bytes32. Thus on-chain reopen validation and reader ordering use the same tie-break even for same-timestamp attestations.
+and reserves `[46]`. `FundingAttributionResolver` stores the Need and FundingAttribution schema UIDs plus `mapping(uint256 => bool) nativeDirectFundingAllowed` and reserves `[47]`. Generated storage-layout baselines remain the final authority. Before validating an acknowledgement rationale, the Community resolver reads `moderationHead[attestation.refUID]`. After validation it replaces the head only when `(attestation.time, attestation.uid)` is lexicographically greater, treating UID as unsigned bytes32. Thus on-chain reopen validation and reader ordering use the same tie-break even for same-timestamp attestations.
 
-Validation order is schema → garden/recipient → referenced Need → role → required fields → enum/relationship rules:
+Validation order is schema → envelope → garden/recipient → referenced Need → role → required fields → enum/relationship rules. Unknown schema branches fail closed. Every branch requires `expirationTime == 0` and the per-attestation `revocable` flag to match the registered policy:
 
-- **NeedResolver**: recipient is initialized; encoded garden equals recipient; attester is Community; statement/outcome CIDs non-empty; horizon `0..3`. `onRevoke` returns true.
-- **NeedSignalResolver**: recipient initialized; encoded garden equals recipient; referenced UID is a non-revoked Need under `needSchemaUID` for the same recipient; attester is Community. No resolver-level duplicate storage; readers count distinct active attesters. `onRevoke` returns true.
-- **NeedStatusResolver**: referenced UID is a non-revoked same-garden Need; attester is Operator; status `1..4`; at most four unique domains, each `0..3`; merge requires a non-zero, non-self, non-revoked same-garden Need and all other statuses require a zero merge target; merge/hide/decline require `noteCID`; acknowledge after canonical `moderationHead.status` 2/3/4 also requires `noteCID`. A successful attest updates `moderationHead[needUID]` only when its `(timeCreated, uid)` tuple wins. `onRevoke` returns false.
-- **FundingAttributionResolver**: referenced UID is a non-revoked same-garden Need; `chainId != 0`, `txHash != 0`, `amount > 0`, rail `0..1`. `token == address(0)` is allowed only for rail 0 when `nativeDirectFundingAllowed[chainId] == true`; rail 1 always requires a non-zero token. No hat gate and no on-chain receipt oracle. `onRevoke` returns false; the joined reader applies §10 verification before display.
+- **Need branch**: `refUID == 0`; recipient is initialized; attester is Community; statement/outcome CIDs non-empty; horizon `0..3`; attestation is revocable. `onRevoke` returns true only for this schema.
+- **NeedSignal branch**: `refUID != 0`; referenced attestation exists, has the exact Need schema, has the same recipient, and is neither revoked nor expired; recipient is initialized; attester is Community; decode only `bool support`; attestation is revocable. No resolver-level duplicate storage. `onRevoke` returns true only for this schema.
+- **NeedStatus branch**: the same exact live Need reference checks; attester is Operator; status `1..4`; at most four unique domains, each `0..3`; merge requires a non-zero, non-self, live same-garden Need and all other statuses require a zero merge target; merge/hide/decline require `noteCID`; acknowledge after canonical `moderationHead.status` 2/3/4 also requires `noteCID`; attestation is non-revocable. A successful attest updates `moderationHead[attestation.refUID]` only when its `(timeCreated, uid)` tuple wins. `onRevoke` returns false.
+- **FundingAttribution resolver**: accepts only its configured FundingAttribution schema; applies the same exact live Need reference checks; requires `chainId != 0`, `txHash != 0`, `amount > 0`, rail `0..1`; `token == address(0)` is allowed only for rail 0 when `nativeDirectFundingAllowed[chainId] == true`; rail 1 always requires a non-zero token; attestation is non-revocable. No hat gate and no on-chain receipt oracle. `onRevoke` returns false; the joined reader applies §10 verification before display.
 
 Canonical custom errors, including argument types, are:
 
 ```solidity
 error InvalidGarden(address garden);
-error GardenMismatch(address encodedGarden, address recipient);
+error InvalidSchemaUID(bytes32 uid);
+error DuplicateSchemaUID(bytes32 uid);
+error RootReferenceForbidden(bytes32 refUID);
+error ReferenceRequired();
+error InvalidReference(bytes32 refUID);
+error ReferenceSchemaMismatch(bytes32 refUID, bytes32 expectedSchema, bytes32 actualSchema);
+error ReferenceGardenMismatch(bytes32 refUID, address expectedGarden, address actualGarden);
+error ReferenceRevoked(bytes32 refUID);
+error ReferenceExpired(bytes32 refUID, uint64 expirationTime);
+error ExpirationNotAllowed(uint64 expirationTime);
+error InvalidRevocability(bool expected, bool actual);
 error NotCommunityMember(address attester, address garden);
 error NotGardenOperator(address attester, address garden);
 error StatementRequired();
 error DesiredOutcomeRequired();
 error InvalidHorizon(uint8 horizon);
-error InvalidNeed(bytes32 needUID);
-error NeedGardenMismatch(bytes32 needUID, address expectedGarden, address actualGarden);
 error InvalidModeration(uint8 status);
 error TooManyDomains(uint256 supplied);
 error InvalidDomain(uint8 domain);
@@ -180,13 +201,13 @@ Existing `InvalidSchema()` remains shared. Resolver tests assert the selector fo
 
 The planned `need-schemas` deploy target performs this exact sequence:
 
-1. deploy four implementations and ERC1967 proxies with `(EAS, gardensModule)` constructor immutables and `initialize(multisig)` calldata;
-2. register each exact schema with its proxy resolver and declared revocability;
-3. call each own-UID setter and each dependent resolver's `setNeedSchemaUID`; apply the reviewed `nativeDirectFundingAllowed` chain map to FundingAttributionResolver (empty/false by default);
-4. merge top-level proxy keys `needResolver`, `needSignalResolver`, `needStatusResolver`, `fundingAttributionResolver` plus exact nested keys `schemas.needSchema`, `schemas.needSchemaUID`, `schemas.needSignalSchema`, `schemas.needSignalSchemaUID`, `schemas.needStatusSchema`, `schemas.needStatusSchemaUID`, `schemas.fundingAttributionSchema`, and `schemas.fundingAttributionSchemaUID` into `deployments/{chainId}-latest.json` without replacing sibling keys;
-5. verify proxy implementation/owner, non-zero UIDs, EAS registry schema string/resolver/revocability, GardensModule address, storage-layout checks, and one valid/invalid attestation per resolver.
+1. deploy two implementations and ERC1967 proxies with `(EAS, gardensModule)` constructor immutables and `initialize(multisig)` calldata;
+2. register Need, NeedSignal, and NeedStatus with the Community resolver and FundingAttribution with the Funding resolver, preserving each declared revocability;
+3. call `CommunityNeedsResolver.setSchemaUIDs(need, signal, status)` and `FundingAttributionResolver.setSchemaUIDs(need, funding)`; apply the reviewed `nativeDirectFundingAllowed` chain map to FundingAttributionResolver (empty/false by default);
+4. merge top-level proxy keys `communityNeedsResolver` and `fundingAttributionResolver` plus exact nested keys `schemas.needSchema`, `schemas.needSchemaUID`, `schemas.needSignalSchema`, `schemas.needSignalSchemaUID`, `schemas.needStatusSchema`, `schemas.needStatusSchemaUID`, `schemas.fundingAttributionSchema`, and `schemas.fundingAttributionSchemaUID` into `deployments/{chainId}-latest.json` without replacing sibling keys;
+5. verify proxy implementation/owner, exact non-zero pairwise-distinct UIDs, EAS registry schema string/resolver/revocability, GardensModule address, storage-layout checks, and one valid/invalid attestation per schema branch.
 
-Dry-run and broadcast entrypoints are `bun script/deploy.ts need-schemas --network sepolia --dry-run --pure-simulation`, then the same target with `--broadcast`; Arbitrum broadcast stays gated on verified Sepolia artifacts. Required targeted proof is `bun run --filter @green-goods/contracts test:match -- test/unit/NeedResolvers.t.sol`, `bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol`, `bun run --filter @green-goods/contracts test:script`, and `bun run --filter @green-goods/contracts verify:post-deploy:sepolia`. `NeedResolvers.t.sol` maps every custom error, old/new setter event, revocation rule, native-token policy, canonical moderation tie-break/reopen rule, and initializer/UUPS authorization. The contracts lane remains blocked until the Commitment Pooling standalone registration helper implementation/interface is frozen; the append-only policy and this handoff are no longer blockers by themselves.
+Dry-run and broadcast entrypoints are `bun script/deploy.ts need-schemas --network sepolia --dry-run --pure-simulation`, then the same target with `--broadcast`; Arbitrum broadcast stays gated on verified Sepolia artifacts. Human review of the exact transaction plan, the pure-simulation dry run, and fresh-chain deployment/registration proof are blocking prerequisites before schema registration may proceed on any target chain. Pre-broadcast proof is `bun run --filter @green-goods/contracts test:match -- test/unit/NeedResolvers.t.sol`, `bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol`, `bun run --filter @green-goods/contracts test:script`, `bun run --filter @green-goods/contracts lint:check`, and `bun run --filter @green-goods/contracts build:full`. After broadcast, reread `deployments/{chainId}-latest.json` from disk and verify the persisted proxy keys, exact schema strings and UIDs, and dependent resolver configuration on-chain before treating registration as complete. `NeedResolvers.t.sol` maps every custom error, atomic UID event/configuration rule, envelope/reference/revocability rule, native-token policy, canonical moderation tie-break/reopen rule, and initializer/UUPS authorization. The contracts lane remains blocked until the Commitment Pooling standalone registration helper implementation/interface is frozen; the append-only policy and this handoff are no longer blockers by themselves.
 
 ## 4. Two-axis lifecycle and joined-read ownership
 
@@ -210,7 +231,7 @@ Progress is monotonic evidence lineage: choose the highest reached value across 
 
 **Read path (hard boundary: Envio never indexes EAS).** Shared owns one joined-read service and hook family:
 
-1. EAS GraphQL supplies Need, NeedSignal, NeedStatus, Testimony, and FundingAttribution attestations. Need/Signal lists filter revoked records; the lineage lookup retains only the tombstone for a revoked referenced Need. Signal counts use distinct active attesters.
+1. EAS GraphQL supplies Need, NeedSignal, NeedStatus, Testimony, and FundingAttribution attestations. Need lists may filter revoked roots for boards, while NeedSignal reads must retain revoked records for canonical winner selection. The lineage lookup retains only the tombstone for a revoked referenced Need. Readers normalize garden from `recipient` and child Need UID from `refUID`.
 2. Envio supplies Green Goods Commitment/Work/Approval/Assessment/Hypercert entities plus the protocol-event-derived `NeedCommitmentIndex` frozen in the Commitment Pooling contract spec. Its ID is `${chainId}-${lowercaseNeedUID}` and every stored relationship is a composite entity ID; no EAS or raw funding transfer indexing is added for this feature.
 3. The funding-proof adapter joins the existing public funding-intent receipt for direct funding and the canonical GardenVault deposit entity/receipt for endowments (§10).
 
@@ -228,15 +249,15 @@ Three steps, mirroring the MDR draft grammar (`DraftStep` precedent `intro|media
 
 **Transcription strategy (decision 6).** Local first: Web Speech dictation during capture (on-device recognition where the language pack exists — availability is user-agent/device dependent, es/pt offline not guaranteed; a feasibility spike on TAS-class Android devices is part of the shared workstream, including whether a WASM route is viable). Fallback: at queue flush, if the payload has audio but no text and the device is online, one **pre-attest server transcription call** (reusing the agent package's existing transcription capability behind a small authenticated endpoint); on any failure or timeout the attestation proceeds audio-only — transcription never blocks. Because `statementCID` is immutable once attested, the reviewed-transcript rule is: text captured live (typed or dictated, member-editable in `editing`) rides the CID; a flush-time server transcript rides the CID marked `transcriptionSource: "server"`; anything transcribed after attestation is display-layer only and labeled auto-generated. Subtitle-first: every audio clip renders with its transcript or an explicit "audio only" chip.
 
-**Queue behavior.** The shared queue adds `need`, `needSignal`, and `testimony` kinds with versioned payload schemas; NeedStatus and FundingAttribution stay online-only. All three member kinds may enter **`waiting_for_hat`** before any network attempt, consume no retry attempt while waiting, persist across app restarts, expose Cancel/Delete, and resume with the full five-attempt budget only after the Community Hat is observed. A revoked/expired local account, rejected membership request, deleted draft, or user cancellation is terminal and removes the optimistic card. Network, sponsorship, upload, transcription, and resolver failures retain the draft plus a plain-language Retry/Edit path; transcription failure proceeds audio-only and never blocks the attestation. Queue analytics contain kind/state/error-class counts only.
+**Queue behavior.** The shared queue adds `need`, `needSignal`, and `testimony` kinds with versioned payload schemas; NeedStatus and FundingAttribution stay online-only. All three member kinds may enter **`waiting_for_hat`** before any network attempt, consume no retry attempt while waiting, persist across app restarts, expose Cancel/Delete, and resume with the full five-attempt budget only after the Community Hat is observed. Pending `needSignal` writes coalesce durably by `(chainId, garden, needUID, attester)`: a later direction replaces an unsent one and resets attempts/backoff; clear removes an unsent local signal when no on-chain winner exists, otherwise it queues revocation of the winning signal UID. An older queued direction can never flush after a newer intent. A revoked/expired local account, rejected membership request, deleted draft, or user cancellation is terminal and removes the optimistic card. Network, sponsorship, upload, transcription, and resolver failures retain the draft plus a plain-language Retry/Edit path; transcription failure proceeds audio-only and never blocks the attestation. Queue analytics contain kind/state/error-class counts only.
 
 ## 6. Signal mechanics and horizon routing
 
-A signal is a `NeedSignal` attestation — lightweight, sponsored, offline-queueable (`needSignal` job kind), revocable to un-signal. Counted as distinct attesters (§4). Signal button active only for the need's own garden's Community Hat wearers; global browse is read-only (§8).
+A signal is a `NeedSignal` attestation — lightweight, sponsored, offline-queueable (`needSignal` job kind), and revocable to clear. Canonical state is the greatest unsigned `(timeCreated, uid)` per `(refUID, attester)`, selected before revoked/expired filtering. If the winner is revoked or expired, the member has no current signal and no older direction is resurrected. Otherwise `support=true` contributes to support and `support=false` contributes to non-support. Switching direction creates a newer attestation; clearing revokes the winner. The UI displays the two counts separately and never derives a net score. Signal controls are active only for the Need's own garden's Community Hat wearers; global browse is read-only (§8).
 
 Horizon routes:
 - **Week (time-sensitive)** → straight to the operator triage queue as an alert; no signal accumulation gate.
-- **Month+** → signals accumulate toward the cycle-2 seeding gate: the seeding console's signals panel (amended PRD-683) orders by support count + recency, alphabetical tiebreak, no contributor rankings; **seed-from-signal** prefills the commitment form and sets `needUID`. Confirmation defaults follow commitment direction: a Request defaults to the Need author/commitment creator, while an Offer waits for the accepted recipient; the accepted provider is never retained in a named group, and acceptance fails if provider exclusion makes the threshold unreachable. The gate is a workflow, not a contract rule — signals inform, nothing on-chain blocks seeding. Traceability recorded ("seeded from need" chip; share-of-commitments-carrying-needUID per cycle).
+- **Month+** → signals accumulate toward the cycle-2 seeding gate: the seeding console's Needs panel orders by support count + recency, alphabetical tiebreak, exposes non-support separately, and never subtracts it into a net rank; **seed-from-Need** prefills the commitment form and sets `needUID`. Confirmation defaults follow commitment direction: a Request defaults to the Need author/commitment creator, while an Offer waits for the accepted recipient; the accepted provider is never retained in a named group, and acceptance fails if provider exclusion makes the threshold unreachable. The gate is a workflow, not a contract rule — signals inform, nothing on-chain blocks seeding. Traceability recorded ("seeded from need" chip; share-of-commitments-carrying-needUID per cycle).
 
 Distinct from yield conviction (HypercertSignalPool) — the two never mix. ActionSignalPool stays dormant (§16).
 
@@ -260,13 +281,14 @@ Hosted at `community.greengoods.app` and locally at `http://localhost:3010`. Thr
 
 Confirmations inbox and testimony history live in Profile (uiux-spec §8 grammar preserved). No work submission, no claiming, no wallet drawer, no settlement surface.
 
-## 9. Admin `/community` workspace
+## 9. Admin `/community/needs` mode and coordination boundary
 
+- **Route ownership is closed**: `/community/needs` is the fifth route-level `AdminTabRail` mode and owns every Need-specific operator/evaluator surface: triage, moderation/reopen, the selected-Need inspector, gathering, seed-from-Need, and Need-filtered lineage/export. Existing `/community/coordination` retains pool and cycle operations. The implementation must not expand the existing catch-all `CommunityTab` branch or duplicate either responsibility across both modes.
 - **Need triage queue**: incoming community problems and desired outcomes; week-horizon items grouped first without countdown language; **acknowledge/reopen** (NeedStatus 1 + zero or more unique domains; reopening requires a rationale), **decline** (4 + rationale), **merge** (2 + same-garden target + rationale), and **hide** (3 + rationale). Status writes are online actions with loading, rejected-signature, transaction-failed, stale-read, and retry states.
 - **Private-lane intake**: grievances naming individuals never touch the chain — an off-chain note channel to the operator, attested later only if generalized into a need. v1 = documented operator practice + a "capture privately" affordance that stores nothing on-chain.
 - **Need-to-commitment linking at seeding**: the PRD-683 signals panel + seed-from-need prefill sets `needUID`, copies optional domains, and applies the direction-aware confirmation default above; the operator confirms all seed fields and sees the provider-exclusion/unreachable-threshold validation before acceptance.
-- **Membership queue**: the service-backed flow in `join-queue-spec.md` appears as **Waiting to join** inside the existing Garden Manage Members dialog only after the RESR-64 operating gate. `/community` does not gain this queue. Do not implement an implicit localStorage, Linear, or public-chain queue.
-- **Pools and evaluator lineage/export**: pool/cycle operations and read-only Need→Commitment→Work→Approval→Assessment→Testimony→Hypercert lineage live under `/community`, not a new top-level `/pools` route. Export is specified in §11.
+- **Membership queue**: the service-backed flow in `join-queue-spec.md` appears as **Waiting to join** inside the existing `/community/members` Manage Members dialog only after the RESR-64 operating gate. `/community/needs` does not gain this queue. Do not implement an implicit localStorage, Linear, or public-chain queue.
+- **Coordination and lineage**: pool/cycle operations remain in `/community/coordination`; read-only Need→Commitment→Work→Approval→Assessment→Testimony→Hypercert lineage and export live in `/community/needs`. No new top-level `/pools` or `/needs` root is introduced. Export is specified in §11.
 - **"For the gathering" view**: pending confirmations + recent status changes + fresh needs, print-legible — the operator is the human notification layer; the physical gathering is the loop, not push.
 
 ## 10. Funder lens (client public views, editorial system)
@@ -288,15 +310,15 @@ These are **two separate responsive applications**, not one surface with device-
 - `bytes32 needUID` on the commitment record (0 = none), `CreateCommitmentParams`, and `CommitmentCreated` event — **amended into the August contract-spec 2026-07-04** (additive reference field beside `assessmentUID`; no state-machine change). A commitment can carry both: anchored to an assessment (baseline), motivated by a need.
 - `uint8[] domains` is optional on both the operator's latest acknowledged NeedStatus and the linked commitment. The commitment copies suggested domains only as a prefill; its final domain/action scope is explicitly confirmed at seeding. Cross-domain DomainImpact commitments pair each domain with one registered, domain-matching action UID; UID `0` remains valid because array presence, not a numeric sentinel, expresses binding.
 - Cycle Hypercert metadata and the Envio Hypercert entity persist `needUIDs` as the ascending, unique, non-zero UIDs carried by fulfilled commitments in the bundle, alongside composite `commitmentEntityIds`; `NeedCommitmentIndex.hypercertEntityIds` supplies the reverse lookup. Retraction preserves the UID but exports only the withdrawn tombstone. Community testimony is offline-queueable witness evidence and never gates payout.
-- Admin `/community` offers read-only CSV and JSON export over the same joined view. Each row/object includes `needUID`, `garden`, moderation, progress, retracted flag, commitment composite ID/state, Work/Approval/Assessment/Testimony UIDs, cycle/Hypercert ID, funding chain/tx/rail/verification state, and source URLs. Text/media CIDs appear only when the viewer already has access; wallet addresses, join identities, and research contacts never export. CSV uses one lineage edge per row; JSON nests edges. Partial-source exports are blocked with an explicit Retry rather than emitting incomplete evidence.
+- Admin `/community/needs` offers read-only CSV and JSON export over the same joined view. Each row/object includes `needUID`, `garden`, moderation, progress, retracted flag, commitment composite ID/state, Work/Approval/Assessment/Testimony UIDs, cycle/Hypercert ID, funding chain/tx/rail/verification state, and source URLs. Text/media CIDs appear only when the viewer already has access; wallet addresses, join identities, and research contacts never export. CSV uses one lineage edge per row; JSON nests edges. Partial-source exports are blocked with an explicit Retry rather than emitting incomplete evidence.
 
 ## 12. Metrics and instrumentation (no leaderboards)
 
 PostHog routing: community app + funder lens → App (163591); admin triage → Admin (262122). Properties are enums/counts/booleans only — never statement text, addresses, or reporter identity.
 
-Events: `need_created {horizon, domain_count: 0, has_audio, has_photos, transcription_source}` · `need_signal_created` / `need_signal_revoked` · `need_status_set {status, domain_count}` (admin) · `need_detail_viewed {is_author}` · `eligible_confirmation_completed {direction, confirmer_role}` · `testimony_attested` · `fund_from_need {rail}` · `funding_attribution_recorded {rail, verified}` · `seeded_from_need {domain_count}` (admin) · `need_merged` (admin). Offline queue health rides existing job analytics automatically. Domain values, statements, addresses, and join identities never enter analytics.
+Events: `need_created {horizon, domain_count: 0, has_audio, has_photos, transcription_source}` · `need_signal_set {support}` · `need_signal_cleared` · `need_status_set {status, domain_count}` (admin) · `need_detail_viewed {is_author}` · `eligible_confirmation_completed {direction, confirmer_role}` · `testimony_attested` · `fund_from_need {rail}` · `funding_attribution_recorded {rail, verified}` · `seeded_from_need {domain_count}` (admin) · `need_merged` (admin). Offline queue health rides existing job analytics automatically. Domain values, statements, addresses, and join identities never enter analytics.
 
-Derived measures (TAS dogfood): needs raised/addressed per garden per cycle; time-to-acknowledge (Need → first NeedStatus); signal participation (distinct signalers ÷ Community Hat wearers); share of commitments carrying `needUID`; author return visits; eligible direction-aware confirmation participation; funding attributed per need. Benchmark: if under a threshold share of cycle-2 commitments carry a needUID, tighten the signals panel or the gathering ritual before adding machinery.
+Derived measures (TAS dogfood): needs raised/addressed per garden per cycle; time-to-acknowledge (Need → first NeedStatus); signal participation (members with a current support or non-support signal ÷ Community Hat wearers); separate support/non-support counts; share of commitments carrying `needUID`; author return visits; eligible direction-aware confirmation participation; funding attributed per need. Benchmark: if under a threshold share of cycle-2 commitments carry a needUID, tighten the signals panel or the gathering ritual before adding machinery.
 
 ## 13. i18n and accessibility
 

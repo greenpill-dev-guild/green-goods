@@ -21,6 +21,8 @@
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
+- Settlement and ProtocolToGarden funding remain online authority-gated mutations; neither is a
+  sixth offline job, per-device attempt, or background queue.
 - Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
   rail/source/token/amount, evidence, and timing. DomainImpact creation never accepts caller-authored

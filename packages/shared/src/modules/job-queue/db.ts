@@ -6,8 +6,9 @@ import {
   deserializeFile,
   serializeFile,
 } from "../../utils/storage/file-serialization";
-import { addBreadcrumb, trackStorageError } from "../app/error-tracking";
+import { addBreadcrumb } from "../app/error-tracking";
 import { createLogger } from "../app/logger";
+import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
 const log = createLogger({ source: "job-queue/db" });
@@ -202,14 +203,9 @@ class JobQueueDatabase {
         const fileData = await serializeFile(file);
         serializedFiles.push({ file, fileData });
       } catch (serializeError) {
-        // Track serialization failure with detailed context
-        trackStorageError(serializeError, {
-          source: "JobQueueDatabase.addJob",
-          userAction: "serializing file for IndexedDB storage",
-          metadata: {
-            ...buildFileMetadata(file, id),
-            job_kind: job.kind,
-          },
+        trackPrivateQueueEvent("job_queue_file_serialization_failed", {
+          ...buildFileMetadata(file),
+          job_kind: job.kind,
         });
         throw serializeError;
       }
@@ -217,7 +213,6 @@ class JobQueueDatabase {
 
     // Add breadcrumb for debugging
     addBreadcrumb("job_files_serialized", {
-      job_id: id,
       file_count: serializedFiles.length,
       total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
     });
@@ -250,18 +245,10 @@ class JobQueueDatabase {
         // Transaction may already be aborted; ignore error
       }
 
-      // Track IndexedDB storage failure with detailed context
-      trackStorageError(error, {
-        source: "JobQueueDatabase.addJob",
-        userAction: "storing job and images in IndexedDB",
-        metadata: {
-          job_id: id,
-          job_kind: job.kind,
-          file_count: serializedFiles.length,
-          total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
-          error_name: error instanceof Error ? error.name : "Unknown",
-          error_message: error instanceof Error ? error.message : String(error),
-        },
+      trackPrivateQueueEvent("job_queue_storage_failed", {
+        job_kind: job.kind,
+        file_count: serializedFiles.length,
+        total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
       });
 
       // Ensure we don't leak object URLs for a job that never persisted.

@@ -185,6 +185,20 @@ describe("AppBar", () => {
     expect(onOpenProfile).toHaveBeenCalledOnce();
   });
 
+  it("renders an optional profile image in the existing profile control", () => {
+    render(
+      <AppBar
+        gardenChip={<span>Chip</span>}
+        onOpenProfile={() => {}}
+        profileImageSrc="https://example.com/avatar.webp"
+      />
+    );
+
+    const image = document.querySelector('[data-slot="profile-image"]');
+    expect(image).toHaveAttribute("src", "https://example.com/avatar.webp");
+    expect(image).toHaveAttribute("alt", "");
+  });
+
   // --------------------------------------------------------------------------
   // Focus-visible ring
   // --------------------------------------------------------------------------

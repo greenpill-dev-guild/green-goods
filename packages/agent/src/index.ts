@@ -34,6 +34,10 @@ import {
 import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
+import {
+  createSqliteProfileAvatarStore,
+  createViemProfileAvatarSignatureVerifier,
+} from "./services/profile-avatars";
 import { logger } from "./services/logger";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
@@ -112,6 +116,12 @@ async function main(): Promise<void> {
     telegramBot: bot,
     subscriptionClient,
     fundingIntents: createSqliteFundingIntentStore(),
+    profileAvatarStore: createSqliteProfileAvatarStore(),
+    profileAvatarChainId: config.chainId,
+    profileAvatarSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+      chain: config.chain,
+      rpcUrl: resolveAgentRpcUrl(config.chainId),
+    }),
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),

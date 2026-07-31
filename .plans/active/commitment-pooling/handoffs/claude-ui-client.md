@@ -34,6 +34,9 @@
 - Direction-aware confirmation UI: Offer recipient or Request creator, with every frozen team
   member omitted from eligibility.
 - G$ reward status and online send flow gated by authenticated acknowledgment and member delivery readiness.
+- The protocol pool uses the same provider-garden payout-plan read model as other pools. The client
+  never creates a settlement offline job or permissionlessly queues a disbursement after
+  Fulfilled.
 - Accessible mobile/PWA states and en/es/pt copy.
 
 ## Acceptance
@@ -53,17 +56,11 @@
 - Reward presentation follows the declared rail: an external payout record never appears as a
   Celo settlement, and a `CeloSettlement` declaration never exposes the external
   `recordRewardPaid` path.
-- Before an onchain row exists, a readiness blocker renders with no attempt or retry; this
-  device's eligible attempt renders “arranging settlement” while queued or retrying and a
-  distinct “couldn't arrange support” state with retry only after eligibility + pointer are
-  rechecked. Onchain
-  Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds
-  “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders
-  “confirming arrival”; only Confirmed renders “support arrived”; authenticated execution failure
-  remains distinct from the job-exhausted state; Cancelled renders different locked copy for
-  Queued versus Failed origin and can never return to arranging. Existing settlement history
-  always outranks the member-delivery availability gate.
-- AA failure shows delivery unavailable with a calm recovery explanation; it never offers a garden-custody claim path.
+- Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders “confirming arrival”; only Confirmed renders “support arrived”; authenticated failure renders “still arranging support”; Cancelled renders different locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
+- AA failure leaves the fulfilled commitment, payout-plan summary, garden retention, unprepared
+  contributor rows, and historical child states visible while disabling only first child
+  preparation and member sends. It never offers a garden-custody claim path or a retry for an
+  unprepared row.
 - Every flow includes loading, empty, offline, pending, declined, superseded, failed, retry, and terminal states where applicable.
 - Controls have accessible names, logical focus order, 44px targets, sufficient contrast, and reduced-motion behavior.
 - Fulfillment/cycle-close hero moments remain PWA-only and do not obscure status.
