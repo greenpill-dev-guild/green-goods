@@ -18,13 +18,12 @@ env-vars:
   - DISCORD_GROWTH_CHANNEL_ID
   - DISCORD_FUNDING_CHANNEL_ID
   - DISCORD_USER_ID_AFO
-  - LINEAR_API_KEY
-  - LINEAR_DIGEST_INITIATIVE_ID  # initiative for the weekly digest status update; falls back to the "Sustainability & Monetization" initiative by name if unset
+  - LINEAR_DIGEST_INITIATIVE_ID  # initiative for the weekly digest status update; falls back to the "Sustainability & Monetization" initiative by name if unset; Linear itself via the OAuth connector only (no API key, guild rule 2026-07-04)
 connectors:
   - posthog
   - linear
   - google-calendar
-model: claude-opus-4-8[1m]
+model: claude-opus-5
 status: active  # 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
 ---
 
@@ -42,7 +41,7 @@ This routine writes **NO GitHub artifacts** — no Issues, no PRs, no branches, 
 
 This routine reads from:
 
-- **PostHog** via the connector, using only named questions from `.claude/skills/posthog-questions/SKILL.md` and the `POSTHOG_PROJECT_ID_*` env vars for project selection.
+- **PostHog** via the connector, using only named questions from `docs/routines/posthog-questions.md` and the `POSTHOG_PROJECT_ID_*` env vars for project selection.
 - **Indexer**: `ENVIO_INDEXER_URL` for on-chain action volume, garden activity, vault history.
 - **Chain**: `ARBITRUM_RPC_URL` for raw on-chain reads when the indexer is lagging.
 - **Dune API** for queries tagged `[routine]` only — never modify user-owned queries.
@@ -75,7 +74,7 @@ If a query against the App project returns zero events for a 30d window, that's 
 
 ### SKILL v1.1.0 (2026-05-09): person_id stitching + failures question
 
-The funnel HogQL was rewritten in `posthog-questions/SKILL.md` v1.1.0 to:
+The funnel HogQL was rewritten in `posthog-questions.md` v1.1.0 to:
 
 1. **Join by `person_id`** instead of `distinct_id`. PostHog assigns an anonymous UUID `distinct_id` before `posthog.identify()` and switches to the wallet/passkey identifier after auth. The previous SKILL joined by raw `distinct_id` and produced 0% conversion across the auth boundary even when conversions were happening (verified empirically 2026-05-09: 7 person registers + 6 person joins in 30d, 0 overlap with the old query, correct numbers with the new one).
 2. **Document the cohort caveat**: `funnel.onboarding` legitimately reports 0% when the new-user cohort within `{window}` hasn't completed the next step yet, even though returning users (registered > window ago) are joining gardens fine. Verify against raw `garden_join_success` counts before filing a "funnel breakage" anomaly — see Phase 2 thresholds below.
@@ -84,7 +83,7 @@ The new `failures.conversion-kill` question makes the failure-rate signal first-
 
 ### Curated questions
 
-This routine references the following curated questions from `.claude/skills/posthog-questions/SKILL.md`:
+This routine references the following curated questions from `docs/routines/posthog-questions.md`:
 
 - `funnel.onboarding` — passkey register → garden join → first work submission. Drives the conversion narrative. (Person_id-stitched as of SKILL v1.1.0.)
 - `funnel.work-repeat` — first work → second work within 7d. Drives the early-retention signal. (Person_id-stitched.)
@@ -92,11 +91,11 @@ This routine references the following curated questions from `.claude/skills/pos
 - `gardens.engagement-summary` — per-garden 7d active members + 7d work submitted/approved. Drives the per-garden table.
 - `gardens.dormant` — gardens with zero work in 7d/14d/30d. Drives the dormancy alert and any anomaly Linear Issues.
 - `gardens.operator-activity` — work approvals per operator per week, aggregated. Drives the operator-load section.
-- ~~`actions.template-creation-rate`~~ — **BLOCKED (do not run):** its event `admin_action_create_success` is defined but unwired (no tracker, no call site) and never fires. The action-template trend now comes from the **indexer** `Action` entity (`createdAt`); see Phase 1 step 8. (Marked BLOCKED in `posthog-questions/SKILL.md` v1.2.0.)
+- ~~`actions.template-creation-rate`~~ — **BLOCKED (do not run):** its event `admin_action_create_success` is defined but unwired (no tracker, no call site) and never fires. The action-template trend now comes from the **indexer** `Action` entity (`createdAt`); see Phase 1 step 8. (Marked BLOCKED in `posthog-questions.md` v1.2.0.)
 
-All seven are public-safe-default. (As of 2026-W21 `actions.template-creation-rate` is **BLOCKED** and not consumed — the action-template signal comes from the indexer; see Phase 1 step 8.) The digest status update, the Discord posts, and the Linear anomaly bodies receive only allowlisted fields per the SKILL's privacy boundary table — never replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers.
+All seven are public-safe-default. (As of 2026-W21 `actions.template-creation-rate` is **BLOCKED** and not consumed — the action-template signal comes from the indexer; see Phase 1 step 8.) The digest status update, the Discord posts, and the Linear anomaly bodies receive only allowlisted fields per the library's privacy boundary table — never replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers.
 
-**Concrete invocation**: there is no `posthog.run_question(name, vars)` RPC yet. For each question above, paste the HogQL block from `posthog-questions/SKILL.md` for that question into the PostHog connector's `query-run` call with privacy mode `public`. Reference the question by name in the routine's reasoning ("running `funnel.onboarding` over a 30d window"); reference the actual HogQL block by its location in the SKILL file. The HogQL must match verbatim — any divergence is a `routine-self-audit` violation.
+**Concrete invocation**: there is no `posthog.run_question(name, vars)` RPC yet. For each question above, paste the HogQL block from `posthog-questions.md` for that question into the PostHog connector's `query-run` call with privacy mode `public`. Reference the question by name in the routine's reasoning ("running `funnel.onboarding` over a 30d window"); reference the actual HogQL block by its location in the library file. The HogQL must match verbatim — any divergence is a `routine-self-audit` violation.
 
 If the PostHog connector is unavailable or the expected project ID env vars are missing, there is no API-key fallback for growth/BD questions in the Claude routine today; log `posthog: growth questions unreachable` in the digest's `⚠ Failures this run` block and drop the affected sections rather than fabricating numbers.
 
@@ -104,43 +103,35 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 
 ### Discord post to `#growth` (primary)
 
+**House style v2** (see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)): ONE message (~900 chars target, ~1,500 ceiling — cut content rather than chunk), a lede before any bullets, and only metrics that **moved** appear as bullets. The Linear status update carries every full table; Discord carries what changed and what it means.
+
 ```
-{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**📈 Growth Pulse — Week {YYYY-WW}**
+{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**📈 Growth Pulse · week {YYYY-WW}**
 
-{if any_anomaly_red OR a top conversion-kill is above threshold — this block LEADS; omit it entirely on a clean week:}
+{Lede: 1–2 plain sentences on what the week means — e.g. "Steady week: onboarding held and no anomalies fired." or "Work submissions jumped after the template fix; one retention signal is worth watching." Not a metrics recital.}
+
+{if any_anomaly_red OR a top conversion-kill is above threshold — this block leads; omit entirely on a clean week:}
 **🔴 Watch**
-- **{red anomaly or worst conversion-kill step}** — {1-line what it is} → {Linear URL}
+- **{red anomaly or worst conversion-kill step}** · {1-line what it is} → <{Linear URL}>
 
-**Onboarding funnel** ({window})
-- Registered: **{N}** ({±N% WoW})
-- Joined a garden: **{M}** ({register_to_join_pct}%)
-- First work submitted: **{F}** ({join_to_first_work_pct}%)
+**Moved this week** {only metrics that moved (threshold crossed, >10% relative WoW on the headline number, or feeding 🔴 Watch) · max 3 bullets · fold the number and the delta into one line each}
+- {e.g. "First work submitted: **12** (+50% WoW) · the template fix landed Tuesday"}
 
-**🔁 Early retention**
-- First-time users (30d): **{N}**  ·  repeat within 7d: **{M}** ({repeat_pct}%)
-
-**🌱 Garden engagement** (7d)
-- Active: **{A}** of {T}  ·  dormant ≥7d **{D7}** · ≥14d **{D14}** · ≥30d **{D30}**
-- Top by work: {garden_name} ({N}), {garden_name} ({N}), {garden_name} ({N})
-
-**🛠 Action templates** (on-chain · indexer `Action`)
-- Created last week: **{N}**  ·  4-week trend {↑ / → / ↓}
-{if newest Action.createdAt ≥ 21d ago: "- ⚠ no new template in {weeks}w (last {YYYY-MM-DD})"}
-
-**⚠️ Conversion-kill (7d)** — top 3 by failure rate
-- {step}: **{failure_pct}%** ({failed_count}/{total_attempts})
-
-**📋 Anomalies** — {anomaly_count} new · {open_count} open (`activity:qa` + `protocol:green-goods`)
-{bullets — at most 3 — new anomalies with Linear URL. Omit this whole block when zero new AND zero open.}
-
-{if funnel_thin AND open_p0_qa: "**🔎 Funnel context** — {step(s)} thin; {N} open P0 `activity:qa` defect(s) on {surface} ({PRD-ids}) likely suppress conversion before instrumented steps."}
-{if intent_verdict != "coherent": "**🧭 Intent** — {drifting|unclear}: {underserved_stage or 'plans glance unavailable'}"}
+{if anomaly_count > 0: "**📋 Anomalies** · {anomaly_count} new{, {open_count} open} · {IDs with <Linear URLs>}"}
+{if funnel_thin AND open_p0_qa: "**🔎 Context** · {step(s)} thin; {N} open P0 defect(s) on {surface} ({PRD-ids}) likely suppress conversion."}
+{if intent_verdict != "coherent": "**🧭 Intent** · {drifting|unclear}: {underserved_stage or 'plans glance unavailable'}"}
 
 **📄 Full digest** → {linear_status_update_url}
-{if any_failure: "⚠ Failures this run: {short list}"}
+{if any_failure: "⚠ {short failure list}"}
 ```
 
-Caps: 3 anomaly bullets, 3 top-garden bullets, 3 conversion-kill bullets. Prose paragraphs forbidden — bulleted only.
+Everything that did NOT move stays out of the post entirely — no funnel block, no retention block, no engagement block, no per-section skeleton. The reader who wants the steady numbers clicks the digest link.
+
+**Steady week (nothing moved, no anomalies, no failures):** exactly one line —
+
+```
+📈 Growth Pulse · week {YYYY-WW}: steady · funnel {headline}, {A}/{T} gardens active, no anomalies. Full digest → {linear_status_update_url}
+```
 
 ### Cross-post to `#funding` (only when grant-relevant)
 
@@ -207,7 +198,7 @@ The status update carries the routine's health read: `onTrack` on a healthy/quie
 
 ### Linear anomaly Issue body
 
-When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `ai:routine`. **Codex hand-off:** swap `ai:routine`→`ai:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Body:
+When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `ai:routine`. **Codex hand-off:** swap `ai:routine`→`ai:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing. Body:
 
 ```markdown
 ## Anomaly type
@@ -233,7 +224,7 @@ When a growth-side metric crosses an anomaly threshold, the anomaly is **accepte
 - Sample timestamp: {YYYY-MM-DDTHH:MM:SSZ}
 ```
 
-The Issue body **never** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions/SKILL.md`. The privacy grep in Phase 4 catches violations before the body is saved.
+The Issue body **never** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions.md`. The privacy grep in Phase 4 catches violations before the body is saved.
 
 ## Phase 0: Load prior baseline
 
@@ -259,7 +250,7 @@ Switch to project `163591` (App) first, run the consumer questions, then switch 
 
 **Switch to Admin (262122):**
 7. `failures.conversion-kill` — `{ window: "7d" }`. Merge the `work_approval` row with the App-side row (App typically sees the `_failed` events, Admin sees the `_success` events) before applying anomaly thresholds.
-8. ~~`actions.template-creation-rate`~~ — **BLOCKED, do not run.** The required event `admin_action_create_success` is unwired (no tracker, no call site; the whole `admin_action_*` family is orphaned constants — see `posthog-questions/SKILL.md` v1.2.0), so it returns zero forever. Instead read the **indexer** `Action` entity (epoch field `createdAt`, id `${chainId}-${n}`) for the action-template signal: (a) count of `Action` with `createdAt` in the last 7d (Discord "created last week"), (b) per-week counts over 12 weeks (the digest trend table), (c) the max `createdAt` across all `Action` entities (Phase 2 stall check). This is on-chain truth and sidesteps the emit-side gap.
+8. ~~`actions.template-creation-rate`~~ — **BLOCKED, do not run.** The required event `admin_action_create_success` is unwired (no tracker, no call site; the whole `admin_action_*` family is orphaned constants — see `posthog-questions.md` v1.2.0), so it returns zero forever. Instead read the **indexer** `Action` entity (epoch field `createdAt`, id `${chainId}-${n}`) for the action-template signal: (a) count of `Action` with `createdAt` in the last 7d (Discord "created last week"), (b) per-week counts over 12 weeks (the digest trend table), (c) the max `createdAt` across all `Action` entities (Phase 2 stall check). This is on-chain truth and sidesteps the emit-side gap.
 
 Cache the JSON outputs for the run; pass the same data into Phase 2 (digest), Phase 3 (status-update body), and Phase 4 (anomaly detection).
 
@@ -323,7 +314,7 @@ Before posting:
 
 ## Phase 5: Discord post + cross-post
 
-Post the primary message to `#growth` per the schema — it carries the week's **highlights inline** (funnel, retention, garden engagement, action templates, conversion-kill, anomalies) **and** the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. Never reduce the post to a bare link, and never drop the link — highlights live in Discord, the full digest lives in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
+Post the primary message to `#growth` per the schema — a lede saying what the week means, then ONLY the metrics that moved (max 3 bullets), the 🔴 Watch block when something is red, and the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. On a steady week the post is the single steady-week line. Never drop the digest link — meaning lives in Discord, numbers live in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
 
 `<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 
@@ -334,8 +325,8 @@ Post the primary message to `#growth` per the schema — it carries the week's *
 - **Cap: 2 hours runtime**. Timeout → write partial digest with `⚠ Failures this run: timed out at phase X`.
 - **No GitHub writes at all**. Linear is the only durable surface: the weekly digest is a Linear initiative status update and anomalies are Linear Issues (unprojected on Product). Do not open or update GitHub Issues, PRs, branches, Project items, or iteration/Sprints fields.
 - **Project routing discipline**. Anomaly Issues stay unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
-- **No ad hoc HogQL** in the routine prompt. Every PostHog read goes through a curated question name and the canonical HogQL block in `.claude/skills/posthog-questions/SKILL.md`. Adding a new question requires editing that library first.
-- **Privacy boundary is non-negotiable**. See `posthog-questions/SKILL.md` allowlist. If unsure, treat as private.
+- **No ad hoc HogQL** in the routine prompt. Every PostHog read goes through a curated question name and the canonical HogQL block in `docs/routines/posthog-questions.md`. Adding a new question requires editing that library first.
+- **Privacy boundary is non-negotiable**. See `posthog-questions.md` allowlist. If unsure, treat as private.
 - **Channel guards** at every Discord post. Fail loud, never silently substitute.
 - **Mention rule**: `<@${DISCORD_USER_ID_AFO}>` only on red/P2 anomalies or **novel** setup failures (not gaps already in the prior digest's `## Known setup failures`).
 - **Intent check is status-only** (Phase 2c). It appends the `## Intent check` section to the weekly status update (+ ≤1 optional Discord `🧭 Intent` line on `drifting`/`unclear`) and nothing else — no Issue, no new initiative, no new @mention trigger. The `.plans/active` read is bounded (`status.json` + `brief.md` top of active hubs only) and graceful-degrades to a Linear+PostHog-only verdict of `unclear` if the repo isn't readable.

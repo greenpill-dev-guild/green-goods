@@ -1,7 +1,7 @@
 ---
 routine-name: health-watch
 trigger:
-  schedule: "30 7 * * 1-5"  # 07:30 local, Mon-Fri
+  schedule: "30 14 * * 1,3,5"  # Mon/Wed/Fri 14:30 UTC (= 07:30 PT) — reduced from daily 2026-07-18; red-only posting unchanged, Sentry alerting covers off-days
 repos:
   - green-goods
 environment: green-goods-routines-extended
@@ -25,12 +25,12 @@ connectors:
   - linear
   - posthog
   - vercel
-model: claude-opus-4-8[1m]
+model: claude-opus-5
 ---
 
 # Prompt
 
-You are the health-watch routine for Green Goods. Run the five health checks below. Open or update **Linear Product Issues** (unprojected, accepted operational health work) only for **real anomalies** — be conservative about what counts. Most days, this routine should post a green Discord summary and create no Issues.
+You are the health-watch routine for Green Goods. Run the five health checks below. Open or update **Linear Product Issues** (unprojected, accepted operational health work) only for **real anomalies** — be conservative about what counts. Most days, this routine should post a one-line all-green summary and create no Issues.
 
 The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routing destination. GitHub is for PRs and code review only — health-watch never writes GitHub Issues, never adds Project items, and never sets iteration/Sprints fields.
 
@@ -160,9 +160,11 @@ Before opening a new Issue or appending a comment, query Linear for an existing 
 ```
 Linear query (read-only):
   team = Product, type = Issue, state in [Backlog, Todo, In Progress],
-  labels include green-goods + qa,   // bare child names; do NOT require an ai:*
-                                     // child — the Codex hand-off swaps it and this
-                                     // would miss the delegated Issue, opening a dup
+  labels include green-goods + qa,   // bare child names; do NOT require an
+                                     // ai:* child here — the Codex hand-off
+                                     // swaps routine->codex, and matching on
+                                     // it would miss the delegated Issue and
+                                     // open a duplicate
   title contains <category marker>
 ```
 
@@ -195,8 +197,7 @@ if no open Linear Issue matching the canonical labels + category marker:
     labels      = "green-goods", "qa", "routine",
                   <package child, e.g. "indexer"> (when applicable)
                   // bare child names or IDs only — save_issue rejects the
-                  // group:child display form, including the package label,
-                  // and one bad entry rejects the whole array
+                  // group:child display form, and one bad entry rejects all
     status      = Backlog (exploratory) or Todo (well-scoped)
     body        = <findings>
 else:
@@ -234,20 +235,28 @@ After all checks, post to `#engineering`:
 POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/messages
 ```
 
-Message format:
-```
-**Health Watch — {YYYY-MM-DD}**
-🟢 Indexer: OK (lag: {N} blocks)              # 🟡 if 500-2000, 🔴 if >2000 or unreachable
-🟢 Vercel: {N}/{M} production projects ready  # 🔴 with project name(s) + deploy/runtime Issue
-🟢 Contracts: vaults stable                   # or "deferred — indexer unhealthy"
-🟢 Agent: up (/health 200)                    # 🔴 if unreachable/non-200 · "skipped" if BOT_API_URL unset
-🟢 Client errors: {N} App / {M} Admin (24h)   # 🟡 elevated · 🔴 ≥30 App or ≥15 Admin
+**All-green run (every check 🟢, no Issues created/updated, no recoveries): post exactly one line** — this is most runs (house style v2, see [`routines/claude/README.md` in `.github`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md#house-style-v2-applies-to-every-posting-routine)):
 
-{if any anomaly created/updated: "→ {N} Linear Issue(s) created/updated"}
-{if recovery: "✓ {category} recovered — Linear Issue {url} moved to Done"}
+```
+🩺 Health watch · {YYYY-MM-DD}: all green · indexer, deploys, contracts, agent, client errors all OK{, {K} Issue(s) still open <links>}
 ```
 
-**@mention rule**: if any check is 🔴, prefix the message with `<@${DISCORD_USER_ID_AFO}>`. If everything is 🟢 or 🟡 with no new Issues, no mention. Recovery-only runs (where the only change is auto-close) also get no mention — just the line in the summary.
+**Anything non-green, or any state change (new/updated Issue, recovery): post the per-check breakdown**, non-green lines first, 🟢 lines folded into one:
+
+```
+{if any 🔴: "<@${DISCORD_USER_ID_AFO}> "}**🩺 Health Watch · {YYYY-MM-DD}**
+
+{Lede: 1 sentence on what changed — e.g. "The indexer fell 3,400 blocks behind overnight; everything else is healthy."}
+
+🔴 {check}: {what + number}                    # one line per 🔴, then per 🟡
+🟡 {check}: {what + number}
+🟢 {remaining checks folded}: {e.g. "Vercel, contracts, agent, client errors all OK"}
+
+{if any anomaly created/updated: "→ {N} Linear Issue(s) created/updated · <links>"}
+{if recovery: "✓ {category} recovered · Linear Issue <{url}> moved to Done"}
+```
+
+**@mention rule**: if any check is 🔴, prefix the message with `<@${DISCORD_USER_ID_AFO}>`. If everything is 🟢 or 🟡 with no new Issues, no mention. Recovery-only runs (where the only change is auto-close) also get no mention — just the breakdown with its ✓ line.
 
 If Discord is unreachable, continue — Linear Issues are the primary output.
 
