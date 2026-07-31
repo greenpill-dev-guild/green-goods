@@ -85,7 +85,8 @@
 - A dual-chain courier and cross-chain lifecycle fixture, designed in `settlement-spec.md` §7.1:
   `script/settlement/dual-chain-courier.ts` plus `script/settlement/dual-chain-lifecycle.test.ts`,
   both Bun/vitest under `test:script` and never a Foundry test, driving two Anvil processes
-  (`--chain-id 421614 --port 3010` and `--chain-id 11142220 --port 3011`). Only serialized command
+  (`--chain-id 421614 --port 3012` and `--chain-id 11142220 --port 3013`; `3010` is the September
+  Community PWA's reserved port, so the pair deliberately skips it). Only serialized command
   tuples, acknowledgment tuples, and delivery receipts cross the process boundary; no RPC handle,
   fork snapshot, storage slot, or chain state is shared, and each side asserts only against its own
   chain. Artifacts stay under `.generated/runtime`.

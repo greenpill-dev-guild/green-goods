@@ -1195,15 +1195,20 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   `liveCommitmentCount`. The first transition to Fulfilled, Cancelled, or Expired decrements it
   exactly once; a dispute preserves whether the pre-dispute commitment was already terminal, so
   resolving an already Expired record cannot decrement twice. ReadyForConfirmation remains live.
-  `raiseDispute` from Expired does **not** re-increment `liveCommitmentCount`, because the
-  terminal decrement already happened at expiry; "Ready and Disputed remain live" describes a
-  dispute raised from a still-live state, never a dispute raised from a terminal one. A cycle may
-  therefore reach `closeCycle` or `cancelCycle` while such a Disputed-from-Expired record is still
-  open, and its later resolution — restore Expired or resolve Cancelled, never Fulfilled — makes
-  no further count change.
+  `raiseDispute` from a still-live state changes no count, because that record was never
+  decremented. `raiseDispute` from an already-terminal Expired record **re-increments**
+  `liveCommitmentCount`, and that dispute's resolution — restore Expired or resolve Cancelled,
+  never Fulfilled — decrements exactly once. Increment and decrement therefore pair per dispute
+  episode, which is what "resolving an already Expired record cannot decrement twice" means: the
+  guard is against an unpaired second decrement, not against ever counting a reopened record.
+  This is the accounting form of the §5.2 rule that every cycle-scoped commitment must be
+  Fulfilled, Cancelled, or Expired before `closeCycle`: a Disputed record is none of those, so an
+  open dispute must hold the cycle open. Without the re-increment the count could read zero while a
+  Disputed record remained, `closeCycle` would admit it, and §5.3 would have no defined Reconciled
+  derivation for a commitment whose on-chain state is `Disputed`.
   `closeCycle` and `cancelCycle` require the O(1) count to be zero, which forces stewards to
-  confirm, cancel, or expire every cycle commitment before reconciliation or cycle cancellation
-  and prevents a later fulfillment from changing the certified recognition set.
+  confirm, cancel, expire, or resolve every cycle commitment before reconciliation or cycle
+  cancellation and prevents a later fulfillment from changing the certified recognition set.
 - **Self-checks**: `claimCommitment` reverts `SelfCounterparty` when the canonical claimant equals
   the creator or when a Garden claim's authenticated `requestedBy` caller equals the creator.
   `acceptClaim` repeats the latter check against the stored pending request before consuming it,
@@ -1387,7 +1392,9 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   once, same-block and out-of-order decision sync converging by resolver sequence, unsequenced
   historical-decision rejection with re-attestation recovery, late evidence rejection, and
   post-freeze decision observation without credit mutation, cycle close/cancel
-  rejection while any live commitment remains, roster
+  rejection while any live commitment remains — including a dispute raised from an already-Expired
+  record, which re-increments the live count, blocks `closeCycle` and `cancelCycle` while it is
+  open, and decrements exactly once on resolution so the pair never double-counts — roster
   and credit freeze on every Ready path, every-contributor confirmation exclusion, a Garden-claimed
   default confirmer resolved to the claiming garden's operator/owner wearers with the GardenAccount
   address itself rejected and a wearer who is also a contributor reverting `SelfConfirmation`,
@@ -2670,10 +2677,14 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   link, and duplicate delivery of every Work event.
 - **Register events and count safety**: the three unit events carry `poolId`, `cycleId`, and the
   exact stored `unitLabel`; handlers never need a Commitment lookup or RPC call to choose their
-  keys. `ClassRegistered` carries the same self-describing keys but mutates no accounting: it
-  create-if-not-exists writes the class row and the placeholder pool/provider/exact-label rows its
-  keys imply, records `quota`, and changes no expected, open, or fulfilled unit total and no
-  open-commitment count. Expected/open units move only on `UnitsCommitted`. A class that is
+  keys. `ClassRegistered` carries `poolId`, `cycleId`, `unitLabel`, and `quota` but **no account**,
+  so it create-if-not-exists writes only the class row plus the placeholder pool and exact-label
+  rows those keys imply, records `quota`, and changes no expected, open, or fulfilled unit total
+  and no open-commitment count. It never writes a `CommitmentProviderExposure` row: that entity is
+  keyed `chainId-poolId-lowercaseProvider`, and no provider address exists in the event or in the
+  commitment at registration time, because the lead is only resolved at acceptance. Provider rows
+  are created by the first `UnitsCommitted` for that account, which carries
+  `address indexed account`. Expected/open units move only on `UnitsCommitted`. A class that is
   registered at creation and never accepted therefore reads as a known label with zero units
   rather than as phantom expected supply, and a `ClassRegistered` that arrives before
   `CommitmentCreated` needs no reconciliation when the commitment row later appears.

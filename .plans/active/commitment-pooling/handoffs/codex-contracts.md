@@ -163,11 +163,15 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   deterministic Envio handlers without RPC backfill.
 - `ClassRegistered` and every unit mutation carry `poolId`, `cycleId`, and the exact stored
   `unitLabel`; a unit handler can update pool/provider/exact-label rows even when it arrives
-  before `CommitmentCreated`. `ClassRegistered` itself writes only the class row and the
-  placeholder pool/provider/exact-label rows its keys imply plus the recorded `quota`; it mutates
-  no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class registered
-  at creation but never accepted reads as a known label with zero units. Expected/open units move
-  only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
+  before `CommitmentCreated`, because the three unit events also carry `address indexed account`.
+  `ClassRegistered` carries no account, so it writes only the class row and the placeholder pool
+  and exact-label rows its keys imply plus the recorded `quota`. It never writes a
+  `CommitmentProviderExposure` row — that entity is keyed `chainId-poolId-lowercaseProvider`, and
+  no provider exists in the event or in the commitment at registration time, since the lead is
+  resolved at acceptance; the first `UnitsCommitted` for an account creates it. `ClassRegistered`
+  mutates no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class
+  registered at creation but never accepted reads as a known label with zero units. Expected/open
+  units move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
 - `recordRewardPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-reward facts.
 - AssessmentResolver dual-schema config ABI, setter, event, errors, no-new-initializer UUPS
   upgrade, v2 state-preservation proof, and 3+47 storage layout match contract-spec §6.4.3

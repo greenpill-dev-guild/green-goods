@@ -852,6 +852,13 @@
       "event": "Register #70 pre-build deep review closed before PRD-721 dispatch. Four parallel read-only reviews (contract spec, settlement spec, visual assets, repo gates) plus live chain verification produced one compile-blocking interface defect and twenty-nine further specification and artifact corrections, all now applied in repo truth. Chain-verified during the pass: the live Arbitrum AssessmentResolver proxy returns schemaUID() == 0 while the artifact holds the pinnable v2 UID, GardenToken appends at slot 213 offset 2 with its 37-slot gap intact, and all three live proxies share the deployer-EOA owner. Afo settled cycle-less member creation, direct Garden-steward confirmation, accepted EOA ownership for the non-value tier, and deferred the Build re-date to Linear. Repo-verifiable gates: the Envio 3.2.1 foundation and the PRD-747/748 Steward relabel are satisfied on develop, no pooling Solidity exists so the lane starts clean, and PRD-762 remains the one open repo-visible prerequisite. PRD-757/759 closure and the live Linear/source-document convergence re-read stayed unverifiable because the Linear connector was unauthenticated. No product implementation, dependency install, codegen, deploy, broadcast, authority mutation, Linear/source-document write, staging, commit, or push was performed."
     },
     {
+      "date": "2026-07-31",
+      "event": "Live Linear gate verification for PRD-721 dispatch, read through the authenticated connector. Every named prerequisite is Done: PRD-557 Envio 3.2.1 (2026-07-30), PRD-747 and PRD-748 Steward rename 1a/1b (2026-07-30), PRD-762 signed app-avatar path (2026-07-31), PRD-757 Hypercert within-class split (2026-07-30), and PRD-759 protocol-pool funding (2026-07-30). PRD-649 architecture freeze is the single remaining gate, In Progress, with both of its own blockers (PRD-757, PRD-759) cleared; PRD-721 itself moved to In Progress on 2026-07-31 with PR #680 attached. PRD-649's only attached PR is the closed draft #679 from codex/prd-649-architecture-freeze, superseded by #680. This entry records a read-only verification; no Linear state, assignee, date, or attachment was written.",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_verified"
+    },
+    {
       "timestamp": "2026-07-31T02:08:10Z",
       "actor": "codex",
       "lane": "system",

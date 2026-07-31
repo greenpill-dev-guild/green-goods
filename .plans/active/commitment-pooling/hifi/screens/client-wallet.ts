@@ -163,7 +163,7 @@ const W23_HOTS: HifiDef["hots"] = {
   "w23.send-submit": { l: "Send", to: "screen:W23@send-pending", info: "Wallet-pending → confirmed; failure surfaces inline with retry (UX:219)." },
   "w23.send-retry": { l: "Try again", to: "screen:W23@send-pending", info: "Retries the online-only wallet action with the recipient and amount retained (UX:219)." },
   "w23.arrived-row": { l: "Arrived row", to: "screen:W23@contributor-receipt", info: "“Arrived” means an authenticated CCIP success acknowledgment — dispatched or Celo-executed/ack-pending never render as arrived. The receipt keeps Hypercert recognition and the child payout distinct." },
-  "w23.tech-status": { l: "Technical status", info: "AA/paymaster gate failed: first contributor-child preparation and member sends stay off; steward-authorized non-commitment garden seeding continues Safe-to-Safe (SS §5)." },
+  "w23.tech-status": { l: "Technical status", info: "AA/paymaster gate failed: first contributor-child preparation and member sends stay off; authorized ProtocolToGarden seeding by a current protocol steward or the SettlementModule owner continues Safe-to-Safe (SS §5)." },
 };
 
 // ---------------------------------------------------------------------------
