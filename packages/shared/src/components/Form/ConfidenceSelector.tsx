@@ -95,6 +95,7 @@ export function ConfidenceSelector({
 
   return (
     <div className={className}>
+      {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex radiogroup; focus lives on the <button role="radio"> children */}
       <div
         role="radiogroup"
         aria-label={formatMessage({

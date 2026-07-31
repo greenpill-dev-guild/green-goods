@@ -74,6 +74,7 @@ export function HubCertificationQueue({
   }
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
     <ul className="hub-workbench-grid" role="list">
       {items.map((assessment) => {
         const hasMintAuthority = canManage;

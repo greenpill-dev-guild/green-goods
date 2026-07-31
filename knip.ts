@@ -13,12 +13,38 @@ const config: KnipConfig = {
         "ecosystem.config.cjs",
         "playwright.config.ts",
       ],
+      ignore: [
+        // Ambient type declarations for env-parity.mjs, which both Vite configs
+        // import. Consumed by tsc, never by a runtime import.
+        "scripts/lib/env-parity.d.mts",
+      ],
       ignoreDependencies: [
         // PM2 runtime dependency
         "pm2",
+        // Invoked as CLI binaries from package.json scripts or shell scripts,
+        // never imported: upload-sourcemaps.js, agentic:guidance,
+        // per-package `lint`, and scripts/dev/open-urls.sh respectively.
+        "@posthog/cli",
+        "modern-web-guidance",
+        "oxlint",
+        "wait-port",
+        // Imported by packages/client/vite.config.ts but declared here, so the
+        // importer and the declaration sit in different workspaces.
+        "vite-plugin-mkcert",
+        // Pinned for version alignment with the tools that resolve them:
+        // graphql arrives through msw, lighthouse through @lhci/cli.
+        "graphql",
+        "lighthouse",
       ],
     },
     "packages/shared": {
+      ignore: [
+        // Passed to vitest as `--config` by scripts/dev/run-storybook-vitest-ci.mjs
+        "vitest.storybook.config.ts",
+        // Manually-invoked Storybook screenshot pipeline for design exports.
+        // No durable caller by design — see .plans/archive/admin-claude-design-export/.
+        ".storybook/capture-admin-stories.mjs",
+      ],
       entry: [
         "src/index.ts",
         "src/components/index.ts",
@@ -38,6 +64,9 @@ const config: KnipConfig = {
     "packages/client": {
       entry: ["src/main.tsx"],
       ignore: [
+        // Registered with VitePWA as an `importScripts` string in vite.config.ts,
+        // so no import graph reaches it. Covered by its own test.
+        "public/sw-custom.js",
         // Staged card on-ramp for vault crowdfunding — deliberately not wired
         // into the live (wallet-only) checkout until card funding ships. Each
         // file documents the park and its unpark condition in its header.
@@ -64,6 +93,11 @@ const config: KnipConfig = {
     },
     "packages/agent": {
       entry: ["src/index.ts"],
+      ignoreDependencies: [
+        // Referenced as a pino transport `target` string in services/logger.ts,
+        // which is resolved at runtime rather than imported.
+        "pino-pretty",
+      ],
     },
     "packages/indexer": {
       entry: [

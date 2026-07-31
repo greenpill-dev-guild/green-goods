@@ -290,6 +290,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
       </Wrapper>
 
       {isPreviewOpen && thumbUrl ? (
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- preview overlay; guarded handlers close on backdrop only, close button is inside
         <div
           className="fixed inset-0 z-modal flex items-center justify-center bg-static-black/80 p-4"
           role="dialog"
