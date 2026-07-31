@@ -122,6 +122,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       onOpenNotifications?: () => void;
       onOpenSettings?: () => void;
       onOpenProfile?: () => void;
+      profileImageSrc?: string;
     }) => {
       mockAppBarProps(props);
       return (
@@ -156,6 +157,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         setSelectedGarden: mockSetSelectedGarden,
       }),
     useAuth: () => mockAuthState.current,
+    useOffline: () => ({ isOnline: true }),
     NotificationPanel: ({
       items = [],
       sections = [],
@@ -255,6 +257,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ensureBaseLists: mockEnsureBaseLists,
   };
 });
+vi.mock("@green-goods/shared/profile-avatar", () => ({
+  useResolvedProfileAvatar: () => ({
+    avatarUri: "https://cdn.example/avatar.webp",
+    error: null,
+    isLoading: false,
+    record: null,
+    source: "app",
+  }),
+}));
 
 vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
@@ -417,6 +428,7 @@ describe("CanvasLayout", () => {
       expect.objectContaining({
         onOpenSearch: expect.any(Function),
         onOpenNotifications: expect.any(Function),
+        profileImageSrc: "https://cdn.example/avatar.webp",
       })
     );
   });

@@ -115,6 +115,16 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
+vi.mock("@green-goods/shared/profile-avatar", () => ({
+  useResolvedProfileAvatar: () => ({
+    avatarUri: null,
+    error: null,
+    isLoading: false,
+    record: null,
+    source: "fallback",
+  }),
+}));
+
 vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
 }));
