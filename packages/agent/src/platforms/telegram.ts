@@ -74,7 +74,7 @@ function toChatContext(ctx: Context): { id: string; type: ChatType; threadId?: s
 /**
  * Transform Telegraf context to platform-agnostic InboundMessage
  */
-export function toInboundMessage(ctx: Context): InboundMessage | null {
+function toInboundMessage(ctx: Context): InboundMessage | null {
   if (!ctx.from) return null;
 
   const chat = toChatContext(ctx);
@@ -199,7 +199,7 @@ function extractContent(ctx: Context): MessageContent | null {
 /**
  * Transform OutboundResponse to Telegram reply format
  */
-export function toTelegramReply(response: OutboundResponse): {
+function toTelegramReply(response: OutboundResponse): {
   text: string;
   options: {
     parse_mode?: "Markdown" | "HTML";

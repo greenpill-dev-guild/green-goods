@@ -220,6 +220,10 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
               key={getWorkMediaId(videoFiles[index])}
               src={url}
               controls
+              aria-label={intl.formatMessage({
+                id: "app.garden.review.video",
+                defaultMessage: "Video",
+              })}
               className="w-full rounded-lg"
               onError={() => {
                 const file = videoFiles[index];

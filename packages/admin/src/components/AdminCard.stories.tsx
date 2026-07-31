@@ -130,7 +130,7 @@ export const WithToneWash: Story = {
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
-            [data-tone="{tone}"]
+            [data-tone=&quot;{tone}&quot;]
           </div>
           <AdminCard variant="elevated">
             <SampleContent />

@@ -211,6 +211,7 @@ export const Garden: React.FC = () => {
   const isMember = useMemo(() => {
     if (!garden) return false;
     return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [primaryAddress, garden, pendingJoinsVersion]);
 
   // Join garden functionality

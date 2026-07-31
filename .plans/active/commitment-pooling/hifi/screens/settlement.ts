@@ -937,10 +937,18 @@ const w24Facts = (state: W24State): StateFacts | undefined => {
       settlementAccount: "Active",
       beneficiarySettlementAccount: "Active",
     };
+  // Authority, not deployer status, is what the funding form validates against.
   if (state === "funding")
     return {
       settlementAccount: "Active",
       beneficiarySettlementAccount: "Active",
+      queueFundingAuthority: "ProtocolSteward",
+    };
+  if (state === "funding-unauthorized")
+    return {
+      settlementAccount: "Active",
+      beneficiarySettlementAccount: "Active",
+      queueFundingAuthority: "None",
     };
   return undefined;
 };

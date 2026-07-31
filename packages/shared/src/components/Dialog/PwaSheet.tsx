@@ -226,6 +226,7 @@ export function PwaSheet({
         className="absolute inset-0"
         style={{ backgroundColor: "var(--color-scrim)" }}
       />
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handlers only stop propagation, Escape is handled on document */}
       <div
         ref={dialogRef}
         role="dialog"

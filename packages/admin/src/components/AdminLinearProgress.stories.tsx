@@ -91,7 +91,7 @@ export const ToneMatrix: Story = {
           className="space-y-2 rounded-2xl border border-stroke-soft bg-bg-white-0 p-4"
         >
           <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
-            [data-tone="{tone}"]
+            [data-tone=&quot;{tone}&quot;]
           </div>
           <AdminLinearProgress value={50} ariaLabel={`${tone} progress 50 percent`} />
         </div>

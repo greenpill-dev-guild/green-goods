@@ -9,7 +9,7 @@ feature_status: Live
 source_of_truth:
   - packages/admin/src/views/Hub/CreateAssessment.tsx
   - packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts
-  - packages/admin/src/views/Garden/Assessment.tsx
+  - packages/admin/src/components/Garden/GardenAssessmentsPanel.tsx
   - packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts
   - packages/shared/src/hooks/assessment/useCreateAssessmentForm.ts
   - packages/shared/src/hooks/assessment/useGardenAssessments.ts
@@ -56,7 +56,7 @@ stateDiagram-v2
 | Entry | Surface | Trigger |
 | --- | --- | --- |
 | Admin Hub Assess stage | `packages/admin/src/views/Hub/index.tsx` (stage `assess`) | Operator/Evaluator selects garden, clicks FAB "Create Assessment" |
-| Garden detail | `packages/admin/src/views/Garden/Assessment.tsx` | Operator opens a specific garden's assessment surface |
+| Garden detail | `packages/admin/src/views/Garden/components/ImpactTab.tsx` | Operator opens a specific garden's Impact tab, which lists assessments |
 | Direct route | `/hub/{garden}/assess/create` (via `adminRoutes.hubAssessCreate`) | Deep link from notification or shared URL |
 
 ## Steps

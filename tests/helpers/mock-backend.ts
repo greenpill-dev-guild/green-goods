@@ -1,7 +1,7 @@
 import type { BrowserContext, Page, Route } from "@playwright/test";
 
-export const MOCK_CLIENT_USER_ADDRESS = "0x1234567890123456789012345678901234567890";
-export const MOCK_RPC_OWNER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
+const MOCK_CLIENT_USER_ADDRESS = "0x1234567890123456789012345678901234567890";
+const MOCK_RPC_OWNER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
 
 const GRAPHQL_HEADERS = {
   "access-control-allow-origin": "*",
@@ -31,7 +31,7 @@ export const MOCK_CLIENT_GARDEN = {
   createdAt: NOW_SECONDS - 86_400,
 };
 
-export const MOCK_CLIENT_ACTION = {
+const MOCK_CLIENT_ACTION = {
   id: "11155111-1",
   chainId: 11155111,
   title: "Plant Trees",
@@ -59,10 +59,7 @@ export function encodeAddressResult(address: string) {
  * Return the smallest successful RPC response needed by CI route mocks.
  * Kept shared so client and admin do not drift around contract-read fixtures.
  */
-export function buildRpcResponse(
-  payload: JsonRpcPayload,
-  ownerAddress: string = MOCK_RPC_OWNER_ADDRESS
-) {
+function buildRpcResponse(payload: JsonRpcPayload, ownerAddress: string = MOCK_RPC_OWNER_ADDRESS) {
   const method = payload.method;
   const callData =
     typeof payload.params?.[0] === "object" && payload.params[0] !== null

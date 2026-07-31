@@ -25,7 +25,7 @@ function withHydrateFallback(routes: RouteObject[]): RouteObject[] {
   }));
 }
 
-export function createStorybookAdminCanvasRouter(initialPath: string) {
+function createStorybookAdminCanvasRouter(initialPath: string) {
   return createMemoryRouter(
     [
       {

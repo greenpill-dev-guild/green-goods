@@ -59,7 +59,6 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
     let isOperatorOrOwner = false;
-    let isOwner = false;
 
     for (const garden of scope) {
       const inOperators = isAddressInList(address, garden.operators);
@@ -75,9 +74,6 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
 
       if (inOperators || inOwners) {
         isOperatorOrOwner = true;
-      }
-      if (inOwners) {
-        isOwner = true;
       }
     }
 

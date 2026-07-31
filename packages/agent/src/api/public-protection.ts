@@ -6,6 +6,8 @@ export type PublicRouteClass =
   | "funding_proof"
   | "receipt_read"
   | "upload_sign"
+  | "profile_avatar_read"
+  | "profile_avatar_mutation"
   | "webhook_pre"
   | "webhook_post";
 
@@ -37,11 +39,13 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
+  profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  profile_avatar_mutation: { limit: 10, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
 
-export function normalizePublicOrigin(origin: string | null): string {
+function normalizePublicOrigin(origin: string | null): string {
   if (!origin) return "none";
   try {
     const parsed = new URL(origin);
@@ -51,7 +55,7 @@ export function normalizePublicOrigin(origin: string | null): string {
   }
 }
 
-export function hashPublicRateLimitMaterial(material: string): string {
+function hashPublicRateLimitMaterial(material: string): string {
   return createHash("sha256").update(material).digest("hex");
 }
 
@@ -111,7 +115,7 @@ export class InMemoryPublicRateLimiter {
   }
 }
 
-export function parseAllowedOrigins(value?: string): Set<string> {
+function parseAllowedOrigins(value?: string): Set<string> {
   return new Set(
     (value ?? "")
       .split(",")
@@ -120,7 +124,7 @@ export function parseAllowedOrigins(value?: string): Set<string> {
   );
 }
 
-export const LOCAL_DEVELOPMENT_PUBLIC_ORIGINS = [
+const LOCAL_DEVELOPMENT_PUBLIC_ORIGINS = [
   "http://localhost:3001",
   "https://localhost:3001",
   "http://127.0.0.1:3001",

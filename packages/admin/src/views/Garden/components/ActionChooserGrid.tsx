@@ -86,6 +86,7 @@ export function ActionChooserGrid({
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex radiogroup; focus lives on the AdminSelectableCard radios
     <div
       role="radiogroup"
       aria-label={groupLabel}

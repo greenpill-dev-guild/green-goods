@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
 import { withCanvasFrame } from "../../../.storybook/decorators";
+import { FIXTURE_IMAGE_PROFILE } from "../../../.storybook/fixtures";
 import { AppBar } from "./AppBar";
 import { GardenChip } from "./GardenChip";
 
@@ -55,6 +56,10 @@ const meta = {
     onOpenProfile: {
       description: "Callback for the profile button. When provided, the person icon appears.",
     },
+    profileImageSrc: {
+      control: "text",
+      description: "Optional resolved profile image shown in the existing profile control.",
+    },
   },
 } satisfies Meta<typeof AppBar>;
 
@@ -108,6 +113,15 @@ export const MobileActions: Story = {
   },
   parameters: {
     viewport: { defaultViewport: "mobile1" },
+  },
+};
+
+/** The profile action can display the resolved app, ENS, or fallback avatar. */
+export const WithProfileImage: Story = {
+  args: {
+    gardenChip: gardenChipElement,
+    onOpenProfile: fn(),
+    profileImageSrc: FIXTURE_IMAGE_PROFILE,
   },
 };
 

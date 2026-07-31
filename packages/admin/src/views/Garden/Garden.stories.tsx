@@ -149,9 +149,8 @@ export const Activity: Story = {
   decorators: gardenDecorators(),
 };
 
-// Members tab retired — "Manage members" now opens the roles flow directly
-// as its own route (views/Garden/ManageMembers.tsx) rather than a browsable
-// Garden workspace tab.
+// Members tab retired — "Manage members" now opens ManageMembersDialog from
+// the community workspace rather than a browsable Garden workspace tab.
 
 export const Settings: Story = {
   tags: ["visual-harness"],

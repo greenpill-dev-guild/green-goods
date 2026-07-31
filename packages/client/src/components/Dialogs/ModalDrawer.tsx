@@ -93,6 +93,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
       }}
       tabIndex={-1}
     >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handlers only stop propagation to the overlay */}
       <div
         ref={dialogRef}
         className={cn(

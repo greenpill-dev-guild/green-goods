@@ -303,7 +303,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         <div className="flex items-center gap-2">
           <RiMapPinLine className="w-5 h-5 text-text-sub-600" />
           <div>
-            <span className="text-sm font-medium text-text-strong-950">
+            <span id="share-location-label" className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.garden.details.shareLocation",
                 defaultMessage: "Share location",
@@ -331,6 +331,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           type="button"
           role="switch"
           aria-checked={locationEnabled}
+          aria-labelledby="share-location-label"
           onClick={handleLocationToggle}
           disabled={locationStatus === "loading"}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${

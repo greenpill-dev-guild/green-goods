@@ -80,6 +80,7 @@ export function HubHistoryQueue({
   }
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-history-feed sets list-style:none + display:flex, which drop implicit list semantics; the explicit role restores them
     <ul className="hub-history-feed" role="list">
       {items.map((event) => {
         const LeadingIcon =

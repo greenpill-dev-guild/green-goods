@@ -426,7 +426,7 @@ export function PositionsList({
   );
 }
 
-export function PositionsSkeleton() {
+function PositionsSkeleton() {
   return (
     <div className="space-y-4" aria-hidden="true">
       <div className="h-28 animate-pulse rounded-none bg-bg-white-0" />

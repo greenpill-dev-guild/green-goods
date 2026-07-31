@@ -1,7 +1,7 @@
 import type { PublicApiError } from "@green-goods/shared/public-contracts";
 import { safeError } from "./responses";
 
-export const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
+const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
 
 export type BodyReadResult<T> =
   | { ok: true; value: T | undefined }

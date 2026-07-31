@@ -1,5 +1,6 @@
 import { queryKeys } from "./registry";
 import { financeInvalidation } from "./invalidation-finance";
+import type { Address } from "../../types/domain";
 
 export const queryInvalidation = {
   invalidateAll: () => queryKeys.all,
@@ -114,7 +115,7 @@ export const queryInvalidation = {
     queryKeys.role.deploymentPermissions(),
   ],
 
-  invalidateGardenerProfile: (address?: string, chainId?: number) => {
+  invalidateGardenerProfile: (address?: Address, chainId?: number) => {
     if (address && chainId) {
       return [queryKeys.gardenerProfile.byAddress(address, chainId)];
     }

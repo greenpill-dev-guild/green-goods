@@ -134,6 +134,7 @@ export function useArrivalState(): ArrivalState {
     }
 
     return { myGardenIds, isOperator, isGardener };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [normalizedAddress, gardensQuery.data, pendingJoinsVersion]);
 
   const kind = useMemo<ArrivalKind>(() => {

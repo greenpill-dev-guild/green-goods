@@ -345,6 +345,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             </Dialog.Description>
 
             {/* Image Container */}
+            {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- pan/zoom gesture surface; zoom, nav and close are real buttons in the toolbar */}
             <div
               ref={imageRef}
               role="application"

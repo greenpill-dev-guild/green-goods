@@ -11,7 +11,7 @@
     "coverage": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run --coverage",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "lint": "bun --bun run oxlint src",
+    "lint": "bun --bun run oxlint src --deny-warnings",
     "build": "APP_ENV=production node ../../scripts/dev/node-cli.js tsc --noEmit && node ../../scripts/dev/node-cli.js vite build && bun run check:pwa-precache && node ../../scripts/dev/remove-public-sourcemaps.js dist",
     "build:deploy": "bun run build",
     "check:pwa-precache": "node scripts/check-pwa-precache-budget.mjs",

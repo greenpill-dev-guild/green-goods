@@ -186,7 +186,7 @@ TIMELINE — EXPANDED DISCLOSURE
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Cancellation placement: while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`, register #34b/MF-2a). The Accepted steward path is locked at W10 `[ Cancel promise… ]` with its own required-reason dialog (register #51/MF-2b).
 - Hi-fi guidance (audit 2026-07-18, drawn above since 2026-07-27): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind the single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
-- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (64 states across the five commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
+- **Hi-fi**: [`#screens/W2@accepted`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W2@accepted) — canonical state registry (65 states across the six commitment casts). Read states: **Loading** preserves the detail shell, **Not found** explains the promise is unavailable, and **Read error** keeps the saved view while `[ Try again ]` retries the read. None renders a commitment status chip.
 
 ### W2a — Evidence sheet (uiux-spec §5.5)
 
@@ -887,7 +887,7 @@ requires `canQueueFunding` (protocol steward or SettlementModule owner; deployer
 insufficient). Stage rail: **Queue · CCIP · Flows**. This is the protocol-admin execution home —
 everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused.
 **Hi-fi**: [`#screens/W24@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W24@queue)
-(5 states, including authorized and unavailable funding views).
+(6 states, including authorized and unavailable funding views).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐

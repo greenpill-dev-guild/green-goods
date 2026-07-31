@@ -18,6 +18,8 @@
     "./config": "./src/config/index.ts",
     "./config/blockchain": "./src/config/blockchain.ts",
     "./hooks": "./src/hooks/index.ts",
+    "./hooks/admin-ui/useCanvasChromeProbe": "./src/hooks/admin-ui/useCanvasChromeProbe.ts",
+    "./hooks/app/useOnlineStatus": "./src/hooks/app/useOnlineStatus.ts",
     "./i18n": "./src/i18n/index.ts",
     "./lib/env": "./src/lib/env.ts",
     "./i18n/en": "./src/i18n/en.json",
@@ -32,6 +34,8 @@
     "./sentry": "./src/modules/app/sentry.ts",
     "./sentry-redaction": "./src/modules/app/sentry-redaction.ts",
     "./providers": "./src/providers/index.ts",
+    "./profile-avatar": "./src/profile-avatar/index.ts",
+    "./profile-avatar/protocol": "./src/profile-avatar/protocol.ts",
     "./public-contracts": "./src/public-contracts/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",
@@ -45,7 +49,7 @@
     "./testing": "./src/__tests__/test-utils/index.ts"
   },
   "scripts": {
-    "lint": "bun --bun run oxlint src",
+    "lint": "bun --bun run oxlint src --deny-warnings",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "build": "echo 'Shared package uses source files directly - no build needed'",

@@ -146,12 +146,6 @@ export const textResponse = (text: string, parseMode?: "markdown" | "html"): Out
   parseMode,
 });
 
-export const buttonResponse = (
-  text: string,
-  buttons: ResponseButton[],
-  parseMode?: "markdown" | "html"
-): OutboundResponse => ({ text, buttons, parseMode });
-
 // ============================================================================
 // HANDLER RESULT
 // ============================================================================
