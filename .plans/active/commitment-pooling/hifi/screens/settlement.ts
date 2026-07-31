@@ -7,7 +7,7 @@
 
 import { hot } from "../html";
 import { icon } from "../icons";
-import { banner, btn, chip, disclosure, field, input, kv, radio, stepDots } from "../kit";
+import { banner, btn, chip, disclosure, field, input, kv, listRow, radio, stepDots } from "../kit";
 import { acard, adminCanvas, adminChromeHots, adminDialogM3, deskWin, dtable, pageHeader, stages, tabRail } from "./admin";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
@@ -811,7 +811,8 @@ const W24_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W26_STATES = [
-  ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Rest the cycle"],
+  ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"],
+  ["certificate-legacy", "3 · Certificate · legacy work bundle"], ["rest", "4 · Rest the cycle"],
   ["paused-review", "Paused · 1 · Review"], ["paused-shares", "Paused · 2 · Shares"],
   ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Rest the cycle"],
 ] as const;
@@ -837,22 +838,89 @@ ${banner("New commitments cannot reach Ready or resolve as Fulfilled without an 
     );
   }
   const paused = state.startsWith("paused-");
-  const phase = (paused ? state.slice("paused-".length) : state) as W26Phase;
+  const base = paused ? state.slice("paused-".length) : state;
+  // The bundle-source choice is a Step 3 variant, not a fifth step: the legacy
+  // approved-work bundle renders the same phase from a different source.
+  const legacyBundle = base === "certificate-legacy";
+  const phase = (legacyBundle ? "certificate" : base) as W26Phase;
   const stepIx = phase === "review" ? 0 : phase === "shares" ? 1 : phase === "certificate" ? 2 : 3;
   const h = (name: "continue-shares" | "continue-certificate" | "mint" | "compost") =>
     `w26.${paused ? "paused-" : ""}${name}`;
   let inner: string;
   switch (phase) {
     case "shares":
+      // Two reviews, one read-only step: the six-role class split, then the
+      // within-gardener contributor recognition the certificate allowlist is
+      // built from (wireframes W26 step 2; uiux-spec Appendix C.3). Neither is
+      // editable here — close-time metadata can never move on-chain credit.
       inner = `${kv("Gardeners", "60%")}${kv("Treasury", "15%")}${kv("Steward", "10%")}${kv("Evaluator", "5%")}${kv("Community", "5%")}${kv("Funder", "5%")}
 ${banner("Read-only — the six-role snapshot locked when this cycle opened.", "stone")}
+${acard(
+        "Gardener contributors",
+        `${kv("Maria · lead", "40%")}${kv("Ana", "35%")}${kv("Kwame", "25%")}
+${kv("Cycle policy", "35% equal participation · 65% verified contribution")}
+${banner("Recognition is read-only from frozen on-chain credit. This cycle fixed its own policy at open; 20% equal / 80% verified is only the protocol's default preset.", "stone")}`,
+        chip("read only", "plain"),
+      )}
 ${hot(h("continue-certificate"), btn("Continue", { kind: "pri" }))}`;
       break;
-    case "certificate":
-      inner = `${kv("Bundle", "7 fulfilled promises + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
+    case "certificate": {
+      // CreateHypercert's cut-over bundle-source toggle (uiux-spec §6.10).
+      // Interactive on the canonical path; the paused fixture shows the same
+      // anatomy honestly read-only rather than forking the pool-state
+      // regression path onto a second bundle axis.
+      const bundleSource = field(
+        "Bundle source",
+        radio(
+          [
+            {
+              label: "Fulfilled commitments · this cycle",
+              meta: "work, evidence, and need lineage nested inside each promise",
+              on: !legacyBundle,
+              hot: !paused && legacyBundle ? "w26.bundle-commitment" : undefined,
+            },
+            {
+              label: "Approved work · legacy bundle",
+              meta: "the pre-pooling certificate path, still selectable at cut-over",
+              on: legacyBundle,
+              hot: !paused && !legacyBundle ? "w26.bundle-legacy" : undefined,
+            },
+          ],
+          { interactive: !paused, name: "w26-bundle-source" },
+        ),
+      );
+      const selection = legacyBundle
+        ? acard(
+            "Certificate selection",
+            `${listRow({
+              icon: "file-copy-line",
+              primary: "12 approved work submissions",
+              meta: "Allowlist comes from work authorship — no six-role cycle snapshot applies",
+              chipHtml: chip("Included", "ok"),
+            })}${banner("The legacy bundle predates pooled promises. It certifies approved work directly and reads no cycle allocation.", "stone")}`,
+          )
+        : acard(
+            "Certificate selection",
+            `${listRow({
+              icon: "seedling-line",
+              primary: "Season of First Rains · 7 fulfilled promises",
+              meta: "Locked by this cycle's close",
+              chipHtml: chip("Included", "ok"),
+            })}${listRow({
+              icon: "leaf-line",
+              primary: "Tend the seedling nursery",
+              meta: "Cycle-less promise · fulfilled Jun 4 · keeps its 20% equal / 80% verified payment-default preview",
+              chipHtml: chip("No cycle allocation · not certificate eligible", "plain"),
+              trailing: btn("Include", { kind: "sec", sm: true, disabled: true }),
+            })}${banner("Cycle-less promises stay visible in pool history, but they carry no six-role allocation snapshot, so the composer rejects them before any allowlist or metadata work.", "stone")}`,
+          );
+      inner = `${bundleSource}
+${kv("Bundle", legacyBundle ? "12 approved work submissions" : "7 fulfilled promises + their work, evidence, and need lineage")}${kv("Allowlist", legacyBundle ? "from approved-work authorship" : "from the shares above")}${kv("Holder", "the garden account")}
+${selection}
 ${hot(h("mint"), btn("Mint impact certificate", { kind: "pri" }))}
 ${banner("Uses the garden's existing impact-certificate pipeline.", "stone")}`;
       break;
+    }
     case "rest":
       inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "seeds fresh on this pool")}
 ${hot(h("compost"), btn("Compost closed cycle", { kind: "pri" }))}
@@ -882,6 +950,8 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.recognition-blocked-back": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to the terminal-set review; no metadata-only action can mutate canonical recognition credit." },
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   "w26.continue-shares": { l: "Close cycle and continue to shares", to: "screen:W26@shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact fulfilled bundle before any share review or certificate mint.", calls: ["closeCycle"] },
+  "w26.bundle-legacy": { l: "Use the legacy approved-work bundle", to: "screen:W26@certificate-legacy", info: "CreateHypercert's cut-over bundle-source toggle (UX §6.10): the pre-pooling approved-work bundle builds its allowlist from work authorship because it has no six-role cycle allocation snapshot." },
+  "w26.bundle-commitment": { l: "Use the fulfilled-commitment bundle", to: "screen:W26@certificate", info: "Returns to the closed cycle's fulfilled-commitment bundle, where work nests as evidence and the allowlist comes from the locked six-role shares." },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
   "w26.compost": { l: "Compost closed cycle", to: "screen:W7@cycle-composted", info: "The certificate already uses the Reconciled cycle's locked bundle; compostCycle now archives it without another close call.", calls: ["compostCycle"] },
   "w26.paused-continue-shares": { l: "Close cycle and continue while pool paused", to: "screen:W26@paused-shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact bundle while leaving the pool Paused.", calls: ["closeCycle"] },

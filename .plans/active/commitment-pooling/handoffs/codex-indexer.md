@@ -202,7 +202,8 @@ The three named test files and the `migrate:garden-ids` target do not exist yet;
   contributor total, version, reason, and actor without an RPC read. Recompute the hash only from
   chain ID, plan ID, version, retention, contributor total, and the ordered immutable
   `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Never hash
-  disbursement IDs, inclusion flags, or child counters. Keep payment weights
+  disbursement IDs or child counters; there is no inclusion flag, because a row is payable
+  exactly when its `amount > 0` (register #70). Keep payment weights
   amount-derived and derive parent status from finalization, unprepared payable rows, and child
   counters; do not infer payment from Hypercert weights or raw token transfers.
 - Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
