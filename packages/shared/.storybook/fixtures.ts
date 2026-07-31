@@ -57,7 +57,7 @@ function makeDataUrl(fill: string, accent: string, label: string): string {
 export const FIXTURE_IMAGE_AGROFORESTRY = makeDataUrl("#d9ead3", "#6aaa64", "Agroforestry");
 export const FIXTURE_IMAGE_SOLAR = makeDataUrl("#fff2cc", "#e6a700", "Solar");
 export const FIXTURE_IMAGE_EDU = makeDataUrl("#d0e6ff", "#3d7abf", "Education");
-export const FIXTURE_IMAGE_WASTE = makeDataUrl("#f3d1c7", "#c04a1e", "Waste");
+const FIXTURE_IMAGE_WASTE = makeDataUrl("#f3d1c7", "#c04a1e", "Waste");
 export const FIXTURE_IMAGE_BANNER = makeDataUrl("#f1ead2", "#7a8a6b", "Garden");
 
 /** Fixed media URLs array, keyed by index for stable `key` props. */

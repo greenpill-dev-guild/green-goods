@@ -243,66 +243,6 @@ export interface ApprovalResult {
 // CONTRACT GETTERS
 // ============================================================================
 
-/**
- * Get the GardenToken contract instance
- */
-export function getGardenTokenContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.gardenToken,
-    abi: GardenTokenABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get the ActionRegistry contract instance
- */
-export function getActionRegistryContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.actionRegistry,
-    abi: ActionRegistryABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get a GardenAccount contract instance
- */
-export function getGardenAccountContract(
-  gardenAddress: `0x${string}`,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: gardenAddress,
-    abi: GardenAccountABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get the EAS contract instance
- */
-export function getEASContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.eas.address,
-    abi: EASABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
 // ============================================================================
 // HIGH-LEVEL OPERATIONS
 // ============================================================================
@@ -630,7 +570,7 @@ export async function approveWork(
 /**
  * Get the current block timestamp
  */
-export async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
+async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
   const block = await context.publicClient.getBlock();
   return block.timestamp;
 }

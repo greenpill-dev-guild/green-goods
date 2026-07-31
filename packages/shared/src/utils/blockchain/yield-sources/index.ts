@@ -40,7 +40,7 @@ export interface YieldSourceAdapter {
 }
 
 /** Ordered adapter registry; first `matches()` wins. */
-export const YIELD_SOURCE_ADAPTERS: readonly YieldSourceAdapter[] = [yearnV3Adapter];
+const YIELD_SOURCE_ADAPTERS: readonly YieldSourceAdapter[] = [yearnV3Adapter];
 
 export function findYieldSourceAdapter(kind: YieldSourceKind): YieldSourceAdapter | null {
   return YIELD_SOURCE_ADAPTERS.find((adapter) => adapter.matches(kind)) ?? null;

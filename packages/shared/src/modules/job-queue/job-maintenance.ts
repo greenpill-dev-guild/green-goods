@@ -3,10 +3,10 @@ import { track } from "../app/posthog";
 import type { jobQueueDB as JobQueueDBType } from "./db";
 
 /** Default interval for orphaned job cleanup (5 minutes) */
-export const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
+const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
 
 /** Threshold for alerting on failed delete count */
-export const FAILED_DELETE_ALERT_THRESHOLD = 10;
+const FAILED_DELETE_ALERT_THRESHOLD = 10;
 
 /**
  * Manages cleanup of orphaned synced jobs that failed to delete.

@@ -98,7 +98,7 @@ export function createFundingIntentRecord(input: {
   };
 }
 
-export function createFundingProofFingerprint(request: SubmitFundingIntentProofRequest): string {
+function createFundingProofFingerprint(request: SubmitFundingIntentProofRequest): string {
   return hashSecret(
     [
       request.gardenId.trim().toLowerCase(),

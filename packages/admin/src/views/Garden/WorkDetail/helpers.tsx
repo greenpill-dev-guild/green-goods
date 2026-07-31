@@ -1,4 +1,4 @@
-import { Confidence, type Work, type WorkMetadata, VerificationMethod } from "@green-goods/shared";
+import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { z } from "zod";
 
@@ -19,13 +19,6 @@ export type WorkApprovalFormData = z.infer<typeof workApprovalSchema>;
 // ─────────────────────────────────────────────────────────────
 // Domain default method mapping
 // ─────────────────────────────────────────────────────────────
-
-export function getDefaultMethodForDomain(domainSlug?: string): number {
-  if (!domainSlug) return VerificationMethod.HUMAN;
-  if (domainSlug.startsWith("solar.")) return VerificationMethod.HUMAN | VerificationMethod.IOT;
-  if (domainSlug.startsWith("edu.")) return VerificationMethod.HUMAN;
-  return VerificationMethod.HUMAN;
-}
 
 // ─────────────────────────────────────────────────────────────
 // Helper: parse work metadata safely

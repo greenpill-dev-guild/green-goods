@@ -83,11 +83,6 @@ export function canonicalizeIPFSIdentifier(value: string): string {
   return parsed?.canonicalId ?? value.trim();
 }
 
-export function toCanonicalIPFSUri(value: string): string {
-  const parsed = parseIPFSReference(value);
-  return parsed?.canonicalUri ?? value.trim();
-}
-
 // ============================================================================
 // GATEWAY URL RESOLUTION
 // ============================================================================

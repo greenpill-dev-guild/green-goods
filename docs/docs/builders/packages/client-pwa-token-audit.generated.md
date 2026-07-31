@@ -16,7 +16,7 @@ source_of_truth:
 
 Scope: installed-PWA runtime files in `packages/client/src`. Public browser routes, stories, and tests are excluded so the freeze audit stays focused on the protected app surface.
 
-Summary: 295 token references (accent: 67, action: 134, state: 79, contrast-exception: 15, contrast-risk: 0).
+Summary: 292 token references (accent: 66, action: 132, state: 79, contrast-exception: 15, contrast-risk: 0).
 
 Unapproved bright-green text-bearing combinations: 0.
 
@@ -224,9 +224,6 @@ Approved contrast exceptions:
 | `packages/client/src/components/Public/vaultCheckoutShell.tsx:387` | `ring-primary-action` | action | <code>className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400 underline-offset-2 transition-colors hover:text-text-sub-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"</code> |
 | `packages/client/src/components/Public/vaultCheckoutShell.tsx:461` | `ring-primary-action` | action | <code>className="shrink-0 rounded-none px-2 py-1 text-xs font-semibold text-primary-base underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-1"</code> |
 | `packages/client/src/components/Public/vaultCheckoutShell.tsx:461` | `text-primary-base` | state | <code>className="shrink-0 rounded-none px-2 py-1 text-xs font-semibold text-primary-base underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-1"</code> |
-| `packages/client/src/components/Public/vaultCheckoutShell.tsx:517` | `border-primary-action` | action | <code>? "border-primary-action bg-editorial-warm ring-1 ring-primary-action"</code> |
-| `packages/client/src/components/Public/vaultCheckoutShell.tsx:517` | `ring-primary-action` | action | <code>? "border-primary-action bg-editorial-warm ring-1 ring-primary-action"</code> |
-| `packages/client/src/components/Public/vaultCheckoutShell.tsx:526` | `text-primary-base` | accent | <code>&lt;RiCheckLine className="mt-0.5 h-4 w-4 shrink-0 text-primary-base" aria-hidden /&gt;</code> |
 | `packages/client/src/components/Public/VaultManagePositionsPanel.tsx:213` | `ring-primary-action` | action | <code>className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"</code> |
 | `packages/client/src/components/Public/VaultManagePositionsPanel.tsx:701` | `ring-primary-action` | action | <code>className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"</code> |
 | `packages/client/src/components/Public/VaultManagePositionsPanel.tsx:701` | `text-primary-base` | state | <code>className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"</code> |

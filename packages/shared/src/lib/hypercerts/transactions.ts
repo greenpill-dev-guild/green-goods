@@ -47,4 +47,3 @@ export function encodeCreateAllowlist(params: {
   });
 }
 
-export const HYPERCERT_MINTER_ABI_FULL = HYPERCERT_MINTER_ABI;
