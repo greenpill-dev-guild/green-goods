@@ -1,16 +1,6 @@
-import type { GardenDetailTab, GardenRange, TabBadgeSeverity } from "@green-goods/shared";
-
-export const TAB_TRIGGER_BASE =
-  "garden-tab-trigger border-b-2 border-transparent px-4 py-2 text-sm font-medium text-text-soft transition-colors hover:border-stroke-sub hover:text-text-sub data-[state=active]:border-primary-base data-[state=active]:text-primary-dark";
+import type { GardenRange, TabBadgeSeverity } from "@green-goods/shared";
 
 export const RANGE_OPTIONS: GardenRange[] = ["7d", "30d", "90d"];
-
-export const TAB_SECTIONS: Record<GardenDetailTab, string[]> = {
-  overview: ["health", "activity"],
-  impact: ["hypercerts", "assessments", "reporting"],
-  work: ["queue", "decisions", "history"],
-  community: ["endowment", "payouts", "coordination", "members"],
-};
 
 export const BADGE_TONE_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, string> = {
   warn: "bg-warning-lighter text-warning-dark",

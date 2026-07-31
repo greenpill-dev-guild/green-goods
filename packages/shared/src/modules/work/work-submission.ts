@@ -109,10 +109,10 @@ export async function submitApprovalToQueue(
 /**
  * Maximum file size for work images (10MB)
  */
-export const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
-export const MAX_IMAGE_COUNT = 10;
-export const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
-export const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_COUNT = 10;
+const MAX_TOTAL_IMAGE_SIZE_BYTES = 50 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
  * Options for validating work submission context

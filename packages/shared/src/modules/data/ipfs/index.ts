@@ -27,6 +27,5 @@ export {
   resolveAvatarUrl,
   resolveImageUrl,
   resolveIPFSUrl,
-  toCanonicalIPFSUri,
   tryParseJson,
 } from "./resolve";

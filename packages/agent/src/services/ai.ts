@@ -195,7 +195,7 @@ export function initAI(): AI {
   return _ai;
 }
 
-export function getAI(): AI {
+function getAI(): AI {
   if (!_ai) {
     throw new Error("AI not initialized. Call initAI() first.");
   }

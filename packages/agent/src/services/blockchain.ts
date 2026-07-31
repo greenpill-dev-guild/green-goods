@@ -587,7 +587,7 @@ export function initBlockchain(chain: Chain, rpcUrl?: string): Blockchain {
   return _blockchain;
 }
 
-export function getBlockchain(): Blockchain {
+function getBlockchain(): Blockchain {
   if (!_blockchain) {
     throw new Error("Blockchain not initialized. Call initBlockchain() first.");
   }

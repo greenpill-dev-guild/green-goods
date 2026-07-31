@@ -307,39 +307,11 @@ function handlePimlicoRpc(body: JsonRpcRequest): JsonRpcResponse {
  */
 const PIMLICO_RPC_PATTERN = /https:\/\/api\.pimlico\.io\/v2\/\d+\/rpc/;
 
-/**
- * MSW handlers for Pimlico bundler/paymaster
- */
-export const pimlicoHandlers = [
-  // Handle Pimlico bundler/paymaster RPC
-  http.post<PathParams, JsonRpcRequest, DefaultBodyType>(
-    PIMLICO_RPC_PATTERN,
-    async ({ request }) => {
-      const body = (await request.json()) as JsonRpcRequest;
-      const response = handlePimlicoRpc(body);
-
-      console.debug(`[MSW] Pimlico RPC: ${body.method}`, {
-        id: body.id,
-        result: response.result ? "success" : response.error,
-      });
-
-      return HttpResponse.json(response);
-    }
-  ),
-];
-
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export {
-  MOCK_PAYMASTER,
-  MOCK_GAS_PRICES,
-  MOCK_GAS_ESTIMATE,
-  MOCK_PAYMASTER_RESULT,
-  handlePimlicoRpc,
-  sentUserOps,
-};
+export { MOCK_PAYMASTER, handlePimlicoRpc };
 
 /**
  * Reset mock state (useful between tests)

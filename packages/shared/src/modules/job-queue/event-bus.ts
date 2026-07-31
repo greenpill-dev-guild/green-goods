@@ -119,25 +119,6 @@ class JobQueueEventBus extends EventTarget {
 // Export singleton instance
 export const jobQueueEventBus = new JobQueueEventBus();
 
-// React hook for using the event bus
-export function useJobQueueEvent<T extends JobQueueEventType>(
-  type: T,
-  listener: JobQueueEventListener<T>,
-  deps: React.DependencyList = []
-): void {
-  // Store latest listener in ref to avoid re-subscribing when callback identity changes
-  const listenerRef = React.useRef(listener);
-  React.useEffect(() => {
-    listenerRef.current = listener;
-  });
-
-  React.useEffect(() => {
-    const unsubscribe = jobQueueEventBus.on(type, (data) => listenerRef.current(data));
-    return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, ...deps]);
-}
-
 // React hook for using multiple events
 export function useJobQueueEvents<T extends JobQueueEventType>(
   types: T[],

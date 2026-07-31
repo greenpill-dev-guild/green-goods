@@ -5,7 +5,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
 import { GreenGoodsENSABI } from "../../utils/blockchain/contracts";
 
-export const ENS_RECEIVER_AVAILABILITY_ABI = [
+const ENS_RECEIVER_AVAILABILITY_ABI = [
   {
     name: "available",
     type: "function",
