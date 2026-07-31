@@ -52,6 +52,7 @@
     "ontology:generate": "node scripts/quality/check-ontology.mjs --generate",
     "check:source-structure": "node scripts/quality/check-source-structure.js",
     "check:test-quality": "bash scripts/quality/check-test-quality.sh",
+    "check:dead-code": "bun --bun node_modules/.bin/knip",
     "lint:vocab": "bash scripts/design/check-vocab.sh",
     "lint:rules": "node scripts/quality/check-react-patterns.js",
     "prepare": "husky",

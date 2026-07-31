@@ -6,6 +6,11 @@
  * is proven — the live checkout (VaultCheckoutDialog) is wallet-only. Retained for
  * the planned card-funding rollout; see .plans/archive/nyc-vault-crowdfunding/brief.md.
  * Has no live consumer today by design — do not remove as "dead code".
+ *
+ * Unpark condition: a card flow needs settlement cheap and fast enough that a card
+ * payer never waits on chain confirmation. Ethereum L1 gas cost and confirmation
+ * latency made that impractical; Arbitrum is expected to clear both bars, so this
+ * becomes viable when garden endowments move to it.
  */
 import {
   buildPublicFundingAvailabilityKey,

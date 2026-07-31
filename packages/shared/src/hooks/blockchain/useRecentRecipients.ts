@@ -87,5 +87,6 @@ export function useRecentRecipientsVersion(): number {
 /** Returns the recent recipients for this tab, fresh on same-tab writes. */
 export function useRecentRecipients(): RecentRecipient[] {
   const version = useRecentRecipientsVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   return useMemo(() => readRecents(), [version]);
 }

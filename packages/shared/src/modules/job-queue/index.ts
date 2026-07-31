@@ -293,7 +293,8 @@ class JobQueue {
 
       try {
         await jobQueueDB.deleteJob(jobId);
-      } catch (deleteErr) {
+      } catch (error) {
+        logger.warn("[JobQueue] Failed to delete synced job", { jobId, error });
         await this.maintenance.trackFailedDelete(jobId);
       }
 
