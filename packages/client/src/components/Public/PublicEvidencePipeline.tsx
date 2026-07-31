@@ -2,7 +2,6 @@ import { cn } from "@green-goods/shared";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import {
-  type EditorialDomain,
   EditorialKicker,
   EditorialNumeral,
   EditorialReadDeeper,
@@ -180,11 +179,4 @@ export const EVIDENCE_KIND_LABELS: Record<EvidenceNodeKind, string> = {
   assessment: "Assessment",
   work: "Work",
   certificate: "Impact Certificate",
-};
-
-/** Map record kind → editorial domain ink for chips, tags, and accents. */
-export const EVIDENCE_KIND_DOMAINS: Record<EvidenceNodeKind, EditorialDomain> = {
-  assessment: "education",
-  work: "agro",
-  certificate: "solar",
 };

@@ -80,18 +80,6 @@ export const TEST_ACCOUNTS = {
 // CONTRACT ADDRESSES (Sepolia)
 // ============================================================================
 
-/**
- * Well-known contract addresses on Sepolia.
- * Deployment-specific addresses are loaded dynamically from deployment artifacts.
- */
-export const SEPOLIA_CONTRACTS = {
-  /** EAS (Ethereum Attestation Service) on Sepolia */
-  eas: "0xC2679fBD37d54388Ce493F1DB75320D236e1815e" as const,
-
-  /** EAS Schema Registry on Sepolia */
-  schemaRegistry: "0x0a7E2Ff54e76B8E6659aedc9103FB21c038050D0" as const,
-} as const;
-
 // ============================================================================
 // TIMEOUTS
 // ============================================================================

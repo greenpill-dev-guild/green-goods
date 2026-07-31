@@ -55,6 +55,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
       }));
     // pendingJoinsVersion retriggers when a join confirms or expires in-tab,
     // so the Member badge updates without waiting for an unrelated re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [gardens, primaryAddress, pendingJoinsVersion]);
 
   const handleJoinGarden = (garden: Garden) => {

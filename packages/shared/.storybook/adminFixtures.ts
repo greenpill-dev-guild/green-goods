@@ -22,7 +22,7 @@ import { daysAgo, daysFromNow, FIXTURE_IMAGE_AGROFORESTRY } from "./fixtures";
 
 export const STORYBOOK_OPERATOR_ADDRESS =
   "0x04D60647836bcA09c37B379550038BdaaFD82503" as Address;
-export const STORYBOOK_DEPLOYER_ADDRESS =
+const STORYBOOK_DEPLOYER_ADDRESS =
   "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e" as Address;
 
 const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
@@ -122,7 +122,7 @@ export const STORYBOOK_ADMIN_ACTIONS: Action[] = [
   },
 ];
 
-export const STORYBOOK_ADMIN_ASSESSMENTS: GardenAssessment[] = [
+const STORYBOOK_ADMIN_ASSESSMENTS: GardenAssessment[] = [
   {
     id: "assessment-rio-canopy",
     schemaVersion: "assessment_v2",
@@ -152,7 +152,7 @@ export const STORYBOOK_ADMIN_ASSESSMENTS: GardenAssessment[] = [
   },
 ];
 
-export const STORYBOOK_ADMIN_WORKS: Work[] = [
+const STORYBOOK_ADMIN_WORKS: Work[] = [
   {
     id: "work-rio-canopy-1",
     title: "Canopy transect upload",
@@ -209,7 +209,7 @@ export const STORYBOOK_ADMIN_WORKS: Work[] = [
   },
 ];
 
-export const STORYBOOK_ADMIN_HYPERCERTS: HypercertRecord[] = [
+const STORYBOOK_ADMIN_HYPERCERTS: HypercertRecord[] = [
   {
     id: "hypercert-rio-baseline",
     tokenId: 1001n,
@@ -248,7 +248,7 @@ export const STORYBOOK_ADMIN_VAULTS: GardenVault[] = [
   },
 ];
 
-export const STORYBOOK_ADMIN_ALLOCATIONS: YieldAllocation[] = [
+const STORYBOOK_ADMIN_ALLOCATIONS: YieldAllocation[] = [
   {
     gardenAddress: RIO_GARDEN_ADDRESS,
     assetAddress: STORYBOOK_ASSET_ADDRESS,
@@ -261,7 +261,7 @@ export const STORYBOOK_ADMIN_ALLOCATIONS: YieldAllocation[] = [
   },
 ];
 
-export const STORYBOOK_ADMIN_COMMUNITY: GardenCommunity = {
+const STORYBOOK_ADMIN_COMMUNITY: GardenCommunity = {
   gardenAddress: RIO_GARDEN_ADDRESS,
   communityAddress: RIO_COMMUNITY_ADDRESS,
   goodsTokenAddress: STORYBOOK_ASSET_ADDRESS,
@@ -269,7 +269,7 @@ export const STORYBOOK_ADMIN_COMMUNITY: GardenCommunity = {
   stakeAmount: 1_000000000000000000n,
 };
 
-export const STORYBOOK_ADMIN_POOLS: GardenSignalPool[] = [
+const STORYBOOK_ADMIN_POOLS: GardenSignalPool[] = [
   {
     poolAddress: RIO_ACTION_POOL_ADDRESS,
     poolType: PoolType.Action,

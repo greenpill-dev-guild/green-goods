@@ -45,7 +45,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
 
-export function normalizePublicOrigin(origin: string | null): string {
+function normalizePublicOrigin(origin: string | null): string {
   if (!origin) return "none";
   try {
     const parsed = new URL(origin);
@@ -55,7 +55,7 @@ export function normalizePublicOrigin(origin: string | null): string {
   }
 }
 
-export function hashPublicRateLimitMaterial(material: string): string {
+function hashPublicRateLimitMaterial(material: string): string {
   return createHash("sha256").update(material).digest("hex");
 }
 
@@ -115,7 +115,7 @@ export class InMemoryPublicRateLimiter {
   }
 }
 
-export function parseAllowedOrigins(value?: string): Set<string> {
+function parseAllowedOrigins(value?: string): Set<string> {
   return new Set(
     (value ?? "")
       .split(",")
@@ -124,7 +124,7 @@ export function parseAllowedOrigins(value?: string): Set<string> {
   );
 }
 
-export const LOCAL_DEVELOPMENT_PUBLIC_ORIGINS = [
+const LOCAL_DEVELOPMENT_PUBLIC_ORIGINS = [
   "http://localhost:3001",
   "https://localhost:3001",
   "http://127.0.0.1:3001",

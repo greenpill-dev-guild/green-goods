@@ -159,7 +159,7 @@ const parseDataToWork = (
   };
 };
 
-export const parseDataToWorkApproval = (
+const parseDataToWorkApproval = (
   workApprovalUID: string,
   attestation: {
     attester: string;

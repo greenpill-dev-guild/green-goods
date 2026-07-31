@@ -3,9 +3,9 @@ import type { jobQueueDB as JobQueueDBType } from "./db";
 import { trackPrivateQueueEvent } from "./job-analytics";
 
 /** Default interval for orphaned job cleanup (5 minutes) */
-export const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
+const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
 
-/** Threshold for alerting on failed delete count */
+/** Threshold for alerting on failed delete count. Exported for the telemetry-privacy test. */
 export const FAILED_DELETE_ALERT_THRESHOLD = 10;
 
 /**

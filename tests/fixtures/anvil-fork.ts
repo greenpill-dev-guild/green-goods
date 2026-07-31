@@ -478,19 +478,6 @@ export async function impersonateAccount(
 }
 
 /**
- * Stop impersonating an account
- *
- * @param testClient - The test client from AnvilForkContext
- * @param address - The address to stop impersonating
- */
-export async function stopImpersonating(
-  testClient: TestClient,
-  address: `0x${string}`
-): Promise<void> {
-  await testClient.stopImpersonatingAccount({ address });
-}
-
-/**
  * Set the balance of an address
  *
  * @param testClient - The test client from AnvilForkContext
@@ -503,16 +490,6 @@ export async function setBalance(
   value: bigint
 ): Promise<void> {
   await testClient.setBalance({ address, value });
-}
-
-/**
- * Mine a specified number of blocks
- *
- * @param testClient - The test client from AnvilForkContext
- * @param count - Number of blocks to mine (default: 1)
- */
-export async function mineBlocks(testClient: TestClient, count: number = 1): Promise<void> {
-  await testClient.mine({ blocks: count });
 }
 
 /**

@@ -82,7 +82,7 @@ if (typeof window !== "undefined") {
   installFrozenClock();
 }
 
-export function createStorybookQueryClient() {
+function createStorybookQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
@@ -340,7 +340,7 @@ export const withWagmi: Decorator = (Story) => (
  * `operator`). Stories that need a connected admin identity should layer
  * this on top of `withWagmi`.
  */
-export const withDevAuth: Decorator = (Story) => (
+const withDevAuth: Decorator = (Story) => (
   <DevAuthProvider>
     <Story />
   </DevAuthProvider>

@@ -1,5 +1,5 @@
 import { DialogShell, PwaSheet, cn, useMediaQuery } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiInformationLine } from "@remixicon/react";
+import { RiCloseLine, RiInformationLine } from "@remixicon/react";
 import {
   type CSSProperties,
   type ReactNode,
@@ -390,7 +390,7 @@ export function CheckoutTransactionDetails({
         {label}
       </button>
       {open ? (
-        <div
+        <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- popover dialog is focusable via tabIndex={-1}; Escape closes it
           ref={contentRef}
           id={contentId}
           role="dialog"
@@ -486,45 +486,5 @@ export function CheckoutStageHeader({
       <h3 className="font-serif text-xl font-normal leading-tight text-text-strong-950">{title}</h3>
       <p className="text-sm leading-[1.55] text-text-sub-600">{description}</p>
     </header>
-  );
-}
-
-/** Method choice tile — squared, with a non-color selected cue (check + ring). */
-export function CheckoutMethodTile({
-  method,
-  label,
-  subtitle,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  method: CheckoutMethod;
-  label: string;
-  subtitle: string;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: (method: CheckoutMethod) => void;
-}) {
-  return (
-    <button
-      type="button"
-      data-testid={`vault-checkout-method-${method}`}
-      onClick={() => onSelect(method)}
-      aria-pressed={selected}
-      disabled={disabled}
-      className={`flex items-start justify-between gap-2 rounded-none border px-4 py-3 text-left transition-colors ${
-        selected
-          ? "border-primary-action bg-editorial-warm ring-1 ring-primary-action"
-          : "border-stroke-soft-200 bg-bg-white-0 hover:bg-editorial-warm/40"
-      } disabled:cursor-not-allowed disabled:opacity-60`}
-    >
-      <span className="flex flex-col gap-0.5">
-        <span className="font-serif text-base text-text-strong-950">{label}</span>
-        <span className="text-[11px] text-text-soft-400">{subtitle}</span>
-      </span>
-      {selected ? (
-        <RiCheckLine className="mt-0.5 h-4 w-4 shrink-0 text-primary-base" aria-hidden />
-      ) : null}
-    </button>
   );
 }

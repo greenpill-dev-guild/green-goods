@@ -136,7 +136,7 @@ function normalizePinataUploadsApiUrl(value?: string | null): string {
   return normalized;
 }
 
-export function configurePinata(
+function configurePinata(
   config: Pick<
     IpfsConfig,
     | "gatewayBaseUrl"

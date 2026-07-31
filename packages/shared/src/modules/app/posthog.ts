@@ -115,7 +115,7 @@ const MAINNET_CHAIN_IDS = new Set([
 /**
  * Determine if the current chain is a testnet.
  */
-export function isTestnetEnvironment(chainId?: number | null): boolean {
+function isTestnetEnvironment(chainId?: number | null): boolean {
   const chain = chainId ?? getChainId();
   if (chain === null) return false;
   return TESTNET_CHAIN_IDS.has(chain);
@@ -124,7 +124,7 @@ export function isTestnetEnvironment(chainId?: number | null): boolean {
 /**
  * Determine if the current chain is a known mainnet.
  */
-export function isMainnetEnvironment(chainId?: number | null): boolean {
+function isMainnetEnvironment(chainId?: number | null): boolean {
   const chain = chainId ?? getChainId();
   if (chain === null) return false;
   return MAINNET_CHAIN_IDS.has(chain);
@@ -134,7 +134,7 @@ export function isMainnetEnvironment(chainId?: number | null): boolean {
  * Get the environment name based on chain ID.
  * Returns "unknown" if chain ID is not configured, invalid, or not in known chains.
  */
-export function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unknown" {
+function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unknown" {
   const chain = chainId ?? getChainId();
   if (chain === null) return "unknown";
   if (isTestnetEnvironment(chain)) return "testnet";
@@ -484,7 +484,7 @@ function handleVisibilityChange() {
  *
  * @returns A cleanup function to remove all event listeners
  */
-export function initNetworkTracking(): () => void {
+function initNetworkTracking(): () => void {
   if (networkListenersInitialized && cleanupNetworkListeners) {
     return cleanupNetworkListeners;
   }
