@@ -390,8 +390,7 @@ export function CheckoutTransactionDetails({
         {label}
       </button>
       {open ? (
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- popover dialog is focusable via tabIndex={-1}; handler is Escape-to-close
-        <div
+        <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- popover dialog is focusable via tabIndex={-1}; Escape closes it
           ref={contentRef}
           id={contentId}
           role="dialog"

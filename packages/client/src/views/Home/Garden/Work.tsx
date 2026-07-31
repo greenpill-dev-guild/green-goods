@@ -374,8 +374,7 @@ export const GardenWork: React.FC = () => {
         {/* Footer Container */}
         <div className="fixed left-0 right-0 bottom-0 z-modal">
           {/* Feedback Drawer - Slides up from behind the footer bar */}
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler stops propagation and closes on Escape */}
-          <div
+          <div // eslint-disable-line jsx-a11y/no-noninteractive-element-interactions -- dialog surface; handler stops propagation and closes on Escape
             className={cn(
               pwaDrawerStyles.workFeedbackDrawer,
               feedbackMode ? "translate-y-0" : "translate-y-full"
