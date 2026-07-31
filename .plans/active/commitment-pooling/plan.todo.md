@@ -2,7 +2,7 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: local specification review complete; live mirror convergence required before implementation; value release, Safe authority, audit, canary, and external evidence remain blocked`
+**Status**: `ACTIVE: pre-build review accepted (register #70) — one blocker and twenty-nine further corrections applied. Live Linear read 2026-07-31 confirms every named PRD-721 prerequisite Done: PRD-557, PRD-747, PRD-748, PRD-762, PRD-757, PRD-759. PRD-649 architecture freeze is the single remaining gate and is In Progress with both of its own blockers cleared; merging these corrections is what closes it. Value release, Safe authority, audit, canary, and external evidence remain blocked`
 **Created**: `2026-07-03`
 **Last Updated**: `2026-07-30`
 
@@ -50,16 +50,17 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 
 ## How to read decision citations
 
-⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–29, and this has caused real mis-resolutions. Until a full renumber lands:
+⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–38, and this has caused real mis-resolutions. Until a full renumber lands:
 
 | List | Range | What it is |
 |---|---|---|
-| **Decision Log** (the table below) | 1–37 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–69 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–69 |
+| **Decision Log** (the table below) | 1–38 | Curated current-state decisions spanning the whole feature, newest last |
+| **Full decision register** (further below) | 1–70 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–70 |
 
-- **`#38`–`#69` are unambiguous** — the Decision Log stops at 37, so those are always the register.
+- **`#39`–`#70` are unambiguous** — the Decision Log stops at 38, so those are always the register.
+- **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
-- **`#1`–`#37` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
+- **`#1`–`#38` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
 - **Sub-letters do not disambiguate** — both `#28` (Decision Log, a–f) and `#34` (register, a–h) carry them.
 - **When writing a new citation, name the list**: "Decision Log #17" or "register #17", never a bare `#17`.
 
@@ -108,8 +109,9 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 35 | This amendment updates planning, diagrams, prototypes, ontology/docs, and tracker mirrors only. Product contracts, indexer, shared state, UI packages, deployment, broadcast, Safe authority, and value movement remain blocked behind their existing lanes and proof gates. | Scope boundary for the 2026-07-28 alignment pass. |
 | 36 | Automatic Hypercert allocation has no unearned lead or metadata-only fallback. Ready transitions and direct Fulfilled dispute resolutions require an available recognition policy and at least one verified contributor; W26 blocks inconsistent legacy/indexed zero-eligible state pending governed correction. Commitment creation accepts only `actionUID`/`requiredCount` for DomainImpact; evidence jobs persist their explicit credited-contributor vector while each contributor receives at most one evidence-derived recognition credit; each Work UID counts once; Garden claims reject both a creator claimant and creator requester; settlement creation binds the full recognition vector to its hash and derives payment weights from amounts. | Review closure 2026-07-28, tightened 2026-07-29. These constraints make the recognition and payout audit trail internally verifiable and keep caller-authored derived fields out of contract inputs. |
 | 37 | **Protocol-pool settlement parity with an explicit treasury-funding exception.** The protocol pool is the root garden's ordinary commitment pool: Garden and Individual claims use the same claim → accept → work/evidence → confirmation → Fulfilled lifecycle, and a fulfilled `CeloSettlement` commitment proceeds through the same provider-garden payout-plan primitives as every other pool. The app exposes create/edit/finalize/prepare actions from canonical indexed state; there is no sixth offline settlement job and no second reward approval after fulfillment. `queueFunding(garden, amount)` remains in the initial version only for discretionary, non-commitment garden seeds/top-ups. Operations access is capability-gated by any of `isDeployer`, `canQueueFunding`, or `canOperateSettlement`, while the form itself requires current protocol-steward or SettlementModule-owner authority; deployer alone cannot submit. A successful submission emits a typed `Funding` / `ProtocolToGarden` Queued row with no commitment ID. | User alignment in PRD-759 and explicit 2026-07-30 merge lock preserving develop's payout-plan architecture. This reuses the existing pool, plan, and disbursement primitives without adding per-device coordination or granting an agent/keeper value authority. |
+| 38 | Pre-build review closure: members may create cycle-less commitments (the Open-cycle rule binds only when `cycleId != 0`); Garden-claimed commitments are confirmed by the claiming garden's resolved operator/owner Hat wearers, never by the GardenAccount through ERC-6551 `execute`; deployer-EOA ownership of the three live proxies is knowingly accepted for the non-custodial/non-transferable tier, extending register #38's residual-risk acceptance to ownership and waiving the `AGENTS.md` 3-of-5 rule for that tier alone; and the 2026-07-31 Build close is recorded as known drift for Afo to re-date in Linear rather than silently corrected in this mirror. | User decisions 2026-07-30, taken on a four-lane pre-dispatch review that found one compile-blocking interface defect and twenty-nine further specification and artifact gaps. The value tier keeps every ownership, audit, timelock, and canary gate in full. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–69)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–70)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -390,6 +392,41 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     protocol-steward or SettlementModule-owner authority and produces only an emitted
     Funding/ProtocolToGarden Queued row with no commitment identity. No agent or keeper receives
     write or value authority.
+70. Final pre-build review closure (2026-07-30, Afo authorization): four parallel read-only
+    reviews — contract spec, settlement spec, visual assets, and repo gates — ran before PRD-721
+    dispatch and found thirty corrections in all: one compile-blocking interface defect plus
+    twenty-nine further specification and artifact gaps, split sixteen in the contract spec (the
+    blocker among them), seven in settlement, and seven in the visual assets — all now corrected
+    in repo truth. `ContributorRosterFrozen` was declared as both an event and an error, so the canonical
+    `ICommitmentPoolingModule` could not compile; the event name stands and the error becomes
+    `RosterAlreadyFrozen`. Members may create cycle-less commitments, so the Open-cycle
+    requirement binds only when `cycleId != 0`, while cycle-less commitments keep the immutable
+    20/80 preset and their COMMITMENT-bundle ineligibility. Garden-claimed commitments are
+    confirmed directly by the claiming garden's resolved operator/owner Hat wearers and never by
+    the GardenAccount through ERC-6551 `execute`; frozen-contributor exclusion and
+    confirmer-threshold reachability are unchanged. Deployer-EOA ownership of GardenToken,
+    WorkApprovalResolver, and AssessmentResolver is knowingly accepted for the
+    non-custodial/non-transferable tier as an explicit extension of register #38, waiving
+    `packages/contracts/AGENTS.md`'s 3-of-5 rule for that tier alone while the value tier binds in
+    full — a single EOA key can upgrade those proxies to arbitrary code, and its compromise or
+    loss is unrecoverable. `contract-spec.md` §6.1 now owns the recognition-snapshot preimage
+    `keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))`, which
+    `settlement-spec.md` and the contracts handoff restate rather than author.
+    WorkApprovalResolver's post-upgrade layout is 2+48 → 5+45. The mandatory `--sender`/live
+    `owner()` upgrade gate, the `421614` network record and artifact path, the badge-schema chain
+    map, the release-gate posture, the named MAX-bound benchmark harness, and the dual-chain
+    courier process and fixture are itemized as net-new lane deliverables instead of being assumed
+    to exist. The ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof is release-ops
+    evidence and never gates settlement lane GREEN, which covers proof-ladder rungs 1–3 only.
+    `ContributorPayout.included` is dropped because payability is exactly `amount > 0`. Phase
+    dates are unchanged: the 2026-07-31 Build close is recorded as known drift because the
+    register #62 dependency chain cannot complete by then, Linear owns the dates, and this mirror
+    follows only after Afo re-dates there. Chain-verified in the same pass: the live Arbitrum
+    AssessmentResolver returns `schemaUID() == 0` while the artifact holds the pinnable v2 UID,
+    GardenToken appends at slot 213 offset 2 with its 37-slot gap intact, and all three live
+    proxies share the deployer-EOA owner. No product implementation, dependency install, codegen,
+    deploy, broadcast, authority mutation, Linear/source-document write, staging, commit, or push
+    is authorized by this entry.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
@@ -451,7 +488,7 @@ Spine records (not work items): [PRD-649](https://linear.app/greenpill-dev-guild
 
 ## Tracks and sequencing (live Linear cadence)
 
-Scope and Design closes on 2026-07-22, and the implementation window closes with the Build phase on 2026-07-31. Research alignment runs through 2026-07-30; the July dry-run operational checkpoint is 2026-07-31. The non-value pooling/register/schema tier may broadcast during Build only after its artifact-specific evidence and human authorization are recorded. Release follows on 2026-08-12 for the user-facing rollout and separately gated value tier. On 2026-09-30, the Follow On / Hardening native phase and the Community plus settlement-evidence operational checkpoint close in parallel as distinct evidence decisions.
+Scope and Design closes on 2026-07-22, and the implementation window closes with the Build phase on 2026-07-31. ⚠️ **The 2026-07-31 Build close is known drift as of register #70 (2026-07-30)**: the register #62 dependency chain — PRD-762, then PRD-757/759, then the PRD-649 freeze, then PRD-721 → PRD-722 → PRD-723 — cannot complete by that date, and contracts, indexer, and state/API are all still unstarted. Linear owns the phase dates, so Afo re-dates there first and this hub follows; the dates below are reproduced as-is until then and grant no authority either way. Research alignment runs through 2026-07-30; the July dry-run operational checkpoint is 2026-07-31. The non-value pooling/register/schema tier may broadcast during Build only after its artifact-specific evidence and human authorization are recorded. Release follows on 2026-08-12 for the user-facing rollout and separately gated value tier. On 2026-09-30, the Follow On / Hardening native phase and the Community plus settlement-evidence operational checkpoint close in parallel as distinct evidence decisions.
 
 ### Track A: July dry run (existing rails, no code)
 
@@ -470,10 +507,10 @@ This order supersedes the earlier implementation-first list. The only parallel w
 backend freezes is specification, diagram, journey, and prototype review; product UI implementation
 does not begin against moving contracts or indexer queries.
 
-1. [ ] **Envio foundation first:** correct and merge GitHub PR #649; prove Envio `3.2.1` generation, build, tests, migration/replay, block preservation, and root Bun-first workflow without package-local skill copies or unrelated shared changes.
-2. [ ] **Close the Steward and app-profile prerequisites:** complete PRD-747 HatsModule Steward upgrade and PRD-748 live-hat relabel branch review/merge hygiene, then complete PRD-762's signed app-avatar API path (agent persistence and public read/mutation routes, shared hooks, and client Profile controls) before backend dispatch. PRD-762 requires no Commitment Pooling contract change, indexer work, or deployment broadcast. PRD-749's visible en/es/pt terminology sweep must be complete before product UI implementation.
-3. [ ] **Close the architecture decisions:** complete PRD-757 contributor-share review and PRD-759 protocol-pool funding review. Both must close before PRD-649.
-4. [ ] **Freeze the implementation architecture:** Afo completes the PRD-649 fine-comb; every correction is reconciled across contracts, events, indexer entities, state/API, handoffs, prototypes, the canonical Google Doc, and Linear. Freeze the ABI/event/schema/query boundaries before PRD-721 dispatch.
+1. [x] **Envio foundation first:** correct and merge GitHub PR #649; prove Envio `3.2.1` generation, build, tests, migration/replay, block preservation, and root Bun-first workflow without package-local skill copies or unrelated shared changes. *(Landed on `develop` as `8fd89e660`, 2026-07-28; `packages/indexer` pins `envio: 3.2.1`. The wider `envio-hyperindex-v3-migration` hub remains `in_progress` for its own later lanes, but this gate is satisfied.)*
+2. [x] **Close the Steward and app-profile prerequisites:** complete PRD-747 HatsModule Steward upgrade and PRD-748 live-hat relabel branch review/merge hygiene, then complete PRD-762's signed app-avatar API path (agent persistence and public read/mutation routes, shared hooks, and client Profile controls) before backend dispatch. PRD-762 requires no Commitment Pooling contract change, indexer work, or deployment broadcast. PRD-749's visible en/es/pt terminology sweep must be complete before product UI implementation. *(PRD-747/748 are merged to `develop`; PRD-762 is Done in live Linear and no longer blocks PRD-721. PRD-749 remains a later product-UI gate, not a PRD-721 backend prerequisite.)*
+3. [x] **Close the architecture decisions:** complete PRD-757 contributor-share review and PRD-759 protocol-pool funding review. Both must close before PRD-649. *(Both are cleared in live Linear; merged PR #669 preserves PRD-759's provider-garden payout-plan architecture and authority-gated discretionary funding exception.)*
+4. [ ] **Freeze the implementation architecture:** Afo completes the PRD-649 fine-comb; every correction is reconciled across contracts, events, indexer entities, state/API, handoffs, prototypes, the canonical Google Doc, and Linear. Freeze the ABI/event/schema/query boundaries before PRD-721 dispatch. *(This is the only remaining gate. Live-verified 2026-07-31: PRD-649 is In Progress and both of its Linear blockers — PRD-757 and PRD-759 — are Done. Its attached PR is the closed draft #679; the live successor is #680, which carries the register #70 corrections the freeze depends on.)* *(Afo accepted the pre-build review now keyed as register #70. The corrected sources are integrated on `codex/prd-649-architecture-freeze`, and the canonical Google Doc was updated, saved, and re-read. Merge to `develop` plus the live Linear convergence write/re-read remain.)*
 5. [ ] **Build the contracts backend first (PRD-721):** execute the three contract PR chains against the frozen PRD-649 architecture. No client, admin, or editorial implementation begins in this stage.
 6. [ ] **Build the indexer backend second (PRD-722):** implement and prove the indexed read model against PRD-721's frozen events, including generation, replay/cutover, block preservation, and query-boundary evidence.
 7. [ ] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. PRD-723 must close before PRD-724, PRD-725, or PRD-726 begins.
@@ -695,6 +732,16 @@ draws (`waiting_for_hat`, `Syncing`, `RetryableFailure`, `Exhausted`, `Discarded
 
 Conversely `accounting-state` (`Registered`, `Committed`, `Released`, `Fulfilled`) was in the sidecar
 but surfaced in no visual; D6c's unit-and-slot ledger now names its members explicitly.
+
+Register #70's repo-gate pass added the **entity-level** counterpart to that vocabulary list. These are
+read-model concepts the specs freeze but the sidecar does not carry, so `check:ontology`'s spec-arrival
+guard cannot police them when `ICommitmentPoolingModule.sol` and `ISettlementModule.sol` land:
+`CommitmentProviderExposure` (the count-only per-lead exposure row), the exact-label
+`CommitmentUnitSummary` POOL/CYCLE rows, and `promiseKeptRate` (the sole cross-commitment percentage,
+`commitmentsFulfilled / commitmentsDue`). The same next-step rule applies — encode them with
+`planned_anchor` entries when the interfaces land, in the same PR as the spec edit, per
+`.claude/context/ontology.md`. `bun run check:ontology` passes today (11 guards, 15 entities,
+30 vocabularies, 4 state machines, 14 planned anchors watched); these are coverage gaps, not drift.
 
 **Next step**: when the settlement and indexer enums land in Solidity/GraphQL, add them to the
 sidecar with `planned_anchor` entries so `check:ontology`'s spec-arrival guard watches them the way
