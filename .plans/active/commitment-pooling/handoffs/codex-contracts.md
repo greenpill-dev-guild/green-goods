@@ -151,7 +151,7 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   Partial, zero, repeated, wrong-account, and terminal-state register calls revert before any
   balance or count mutation. Pre-acceptance cancel/expiry changes no balance or slot; dispute
   entry/restoration makes no register call and preserves the slot.
-- Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by the accepted provider/counterparty or steward, never by an unrelated creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
+- Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by the lead provider/counterparty or steward, never by an unrelated creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
 - The count-cap API is the initial interface: `ProviderOpenCommitmentCapUpdated`,
   `OpenCommitmentCapRequired`, `OpenCommitmentCapExceeded`,
   `providerOpenCommitmentCapOf`, and `openCommitmentCountOf`. After pool/steward resolution the
@@ -424,7 +424,7 @@ Each line below is a condition to be met, not a statement of current state. None
   GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
   checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
   declarations require zero source/token sentinels; SettlementModule exclusively derives its
-  configured G$ token, and the accepted provider-garden Safe becomes authoritative only there.
+  configured G$ token, and the provider-garden Safe becomes authoritative only there.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
   than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments

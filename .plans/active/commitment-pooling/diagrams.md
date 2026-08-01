@@ -7,47 +7,53 @@
 
 **Docs-site promotion**: these diagrams live here until the August release ships. Promotion into `docs/docs/builders/architecture/` (sequence-diagrams, ERD, plus a commitment journey doc) rides [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) (historical label PRD-680); see §8 for the two *edits* to existing docs diagrams that ship at the same time.
 
-**Role vocabulary (decision 2026-07-18)**: these diagrams say **Garden steward** (protocol pool: **Protocol steward**) for the pool-authority role — the holder of the garden's operator/owner Hats (`_requirePoolSteward`). The shipped app and community glossary still say "Operator"; the app-wide rename is a recorded follow-up, so treat steward = operator/owner Hats wherever the two vocabularies meet.
+**Role vocabulary (decision 2026-07-18; gardener line added 2026-07-31)**: these diagrams say **Garden steward** (protocol pool: **Protocol steward**) for the pool-authority role — the holder of the garden's operator/owner Hats (`_requirePoolSteward`). The shipped app and community glossary still say "Operator"; the app-wide rename is a recorded follow-up, so treat steward = operator/owner Hats wherever the two vocabularies meet. The person who makes, delivers, or receives promises is a **Gardener** — the holder of the garden's gardener Hat (the membership predicate behind `isGardener`); "member of a garden" appears below only as that predicate, never as a persona name. **Community member** remains the distinct Community-PWA persona, and "batch entry" names a disbursement row inside an immutable settlement batch.
 
 **Vocabulary source (updated 2026-07-29)**: commitment, contributor-policy, and payout-plan-status labels below are drawn from the machine-readable ontology sidecar, `packages/shared/src/ontology/green-goods-ontology.json` (human-readable render: `docs/docs/reference/ontology.generated.mdx`), which became repo canon with the ontology foundation. Settlement transport labels such as `DisbursementKind` and `FundingRoute` remain frozen by `settlement-spec.md` until their implementation anchors promote them into the sidecar. Display copy may prettify, but every ontology-backed label must map 1:1 onto a canonical member. `bun run check:ontology` guards the code layers and does not parse Markdown or images, so this file is the manual leg of that contract.
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 30 assets, not a table of contents for this file: 24 named D-diagram sections (D1–D17, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **35 Architecture Mermaid blocks** below. D17 makes the accountability/recognition/payment separation explicit. **Every D-section has exactly one row.**
+This is the cross-hub inventory of 30 assets, not a table of contents for this file: 24 named D-diagram sections (D1–D17, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **33 Architecture Mermaid blocks** below (D10b's mapping and D16's two surface/recovery maps are tables; D13b renders on the Reference tab). D17 makes the accountability/recognition/payment separation explicit. **Every D-section has exactly one row.**
 
-**Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling: `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one, which is what gives D2/D6/D7/D9 their overview-plus-zoom shape, what makes D16's three views peers, and what the 25-section / 35-block assertions count (the gallery routes this preamble, the coverage matrix, and the appendix to its Reference tab, so the Architecture pane asserts 25 sections including its hand-written intro). Promoting them to `###` would convert 17 sub-blocks into sections and dismantle the anchor and nav design. markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives. The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 15–16 resolve to the two `wireframes.md` files. “Ready” means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
+**Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling:
+
+- `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one — that is what gives D2/D6/D7/D9 their overview-plus-zoom shape and makes D16's views peers. Promoting sub-blocks to `###` would convert them into sections and dismantle the anchor and nav design.
+- The gallery routes this preamble, the coverage matrix, D13b's permission table, and the appendix to its Reference tab, so the Architecture pane asserts 24 sections (including its hand-written intro) and the 33-block Mermaid count above.
+- markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives.
+- The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 16–17 resolve to the two `wireframes.md` files.
+- "Ready" means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
 
 | # | Asset | Audience | Question answered | Source of truth | Current status | Correction needed | Validation method |
 |---:|---|---|---|---|---|---|---|
 | 1 | Unified system context | all lanes | Which users, apps, chains, read models, Safes, CCIP routes, and token participate? | CP `contract-spec.md` §4; `settlement-spec.md` §2–5; Community `spec.md` §3 | Ready: D1 | None; keep planned/live labels current | Mermaid parse + architecture cross-read |
-| 2 | Module topology and trust boundaries | contracts, security, ops | Which component may queue, authorize, attest, index, execute, or verify? | CP `contract-spec.md` §4–7; `settlement-spec.md` §3–4 | Ready: D1b | Split CP jobs, EAS jobs/actions, and Celo transfer; include the upgraded existing AssessmentResolver, net-new CommunityTestimonyResolver, and the deployment timelock | Mermaid parse + interface/event cross-read |
-| 3 | Capability responsibility summary | contracts, stewards, QA | Which capability groups belong to each role? | CP `contract-spec.md` §6.1; `settlement-spec.md` §3.1.3 | Ready: D13 | Keep distinct from the exact action table | Matrix cross-read + Mermaid parse |
-| 4 | Commitment-pooling ERD, including claim requests | indexer, shared, contracts | What is stored, how do composite IDs relate, where do count-safe/exact-label summaries live, and how are stored terms, direct lookup, decline, and supersession represented? | CP `contract-spec.md` §5.3, §8.2 | Ready: D7.0 entity map + D7.1/D7.2 field blocks | Ten pooling entities. Split 2026-07-25 so shape and cardinality read without 98 attribute rows. Previously listed twice — one ERD, one row | Mermaid parse + GraphQL field and handler cross-read |
-| 5 | Settlement ERD | settlement, indexer, admin | How do accounts, immutable batches, members, and command/acknowledgment messages relate? | `settlement-spec.md` §3, §6 | Ready: D7b | "Verification attempts" wording (Chainlink-Functions era) corrected 2026-07-27 — the transport re-freeze (Decision Log #46) retired that model; D7b's drawn entities were already current | Mermaid parse + event/entity cross-read |
+| 2 | Module topology and trust boundaries | contracts, security, ops | Which component may queue, authorize, attest, index, execute, or verify? | CP `contract-spec.md` §4–7; `settlement-spec.md` §3–4 | Ready: D1b | None — split applied (CP jobs / EAS jobs / online actions / Celo transfer) with the upgraded AssessmentResolver, CommunityTestimonyResolver, and deployment timelock all drawn | Mermaid parse + interface/event cross-read |
+| 3 | Capability responsibility summary | contracts, stewards, QA | Which capability groups belong to each role? | CP `contract-spec.md` §6.1; `settlement-spec.md` §3.1.3 | Ready: D13 | None — kept distinct from the exact action table by design (D13 orients, D13b authorizes) | Matrix cross-read + Mermaid parse |
+| 4 | Commitment-pooling ERD, including claim requests | indexer, shared, contracts | What is stored, how do composite IDs relate, where do count-safe/exact-label summaries live, and how are stored terms, direct lookup, decline, and supersession represented? | CP `contract-spec.md` §5.3, §8.2 | Ready: D7.0 entity map + D7.1/D7.2 field blocks | None — split applied 2026-07-25 so shape and cardinality read without 98 attribute rows (was listed twice; now one ERD, one row) | Mermaid parse + GraphQL field and handler cross-read |
+| 5 | Settlement ERD | settlement, indexer, admin | How do accounts, immutable batches, batch entries, and command/acknowledgment messages relate? | `settlement-spec.md` §3, §6 | Ready: D7b | "Verification attempts" wording (Chainlink-Functions era) corrected 2026-07-27 — the transport re-freeze (Decision Log #46) retired that model; D7b's drawn entities were already current | Mermaid parse + event/entity cross-read |
 | 6 | Community EAS/Envio joined-read ERD | Community, indexer, evaluator | Which system owns Needs records versus protocol progress? | Community `spec.md` §4–7 | Ready: Community `diagrams.md` D3 | None | Mermaid parse + four-schema cross-read |
 | 7 | Pool/cycle/commitment/NeedStatus/disbursement state machines | contracts, UI, QA | Which states are stored, derived, terminal, or recoverable? | both specs; `settlement-spec.md` §3.1.2 | Ready: D4–D6, D10; Community D4–D5 | None | Mermaid parse + transition-table cross-read |
-| 8 | Offer/request → work → approval → confirmation → fulfillment | member, provider, implementers | How do direction, provider garden, Work, and confirmer defaults interact? | CP `contract-spec.md` §5.3, §6.1 | Ready: D2.0 overview + D2.1/D2.2/D2.3 acts | Split 2026-07-25 on the same act boundaries as D6; ApprovalGated is D11's subject and is no longer duplicated here | Mermaid parse + happy-path acceptance |
-| 9 | Analog capture + lightweight evidence | member, steward, QA | How is an off-app promise recorded without moving authorship, and when is the counterparty's confirmation the review? | CP `contract-spec.md` §5.3, §6.1; `uiux-spec.md` §6.5 | Ready: D3 | None; previously absent from this matrix | Mermaid parse + review-is-confirmation acceptance |
+| 8 | Offer/request → work → approval → confirmation → fulfillment | gardener, lead provider, implementers | How do direction, provider garden, Work, and confirmer defaults interact? | CP `contract-spec.md` §5.3, §6.1 | Ready: D2.0 overview + D2.1/D2.2/D2.3 acts | Split 2026-07-25 on the same act boundaries as D6; ApprovalGated is D11's subject and is no longer duplicated here | Mermaid parse + happy-path acceptance |
+| 9 | Analog capture + lightweight evidence | gardener, steward, QA | How is an off-app promise recorded without moving authorship, and when is the counterparty's confirmation the review? | CP `contract-spec.md` §5.3, §6.1; `uiux-spec.md` §6.5 | Ready: D3 | None; previously absent from this matrix | Mermaid parse + review-is-confirmation acceptance |
 | 10 | Approval-gated request/accept/decline/supersede | steward, contracts, indexer | Which stored terms are consumed, and how do competing requests end? | CP `contract-spec.md` §5.3, §6.1, §8.2 | Ready: D11 | None | Mermaid parse + named claim tests |
 | 11 | Protocol-to-garden funding route (HoA stream upstream) | settlement, treasury, ops | What does Green Goods authorize, and what remains upstream? | `settlement-spec.md` §2–3 | Ready: D12 | None | Mermaid parse + derived-route tests |
 | 12 | CCIP command/ack settlement | settlement, admin, QA | How do command retry, idempotent Celo execution, and acknowledgment retry converge? | `settlement-spec.md` §3.1.3 | Ready: D9.0/D9.1/D9.2 + D10 | Split 2026-07-25 into healthy path, idempotency, and the three retry lifecycles | Mermaid parse + command/ack acceptance |
 | 13 | G$ funding topology, Safe recovery, and CCIP boundary | settlement, security, treasury | Where does canonical G$ live, who may recover a garden Safe, and what actually crosses the chain boundary? | `settlement-spec.md` §2–4 | Ready: D8 | None; previously absent from this matrix | Mermaid parse + Safe/Roles and peer cross-read |
-| 14 | Need → operator triage → commitment seed | member, steward | How does community intent become protocol work without changing authorship? | Community `spec.md` §6, §8 | Ready: Community D9 | None | Mermaid parse + route/spec cross-read |
-| 15 | Community offline/waiting-for-membership | member, shared, research | How does the September Community queue specialize the shared substrate? | Community `spec.md` §8 | Ready: Community D8 | Companion detail; CP core is D14 | Mermaid parse + offline acceptance |
+| 14 | Need → operator triage → commitment seed | community, steward | How does community intent become protocol work without changing authorship? | Community `spec.md` §6, §8 | Ready: Community D9 | None | Mermaid parse + route/spec cross-read |
+| 15 | Community offline/waiting-for-membership | community, shared, research | How does the September Community queue specialize the shared substrate? | Community `spec.md` §8 | Ready: Community D8 | Companion detail; CP core is D14 | Mermaid parse + offline acceptance |
 | 16 | Cross-surface flow map | product, frontend | What stays in Community, admin `/community`, and existing public client surfaces? | Community `spec.md` §3; CP `uiux-spec.md` | Ready: `wireframes.md` §1 | None | Mermaid parse + monorepo/route cross-read |
-| 17 | Low-fidelity frames | member, steward, evaluator, funder | Are entry, state, failure, and recovery screens defined without decorative polish? | both UI specs | Ready: both `wireframes.md` files | None | frame inventory + accessibility review |
+| 17 | Low-fidelity frames | gardener, community, steward, evaluator, funder | Are entry, state, failure, and recovery screens defined without decorative polish? | both UI specs | Ready: both `wireframes.md` files | None | frame inventory + accessibility review |
 | 18 | Persona journeys | research, product, QA | Can every named role reach completion and recovery? | Community `journeys.md` | Ready | None | persona/role checklist |
 | 19 | Customer/community journey | research, operators | What happens from discovery through withdrawal or verified outcome? | Community `journeys.md` | Ready | None | stage/recovery checklist |
 | 20 | Operator service blueprint | operations, research | Which frontstage, backstage, support, and failure-recovery steps must connect? | Community `journeys.md` | Ready | None | Mermaid parse + handoff cross-read |
 | 21 | Research/onboarding/review/rehearsal timeline | research, delivery leads | Who must decide what, by when, before implementation and gathering rehearsal? | Community `research-plan.md`; `journeys.md` | Ready: Community `journeys.md` timeline | None | Mermaid parse + owner/date review |
-| 22 | Exact sensitive-action permissions | contracts, settlement, security, QA | Which named function can each actor call, with which gates? | CP `contract-spec.md` §6.1; `settlement-spec.md` §3.1.3 | Ready: D13b | Generated by cross-reading both canonical tables; the settlement-account registration, recovery-update, member-delivery, dispatcher, fee-floor, Celo fee, and both resolver-config rows were added 2026-07-25 | Function-by-function table diff |
-| 23 | Hypercert cut-over and indexer delta | indexer, shared, admin | How do fulfilled commitments replace Work as the bundle without migrating legacy certificates? | CP `contract-spec.md` §9 | Ready: D7c | Keep legacy and commitment bundles readable | Mermaid parse + metadata/schema cross-read |
+| 22 | Exact sensitive-action permissions | contracts, settlement, security, QA | Which named function can each actor call, with which gates? | CP `contract-spec.md` §6.1; `settlement-spec.md` §3.1.3 | Ready: D13b (Reference tab) | Generated by cross-reading both canonical tables; the settlement-account registration, recovery-update, member-delivery, dispatcher, fee-floor, Celo fee, and both resolver-config rows were added 2026-07-25 | Function-by-function table diff |
+| 23 | Hypercert cut-over and indexer delta | indexer, shared, admin | How do fulfilled commitments replace Work as the bundle without migrating legacy certificates? | CP `contract-spec.md` §9 | Ready: D7c | None — legacy and commitment bundles drawn as separate built/planned lanes | Mermaid parse + metadata/schema cross-read |
 | 24 | Commitment offline job lifecycle | shared, client, QA | Which five CP jobs queue, wait for membership without retry use, retry, exhaust, or discard? | CP `uiux-spec.md` §5.11 | Ready: D14 | Self-contained CP view; Community D8 remains companion | Mermaid parse + queue acceptance |
 | 25 | Indexer pipeline and Garden.id cut-over | indexer, shared | How does an event become an entity, and what does the breaking ID migration require? | CP `contract-spec.md` §8.3 | Ready: D7d | Added 2026-07-25; D7/D7b showed the result shape but never the pipeline | Mermaid parse + handler/replay cross-read |
-| 26 | Settlement status derivation (5 stored, 9 rendered) | member, client, QA | Which member-visible states are stored, which are derived, and which has no on-chain counterpart? | `settlement-spec.md` §3.1.2; CP `uiux-spec.md` §5.9 | Ready: D10b | Added 2026-07-25; the derivation was a single prose row | Mermaid parse + W2 state cross-read |
+| 26 | Settlement status derivation (5 stored, 9 rendered) | gardener, client, QA | Which gardener-visible states are stored, which are derived, and which has no on-chain counterpart? | `settlement-spec.md` §3.1.2; CP `uiux-spec.md` §5.9 | Ready: D10b | Added 2026-07-25; rendered as a stored-state strip + derivation table 2026-07-31 (the mapping was a flowchart) | Mermaid parse + W2 state cross-read |
 | 27 | Claim-request state machine | contracts, indexer, client | What are the four request states and which resolution code ends each one? | CP `contract-spec.md` §5.3, §8.2 | Ready: D11b | Added 2026-07-25; D11 is a sequence, not a machine | Mermaid parse + resolutionCode cross-read |
 | 28 | Deployment and upgrade topology | contracts, release ops, security | In what order do the PR chains run, how long does pooling stay paused, and where can it roll back? | CP `contract-spec.md` §7.3–7.4; `settlement-spec.md` §7.1 | Ready: D15 | Added 2026-07-25; previously prose only, and the ordering had already drifted once (corrections-log §23) | Mermaid parse + activation-order cross-read |
-| 29 | Error taxonomy and recovery map | client, admin, QA | Where does each error family surface, and what recovery may that surface offer? | CP `contract-spec.md` §5.5, §6.2; `settlement-spec.md` §3.1.2 | Ready: D16.0 families + D16.1 surfaces + D16.2 recovery | Added 2026-07-25; split 2026-07-27 into the error, where it manifests, and how the person responds — the combined graph buried the recovery column | Mermaid parse + surface/recovery cross-read |
+| 29 | Error taxonomy and recovery map | client, admin, QA | Where does each error family surface, and what recovery may that surface offer? | CP `contract-spec.md` §5.5, §6.2; `settlement-spec.md` §3.1.2 | Ready: D16.0 families + D16.1 surfaces + D16.2 recovery | Added 2026-07-25; split 2026-07-27 into the error, where it manifests, and how the person responds; surface/recovery maps rendered as tables 2026-07-31 | Mermaid parse (D16.0) + surface/recovery table cross-read |
 | 30 | Accountability, recognition, and payment separation | contributors, stewards, settlement, QA | Who leads, who contributed, how certificate shares are computed, and how funding may diverge without rewriting recognition? | CP `contract-spec.md` §6/§9; `settlement-spec.md` §3; `uiux-spec.md` Appendix C | Ready: D17 | Added 2026-07-28 for the group-commitment amendment | Mermaid parse + roster/recognition/payout acceptance |
 
 **Keep subgraph titles short.** Mermaid wraps a cluster title at a fixed width (~200 px) but reserves height for a single line, so a longer title's second line renders *on top of* the nodes inside its own cluster. D1, D1b, D10b, and D16.0 each shipped that way once. Keep every `subgraph … ["…"]` label to roughly **22 characters** and let the reading guide carry the qualifier — that is why the boundary clusters in D1b read "Application boundary" rather than "Application boundary — queues intent, authorizes nothing". The gallery's render audit checks every cluster label against every node box and is the gate for this.
@@ -106,20 +112,20 @@ Write `CommitmentPoolType` in full wherever the type is named (D7.1 does). A bar
 
 ## D1. Unified system context
 
-**How to read this**: top to bottom — people use surfaces; surfaces write into the Arbitrum protocol layer; Envio turns explicit Green Goods protocol events into the read model every surface queries; value moves only on Celo. CCIP carries data-only commands and acknowledgments, never G$. Node outlines encode built/live versus planned/gated status; arrow labels state whether an edge is a write, read, event, protocol message, or value movement. The client is ONE codebase with two presentations — the **installed PWA** and the **editorial website** — and the docs site is a separate Docusaurus app; the planned Community PWA is a third, independent app.
+**How to read this**: top to bottom — people use surfaces; surfaces write into the Arbitrum protocol layer; Envio turns explicit Green Goods protocol events into the read model every surface queries; value moves only on Celo. CCIP carries data-only commands and acknowledgments, never G$. Node outlines encode built/live versus planned/gated status; arrow labels state whether an edge is a write, read, event, protocol message, or value movement. Five surfaces: the client is ONE codebase with two presentations — the **installed PWA** (gardener commitments, work, wallet) and the **editorial website** — the **Admin** cockpit is where stewards and evaluators operate (pool + cycle control, claims queue, settlement dispatch and recovery controls; it authorizes and queues but never moves value itself), the docs site is a separate Docusaurus app, and the planned Community PWA is a third, independent app.
 
 ```mermaid
 flowchart TB
   subgraph people["People"]
     MEM["Community member"]
-    PROV["Gardener / provider"]
+    PROV["Gardener<br/>lead provider or contributor"]
     STW["Garden steward"]
     EVA["Evaluator"]
     FUND["Funder / collaborator"]
   end
   subgraph surfaces["Green Goods surfaces"]
     COM["Community PWA (planned)<br/>Needs · Create · Profile"]
-    PWA["Client — installed PWA<br/>member commitments · work · wallet"]
+    PWA["Client — installed PWA<br/>gardener commitments · work · wallet"]
     WEB["Client — editorial website<br/>public garden + funding stories"]
     ADMIN["Admin<br/>steward pools · evaluator export · Operations"]
     DOCS["Docs site (Docusaurus)<br/>builder + user reference"]
@@ -139,9 +145,8 @@ flowchart TB
   CE["CeloSettlementExecutor<br/>bounded Zodiac Roles member"]
   CCIP["Chainlink CCIP<br/>data-only command + acknowledgment"]
 
-  MEM -->|"needs · promises"| COM
-  MEM -->|"commitments · wallet"| PWA
-  PROV -->|"work · evidence"| PWA
+  MEM -->|"needs · signals"| COM
+  PROV -->|"commitments · work · wallet"| PWA
   STW -->|"seed · accept · approve · queue"| ADMIN
   EVA -->|"assessments · export"| ADMIN
   FUND -->|"stories · funding"| WEB
@@ -183,7 +188,7 @@ Notes:
 
 ## D1b. Contract/module topology and trust boundaries
 
-**How to read this**: four trust boundaries, one job each — the application boundary queues intent and authorizes nothing, the Arbitrum boundary owns source state, Envio restates explicit events from both Green Goods contracts, and the Celo executor moves value under a reviewed Safe + Zodiac scope, stores its idempotent outcome, then uses CCIP to acknowledge it. Both Work-rail resolvers are drawn: `WorkResolver` validates the Work attestation itself and `WorkApprovalResolver` validates each approval/rejection decision; the non-blocking `onWorkDecision` bridge from that resolver into the pooling module is a **planned** upgrade (register #5) and is drawn as a dashed edge, not a live one. Community Needs uses four EAS schema records across two resolver proxies: `CommunityNeedsResolver` owns the role-gated Need/NeedSignal/NeedStatus branches, while the ungated `FundingAttributionResolver` keeps a separate blast wall.
+**How to read this**: four trust boundaries, one job each — the application boundary queues intent and authorizes nothing, the Arbitrum boundary owns source state, Envio restates explicit events from both Green Goods contracts, and the Celo executor moves value under a reviewed Safe + Zodiac scope, stores its idempotent outcome, then uses CCIP to acknowledge it. Both Work-rail resolvers are drawn: `WorkResolver` validates the Work attestation itself and `WorkApprovalResolver` validates each approval/rejection decision; the non-blocking `onWorkDecision` bridge from that resolver into the pooling module is a **planned** upgrade (register #5) and is drawn as a dashed edge, not a live one. Community Needs uses four EAS schema records across two resolver proxies: `NeedsResolver` owns the role-gated Need/NeedSignal/NeedStatus branches, while the ungated `FundingAttributionResolver` keeps a separate blast wall.
 
 ```mermaid
 flowchart TB
@@ -202,7 +207,7 @@ flowchart TB
     WR["WorkResolver<br/>validates the Work attestation"]
     WAR["WorkApprovalResolver<br/>live resolver · pooling bridge is<br/>a planned upgrade (register #5)"]
     EAS["EAS + SchemaRegistry"]
-    CNR["CommunityNeedsResolver (Sept)<br/>exact schema dispatch:<br/>Need · NeedSignal · NeedStatus"]
+    NR["NeedsResolver (Sept)<br/>exact schema dispatch:<br/>Need · NeedSignal · NeedStatus"]
     FAR["FundingAttributionResolver (Sept)<br/>ungated receipt attribution<br/>separate chain-policy blast wall"]
     V3["AssessmentResolver (existing UUPS, upgraded)<br/>v2 preserved · AssessmentV3 schema added"]
     CTR["CommunityTestimonyResolver (planned)<br/>Community Hat only"]
@@ -228,7 +233,7 @@ flowchart TB
   EAS --> WR
   EAS --> WAR
   WAR -.->|"planned: onWorkDecision try/catch"| CPM
-  EAS --> CNR
+  EAS --> NR
   EAS --> FAR
   EAS --> V3
   EAS --> CTR
@@ -247,32 +252,34 @@ flowchart TB
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
   classDef existingPlannedDelta fill:#fbf8f2,stroke:#50784a,stroke-width:2px,color:#2a2722
   class HATS,GT,WR,WAR,EAS,GD built
-  class CPJOBS,EASJOBS,EASACTIONS,TRANSFER,CPM,REG,SM,CNR,FAR,CTR,SAFE,CCIP,CE,TL planned
+  class CPJOBS,EASJOBS,EASACTIONS,TRANSFER,CPM,REG,SM,NR,FAR,CTR,SAFE,CCIP,CE,TL planned
   class V3,ENV existingPlannedDelta
 ```
 
 Boundary rules:
 
 - **Application**: drafts and queued jobs are intent, never authority — every write is re-validated on-chain; nothing trusts a client claim.
-- **Arbitrum**: HatsModule decides who may act; the pooling module owns state machines and EAS checks; the register counts units only for the module; the settlement module records value authorization but never custodies or calls Celo. The existing Work rail is validated by two live resolvers — **WorkResolver** (the Work attestation: garden membership, registered active Action, enabled domain, required metadata) and **WorkApprovalResolver** (the separate approval/rejection decision attestation). The `onWorkDecision` try/catch bridge from that resolver into the pooling module is **not shipped**: today's `WorkApproval.sol` carries only the GAP side effect it will be modelled on, and register #5 defines the bridge as a resolver upgrade. The edge is drawn dashed for that reason. Community Needs keeps four schema-level payload/revocability records but routes them through **CommunityNeedsResolver** (Need, NeedSignal, NeedStatus; exact UID dispatch and role checks) and **FundingAttributionResolver** (ungated receipt attribution and chain policy). The funding resolver stays separate so a dispatch fall-through cannot cross the authorization boundary. Attestation authorship rules are not drawn here — D13b carries them.
+- **Arbitrum**: HatsModule decides who may act; the pooling module owns state machines and EAS checks; the register counts units only for the module; the settlement module records value authorization but never custodies or calls Celo. The existing Work rail is validated by two live resolvers — **WorkResolver** (the Work attestation: garden membership, registered active Action, enabled domain, required metadata) and **WorkApprovalResolver** (the separate approval/rejection decision attestation). The `onWorkDecision` try/catch bridge from that resolver into the pooling module is **not shipped**: today's `WorkApproval.sol` carries only the GAP side effect it will be modelled on, and register #5 defines the bridge as a resolver upgrade. The edge is drawn dashed for that reason. Community Needs keeps four schema-level payload/revocability records but routes them through **NeedsResolver** (Need, NeedSignal, NeedStatus; exact UID dispatch and role checks) and **FundingAttributionResolver** (ungated receipt attribution and chain policy). The funding resolver stays separate so a dispatch fall-through cannot cross the authorization boundary. Attestation authorship rules are not drawn here — D13b carries them.
 - **Deployment timelock**: four settlement configuration changes — `setCcipRoute`, `setBatchSizeLimit`, `setDispatcher`, `setFeeReserveMinimum` — are reachable only through the timelock, and all four additionally require the module to be paused. Dependency wiring, `setPaused`, and `_authorizeUpgrade` are owner-direct with no timelock. D13b is the exact gate for each.
 - **Envio**: restates emitted events into the read model — explicit fields only, no actor inference from `transaction.from`.
 - **Celo + CCIP**: the executor validates its immutable source chain/sender and empty token amounts, then calls only the typed canonical-G$ route. Recovery owners are never executor owners. An authenticated Celo acknowledgment, not a human report or timeout, finalizes Arbitrum state.
 
-Trust rules: no provider may confirm their own delivery, including steward fallback; no recovery owner may be a Safe executor; no human can verify a receipt; no handler infers an actor from `transaction.from`; no contract enumerates all cycles or claims to make a transition.
+Trust rules: no contributor — lead provider included — may confirm their own delivery, even via steward fallback; no recovery owner may be a Safe executor; no human can verify a receipt; no handler infers an actor from `transaction.from`; no contract enumerates all cycles or claims to make a transition.
 
 ## D2. Offer/request → work → approval → confirmation → fulfillment
 
-**How to read this**: the full happy path of one promise, left to right in time — created, claimed, delivered through the existing Work → WorkApproval rail, confirmed by the counterparty, and rewarded. The steward performs every one of their steps in the Admin app (Hub work stage + garden Pool tab — W7/W13); the member acts in the client PWA. The payout lane at the end covers **non-G$ declared rewards only** — G$ rewards leave this diagram and queue on the SettlementModule (D9, D12).
+**How to read this**: the full happy path of one promise, left to right in time — created, claimed, delivered through the existing Work → WorkApproval rail, confirmed by the counterparty, and rewarded. The steward performs every one of their steps in the Admin app (Hub work stage + garden Pool tab — W7/W13); the gardener acts in the client PWA. The payout lane at the end covers **non-G$ declared rewards only** — G$ rewards leave this diagram and queue on the SettlementModule (D9, D12).
 
-Preconditions: pool `Open`; an optional cycle exists, belongs to the pool, and is `Open`. For an
-Offer, the creator is lead provider and accepted recipient confirms. For an Individual Request,
-the accepted claimant is lead provider; for a Garden Request, the authenticated requester is lead
-(Open caller or stored ApprovalGated `requestedBy`) while the GardenAccount remains claimant and
-provider scope. The Request creator confirms. The lead plus any later teammates form the
-contributor roster. The stored `providerGarden` controls DomainImpact Work and assessment
-validation even when the commitment remains in the root protocol pool. Every contributor is
-excluded from confirmation.
+Preconditions: pool `Open`; an optional cycle exists, belongs to the pool, and is `Open`; an optional `needUID` (0 = none) links the commitment to the Need that motivated it — stored as-is, never read from EAS, lineage drawn in D7. Who is who depends only on direction:
+
+| Direction | Lead provider | Claimant | Confirmer |
+|---|---|---|---|
+| Offer | the creator | accepted recipient (`counterparty`) | the claimant |
+| Individual Request | the accepted claimant | that same claimant | the Request creator |
+| Garden Request | the authenticated requester — Open caller or stored ApprovalGated `requestedBy` | the GardenAccount (also provider scope) | the Request creator |
+
+- The lead plus any later teammates form the contributor roster; every frozen contributor is excluded from confirmation.
+- The stored `providerGarden` controls DomainImpact Work and assessment validation even when the commitment remains in the root protocol pool.
 
 The single all-steps diagram was accurate but carried 32 messages across ten participants, so it is drawn as one compact overview plus three acts on the **same act boundaries as D6** — D2.1 is D6a, D2.2 is D6b, D2.3 is D6c, seen from the message side instead of the state side. The acts zoom into the overview and never disagree with it.
 
@@ -293,7 +300,7 @@ sequenceDiagram
   B->>M: claim accepted (act 1 · D2.1)
   M->>R: commitUnits — one lead-provider slot taken
   C->>M: contributor Work linked and approved (act 2 · D2.2)
-  Note over M: every per-action required count met<br/>and assessment satisfied → ReadyForConfirmation
+  Note over M: every per-action required<br/>count met and assessment<br/>satisfied → ReadyForConfirmation
   A->>M: counterparty confirms (act 3 · D2.3)
   M->>R: fulfillUnits — units converted, the one slot released
   alt cycle-scoped (cycleId != 0)
@@ -322,8 +329,9 @@ sequenceDiagram
   R-->>IDX: ClassRegistered (no units committed yet)
   M-->>IDX: CommitmentCreated (Offered or Requested)
   B->>M: claimCommitment(commitmentId, kind, gardenContext)
-  Note over M,R: ClaimMode.Open — the garden campaign default.<br/>ApprovalGated is D11's whole subject and is not redrawn here
-  Note over M,R: leadProvider is creator for Offer, claimant for Individual Request,<br/>and authenticated caller B for this Open Garden Request<br/>(ApprovalGated uses stored pending requestedBy)<br/>providerGarden is the pool garden for Offer, validated gardenContext for Request<br/>confirmer is claimant for Offer, creator for Request
+  Note over M,R: ClaimMode.Open — the garden<br/>campaign default. ApprovalGated<br/>is D11's whole subject<br/>and is not redrawn here
+  Note over M,R: leadProvider is creator for<br/>Offer, claimant for Individual<br/>Request, and authenticated<br/>caller B for this Open Garden<br/>Request (ApprovalGated uses<br/>stored pending requestedBy)
+  Note over M,R: providerGarden is the pool<br/>garden for Offer, validated<br/>gardenContext for Request ·<br/>confirmer is claimant for<br/>Offer, creator for Request
   M->>R: commitUnits(class, leadProvider, units)
   R-->>IDX: UnitsCommitted (one lead-provider slot acquired)
   M-->>IDX: CommitmentAccepted + ContributorAdded(leadProvider)
@@ -344,7 +352,7 @@ sequenceDiagram
   participant IDX as Envio read model
 
   Note over M,EAS: Work attester must be an active contributor<br/>within the stored providerGarden role scope
-  Note over M,EAS: protocol-pool Work and assessment recipient = providerGarden<br/>while the commitment pool remains the root protocol pool
+  Note over M,EAS: protocol-pool Work and assessment<br/>recipient = providerGarden while the<br/>commitment pool remains the root protocol pool
   C->>EAS: contributor submits Work matching a repeatable requirement
   C->>M: linkWork(commitmentId, workUID, requirementIndex)
   M->>EAS: check schema, action ∈ requirements, active contributor, providerGarden recipient
@@ -354,15 +362,15 @@ sequenceDiagram
   WAR->>WAR: increment per-Work decisionSequence · store it by decisionUID
   WAR->>M: onWorkDecision(workUID, decisionUID, decisionSequence, garden, approved) in try/catch
   alt newer effective approval before freeze
-    M-->>IDX: ApprovedWorkCounted(contributor, requirementIndex, approvedWorkCount, approvedUnits, newlyApprovedUnits, …)
+    M-->>IDX: ApprovedWorkCounted(contributor, requirementIndex,<br/>approvedWorkCount, approvedUnits,<br/>newlyApprovedUnits, …)
   else newer effective rejection before freeze
-    M-->>IDX: ApprovedWorkReversed(contributor, requirementIndex, approvedWorkCount, approvedUnits, removedApprovedUnits, …)
+    M-->>IDX: ApprovedWorkReversed(contributor, requirementIndex,<br/>approvedWorkCount, approvedUnits,<br/>removedApprovedUnits, …)
   end
   opt decision landed before linkWork or hook was missed
     OP->>M: syncWorkDecisions(commitmentId, decisionUIDs) — bounded recovery
-    Note over M,WAR: preflight requires greatest supplied sequence = resolver current maximum before mutation<br/>then complete active-link enumeration proves every Work current before Ready<br/>inactive credit permits unlink even after historical approval
+    Note over M,WAR: preflight requires greatest supplied<br/>sequence = resolver current maximum<br/>before mutation. Then complete active-link<br/>enumeration proves every Work current<br/>before Ready. Inactive credit permits<br/>unlink even after historical approval
   end
-  Note over M,EAS: every per-action required count met (requirementIndex credits<br/>exactly one requirement) and assessment satisfied → auto-flip
+  Note over M,EAS: every per-action required count is met<br/>— requirementIndex credits exactly one —<br/>and the assessment satisfied → auto-flip
   M-->>IDX: ContributorRosterFrozen
   M-->>IDX: CommitmentReadyForConfirmation
 ```
@@ -385,7 +393,7 @@ sequenceDiagram
   else Request
     A->>M: confirmFulfillment(commitmentId)
   end
-  Note over M,R: every frozen contributor is excluded on every path —<br/>roster mutation reverts if the threshold becomes unreachable.<br/>Steward fallback also rejects contributors and records a reason
+  Note over M,R: every frozen contributor is<br/>excluded on every path —<br/>roster mutation reverts if the<br/>threshold becomes unreachable.<br/>Steward fallback also rejects<br/>contributors, with a reason
   M-->>IDX: ConfirmationRecorded (n of N)
   M->>R: fulfillUnits(class, leadProvider, units)
   R-->>IDX: UnitsFulfilled (the lead-provider slot is released once)
@@ -394,7 +402,7 @@ sequenceDiagram
     OP->>RAILS: execute payout on an existing rail (jar / treasury)
     OP->>M: recordRewardPaid(commitmentId, payoutRef)
     M-->>IDX: RewardPaid(derived source, leadProvider, token, amount)
-    Note over RAILS,IDX: CeloSettlement rewards never use this lane —<br/>they queue on the SettlementModule (D9, D12)
+    Note over RAILS,IDX: CeloSettlement rewards never<br/>use this lane — they queue on<br/>the SettlementModule (D9, D12)
   end
   Note over OP,M: close requires liveCommitmentCount = 0
   OP->>M: closeCycle(cycleId)
@@ -403,16 +411,16 @@ sequenceDiagram
 
 ## D3. Analog capture + lightweight evidence (review-is-confirmation)
 
-**How to read this**: the lightweight alternative to D2. There is no Work rail and no approval step, because for these kinds the counterparty's confirmation *is* the review. Watch the authorship line: the steward types the record, but the member remains the named promise source — `recordedBy` marks the steward as scribe and never as owner. The evidence step is offline-first: it queues in IndexedDB and may sync hours later.
+**How to read this**: the lightweight alternative to D2. There is no Work rail and no approval step, because for these kinds the counterparty's confirmation *is* the review. Watch the authorship line: the steward types the record, but the gardener remains the named promise source — `recordedBy` marks the steward as scribe and never as owner. Acceptance revalidates the captured gardener against the same garden-membership predicate as self-created commitments (`NotEligibleContributor` otherwise). The evidence step is offline-first: it queues in IndexedDB and may sync hours later.
 
-The SupportService / StewardCaptured path: no Work/WorkApproval rails, no work requirement, counterparty confirmation IS the review (register #20). The member stays the named promise source; the steward is metadata (`recordedBy`).
+The SupportService / StewardCaptured path: no Work/WorkApproval rails, no work requirement, counterparty confirmation IS the review (register #20). The gardener stays the named promise source; the steward is metadata (`recordedBy`).
 
-**When this happens (use cases)**: an elder gardener makes a promise in conversation and the steward records it from a paper field log; a member offers childcare, meals, or transport for a community work day — help that has no Work/approval rail; a field visit is captured fully offline and the evidence photos sync hours later. In every case the member stays the named promise source (`recordedBy` marks the steward as scribe, never as owner), and because these kinds carry no work requirement, the counterparty's confirmation *is* the review — no separate approval step exists.
+**When this happens (use cases)**: an elder gardener makes a promise in conversation and the steward records it from a paper field log; a gardener offers childcare, meals, or transport for a community work day — help that has no Work/approval rail; a field visit is captured fully offline and the evidence photos sync hours later. In every case the gardener stays the named promise source (`recordedBy` marks the steward as scribe, never as owner), and because these kinds carry no work requirement, the counterparty's confirmation *is* the review — no separate approval step exists.
 
 ```mermaid
 sequenceDiagram
   autonumber
-  actor MEM as Member (promise source)
+  actor GRD as Gardener (promise source)
   actor OP as Commitment-pool steward
   actor CP as Counterparty (confirmer)
   participant ADM as Admin capture flow
@@ -420,21 +428,21 @@ sequenceDiagram
   participant M as CommitmentPoolingModule
   participant IDX as Envio read model
 
-  MEM--)OP: promise made off-app (conversation, field visit)
-  OP->>ADM: analog capture — member, kind, terms
-  ADM->>M: createCommitment(StewardCaptured, onBehalfOf = member)
-  M-->>IDX: CommitmentCreated(creator = member, recordedBy = steward)
-  Note over ADM,M: member's detail shows<br/>"Recorded by your steward on your behalf.<br/>The promise stays yours."
-  MEM->>PWA: attach evidence offline (photo, link, note)
+  GRD--)OP: promise made off-app (conversation, field visit)
+  OP->>ADM: analog capture — gardener, kind, terms
+  ADM->>M: createCommitment(StewardCaptured, onBehalfOf = gardener)
+  M-->>IDX: CommitmentCreated(creator = gardener, recordedBy = steward)
+  Note over ADM,M: gardener's detail shows<br/>"Recorded by your steward on your behalf.<br/>The promise stays yours."
+  GRD->>PWA: attach evidence offline (photo, link, note)
   Note over ADM,PWA: evidence job queued in IndexedDB,<br/>media serialized, survives restart
   PWA->>M: attachEvidence(commitmentId, cid, creditedContributors) on sync
   M-->>IDX: EvidenceAttached (derived EvidenceSubmitted)
-  MEM->>M: submitForConfirmation(commitmentId)
-  Note over PWA,IDX: allowed because the commitment carries no work requirement,<br/>evidenceCount ≥ 1 and totalVerifiedCredits > 0,<br/>and the declared assessment is attached — the same<br/>assessment predicate D6b applies · DomainImpact is rejected
+  GRD->>M: submitForConfirmation(commitmentId)
+  Note over PWA,IDX: allowed because the commitment carries<br/>no work requirement, evidenceCount ≥ 1<br/>and totalVerifiedCredits > 0, and the<br/>declared assessment is attached — the same<br/>assessment predicate D6b applies ·<br/>DomainImpact is rejected
   M-->>IDX: CommitmentReadyForConfirmation
   CP->>M: confirmFulfillment(commitmentId)
   M-->>IDX: ConfirmationRecorded → CommitmentFulfilled
-  Note over CP,M: provider self-confirmation is blocked on-chain.<br/>Steward fallback also rejects the provider<br/>and always carries a visible reason
+  Note over CP,M: contributor self-confirmation is blocked<br/>on-chain. Steward fallback also rejects<br/>contributors and always carries<br/>a visible reason
 ```
 
 ## D4. Pool state machine
@@ -464,16 +472,21 @@ stateDiagram-v2
 |---|---|---|---|
 | NotReady | garden minted, pool registered, onchain charter/cap predicate not yet met or app Baseline preflight still missing | configuration only | steward |
 | Ready | onchain charter + non-zero provider open-commitment cap are present; the app offered the write only after a current non-revoked Baseline preflight | seed cycles; open the pool | steward |
-| Open | promises can flow | create / claim / confirm commitments; seed and open cycles | members + steward |
+| Open | promises can flow | create / claim / confirm commitments; seed and open cycles | gardeners + steward |
 | Paused | **the emergency freeze** | create, claim, Ready-submit, and confirm are disabled; browse, evidence/work linkage, cancellation, expiry, and dispute recovery remain available | steward (resume); existing actors keep allowed evidence/recovery paths |
 | Closed | wind-down | no new activity; terminal cleanup of open commitments | steward |
 | Composted | **archival rest — history + "ready for the next season"** | read everything; `reopenPool` back to Ready or Open; nothing else | steward |
 
-Composting is archival, not deletion and not the freeze — `Paused` is the freeze. A composted pool keeps its full promise history visible and can wake for a new season via `reopenPool`. Pool-level `Paused` blocks new commitments, claims, and confirmations on that pool only; module-wide `setPaused` blocks operational mutations but keeps owner configuration, unpause, `cancelCommitment`, `expireCommitment`, and `resolveDispute` available for safe wind-down.
+Composting is archival, not deletion and not the freeze — `Paused` is the freeze; a composted pool keeps its full promise history visible and can wake for a new season via `reopenPool`. And there are two freezes with different scopes:
+
+| Freeze | Scope | Blocks | Keeps available |
+|---|---|---|---|
+| Pool `Paused` | that pool only | new commitments, claims, Ready-submit, confirmations | browse, evidence/work linkage, cancellation, expiry, dispute recovery |
+| Module `setPaused` | whole module | operational mutations | owner configuration, unpause, `cancelCommitment`, `expireCommitment`, `resolveDispute` — safe wind-down |
 
 ## D5. Cycle state machine (types: Season, Campaign)
 
-**How to read this**: the chain stores only five states. The three extra boxes are provenance, not new chain states — grey `Draft` lives in admin IndexedDB, and amber `InProgress`/`Reviewing` are indexer-derived overlays of on-chain `Open`, which is why transitions leave them that the on-chain table lists once under `Open`. There is deliberately no loop back: a cycle ends, and the next round is a fresh `seedCycle` on the same pool.
+**How to read this**: the chain stores only five states. The three extra boxes are provenance, not new chain states — grey `Draft` lives in admin IndexedDB, and amber `InProgress`/`Reviewing` are indexer-derived overlays of on-chain `Open`, which is why the transitions drawn leaving them are the ones the on-chain table lists once under `Open`. There is deliberately no loop back: a cycle ends, and the next round is a fresh `seedCycle` on the same pool.
 
 On-chain enum stores `Seeded / Open / Reconciled / Composted / Cancelled`. `Draft` is app-only; `InProgress` and `Reviewing` are derived overlays of on-chain `Open`.
 
@@ -507,19 +520,44 @@ stateDiagram-v2
   class Draft appOnly
 ```
 
-`InProgress` is on-chain `Open`, so `cancelCycle` covers it; Draft cancels are an off-chain discard. Succession is derived by pool ordering — no on-chain predecessor pointer. Opening validates **pool `Open`**, cycle existence, pool ownership, `Seeded` state, and an allocation whose basis points sum to exactly 10,000. Because `InProgress` and `Reviewing` are derived overlays of on-chain `Open`, the four edges leaving them (`→ Cancelled`, `→ Reconciled`) are the spec's single `Open →` rows drawn at overlay resolution — the diagram is deliberately a superset of the on-chain transition table, and no transition here exists that the chain does not allow. `Pool.openSeasonCycleId` permits exactly one open Season in O(1); any number of Campaigns may be open concurrently and no transition enumerates cycles.
+**What each state allows** (storage per the provenance colours above):
 
-**Reading the middle of the machine**: `InProgress` and `Reviewing` are indexer-derived overlays of on-chain `Open` — the chain never stores them. A cycle sits `Open`, starts reading as `InProgress` at the first accepted commitment (or when `startTime` arrives), flips to `Reviewing` when the window ends or every commitment is terminal/ready, and flips back whenever new evidence lands. `closeCycle` is the reconcile act, but both close and cancel require the O(1) `liveCommitmentCount` to be zero; Ready and Disputed commitments stay live until they become Fulfilled, Cancelled, or Expired.
+| State | Storage | What it means | What's allowed | Leaves via |
+|---|---|---|---|---|
+| Draft | app-only (admin IndexedDB) | metadata being drafted | edit or discard locally — a Draft cancel is an off-chain discard | `seedCycle` |
+| Seeded | on-chain | window + metadata exist; no allocation yet | `openCycle`; `cancelCycle` while `liveCommitmentCount = 0` | `openCycle` / `cancelCycle` |
+| Open | on-chain | the running cycle | create / claim / confirm within the cycle | `closeCycle` / `cancelCycle` (both need every commitment terminal) |
+| InProgress | derived overlay of `Open` | first `CommitmentAccepted`, or `startTime` reached | same as `Open` — `cancelCycle` covers it via the underlying `Open` | overlay flips only |
+| Reviewing | derived overlay of `Open` | window ended, or every commitment terminal/ready | same as `Open`; flips back to `InProgress` on new evidence, work link, or approval | overlay flips only |
+| Reconciled | on-chain | `closeCycle` ran — the reconcile act | read; `compostCycle` | `compostCycle` |
+| Composted | on-chain | terminal archival rest *for this cycle* | read; succession = fresh `seedCycle` on the same pool | — |
+| Cancelled | on-chain | ended early with nothing live | read | — |
+
+- Opening validates **pool `Open`**, cycle existence, pool ownership, `Seeded` state, and an allocation whose basis points sum to exactly 10,000.
+- The four edges leaving the overlays (`→ Cancelled`, `→ Reconciled`) are the spec's single `Open →` rows drawn at overlay resolution — the diagram is deliberately a superset of the on-chain transition table, and no transition here exists that the chain does not allow.
+- Both close and cancel require the O(1) `liveCommitmentCount` to be zero; Ready and Disputed commitments stay live until they become Fulfilled, Cancelled, or Expired.
+- `Pool.openSeasonCycleId` permits exactly one open Season in O(1); any number of Campaigns may be open concurrently, and no transition enumerates cycles.
+- Succession is derived by pool ordering — no on-chain predecessor pointer.
 
 **There is deliberately no loop here**: `Composted` is terminal *for a cycle*. The loop lives at the pool — a fresh `seedCycle` (Season or Campaign) on the same pool is how the next round begins, and the composted cycle's aggregates roll into pool history. (The pool machine, D4, is the one that can reopen.)
 
-**Allocation split**: the six role percentages — gardeners / treasury / steward / evaluator / community / funder, stored on-chain as basis points where 10000 bps = 100% — are supplied atomically to `openCycle`, validated, stored as the immutable cycle snapshot, emitted in `CycleOpened`, and become the cycle's impact-certificate allowlist allocation at close (contract-spec §9.4; default Model 1: 60 / 15 / 10 / 5 / 5 / 5). `seedCycle` carries no allocation.
+**Allocation split**: the six role percentages are supplied atomically to `openCycle`, validated, stored as the immutable cycle snapshot, emitted in `CycleOpened`, and become the cycle's impact-certificate allowlist allocation at close (contract-spec §9.4). Stored on-chain as basis points, 10000 bps = 100%; `seedCycle` carries no allocation.
+
+| Role share | gardeners | treasury | steward | evaluator | community | funder |
+|---|---|---|---|---|---|---|
+| Default (Model 1) | 60% | 15% | 10% | 5% | 5% | 5% |
 
 ## D6. Commitment state machine (overview + three acts)
 
-**How to read this**: one promise's whole life. Read D6.0 first — five boxes, the entire arc. The three acts then zoom in without ever contradicting the overview: act 1 is how a promise gets a provider, act 2 is how delivery becomes provable, act 3 is every way it ends. Colour is provenance, not status: paper = stored on-chain, amber = derived by the indexer, grey = app-only. D2 is the same three acts drawn as messages instead of states.
+**How to read this**: one promise's whole life. Read D6.0 first — five boxes, the entire arc. The three acts then zoom in without ever contradicting the overview: act 1 is how a promise gets its lead provider, act 2 is how delivery becomes provable, act 3 is every way it ends. Colour is provenance, not status: paper = stored on-chain, amber = derived by the indexer, grey = app-only. D2 is the same three acts drawn as messages instead of states.
 
-On-chain enum stores `Offered / Requested / Accepted / ReadyForConfirmation / Fulfilled / Cancelled / Expired / Disputed`. `Draft` is app-only; `Active`, `EvidenceSubmitted`, `PartiallyApproved`, and `Reconciled` are derived. The single all-states diagram was accurate but hard to digest, so it is drawn as one compact overview plus three lifecycle acts — the acts zoom into the overview and never disagree with it.
+State provenance at a glance:
+
+- **On-chain enum**: `Offered / Requested / Accepted / ReadyForConfirmation / Fulfilled / Cancelled / Expired / Disputed`.
+- **App-only**: `Draft` (IndexedDB, no chain presence).
+- **Derived by the indexer**: `Active`, `EvidenceSubmitted`, `PartiallyApproved`, `Reconciled`.
+
+The single all-states diagram was accurate but hard to digest, so it is drawn as one compact overview plus three lifecycle acts — the acts zoom into the overview and never disagree with it.
 
 #### D6.0 Overview — the whole life at a glance
 
@@ -568,9 +606,14 @@ stateDiagram-v2
   class Draft appOnly
 ```
 
-Exact gates for these four calls (D13b is authoritative): `createCommitment` by a pool member for their own Offer/Request; **cancel** is `cancelCommitment(id, reasonCID)` by the **creator or steward** before acceptance; **expire** is `expireCommitment(id)`, **permissionless** once past the due date or cycle end; and acceptance is `claimCommitment` under `ClaimMode.Open` or `acceptClaim` under `ApprovalGated`.
+Exact gates for these four calls (D13b is authoritative):
 
-An approval-gated `claimCommitment` stores a PendingClaim and leaves the on-chain state untouched; `declineClaim` clears only that claimant; acceptance consumes the stored terms, derives provider and providerGarden, and commits units exactly once. Competing pending claims resolve by supersession — the full decline/accept/supersede choreography is D11.
+- **create** — `createCommitment` by a pool gardener for their own Offer/Request;
+- **cancel** — `cancelCommitment(id, reasonCID)` by the **creator or steward**, before acceptance;
+- **expire** — `expireCommitment(id)`, **permissionless** once past the due date or cycle end;
+- **accept** — `claimCommitment` under `ClaimMode.Open`, or `acceptClaim` under `ApprovalGated`.
+
+An approval-gated `claimCommitment` stores a PendingClaim and leaves the on-chain state untouched; `declineClaim` clears only that claimant; acceptance consumes the stored terms, derives `leadProvider` and `providerGarden`, and commits units exactly once. Competing pending claims resolve by supersession — the full decline/accept/supersede choreography is D11.
 
 #### D6b. Act 2 — Delivery & evidence (`Accepted` → `ReadyForConfirmation`)
 
@@ -585,16 +628,25 @@ stateDiagram-v2
   Active --> EvidenceSubmitted : EvidenceAttached / WorkLinked
   EvidenceSubmitted --> PartiallyApproved : ApprovedWorkCounted — some per-action counters below quota
   PartiallyApproved --> EvidenceSubmitted : new evidence or work
-  EvidenceSubmitted --> ReadyForConfirmation : (a) first pre-freeze counted approval completes every requirement + assessment
-  PartiallyApproved --> ReadyForConfirmation : (a) every per-action required count met + assessment satisfied
-  Accepted --> ReadyForConfirmation : (b) submitForConfirmation — evidence-only kind · no work requirement · evidenceCount ≥ 1 · totalVerifiedCredits > 0 · declared assessment attached · (c) steward override with reason
+  EvidenceSubmitted --> ReadyForConfirmation : (a) pre-freeze approval completes requirements + assessment
+  PartiallyApproved --> ReadyForConfirmation : (a) required counts met + assessment satisfied
+  Accepted --> ReadyForConfirmation : (b) submitForConfirmation — evidence-only kinds
+  Accepted --> ReadyForConfirmation : (c) steward override with reason
+  note right of Accepted
+    path (b) gate — no work requirement ·
+    evidenceCount ≥ 1 · totalVerifiedCredits > 0 ·
+    declared assessment attached (D3)
+  end note
   ReadyForConfirmation --> [*]
   class Active derived
   class EvidenceSubmitted derived
   class PartiallyApproved derived
 ```
 
-While the derived overlays are showing, the on-chain state remains `Accepted` — so the cancel/expire/dispute transitions in act 3 apply to all of them. The two delivery styles by kind: **DomainImpact** runs the full Work → WorkApproval rail with per-action required counts (`requirementIndex` credits exactly one requirement per approval — amendment 2026-07-18); **SupportService / StewardCaptured / SeasonCampaign** seeded with no work requirement go through path (b), where the counterparty's confirmation IS the review (D3).
+While the derived overlays are showing, the on-chain state remains `Accepted` — so the cancel/expire/dispute transitions in act 3 apply to all of them. The two delivery styles by kind:
+
+- **DomainImpact** — runs the full Work → WorkApproval rail with per-action required counts (`requirementIndex` credits exactly one requirement per approval — amendment 2026-07-18); paths (a).
+- **SupportService / StewardCaptured / SeasonCampaign** seeded with no work requirement — path (b): the counterparty's confirmation IS the review, gated as the in-diagram note states (D3).
 
 #### D6c. Act 3 — Resolution (confirmation, endings, disputes, reconciliation)
 
@@ -614,8 +666,15 @@ stateDiagram-v2
   Disputed --> Accepted : resolveDispute (RestorePrevious)
   Disputed --> ReadyForConfirmation : resolveDispute (RestorePrevious)
   Disputed --> Expired : resolveDispute (RestorePrevious or Expired)
-  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired) · reject contributor-steward SelfConfirmation · require policy + verified contributor · freeze roster first when needed
+  Disputed --> Fulfilled : resolveDispute (never from pre-dispute Expired)
   Disputed --> Cancelled : resolveDispute (Cancelled)
+  note right of Disputed
+    a Fulfilled resolution rejects a
+    contributor-steward (SelfConfirmation),
+    requires opened policy + a verified
+    contributor, and freezes the roster
+    first when needed
+  end note
   Fulfilled --> Reconciled : CycleClosed
   Cancelled --> Reconciled : CycleClosed
   Expired --> Reconciled : CycleClosed
@@ -638,7 +697,7 @@ Cycle-less commitments (`cycleId == 0`) derive `Reconciled` from `PoolClosed`; c
 
 ## D7. Indexer entity delta (ERD)
 
-Ten NET-NEW pooling entities, all derived exclusively from module + register events (`chainId-identifier` composite IDs). `GARDEN` is the existing entity; settlement entities are shown separately in D7b. The docs-site ERD gains this delta at ship via PRD-727 (historical label PRD-680).
+Ten NET-NEW pooling entities, all derived exclusively from module + register events (`chainId-identifier` composite IDs). `GARDEN` is the existing entity; settlement entities are shown separately in D7b. The docs-site ERD gains this delta at ship via PRD-727 (historical label PRD-680). **Need lineage lives here**: a commitment created with a non-zero `needUID` appends to `NEED_COMMITMENT_INDEX` (bottom edge of D7.0) — the seed-from-Need workflow that sets the reference is Community D9 and the cross-surface map (matrix rows 14 and 16); the module stores the UID as-is and never reads EAS for it.
 
 **Count-safe units model**: every commitment keeps its own exact `unitLabel`, `targetUnits`, and per-commitment `approvedUnits`. Pool/cycle totals never add unlike labels. `CommitmentUnitSummary` groups only exact UTF-8 label matches (`hours` and `Hours` are distinct), while `CommitmentProviderExposure` counts concurrent accepted commitments regardless of their quantities:
 
@@ -742,7 +801,7 @@ erDiagram
     Boolean contributorsFrozen "true from ReadyForConfirmation or before direct dispute resolution to Fulfilled"
     Boolean requiresAssessment "creation fact"
     String metadataCID "creation terms"
-    String needUID "optional community Need this promise answers"
+    String needUID "optional Need this promise answers"
     String unitLabel "exact stored bytes define summary identity"
     BigInt targetUnits "class quota in unitLabel units, immutable at creation"
     BigInt approvedUnits "per-commitment only"
@@ -871,7 +930,7 @@ erDiagram
   COMMITMENT_EVIDENCE_ATTRIBUTION {
     ID id "chainId-commitmentId-cidHash-contributor"
     String cid "evidence object"
-    String contributor "credited active member"
+    String contributor "credited active contributor"
     Boolean confirmed "true after fulfillment"
   }
 
@@ -920,7 +979,7 @@ erDiagram
   COMMITMENT_PAYOUT_PLAN ||--o{ CONTRIBUTOR_PAYOUT : "recognition and payment entries"
   CONTRIBUTOR_PAYOUT |o--o| DISBURSEMENT : "non-zero child"
   SETTLEMENT_ACCOUNT ||--o{ COMMITMENT_PAYOUT_PLAN : "provider garden payer"
-  DISBURSEMENT }o--o| SETTLEMENT_BATCH : "optional immutable batch membership"
+  DISBURSEMENT }o--o| SETTLEMENT_BATCH : "optional immutable batch entry"
   DISBURSEMENT ||--o{ SETTLEMENT_MESSAGE : "unbatched command and acknowledgment"
   SETTLEMENT_BATCH ||--o{ SETTLEMENT_MESSAGE : "batch command and acknowledgment"
   SETTLEMENT_EXECUTION ||--o{ SETTLEMENT_MESSAGE : "command and acknowledgment IDs"
@@ -938,7 +997,7 @@ erDiagram
       String previousPeer "nullable bounded predecessor during rotation"
       Int previousPeerExpiresAt "nullable; no later than rotation plus 30 days"
     Boolean peerConfigured "readiness fact"
-    Boolean memberDeliveryEnabled "owner gate on member G$ delivery; never gates funding"
+    Boolean memberDeliveryEnabled "owner gate on gardener G$ delivery; never gates funding"
     Boolean paused "event-owned state"
   }
   SETTLEMENT_ACCOUNT {
@@ -1013,7 +1072,7 @@ erDiagram
   }
   CONTRIBUTOR_PAYOUT {
     ID id "sourceChainId-planId-contributor"
-    String contributor "frozen eligible roster member"
+    String contributor "frozen eligible roster contributor"
     String recipient "derived Celo account"
     Int recognitionWeightBps "certificate reference"
     Int paymentWeightBps "derived from amount vector"
@@ -1024,7 +1083,7 @@ erDiagram
   SETTLEMENT_BATCH {
     ID id "sourceChainId-batchId"
     BigInt batchId "source subject"
-    String disbursementEntityIds "immutable member IDs"
+    String disbursementEntityIds "immutable batch-entry IDs"
     DisbursementState state "atomic batch state"
     Int attempt "current logical attempt"
     String executionKey "current key"
@@ -1157,7 +1216,7 @@ The pipeline itself is the existing Envio runtime, which is live; every box abov
 
 ## D8. G$ funding topology, Safe recovery, and CCIP boundary
 
-**How to read this**: canonical G$ stays on Celo. Arbitrum sends a data-only command; the Celo executor derives the Safe/token call, executes through a bounded Zodiac role, stores the outcome, and sends a data-only acknowledgment. The executor is never a Safe owner. A message timeout never creates a second payment attempt. **Three edge meanings, three arrow styles** — a thick solid arrow is G$ actually moving between accounts, a plain arrow carries a protocol message, read, or **instruction**, and a dotted arrow is an ownership relation, never a transfer. The executor's edges into the Safes are plain on purpose: it is a bounded Zodiac Roles member that *instructs* the source Safe to pay, and never custodies or funds one. The only value paths are the thick ones — HoA into the protocol Safe, protocol Safe to garden Safe, and either Safe out to members.
+**How to read this**: canonical G$ stays on Celo. Arbitrum sends a data-only command; the Celo executor derives the Safe/token call, executes through a bounded Zodiac role, stores the outcome, and sends a data-only acknowledgment. The executor is never a Safe owner. A message timeout never creates a second payment attempt. **Three edge meanings, three arrow styles** — a thick solid arrow is G$ actually moving between accounts, a plain arrow carries a protocol message, read, or **instruction**, and a dotted arrow is an ownership relation, never a transfer. The executor's edges into the Safes are plain on purpose: it is a bounded Zodiac Roles member that *instructs* the source Safe to pay, and never custodies or funds one. The only value paths are the thick ones — HoA into the protocol Safe, protocol Safe to garden Safe, and either Safe out to contributors.
 
 ```mermaid
 flowchart TD
@@ -1209,16 +1268,11 @@ The Safe owner set remains exactly protocol recovery multisig, Dev Guild recover
 
 **How to read this**: three separate concerns used to share one canvas, so they are drawn separately — the path a healthy settlement takes (D9.0), what stops a second payment when a message arrives twice (D9.1), and the three independent retry lifecycles (D9.2). Across all three: one immutable execution key, and only the authenticated success acknowledgment for the subject's **current key and attempt** turns Arbitrum state into `Confirmed`.
 
-Every steward action below is taken in the capability-gated Admin Operations workspace or the
-garden-scoped W21 detail path. Route visibility never grants a write. **Pool steward** creates
-the contributor payout plan, may edit its complete amount vector while Draft, and explicitly
-finalizes it before preparing any child; **Protocol steward** queues the independent
-ProtocolToGarden funding route. Finalization verifies conservation and freezes the payout plan
-without creating child disbursements. The pool steward then prepares each payable contributor
-row into one immutable Queued child. An all-retained zero-child plan completes at finalization
-without CCIP.
-Acknowledgment retry remains permissionless to anyone supplying the exact CELO fee. Dispatch and
-command retry additionally accept the configured `dispatcher`.
+Every steward action below is taken in the capability-gated Admin Operations workspace or the garden-scoped W21 detail path; route visibility never grants a write. Who does what:
+
+- **Pool steward** — creates the contributor payout plan, may edit its complete amount vector while Draft, and explicitly finalizes it before preparing any child. Finalization verifies conservation and freezes the plan without creating child disbursements; an all-retained zero-child plan completes at finalization without CCIP. After finalization, prepares each payable contributor row into one immutable Queued child.
+- **Protocol steward** — queues the independent ProtocolToGarden funding route.
+- **Anyone** — acknowledgment retry is permissionless when supplying the exact CELO quote; dispatch and command retry additionally accept the configured `dispatcher`.
 
 #### D9.0 The healthy path — queue, dispatch, execute, acknowledge
 
@@ -1347,7 +1401,7 @@ sequenceDiagram
 
 ## D10. Disbursement state machine (all module-native, on-chain)
 
-**How to read this**: five stored states, and the one rule that governs all of them — **delivery is not confirmation**. `Dispatched` self-loops for every kind of waiting (command retry, delivery delay, Celo executed with the acknowledgment still pending), and only an authenticated acknowledgment for the current key and attempt leaves it. Cancellation is reachable from `Queued` or an authenticated `Failed`, never from `Dispatched` — lateness alone is not a terminal outcome. The diagram carries states and transitions only; the exact function names, arguments, and batch rules are in the table directly below it. D10b maps these five onto the nine states a member actually sees.
+**How to read this**: five stored states, and the one rule that governs all of them — **delivery is not confirmation**. `Dispatched` self-loops for every kind of waiting (command retry, delivery delay, Celo executed with the acknowledgment still pending), and only an authenticated acknowledgment for the current key and attempt leaves it. Cancellation is reachable from `Queued` or an authenticated `Failed`, never from `Dispatched` — lateness alone is not a terminal outcome. The diagram carries states and transitions only; the exact function names, arguments, and batch rules are in the table directly below it. D10b maps these five onto the nine states a gardener actually sees.
 
 ```mermaid
 stateDiagram-v2
@@ -1369,65 +1423,52 @@ stateDiagram-v2
 | State | What it means | What's allowed next | Who acts |
 |---|---|---|---|
 | Queued | canonical eligible facts are queued; nothing dispatched. Two distinct entry authorities: `prepareContributorPayout(planId, contributor)` by the **commitment-pool steward** after plan finalization, and `queueFunding(garden, amount)` by the **protocol steward or module owner** only | dispatch through the frozen entrypoint (`executionKey` + `messageId`); `cancelDisbursement(unbatched disbursementId, reasonCID)`, or cancel the whole immutable batch | preparation: commitment-pool steward · funding queue: protocol steward or owner · dispatch + cancel: resolved settlement steward |
-| Dispatched | command sent; execution or acknowledgment may still be pending | wait; retry same command; retry stored acknowledgment from Celo | resolved steward / anyone for destination ack retry |
+| Dispatched | command sent; execution or acknowledgment may still be pending | wait; retry same command; retry stored acknowledgment from Celo — a delivery timeout can neither cancel nor create a new attempt | resolved steward / anyone for destination ack retry |
 | Confirmed | authenticated success acknowledgment for the current key/attempt received | terminal — “support arrived” | Celo executor through CCIP |
-| Failed | authenticated current execution-failure acknowledgment received | `requeue(disbursementId)` — **each failed member individually**, `attempt++`, as a new next attempt — or terminally cancel; the immutable failed batch is never rewritten or requeued as a batch | resolved settlement steward |
+| Failed | authenticated current execution-failure acknowledgment received | `requeue(disbursementId)` — **each failed batch entry individually**, `attempt++`, as a new next attempt — or terminally cancel; the immutable failed batch is never rewritten or requeued as a batch | resolved settlement steward |
 | Cancelled | withdrawn while Queued, or closed after authenticated Failed delivery, via `cancelDisbursement(disbursementId, reasonCID)` | terminal for that execution key; the finalized payout plan and commitment-to-plan pointer remain stable | resolved settlement steward |
 
 For a Queued batch, the `Queued -> Cancelled` transition is
-`cancelBatch(batchId, reasonCID)`: one atomic transition over the immutable member
-set. `cancelDisbursement` rejects a Queued member whose `batchId != 0`, so no
-partial queued-batch state can exist.
+`cancelBatch(batchId, reasonCID)`: one atomic transition over the immutable
+batch-entry set. `cancelDisbursement` rejects a Queued batch entry whose
+`batchId != 0`, so no partial queued-batch state can exist.
 
-A failed Celo leg never changes Commitment Pooling state. `SettlementExecutionStored(Success)` without the Arbitrum acknowledgment derives “confirming arrival” while stored Arbitrum state remains `Dispatched`. A delivery timeout cannot cancel or create a new attempt. Cancellation is allowed from Queued or an authenticated Failed result, never from Dispatched; a Failed member may instead be explicitly requeued as a new attempt.
+Two cross-cutting facts the table cannot carry per-state: a failed Celo leg never changes Commitment Pooling state, and `SettlementExecutionStored(Success)` without the Arbitrum acknowledgment derives "confirming arrival" while stored Arbitrum state remains `Dispatched` (the D10b map).
 
-## D10b. Settlement status the member sees (5 stored, 9 rendered)
+## D10b. Settlement status the gardener sees (5 stored, 9 rendered)
 
-**How to read this**: the chain stores five states; the member surface (W2) renders nine. This is the map between them, and the reason the two vocabularies never contradict each other. Read the middle column as the *extra input* that splits one stored state into several rendered ones — Celo executor events and a delay timer. Two facts matter most: **`support-delayed` has no on-chain counterpart at all** — it is a client-side timer over the `Dispatched` timestamp and it changes no authority, no state, and no eligibility — and **only an authenticated success acknowledgment produces "support arrived"**. Nothing a human observes, and no elapsed time, can move a member into the arrived state.
+**How to read this**: the chain stores five states; the gardener surface (W2) renders nine. The strip below anchors the five stored states (D10 is their machine); the table is the map between the two vocabularies, and its **Extra input** column is what splits one stored state into several rendered ones — Celo executor events and a delay timer. Two facts matter most: **`support-delayed` has no on-chain counterpart at all** — it is a client-side timer over the `Dispatched` timestamp and it changes no authority, no state, and no eligibility — and **only an authenticated success acknowledgment produces "support arrived"**. Nothing a human observes, and no elapsed time, can move a gardener into the arrived state.
 
 ```mermaid
 flowchart LR
-  subgraph ON["Stored on Arbitrum (D10)"]
-    Q["Queued"]
-    D["Dispatched"]
-    C["Confirmed"]
-    F["Failed"]
-    X["Cancelled"]
-  end
-
-  subgraph UI["Rendered to the member"]
-    S1["support-queued<br/>“support is queued”"]
-    S2["support-en-route<br/>“support on its way”"]
-    S3["support-delayed<br/>“taking longer than usual”"]
-    S4["support-executed<br/>“confirming arrival”"]
-    S5["support-confirming<br/>“confirming arrival”"]
-    S6["support-arrived<br/>“support arrived”"]
-    S7["support-failed"]
-    S8["support-cancelled-queued<br/>“withdrawn before sending”"]
-    S9["support-cancelled-failed<br/>“closed after a failed attempt”"]
-  end
-
-  Q -->|"stored"| S1
-  D -->|"stored"| S2
-  D -->|"client delay timer only —<br/>no state change, no authority change"| S3
-  D -->|"SettlementExecutionStored"| S4
-  D -->|"AcknowledgmentSent, not yet received"| S5
-  C -->|"authenticated success only"| S6
-  F -->|"authenticated failure"| S7
-  X -->|"cancelledFromState = Queued"| S8
-  X -->|"cancelledFromState = Failed"| S9
+  Q["Queued"] --> D["Dispatched"]
+  D --> C["Confirmed"]
+  D --> F["Failed"]
+  F -->|"requeue"| Q
+  Q --> X["Cancelled"]
+  F --> X
 
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
-  classDef derived fill:#f6ecdc,stroke:#b98a3e,stroke-width:2px,color:#2a2722
-  class Q,D,C,F,X,S1,S2,S6,S7,S8,S9 planned
-  class S3,S4,S5 derived
+  class Q,D,C,F,X planned
 ```
 
-Amber marks everything derived rather than stored; the arrow label is the derivation input. `support-executed` and `support-confirming` share the same member-facing sentence deliberately: the member does not need to distinguish "the Celo transfer happened" from "we are waiting for the receipt", only that arrival is not yet certified. Settlement-record-first precedence applies throughout — the settlement record, never the commitment state, determines which of the nine renders.
+| Stored (D10) | Extra input | Rendered status | Gardener-facing copy | Provenance |
+|---|---|---|---|---|
+| Queued | — | `support-queued` | "support is queued" | stored |
+| Dispatched | — | `support-en-route` | "support on its way" | stored |
+| Dispatched | client delay timer only — no state, authority, or eligibility change | `support-delayed` | "taking longer than usual" | derived, client-only |
+| Dispatched | `SettlementExecutionStored` | `support-executed` | "confirming arrival" | derived |
+| Dispatched | `AcknowledgmentSent`, not yet received | `support-confirming` | "confirming arrival" | derived |
+| Confirmed | authenticated success only | `support-arrived` | "support arrived" | stored |
+| Failed | authenticated failure | `support-failed` | failure + recovery per D16 | stored |
+| Cancelled | `cancelledFromState = Queued` | `support-cancelled-queued` | "withdrawn before sending" | stored |
+| Cancelled | `cancelledFromState = Failed` | `support-cancelled-failed` | "closed after a failed attempt" | stored |
+
+The derived rows are computed, never stored. `support-executed` and `support-confirming` share the same gardener-facing sentence deliberately: the gardener does not need to distinguish "the Celo transfer happened" from "we are waiting for the receipt", only that arrival is not yet certified. Settlement-record-first precedence applies throughout — the settlement record, never the commitment state, determines which of the nine renders.
 
 ## D11. Approval-gated claim request, decline, acceptance, and supersession
 
-**How to read this**: two people want the same commitment. Each `claimCommitment` stores its own PendingClaim (the on-chain commitment state does not move). The steward may decline one claimant without touching the others, or accept one — at which point every other pending request reads as superseded. Declines and supersessions carry distinct member-facing meanings via `resolutionCode`.
+**How to read this**: two people want the same commitment — this is the pre-acceptance competition between **claimants**, distinct from post-acceptance teamwork (the contributor roster of D2/D6/D17, where one accountable lead plus teammates deliver together). Each `claimCommitment` stores its own PendingClaim (the on-chain commitment state does not move), so a pending request never blocks anyone and the commitment stays browseable to other eligible claimants. The steward may decline one claimant without touching the others, or accept one — at which point every other pending request reads as superseded. Losing is not lock-out: a later request after a decline is a fresh active request with a new timestamp. Declines and supersessions carry distinct gardener-facing meanings via `resolutionCode`.
 
 ```mermaid
 sequenceDiagram
@@ -1453,7 +1494,7 @@ sequenceDiagram
     Note over IDX,RI: A=DECLINED and B remains PENDING
   else steward accepts B
     OP->>M: acceptClaim(id, B)
-    Note over M,IDX: consume B's stored claimant, requestedBy, kind,<br/>gardenContext, requestedAt, and active terms —<br/>then derive provider and providerGarden
+    Note over M,IDX: consume B's stored claimant,<br/>requestedBy, kind, gardenContext,<br/>requestedAt, and active terms —<br/>then derive leadProvider<br/>and providerGarden
     M-->>IDX: CommitmentAccepted(id, B, counterparty, kind, gardenContext, provider, providerGarden)
     IDX->>RI: load request IDs by chainId-id
     Note over IDX,RI: B=ACCEPTED and every other<br/>pending request=SUPERSEDED
@@ -1467,11 +1508,11 @@ sequenceDiagram
   end
 ```
 
-There is no numeric sentinel or database-wide query. A later request after a decline is a fresh active request with a new timestamp; acceptance is deterministic because it cannot substitute caller-provided terms. Superseded copy distinguishes another accepted provider from commitment cancellation/expiry through `resolutionCode`.
+There is no numeric sentinel or database-wide query. A later request after a decline is a fresh active request with a new timestamp; acceptance is deterministic because it cannot substitute caller-provided terms. Superseded copy distinguishes another claimant's acceptance from commitment cancellation/expiry through `resolutionCode`.
 
 ## D11b. Claim-request state machine
 
-**How to read this**: D11 is the choreography between people; this is the machine each individual request runs. One request per claimant, four states. A `PENDING` row holds its own stored terms and moves no commitment state. Every terminal state carries a `resolutionCode` so the member sees *why* it ended rather than just that it did — the machine below shows the shape, and the table under it names the code and the sentence each one produces.
+**How to read this**: D11 is the choreography between people; this is the machine each individual request runs. One request per claimant, four states. A `PENDING` row holds its own stored terms and moves no commitment state. Every terminal state carries a `resolutionCode` so the gardener sees *why* it ended rather than just that it did — the machine below shows the shape, and the table under it names the code and the sentence each one produces.
 
 Note the state a claim request never has: there is no "withdrawn". A claimant does not retract a request — it resolves when the steward acts or when the commitment ends.
 
@@ -1490,7 +1531,7 @@ stateDiagram-v2
   class PENDING,ACCEPTED,DECLINED,SUPERSEDED planned
 ```
 
-| End state | `resolutionCode` | What the member is told |
+| End state | `resolutionCode` | What the gardener is told |
 |---|---|---|
 | `ACCEPTED` | `CLAIM_ACCEPTED` | this request was taken up; `acceptClaim` consumed the stored terms exactly once |
 | `DECLINED` | `CLAIM_DECLINED` + steward `reasonCID` | the steward declined this request, with a reason; only this claimant is cleared |
@@ -1534,20 +1575,20 @@ sequenceDiagram
 If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available while
 `memberDeliveryEnabled` stays false. The form appears only for onchain `canQueueFunding`
 authority (protocol steward or module owner); deployer status alone does not submit. Its emitted
-row is Funding/ProtocolToGarden with no commitment ID. There is no garden-custody member-claim
-fallback.
+row is Funding/ProtocolToGarden with no commitment ID. There is no garden-custody
+gardener-claim fallback.
 
 ## D13. Capability responsibility summary
 
-**How to read this**: this is a capability summary for audience orientation, not the function-level authorization source. One row appears per capability-bearing role and one column per capability group — ✓ means the role may act within the listed scope, — means no access, ✗ marks an enforced prohibition. "Garden steward" = holder of the garden's operator/owner Hats; the protocol pool resolves stewardship to the root garden. The scoped executor is the `CeloSettlementExecutor` contract itself, never a human steward or Safe owner. D13b carries the exact function-level permission table.
+**How to read this**: this is a capability summary for audience orientation, not the function-level authorization source. One row appears per capability-bearing role and one column per capability group — ✓ means the role may act within the listed scope, — means no access, ✗ marks an enforced prohibition. "Garden steward" = holder of the garden's operator/owner Hats; the protocol pool resolves stewardship to the root garden. The scoped executor is the `CeloSettlementExecutor` contract itself, never a human steward or Safe owner. D13b — on the gallery's Reference tab — carries the exact function-level permission table.
 
 | Role | Pool & cycle control | Create / claim promises | Evidence & work | Approve work | Confirm fulfillment | Queue & execute value | Confirm settlement | Configure protocol |
 |---|---|---|---|---|---|---|---|---|
 | **Module owner** | ✓ fallback steward | — | — | — | — | ✓ queue protocol funding only | — | ✓ pause · peer/module wiring · measured limits · dispatcher assignment · UUPS upgrade |
-| **Protocol steward** | ✓ root-pool stewardship | ✓ seed and adjudicate protocol commitments | ✓ attach within ordinary pool rules | ✓ existing WorkApproval scope | fallback only, with reason, never as provider | ✓ explicit ProtocolToGarden funding; no commitment-reward bypass | — | — |
-| **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for members | ✓ WorkApproval (existing flow) | fallback only, with reason, never as provider | ✓ create/edit/finalize/prepare provider payout plans; dispatch/retry/requeue/cancel within resolved scope | — | — |
-| **Member / gardener** | — | ✓ own Offer / Request · claim open commitments | ✓ own evidence · link work | — | ✓ when eligible confirmer | — | — | — |
-| **Accepted provider** | — | — | ✓ deliver + evidence | — | ✗ never own delivery | — | — | — |
+| **Protocol steward** | ✓ root-pool stewardship | ✓ seed and adjudicate protocol commitments | ✓ attach within ordinary pool rules | ✓ existing WorkApproval scope | fallback only, with reason, never as a contributor | ✓ explicit ProtocolToGarden funding; no commitment-reward bypass | — | — |
+| **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for gardeners | ✓ WorkApproval (existing flow) | fallback only, with reason, never as a contributor | ✓ create/edit/finalize/prepare provider payout plans; dispatch/retry/requeue/cancel within resolved scope | — | — |
+| **Gardener** | — | ✓ own Offer / Request · claim open commitments | ✓ own evidence · link work | — | ✓ when eligible confirmer | — | — | — |
+| **Lead provider** | — | — | ✓ deliver + evidence | — | ✗ never own delivery | — | — | — |
 | **Evaluator** | — | — | ✓ assessments (baseline / delta / technical) | — | ✓ when named confirmer | — | — | — |
 | **Community member** | — | ✓ needs + signals (Community PWA) | ✓ testimony | — | ✓ when named confirmer | — | — | — |
 | **CeloSettlementExecutor (Zodiac Roles member)** | — | — | — | — | — | ✓ typed canonical-G$ transfer only | ✓ sends CCIP acknowledgment | — |
@@ -1557,7 +1598,7 @@ fallback.
 
 **Hard prohibitions (the red lines)**:
 
-- No provider may confirm their own delivery — including through steward fallback.
+- No contributor — the lead provider included — may confirm their own delivery, including through steward fallback.
 - No recovery owner may be a Safe executor, and no executor may be a recovery owner; deployment
   and registration-time verification both reject overlap.
 - No human report, timeout, or Celo transfer log can mark a source attempt `Confirmed` or `Failed`; only the authenticated Celo executor acknowledgment can do so.
@@ -1590,9 +1631,9 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `setPoolCharter`, `markPoolReady` | Resolved pool steward | Ready requires non-empty charter and a previously configured non-zero provider open-commitment cap; Baseline remains an app preflight |
 | `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool` | Resolved pool steward | Exact D4 transition; pause reason mandatory |
 | `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D5 transition; allocation exists only on open and totals 10,000 BPS; close/cancel require `liveCommitmentCount == 0`; a commitment-bundle certificate may compose only after close writes Reconciled, then compost follows mint; cancel reason mandatory |
-| `createCommitment` | Pool member for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; stored authorship and `onBehalfOf` determine provider; DomainImpact arrays are valid |
+| `createCommitment` | Pool gardener for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; stored authorship and `onBehalfOf` determine the lead provider; DomainImpact arrays are valid |
 | `setDeclaredReward`, `setConfirmerRule` | Resolved pool steward | Pre-acceptance only; named confirmer input is bounded by `MAX_CONFIRMERS = 32` before mutation |
-| `claimCommitment` | Garden member; or protocol-pool garden operator/owner / individual garden member according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
+| `claimCommitment` | Gardener of the eligible garden; or protocol-pool garden operator/owner / individual gardener according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
 | `acceptClaim`, `declineClaim` | Resolved pool steward | Named pending claimant exists; acceptance consumes stored terms and one provider count slot; decline reason mandatory |
 | `linkWork` | Active contributor, lead, or steward | Accepted; schema/provider authorship/provider-garden recipient checks pass; DomainImpact names an exact matching requirement index |
 | `unlinkWork`, `syncWorkDecisions` | Resolved pool steward | Unlink whenever current credit is inactive, including after rejection; sync preflights supplied decisions, applies only current decisions, and the complete bounded active-link set must match resolver maxima before any readiness freeze |
@@ -1601,8 +1642,8 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `attachAssessment` | Steward or evaluator of `providerGarden` | Accepted and unfrozen; no assessment already attached; resolver/schema/kind/recipient valid; the write-once UID may trigger Ready predicate re-evaluation |
 | `submitForConfirmation` | Creator, counterparty, or steward | Evidence-only eligible kind; no Work requirement; evidence and declared assessment present |
 | `markReadyForConfirmation` | Resolved pool steward | Override reason mandatory and emitted |
-| `confirmFulfillment` | Named confirmer, Offer counterparty, or Request creator | ReadyForConfirmation; every frozen team member excluded; once per confirmer |
-| `confirmFulfillmentAsFallback` | Resolved pool steward | Mandatory reason; any steward who is on the frozen team is excluded |
+| `confirmFulfillment` | Named confirmer, Offer counterparty, or Request creator | ReadyForConfirmation; every frozen contributor excluded; once per confirmer |
+| `confirmFulfillmentAsFallback` | Resolved pool steward | Mandatory reason; any steward who is a frozen contributor is excluded |
 | `cancelCommitment` | Creator or steward before acceptance; steward after acceptance | Allowed state only; accepted record releases units and one slot once |
 | `expireCommitment` | Anyone | Past due date/cycle end; accepted record releases units and one slot once |
 | `raiseDispute`, `resolveDispute` | Creator/counterparty/named confirmer/steward may raise; steward resolves | Allowed state and mandatory reason; prior slot state preserved; expired prior state cannot resolve Fulfilled; a direct Fulfilled result rejects a resolving contributor-steward, requires an opened/cycle-less policy and verified contributor, and freezes the roster first when it was not already Ready |
@@ -1616,14 +1657,14 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Assessment config: existing `setSchemaUID`, existing `setKarmaGAPModule`, new `setAssessmentV3SchemaUID` | Existing AssessmentResolver owner (protocol multisig) | v2 selector/event and the deployment-window zero value stay compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; the v3 UID rejects zero and emits old/new |
 | Community Testimony config: `setSchemaUID`, `setCommitmentModule` | CommunityTestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID. Preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | `registerSettlementAccount`, `updateSettlementRecovery`, `setAccountActive` | Steward or `SettlementModule` owner | Registration is write-once for garden/account/Roles modifier/`roleKey`/`allowanceKey` and the immutable permissions hash; `chainId == DESTINATION_EVM_CHAIN_ID()`; the three recovery owners are sorted, unique, non-zero, and **none is a current executor**; threshold fixed at 2. A recovery update may change only owners and the recovery hash. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
-| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and member sends, but never hides payout plans or historical children and never blocks the funding route |
+| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and gardener sends, but never hides payout plans or historical children and never blocks the funding route |
 | `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Resolved provider-garden settlement steward (operator/owner of immutable `providerGarden`) | Fulfilled commitment; active provider-garden settlement account at every value-authorizing write; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
-| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued members and unique derived recipients share executor garden/source/token/kind/funding route; ContributorReward batches require the provider/executor garden account still Active; duplicate recipients revert before fee quote or mutation; membership is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
+| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued batch entries and unique derived recipients share executor garden/source/token/kind/funding route; ContributorReward batches require the provider/executor garden account still Active; duplicate recipients revert before fee quote or mutation; batch composition is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
 | `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Resolved settlement steward for immutable `executorGarden`, or exact configured dispatcher | Parent plan explicitly finalized before contributor dispatch; initial ContributorReward dispatch rechecks the provider/executor garden account Active; frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID. The module owner has no independent value-moving bypass |
-| `requeue` | Resolved settlement steward | Authenticated `Failed` member only; increments the individual attempt; immutable failed batch is never rewritten |
+| `requeue` | Resolved settlement steward | Authenticated `Failed` disbursement only; increments the individual attempt; an immutable failed batch is never rewritten as a batch |
 | `cancelDisbursement` | Resolved settlement steward | unbatched `Queued` or authenticated `Failed` only, with reason; dispatched work cannot be cancelled for a timeout or missing acknowledgment; parent commitment-plan pointer remains stable |
-| `cancelBatch` | Resolved batch steward | whole immutable batch while `Queued`, with reason; no partial-member cancellation; parent commitment-plan pointers remain stable |
+| `cancelBatch` | Resolved batch steward | whole immutable batch while `Queued`, with reason; no partial-entry cancellation; parent commitment-plan pointers remain stable |
 | `fundFees` / `withdrawExcessFees` | Anyone / `SettlementModule` owner | Native ETH only; owner withdrawal preserves the configured reserve minimum |
 | Celo `fundAcknowledgmentFees` / `withdrawExcessAcknowledgmentFees` | Anyone / `CeloSettlementExecutor` owner | Native CELO only; guarded withdrawal preserves the onchain acknowledgment reserve minimum |
 | `setCcipRoute`, `setBatchSizeLimit`, `setDispatcher`, `setFeeReserveMinimum` | `SettlementModule` owner **behind the deployment timelock** | All four require pause. Route: immutable implementation router unchanged, non-zero values, same-selector/same-version rotation may store one prior peer expiring no later than +30 days; selector or version change requires a drained cutover with zero grace. Batch limit 0–24 (zero disables batching) and source/destination limits must match before any non-zero release. Zero dispatcher disables delegated dispatch, and a dispatcher may dispatch/retry only. A new fee floor is immediately observable and every dispatch/retry/withdrawal must preserve it |
@@ -1635,12 +1676,12 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 
 ## D14. Commitment offline job lifecycle
 
-**How to read this**: offline-safe writes are explicit jobs, not optimistic state mutations. The
-five kinds are commitment, claim, evidence, workLink, and confirmation; settlement and
-ProtocolToGarden funding are online authority-gated actions and never enter this machine. A job
-may wait for the required membership Hat indefinitely without spending a retry. Once membership
-is present, normal submission attempts begin; only a failed submission consumes one of five
-attempts. A human can manually retry an exhausted job or discard it.
+**How to read this**: offline-safe writes are explicit jobs, not optimistic state mutations.
+
+- **Five kinds enter this machine**: commitment, claim, evidence, workLink, confirmation.
+- **Never queued**: settlement and ProtocolToGarden funding are online, authority-gated actions.
+- A job may wait for the required membership Hat indefinitely without spending a retry; once membership is present, normal submission attempts begin.
+- Only a failed submission consumes one of five attempts. A human can manually retry an exhausted job or discard it.
 
 ```mermaid
 stateDiagram-v2
@@ -1667,7 +1708,9 @@ stateDiagram-v2
   class Completed derived
 ```
 
-Only commitment creation, claim, evidence attachment, Work linking, and eligible confirmation enter this queue. Accept/decline, assessment attachment, steward override, dispute actions, and value transfer stay online-only because their authorization or freshness cannot be safely deferred. `waiting_for_hat` is app-only provenance, not an on-chain state and not a failed attempt — it is the same state `uiux-spec.md` §5.11 names, surfaced to members as "Waiting for membership". `Completed` is derived after the corresponding transaction is indexed; it is not a state stored by the protocol contract.
+- **Online-only** (authorization or freshness cannot be safely deferred): accept/decline, assessment attachment, steward override, dispute actions, value transfer.
+- `waiting_for_hat` is app-only provenance, not an on-chain state and not a failed attempt — the same state `uiux-spec.md` §5.11 names, surfaced to gardeners as "Waiting for membership".
+- `Completed` is derived after the corresponding transaction is indexed; it is not a state stored by the protocol contract.
 
 ---
 
@@ -1728,11 +1771,11 @@ Amber marks every step that runs **while pooling is paused** — the whole of ch
 
 ## D16. Error taxonomy — surface and recovery map
 
-**How to read this**: errors reach people, so this taxonomy answers three questions in order — **what went wrong**, **where does someone meet it**, and **what may they do about it**. Each question gets its own view below, because the single combined graph made the last question — the one that matters most — the hardest to read. The rule the three views exist to protect: an error whose recovery is "nothing the member can do" must never be rendered as if it were retryable.
+**How to read this**: errors reach people, so this taxonomy answers three questions in order — **what went wrong**, **where does someone meet it**, and **what may they do about it**. Each question gets its own view below, because the single combined graph made the last question — the one that matters most — the hardest to read. The rule the three views exist to protect: an error whose recovery is "nothing the gardener can do" must never be rendered as if it were retryable.
 
 #### D16.0 The error — five families, grouped by where each one is decided
 
-`FailureCode` is the only family that crosses the chain boundary: twelve bounded values decided on Celo, carried back through an authenticated acknowledgment, and collapsed into a small number of member-facing sentences on Arbitrum.
+`FailureCode` is the only family that crosses the chain boundary: twelve bounded values decided on Celo, carried back through an authenticated acknowledgment, and collapsed into a small number of gardener-facing sentences on Arbitrum.
 
 ```mermaid
 flowchart TB
@@ -1754,59 +1797,28 @@ flowchart TB
 
 #### D16.1 Where it manifests — each family reaches exactly one set of surfaces
 
-```mermaid
-flowchart LR
-  F1["CommitmentPoolingModule errors"]
-  F2["CommitmentRegister errors"]
-  F3["FailureCode"]
-  F4["AcknowledgmentDeferralCode"]
-  F5["Offline job failure"]
-
-  S1["Client PWA<br/>parseContractError + USER_FRIENDLY_ERRORS"]
-  S2["Admin — steward console and Operations"]
-  S3["Member settlement row (D10b)"]
-  S4["Ops only — never member-facing"]
-
-  F1 --> S1
-  F1 --> S2
-  F2 --> S2
-  F3 --> S3
-  F4 --> S4
-  F5 --> S1
-
-  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
-  class F1,F2,F3,F4,F5,S1,S2,S3,S4 planned
-```
+| Error family | Surfaces it reaches |
+|---|---|
+| CommitmentPoolingModule errors | Client PWA (`parseContractError` + `USER_FRIENDLY_ERRORS`) · Admin — steward console and Operations |
+| CommitmentRegister errors | Admin — steward console and Operations |
+| `FailureCode` | Gardener settlement row (D10b) |
+| `AcknowledgmentDeferralCode` | Ops only — never gardener-facing |
+| Offline job failure | Client PWA |
 
 #### D16.2 How the person responds — the recovery each surface may offer
 
-```mermaid
-flowchart LR
-  S1["Client PWA"]
-  S2["Admin — steward console<br/>and Operations"]
-  S3["Member settlement row"]
-  S4["Ops only"]
+| Surface | Recovery it may offer |
+|---|---|
+| Client PWA | fix the input and resubmit · retry the same job, or discard it |
+| Admin — steward console and Operations | fix the input and resubmit · requeue as a new attempt, or cancel with a reason |
+| Gardener settlement row | wait — a steward or the protocol must act · nothing to do when the outcome is terminal and explained |
+| Ops only | retry the stored acknowledgment — permissionless, caller-funded; the Safe is not called again |
 
-  R1["Fix the input and resubmit"]
-  R3["Retry the same job, or discard it"]
-  R4["Requeue as a new attempt,<br/>or cancel with a reason"]
-  R2["Wait — a steward or<br/>the protocol must act"]
-  R5["Nothing to do — the outcome<br/>is terminal and explained"]
-  R6["Retry the stored acknowledgment<br/>permissionless, caller-funded ·<br/>the Safe is not called again"]
+Three rules this taxonomy exists to enforce:
 
-  S1 --> R1
-  S1 --> R3
-  S2 --> R1
-  S2 --> R4
-  S3 --> R2
-  S3 --> R5
-  S4 --> R6
-
-  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
-  class S1,S2,S3,S4,R1,R2,R3,R4,R5,R6 planned
-```
-
-Three rules this taxonomy exists to enforce. A register error is a protocol invariant breach, not member input — it surfaces to the steward, never as "try again" to a gardener. `AcknowledgmentDeferralCode` is operational: it says the *report* did not go out, never that value moved or failed, so it must not appear in member copy at all — **and its recovery is retrying the stored acknowledgment, never requeue**. Requeue is reachable only from an authenticated execution *failure*; offering it after a deferral would invite a second payment attempt for an outcome that is already stored. And a `waiting_for_hat` job (D14) is not an error and consumes no attempt — it never enters this taxonomy.
+1. A register error is a protocol invariant breach, not gardener input — it surfaces to the steward, never as "try again" to a gardener.
+2. `AcknowledgmentDeferralCode` is operational: it says the *report* did not go out, never that value moved or failed, so it must not appear in gardener copy at all — **and its recovery is retrying the stored acknowledgment, never requeue**. Requeue is reachable only from an authenticated execution *failure*; offering it after a deferral would invite a second payment attempt for an outcome that is already stored.
+3. A `waiting_for_hat` job (D14) is not an error and consumes no attempt — it never enters this taxonomy.
 
 ---
 

@@ -2,17 +2,17 @@
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Three audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
-//   2) Architecture — D1–D16 with their "How to read this" panels (Mermaid renders
+//   2) Architecture — D1–D17 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
 //   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26,
 //                     reconciled to the hi-fi registry (2026-07-27). The hi-fi screen
 //                     set is a different artifact entirely — see
 //                     prototypes-artifact.build.ts.
-//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 29-asset
-//                     coverage matrix, the ship-time appendix, and the audited
-//                     Open-questions findings panel, so the diagrams lead their
-//                     own tab.
+//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 30-asset
+//                     coverage matrix, the D13b permission table (routed 2026-07-31),
+//                     the ship-time appendix, and the audited Open-questions
+//                     findings panel, so the diagrams lead their own tab.
 //
 // Rebuild:  bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts
 //           Always writes two explicit outputs:
@@ -234,13 +234,16 @@ function sectionsHtml(secs: Sec[], opts: SectionOpts = {}): { nav: string; body:
   return { nav, body };
 }
 
-// Tab routing (2026-07-27): the diagrams must lead the Architecture pane, so the
-// preamble, the 29-asset coverage matrix, and the ship-time appendix move to a
-// Reference pane. Nothing is dropped — the deep material renders there in full,
-// and a purpose-written intro carries only what you need to read a diagram.
+// Tab routing (2026-07-27; D13b added 2026-07-31): the diagrams must lead the
+// Architecture pane, so the preamble, the 30-asset coverage matrix, the D13b
+// permission table (pure reference matrix, zero diagrams), and the ship-time
+// appendix move to a Reference pane. Nothing is dropped — the deep material
+// renders there in full, and a purpose-written intro carries only what you need
+// to read a diagram.
 const REFERENCE_TITLES = [
   "Commitment Pooling: Diagrams",
   "Visual coverage matrix",
+  "D13b. Exact sensitive-action permission table",
   "Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)",
 ];
 const REFERENCE_RENAMES: Record<string, string> = {
@@ -298,7 +301,7 @@ const requiredArchitectureSections = [
   ["D8.", "d8-g-funding-topology-safe-recovery-and-ccip-boundary"],
   ["D9.", "d9-settlement-sequence-with-failure-retry"],
   ["D10.", "d10-disbursement-state-machine-all-module-native-on-chain"],
-  ["D10b.", "d10b-settlement-status-the-member-sees-5-stored-9-rendered"],
+  ["D10b.", "d10b-settlement-status-the-gardener-sees-5-stored-9-rendered"],
   ["D11.", "d11-approval-gated-claim-request-decline-acceptance-and-superses"],
   ["D11b.", "d11b-claim-request-state-machine"],
   ["D12.", "d12-protocol-to-garden-funding-route"],
@@ -307,6 +310,7 @@ const requiredArchitectureSections = [
   ["D14.", "d14-commitment-offline-job-lifecycle"],
   ["D15.", "d15-deployment-and-upgrade-topology"],
   ["D16.", "d16-error-taxonomy-surface-and-recovery-map"],
+  ["D17.", "d17-accountability-recognition-and-payment-separation"],
 ];
 // Every diagram-bearing section carries a reading guide. The list used to skip
 // exactly the dense ones (D7 had none at 138 source lines) — that inversion is
@@ -314,13 +318,13 @@ const requiredArchitectureSections = [
 const diagramHowToPrefixes = [
   "D1.", "D1b.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D7b.", "D7c.", "D7d.",
   "D8.", "D9.", "D10.", "D10b.", "D11.", "D11b.", "D12.", "D13.", "D13b.", "D14.",
-  "D15.", "D16.",
+  "D15.", "D16.", "D17.",
 ];
 
 const storyBody = `
 <section id="story-loop">
   <h2>The commitment loop</h2>
-  <p class="lede">Seven steps from a community need to a funded outcome. Solid green = built and live today; dashed = planned and not live. Community testimony is September-only; optional rewards remain separately gated. The loop is a clean-room implementation of Grassroots Economics' commitment-pooling pattern — pooling <em>promises</em>, not money.</p>
+  <p class="lede">Seven steps from a Need to a funded outcome. Solid green = built and live today; dashed = planned and not live. Community testimony is September-only; optional rewards remain separately gated. The loop is a clean-room implementation of Grassroots Economics' commitment-pooling pattern — pooling <em>promises</em>, not money.</p>
   ${respSvg(loopSvg, "The commitment loop")}
 </section>
 <section id="story-roles">
@@ -360,7 +364,7 @@ const storyBody = `
 </section>
 <section id="story-circular">
   <h2>A circular G$ economy</h2>
-  <p class="lede">The aim is circulation, not extraction: support streams in, flows to gardens and members, and a local spend sink carries value back into the pool.</p>
+  <p class="lede">The aim is circulation, not extraction: support streams in, flows to gardens and gardeners, and a local spend sink carries value back into the pool.</p>
   ${respSvg(circSvg, "Circular G dollar economy")}
 </section>
 <section id="story-ge-functions">
@@ -400,7 +404,7 @@ const storyNav = [
 const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
-  <p class="lede">${architectureSecs.length} named diagrams, D1 through D16, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p class="lede">${architectureSecs.length} named diagrams, D1 through D17, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
   <p><strong>Start anywhere.</strong> Every section carries a “How to read this” panel, so no section depends on the one before it. Where a section splits into sub-blocks, that panel sits at the top of the section and covers all of them — D7 is the exception that guides each sub-block separately.</p>
   <ul class="wayfind">
     <li><b>D1 · D1b</b> <span>the widest frame — who participates, and which boundary may authorize what</span></li>
@@ -408,8 +412,9 @@ const archIntro = `
     <li><b>D4 · D5</b> <span>pool and cycle state machines</span></li>
     <li><b>D7 · D7b · D7c · D7d</b> <span>the Envio read model, its ERDs and its cut-overs</span></li>
     <li><b>D8 – D12</b> <span>G$ topology, settlement sequence, disbursement states, funding route</span></li>
-    <li><b>D13 · D13b</b> <span>capabilities, then the exact per-function permission table</span></li>
+    <li><b>D13</b> <span>capability summary — the exact per-function permission table (D13b) lives on the Reference tab</span></li>
     <li><b>D14 – D16</b> <span>offline jobs, deployment topology, error taxonomy</span></li>
+    <li><b>D17</b> <span>accountability, recognition, and payment separation</span></li>
   </ul>
   <p><strong>Five sections open with an overview and then zoom in.</strong> D2 and D6 split into three acts, D7 into an entity map plus two field blocks, D9 into healthy path, idempotency and retries, and D16 into the error, where it manifests, and how the person responds. Sub-blocks are indented in the section list on the left.</p>
   <p><strong>Three status treatments, and only three.</strong> A fill never means two different things in two diagrams, and the meaning of a relationship is always written on the arrow.</p>
@@ -424,7 +429,7 @@ const archIntro = `
     <li><span class="sw sw-derived" aria-hidden="true"></span><span><b>Derived</b> — the indexer computes it from events; no transaction writes it</span></li>
     <li><span class="sw sw-app" aria-hidden="true"></span><span><b>App-only</b> — client-side; <code>Draft</code> lives in IndexedDB and has no chain presence</span></li>
   </ul>
-  <p><strong>The Reference tab holds the rest</strong> — the 29-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, and the open questions this set does not answer.</p>
+  <p><strong>The Reference tab holds the rest</strong> — the 30-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the exact per-function permission table (D13b), and the open questions this set does not answer.</p>
 </section>`;
 
 // Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
@@ -452,7 +457,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Do we enable commitment fulfillment just from actions being completed?",
     verdict: "answered",
     finding:
-      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every action/count requirement is met and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with every frozen team member excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
+      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every action/count requirement is met and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with every frozen contributor excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
     cites:
       "contract-spec.md §5.3 transition tables + locked fulfillment posture · Linear PRD-649 and the Lifecycle & Aggregator Semantics doc",
   },
@@ -460,7 +465,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Can a commitment have multiple requirements attached?",
     verdict: "answered",
     finding:
-      "Yes. DomainImpact commitments store repeatable `CommitmentRequirement { actionUID, requiredCount }` rows. Actions may share a domain; domain tags are derived from ActionRegistry rather than stored as a positional uniqueness constraint. Every required count is non-zero, each work approval credits one requirement, and approved units are the weighted sum across requirements. Evidence-only kinds carry none. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1) are what members see between Accepted and Ready. The UI starts with four rows but may add more; implementation benchmarks 8/16/24/32 before freezing `MAX_REQUIREMENTS` (provisional 16).",
+      "Yes. DomainImpact commitments store repeatable `CommitmentRequirement { actionUID, requiredCount }` rows. Actions may share a domain; domain tags are derived from ActionRegistry rather than stored as a positional uniqueness constraint. Every required count is non-zero, each work approval credits one requirement, and approved units are the weighted sum across requirements. Evidence-only kinds carry none. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1) are what gardeners see between Accepted and Ready. The UI starts with four rows but may add more; implementation benchmarks 8/16/24/32 before freezing `MAX_REQUIREMENTS` (provisional 16).",
     cites: "contract-spec.md §5.3 + §8.2 · Decision Log #21 and #63",
   },
   {
@@ -493,7 +498,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
     verdict: "answered",
     finding:
-      "Answered 2026-07-27. Keep four immutable EAS schema records because Need, NeedSignal, NeedStatus, and FundingAttribution each retain a distinct payload, attester gate, volume, and schema-visible revocability policy. Deploy two UUPS resolver proxies: `CommunityNeedsResolver` serves Need/NeedSignal/NeedStatus through exact schema-UID dispatch, and `FundingAttributionResolver` stays separate as the only ungated branch with chain policy. EAS `recipient` is the canonical garden; child `refUID` is the Need UID; custom data no longer duplicates those relationships. NeedSignal carries only `bool support`, with latest-winner support/non-support state derived reader-side.",
+      "Answered 2026-07-27. Keep four immutable EAS schema records because Need, NeedSignal, NeedStatus, and FundingAttribution each retain a distinct payload, attester gate, volume, and schema-visible revocability policy. Deploy two UUPS resolver proxies: `NeedsResolver` (contract name shortened from `CommunityNeedsResolver`, 2026-07-31) serves Need/NeedSignal/NeedStatus through exact schema-UID dispatch, and `FundingAttributionResolver` stays separate as the only ungated branch with chain policy. EAS `recipient` is the canonical garden; child `refUID` is the Need UID; custom data no longer duplicates those relationships. NeedSignal carries only `bool support`, with latest-winner support/non-support state derived reader-side.",
     riderLabel: "Implementation lock",
     rider:
       "Root Need uses zero `refUID`; every child resolver validates an exact, same-recipient, live Need reference. All v1 attestations are non-expiring. Signal switching writes a newer attestation, clear revokes the winner, pending directions coalesce, and support/non-support counts never become a net score.",
@@ -651,7 +656,7 @@ code{background:var(--moss-tint);color:var(--moss-ink);border-radius:5px;padding
 blockquote{border-left:3px solid var(--sand);margin:.8rem 0;padding:.15rem 1rem;color:var(--stone);}
 hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
 .howto{background:var(--moss-tint);color:var(--moss-ink);border-radius:12px;padding: .8rem 1rem;
-  margin:.7rem 0 1rem;max-width:none;font-size:.95rem;}
+  margin:.7rem 0 1rem;max-width:calc(72ch + 2rem);font-size:.95rem;}
 .howto code{background:rgba(255,255,255,.5);}
 :root[data-theme="dark"] .howto code{background:rgba(0,0,0,.25);}
 @media (prefers-color-scheme: dark){
@@ -1826,7 +1831,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 25, "Architecture output must contain 25 sections (24 D-sections + the hand-written intro)");
+assertBuild(architectureSectionCount === 24, "Architecture output must contain 24 sections (23 D-sections + the hand-written intro; D13b renders on Reference)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -1834,8 +1839,8 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 35, "Architecture output must contain 35 Mermaid blocks");
-assertBuild(mermaidCount === 36, "Gallery output must contain 36 Mermaid blocks including the Screens flow");
+assertBuild(architectureMermaidCount === 33, "Architecture output must contain 33 Mermaid blocks (D10b keeps a stored-state strip; D16.1/D16.2 are tables)");
+assertBuild(mermaidCount === 34, "Gallery output must contain 34 Mermaid blocks including the Screens flow");
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");

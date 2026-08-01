@@ -956,3 +956,46 @@ Payment snapshots now hash one explicit immutable ordered tuple:
 chain, plan, version, retention, contributor total, and
 `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Child IDs and
 lifecycle counters are excluded, so preparation cannot mutate the frozen hash.
+
+## 2026-07-31 — Gallery polish round: vocabulary convergence + reference routing
+
+Founder review of the published Visual Asset Gallery produced a fine-tooth polish
+round. Decisions recorded here because they change hub-wide vocabulary, not just
+the gallery:
+
+- **Gardener is the actor noun.** Person-sense "member" was drift and is swept to
+  **gardener** across diagrams.md, wireframes.md, uiux-spec.md, plan.todo.md,
+  prototypes.md, and the story SVGs. Preserved senses: vocabulary-enum `members`,
+  Zodiac Roles member, Hats `membership`, the **Community member** persona, and
+  "member of a garden" as a membership predicate. Grassroots Economics synthesis
+  assets keep GE's own "member" vocabulary. Identifiers are untouched —
+  `memberDeliveryEnabled` / `setMemberDeliveryEnabled` and
+  `queryKeys.settlement.memberBalance` remain spec-canonical names; renaming them
+  is a contract/spec-level follow-up to decide before the August build.
+- **"Batch entry"** names a disbursement row inside an immutable settlement batch
+  (formerly "batch member").
+- **"Accepted provider" is retired as a label.** The 2026-07-28 amendment's
+  accountable-lead framing wins: the actor label is **lead provider**
+  (`leadProvider`); the acceptance *step* (Open vs ApprovalGated) is unchanged.
+  Self-confirmation prohibitions are worded contributor-wide, matching
+  `SelfConfirmation` semantics.
+- **`NeedsResolver`** replaces `CommunityNeedsResolver` (schemas/fields were
+  already bare `Need`/`NeedSignal`/`NeedStatus`/`needUID`; only the unbuilt Sept
+  resolver contract carried the long form). Renamed across the ontology sidecar,
+  community-interface spec/diagrams/plan/handoff, and this hub; interface
+  `INeedsResolverConfig`, deploy key `needsResolver`. Hub/product titles
+  ("Community Needs Interface", Linear "Community Needs & Signals") are names,
+  not schema naming, and stay.
+- **StewardCaptured promise sources are gardener-only** (confirmed against
+  contract-spec: acceptance revalidates `onBehalfOf` via the same membership
+  predicate, reverting `NotEligibleContributor`); D3 copy now says gardener.
+- **Gallery structure**: D13b routed to the Reference tab; D10b became a
+  stored-state strip + derivation table; D16.1/D16.2 became tables (Mermaid count
+  36 → 34). `.howto` reading guides are capped at the 72ch prose measure. D1's
+  how-to-read now names Admin among the five surfaces. D2 preconditions,
+  D5/D14/D16 state prose, and the D9 steward roles are tables/bullets. The D2.1,
+  D2.2, D2.3, D6b, and D6c overflow labels were re-broken or shortened.
+- **Follow-up (not this round):** `Need` has no ontology `entities` row and no
+  glossary planned-entities row (only `schemas.need`) — belongs to the
+  community-interface workstream (PRD-687–696). Hi-fi registry state id
+  `W9@pick-member` keeps its anchor name until a registry regeneration pass.

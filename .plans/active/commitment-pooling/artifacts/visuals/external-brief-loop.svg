@@ -11,7 +11,7 @@
 
   <!-- center title -->
   <text x="450" y="330" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">The commitment loop</text>
-  <text x="450" y="354" text-anchor="middle" font-size="18" fill="#6E6857">from a community need to a funded outcome</text>
+  <text x="450" y="354" text-anchor="middle" font-size="18" fill="#6E6857">from a Need to a funded outcome</text>
 
   <!-- arrows (clockwise arcs, r=250 around 450,340) -->
   <g fill="none" stroke="#988D77" stroke-width="2.25" marker-end="url(#commitment-loop-arrow)">
