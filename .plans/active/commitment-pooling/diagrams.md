@@ -13,12 +13,12 @@
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 30 assets, not a table of contents for this file: 24 named D-diagram sections (D1–D17, including D1b, D7b, D7c, D7d, D10b, D11b, and D13b) render as **33 Architecture Mermaid blocks** below (D10b's mapping and D16's two surface/recovery maps are tables; D13b renders on the Reference tab). D17 makes the accountability/recognition/payment separation explicit. **Every D-section has exactly one row.**
+This is the cross-hub inventory of 32 assets, not a table of contents for this file: 26 named D-diagram sections (D1–D18, including D1b, D7b, D7c, D7d, D10b, D11b, D13b, and D17b) render as **36 Architecture Mermaid blocks** below (D10b's mapping and D16's two surface/recovery maps are tables; D13b renders on the Reference tab). D17 makes the accountability/recognition/payment separation explicit; D17b traces the numbers and D18 maps the Solidity surface. **Every D-section has exactly one row.**
 
 **Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling:
 
 - `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one — that is what gives D2/D6/D7/D9 their overview-plus-zoom shape and makes D16's views peers. Promoting sub-blocks to `###` would convert them into sections and dismantle the anchor and nav design.
-- The gallery routes this preamble, the coverage matrix, D13b's permission table, and the appendix to its Reference tab, so the Architecture pane asserts 24 sections (including its hand-written intro) and the 33-block Mermaid count above.
+- The gallery routes this preamble, the coverage matrix, D13b's permission table, and the appendix to its Reference tab, so the Architecture pane asserts 26 sections (including its hand-written intro) and the 36-block Mermaid count above.
 - markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives.
 - The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 16–17 resolve to the two `wireframes.md` files.
 - "Ready" means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
@@ -55,6 +55,8 @@ This is the cross-hub inventory of 30 assets, not a table of contents for this f
 | 28 | Deployment and upgrade topology | contracts, release ops, security | In what order do the PR chains run, how long does pooling stay paused, and where can it roll back? | CP `contract-spec.md` §7.3–7.4; `settlement-spec.md` §7.1 | Ready: D15 | Added 2026-07-25; previously prose only, and the ordering had already drifted once (corrections-log §23) | Mermaid parse + activation-order cross-read |
 | 29 | Error taxonomy and recovery map | client, admin, QA | Where does each error family surface, and what recovery may that surface offer? | CP `contract-spec.md` §5.5, §6.2; `settlement-spec.md` §3.1.2 | Ready: D16.0 families + D16.1 surfaces + D16.2 recovery | Added 2026-07-25; split 2026-07-27 into the error, where it manifests, and how the person responds; surface/recovery maps rendered as tables 2026-07-31 | Mermaid parse (D16.0) + surface/recovery table cross-read |
 | 30 | Accountability, recognition, and payment separation | contributors, stewards, settlement, QA | Who leads, who contributed, how certificate shares are computed, and how funding may diverge without rewriting recognition? | CP `contract-spec.md` §6/§9; `settlement-spec.md` §3; `uiux-spec.md` Appendix C | Ready: D17 | Added 2026-07-28 for the group-commitment amendment | Mermaid parse + roster/recognition/payout acceptance |
+| 31 | Value and recognition flow, worked Model 1 | contributors, stewards, funders, QA | How much goes where — the six-role split, the 20/80 passes, retention, and child payouts, traced with concrete numbers? | CP `contract-spec.md` §9.3–9.4; `settlement-spec.md` §3 | Ready: D17b.0 + D17b.1 | Added 2026-07-31 (round-2 feedback: the quantitative view was missing) | Mermaid parse + §9.3/§9.4 arithmetic cross-check |
+| 32 | Solidity surface — contracts, ownership, upgrade authority | contracts, security, release ops | Which contracts exist, who owns and upgrades each, and which authority edges connect them? | CP `contract-spec.md` §4/§7; `settlement-spec.md` §3; community-interface `spec.md` | Ready: D18 | Added 2026-07-31 (round-2 feedback: missing diagram type) | Mermaid parse + interface/ownership cross-read |
 
 **Keep subgraph titles short.** Mermaid wraps a cluster title at a fixed width (~200 px) but reserves height for a single line, so a longer title's second line renders *on top of* the nodes inside its own cluster. D1, D1b, D10b, and D16.0 each shipped that way once. Keep every `subgraph … ["…"]` label to roughly **22 characters** and let the reading guide carry the qualifier — that is why the boundary clusters in D1b read "Application boundary" rather than "Application boundary — queues intent, authorizes nothing". The gallery's render audit checks every cluster label against every node box and is the gate for this.
 
@@ -72,7 +74,7 @@ The third treatment is why the Architecture tab and the story assets agree: the 
 
 | Sidecar `storage` | Treatment | Means |
 |---|---|---|
-| `on-chain` | paper fill, no class | the module stores it; a transaction moved it here |
+| `on-chain` | paper fill, solid stone outline, no class | the module stores it; a transaction moved it here |
 | `derived` | amber (`#b98a3e` / `#f6ecdc`), `class … derived` | the indexer computes it from events — **no transaction writes this state** |
 | `off-chain` | grey (`#8a8a8a` / `#ececec`), `class … appOnly` | app-side only; `Draft` lives in IndexedDB and has no chain presence at all |
 
@@ -173,9 +175,11 @@ flowchart TB
   classDef built fill:#edf3e8,stroke:#50784a,stroke-width:2px,color:#2a2722
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
   classDef existingPlannedDelta fill:#fbf8f2,stroke:#50784a,stroke-width:2px,color:#2a2722
+  classDef person fill:#fbf8f2,stroke:#2a2722,stroke-width:2px,color:#2a2722
   class DOCS,EAS,HOA,GD built
   class COM,MOD,SET,GS,CE,CCIP,PS planned
   class PWA,WEB,ADMIN,ENV existingPlannedDelta
+  class MEM,PROV,STW,EVA,FUND person
 ```
 
 Notes:
@@ -997,7 +1001,7 @@ erDiagram
       String previousPeer "nullable bounded predecessor during rotation"
       Int previousPeerExpiresAt "nullable; no later than rotation plus 30 days"
     Boolean peerConfigured "readiness fact"
-    Boolean memberDeliveryEnabled "owner gate on gardener G$ delivery; never gates funding"
+    Boolean gardenerDeliveryEnabled "owner gate on gardener G$ delivery; never gates funding"
     Boolean paused "event-owned state"
   }
   SETTLEMENT_ACCOUNT {
@@ -1547,7 +1551,10 @@ A `DECLINED` row is never reopened: a later request from the same claimant is a 
 Safe as an upstream treasury fact that Green Goods never queues, executes, or verifies. Its
 mechanism, receiving-address confirmation, and live receipt evidence remain pending. The planned
 protocol → garden top-up uses the same CCIP command → bounded Celo execution → acknowledgment
-discipline as D9 and cannot be enabled until the production Safe/Zodiac route is approved.
+discipline as D9 and cannot be enabled until the production Safe/Zodiac route is approved. The
+funds visibly land: the protocol Safe transfers the exact net amount to the garden Safe, balance
+deltas are checked in the same transaction, and the outcome is stored before the acknowledgment
+reports it.
 
 ```mermaid
 sequenceDiagram
@@ -1567,13 +1574,15 @@ sequenceDiagram
   APP->>SM: queueFunding(garden, amount)
   SM->>CCIP: data-only command
   CCIP->>CE: authenticated command
-  CE->>PS: typed canonical-G$ route to GS
+  CE->>PS: instruct typed canonical-G$ route (Zodiac Roles)
+  PS->>GS: canonical G$ transfer — exact net amount
+  Note over CE,GS: recipient +amount and source −gross debit<br/>checked in the same transaction ·<br/>outcome stored before the acknowledgment
   CE->>CCIP: stored outcome acknowledgment
   CCIP->>SM: authenticated success/failure acknowledgment
 ```
 
 If the Celo AA/paymaster spike fails, this Safe-to-Safe route remains available while
-`memberDeliveryEnabled` stays false. The form appears only for onchain `canQueueFunding`
+`gardenerDeliveryEnabled` stays false. The form appears only for onchain `canQueueFunding`
 authority (protocol steward or module owner); deployer status alone does not submit. Its emitted
 row is Funding/ProtocolToGarden with no commitment ID. There is no garden-custody
 gardener-claim fallback.
@@ -1614,6 +1623,11 @@ flowchart LR
   SM -->|"CCIP command"| EX["CeloSettlementExecutor<br/>typed G$ route only"]
   EX -->|"CCIP acknowledgment"| SM
   RO["Recovery owners<br/>rotate Safe modules, never executor owners"] -->|"reviewed no-overlap gate"| EX
+
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  classDef person fill:#fbf8f2,stroke:#2a2722,stroke-width:2px,color:#2a2722
+  class SM,EX planned
+  class OWN,DSP,RO person
 ```
 
 The Arbitrum module owner and the Celo executor owner are separate implementation roles. The production route must prove that the Celo executor is a narrowly scoped Zodiac Roles member, never a Safe owner; external Safe authority configuration remains a Release gate. No human capability or timeout can certify a source settlement outcome.
@@ -1657,7 +1671,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Assessment config: existing `setSchemaUID`, existing `setKarmaGAPModule`, new `setAssessmentV3SchemaUID` | Existing AssessmentResolver owner (protocol multisig) | v2 selector/event and the deployment-window zero value stay compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; the v3 UID rejects zero and emits old/new |
 | Community Testimony config: `setSchemaUID`, `setCommitmentModule` | CommunityTestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID. Preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | `registerSettlementAccount`, `updateSettlementRecovery`, `setAccountActive` | Steward or `SettlementModule` owner | Registration is write-once for garden/account/Roles modifier/`roleKey`/`allowanceKey` and the immutable permissions hash; `chainId == DESTINATION_EVM_CHAIN_ID()`; the three recovery owners are sorted, unique, non-zero, and **none is a current executor**; threshold fixed at 2. A recovery update may change only owners and the recovery hash. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
-| `setMemberDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and gardener sends, but never hides payout plans or historical children and never blocks the funding route |
+| `setGardenerDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and gardener sends, but never hides payout plans or historical children and never blocks the funding route |
 | `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Resolved provider-garden settlement steward (operator/owner of immutable `providerGarden`) | Fulfilled commitment; active provider-garden settlement account at every value-authorizing write; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
 | `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued batch entries and unique derived recipients share executor garden/source/token/kind/funding route; ContributorReward batches require the provider/executor garden account still Active; duplicate recipients revert before fee quote or mutation; batch composition is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
@@ -1859,11 +1873,11 @@ flowchart LR
     CF["Eligible confirmers"] -->|confirm work of others| C
     CR -. excluded from confirmation .-> CF
 
-    classDef actor fill:#edf3e8,stroke:#50784a,color:#233020
+    classDef actor fill:#fbf8f2,stroke:#2a2722,stroke-width:2px,color:#2a2722
     classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-dasharray:6 4,color:#373226
     classDef value fill:#f6ecdc,stroke:#b98a3e,color:#4b3820
     class LP,CR,ST,CF actor
-    class C,REQ,W,E,CREDIT,POLICY,REC,HC,PAY planned
+    class C,REQ,W,E,CREDIT,POLICY,REC,HC,PAY,ZERO,FIN,COMPLETE planned
     class KEEP,CHILD,GS,AA,PS value
 ```
 
@@ -1879,6 +1893,187 @@ flowchart LR
 | D11/D11b | Claim acceptance resolves the lead; subsequent roster policy does not alter the canonical claimant/request record. |
 | D13/D13b | Lead, contributor, confirmer, steward, dispatcher, and executor are separate capabilities. |
 | D14 | Team/evidence actions may queue; payout-plan editing and dispatch stay online steward operations. |
+
+## D17b. Where value and recognition flow (worked Model 1)
+
+**How to read this**: D17 shows *who* is accountable and *which* artifacts exist; this shows *how much* goes *where*. Two flows, deliberately separate — recognition (certificate units, D17b.0) and payment (declared G$ reward, D17b.1) — because the amendment keeps them linked but distinct. Every number on an edge is the **Model 1 default preset** (not chain-enforced): the six-role split 6000/1500/1000/500/500/500 bps and the within-gardeners 2,000 equal / 8,000 verified policy, traced through one concrete example. The class identifier for the steward share is `operatorBps`; its drawn label reads "steward share" everywhere.
+
+Worked example used by both blocks: a cycle closes with a **10,000-unit certificate** and **2 fulfilled commitments**; commitment A's frozen roster has **2 eligible contributors** with verified credits **3 and 1**; commitment A's declared reward is **500 G$** on the CeloSettlement rail.
+
+#### D17b.0 Recognition → certificate units
+
+```mermaid
+flowchart TB
+  CYC["CycleOpened allocation snapshot<br/>10,000 bps · immutable at open<br/>Model 1 default"]
+  GCLASS["Gardeners class<br/>6000 bps → 6,000 units"]
+  FLAT["Treasury 1500 · steward share 1000<br/>evaluator 500 · community 500 · funder 500<br/>flat allowlist expansion, no sub-tree"]
+  CA["Commitment A budget<br/>3,000 units (1 of 2 fulfilled,<br/>equal split, ascending ID remainders)"]
+  CB["Commitment B budget<br/>3,000 units"]
+  EQ["Equal pass · 2,000 bps of the budget<br/>600 units → 300 each"]
+  VER["Verified pass · 8,000 bps<br/>2,400 units over 4 credits<br/>→ 1,800 and 600"]
+  CONTRIB["Contributor weights (canonical)<br/>A1 = 2,100 units → 7000 bps<br/>A2 = 900 units → 3000 bps"]
+  HC["Hypercert units — certificate-scoped<br/>same commitment may appear in a later<br/>certificate under its own key"]
+  CYCLESS["Cycle-less commitment (cycleId = 0)<br/>same 20/80 recognition + payment defaults"]
+  NOCERT["Not certificate eligible —<br/>no CycleOpened allocation snapshot"]
+
+  CYC -->|"6000 bps"| GCLASS
+  CYC -->|"4000 bps across five classes"| FLAT
+  GCLASS -->|"floor(6,000 / 2) = 3,000"| CA
+  GCLASS -->|"3,000"| CB
+  CA -->|"20% equal"| EQ
+  CA -->|"80% by verified credits"| VER
+  EQ -->|"300 + 300"| CONTRIB
+  VER -->|"1,800 + 600"| CONTRIB
+  CONTRIB -->|"exact-conservation unit expansion"| HC
+  CYCLESS -.->|"recognition + payout defaults only"| CONTRIB
+  CYCLESS -.-> NOCERT
+
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  classDef derived fill:#f6ecdc,stroke:#b98a3e,stroke-width:2px,color:#2a2722
+  class CYC,GCLASS,FLAT,CA,CB,EQ,VER,CYCLESS,NOCERT planned
+  class CONTRIB,HC derived
+```
+
+- The two passes are never pooled: equal remainders assign first, verified remainders second, and **the same contributor may receive units from both passes** — that is why two edges land on the contributor node.
+- Remainders (none in this example) go by descending fractional remainder, then ascending lowercase address; budgets smaller than the contributor count still conserve exactly.
+- Only the gardeners class has a sub-tree; the other five classes expand flat per-address allowlists (contract-spec §9.3).
+
+#### D17b.1 Payment — declared reward, retention, and children
+
+```mermaid
+flowchart TB
+  FUL["Commitment A Fulfilled<br/>declared reward 500 G$ · CeloSettlement rail"]
+  PLAN["CommitmentPayoutPlan (Draft)<br/>full-reward default from recognition:<br/>floor(500 × 7000/10,000) = 350 · floor(500 × 3000/10,000) = 150<br/>gardenRetainedAmount = 0"]
+  EDIT["Steward divergence (optional)<br/>atomic full-vector edit, reason required:<br/>retain 100 → payouts 280 + 120"]
+  FIN["Finalize<br/>verify 500 = retained + Σ payouts · freeze rows"]
+  KEEP["Garden retains 100 G$<br/>no self-transfer — a bookkeeping sink"]
+  D1C["Child disbursement — A1<br/>280 G$ Queued"]
+  D2C["Child disbursement — A2<br/>120 G$ Queued"]
+  SAFE["Provider-garden Celo Safe pays<br/>via the D9/D10 command → ack rails"]
+
+  FUL --> PLAN
+  PLAN -.->|"reason-required unless rounding-equivalent"| EDIT
+  EDIT --> FIN
+  PLAN -->|"default: no divergence"| FIN
+  FIN --> KEEP
+  FIN --> D1C
+  FIN --> D2C
+  D1C --> SAFE
+  D2C --> SAFE
+
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  classDef value fill:#f6ecdc,stroke:#b98a3e,stroke-width:2px,color:#2a2722
+  class FUL,PLAN,EDIT,FIN planned
+  class KEEP,D1C,D2C,SAFE value
+```
+
+- Payment starts from recognition weights but may diverge only with a stored reason; a divergence that exists solely because token base units cannot represent the bps exactly is **rounding-equivalent** and needs none.
+- An all-retained plan (every payout zero) completes at finalization with no CCIP and no self-transfer.
+- Recognition weights and payment amounts are hashed separately — correcting a payment never rewrites recognition (D17's rule, drawn here with numbers).
+
+## D18. Solidity surface — contracts, ownership, and upgrade authority
+
+**How to read this**: the contract-level map the build starts from — every box is a contract, every edge an authority or dependency relationship. Solid-drawn classes are live today; dashed are net-new August/September work. Boxes carry representative capabilities, never full ABIs — D13b holds the exact per-function gates, and the canonical interfaces live in `contract-spec.md` (`ICommitmentPoolingModule`, `ICommitmentRegister`, resolver configs), `settlement-spec.md` (`ISettlementModule`, `ICeloSettlementExecutor`, minimal `IZodiacRoles`), and the community-interface spec (the September resolvers, which contract-spec deliberately omits). `ActionRegistry` is a concrete class — the repo has no `IActionRegistry`. Every upgradeable contract is a UUPS proxy with `_authorizeUpgrade` restricted to its owner; the executor additionally requires pause to upgrade, and four settlement setters sit behind the deployment timelock.
+
+```mermaid
+classDiagram
+  direction TB
+
+  class GardenToken {
+    <<live UUPS proxy>>
+    +mint() existing flow
+    +setCommitmentPoolingModule() onlyOwner
+  }
+  class HatsModule {
+    <<live>>
+    +isStewardOf() / isOwnerOf()
+    +isGardener() membership predicate
+  }
+  class ActionRegistry {
+    <<live · concrete>>
+    +getAction(actionUID).domain
+  }
+  class EAS {
+    <<live>>
+    +attest() → resolver dispatch
+  }
+  class WorkApprovalResolver {
+    <<live UUPS proxy>>
+    +onAttest() full validation
+    +onWorkDecision bridge — planned upgrade
+  }
+  class AssessmentResolver {
+    <<live UUPS proxy · upgraded>>
+    +setAssessmentV3SchemaUID() onlyOwner
+  }
+  class CommitmentPoolingModule {
+    <<net-new UUPS proxy>>
+    +createCommitment() / claimCommitment()
+    +acceptClaim() / confirmFulfillment()
+    +resolveDispute() / validateRecognitionSnapshot()
+    owner: deployer EOA → protocol multisig
+  }
+  class CommitmentRegister {
+    <<net-new UUPS proxy>>
+    +registerClass() / commitUnits()
+    +releaseUnits() / fulfillUnits()
+    onlyModule on every mutation
+  }
+  class SettlementModule {
+    <<net-new UUPS proxy>>
+    +queueFunding() / dispatchDisbursement()
+    +createCommitmentPayoutPlan()
+    +setGardenerDeliveryEnabled() owner
+    no owner bypass on value writes
+  }
+  class DeploymentTimelock {
+    <<net-new>>
+    gates 4 settlement setters, paused-only
+  }
+  class CeloSettlementExecutor {
+    <<net-new UUPS proxy · Celo>>
+    +ccipReceive() nonReentrant
+    upgrade requires pause
+  }
+  class ZodiacRoles {
+    <<external · Celo>>
+    +execTransactionWithRole() bounded G$ route
+  }
+  class CommunityTestimonyResolver {
+    <<net-new UUPS proxy>>
+    Community Hat only
+  }
+  class NeedsResolver {
+    <<net-new UUPS proxy · Sept>>
+    Need · NeedSignal · NeedStatus dispatch
+  }
+  class FundingAttributionResolver {
+    <<net-new UUPS proxy · Sept>>
+    ungated receipt attribution
+  }
+
+  GardenToken ..> CommitmentPoolingModule : onGardenMinted — try/catch, mint never reverts
+  WorkApprovalResolver ..> CommitmentPoolingModule : onWorkDecision — try/catch, planned upgrade
+  CommitmentPoolingModule --> CommitmentRegister : onlyModule unit accounting
+  CommitmentPoolingModule --> HatsModule : steward + gardener checks
+  CommitmentPoolingModule --> ActionRegistry : derives domain tags
+  CommitmentPoolingModule --> EAS : attestation validity checks
+  SettlementModule --> CommitmentPoolingModule : validateRecognitionSnapshot
+  SettlementModule --> HatsModule : settlement steward resolution
+  DeploymentTimelock --> SettlementModule : setCcipRoute · setBatchSizeLimit · setDispatcher · setFeeReserveMinimum
+  SettlementModule <--> CeloSettlementExecutor : CCIP command / acknowledgment — data only
+  CeloSettlementExecutor --> ZodiacRoles : bounded canonical-G$ execution
+  EAS --> WorkApprovalResolver : onAttest
+  EAS --> AssessmentResolver : onAttest
+  EAS --> CommunityTestimonyResolver : onAttest
+  EAS --> NeedsResolver : onAttest
+  EAS --> FundingAttributionResolver : onAttest
+
+  note for CommitmentRegister "module replacement requires the current pooling module paused"
+  note for CeloSettlementExecutor "Zodiac Roles member, never a Safe owner"
+```
+
+Ownership at a glance: the three live proxies keep their existing owners; the net-new Arbitrum proxies initialize paused under the deployer EOA with the protocol multisig as the recorded target; the Celo executor's production owner is the approved timelock (a Release gate). No contract enumerates cycles or claims to make a transition, and no owner has a value-moving bypass on the settlement path.
 
 ## Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)
 
