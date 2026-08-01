@@ -190,8 +190,9 @@ Before posting, grep every Customer Need body created this run for `replay`, `se
 {if N > 3: "…plus {N−3} more, all pre-staged under `qa-sync:<YYYY-MM-DD>`."}
 {if dedup_n >= 1: "{dedup_n} item(s) merged into existing Customer Needs."}
 
-Ready for triage → run `/qa-triage qa-sync:<YYYY-MM-DD>` · notes: <drive-url>
-{if any_failure: "⚠ {short failure list}"}
+{if N >= 1: "Ready for triage → run `/qa-triage qa-sync:<YYYY-MM-DD>` · notes: <drive-url>"}
+{if N == 0: "Nothing pre-staged this run · notes: <drive-url>"}
+{if any_failure: "⚠ {short failure list}{if N == 0: ' — fix the failed step and re-run before triaging; the `qa-sync:<YYYY-MM-DD>` label is empty.'}"}
 ```
 
 Counts by surface, PostHog match tallies, and other run telemetry stay OUT of the post — they're visible in Linear via the `qa-sync:*` label. @mention only when there's something to act on (≥1 Customer Need created) OR a setup failure needs attention.
@@ -202,7 +203,7 @@ Counts by surface, PostHog match tallies, and other run telemetry stay OUT of th
 📋 QA sync · {YYYY-MM-DD}: {no sync notes found today · nothing to pre-stage | notes read, nothing new to pre-stage ({dedup_n} already tracked)}.
 ```
 
-**Failures take precedence over the one-line form.** If anything failed this run — Drive unreadable, Linear write rejected, PostHog degraded, privacy grep hit — post the full template with the @mention even when zero items were pre-staged, so a broken run is never indistinguishable from a quiet Wednesday. In that case the item list is empty and the lede states what failed.
+**Failures take precedence over the one-line form.** If anything failed this run — Drive unreadable, Linear write rejected, PostHog degraded, privacy grep hit — post the full template with the @mention even when zero items were pre-staged, so a broken run is never indistinguishable from a quiet Wednesday. In that case the item list is empty, the lede states what failed, and the post must **not** claim anything is ready for triage: the `/qa-triage` call-to-action is gated on `N >= 1`, and a failed empty run instead tells the operator to fix the failed step and re-run the sync. Pointing someone at an empty `qa-sync:*` label wastes the trip.
 
 The summary is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here — same privacy boundary as `bug-intake`'s Discord summary.
 
