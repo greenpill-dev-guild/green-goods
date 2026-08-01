@@ -221,7 +221,7 @@ NET-NEW job kinds and per-action behavior:
 | Not yet / raise dispute | online contract action, not a queue kind | `{ commitmentId, reason }` | No optimistic state transition; control shows wallet pending | No offline queue chrome | Failure leaves ReadyForConfirmation and shows inline retry; success invalidates to Disputed | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.pools.pendingConfirmations(userAddress)` |
 | Accept/decline claim; attach assessment; steward Ready override | online shared mutation hooks | canonical claimant key for accept/decline; `{ commitmentId, assessmentUID }` for attach; `{ commitmentId, reason }` for override | No offline optimism beyond wallet-pending row | No field-queue chrome | Failure preserves current indexed state and exposes inline retry | commitment, claim requests, pending confirmations |
 | Join/add/remove/leave/assign contributor | online shared mutation hooks, never queue kinds | discriminated payloads call `joinCommitment(commitmentId)`, `leaveCommitment(commitmentId)`, `addContributor(commitmentId, contributor)`, `removeContributor(commitmentId, contributor)`, or `setContributorRequirement(commitmentId, contributor, requirementIndex, assigned)`. “Invite” is the gardener picker that resolves an address before `addContributor`; it is not an on-chain invitation state. | Wallet-pending control only; indexed roster remains authoritative until confirmation | No offline queued badge; disabled offline with “Connect to update the team” | Failure preserves the roster/assignment and keeps the selected gardener for explicit retry; cap, freeze, lead, and credited-removal errors use inline copy | commitment, contributors, pending confirmations |
-| Send G$ | `transfer` | `{ chainId: 42220, token, to, amount }` | Wallet row shows wallet-pending state after submit; balance refresh waits for tx confirmation | Online-only wallet action; never enters the offline field queue and never shows queued badge | Wallet rejection / tx failure surfaces inline with retry CTA; no MAX_RETRIES job replay | `queryKeys.settlement.memberBalance(userAddress)`, `queryKeys.settlement.disbursements(userAddress)` |
+| Send G$ | `transfer` | `{ chainId: 42220, token, to, amount }` | Wallet row shows wallet-pending state after submit; balance refresh waits for tx confirmation | Online-only wallet action; never enters the offline field queue and never shows queued badge | Wallet rejection / tx failure surfaces inline with retry CTA; no MAX_RETRIES job replay | `queryKeys.settlement.gardenerBalance(userAddress)`, `queryKeys.settlement.disbursements(userAddress)` |
 | Submit work | `work` (existing, unchanged) | Existing `WorkJobPayload` (`job-queue.ts:57-68`) + optional `meta.commitmentId` | Existing behavior | Existing SyncStatusBar behavior (`packages/shared/src/components/SyncStatusBar.tsx`) | Existing | Existing `worksKeys` + `queryKeys.pools.commitment` when meta carries linkage |
 
 Query-key family: NET-NEW `poolsKeys` module at `packages/shared/src/config/query-keys/pools.ts` (pool, cycles, commitments, commitment, mine, claimRequests, claimRequestsByClaimant, pendingConfirmations, stats), registered in `packages/shared/src/config/query-keys/registry.ts:11-39` as `queryKeys.pools`.
@@ -315,7 +315,7 @@ On the commitment AdminDialog detail:
   payout amounts. Saving creates an editable parent draft and atomically derives payment weights
   from the complete amount vector. A separate **Finalize payout plan** action verifies
   conservation and freezes it without creating children. Only **Prepare payout** for a non-zero
-  row requires `memberDeliveryEnabled` and the live route; the first action creates one immutable
+  row requires `gardenerDeliveryEnabled` and the live route; the first action creates one immutable
   Queued child and an exact repeat returns the same child. An all-retained zero-child plan
   completes on finalization without CCIP even while delivery is disabled. `Record payout` is
   unavailable and the parent/child settlement rows own all later delivery status.
@@ -640,7 +640,7 @@ placement in §§5–6 while preserving their route and component anchors.
   its own. Child and batch cancellation never clear or replace the stable parent plan pointer.
 - W23 shows each contributor only their receipt plus the transparent plan summary: their
   recognition weight, payment weight, amount, garden-retained amount, and partial/complete state.
-- `memberDeliveryEnabled == false` blocks only first preparation of a non-zero contributor child
+- `gardenerDeliveryEnabled == false` blocks only first preparation of a non-zero contributor child
   and gardener sends. The fulfilled commitment, provider-garden payout plan, retention, unprepared
   rows, and any historical child states remain visible; no retry appears for an unprepared row.
   ProtocolToGarden funding remains independently available because it is treasury funding, not a

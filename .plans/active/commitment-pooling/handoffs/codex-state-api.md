@@ -37,7 +37,7 @@
   Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
   asserts matching EntryPoint/factory/implementation/initializer/passkey/salt; it never silently
   falls back, infers a version from chain support, or mixes profile components.
-- `memberDeliveryEnabled` is false for every testnet-profile result. Production enablement consumes
+- `gardenerDeliveryEnabled` is false for every testnet-profile result. Production enablement consumes
   only the separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or
   provider-list presence cannot enable the production action.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
@@ -109,7 +109,7 @@
 - Account-profile tests prove that `421614` and `11142220` use the explicit Kernel `0.2.4`
   test profile, `42161` and `42220` retain Kernel `0.3.1`, both members of a profile derive the
   same counterfactual address, unsupported/mixed profiles fail closed, and testnet evidence never
-  changes `memberDeliveryEnabled`.
+  changes `gardenerDeliveryEnabled`.
 - New user-visible shared strings have en/es/pt messages and accessible status announcements.
 
 ## RED / GREEN

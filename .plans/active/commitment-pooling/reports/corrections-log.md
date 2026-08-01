@@ -999,3 +999,31 @@ the gallery:
   glossary planned-entities row (only `schemas.need`) — belongs to the
   community-interface workstream (PRD-687–696). Hi-fi registry state id
   `W9@pick-member` keeps its anchor name until a registry regeneration pass.
+
+## 2026-07-31 — Round 2: full spec vocabulary sync (resolves the round-1 deferred item)
+
+The frozen specs now speak the gallery's vocabulary, before any contract code
+exists (settlement-spec records everything as net-new with no compatibility
+aliases, so this is the cheapest moment it will ever be):
+
+- **settlement-spec.md identifier renames** (dated amendment at the top of the
+  spec): `memberDeliveryEnabled` → `gardenerDeliveryEnabled`,
+  `setMemberDeliveryEnabled` → `setGardenerDeliveryEnabled`,
+  `MemberDeliveryStatusChanged` → `GardenerDeliveryStatusChanged`,
+  `MemberDeliveryDisabled` → `GardenerDeliveryDisabled`,
+  `DuplicateBatchMember` → `DuplicateBatchEntry`, `BatchMemberMismatch` →
+  `BatchEntryMismatch`. §5 is now "Gardener receipt + multi-chain app". The
+  uiux query key is `queryKeys.settlement.gardenerBalance`. Prose swept:
+  person-sense member → gardener; batch rows → "batch entry"; Zodiac Roles
+  membership and quoted GoodDAO language preserved.
+- **contract-spec.md prose sync** (no identifiers change — its surface was
+  already clean): the role legend defines **garden member** as the membership
+  predicate and **gardener** as the acting persona noun; "accepted provider"
+  phrasing converges on lead provider / the stored provider garden;
+  self-confirmation prohibitions are contributor-wide; §9.3's allocation class
+  prose says operator with the drawn label "steward share" (identifier
+  `operatorBps` unchanged). `NotCommunityMember` (Community persona) and
+  `CommitmentProviderExposure.provider` (self-justified generic field) stay.
+- **Ripples**: D13b/D7b/D12 gallery references, wireframes, uiux-spec,
+  prototypes, plan.todo, the four settlement/indexer/state-api/ui handoffs,
+  and the status.json lane acceptance strings all use the new names.

@@ -15,7 +15,7 @@
 - GREEN shared hooks/selectors/jobs and composite Garden query contract
 - uiux-spec.md and client frames in wireframes.md
 - acceptance-matrix.md for exact identity, copy/state, and role proof
-- CCIP command/execution/acknowledgment states and memberDeliveryEnabled selector
+- CCIP command/execution/acknowledgment states and gardenerDeliveryEnabled selector
 - Existing AppShell, Garden detail, WalletDrawer, offline indicator, wallet/passkey, and i18n patterns
 
 ## Outputs

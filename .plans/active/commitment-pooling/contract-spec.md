@@ -5,11 +5,13 @@
 **Created**: 2026-07-03
 **Companions**: `reports/corrections-log.md` (verified repo facts, exact UIDs and addresses), `uiux-spec.md` (surface flows), `plan.todo.md` (execution plan). This spec is the contract-layer source of truth for the August release build track.
 
+> **Amendment 2026-07-31 (approved vocabulary alignment; prose-only — no identifier in this spec changes)**: the acting persona noun is **gardener**; "garden member" survives only as the membership predicate (wearer of any of the six garden role hats). "Accepted provider" phrasing converges on **lead provider** / the stored provider garden, and self-confirmation prohibitions are worded contributor-wide, matching `SelfConfirmation` semantics. The §9.3 allocation class keeps identifier `operatorBps`; its prose and drawn label read "steward share". Companion identifier renames live in `settlement-spec.md` (2026-07-31 amendment).
+>
 > **Amendment 2026-07-04 (approved)**: the commitment record, `CreateCommitmentParams`, and `CommitmentCreated` gain an additive `bytes32 needUID` reference (0 = none) linking a commitment to the community Need that motivated it. Additive reference field beside `assessmentUID`; no state-machine change; the module stores it as-is and never reads EAS for it. Specced before the August build starts so it ships in the initial deploy, not as an upgrade. Owning spec: `.plans/active/community-interface/spec.md` (§11).
 >
 > **Amendment 2026-07-09 (approved architecture contract)**: commitment domains are optional multi-domain arrays. `uint8[] domains` replaces the singular domain; `uint256[] requiredActionUIDs` is positional with domains when action-bound. `DomainImpact` requires 1–4 unique valid domains and one registered, domain-matching action UID per domain. Action UID `0` is valid in the existing registry; array presence, never a numeric sentinel, expresses whether action binding exists. Other commitment kinds may use no domains and no action UIDs. `CommitmentCreated` emits all immutable creation facts needed by Envio (`domains`, `requiredActionUIDs`, `requiresAssessment`, `metadataCID`, `needUID`). Approval-gated claims gain an indexed request entity, a commitment-keyed request index, and explicit decline/supersede semantics. This is pre-build contract shape, not a storage migration.
 >
-> **Readiness correction 2026-07-10 (scope-locked)**: confirmer defaults are direction-aware (Offer recipient; Request creator), pending claims persist their requested terms, disputes restore an explicit pre-dispute state, and only states with committed units release them. One Season may be open per pool while Campaigns may overlap. DomainImpact Work and assessments anchor to the accepted provider garden. The Envio/deployment contract includes a full Garden composite-ID replay, nullable event actors, and preservation tests for generated contract blocks. These are initial-deploy requirements, not upgrade migrations.
+> **Readiness correction 2026-07-10 (scope-locked)**: confirmer defaults are direction-aware (Offer recipient; Request creator), pending claims persist their requested terms, disputes restore an explicit pre-dispute state, and only states with committed units release them. One Season may be open per pool while Campaigns may overlap. DomainImpact Work and assessments anchor to the stored provider garden. The Envio/deployment contract includes a full Garden composite-ID replay, nullable event actors, and preservation tests for generated contract blocks. These are initial-deploy requirements, not upgrade migrations.
 >
 > **Amendment 2026-07-18 (approved, user visual-asset audit)**: per-action required counts. The scalar `requiredApprovedWorkCount`/`approvedWorkCount` pair becomes positional `uint32[] requiredApprovedWorkCounts` / `uint32[] approvedWorkCounts`, aligned with `requiredActionUIDs` (same length; the max-4 bound carries over from domains). A creator states "this promise needs [Action] × [count]" per bound action; the Work decision bridge credits or reverses the counter of the explicit requirement row as newer approval/rejection attestations arrive before freeze; ReadyForConfirmation auto-flips only when **every** requirement meets its non-zero count (assessment predicate unchanged); `approvedUnits = floor(targetUnits × Σ min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ requiredApprovedWorkCounts)` — the single-requirement case degenerates to the previous formula. Evidence-only kinds (SupportService/StewardCaptured/SeasonCampaign) express "no work requirement" as empty or all-zero counts, preserving the prior `== 0` semantics. `ApprovedWorkCounted` and `ApprovedWorkReversed` carry `requirementIndex`; the indexer gains a per-requirement `CommitmentRequirement` entity. Pre-build contract shape, not a storage migration. Recorded in `reports/corrections-log.md` §10.
 >
@@ -27,7 +29,7 @@ Every technical claim below carries a repo file path (relative to repo root) or 
 
 Translate the locked commitment-pooling architecture (27 decisions from the 2026-07-03 alignment session, plus the locked state machines and count-safe aggregate semantics from the Linear lifecycle doc) into PR-openable contract, deployment, and indexer work. An implementer should be able to open the first PR from this document without asking questions.
 
-The system lets gardens and the protocol run pools of commitments: offers and requests of concrete support, seeded into season or campaign cycles, led by one accountable provider and fulfilled by a solo contributor or team, evidenced through the existing Work and WorkApproval rails or lightweight evidence, confirmed by counterparties who did not perform the work, and rolled up into promises-kept aggregates and fulfilled-commitment Hypercerts. Vocabulary is mutual aid throughout: offer, request, promise kept, fulfilled, steward, season, campaign, readiness, confirmation. No leaderboard semantics anywhere, ever.
+The system lets gardens and the protocol run pools of commitments: offers and requests of concrete support, seeded into season or campaign cycles, led by one accountable lead provider and fulfilled by a solo contributor or team, evidenced through the existing Work and WorkApproval rails or lightweight evidence, confirmed by counterparties who did not perform the work, and rolled up into promises-kept aggregates and fulfilled-commitment Hypercerts. Vocabulary is mutual aid throughout: offer, request, promise kept, fulfilled, steward, season, campaign, readiness, confirmation. No leaderboard semantics anywhere, ever.
 
 ## 2. Scope
 
@@ -75,7 +77,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 11. **Schema registration is the first PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`).
 12. **Allocation classes on-chain as bps at cycle open**. Six-role bps snapshot (gardeners, treasury, operator, evaluator, community, funder) validated to sum exactly 10000 (precedent: `InvalidSplitRatio`, `packages/contracts/src/resolvers/Yield.sol:107,373`), emitted in `CycleOpened`. Per-address allowlist expansion stays app-computed on the existing merkle pipeline (`reports/corrections-log.md` §2 Hypercert row).
 13. **Post-MVP garden-to-garden is reserved, not implemented**. `counterpartyPoolId` and `counterpartyGardenAccount` exist as reserved struct fields (always zero in MVP) so the L3 amendment is additive.
-14. **Anti-farming posture from day one**: direction-aware independent confirmation (Offer recipient; Request creator), provider self-confirmation blocked on both ordinary and steward-fallback paths (mirrors `SelfAttestation`, `packages/contracts/src/resolvers/WorkApproval.sol:153-156`), operator fallback requires a visible reason, concurrent open-commitment caps in the register, and disputes restore an explicitly stored prior state.
+14. **Anti-farming posture from day one**: direction-aware independent confirmation (Offer recipient; Request creator), contributor self-confirmation blocked on both ordinary and steward-fallback paths (mirrors `SelfAttestation`, `packages/contracts/src/resolvers/WorkApproval.sol:153-156`), operator fallback requires a visible reason, concurrent open-commitment caps in the register, and disputes restore an explicitly stored prior state.
 15. **Protocol-pool parity, not a settlement fork** (register #69). Protocol-pool commitments use the same provider-garden payout-plan lifecycle as garden-pool commitments after Fulfilled. The app may expose those existing plan writes from indexed state, but core fulfillment never synchronously moves value or creates a browser-local settlement attempt. Discretionary ProtocolToGarden funding remains an independently authorized settlement action and never changes commitment state.
 
 ## 4. System Components
@@ -160,7 +162,7 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious / Fulfilled / Cancelled / Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution applies the ordinary anti-farming guard first: a resolving steward who is on the current or already-frozen contributor roster reverts `SelfConfirmation`. It then requires the same opened-policy, `totalVerifiedCredits > 0`, and complete linked-Work freshness predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and contribution-credit accounting and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
 | Cancelled/Expired -> Reconciled at cycle close | derived | `CycleClosed` event; no on-chain per-commitment write (no unbounded loops at close). |
 
-Fulfillment posture (locked): the party receiving the provider's work confirms by default—Offer recipient/counterparty or Request creator/requester—provider self-confirmation is blocked, and operator/owner fallback requires a reason and is also blocked for a provider who is an operator. When that receiving party is a GardenAccount, the claiming garden's stewards confirm directly: the module resolves the GardenAccount to its operator/owner Hat wearers and accepts those addresses, never an ERC-6551 `execute` from the account itself.
+Fulfillment posture (locked): the party receiving the delivered work confirms by default—Offer recipient/counterparty or Request creator/requester—contributor self-confirmation is blocked, and operator/owner fallback requires a reason and is also blocked for a steward who is a contributor. When that receiving party is a GardenAccount, the claiming garden's stewards confirm directly: the module resolves the GardenAccount to its operator/owner Hat wearers and accepts those addresses, never an ERC-6551 `execute` from the account itself.
 
 ## 6. Contract Work
 
@@ -349,7 +351,7 @@ interface ICommitmentPoolingModule {
     struct Commitment {
         uint256 poolId;
         uint256 cycleId;                 // 0 = not cycle-scoped
-        address creator;                 // social source (StewardCaptured: the member, not the recorder)
+        address creator;                 // social source (StewardCaptured: the gardener, not the recorder)
         address counterparty;            // provider (Request) or engager (Offer); zero until Accepted
         address leadProvider;            // Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
         ClaimType counterpartyKind;
@@ -401,7 +403,7 @@ interface ICommitmentPoolingModule {
         ClaimType claimType;
         ClaimMode claimMode;
         ContributorPolicy contributorPolicy;
-        address onBehalfOf;              // StewardCaptured only: the member who made the promise
+        address onBehalfOf;              // StewardCaptured only: the gardener who made the promise
         uint8[] domainTags;               // non-DomainImpact optional tags; DomainImpact derives tags
         CommitmentRequirementInput[] requirements; // caller supplies only immutable requirement facts
         string unitLabel;
@@ -742,11 +744,11 @@ interface ICommitmentPoolingModule {
     // ══════════════════════ Commitments ══════════════════════════════
 
     /// @notice Gating by commitment type (creation authority, locked):
-    ///         members create own offers/requests (any of the six garden role
+    ///         gardeners create own offers/requests (any of the six garden role
     ///         hats in the pool garden, IHatsModule.GardenRole);
     ///         SeasonCampaign and StewardCaptured require pool steward;
     ///         protocol-pool commitments require root-garden steward or module owner.
-    ///         StewardCaptured must set onBehalfOf (the member stays the
+    ///         StewardCaptured must set onBehalfOf (the gardener stays the
     ///         social source; msg.sender is recorded as recordedBy in the event).
     function createCommitment(CreateCommitmentParams calldata params) external returns (uint256 commitmentId);
 
@@ -1023,8 +1025,8 @@ Consolidated view of every mutating entry point across both pooling contracts, t
 existing `AssessmentResolver`, and the net-new `CommunityTestimonyResolver`; the per-function doc
 comments in the interface above remain the enforcement detail. Role legend: **steward** = pool
 steward via `_requirePoolSteward` (garden operator/owner through hatsModule, module owner fallback;
-the protocol pool resolves to root-garden hats). **member** = wearer of any of the six garden role
-hats (`IHatsModule.GardenRole`) in the relevant garden. Pause interplay: the initializer sets
+the protocol pool resolves to root-garden hats). **garden member** (the membership predicate) = wearer of any of the six garden role
+hats (`IHatsModule.GardenRole`) in the relevant garden; the acting persona noun in this spec and the gallery is **gardener**. Pause interplay: the initializer sets
 `paused = true`. Module pause blocks operational mutations but never `setPaused`,
 `cancelCommitment`, `expireCommitment`, or `resolveDispute`; owner dependency/schema setters are
 callable **only while paused**. `setPaused(false)` fails closed until all six dependency addresses
@@ -1048,12 +1050,12 @@ retry.
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation-class bps sum == 10_000; recognition-policy bps sum == 10_000 (protocol default 2_000 equal / 8_000 verified); both become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID; `liveCommitmentCount == 0` |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for members as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for member-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements |
-| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the accepted provider-garden payer |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements |
+| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
-| Contributors | `joinCommitment` | eligible member | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
+| Contributors | `joinCommitment` | eligible gardener | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
 | Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
@@ -1063,7 +1065,7 @@ retry.
 | Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision, then enumerates the complete active-link set and requires every local sequence to equal the resolver before evaluating Ready; omission of any stale linked Work reverts the batch |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active; each contributor receives at most one evidence-derived recognition credit per commitment |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
-| Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
+| Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
 | Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
 | Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
 | Confirmation | `confirmFulfillmentAsFallback` | steward | mandatory reason; contributor-steward is blocked (`SelfConfirmation`) |
@@ -1146,7 +1148,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   group scope. Before register commitment or roster mutation, acceptance revalidates the resolved
   lead against the same current `providerGarden` membership predicate used by self-join,
   managed addition, and Work authorship. A creator who lost their Hat, or an ineligible
-  StewardCaptured `onBehalfOf` member, reverts `NotEligibleContributor` instead of becoming the
+  StewardCaptured `onBehalfOf` gardener, reverts `NotEligibleContributor` instead of becoming the
   first contributor. Only then is the lead activated.
   The lead provider alone is the `CommitmentRegister` account and open-commitment-count subject.
   `counterparty` remains the accepted recipient for an Offer and the accepted claimant for a
@@ -1215,14 +1217,14 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   so neither Open nor ApprovalGated Garden claims provide a creator-self-claim bypass.
   `confirmFulfillment` and fallback confirmation revert `SelfConfirmation` for every active
   contributor in the frozen roster, mirroring the existing WorkApproval separation-of-duties
-  rule rather than checking only one provider.
+  rule rather than checking only the lead provider.
 - **Register coupling**: `createCommitment` rejects an empty exact `unitLabel` or zero
   `targetUnits`, then registers the class with immutable quota `targetUnits` and accounting state
   `Registered`. A pool steward configures the non-zero per-pool provider open-commitment cap
   through the module forwarder before `markPoolReady`; the register itself remains module-only.
   Acceptance calls `commitUnits(commitmentId, commitment.leadProvider, targetUnits)`. The register
   accepts only the full non-zero quota from `Registered`, changes the class to `Committed`, and
-  increments that provider's open commitment count exactly once. Cancel/expiry release only from
+  increments that lead provider's open commitment count exactly once. Cancel/expiry release only from
   Accepted/ReadyForConfirmation (or a Disputed record whose prior state held units), always
   against `commitment.leadProvider`; `releaseUnits` accepts only the full live committed balance from
   `Committed`, changes the class to `Released`, and decrements once. Fulfillment applies the same
@@ -1361,9 +1363,9 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   cancellation/expiry, and dispute recovery remain available. `PoolPaused` carries the mandatory
   reason CID and `PoolResumed` clears the indexed reason.
 - **Cycle binding**: `cycleId == 0` is the only cycle-less sentinel, and any caller class may use
-  it — members create cycle-less commitments exactly as stewards do. The cycle-state requirement
+  it — gardeners create cycle-less commitments exactly as stewards do. The cycle-state requirement
   is conditional on `cycleId != 0` and never applies to `cycleId == 0`. Any non-zero cycle must
-  exist and belong to `params.poolId`; a member-created commitment additionally requires that
+  exist and belong to `params.poolId`; a gardener-created commitment additionally requires that
   cycle to be Open, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded
   or Open. A cycle-less commitment uses the immutable protocol 20/80 preset returned by
   `cyclelessRecognitionPolicy()` for contributor recognition and payout defaults, and stays
@@ -1429,14 +1431,14 @@ A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: com
 Design vocabulary comes from Ruddick's "Commitment Pooling: an Economic Protocol Inspired by Ancestral Wisdom" (IJCCR) and the Grassroots Economics "Intro to Commitment Pools" docs, used as named design grammar only, never as code reference (the Sarafu Solidity source is AGPL and is not read):
 
 - **Curation**: which commitments enter the pool's register. Implemented as steward-gated `createCommitment`/`acceptClaim` on the module plus module-only `registerClass` here; nothing enters the register except through curated module paths.
-- **Limiting**: hard caps per asset in the pool. Implemented as the per-class `quota` (defaults to the commitment's `targetUnits`) plus a per-pool `providerOpenCommitmentCap` on concurrent accepted commitments per provider. The first remains unit-denominated within one exact label/class; the second is count-denominated and never adds unlike units.
+- **Limiting**: hard caps per asset in the pool. Implemented as the per-class `quota` (defaults to the commitment's `targetUnits`) plus a per-pool `providerOpenCommitmentCap` on concurrent accepted commitments per lead provider. The first remains unit-denominated within one exact label/class; the second is count-denominated and never adds unlike units.
 - **Valuing**: relative value against a reference asset. Deliberately NOT implemented in MVP (no swaps, no relative pricing, units are per-commitment labels with no global conversion). Named here as the reserved third primitive that the transferable-voucher layer activates on the same classes.
 
 The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) maps to MVP as: seed = class registration at curated creation; the exchange and redemption steps stay out of scope until the transferable-voucher layer wraps these balances as transferable vouchers via the pool's reserved `settlementAdapter`.
 
 #### Transferable-voucher attachment path (spec-now, build-later)
 
-- `classId == commitmentId` in MVP (1:1). The classId space is `uint256` and module-controlled, so later class kinds (per provider + unit label groupings) can join without migration.
+- `classId == commitmentId` in MVP (1:1). The classId space is `uint256` and module-controlled, so later class kinds (per lead provider + unit label groupings) can join without migration.
 - A future settlement adapter (address reserved on the Pool struct) reads `fulfilledOf`/`committedOf` and issues transferable vouchers per class on the same poolId. The register itself never gains transfer functions; wrapping happens in the adapter's own token contract.
 
 #### Storage layout (slot accounting)
@@ -2762,7 +2764,7 @@ overwrites commitment-level weights or a prior certificate's units.
 ### 9.3 Allocation classes
 
 - On-chain: only the six-role bps snapshot, set at cycle open, validated `sum == 10_000` (`InvalidAllocation`, mirroring `InvalidSplitRatio` at `packages/contracts/src/resolvers/Yield.sol:107,373`), emitted in `CycleOpened`, stored on the cycle and indexed on `CommitmentCycle` (8.2).
-- App-computed: per-address allowlist expansion. Treasury, steward, evaluator, community, and
+- App-computed: per-address allowlist expansion. Treasury, operator (label reads "steward share"), evaluator, community, and
   funder classes resolve as before. The gardeners class resolves through fulfilled commitments
   and their frozen eligible contributors, never through singular providers:
   1. sort fulfilled commitment IDs ascending, assign each

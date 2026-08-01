@@ -815,7 +815,7 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Gate status row (register #34f): the settlement card adds a read-only line — `gardener delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setMemberDeliveryEnabled`); this row only makes the gate legible.
+- Gate status row (register #34f): the settlement card adds a read-only line — `gardener delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setGardenerDeliveryEnabled`); this row only makes the gate legible.
 
 ### W22 — Command/ack operations console (Operations workspace + per-garden)
 

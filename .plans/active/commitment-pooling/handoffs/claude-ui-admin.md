@@ -80,7 +80,7 @@
 
 ## RED / GREEN
 
-- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-member control, CCIP command/ack states, fee health, and Safe role separation.
+- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-entry control, CCIP command/ack states, fee health, and Safe role separation.
 - GREEN: the same tests pass; admin build passes; authenticated Brave proves the live operator flow.
 
 ## Exact Bun commands
