@@ -41,7 +41,11 @@ proposals for Afo/Claude review.
 
 ## Core pooling schema audit
 
-Every property below appears exactly once as Keep, Merge proposal, Drop proposal, or Applied drop.
+This is a proposal-impact register, not an exhaustive field inventory. Every property touched by
+P1–P10 appears exactly once as Keep, Merge proposal, Drop proposal, or Applied drop. Any canonical
+GraphQL property omitted from these summary rows remains **Keep by default**; omission authorizes
+no schema removal or merge. `contract-spec.md` §8.2 and `settlement-spec.md` §6 remain the complete
+field inventories.
 
 | Entity | Keep | Merge proposal | Drop proposal / applied | Query or invariant served |
 |---|---|---|---|---|
@@ -49,7 +53,7 @@ Every property below appears exactly once as Keep, Merge proposal, Drop proposal
 | `CommitmentCycle` | `id`, `chainId`, `cycleId`, `poolId`, `poolEntityId`, `garden`, `gardenId`, `cycleType`, `state`, `startTime`, `endTime`, `metadataCID`, `gardenersBps`, `treasuryBps`, `operatorBps`, `evaluatorBps`, `communityBps`, `funderBps`, `equalParticipationBps`, `verifiedContributionBps`, `liveCommitmentCount`, `commitmentsAccepted`, `commitmentsReadyForConfirmation`, `commitmentsFulfilled`, `commitmentsCancelled`, `commitmentsExpired`, `commitmentsDisputed`, `commitmentsDue`, `openCommitmentCount`, `createdAt`, `updatedAt` | — | — | Cycle-close O(1) gate, six-class snapshot, recognition policy, cycle summaries |
 | `CommitmentUnitSummary` | `id`, `chainId`, `scope`, `scopeId`, `poolId`, `poolEntityId`, `cycleId`, `cycleEntityId`, `unitLabel`, `unitLabelHash`, `expectedUnits`, `approvedUnits`, `fulfilledUnits`, `openUnits`, `updatedAt` | — | — | Exact-label identity and pool/cycle operational groups with no cross-label arithmetic |
 | `CommitmentProviderExposure` | `id`, `chainId`, `poolId`, `poolEntityId`, `provider`, `openCommitmentCount`, `updatedAt` | — | — | Direct provider-cap read without enumerating commitments |
-| `Commitment` | `id`, `chainId`, `commitmentId`, `poolId`, `poolEntityId`, `cycleId`, `cycleEntityId`, `garden`, `gardenId`, `creator`, `recordedBy`, `counterparty`, `leadProvider`, `providerGarden`, `providerGardenId`, `counterpartyKind`, `direction`, `commitmentType`, `state`, `claimType`, `claimMode`, `contributorPolicy`, `domains`, `requirementCount`, `contributorCount`, `contributorsFrozen`, `unitLabel`, `targetUnits`, `approvedUnits`, `confirmationThreshold`, `confirmationCount`, `confirmers`, `requiresAssessment`, `assessmentUID`, `needUID`, `counterCommitmentId`, `counterCommitmentEntityId`, `declaredUnitValue`, `declaredValueBasis`, `metadataCID`, `dueDate`, `rewardRail`, `rewardSource`, `rewardRecipient`, `rewardToken`, `rewardAmount`, `rewardPaid`, `rewardPayoutRef`, `rewardRecordedBy`, `readyOverridden`, `fulfilledByFallback`, `preDisputeState`, `disputeReasonCID`, `cancelReasonCID`, `createdAt`, `updatedAt` | — | P3: `contributorEntityIds`; P4: `workUIDs`; P5: `evidenceCIDs`, `evidenceCount` | Detail, permission, lifecycle, exchange, declared-value, reward, dispute, and lineage reads |
+| `Commitment` | `id`, `chainId`, `commitmentId`, `poolId`, `poolEntityId`, `cycleId`, `cycleEntityId`, `garden`, `gardenId`, `creator`, `recordedBy`, `counterparty`, `leadProvider`, `providerGarden`, `providerGardenId`, `counterpartyKind`, `direction`, `commitmentType`, `state`, `claimType`, `claimMode`, `contributorPolicy`, `domains`, `requirementCount`, `contributorCount`, `contributorsFrozen`, `unitLabel`, `targetUnits`, `approvedUnits`, `confirmationThreshold`, `confirmationCount`, `confirmers`, `requiresAssessment`, `assessmentUID`, `needUID`, `counterCommitmentId`, `counterCommitmentEntityId`, `declaredUnitValue`, `declaredValueBasis`, `declaredValueUpdateBlockNumber`, `declaredValueUpdateLogIndex`, `metadataCID`, `dueDate`, `rewardRail`, `rewardSource`, `rewardRecipient`, `rewardToken`, `rewardAmount`, `rewardPaid`, `rewardPayoutRef`, `rewardRecordedBy`, `readyOverridden`, `fulfilledByFallback`, `preDisputeState`, `lifecycleBlockNumber`, `lifecycleLogIndex`, `disputeReasonCID`, `cancelReasonCID`, `createdAt`, `updatedAt` | — | P3: `contributorEntityIds`; P4: `workUIDs`; P5: `evidenceCIDs`, `evidenceCount` | Detail, permission, cursor-ordered lifecycle, exchange, deterministic declared-value replay, reward, dispute, and lineage reads |
 | `CommitmentRequirement` | `id`, `chainId`, `commitmentId`, `commitmentEntityId`, `requirementIndex`, `domain`, `actionUID`, `requiredCount`, `approvedCount`, `createdAt`, `updatedAt` | — | — | Repeatable action progress with stable row binding |
 | `CommitmentContributor` | `id`, `chainId`, `commitmentId`, `commitmentEntityId`, `contributor`, `active`, `isLead`, `approvedWorkCredits`, `evidenceCredits`, `uncountedLinkedWorkCount`, `requirementIndexes`, `recognitionWeightBps`, `addedBy`, `addedAt`, `removedBy`, `removedAt`, `updatedAt` | — | — | Roster policy, exit gates, credit, recognition, audit |
 | `HypercertCommitmentContributorAllocation` | `id`, `chainId`, `hypercertId`, `hypercertEntityId`, `commitmentId`, `commitmentEntityId`, `contributor`, `contributorEntityId`, `recognitionWeightBps`, `commitmentGardenersClassUnits`, `recognitionUnits`, `createdAt`, `updatedAt` | — | — | Certificate-scoped units without overwriting stable commitment weights |
@@ -66,6 +70,9 @@ Every property below appears exactly once as Keep, Merge proposal, Drop proposal
 | `PoolMemberHistory` | `id`, `chainId`, `poolId`, `poolEntityId`, `account`, `leadAccepted`, `leadFulfilled`, `leadCancelled`, `leadExpired`, `contributorFulfilled`, `receivedFulfilled`, `confirmationsGiven`, `disputesRaised`, `updatedAt` | — | — | Counts-only steward/self memory, never protocol-consumed standing or a score |
 
 ## Settlement schema audit
+
+The same proposal-impact rule applies here: only fields needed to evaluate P7–P10 and their
+invariants are enumerated. Every unlisted canonical settlement property is Keep by default.
 
 | Entity | Keep | Merge proposal | Drop proposal / applied | Query or invariant served |
 |---|---|---|---|---|

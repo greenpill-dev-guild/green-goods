@@ -1045,3 +1045,78 @@ aliases, so this is the cheapest moment it will ever be):
   "support is being rearranged", across acceptance-matrix §1, settlement-spec §7 W2,
   uiux-spec §5.3/§5.11/Appendix E, and wireframes §6; a failed state never renders a success
   phrase.
+
+## 2026-08-02 — Focused contracts/indexer/state-API readiness correction
+
+- The earlier D7d and replay language proposing a `Garden.id` composite-key cut-over is
+  superseded. `Garden.id` remains the normalized bare GardenAccount address with explicit
+  `chainId`, as required by `packages/indexer/AGENTS.md`; every new Commitment Pooling entity keeps
+  its own chain-scoped composite ID.
+- One cursor-ordered lifecycle projection helper now owns state-derived pool/cycle counts,
+  `PoolMemberHistory`, cycle `liveCommitmentCount`, Fulfilled attribution confirmation, and Need
+  lineage for ordinary lifecycle events and terminal `DisputeResolved` outcomes. Expired dispute
+  reopen/restore/cancel and duplicate/reverse delivery have named fixtures.
+- `CommitmentExchange.acceptorA/B` are the crossed claimants only. Each Offer creator remains that
+  Offer's lead/provider and owns its register slot.
+- The pooling-tier EOA ownership waiver is withdrawn. The repository's external-audit, protocol
+  3-of-5 Safe, 48-hour mainnet timelock, two-week testnet-operation, and tested-rollback
+  requirements block every pooling-tier mainnet upgrade, deployment, activation, and unpause.
+
+---
+
+## 2026-08-02 — Visual-gallery review: structural protocol fallback + the G$ services return leg
+
+Two founder decisions from the gallery review, recorded here because both change what an
+earlier section of this log asserted. Neither authorizes implementation.
+
+### 1. Structural protocol-team confirmation fallback (plan Decision Log #44 / register #79)
+
+A commitment may explicitly set `protocolFallbackEnabled` at creation or through the
+pre-acceptance `setConfirmerRule` call. That selection permits current steward or owner Hat
+wearers of the registered protocol (root) garden to call
+`confirmFulfillmentAsFallback(commitmentId, reason)` on the commitment in **any** pool. The module
+stores that pool's write-once ID as `protocolPoolId`; no protocol steward address is hardcoded.
+Exact semantics live in `contract-spec.md`'s 2026-08-02 amendment.
+
+**Why it was raised**: the pilot's small, newly established gardens frequently have one
+person who both seeds a commitment and works it. Direction-aware confirmation plus absolute
+contributor exclusion then leaves nobody eligible inside that garden, and the promise
+stalls at `ReadyForConfirmation`.
+
+**What did NOT change, and this is the load-bearing half**: contributor exclusion is unchanged and
+absolute — a protocol steward who is a frozen contributor is blocked by the same
+`SelfConfirmation` predicate as anyone else. The protocol path widens *who may act as a fallback*,
+never *who may confirm their own work*. Ordinary named/default reachability is evaluated first.
+When that path is unreachable, an explicitly selected protocol fallback satisfies the structural
+Ready predicate only while `protocolPoolId` identifies the registered protocol pool. An unselected
+commitment never silently depends on the Green Goods team. At confirmation, current local-garden
+steward/owner authority is checked first and records `PoolFallback`; only then may selected current
+protocol-garden authority record `ProtocolFallback`. Both require a reason, and module ownership
+alone grants neither path.
+
+### 2. The circulation return leg is now modelled (plan Decision Log #45)
+
+**This supersedes the "no return leg" half of §9's corrected funding topology, and answers
+the internal half of §9b — not its external half.**
+
+§9 corrected the topology to HoA → protocol Safe → garden Safes → gardeners, and recorded
+that nothing modelled a path back up. §9b then extracted the open question of whether Green
+Goods may charge gardens G$ for protocol services under the House of Alignment circulation
+mandate, flagged it to a named GoodDollar governance contact, and it was never resolved.
+
+The internal model is now settled: **G$ a garden earns by keeping protocol-pool commitments
+is what it then spends on Green Goods team services** — support sessions, onboarding, and
+workshops. That is the return leg, and `synthesis-circular-gd` draws it as a first-class arc
+rather than omitting it.
+
+The external half of §9b stands open exactly as recorded. The mandate reading is GoodDollar's to
+give, a call is planned for 2026-08-19, and until then the asset and the gallery label the arc as
+awaiting confirmation. It must not be described to partners as agreed. No contract, state,
+settlement, or indexer interface changes either way; distribution scaling and partner-facing
+claims do depend on the answer.
+
+**Knock-on for §9b's metrics note**: reseed rate was recorded as *unmodeled* rather than
+merely untagged, because its numerator needed a return leg above garden Safes. That leg now
+exists in the model. It remains unmeasured — the numerator is Celo-side and §6 excludes raw
+Celo transfers from the indexer boundary — so the metric moves from *unmodeled* to
+*modelled but out of indexer scope*, and still cannot be evaluated pass/fail.

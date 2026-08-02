@@ -161,8 +161,10 @@ automated settlement is the degenerate no-CCIP case; `ArbitrumExternal` already 
 operator-recorded local path, so automation would still need a separately named and authorized
 rail rather than silently changing that meaning.
 
-Celo/G$ is the only implemented and authorized settlement lane. This generality note authorizes
-no additional chain, executor, enum member, or local automation.
+Celo/G$ is the only settlement lane specified for the current implementation scope, and it still
+requires its own audit, timelock, Safe/CCIP/AA, canary, and human-authorization gates before
+activation. It is not implemented or activated by this design-only brief. This generality note
+authorizes no additional chain, executor, enum member, or local automation.
 
 ## 8. Guardrails carried forward
 
