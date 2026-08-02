@@ -375,3 +375,18 @@ confirmation. Admin preserves pair visibility and the lead-vs-roster distinction
 reconcile the new brief, contract names, pair/plain-language behavior, and the one human GDoc pass
 in [exchange-wave-gdoc-checklist.md](../exchange-wave-gdoc-checklist.md). These comments mirror
 registers #76–#77 and authorize no dispatch, artifact publication, or external document write.
+
+### Applied result — 2026-08-01 (authenticated Linear pass)
+
+Applied and re-read the same day: comments on PRD-649/650/651 and lane mirrors on
+PRD-721/722/723/724/725/727; surgical description patches where wave-1 text contradicted the
+exchange wave (PRD-650 scope-lock bullets incl. `acceptExchange` + `CreditRegistry`; PRD-721
+second-amendment sentence; PRD-722 twelve→thirteen core entities + `CommitmentExchange`;
+PRD-724/725 bilateral-vs-multilateral nuance; PRD-727 37 screens + artifacts-republished note;
+PRD-651 rename + brief pointer). Companion doc "Settlement Capability — Vouchers On Shared Pool
+Identity" re-aligned (renames, brief pointer, and the stale "Chainlink Functions receipt
+verification" transport corrected to message-only CCIP + authenticated acknowledgment). Project
+description corrected the same way (Oracle-verified/Functions → authenticated CCIP acknowledgment;
+D1–D13 → D1–D19). Touch-up finding: the applied sentence "The CommitmentRegister is
+non-transferable in v1" no longer exists in any live Linear body (superseded by the 2026-07-11
+companion-doc rewrites); its successor line in PRD-651 now reads `CommitmentRegistry`.
