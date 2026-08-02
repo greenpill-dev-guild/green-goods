@@ -1,4 +1,4 @@
-# Commitment Credit Follow-on Evaluation
+# Commitment Credit — August Companion Evaluation
 
 ## Acceptance gates
 
@@ -11,4 +11,4 @@
 
 ## Proof limit
 
-The existing specification is design evidence, not proof that the follow-on is currently safe or desirable to ship.
+The existing specification is design evidence, not proof that the August companion is currently safe or ready to dispatch.

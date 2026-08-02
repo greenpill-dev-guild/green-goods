@@ -61,7 +61,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 * The pilot anchors on the named focus cohort (2026-07-10; a fourth garden was recorded as selected 2026-07-11 — since reversed, see the archive status above): Tech and Sun Hub (Awka, Nigeria), Greenpill Cape Town (Muizenberg / Deep South Circles; UNICEF-funded program, partner stays off-platform), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil), and a fourth slot then recorded as filled (the mature MRV-adoption anchor; never named here — Decision Log `#29`, which reopened the slot). Naming never presumes readiness; gardens are never ranked. July rewards are Cookie Jar/treasury only; in August every focus garden is G$-settlement-capable, with Tech and Sun Hub as the first-execution hypothesis and Pass-2 evidence ordering the rollout.
 * The `CommitmentRegister` is non-transferable in v1 — no swaps, exchange rates, or tradeable vouchers; transferable settlement vouchers are the evidence-gated follow-on (PRD-651).
 * No custody anywhere: the module never holds rewards; August settlement is operator-executed from garden Safes (automation is a stretch goal, else September).
-* Borrow-and-repay is design-only (`../../backlog/commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and not in the August release.
+* Borrow-and-repay is an active August-wave companion (`../../../commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and still undispatchable until its in-code interface freeze, spec revalidation, and human legal/operations review gates clear.
 * External evidence claims come only from the canonical synthesis Sources section (re-verified 2026-07-05). Funding provenance is stated precisely: GIP-26 failed its DAO vote (June 2026); the Good Labs Foundation funds the pilot directly, roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30.
 
 ## Deliverables and acceptance
@@ -296,3 +296,82 @@ A pre-build technical review verified the applied state live and closed the trai
 - **Due dates**: the manual clears on PRD-651/697 were completed in the Linear UI earlier today (both `dueDate` fields re-read as null), and the now-obsolete "administrative residue … clear it manually" sentences were removed from both issue bodies (writes 20:43–20:44Z, payloads re-read clean).
 - **Companion documents**: the five pre-spec-session docs — Pool Identity + Capability Architecture, Lifecycle And Aggregator Semantics, UX Brief — Cross-Surface Flows, Proof Capability, and Settlement Capability — Vouchers — were rewritten in place as current-state concise mirrors (user-approved): "updated after the 2026-07-03 spec session" banners and superseded stances removed, answered open questions dropped, each stamped **Last aligned: 2026-07-11** and linked to the canonical synthesis, `.plans/` specs, and the RESR-58 scenario document (writes 20:44–20:46Z, each live-re-read in full).
 - **Repo side**: `plan.todo.md:9` and the matching `status.json` note now record the applied state; `RESR-53` was removed from `july_dry_run.linear_issues`; the stale "TBD mature MRV" cohort note carries the decision #25/#26 anonymized wording.
+
+## Exchange-wave apply pack — 2026-08-01
+
+This section is ready for a separate human/Claude Linear pass. It has not been applied. Re-read
+each issue immediately before writing, preserve newer human edits, and re-read the returned state.
+
+### PRD-649 — Bilateral exchange amendment re-closes the architecture freeze
+
+The Commitment Pooling architecture freeze was reopened for exactly one additive function and is
+re-closed by the second 2026-08-01 amendment. August contract scope now includes
+`acceptExchange(uint256 exchangeCommitmentId)`, the `ExchangeAccepted` marker, and the named
+exchange errors. The path atomically accepts two counter-referenced Individual Offers, emits both
+ordinary `CommitmentAccepted` events, commits both exact-label registry classes, and consumes one
+provider slot per lead. Any per-side failure reverts the whole transaction. After acceptance the
+two promises remain completely independent.
+
+Living contract names are `CommitmentRegistry`, `ICommitmentRegistry`, and `TestimonyResolver`;
+historical decision text keeps the names originally recorded. Full source:
+[contract specification](../../contract-spec.md), Decision Log #41 and register #75 in the
+[execution plan](../../plan.todo.md).
+
+This comment authorizes no implementation or broadcast. August 12 remains a stretch date and all
+existing evidence and human-authorization gates remain binding.
+
+Applied-history touch-up to perform in the same pass: the previously applied narrative line “The
+`CommitmentRegister` is non-transferable in v1” (earlier applied section of this file) should read
+`CommitmentRegistry` in the live Linear document/description the next time that body is written.
+Apply the one-word update in Linear only; the applied section text in this file stays as recorded.
+
+### PRD-650 — Exchange, practice templates, and plain language join the app lane
+
+The August app roadmap gains three scope-locked additions with no new Solidity: exchange-pair UX
+on the shipped commitment primitives, a practice-first template library, and the noun-reduction
+plain-language pass. Claims choose one accountable lead; contributors join afterward through the
+accepted commitment's roster policy. The client copy uses “in exchange for,” calm dates, and the
+locked mutual-aid vocabulary, with no market framing.
+
+Canonical sources: [UI/UX Appendix E](../../uiux-spec.md), [wireframes W28–W31](../../wireframes.md),
+and planned journeys SB-35/SB-36 in the [prototype source](../../prototypes.md). Decision Log #43
+and register #77 mirror the scope. The entry authorizes no implementation dispatch by itself.
+
+### PRD-651 — Canonical exchange-architecture brief exists, implementation stays gated
+
+PRD-651 now has a canonical design-only brief at
+[exchange-architecture-brief.md](../../exchange-architecture-brief.md). It specifies the later
+transferable-voucher wrap, quoter, limiter, venue/vault, the Sarafu-pool hybrid fork, custody and
+legal gates, pilot-evidence gates, and questions for the scheduled 2026-08-19 Grassroots
+Economics conversation.
+
+The brief activates nothing. `settlementAdapter`, `settlementEnabled`, custody, multilateral
+execution, and any new settlement lane still require a future scope lock plus pilot, clean-room,
+audit, legal, partner, and human-authorization evidence. Decision Log #42 and register #76 record
+that posture.
+
+### PRD-721 — Contracts lane mirror
+
+Add `acceptExchange` to the existing contracts lane using the exact semantics and named errors in
+[contract-spec.md](../../contract-spec.md). The work remains on the lane's named integration path,
+with two ordinary acceptance events plus `ExchangeAccepted`, no new storage, and no lifecycle
+coupling after acceptance. Naming targets are `CommitmentRegistry` in `registries/Commitment.sol`
+and `TestimonyResolver` in `resolvers/Testimony.sol`. This comment does not dispatch the lane.
+
+### PRD-722 and PRD-723 — Indexer and state/API lane mirror
+
+Handle `ExchangeAccepted` as one `CommitmentExchange` marker entity keyed
+`chainId-EXCHANGE-poolId-idA-idB`, while the two ordinary acceptance events remain the sole
+per-commitment lifecycle/accounting inputs. Shared state adds pair creation, proposed/matched/
+counterpart-lapsed derivation, pair feed, and the online `acceptExchange` mutation. Module-events-
+only derivation, exact-label count safety, composite IDs, and independent post-acceptance
+lifecycles remain unchanged. These comments mirror register #75 and authorize no dispatch.
+
+### PRD-724, PRD-725, and PRD-727 — App and documentation lane mirror
+
+Point the client/admin/docs lanes at [UI/UX Appendix E](../../uiux-spec.md), W28–W31, and planned
+SB-35/SB-36. Client owns the template-first entry, exchange picker, pair detail/feed, and A-creator
+confirmation. Admin preserves pair visibility and the lead-vs-roster distinction. Post-QA docs
+reconcile the new brief, contract names, pair/plain-language behavior, and the one human GDoc pass
+in [exchange-wave-gdoc-checklist.md](../exchange-wave-gdoc-checklist.md). These comments mirror
+registers #76–#77 and authorize no dispatch, artifact publication, or external document write.

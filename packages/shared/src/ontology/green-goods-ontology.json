@@ -1181,7 +1181,7 @@
     {
       "id": "accounting-state",
       "status": "spec",
-      "definition": "CommitmentRegister unit-class accounting states (non-transferable, ERC-1155-style).",
+      "definition": "CommitmentRegistry unit-class accounting states (non-transferable, ERC-1155-style).",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
         "ordered": true,
@@ -1189,7 +1189,7 @@
         "members": ["Registered", "Committed", "Released", "Fulfilled"]
       },
       "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ICommitmentRegister.sol",
+        "file": "packages/contracts/src/interfaces/ICommitmentRegistry.sol",
         "symbol": "AccountingState"
       },
       "representations": [],
@@ -1502,7 +1502,7 @@
       "id": "commitment-register-non-transferable",
       "kind": "non-transferable",
       "status": "spec",
-      "statement": "CommitmentRegister unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module.",
+      "statement": "CommitmentRegistry unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module.",
       "enforced_at": [{ "file": ".plans/active/commitment-pooling/contract-spec.md" }],
       "holes": []
     },

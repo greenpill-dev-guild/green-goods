@@ -61,11 +61,11 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
    rollback checkpoint before the next stage:
    1. **Resolver/schema preparation**: upgrade the existing `AssessmentResolver` proxy in place;
       preserve and verify its v2 schema UID; deploy only the net-new
-      `CommunityTestimonyResolver`; register AssessmentV3 against the upgraded existing
+      `TestimonyResolver`; register AssessmentV3 against the upgraded existing
       Assessment resolver; set the v3 and Community Testimony UIDs while Community Testimony's
       module remains zero; and prove v2/v3 compatibility.
    2. **Module/register/schema finalization**: deploy the non-transferable
-      `CommitmentRegister` and `CommitmentPoolingModule` proxies paused; wire and verify their
+      `CommitmentRegistry` and `CommitmentPoolingModule` proxies paused; wire and verify their
       dependencies; reconcile the exact Community Testimony registry record; activate its
       verified module only after its UID and record are exact; set the final non-zero,
       pairwise-distinct schema UIDs; verify dependency/schema/ownership/proxy state; and keep the
@@ -176,7 +176,7 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 
 ## Out of scope
 
-- Product implementation, autonomous broadcasts, force operations, bridged G$, CCIP token transfer, arbitrary Safe execution, manual settlement confirmation, or CreditRegister/transferable-voucher activation.
+- Product implementation, autonomous broadcasts, force operations, bridged G$, CCIP token transfer, arbitrary Safe execution, manual settlement confirmation, or CreditRegistry/transferable-voucher activation.
 
 ## 2026-07-28 release-evidence addition
 

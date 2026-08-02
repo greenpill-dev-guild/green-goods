@@ -1,6 +1,6 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-07-30. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
+Updated 2026-08-01. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
 
 ## Build snapshot
 
@@ -63,6 +63,7 @@ member receipt linked but distinct. SB-33 walks the complete cross-surface path.
 
 ## Presentation coverage classification
 
+- `SB-35` and `SB-36` are approved planned journeys, not entries in the current executable hi-fi registry. `SB-35` covers W28–W30 from exchange-reference creation through atomic acceptance and independent post-acceptance lifecycles, including counterpart-lapsed derivation. `SB-36` covers W31 template-first creation and the editable existing-primitives form. The Claude review pass draws and validates them before any artifact claims rendered coverage.
 - `W2a` is guided-flow-covered: evidence composition is shown before evidence-submitted outcomes.
 - `W16`'s states are walked by the editorial flow and `W5`'s by the wallet-drawer flow; only their error/loading states stay Screen-library-only because they are exhaustive drawer/editorial state references rather than consequential flow transitions.
 - SB-5 walks the complete “Not yet” dispute lifecycle once. Request, Campaign-request, service-offer, and StewardCaptured variants remain Screen-library cast fixtures of that same call path so reviewers can verify identity and retry continuity without duplicating the journey.

@@ -11,6 +11,9 @@
   Settlement indexing separately waits for frozen settlement events.
 - Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
 
+Concurrent agents share this repository. Stay inside this lane's named indexer/spec paths,
+preserve unrelated working-tree changes, and do not switch the primary tree's branch.
+
 ## Inputs
 
 - Exact event/config tables in contract-spec.md for the core phase; settlement-spec.md joins only in the settlement phase
@@ -24,7 +27,13 @@
 
 ## Outputs
 
-- Core phase: the ten pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, and `CommitmentProviderExposure` — with chainId and explicit composite relationship fields. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- Core phase: thirteen pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`, `CommitmentExchange`, and `PoolMemberHistory` — with chainId and explicit composite relationship fields. Six auxiliary contributor/provenance entities live in the same schema but stay outside this core-phase count. The commitment entity also carries `counterCommitmentId` and `declaredUnitValue`/`declaredValueBasis` from the extended `CommitmentCreated`/`ValueDeclared` events. Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker treatment, and every member-history delta. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- `ExchangeAccepted` creates one `CommitmentExchange` marker keyed
+  `chainId-EXCHANGE-poolId-idA-idB`. Entity existence proves atomic acceptance. The two ordinary
+  `CommitmentAccepted` events remain the only lifecycle, unit, provider-slot, and member-history
+  inputs; the marker never applies those deltas a third time. Pair status joins the two ordinary
+  commitments and never mutates either after cancellation, expiry, dispute, or fulfillment.
+- `PoolMemberHistory` is public event-derived index data. The indexer does not claim row-level confidentiality; it exposes no public ranking or comparison query. Shared viewer-aware selectors own steward/self product disclosure, and editorial consumers receive aggregates only.
 - Pool-less `ModuleUpdated`, pooling dependency/schema/pause events use the generic
   `CommitmentEvent.configurationKey/previousValue/newValue` audit fields, never a synthetic pool
   zero, and never mutate accounting entities.
@@ -32,7 +41,7 @@
 - Source `SettlementConfiguration` additionally persists the write-once protocol garden/canonical
   G$ plus event-owned Hats and CommitmentPoolingModule dependency addresses; handlers update those
   trust roots only from their exact old/new events.
-- Exact pooling blocks for `CommitmentPoolingModule` and `CommitmentRegister` on `42161` and
+- Exact pooling blocks for `CommitmentPoolingModule` and `CommitmentRegistry` on `42161` and
   `421614`; exact `SettlementModule` blocks on `42161` and `421614`; and exact
   `CeloSettlementExecutor` blocks on `42220` and rehearsal-only `11142220`. The `11142220`
   network uses explicit `rpc_config` rather than assumed HyperSync coverage. Every address is a
@@ -63,7 +72,7 @@
   Fulfilled/Cancelled/Expired transition decrements it. Offered/Requested rows therefore block
   close in the indexed read model exactly as they do on-chain.
 - Generated-config preservation changes and a regression fixture proving
-  `CommitmentPoolingModule`, `CommitmentRegister`, `SettlementModule`, and
+  `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, and
   `CeloSettlementExecutor` blocks survive repeated artifact updates on every applicable
   production/component-rehearsal network without turning the two Sepolia components into a peer
   pair.

@@ -47,6 +47,21 @@
 > or settlement capability, but the funding form itself requires protocol-steward or
 > SettlementModule-owner authority and creates only a typed Funding/ProtocolToGarden Queued row
 > with no commitment ID.
+>
+> **Amendment 2026-08-01 (approved credit-wave seam lock; pooling plan register #73)**: the
+> borrow-and-repay `CreditRegister` chain is unblocked into this August wave
+> (`../commitment-credit-follow-on/spec.md`, promoted backlog → active), and its
+> loan-principal down-leg locks seam **(a)**: `DisbursementKind` gains a third member,
+> `LoanPrincipal`, reserved until the credit lane dispatches. The kind names loan authority
+> explicitly so the existing per-kind gates stay intact — `ContributorReward` remains bound to a
+> Fulfilled commitment's payout plan, `Funding` remains the garden-level ProtocolToGarden hop,
+> and no `commitmentId == 0` relaxation of the member-disbursement gate is introduced. A
+> `LoanPrincipal` disbursement is queueable only against an Approved `CreditRegister` loan (that
+> module's own steward/executor gates), carries `fundingRoute = None`, and ties back through
+> `Loan.disbursementId`. G$ **repayment** stays record-only on Arbitrum with no upward
+> disbursement primitive and no bridge, exactly as the §9 follow-on touchpoint states. Until the
+> credit lane dispatches, no code path queues this kind; the enum member exists so the ABI ships
+> once.
 
 **Current transport-availability fact (externally verified 2026-07-24; recheck at every
 dry-run)**: Chainlink's official mainnet directory publishes the direct route in both
@@ -199,7 +214,7 @@ storage-layout baseline—not a prose slot estimate—sets the final storage gap
 
 ```solidity
 enum DisbursementState { None, Queued, Dispatched, Confirmed, Failed, Cancelled }
-enum DisbursementKind { ContributorReward, Funding }  // Funding = Safe top-up hop, not commitment-bound
+enum DisbursementKind { ContributorReward, Funding, LoanPrincipal }  // Funding = Safe top-up hop, not commitment-bound; LoanPrincipal reserved for the credit chain (2026-08-01 amendment), unqueueable until that lane dispatches
 enum FundingRoute { None, ProtocolToGarden }
 enum PayoutPlanStatus { Draft, Pending, Partial, Complete, Failed } // derived from plan + child states
 enum FailureCode {
@@ -240,13 +255,13 @@ struct CcipRoute {
 }
 
 struct Disbursement {
-    uint256 commitmentId;  // 0 for Funding kind
-    uint256 payoutPlanId;  // 0 for Funding kind
-    address contributor;   // zero for Funding kind
-    address garden;        // pool garden (Arbitrum garden account)
-    address executorGarden;// immutable source/payer garden: commitment.providerGarden for rewards, protocolGarden for Funding
+    uint256 commitmentId;  // reward commitment; 0 for Funding and reserved LoanPrincipal
+    uint256 payoutPlanId;  // reward parent; 0 for Funding and reserved LoanPrincipal
+    address contributor;   // reward recipient identity; zero for Funding and reserved LoanPrincipal
+    address garden;        // reward/loan pool garden; target garden for Funding
+    address executorGarden;// immutable payer: providerGarden for rewards, protocolGarden for Funding, loan pool garden for LoanPrincipal
     DisbursementKind kind;
-    FundingRoute fundingRoute; // None for ContributorReward
+    FundingRoute fundingRoute; // ProtocolToGarden only for Funding; None for ContributorReward/LoanPrincipal
     address source;        // exact Celo sender Safe; always derived at queue time
     address recipient;     // Celo address (gardener smart account, garden Safe, or GG Safe)
     address token;         // G$ on Celo for August
@@ -465,7 +480,7 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | `finalizeCommitmentPayoutPlan(planId)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; its stored settlement account is still active; draft plan only; enumerates the stored immutable contributor order to recheck recognition through the canonical CommitmentPooling validator, derived payment weights, canonical recipients, and `declaredAmount == gardenRetainedAmount + contributorPayoutTotal`, then freezes every row. It creates no child. A plan with no non-zero row completes immediately without CCIP or a self-transfer; otherwise it becomes Pending. `gardenerDeliveryEnabled` is not a finalization gate |
 | `prepareContributorPayout(planId, contributor)` | resolved provider-garden settlement steward | caller is an operator/owner steward of the plan's immutable `providerGarden`; finalized plan; the contributor's stored row carries a non-zero amount and a non-zero canonical recipient frozen at finalization. If the row already has a child, return that ID and emit nothing even when the parent/child later became Complete, Failed, Cancelled, paused, account-inactive, or delivery-disabled. Only a first preparation requires the stored provider-garden settlement account active, source unpaused, `gardenerDeliveryEnabled`, and parent status Pending/Partial; it allocates one immutable Queued child, stores its `disbursementId`, increments `preparedPayoutCount`, and emits `DisbursementQueued(kind=ContributorReward)` |
 | `queueFunding(garden, amount)` | protocol steward or module owner | the single modeled route is ProtocolToGarden, recorded on the disbursement's immutable `fundingRoute` fact; target garden must differ from `protocolGarden`; executorGarden is snapshotted as protocolGarden; source, recipient, and canonical G$ derive from funding config + active settlement accounts; no arbitrary addresses/tokens; event `DisbursementQueued(kind=Funding)` |
-| `createBatch(ids[])` | resolved settlement steward for the immutable executorGarden | 1–`batchSizeLimit` unique ids, all Queued + same executorGarden, derived source, token, kind, and fundingRoute, and every derived recipient unique across the batch (`DuplicateBatchRecipient` before any fee quote or mutation). ContributorReward requires the immutable executor/provider-garden account still active. Funding requires both the snapshotted protocol source account and every derived target-garden recipient account still active before the batch composition is stored. Mixed funding/reward or mixed route batches revert because the command carries one kind; contributor payouts from different plans may batch only when payer/token/kind match and their recipients differ; the protocol executor is not a human role and cannot create source batches; entry ids are persisted and immutable; event `BatchCreated` |
+| `createBatch(ids[])` | resolved settlement steward for the immutable executorGarden | 1–`batchSizeLimit` unique ids, all Queued + same executorGarden, derived source, token, kind, and fundingRoute, and every derived recipient unique across the batch (`DuplicateBatchRecipient` before any fee quote or mutation). ContributorReward requires the immutable executor/provider-garden account still active. Funding requires both the snapshotted protocol source account and every derived target-garden recipient account still active before the batch composition is stored. `LoanPrincipal` cannot enter this function in the frozen settlement lane because no queue path can create that kind; when the credit lane dispatches, its dedicated Approved-loan queue function must extend this row with the same-kind/source/executor/token and unique-borrower-recipient checks before loan entries become batchable. Mixed kinds or routes revert because the command carries one kind; contributor payouts from different plans may batch only when payer/token/kind match and their recipients differ; the protocol executor is not a human role and cannot create source batches; entry ids are persisted and immutable; event `BatchCreated` |
 | `dispatchDisbursement(id)` / `dispatchBatch(batchId)` | resolved settlement steward for immutable `executorGarden`, or exact configured `dispatcher` | subject is Queued. ContributorReward rechecks the immutable executor/provider-garden account immediately before fee quote and send. Funding rechecks both the snapshotted protocol source account and each immutable target-garden recipient account at the same boundary; deactivating either side blocks dispatch without mutating the Queued subject. Every ContributorReward parent was created, edited, and finalized by its provider-garden steward, so delegated dispatch executes only that immutable approval; module owner has no independent value-moving bypass. Native fee balance covers the quote without falling below `feeReserveMinimum`; builds the fixed versioned payload with no target/token/calldata override; sends no token amounts; persists execution key/message ID; Queued → Dispatched; emits `SettlementCommandDispatched` |
 | `retryCommand(id)` / `retryBatchCommand(batchId)` | resolved settlement steward for immutable `executorGarden`, or exact configured `dispatcher` | subject remains Dispatched without authenticated acknowledgment; native fee balance covers the quote without falling below `feeReserveMinimum`; uses the command's snapshotted selector/executor/gas/version/payload hash, never the later active route; records a new CCIP message ID; never creates a second payment authority |
 | CCIP acknowledgment receiver | the implementation's immutable CCIP router only | zero token amounts; supported snapshotted version; execution key maps to the current subject/attempt; `originatingCommandMessageId` must already map to that same key; source selector and encoded sender must equal that `CommandRecord`'s snapshotted destination selector/executor (which must still be the active or unexpired previous global peer); success requires `FailureCode.None`, failure requires a bounded non-zero code. Success → Confirmed; execution failure → Failed. Duplicate/stale acknowledgments are emitted and ignored without mutating settled state |
@@ -929,7 +944,7 @@ On Arbitrum, only an authenticated success acknowledgment for the subject's curr
 2. Cancelled from Queued → “this support was withdrawn before it was sent.”
 3. Cancelled from Failed → “this support was closed after delivery could not complete.”
 4. Failed after authenticated execution-failure acknowledgment.
-5. Celo `SettlementExecutionStored` indexed but acknowledgment absent → “confirming arrival.”
+5. Celo `SettlementExecutionStored` indexed but acknowledgment absent → gardener copy remains “support on its way”; steward/ops may show acknowledgment pending.
 6. Dispatched without Celo execution → “support on its way”; after the configured service window, add a delivery-delayed recovery state without changing contract state.
 7. Queued.
 8. A finalized plan has an unprepared non-zero row and `gardenerDeliveryEnabled == false` →
@@ -1510,7 +1525,7 @@ Envio indexes Green Goods protocol events from both the Arbitrum `SettlementModu
 
 ```graphql
 enum DisbursementState { UNKNOWN QUEUED DISPATCHED CONFIRMED FAILED CANCELLED }
-enum DisbursementKind { UNKNOWN CONTRIBUTOR_REWARD FUNDING }
+enum DisbursementKind { UNKNOWN CONTRIBUTOR_REWARD FUNDING LOAN_PRINCIPAL }
 enum FundingRoute { UNKNOWN NONE PROTOCOL_TO_GARDEN }
 enum SettlementExecutionStatus { UNKNOWN SUCCESS FAILED }
 enum CommitmentPayoutPlanStatus { DRAFT PENDING PARTIAL COMPLETE FAILED }
@@ -1859,7 +1874,7 @@ Exact indexer proof from the repo root: `bun run --filter @green-goods/indexer c
 
 ## 7. Surface impact (deltas to `uiux-spec.md` / `wireframes.md`; W21/W22/W23 are the settlement frames)
 
-- **W2 commitment detail (PWA)**: reward row gains distinct settlement status — “support is queued” (Queued), “support on its way” (Dispatched), “support on its way — delivery delayed” (derived delay; contract state remains Dispatched), “confirming arrival” (Celo execution indexed; acknowledgment pending), “support arrived” + Celo ref (Confirmed), “still arranging support — your promise is recorded” (authenticated execution failure), “this support was withdrawn before it was sent — your promise and its record stay intact” (Cancelled from Queued), and “this support was closed after delivery could not complete — your promise and its record stay intact” (Cancelled from Failed).
+- **W2 commitment detail (PWA)**: reward copy deliberately collapses transport detail to three truthful phrases — “support on its way” before an authenticated outcome (delay keeps this phrase), “support arrived” + Celo ref after Confirmed, and “support is being rearranged” after an authenticated failure until stewards reconcile or cancel it (cancellation then uses its own truthful withdrawn/closed copy). A calm action explanation may accompany any of them, but the gardener surface never renders a success phrase for a failed state and never exposes the Queued / Dispatched / acknowledgment-pending / Failed operational state nouns. Steward and Operations surfaces retain the full state and recovery detail.
 - **W23 WalletDrawer G$ section (settlement delta to W5)**: only after the AA gate, G$ balance section (Celo) + received-support rows; send action → chain-aware transfer flow. When disabled, no balance/send affordance renders and explanatory copy points to the blocked delivery gate.
 - **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, cap snapshot, plus read-only gardener-delivery status) + disbursement queue. The CCIP command/ack console is **W22** and distinguishes retrying the same command from retrying a stored acknowledgment or creating a new attempt.
 - **W10 commitment dialog**: `CeloSettlement` exposes the recognition-aligned contributor payout draft and never "Record payout"; W21 finalizes the plan and prepares each payable row. `ArbitrumExternal` exposes "Record payout" and never creates a settlement plan. Batch actions remain in W21/W22.
@@ -1880,7 +1895,7 @@ Green Goods does **not** deploy its full protocol stack to Celo for Commitment P
 
 | Chain role | Production | Testnet | Custom Green Goods deployments |
 |---|---|---|---|
-| protocol/control | Arbitrum One `42161` | Arbitrum Sepolia `421614` | CommitmentPoolingModule, CommitmentRegister, existing resolver/token upgrades, CommunityTestimonyResolver, AssessmentV3 schema registration, SettlementModule |
+| protocol/control | Arbitrum One `42161` | Arbitrum Sepolia `421614` | CommitmentPoolingModule, CommitmentRegistry, existing resolver/token upgrades, TestimonyResolver, AssessmentV3 schema registration, SettlementModule |
 | protocol external dependencies | Arbitrum One | Arbitrum Sepolia | EAS, SchemaRegistry, Hats, EntryPoint v0.7/account stack, and CCIP router are dependencies rather than Green Goods contracts; official `421614` EAS/SchemaRegistry addresses are consumed after bytecode proof, while Hats remains a version-pinned test deployment |
 | settlement execution | Celo Mainnet `42220` | Celo Sepolia `11142220` | CeloSettlementExecutor only; testnet is an independent paused component rehearsal and also gets the non-production G$ fee surrogate |
 | external settlement dependencies | Celo Mainnet | Celo Sepolia | production uses the verified CCIP router, Safe base contracts, one Safe per participating garden, Zodiac Roles configuration, and canonical G$; testnet uses only verified component dependencies or explicitly labeled local/test fixtures and does not imply a CCIP peer lane |
@@ -1902,7 +1917,7 @@ fail-closed:
   add per-network Safe factory/singleton/fallback-handler/MultiSend facts from the released Safe
   deployment registry; keep canonical G$ separate from the Celo Sepolia surrogate;
 - distinguish `protocol` and `settlement` roles in deploy selection. The Celo target must not
-  deploy or overwrite GardenToken, CommitmentPoolingModule, CommitmentRegister, EAS schemas, or
+  deploy or overwrite GardenToken, CommitmentPoolingModule, CommitmentRegistry, EAS schemas, or
   unrelated historical Celo artifact keys;
 - do not reuse the existing `deploy:celo` command: it selects the full `core` target and carries
   the prohibited bulk `--update-schemas` flag. Add a distinct
@@ -2090,7 +2105,7 @@ External Safe owner identities, exact live Zodiac selectors/caps, audit disposit
 
 Bridged G$ (never). CCIP token transfer. Arbitrary destination target/calldata. A settlement receiver that is also a Safe owner. Cancellation or a new logical attempt based only on timeout. Raw Celo/G$ transfer indexing. A settlement relayer or settlement-write automation in `packages/agent`; optional later alerts may read indexed health only and hold no dispatch, retry, acknowledgment, configuration, Safe, or value authority. Sarafu integration. Transferable settlement vouchers and `settlementAdapter` activation. Gardener settlement controls in the separate September Community PWA. Any broadcast, Safe role grant, mainnet ping, or value canary without the human Release gate.
 
-> **Borrow-and-repay touchpoint (blocked follow-on, `../../backlog/commitment-credit-follow-on/spec.md`).** A companion `CreditRegister` may disburse **G$ micro-loans** as a `SettlementModule` disbursement (the advance down-leg) and record the repayment on Arbitrum — repayment stays **record-only** (no upward disbursement, no bridge). One small seam to resolve when it lands: add `DisbursementKind.LoanPrincipal`; contributor-reward payout-plan functions remain commitment-bound and are not overloaded for credit. Out of scope for this spec; flagged so the seam is a conscious choice, not a surprise.
+> **Borrow-and-repay touchpoint (August-wave companion chain, `../commitment-credit-follow-on/spec.md`; unblocked 2026-08-01).** The companion `CreditRegistry` disburses **G$ micro-loans** as a `SettlementModule` disbursement (the advance down-leg) and records the repayment on Arbitrum — repayment stays **record-only** (no upward disbursement, no bridge). The seam is resolved: `DisbursementKind.LoanPrincipal` is in the ABI now (2026-08-01 amendment above) and unqueueable until the credit lane dispatches. Its reserved row shape uses `commitmentId = 0`, `payoutPlanId = 0`, `contributor = address(0)`, the loan's pool garden as `garden`/`executorGarden`, the active garden Safe as source, the borrower's canonical Celo account as recipient, canonical G$ as token, principal as amount, and `FundingRoute.None`; `Loan.disbursementId` is the reverse relationship. The credit lane adds the dedicated Approved-loan queue function and batch preflight. Contributor-reward payout-plan functions remain commitment-bound and are never overloaded for credit.
 
 ---
 
@@ -2129,6 +2144,11 @@ It wins decisively on **build reuse** — pool, limiter, quoter and registry alr
 **Named gates to revisit it:** (1) an **ERC-777 reentrancy audit** of the deployed pool version — G$'s ERC-777 superform is a documented vector (Uniswap V1 imBTC, 2020-04-18, ~1,278 ETH; Cream Finance, 2021-08-30, 418,311,571 AMP + 1,308.09 ETH, ~$25M+); (2) a **Grassroots Economics conversation** confirming partnership, roadmap, third-party pool support and `erc20-pool` licence status; (3) GoodDollar confirming HoA G$ may seed a non-GE pool; (4) operator burden of bare-Safe settlement becoming binding. Target end-state if those clear: the **hybrid** — the garden Celo Safe transacts against a Sarafu pool instead of bare Safe-to-Safe transfers.
 
 *Licensing nuance recorded nowhere else:* interacting with **deployed** GE contracts creates no AGPL obligation; only forking or reimplementing triggers copyleft. This is narrower than the clean-room rule (register #17) and needs counsel to confirm. The `erc20-pool` repo had **no LICENSE file** as of 2026-07-02 despite the org's stated AGPL-3.0 policy.
+
+Canonical design-only continuation: `exchange-architecture-brief.md` carries the PRD-651 voucher,
+quoter, limiter, venue, Sarafu-hybrid fork, settlement-rail generality, evidence gates, and
+2026-08-19 conversation questions. The pointer authorizes no implementation and leaves
+`settlementAdapter` / `settlementEnabled` activation gated.
 
 ### 10.4 ⚠️ Superseded by GIP-24 — the exit fee
 

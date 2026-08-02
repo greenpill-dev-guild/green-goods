@@ -2,14 +2,15 @@
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Three audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
-//   2) Architecture — D1–D17 with their "How to read this" panels (Mermaid renders
+//   2) Architecture — D1–D19 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
-//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26,
+//   3) Screens      — cross-surface flow map + 37 low-fi ASCII screen headings:
+//                     the legacy W1–W26 family, the seven §8 deltas/W27, and W28–W31,
 //                     reconciled to the hi-fi registry (2026-07-27). The hi-fi screen
 //                     set is a different artifact entirely — see
 //                     prototypes-artifact.build.ts.
-//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 32-asset
+//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 33-asset
 //                     coverage matrix, the D13b permission table (routed 2026-07-31),
 //                     the ship-time appendix, and the audited Open-questions
 //                     findings panel, so the diagrams lead their own tab.
@@ -245,6 +246,7 @@ const statesSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-settlement-stat
 const flywheelSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-flywheel.svg`, "utf8");
 const tiersSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-three-tiers.svg`, "utf8");
 const geSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-ge-protocol.svg`, "utf8");
+const layersSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-three-layers.svg`, "utf8");
 const timelineSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-timeline-band.svg`, "utf8");
 const ownershipSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-ownership-map.svg`, "utf8");
 const useCasesSvg = readFileSync(`${DIR}/artifacts/visuals/use-cases-journey-strip.svg`, "utf8");
@@ -285,7 +287,7 @@ function sectionsHtml(secs: Sec[], opts: SectionOpts = {}): { nav: string; body:
 }
 
 // Tab routing (2026-07-27; D13b added 2026-07-31): the diagrams must lead the
-// Architecture pane, so the preamble, the 32-asset coverage matrix, the D13b
+// Architecture pane, so the preamble, the 33-asset coverage matrix, the D13b
 // permission table (pure reference matrix, zero diagrams), and the ship-time
 // appendix move to a Reference pane. Nothing is dropped — the deep material
 // renders there in full, and a purpose-written intro carries only what you need
@@ -363,6 +365,7 @@ const requiredArchitectureSections = [
   ["D17.", "d17-accountability-recognition-and-payment-separation"],
   ["D17b.", "d17b-where-value-and-recognition-flow-worked-model-1"],
   ["D18.", "d18-solidity-surface-contracts-ownership-and-upgrade-authority"],
+  ["D19.", "d19-bilateral-exchange-sequence-paired-start-independent-promise"],
 ];
 // Every diagram-bearing section carries a reading guide. The list used to skip
 // exactly the dense ones (D7 had none at 138 source lines) — that inversion is
@@ -370,7 +373,7 @@ const requiredArchitectureSections = [
 const diagramHowToPrefixes = [
   "D1.", "D1b.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D7b.", "D7c.", "D7d.",
   "D8.", "D9.", "D10.", "D10b.", "D11.", "D11b.", "D12.", "D13.", "D13b.", "D14.",
-  "D15.", "D16.", "D17.", "D17b.", "D18.",
+  "D15.", "D16.", "D17.", "D17b.", "D18.", "D19.",
 ];
 
 const storyBody = `
@@ -420,14 +423,14 @@ const storyBody = `
 </section>
 <section id="story-flywheel">
   <h2>The full flywheel</h2>
-  <p class="lede">The whole system in one frame — the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring drawn as gated: designed, parked, and not authorized by any current work.</p>
-  <p>Read it from the centre out: promises kept feed certificates, certificates attract funding, and funding seeds the next season's promises — the shade beds this season make the tool library believable next season. The borrow-and-repay ring around the outside is drawn dashed on purpose. It is designed, parked, and switched off: if it ever becomes real it does so as interest-free, records-only mutual credit, and nothing in the current build authorizes any part of it.</p>
+  <p class="lede">The whole system in one frame — the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring drawn as gated: unblocked into the August wave on 2026-08-01, still behind its own dispatch gates.</p>
+  <p>Read it from the centre out: promises kept feed certificates, certificates attract funding, and funding seeds the next season's promises — the shade beds this season make the tool library believable next season. The borrow-and-repay ring around the outside is drawn dashed on purpose. It joined the August wave on 2026-08-01, and it stays dashed because its gates are real: the pooling and settlement interfaces freeze in code first, its design is revalidated against them, and a human-owned legal and operations review clears before any of it dispatches. When it arrives it arrives as interest-free, records-only mutual credit — never custody, never a per-person score.</p>
   ${respSvg(flywheelSvg, "The Commitment Pooling flywheel")}
 </section>
 <section id="story-tiers">
   <h2>Three tiers of mutual support</h2>
-  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. Only the first two are in scope — the third is design-only, records-only, interest-free, and never a per-person credit score.</p>
-  <p>Trust is the ladder's rail. Mutual aid needs only neighbours and a confirmation, so it ships first and works everywhere — including fully offline. G$-paid work adds a treasury, Safes, and settlement discipline, so it arrives gated and rehearsed. Borrow-and-repay would need the deepest trust of all, which is exactly why it stays design-only: no interest, no per-person scores, no leverage — just the possibility, documented and dormant until a community actually asks for it.</p>
+  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. All three now sit in the August wave — the third joined on 2026-08-01, records-only, interest-free, behind its own gates, and never a per-person credit score.</p>
+  <p>Trust is the ladder's rail. Mutual aid needs only neighbours and a confirmation, so it ships first and works everywhere — including fully offline. G$-paid work adds a treasury, Safes, and settlement discipline, so it arrives gated and rehearsed. Borrow-and-repay needs the deepest trust of all, which is exactly why its gates are the strictest: the interfaces it attaches to freeze in code first, its design is revalidated against them, and a legal and operations review clears before it dispatches. No interest, no per-person scores, no leverage — a recorded loop of advance and repayment riding rails that already exist.</p>
   ${respSvg(tiersSvg, "Three tiers of commitment pooling")}
 </section>
 <section id="story-circular">
@@ -437,10 +440,16 @@ const storyBody = `
   ${respSvg(circSvg, "Circular G dollar economy")}
 </section>
 <section id="story-ge-functions">
-  <h2>Six protocol functions</h2>
-  <p class="lede">Curation, valuation, limitation, exchange, route and repair remain equally visible. The framing is adapted clean-room from the current cited protocol source and introduces no four-function shortcut.</p>
-  <p>Grassroots Economics names the functions a commitment pool has to serve, and Green Goods keeps all six visible instead of collapsing them: curation decides what may enter the pool, valuation weighs contributions in each other's terms, limitation keeps any one account from dominating, exchange moves promises between people, route carries value to where it is needed, and repair resolves disputes and restores state. Each one maps to concrete contract machinery — the Architecture tab shows exactly which.</p>
-  ${respSvg(geSvg, "Six protocol functions adapted by Green Goods")}
+  <h2>Six protocol functions, calibrated</h2>
+  <p class="lede">This is commitment pooling built in stages. Curation, valuation, limitation, exchange, route and repair stay visible, with each function labeled as August mechanics, an August record or partial pathway, or later roadmap work.</p>
+  <p>Grassroots Economics names the functions a commitment pool has to serve, and Green Goods keeps all six visible without claiming more than the current wave carries. Curation, limitation and repair arrive with full August mechanics. Valuation arrives as a declared value record that never drives settlement arithmetic or a conversion rule. Exchange now ships as a one-way counter-commitment reference plus bilateral atomic acceptance, with each promise remaining independent after the paired start. Route is partial: cross-garden claims and protocol-to-garden support run through bounded pathways, while garden-to-garden routing remains on the later roadmap. Multilateral and transferable exchange execution plus relative-pricing enforcement are later seams in the same commitment-pooling architecture. The Architecture tab shows which machinery carries each horizon.</p>
+  ${respSvg(geSvg, "Six functions of commitment pooling built in stages")}
+</section>
+<section id="story-layers">
+  <h2>Three layers, named honestly</h2>
+  <p class="lede">After review with Grassroots Economics, the system describes one Commitment Pooling build in three explicit layers: an August coordination foundation, outcome-linked support on separate funding rails, and later reciprocal routing and exchange seams. "Commitment coordination" names the first layer; it does not rename or reduce the product.</p>
+  <p>Naming the layers keeps the claim honest in both directions. Layer one is the August foundation: needs, offers and requests, evidence, independent confirmation, and repair, with declared value and exchange references recorded as terms. Counts-only standing, rotation, and reserve framing are approved August app-roadmap additions, not current shipped UI. Layer two is how value reaches verified outcomes today: direct support, supporter-vault yield, impact certificates, and the separately gated G$ settlement rail; pooled funds live in treasury Safes and vaults, never inside the pooling mechanism. The records-only, interest-free CreditRegistry is an August companion behind interface-freeze, spec-revalidation, and human legal/operations gates. Layer three names later roadmap extensions: transferable vouchers, exchange execution, relative pricing, and garden-to-garden routing. They extend the same reserved fields and records without being presented as shipped.</p>
+  ${respSvg(layersSvg, "Three layers of commitment pooling built in stages")}
 </section>
 <section id="story-timeline">
   <h2>The rollout sequence</h2>
@@ -467,6 +476,7 @@ const storyNav = [
   ["story-tiers", "Three tiers of support"],
   ["story-circular", "A circular G$ economy"],
   ["story-ge-functions", "Six protocol functions"],
+  ["story-layers", "Three layers, named honestly"],
   ["story-timeline", "The rollout sequence"],
   ["story-ownership", "Where each document lives"],
 ].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
@@ -477,7 +487,7 @@ const storyNav = [
 const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
-  <p class="lede">${architectureSecs.length} named diagrams, D1 through D18, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p class="lede">${architectureSecs.length} named diagrams, D1 through D19, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
   <p><strong>Start anywhere.</strong> Every section carries a “How to read this” panel, so no section depends on the one before it. Where a section splits into sub-blocks, that panel sits at the top of the section and covers all of them — D7 is the exception that guides each sub-block separately.</p>
   <ul class="wayfind">
     <li><b>D1 · D1b</b> <span>the widest frame — who participates, and which boundary may authorize what</span></li>
@@ -489,6 +499,7 @@ const archIntro = `
     <li><b>D14 – D16</b> <span>offline jobs, deployment topology, error taxonomy</span></li>
     <li><b>D17 · D17b</b> <span>accountability separation, then the worked value-and-recognition numbers</span></li>
     <li><b>D18</b> <span>the Solidity surface — contracts, ownership, and upgrade authority</span></li>
+    <li><b>D19</b> <span>bilateral exchange — one referenced pair starts atomically, then proceeds as two independent promises</span></li>
   </ul>
   <p><strong>Six sections open with an overview and then zoom in.</strong> D2 and D6 split into three acts, D7 into an entity map plus two field blocks, D9 into healthy path, idempotency and retries, D16 into the error, where it manifests, and how the person responds, and D17b into recognition and payment. Sub-blocks are indented in the section list on the left.</p>
   <p><strong>Two colour systems, never mixed.</strong> Component diagrams carry <em>build status</em> — the three treatments below. State machines carry <em>storage provenance</em> — the second key. Green tint always and only means built/live; people are paper with an ink outline; and every diagram footnotes exactly the treatments it uses, so the key you need is always directly under the drawing. Each entity-relationship diagram likewise carries its own cardinality key.</p>
@@ -504,7 +515,7 @@ const archIntro = `
     <li><span class="sw sw-derived" aria-hidden="true"></span><span><b>Derived</b> — the indexer computes it from events; no transaction writes it</span></li>
     <li><span class="sw sw-app" aria-hidden="true"></span><span><b>App-only</b> — client-side; <code>Draft</code> lives in IndexedDB and has no chain presence</span></li>
   </ul>
-  <p><strong>The Reference tab holds the rest</strong> — the 32-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the exact per-function permission table (D13b), and the open questions this set does not answer.</p>
+  <p><strong>The Reference tab holds the rest</strong> — the 33-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the exact per-function permission table (D13b), and the open questions this set does not answer.</p>
 </section>`;
 
 // Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
@@ -1981,7 +1992,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 26, "Architecture output must contain 26 sections (25 D-sections + the hand-written intro; D13b renders on Reference)");
+assertBuild(architectureSectionCount === 27, "Architecture output must contain 27 sections (26 D-sections + the hand-written intro; D13b renders on Reference)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -1989,8 +2000,8 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 36, "Architecture output must contain 36 Mermaid blocks (D10b keeps a stored-state strip; D16.1/D16.2 are tables; D17b adds two, D18 one)");
-assertBuild(mermaidCount === 37, "Gallery output must contain 37 Mermaid blocks including the Screens flow");
+assertBuild(architectureMermaidCount === 38, "Architecture output must contain 38 Mermaid blocks (D16 is split into two recovery maps and D19 adds the bilateral exchange sequence)");
+assertBuild(mermaidCount === 39, "Gallery output must contain 39 Mermaid blocks including the Screens flow");
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");
@@ -2020,7 +2031,12 @@ assertBuild(
   !refBody.includes("Parked for decision") && !refBody.includes("deliberately does not answer"),
   "the pre-audit framing cannot survive alongside findings",
 );
-assertBuild(wfScreenCount === 26, `the Screens pane must present all 26 wireframe frames (found ${wfScreenCount})`);
+// 26 → 33 on 2026-08-01: wireframes.md §8 added seven CPP-alignment frames/deltas;
+// 33 → 37 in the exchange wave: W28–W31 add the exchange and template-first frames.
+// (W8/W3/W2/W5 deltas, W7/W10 claims-queue delta, W27 rotation template, W21/W23
+// reserve-framing copy delta). They carry no hi-fi deep links yet — hi-fi additions
+// are an explicit follow-up pass per §8's preamble.
+assertBuild(wfScreenCount === 37, `the Screens pane must present all 37 wireframe frames (found ${wfScreenCount})`);
 for (const id of WF_ONLY_FRAMES) {
   assertBuild(wf.secs.some((s) => s.id === id), `WF_ONLY_FRAMES names #${id}, which is not a Screens section`);
 }

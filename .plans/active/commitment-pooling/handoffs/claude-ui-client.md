@@ -10,10 +10,13 @@
   verified non-value deployment/indexer output, and the existing admin/UI foundation cleanup
 - Linear context: PRD-724 (client UI lane) under parent PRD-650
 
+Concurrent agents share this repository. Stay inside the client lane's named paths, preserve
+unrelated working-tree changes, and do not switch the primary tree's branch.
+
 ## Inputs
 
 - GREEN shared hooks/selectors/jobs and composite Garden query contract
-- uiux-spec.md and client frames in wireframes.md
+- uiux-spec.md Appendix E and client frames W28–W31 in wireframes.md, plus planned SB-35/SB-36
 - acceptance-matrix.md for exact identity, copy/state, and role proof
 - CCIP command/execution/acknowledgment states and gardenerDeliveryEnabled selector
 - Existing AppShell, Garden detail, WalletDrawer, offline indicator, wallet/passkey, and i18n patterns
@@ -21,6 +24,10 @@
 ## Outputs
 
 - Garden pool browse/detail/create, open and approval-gated participation, evidence/work linkage, confirmation, dispute/recovery, one-open-Season plus concurrent-Campaign views, and WalletDrawer commitment views; no CP Profile fork.
+- Template-first creation, the “offer this in exchange for…” picker, mirrored give/receive review,
+  pair chip/detail/feed, A-creator confirmation sheet, and proposed/matched/counterpart-lapsed
+  states use existing primitives only. `acceptExchange` is online; after it succeeds, each promise
+  follows its own ordinary timeline and confirmation rule.
 - DomainImpact creation emits one ordered `{ actionUID, requiredCount }` row per requirement.
   Detail/progress views bind each row by `requirementIndex`, render its approved/required count and
   ActionRegistry-derived domain tag, and use canonical per-commitment `approvedUnits` supplied by

@@ -1027,3 +1027,21 @@ aliases, so this is the cheapest moment it will ever be):
 - **Ripples**: D13b/D7b/D12 gallery references, wireframes, uiux-spec,
   prototypes, plan.todo, the four settlement/indexer/state-api/ui handoffs,
   and the status.json lane acceptance strings all use the new names.
+
+## 2026-08-01 — Exchange-wave review fixes: audit-input immutability + dated-record restorations
+
+- `reports/audit-2026-07-20.md` cross-hub seam line: the credit-hub promotion had been edited
+  into this **immutable audit input** in place. The original backlog-path text is restored; the
+  correction lives here instead: the credit hub moved
+  `.plans/backlog/commitment-credit-follow-on/` → `.plans/active/commitment-credit-follow-on/`
+  on 2026-08-01 (Decision Log #39 / register #73). Read the audit's path as historically accurate
+  for its 2026-07-20 date.
+- `plan.todo.md` register #24 and `status.json` history event 2026-07-19: in-place rewrites of
+  verbatim dated records were reverted. The credit unblock is now recorded the conventional way —
+  appended parentheticals on the dated entries plus new dated `history[]` records for both
+  2026-08-01 waves.
+- Gardener settlement copy: the plain-language rule briefly mapped an authenticated execution
+  failure to the success phrase "Support on its way". Corrected to a third truthful phrase,
+  "support is being rearranged", across acceptance-matrix §1, settlement-spec §7 W2,
+  uiux-spec §5.3/§5.11/Appendix E, and wireframes §6; a failed state never renders a success
+  phrase.

@@ -15,7 +15,10 @@
 
 - Frozen CommitmentPoolingModule Fulfilled reward/provider interface.
 - `settlement-spec.md` exact command/ack tuples, state machine, events, authority boundary,
-  GoodDollar exact-net fee model, and current direct-lane/testnet evidence gate.
+  GoodDollar exact-net fee model, and current direct-lane/testnet evidence gate — including the
+  2026-08-01 amendment: `DisbursementKind` ships with three members
+  (`ContributorReward`, `Funding`, `LoanPrincipal`); `LoanPrincipal` is reserved for the
+  unblocked credit chain and no code path queues it until that lane dispatches.
 - Existing `packages/contracts/src/registries/LocalCCIPRouter.sol` is the local-router starting
   point. Extend or adapt it into the paired-router harness; do not create an unrelated parallel
   CCIP mock that can drift from the repository's existing local transport behavior.
@@ -197,7 +200,7 @@ Deployment commands must be added through the existing deploy wrapper and verifi
 
 ## Out of scope
 
-- Broadcasts, Safe role grants, message-only mainnet ping/ack, value canary, arbitrary Safe execution, CCIP token transfer, bridged G$, raw G$ indexing, manual report/verification, any `packages/agent` settlement relayer or write authority, garden-custody member claims, transferable vouchers, and CreditRegister. Optional later agent alerts may consume indexed health read-only.
+- Broadcasts, Safe role grants, message-only mainnet ping/ack, value canary, arbitrary Safe execution, CCIP token transfer, bridged G$, raw G$ indexing, manual report/verification, any `packages/agent` settlement relayer or write authority, garden-custody member claims, transferable vouchers, and CreditRegistry. Optional later agent alerts may consume indexed health read-only.
 
 ## Release blockers that do not block implementation
 

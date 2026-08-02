@@ -8,13 +8,19 @@
 - Current state: prototype/spec review may continue; runtime implementation is blocked
 - Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, PRD-728 is post-certification walkthrough video, and PRD-682 is September Community context.
 
+Concurrent agents share this repository. Each UI sub-lane stays inside its named package/spec
+paths, preserves unrelated working-tree changes, and does not switch the primary tree's branch.
+
 ## Inputs
 
 - GREEN shared state/API handoff and exported types/hooks/selectors
 - GREEN indexer query contract
 - Verified non-value mainnet artifacts and live indexer deployment/read-back
 - Completed scoped existing-admin fixes and polish, including PRD-737
-- Corrected uiux-spec.md, wireframes.md, diagrams.md, and settlement status vocabulary
+- Corrected uiux-spec.md, wireframes.md, diagrams.md, and settlement status vocabulary — including
+  Appendix D and the bilateral-wave Appendix E. Appendix E.1 owns exchange-pair UX, E.2 owns the
+  practice-template library, and E.3 owns the noun-reduction/plain-language rules; W28–W31 and
+  planned SB-35/SB-36 are the review sources.
 - acceptance-matrix.md for the final state/copy/public-claim/role proof
 - Admin/client package guides and authenticated Brave access
 
@@ -23,6 +29,8 @@
 - Coordinated runtime client, admin, and editorial sub-lane evidence. Post-QA docs, final videos,
   and September Community record their own later evidence.
 - Cross-surface state/copy consistency for claims, confirmation, disputes, settlement, and recovery.
+- Cross-surface exchange proposal, atomic match, counterpart-lapsed, template-first creation, and
+  first-exposure copy remain consistent with Appendix E and never imply coupled lifecycles.
 - Register #51 placement consistency: `W10@cancel`, `W10@mark-ready-override`, and `W10@attach-assessment` own their admin actions; `WFLOW@review` owns the read-only fulfills row; `W25@context-chooser` owns the pre-claim personal/garden provider chooser. These are locked August states, not optional follow-ups.
 - en/es/pt coverage, accessible names/order/status announcements, responsive/reduced-motion behavior, and real-browser proof.
 - Aggregate proof record; detailed proof remains in each sub-lane handoff.
