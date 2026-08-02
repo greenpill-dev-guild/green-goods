@@ -368,7 +368,7 @@ W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ──
 │   [ Mint impact certificate ]                            │
 │ Step 4 — Rest the cycle    [ Reconcile + compost ]       │
 │   aggregates roll into pool history; the next season     │
-│   seeds fresh on this pool (D5)                          │
+│   seeds fresh on this pool (D9)                          │
 └──────────────────────────────────────────────────────────┘`,
 MF1: `┌─ Pool ─────────────────────────────────────────────────────────────┐
 │ (Ready) charter ✓ baseline ✓ cap 24                                │

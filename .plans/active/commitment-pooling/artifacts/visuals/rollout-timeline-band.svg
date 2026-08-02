@@ -31,7 +31,8 @@
     <rect x="82" y="351" width="102" height="34" rx="10" fill="#F1ECE2" stroke="#988D77" stroke-width="1.5"/>
     <text x="133" y="374" text-anchor="middle" font-size="19" font-weight="700" fill="#2A2722">Jul 31</text>
     <text x="210" y="378" font-size="26" font-weight="700" fill="#2A2722">Build</text>
-    <text x="82" y="420" font-size="20" fill="#6E6857">Implementation + QA GREEN; authorized non-value broadcast.</text>
+    <text x="82" y="411" font-size="20" fill="#6E6857">Implementation + QA GREEN;</text>
+    <text x="82" y="437" font-size="20" fill="#6E6857">authorized non-value broadcast.</text>
 
     <rect x="60" y="505" width="570" height="127" rx="16" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
     <rect x="82" y="526" width="102" height="34" rx="10" fill="#F1ECE2" stroke="#988D77" stroke-width="1.5"/>

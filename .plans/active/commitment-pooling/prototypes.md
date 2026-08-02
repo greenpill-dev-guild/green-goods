@@ -3,7 +3,7 @@
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
 - **Updated**: 2026-08-01 — bilateral exchange acceptance, exchange-pair UX, practice templates, and the plain-language pass recorded in §19; group commitments, contributor recognition, and garden-funded child payouts remain from the 2026-07-28 pass (see Changelog).
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
-- **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D2–D13) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
+- **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D1–D26) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
 ## Changelog
 
@@ -500,7 +500,7 @@ No custody anywhere in this storyboard: value moved on the jar/treasury rail out
 
 ## SB-11 — G$ support arrives (+ send onward; delivery blocked)
 
-**At a glance** — a gardener sees a G$ reward as “on its way” until authenticated success permits “arrived”; operational delay and failure remain distinct for steward recovery without leaking transport-state nouns into the gardener surface.
+**At a glance** — a gardener sees a G$ reward as “on its way” until authenticated success permits “arrived”; authenticated failure switches to “being rearranged,” while operational detail remains available only for steward recovery.
 
 **Persona**: Gardener whose fulfilled promise carries a G$ reward. **Scenario**: S8/S9 gardener side (LAP:199-207). **Surfaces**: client PWA. **Theme**: Tech and Sun Hub first execution (LAP:126).
 
@@ -513,7 +513,7 @@ flowchart LR
   C -->|"authenticated acknowledgment"| D["W2 support arrived"]
   D -->|"wallet"| E["W23 G$ section"]
   E -->|"Send G$"| F["W23 send sheet"]
-  B -->|"authenticated failure"| G["W2 support on its way + calm action"]
+  B -->|"authenticated failure"| G["W2 support is being rearranged + calm action"]
 ```
 
 | # | Screen | User action | System response | State | If it fails |
@@ -526,7 +526,7 @@ flowchart LR
 | 6 | W2 | reads **"support arrived ↗"** with the Celo reference | **only Confirmed** — an authenticated Celo executor CCIP acknowledgment is the sole producer | **Confirmed** | — |
 | 7 | W23 | Wallet drawer G$ section: balance + "+20 G$ — Prune the north beds (arrived ↗)" (WF:569-572) | Celo balance read; rows from `queryKeys.settlement.*` (UX:219) | — | — |
 | 8 | W23 | **[ Send G$ ]** → sheet: to, amount, "Sent from your account on Celo. No gas needed." (WF:573-579) | online `transfer` — never enters the offline queue, no MAX_RETRIES replay (UX:219; SS:433); sponsored gas, gardeners hold no CELO (WF:578) | wallet-pending → confirmed | Wallet rejection/tx failure inline with retry CTA (UX:219) |
-| 9 | W2 | (failure lane) still reads **"support on its way"** and adds a calm action explanation without the state noun | disbursement Failed; commitment state untouched — Fulfilled is permanent | Failed (disbursement only) | Steward requeues after authenticated failure → SB-12 |
+| 9 | W2 | (failure lane) reads **"support is being rearranged"** and adds a calm action explanation without a success phrase or state noun | disbursement Failed; commitment state untouched — Fulfilled is permanent | Failed (disbursement only) | Steward requeues after authenticated failure → SB-12 |
 | 10 | W23 | (blocked lane) AA gate failed: the whole G$ section is replaced by the gate-failed frame — "Planned · not available yet … gardener delivery and Send G$ stay unavailable." (WF:632-641) | `gardenerDeliveryEnabled` stays false; Safe-to-Safe garden funding may continue (SS:417; PT:32) | delivery blocked | No alternate gardener-delivery path ships (SS:417; DG:856) |
 
 **Honesty check (passes)**: every copy stage matches AM:20-25 — destination execution without its authenticated acknowledgment never renders as received, "support arrived" is Confirmed-only, and the blocked state names what still works (garden funding) without implying custody elsewhere. **register #34f** makes the gate legible steward-side too: W21/W12 gain a read-only gate-status row (enabled/disabled · changed by · date · evidence ref), so "delivery blocked" is diagnosable without reading chain state.
@@ -557,7 +557,7 @@ flowchart LR
 | # | Screen | User action | System response | State | If it fails |
 |---|---|---|---|---|---|
 | 1 | W21 | **[ Review registration requirements ]** | Read-only checklist explains that production governance separately deploys and verifies the 2-of-3 Safe/Roles route; only then may `registerSettlementAccount` bind the already-deployed Celo account | account stays unregistered until Release artifact exists | Missing Safe/Roles artifact keeps registration unavailable |
-| 2 | W24 / W12 | (funding beat) a protocol steward or SettlementModule owner opens **Seed / top up**, reviews the selected registered garden Safe and amount, then queues **ProtocolToGarden**; HoA → protocol Safe remains upstream (SS §3.1.3; D12) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens — and lands on a typed Funding/ProtocolToGarden Queued row with no commitment ID | funding Queued | Missing queueFunding authority shows the unavailable state; deployer status alone cannot submit; AA-gate failure never blocks this Safe-to-Safe route |
+| 2 | W24 / W12 | (funding beat) a protocol steward or SettlementModule owner opens **Seed / top up**, reviews the selected registered garden Safe and amount, then queues **ProtocolToGarden**; HoA → protocol Safe remains upstream (SS §3.1.3; D19) | `queueFunding` derives source/recipient/G$ — no arbitrary addresses or tokens — and lands on a typed Funding/ProtocolToGarden Queued row with no commitment ID | funding Queued | Missing queueFunding authority shows the unavailable state; deployer status alone cannot submit; AA-gate failure never blocks this Safe-to-Safe route |
 | 3 | W10/W21 | Per fulfilled commitment declared as `CeloSettlement`: **[ Save draft ]** stores the complete vectors, **[ Finalize payout plan ]** freezes them without creating children, then **[ Prepare payout ]** idempotently materializes one Queued child from a frozen non-zero row; `Record payout` is unavailable (WF:564; SS §3) | finalization requires canonical G$, active provider-garden source, exact hashes, explicit retention, conservation, and eligible accounts; all-retained completes without CCIP; exact preparation repeats return the same child (SS §3) | parent **Draft / Pending / Partial / Complete / Failed** includes unprepared payable rows; each contributor sees their own prepared child and the parent pointer remains stable | Vector/hash/conservation/account mismatches block finalization; preparation rejects non-finalized, zero, or non-canonical rows; siblings remain intact |
 | 4 | W21 | **[ Create batch (2) ]** (WF:583) | `createBatch` — 1..configured limit unique ids, immutable batch entries, one executorGarden/source/token; configured limit is measured and cannot exceed hard ceiling 24 | batch Queued | Batching remains unavailable while configured limit is zero. |
 | 5 | W22 | Steward **[ Dispatch command ]** | `dispatchDisbursement` / `dispatchBatch` sends the immutable data-only payload; source facts, recipient, token, amount, and steward scope derive from canonical pooling/funding state | Queued → **Dispatched** | Fee shortage or transport delay is operational, not payment failure; retry preserves the attempt and execution key. |
@@ -882,7 +882,7 @@ Cell values: `SB-x.y` = walked at that storyboard step · `static (cite)` = a co
 | Dispatched | W2 `support-en-route` ("support on its way") | W22 `dispatched` |
 | Celo executed / acknowledgment pending (derived) | W2 `support-executed` / `support-confirming` ("support on its way") | W22 `executed` / `acknowledgment-pending` |
 | Confirmed | W2 `support-arrived` ("support arrived ↗") | W22 `outcome` |
-| Failed (authenticated acknowledgment only) | W2 `support-failed` ("support on its way" + calm action explanation) | W22 outcome → W21 requeue confirmation/result (SB-25) |
+| Failed (authenticated acknowledgment only) | W2 `support-failed` ("support is being rearranged" + calm action explanation) | W22 outcome → W21 requeue confirmation/result (SB-25) |
 | Delayed (derived, state remains Dispatched) | W2 `support-delayed` ("support on its way") | W22 `delivery-delayed` |
 | Cancelled from Queued | W2 `support-cancelled-queued` — "this support was withdrawn before it was sent — your promise and its record stay intact" | W21 unbatched confirmation + explicit result (SB-25); W22 batch confirmation stays atomic |
 | Cancelled from Failed | W2 `support-cancelled-failed` — "this support was closed after delivery could not complete — your promise and its record stay intact" | W21 failed recovery |
