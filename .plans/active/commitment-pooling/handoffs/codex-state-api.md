@@ -18,7 +18,8 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - The 2026-08-01 CPP-alignment amendment (contract-spec decisions 16–17): commitment types carry `counterCommitmentId` and `declaredUnitValue`/`declaredValueBasis`; selectors add the `CommitmentCounterIndex` pair view and the counts-only `PoolMemberHistory` standing read (never a score, percentage, or ranking; value sums only per exact basis). Raw history rows derive from public events and are not confidential. The shared selector requires viewer account plus current pool-steward capability and returns a participant row only for that steward or the member themself; client/admin code must not bind raw history entities, and editorial selectors expose aggregates only.
 - GREEN core indexer codegen/build and agreed entity/query contract; settlement entities join only for the settlement phase
 - acceptance-matrix.md for shared identity, status, copy, and final-proof contracts
-- Composite Garden-ID query cutover
+- Existing bare-address `Garden.id` query compatibility plus chain-scoped IDs for every new
+  Commitment Pooling entity
 - Existing shared queryKeys, mutation-error, IndexedDB job, wallet/passkey, and chain-registry patterns
 
 ## Outputs
@@ -33,7 +34,8 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   sixth offline job, per-device attempt, or background queue.
 - Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
-  rail/source/token/amount, evidence, and timing. DomainImpact creation never accepts caller-authored
+  rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
+  selection. DomainImpact creation never accepts caller-authored
   domain tags; the contract derives them from ActionRegistry, while evidence-only types preserve
   their optional validated tags. Evidence jobs serialize the explicit non-empty bounded
   `creditedContributors` address vector and retry with the same vector; claim preserves
@@ -45,11 +47,18 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
   asserts matching EntryPoint/factory/implementation/initializer/passkey/salt; it never silently
   falls back, infers a version from chain support, or mixes profile components.
-- `gardenerDeliveryEnabled` is false for every testnet-profile result. Production enablement consumes
-  only the separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or
-  provider-list presence cannot enable the production action.
+- `gardenerDeliveryEnabled` is false for every testnet-profile result. On the nullable indexed
+  source field, `null` means unknown/not configured and fails closed exactly like `false`; only an
+  explicit `true` may satisfy the delivery selector. Production enablement consumes only the
+  separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or provider-list
+  presence cannot enable the production action.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
-- Direction-aware confirmation eligibility with every frozen team member excluded.
+- Direction-aware confirmation eligibility with every frozen team member excluded. Creation and
+  pre-acceptance confirmer-rule selectors expose the Green Goods team fallback as an explicit
+  choice, never a default; Ready eligibility accepts it as the structural path only when indexed
+  `protocolFallbackEnabled` is true. Confirmation provenance exposes `fulfilledBy`,
+  `confirmationPath`, and `fallbackReason` so local garden fallback, protocol fallback, and
+  ordinary confirmation never collapse into one boolean.
 - Pool/cycle/commitment/dispute recovery selectors.
 - Per-action progress exposes `approvedCount / requiredCount`, the registry-derived domain tag,
   credited contributors, and canonical per-commitment `approvedUnits`; one `requirementIndex` can
@@ -57,6 +66,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - Pool/cycle selectors expose state counts, accepted-only `openCommitmentCount`, exact on-chain
   `liveCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. W26 uses
   `liveCommitmentCount` for close/cancel preflight because it includes Offered/Requested rows.
+  Terminal `DisputeResolved` outcomes arrive already projected through the indexer's canonical
+  lifecycle helper, including Expired dispute reopen/restore/cancel behavior; shared selectors do
+  not reconstruct or double-apply those deltas.
   `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment
   percentage; no selector sums unlike unit-label hashes or exposes a synthetic active-progress
   percentage.
@@ -85,7 +97,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - All hooks live in @green-goods/shared and use centralized queryKeys.
 - Mutations use the shared error pattern and event-driven invalidation.
 - Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
-- Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data.
+- Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data. A small-garden fixture with every local confirmer on the contributor roster blocks when protocol fallback is unselected, becomes Ready when it was selected pre-acceptance, and renders “confirmed by Green Goods team — fallback” only from `PROTOCOL_FALLBACK` provenance. Local fallback and ordinary confirmation use distinct labels, and a contributor is disabled on every path.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator;
   Individual requests expose the same address for both. Runtime claim type cannot diverge from
   the stored creation type. Claim preflight disables a creator-operated Garden request, and the
@@ -107,13 +119,15 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows exactly.
   It accepts no child IDs or lifecycle fields, so preparation cannot change the hash.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
-- Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action while disabled.
+- Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action unless `gardenerDeliveryEnabled === true`; both `null` and `false` fail closed.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
   `RewardPaid`; `CeloSettlement` can surface only SettlementModule state; `None` has neither.
 - Acknowledgment reads preserve the exact originating command-message relationship and stored
   return receiver/version; an older retry ID delivered out of order can join only to its own
   execution key and never to another settlement.
-- Garden queries use composite IDs only.
+- Garden queries preserve the existing normalized bare-address `Garden.id` contract and include
+  `chainId` in query keys/filters where chain identity matters. Commitment Pooling entity queries
+  use their own chain-scoped composite IDs; no selector synthesizes a composite Garden primary key.
 - Account-profile tests prove that `421614` and `11142220` use the explicit Kernel `0.2.4`
   test profile, `42161` and `42220` retain Kernel `0.3.1`, both members of a profile derive the
   same counterfactual address, unsupported/mixed profiles fail closed, and testnet evidence never

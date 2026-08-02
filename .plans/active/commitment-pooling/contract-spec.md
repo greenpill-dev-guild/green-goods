@@ -11,7 +11,7 @@
 >
 > **Amendment 2026-07-09 (approved architecture contract)**: commitment domains are optional multi-domain arrays. `uint8[] domains` replaces the singular domain; `uint256[] requiredActionUIDs` is positional with domains when action-bound. `DomainImpact` requires 1–4 unique valid domains and one registered, domain-matching action UID per domain. Action UID `0` is valid in the existing registry; array presence, never a numeric sentinel, expresses whether action binding exists. Other commitment kinds may use no domains and no action UIDs. `CommitmentCreated` emits all immutable creation facts needed by Envio (`domains`, `requiredActionUIDs`, `requiresAssessment`, `metadataCID`, `needUID`). Approval-gated claims gain an indexed request entity, a commitment-keyed request index, and explicit decline/supersede semantics. This is pre-build contract shape, not a storage migration.
 >
-> **Readiness correction 2026-07-10 (scope-locked)**: confirmer defaults are direction-aware (Offer recipient; Request creator), pending claims persist their requested terms, disputes restore an explicit pre-dispute state, and only states with committed units release them. One Season may be open per pool while Campaigns may overlap. DomainImpact Work and assessments anchor to the stored provider garden. The Envio/deployment contract includes a full Garden composite-ID replay, nullable event actors, and preservation tests for generated contract blocks. These are initial-deploy requirements, not upgrade migrations.
+> **Readiness correction 2026-07-10 (scope-locked; Garden-ID clause superseded 2026-08-02)**: confirmer defaults are direction-aware (Offer recipient; Request creator), pending claims persist their requested terms, disputes restore an explicit pre-dispute state, and only states with committed units release them. One Season may be open per pool while Campaigns may overlap. DomainImpact Work and assessments anchor to the stored provider garden. The Envio/deployment contract preserves the documented bare-address `Garden.id` compatibility exception while every new Commitment Pooling entity keeps a chain-scoped composite ID and explicit `chainId`; nullable event actors and preservation tests cover generated contract blocks. These are initial-deploy requirements, not upgrade migrations.
 >
 > **Amendment 2026-07-18 (approved, user visual-asset audit)**: per-action required counts. The scalar `requiredApprovedWorkCount`/`approvedWorkCount` pair becomes positional `uint32[] requiredApprovedWorkCounts` / `uint32[] approvedWorkCounts`, aligned with `requiredActionUIDs` (same length; the max-4 bound carries over from domains). A creator states "this promise needs [Action] × [count]" per bound action; the Work decision bridge credits or reverses the counter of the explicit requirement row as newer approval/rejection attestations arrive before freeze; ReadyForConfirmation auto-flips only when **every** requirement meets its non-zero count (assessment predicate unchanged); `approvedUnits = floor(targetUnits × Σ min(approvedWorkCounts[i], requiredApprovedWorkCounts[i]) / Σ requiredApprovedWorkCounts)` — the single-requirement case degenerates to the previous formula. Evidence-only kinds (SupportService/StewardCaptured/SeasonCampaign) express "no work requirement" as empty or all-zero counts, preserving the prior `== 0` semantics. `ApprovedWorkCounted` and `ApprovedWorkReversed` carry `requirementIndex`; the indexer gains a per-requirement `CommitmentRequirement` entity. Pre-build contract shape, not a storage migration. Recorded in `reports/corrections-log.md` §10.
 >
@@ -35,11 +35,19 @@
 >
 > Preconditions are fail-closed and named: B must carry a non-zero counterpart that resolves to an existing same-pool A (`ExchangeCounterpartMismatch`); both directions must be Offer (`ExchangeDirectionInvalid`); both on-chain states must be Offered (`ExchangeStateInvalid`); creators must differ (`SelfExchange`); and both stored claim types must be Individual (`ExchangeClaimTypeUnsupported`). Every ordinary acceptance predicate then runs independently for A and B, including the conditional Open-cycle rule when `cycleId != 0`, creator-identity exclusions, class quota, and provider open-commitment cap. If either side fails, the entire transaction reverts.
 >
-> Effects are one atomic transaction with no new storage fields and no state-machine addition: B's creator becomes A's claimant and lead provider, A's creator becomes B's claimant and lead provider, both commitments simply reach `Accepted`, and `CommitmentRegistry.commitUnits` records each class while consuming one provider slot per lead. The module emits the two ordinary `CommitmentAccepted` events plus `ExchangeAccepted(A, B, B.creator, A.creator)`. After acceptance nothing couples: fulfillment, cancellation, expiry, dispute, confirmation, and count-safe exact-label accounting proceed per side. Pair status and “counterpart lapsed” remain app/indexer derivations. Multilateral and transferable exchange remain reserved for `exchange-architecture-brief.md`.
+> Effects are one atomic transaction with no new contract-storage fields and no state-machine addition: B's creator becomes A's claimant, A's creator becomes B's claimant, and each Offer keeps its own creator as its lead provider (A creator → A lead; B creator → B lead). Both commitments simply reach `Accepted`, and `CommitmentRegistry.commitUnits` records A against A's creator and B against B's creator, consuming one provider slot per actual lead. The module emits the two ordinary `CommitmentAccepted` events plus `ExchangeAccepted(A, B, poolId, B.creator, A.creator)`. After acceptance nothing couples: fulfillment, cancellation, expiry, dispute, confirmation, and count-safe exact-label accounting proceed per side. Pair status and “counterpart lapsed” remain app/indexer derivations. Multilateral and transferable exchange remain reserved for `exchange-architecture-brief.md`.
 >
 > **Frozen-text conflict surfaced, not rewritten.** Canonical decision 17 says “afterwards the module never reads it” and “Atomic swap acceptance remains out of scope with the transferable-voucher layer.” This amendment preserves that historical text while making `acceptExchange` the sole additive acceptance-time read of B's reference and the sole bilateral exception. Decision 17's post-acceptance no-coupling rule remains verbatim.
 >
 > **Naming alignment recorded with this amendment.** `CommitmentRegister` → `CommitmentRegistry`, `ICommitmentRegister` → `ICommitmentRegistry`, `CreditRegister` → `CreditRegistry`, and `CommunityTestimonyResolver` → `TestimonyResolver` in all living and normative text, for consistency with `registries/Action.sol` and `resolvers/Assessment.sol`. Planned file targets remain `registries/Commitment.sol`, `registries/Credit.sol`, and `resolvers/Testimony.sol`; the GE “register” grammar remains prose vocabulary, and `communityTestimony` schema config and schema names do not change. Older dated amendments and decision/register history retain the names originally recorded.
+
+> **Amendment 2026-08-02 (approved structural protocol-team confirmation fallback; pre-build)**: a commitment may explicitly set `protocolFallbackEnabled = true` at creation or through the pre-acceptance `setConfirmerRule` call. That selection permits wearers of the **protocol (root) garden's current steward or owner Hats** to call the existing `confirmFulfillmentAsFallback(commitmentId, reason)` on the commitment in **any** pool, not only the protocol pool. This is the structural escape hatch for the pilot's small, newly established gardens, where the same person frequently seeds a commitment and then works it, leaving no eligible confirmer inside that garden.
+>
+> The anti-farming spine is explicitly preserved. The mandatory `reason` still applies and is still emitted. **Contributor exclusion is unchanged and absolute**: a protocol steward who is a frozen contributor on the commitment is blocked by the same `SelfConfirmation` predicate as anyone else, so the protocol fallback can never be used to confirm one's own work. It is a separate *fallback* path only — it never satisfies a named-confirmer threshold and never substitutes for the direction-aware default (Offer recipient; Request creator).
+>
+> **The selection solves reachability instead of merely resolving incidents.** Ordinary named/default reachability is still evaluated first after excluding every contributor. When that ordinary path is unreachable, `protocolFallbackEnabled` satisfies the structural Ready predicate only if the module has registered exactly one `PoolType.Protocol` pool and stored its ID in `protocolPoolId`; caller eligibility is then checked against that registered pool's *current* garden Hats at confirmation time. An unselected commitment never silently depends on the Green Goods team. Enabling the flag while `protocolPoolId == 0` reuses `ModuleNotReady` and changes no state.
+>
+> **Local and protocol authority remain distinguishable.** `confirmFulfillmentAsFallback` checks the commitment pool's current steward/owner Hats first and records `PoolFallback`; only then may an opted-in protocol-pool steward/owner record `ProtocolFallback`. A dual-role caller is therefore classified by the narrower local authority. The module owner is not a fulfillment confirmer through either path. `CommitmentFulfilled` emits the confirmer and `ConfirmationPath`, and app/indexer surfaces render `ProtocolFallback` as **“confirmed by Green Goods team — fallback”** rather than as an ordinary counterparty or local-garden confirmation. Recorded as plan Decision Log #44 / register #79.
 
 Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. Format mirrors the house implementation-spec style of `docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md` (Purpose, Scope, Canonical Implementation Decisions, System Components, per-contract Contract Work, Package-Level Backlog, Launch Milestones).
 
@@ -66,7 +74,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
   register through the standalone badge-schemas path (register #14, register #26, register #53
   as amended by register #54).
 - Deployment plumbing: `DeployHelper.sol` result fields, `DeploymentBase.sol` helpers, artifact keys, storage-layout baselines.
-- Envio indexer plan: two new contract blocks, thirteen core pooling entities (including the bilateral marker), one handler module; count stats and exact-label unit summaries derive from module and registry events alone. Six auxiliary contributor/provenance entities remain in the same schema but are not part of the core-phase count used by D7 and the indexer handoff.
+- Envio indexer plan: two new contract blocks, thirteen core pooling entities (including the bilateral marker), one handler module; count stats and exact-label unit summaries derive from module and registry events alone. Six auxiliary contributor/provenance entities remain in the same schema but are not part of the core-phase count used by D15 and the indexer handoff.
 - Hypercert cut-over: `bundleKind` discriminator, fulfilled-commitment bundling, on-chain allocation-class bps at cycle open with app-computed allowlists.
 
 ### Out of scope
@@ -94,7 +102,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 8. **Rewards are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit reward rail and amount. `ArbitrumExternal` also stores its exact source and token for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores zero source/token sentinels because pooling has no canonical-G$ configuration and a protocol-pool Request has no provider garden yet; after acceptance the SettlementModule derives and stores both its write-once `gDollarToken` and the selected provider garden Safe as payer. That rail is ineligible for `recordRewardPaid`; protocol-to-garden support first names the provider garden, then the garden Safe funds a conserved parent plan with an explicit retained amount and contributor child payouts. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
 9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
 10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and StewardCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
-11. **Schema registration is the first PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`).
+11. **Schema registration is the first deployable PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`). The same first contracts PR may begin with non-deployable RED ABI/storage/event tests and `CommitmentPoolingBounds.t.sol`; those tests freeze the five bounded constants before any bounded module loop turns GREEN. This ordering does not authorize a deployment or make an unfrozen provisional value part of the ABI.
 12. **Allocation classes on-chain as bps at cycle open**. Six-role bps snapshot (gardeners, treasury, operator, evaluator, community, funder) validated to sum exactly 10000 (precedent: `InvalidSplitRatio`, `packages/contracts/src/resolvers/Yield.sol:107,373`), emitted in `CycleOpened`. Per-address allowlist expansion stays app-computed on the existing merkle pipeline (`reports/corrections-log.md` §2 Hypercert row).
 13. **Post-MVP garden-to-garden is reserved, not implemented**. `counterpartyPoolId` and `counterpartyGardenAccount` exist as reserved struct fields (always zero in MVP) so the L3 amendment is additive.
 14. **Anti-farming posture from day one**: direction-aware independent confirmation (Offer recipient; Request creator), contributor self-confirmation blocked on both ordinary and steward-fallback paths (mirrors `SelfAttestation`, `packages/contracts/src/resolvers/WorkApproval.sol:153-156`), operator fallback requires a visible reason, concurrent open-commitment caps in the register, and disputes restore an explicitly stored prior state.
@@ -177,8 +185,8 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
 | PartiallyApproved <-> EvidenceSubmitted | derived | New evidence/work after partial approvals flips forward; the counter events flip back. |
-| -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy for contributor recognition and payout defaults only), proving every active linked Work is current against `WorkApprovalResolver.latestDecisionSequence`, freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkDecision`, `syncWorkDecisions`, or the one-time `attachAssessment` call once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with `requirements.length == 0`, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy, verified-credit, or linked-Work freshness prerequisites. All paths revalidate that the confirmer threshold remains reachable after excluding every contributor. |
-| ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator), where a GardenAccount default resolves to that garden's operator/owner Hat wearers as direct callers rather than an ERC-6551 `execute`; each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled`. Every frozen contributor is excluded from every confirmation path. Fallback: `confirmFulfillmentAsFallback(commitmentId, reason)` operator/owner with mandatory reason, also forbidden when the caller is a contributor. Register converts the lead provider's units (`UnitsFulfilled`). |
+| -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy for contributor recognition and payout defaults only), proving every active linked Work is current against `WorkApprovalResolver.latestDecisionSequence`, freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkDecision`, `syncWorkDecisions`, or the one-time `attachAssessment` call once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with `requirements.length == 0`, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy, verified-credit, or linked-Work freshness prerequisites. All paths require either an ordinary named/default threshold that remains reachable after excluding every contributor, or an explicitly enabled protocol fallback backed by a registered `protocolPoolId`. |
+| ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator), where a GardenAccount default resolves to that garden's operator/owner Hat wearers as direct callers rather than an ERC-6551 `execute`; each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled(..., confirmer, Ordinary, "")`. Every frozen contributor is excluded from every confirmation path. `confirmFulfillmentAsFallback(commitmentId, reason)` requires a current local garden steward/owner and emits `PoolFallback`, or, only when `protocolFallbackEnabled`, a current protocol-garden steward/owner and emits `ProtocolFallback`; both require a reason and reject contributors. Local authority is tested first for dual-role callers, and module ownership alone grants neither confirmation path. Register converts the lead provider's units (`UnitsFulfilled`). |
 | Fulfilled -> Reconciled | derived | `CycleClosed` for the commitment's cycleId; cycle-less commitments (cycleId == 0) derive Reconciled from `PoolClosed`. |
 | -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. Offered/Requested have no committed units and emit no register release; Accepted releases exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
 | -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. Offered/Requested emit no register release; Accepted/ReadyForConfirmation release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
@@ -186,7 +194,7 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious / Fulfilled / Cancelled / Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution applies the ordinary anti-farming guard first: a resolving steward who is on the current or already-frozen contributor roster reverts `SelfConfirmation`. It then requires the same opened-policy, `totalVerifiedCredits > 0`, and complete linked-Work freshness predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and contribution-credit accounting and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
 | Cancelled/Expired -> Reconciled at cycle close | derived | `CycleClosed` event; no on-chain per-commitment write (no unbounded loops at close). |
 
-Fulfillment posture (locked): the party receiving the delivered work confirms by default—Offer recipient/counterparty or Request creator/requester—contributor self-confirmation is blocked, and operator/owner fallback requires a reason and is also blocked for a steward who is a contributor. When that receiving party is a GardenAccount, the claiming garden's stewards confirm directly: the module resolves the GardenAccount to its operator/owner Hat wearers and accepts those addresses, never an ERC-6551 `execute` from the account itself.
+Fulfillment posture (locked): the party receiving the delivered work confirms by default—Offer recipient/counterparty or Request creator/requester—contributor self-confirmation is blocked, and local garden fallback requires a reason and is also blocked for a steward who is a contributor. When that receiving party is a GardenAccount, the claiming garden's stewards confirm directly: the module resolves the GardenAccount to its operator/owner Hat wearers and accepts those addresses, never an ERC-6551 `execute` from the account itself. A commitment whose ordinary path would be structurally unreachable must explicitly opt into the Green Goods protocol-garden fallback before acceptance; the protocol team is never added silently.
 
 ## 6. Contract Work
 
@@ -253,8 +261,9 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 29 | `latestWorkDecisionSequence` | `mapping(bytes32 workUID => uint64 sequence)` (resolver-assigned chronological order; 0 = no sequenced decision) |
 | 30 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (identity/audit only; never an ordering key) |
 | 31 | `commitmentWorkUIDs` | `mapping(uint256 commitmentId => bytes32[] activeWorkUIDs)` (bounded enumerable active-link set used by every readiness/freeze preflight) |
+| 32 | `protocolPoolId` | `uint256` (set once by the first and only `PoolType.Protocol` registration; 0 = not registered) |
 
-Gap: `uint256[19] private __gap;` (31 named + 19 reserved = 50 total). This declaration-order
+Gap: `uint256[18] private __gap;` (32 named + 18 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
 slot/offset assertions remain authoritative at implementation time.
 
@@ -295,6 +304,8 @@ interface ICommitmentPoolingModule {
     enum ClaimMode { Open, ApprovalGated }
 
       enum ContributorPolicy { Open, LeadManaged }
+
+      enum ConfirmationPath { Ordinary, PoolFallback, ProtocolFallback }
 
       enum DisputeResolution { RestorePrevious, Fulfilled, Cancelled, Expired }
 
@@ -397,6 +408,7 @@ interface ICommitmentPoolingModule {
         bool contributorsFrozen;
         uint32 confirmationThreshold;    // N of the named group; 1 under the counterparty default
         uint32 confirmationCount;
+        bool protocolFallbackEnabled;    // explicit pre-acceptance Green Goods team fallback selection
         bool requiresAssessment;
         bytes32 assessmentUID;           // attached v2/v3 assessment; zero until attached
         bytes32 needUID;                 // community Need this commitment addresses; 0 = none (amendment 2026-07-04)
@@ -442,6 +454,7 @@ interface ICommitmentPoolingModule {
         uint256 counterCommitmentId;     // 0 = none; must exist in the same pool; immutable one-way reference (amendment 2026-08-01)
         address[] confirmers;            // empty = Offer recipient / Request creator default
         uint32 confirmationThreshold;    // ignored (forced 1) when confirmers is empty
+        bool protocolFallbackEnabled;    // explicit structural fallback through registered protocol-pool Hats
         DeclaredReward reward;
         uint256 declaredUnitValue;       // 0 = undeclared; pair-bound with declaredValueBasis (amendment 2026-08-01)
         string declaredValueBasis;       // empty = undeclared; exact-label identity like unitLabel
@@ -532,7 +545,12 @@ interface ICommitmentPoolingModule {
     );
     /// @notice Pre-acceptance valuation update (amendment 2026-08-01); mirrors RewardDeclared.
     event ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis);
-    event ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold);
+    event ConfirmerRuleSet(
+        uint256 indexed commitmentId,
+        address[] confirmers,
+        uint32 threshold,
+        bool protocolFallbackEnabled
+    );
     event ClaimRequested(
         uint256 indexed commitmentId,
         address indexed claimant,
@@ -554,6 +572,7 @@ interface ICommitmentPoolingModule {
     event ExchangeAccepted(
         uint256 indexed commitmentIdA,
         uint256 indexed commitmentIdB,
+        uint256 poolId,
         address indexed acceptorA,
         address acceptorB
     );
@@ -620,7 +639,12 @@ interface ICommitmentPoolingModule {
     event ConfirmationRecorded(
         uint256 indexed commitmentId, address indexed confirmer, uint32 confirmationCount, uint32 threshold
     );
-    event CommitmentFulfilled(uint256 indexed commitmentId, bool fallbackConfirmation, string reason);
+    event CommitmentFulfilled(
+        uint256 indexed commitmentId,
+        address indexed confirmer,
+        ConfirmationPath confirmationPath,
+        string reason
+    );
     event CommitmentCancelled(uint256 indexed commitmentId, address indexed canceller, string reasonCID);
     event CommitmentExpired(uint256 indexed commitmentId, address indexed caller);
     event CommitmentDisputed(
@@ -754,7 +778,9 @@ interface ICommitmentPoolingModule {
     function onGardenMinted(address garden) external returns (uint256 poolId);
 
     /// @notice Backfill for pre-upgrade gardens and the protocol pool.
-    ///         Gating: PoolType.Protocol requires module owner; PoolType.Garden
+    ///         Gating: PoolType.Protocol requires module owner, sets the
+    ///         write-once protocolPoolId, and rejects a second Protocol pool
+    ///         with PoolExists(existingProtocolGarden). PoolType.Garden
     ///         requires garden operator/owner or module owner.
     function registerPool(address garden, PoolType poolType) external returns (uint256 poolId);
 
@@ -817,7 +843,12 @@ interface ICommitmentPoolingModule {
     /// @notice Gating: pool steward, pre-acceptance only. Records-only valuation
     ///         term (decision 16); pair rule enforced, nothing derived on-chain.
     function setDeclaredValue(uint256 commitmentId, uint256 declaredUnitValue, string calldata declaredValueBasis) external;
-    function setConfirmerRule(uint256 commitmentId, address[] calldata confirmers, uint32 threshold) external;
+    function setConfirmerRule(
+        uint256 commitmentId,
+        address[] calldata confirmers,
+        uint32 threshold,
+        bool protocolFallbackEnabled
+    ) external;
 
     /// @notice Claim eligibility (register #7, register #8):
     ///         Garden pools: caller must hold any role hat in the pool garden
@@ -999,8 +1030,12 @@ interface ICommitmentPoolingModule {
     ///         confirm the team's fulfillment.
     function confirmFulfillment(uint256 commitmentId) external;
 
-    /// @notice Gating: pool steward; reason mandatory (fallback stays visible).
-    ///         Reverts SelfConfirmation when the steward is a contributor.
+    /// @notice Gating: current commitment-pool steward/owner Hat wearer, or,
+    ///         only when protocolFallbackEnabled, current registered protocol-
+    ///         pool steward/owner Hat wearer. Local authority is tested first,
+    ///         so a dual-role caller records PoolFallback. Module ownership
+    ///         alone is not confirmer authority. Reason is mandatory and
+    ///         SelfConfirmation excludes every contributor on both paths.
     function confirmFulfillmentAsFallback(uint256 commitmentId, string calldata reason) external;
 
     // ─────────────── Exits, disputes, rewards ────────────────────────
@@ -1046,6 +1081,7 @@ interface ICommitmentPoolingModule {
     ) external view returns (bool); // Fulfilled + frozen active roster + Work/evidence credit
     function getPendingClaim(uint256 commitmentId, address claimant) external view returns (PendingClaim memory);
     function getConfirmers(uint256 commitmentId) external view returns (address[] memory);
+    function protocolPoolId() external view returns (uint256);
     function workCommitmentOf(bytes32 workUID) external view returns (uint256 commitmentId);
     function getLinkedWorkUIDs(uint256 commitmentId) external view returns (bytes32[] memory);
     function isApprovalCounted(bytes32 approvalUID) external view returns (bool);
@@ -1110,7 +1146,7 @@ retry.
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
 | Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the post-unpause `registerPool` backfill |
-| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`) |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); first Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)` |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume |
@@ -1118,8 +1154,8 @@ retry.
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation-class bps sum == 10_000; recognition-policy bps sum == 10_000 (protocol default 2_000 equal / 8_000 verified); both become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID; `liveCommitmentCount == 0` |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`); `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`) |
-| Commitment | `setDeclaredReward` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared` |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`); `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation |
+| Commitment | `setDeclaredReward` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
 | Commitment | `acceptExchange` | creator of referenced commitment A | B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; both cycle/identity/class-quota/provider-cap checks run before mutation. B's creation consent plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Two `CommitmentAccepted` events, two registry commits, two slots, and one `ExchangeAccepted` marker are atomic. |
@@ -1137,7 +1173,7 @@ retry.
 | Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
 | Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
 | Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
-| Confirmation | `confirmFulfillmentAsFallback` | steward | mandatory reason; contributor-steward is blocked (`SelfConfirmation`) |
+| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
 | Exit | `cancelCommitment` | creator or steward (from Offered/Requested) · steward only (from Accepted) | reason CID; never from ReadyForConfirmation except via dispute resolution; allowed while module paused |
 | Exit | `expireCommitment` | anyone (permissionless) | past dueDate, or cycle endTime when dueDate == 0 |
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
@@ -1148,30 +1184,25 @@ retry.
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); only the accountable lead provider is the exposure/count subject (§6.2) |
-| Register admin | `setModule` | register owner (deployer EOA today; protocol multisig is the target) | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
-| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner (deployer EOA today; protocol multisig is the target) | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
-| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner (deployer EOA today; protocol multisig is the target) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
-| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | respective owner (deployer EOA today; protocol multisig is the target) | UUPS convention repo-wide; existing Assessment initializer is never re-run |
+| Register admin | `setModule` | register owner: protocol 3-of-5 Safe before any mainnet activation | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner: protocol 3-of-5 Safe before this lane's mainnet upgrade | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
+| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: protocol 3-of-5 Safe before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | protocol 3-of-5 Safe | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
-**Ownership, stated truthfully (owner decision, 2026-07-30).** Every "owner" cell above resolves
-to the deployer EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` today, not a Safe. The three live
-Arbitrum proxies this lane touches — GardenToken, WorkApprovalResolver, and AssessmentResolver —
-each report that EOA as `owner()` on-chain, it is the same address already pinned as `--sender` in
-the §7.4 command contract, and the not-yet-deployed CommitmentPoolingModule, CommitmentRegistry,
-and TestimonyResolver inherit that owner from the same deploy path.
-`packages/contracts/AGENTS.md § Mainnet Additional Requirements` makes 3-of-5 Safe ownership a
-blocking mainnet rule. That rule is **knowingly waived for this tier only**: register #38's
-residual-risk acceptance — unaudited UUPS-upgradeable contracts on mainnet, where "upgrade
-authority and access control carry the weight the audit would otherwise have carried" — is hereby
-extended to cover *ownership* of the non-custodial/non-transferable pooling tier
-(`CommitmentPoolingModule`, `CommitmentRegistry`, `AssessmentResolver`,
-`TestimonyResolver`). Stated plainly, without softening: a single EOA key can upgrade
-every one of these contracts to arbitrary code, and its compromise or loss is unrecoverable. The
-value tier is unaffected and still binds in full — `SettlementModule`, `CeloSettlementExecutor`,
-and the per-garden Celo Safes keep the 3-of-5 protocol rule and the complete audit/timelock gate,
-and the waiver lapses the moment the pooling tier gains custody or the register becomes
-transferable. Migrating these owners to the protocol multisig is tracked work, not a
-prerequisite of this lane.
+**Ownership and release gate (2026-08-02 correction; supersedes the waiver clause in the
+2026-07-30 owner decision).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
+proxies currently report deployer EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`.
+That is observed state, not acceptable final authority for this lane. The
+`packages/contracts/AGENTS.md § Mainnet Additional Requirements` gate applies to the pooling tier
+without exception: before any mainnet upgrade, deployment, schema/module activation, or unpause,
+the external audit has no unresolved critical/high finding, protocol UUPS/admin authority is
+verified on the 3-of-5 Gnosis Safe, the 48-hour mainnet timelock is configured, at least two weeks
+of testnet operation are evidenced, and rollback is documented and tested. Deployment tooling may
+use the verified live owner only for a human-authorized, fail-closed ownership-transfer transaction
+plan whose post-check proves the Safe owns every touched proxy; no later plan step may rely on the
+EOA as upgrade or administrative authority. The same gate covers CommitmentPoolingModule,
+CommitmentRegistry, AssessmentResolver, TestimonyResolver, and every other protocol proxy this lane
+deploys or upgrades.
 
 EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the access-control picture:
 
@@ -1184,30 +1215,38 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 
 #### Behavior notes an implementer must not miss
 
-- **Confirmer rule storage and loop bound**: `MAX_CONFIRMERS = 32`. `createCommitment` and
+- **Confirmer rule storage, structural fallback, and loop bound**: `MAX_CONFIRMERS` is an ABI-visible
+  bound whose current **planning target** is 32; the first contract PR freezes its measured value
+  only after the required 8/16/24/32 harness records the result table below.
+  `createCommitment` and
   `setConfirmerRule` reject `confirmers.length > MAX_CONFIRMERS` with
   `TooManyConfirmers(supplied, maximum)` before class registration, commitment storage, or event
-  emission. Empty means Offer counterparty or Request creator, threshold 1; when that default
+  emission. Both calls store and emit `protocolFallbackEnabled`; setting it true while
+  `protocolPoolId == 0` reverts `ModuleNotReady` before mutation. Empty means Offer counterparty
+  or Request creator, threshold 1; when that default
   party is a GardenAccount, the module resolves it at confirmation time to the claiming garden's
   operator/owner Hat wearers and accepts any of them as the eligible confirmer, so a Garden-claimed
   commitment is confirmed by a steward transaction rather than an ERC-6551 `execute` from the
   GardenAccount. The GardenAccount address itself never counts as a confirmer. Every frozen
-  contributor is still excluded, so a steward who is also on the roster reverts `SelfConfirmation`,
-  and every roster mutation still revalidates that the threshold remains reachable against the
-  resolved wearer set. At acceptance, the
+  contributor is still excluded. At acceptance, the
   now-bounded named group is de-duplicated and every active contributor is excluded. Every later
   contributor mutation revalidates the group against the contributor-membership mapping. The module
-  persists and emits the resolved group; acceptance reverts `InvalidConfirmerRule` when the
-  threshold exceeds remaining eligible addresses. A roster mutation reverts
-  `ConfirmationThresholdUnreachable` before state changes when too few non-contributor confirmers
-  would remain. `createCommitment` and `setConfirmerRule` also reject `threshold == 0` with a
+  persists and emits the resolved group. Without protocol fallback, acceptance reverts
+  `InvalidConfirmerRule` when the threshold exceeds remaining eligible addresses, and a roster
+  mutation reverts `ConfirmationThresholdUnreachable` before state changes when too few
+  non-contributor confirmers would remain. With explicit protocol fallback, that same ordinary
+  reachability failure is permitted because the registered protocol garden supplies the selected
+  structural path; this does not add protocol actors to the named count or lower its threshold.
+  `createCommitment` and `setConfirmerRule` also reject `threshold == 0` with a
   non-empty named list, `InvalidConfirmerRule`, before any storage or event mutation; only the
   empty-list default may resolve its own threshold, and it resolves to 1. Duplicates in the
   submitted list never change the stored threshold: the stored value is exactly the
   caller-supplied number, de-duplication happens at acceptance, and it is the de-duplicated
-  eligible count — after excluding every active contributor — that the acceptance-time
+  eligible count — after excluding every active contributor — that the ordinary
   `InvalidConfirmerRule` check compares the stored threshold against. The named group is data,
-  not a hat.
+  not a hat. Fallback confirmation always checks `SelfConfirmation` and a non-empty reason, then
+  classifies current pool-garden Hat authority as `PoolFallback` before checking the opted-in
+  protocol-garden Hat authority as `ProtocolFallback`; module ownership alone satisfies neither.
 - **Lead-provider identity (one formula everywhere)**: acceptance stores the Offer creator for
   every Offer; an Individual Request stores the accepted counterparty; and a Garden-claimed
   Request stores the authenticated operator/owner who requested the claim: the current
@@ -1263,7 +1302,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   rule limiting team size. `isEligibleContributor` additionally requires the commitment to be
   `Fulfilled`, so attachment records attribution without treating unconfirmed work as verified.
 - **Cycle terminal safety**: creating any commitment with `cycleId != 0` increments that Cycle's
-  `liveCommitmentCount`. The first transition to Fulfilled, Cancelled, or Expired decrements it
+  `liveCommitmentCount`. Every live-to-Fulfilled, Cancelled, or Expired transition decrements it
   exactly once; a dispute preserves whether the pre-dispute commitment was already terminal, so
   resolving an already Expired record cannot decrement twice. ReadyForConfirmation remains live.
   `raiseDispute` from a still-live state changes no count, because that record was never
@@ -1469,12 +1508,16 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   and credit freeze on every Ready path, every-contributor confirmation exclusion, a Garden-claimed
   default confirmer resolved to the claiming garden's operator/owner wearers with the GardenAccount
   address itself rejected and a wearer who is also a contributor reverting `SelfConfirmation`,
+  protocol fallback disabled by default, `ModuleNotReady` when it is enabled before protocol-pool
+  registration, ordinary-unreachable acceptance/Ready rejection when disabled, the same
+  structural case reaching Ready and being confirmed by a non-contributor protocol-garden
+  steward/owner when enabled, local-vs-protocol `ConfirmationPath` provenance including
+  local-first classification for a dual-role caller, and module-owner-only rejection,
   lead-provider `submitForConfirmation` on a Garden-claimed Request, explicit repeated-action
   requirement binding, canonical recognition-vector recomputation/hash rejection including
   independent equal/verified remainder passes, a contributor receiving one remainder from each,
   and the separate integer-unit largest-remainder pass conserving budgets smaller than row count,
-  unreachable confirmer
-  threshold rejection, lead-only register exposure, assessment gating, claim identity,
+  unreachable ordinary confirmer threshold rejection, lead-only register exposure, assessment gating, claim identity,
   cancel/expiry/dispute count effects, reward derivation, provider-garden Work/assessment
   validation, and decision-sync dedupe/convergence. The separate NET-NEW harness
   `packages/contracts/test/CommitmentPoolingBounds.t.sol`, run as
@@ -1526,7 +1569,7 @@ Comment style follows `packages/contracts/src/modules/CookieJar.sol:55-59`.
 
 Gap: `uint256[44] private __gap;` (6 named + 44 reserved = 50 total).
 
-Ownership note: the decision language "owned by the module" is implemented as an `onlyModule` mutation gate (same shape as `onlyGardenToken`, `packages/contracts/src/modules/CookieJar.sol:65-68`). The `OwnableUpgradeable` owner stays the protocol upgrade owner, like every other upgradeable contract in the repo (`_authorizeUpgrade onlyOwner`, `packages/contracts/src/modules/CookieJar.sol:302-304`) — which today means the deployer EOA under the §6.1 ownership note, with the protocol multisig as the target. If the owner were the module, nobody could upgrade the register.
+Ownership note: the decision language "owned by the module" is implemented as an `onlyModule` mutation gate (same shape as `onlyGardenToken`, `packages/contracts/src/modules/CookieJar.sol:65-68`). The `OwnableUpgradeable` owner stays the protocol upgrade owner, like every other upgradeable contract in the repo (`_authorizeUpgrade onlyOwner`, `packages/contracts/src/modules/CookieJar.sol:302-304`) — the protocol 3-of-5 Safe required by §6.1 before this lane's mainnet activation. If the owner were the module, nobody could upgrade the register.
 
 #### Interface (canonical)
 
@@ -1661,7 +1704,7 @@ requires `ICommitmentPoolingModule(currentModule).paused() == true` and emits
   `CommitmentClass` value and adds no top-level storage slot. A `named + gap == 50` arithmetic
   assertion is not
   accepted as storage proof. Add the feature entry through the Bun-wrapped storage-layout gate.
-- Exchange ladder and transferable-voucher attachment documented: a reviewer can point at the one-way reference, shipped `acceptExchange` bilateral rung, classId, reserved `settlementAdapter`, fulfilled balances, and `exchange-architecture-brief.md` and see the later 1:1 wrap path without registry changes. Multilateral and transferable exchange remain gated.
+- Exchange ladder and transferable-voucher attachment documented: a reviewer can point at the one-way reference, approved August `acceptExchange` bilateral rung, classId, reserved `settlementAdapter`, fulfilled balances, and `exchange-architecture-brief.md` and see the later 1:1 wrap path without registry changes. The bilateral rung remains specification scope until its contract lane lands; multilateral and transferable exchange remain gated.
 
 ### 6.3 GardenToken wiring (live UUPS upgrade)
 
@@ -2226,7 +2269,7 @@ wrappers; never raw forge (`.claude/rules/contracts.md`).
 
 ## 8. Indexer plan
 
-Boundary restated: Envio indexes Green Goods core state only; EAS attestations are read from easscan (`packages/indexer/schema.graphql:282-288`). Every entity and stat below derives exclusively from `CommitmentPoolingModule` and `CommitmentRegistry` events. Rules that bind every entity here: `chainId: Int!` on all entities, composite IDs `${chainId}-${identifier}`, create-if-not-exists in update handlers, `bun codegen` after any `schema.graphql`/`config.yaml` change (`.claude/rules/indexer.md`).
+Boundary restated: Envio indexes Green Goods core state only; EAS attestations are read from easscan (`packages/indexer/schema.graphql:282-288`). Every entity and stat below derives exclusively from `CommitmentPoolingModule` and `CommitmentRegistry` events. Rules that bind every net-new entity here: `chainId: Int!`, composite IDs `${chainId}-${identifier}`, create-if-not-exists in update handlers, and `bun codegen` after any `schema.graphql`/`config.yaml` change (`.claude/rules/indexer.md`). The one documented package exception remains the existing `Garden.id` bare-address primary key; Garden rows still carry `chainId`, and relationship helpers point to that unchanged ID.
 
 ### 8.1 `config.yaml` additions
 
@@ -2253,10 +2296,11 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis)
       - event: RewardDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
       - event: ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis)
-      - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold)
+      - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled)
       - event: ClaimRequested(uint256 indexed commitmentId, address indexed claimant, address indexed requestedBy, uint8 kind, address gardenContext, uint64 requestedAt)
       - event: ClaimDeclined(uint256 indexed commitmentId, address indexed claimant, string reasonCID)
       - event: CommitmentAccepted(uint256 indexed commitmentId, address indexed claimant, address indexed counterparty, uint8 kind, address gardenContext, address leadProvider, address providerGarden)
+      - event: ExchangeAccepted(uint256 indexed commitmentIdA, uint256 indexed commitmentIdB, uint256 poolId, address indexed acceptorA, address acceptorB)
       - event: ContributorAdded(uint256 indexed commitmentId, address indexed contributor, address indexed addedBy)
       - event: ContributorRemoved(uint256 indexed commitmentId, address indexed contributor, address indexed removedBy)
       - event: ContributorRequirementAssigned(uint256 indexed commitmentId, address indexed contributor, uint16 indexed requirementIndex, bool assigned)
@@ -2269,7 +2313,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: AssessmentAttached(uint256 indexed commitmentId, bytes32 indexed assessmentUID, address attacher)
       - event: CommitmentReadyForConfirmation(uint256 indexed commitmentId, bool overridden, string reason)
       - event: ConfirmationRecorded(uint256 indexed commitmentId, address indexed confirmer, uint32 confirmationCount, uint32 threshold)
-      - event: CommitmentFulfilled(uint256 indexed commitmentId, bool fallbackConfirmation, string reason)
+      - event: CommitmentFulfilled(uint256 indexed commitmentId, address indexed confirmer, uint8 confirmationPath, string reason)
       - event: CommitmentCancelled(uint256 indexed commitmentId, address indexed canceller, string reasonCID)
       - event: CommitmentExpired(uint256 indexed commitmentId, address indexed caller)
       - event: CommitmentDisputed(uint256 indexed commitmentId, address indexed raiser, uint8 previousState, string reasonCID)
@@ -2314,6 +2358,7 @@ enum CommitmentClaimType { UNKNOWN GARDEN INDIVIDUAL }
 enum CommitmentClaimMode { UNKNOWN OPEN APPROVAL_GATED }
 enum CommitmentContributorPolicy { UNKNOWN OPEN LEAD_MANAGED }
 enum CommitmentRewardRail { UNKNOWN NONE ARBITRUM_EXTERNAL CELO_SETTLEMENT }
+enum CommitmentConfirmationPath { UNKNOWN ORDINARY POOL_FALLBACK PROTOCOL_FALLBACK }
 enum CommitmentClaimRequestState { PENDING ACCEPTED DECLINED SUPERSEDED }
 enum CommitmentUnitScope { POOL CYCLE }
   enum CommitmentEventType {
@@ -2323,7 +2368,8 @@ enum CommitmentUnitScope { POOL CYCLE }
   POOL_RESUMED POOL_CLOSED POOL_COMPOSTED POOL_REOPENED
   CLASS_REGISTERED PROVIDER_OPEN_COMMITMENT_CAP_UPDATED
   CYCLE_SEEDED CYCLE_OPENED CYCLE_CLOSED CYCLE_COMPOSTED CYCLE_CANCELLED
-  CREATED REWARD_DECLARED CONFIRMER_RULE_SET CLAIM_REQUESTED CLAIM_DECLINED ACCEPTED
+  CREATED REWARD_DECLARED VALUE_DECLARED CONFIRMER_RULE_SET CLAIM_REQUESTED CLAIM_DECLINED ACCEPTED
+  EXCHANGE_ACCEPTED
   CONTRIBUTOR_ADDED CONTRIBUTOR_REMOVED CONTRIBUTOR_REQUIREMENT_ASSIGNED CONTRIBUTOR_ROSTER_FROZEN
   WORK_LINKED WORK_UNLINKED APPROVED_WORK_COUNTED APPROVED_WORK_REVERSED EVIDENCE_ATTACHED
   ASSESSMENT_ATTACHED READY_FOR_CONFIRMATION CONFIRMATION_RECORDED FULFILLED
@@ -2336,7 +2382,7 @@ type CommitmentPool {
   chainId: Int!
   poolId: BigInt!
   garden: String! # garden account address, lowercase
-  gardenId: String! # relationship: chainId-lowercaseGardenAddress
+  gardenId: String! # relationship to documented bare-address Garden.id
   poolType: CommitmentPoolType!
   state: CommitmentPoolState!
   charterCID: String
@@ -2372,7 +2418,7 @@ type CommitmentCycle {
   poolId: BigInt!
   poolEntityId: String! # relationship: chainId-poolId
   garden: String!
-  gardenId: String! # relationship: chainId-lowercaseGardenAddress
+  gardenId: String! # relationship to documented bare-address Garden.id
   cycleType: CommitmentCycleType!
   state: CommitmentCycleState!
   startTime: BigInt!
@@ -2443,13 +2489,13 @@ type Commitment {
   cycleId: BigInt # null when not cycle-scoped
   cycleEntityId: String # relationship: chainId-cycleId
   garden: String!
-  gardenId: String! # relationship: chainId-lowercaseGardenAddress
+  gardenId: String! # relationship to documented bare-address Garden.id
   creator: String!
   recordedBy: String!
   counterparty: String # null until accepted
   leadProvider: String # Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
   providerGarden: String # EAS recipient/provider role scope after acceptance
-  providerGardenId: String # relationship: chainId-lowercaseProviderGarden
+  providerGardenId: String # relationship to documented bare-address Garden.id
   counterpartyKind: CommitmentClaimType
   direction: CommitmentDirection!
   commitmentType: CommitmentKind!
@@ -2468,6 +2514,7 @@ type Commitment {
   confirmationThreshold: Int!
   confirmationCount: Int!
   confirmers: [String!]!
+  protocolFallbackEnabled: Boolean!
   requiresAssessment: Boolean!
   assessmentUID: String
   needUID: String # community Need this commitment addresses; null/zero when none (amendment 2026-07-04)
@@ -2475,6 +2522,8 @@ type Commitment {
   counterCommitmentEntityId: String # relationship: chainId-counterCommitmentId; null when none
   declaredUnitValue: BigInt # 0/null = undeclared (amendment 2026-08-01)
   declaredValueBasis: String # exact-label basis; null when undeclared; value aggregation only per exact basis, read-model informational sums only
+  declaredValueUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ValueDeclared update was observed
+  declaredValueUpdateLogIndex: Int # nullable partner to declaredValueUpdateBlockNumber; compare the pair lexicographically
   metadataCID: String!
   workUIDs: [String!]!
   evidenceCIDs: [String!]!
@@ -2489,8 +2538,13 @@ type Commitment {
   rewardPayoutRef: String
   rewardRecordedBy: String
   readyOverridden: Boolean!
-  fulfilledByFallback: Boolean!
+  fulfilledBy: String # explicit CommitmentFulfilled.confirmer; null for non-confirmation terminal resolution
+  confirmationPath: CommitmentConfirmationPath # null until confirmed or when fulfillment came from dispute resolution
+  fallbackReason: String # non-empty only for POOL_FALLBACK / PROTOCOL_FALLBACK
+  fulfilledByFallback: Boolean! # convenience derivation: confirmationPath is a fallback value
   preDisputeState: CommitmentOnchainState
+  lifecycleBlockNumber: BigInt # latest state-derived projection cursor
+  lifecycleLogIndex: Int # nullable partner; compare the pair lexicographically
   disputeReasonCID: String
   cancelReasonCID: String
   createdAt: Int!
@@ -2612,7 +2666,7 @@ type CommitmentClaimRequest {
   requestedBy: String! # authenticated caller; differs from claimant for Garden claims
   claimType: CommitmentClaimType!
   gardenContext: String!
-  gardenContextId: String! # relationship: chainId-lowercaseGardenContext
+  gardenContextId: String! # relationship to documented bare-address Garden.id
   state: CommitmentClaimRequestState!
   reasonCID: String
   resolutionCode: String # CLAIM_DECLINED / CLAIM_ACCEPTED / COMMITMENT_ACCEPTED / COMMITMENT_CANCELLED / COMMITMENT_EXPIRED
@@ -2692,8 +2746,8 @@ type CommitmentExchange {
   commitmentEntityIdA: String! # relationship: chainId-commitmentIdA
   commitmentIdB: BigInt!
   commitmentEntityIdB: String! # relationship: chainId-commitmentIdB
-  acceptorA: String! # B creator, claimant/lead of A
-  acceptorB: String! # A creator, claimant/lead of B
+  acceptorA: String! # B creator, claimant of A; never A's lead/provider
+  acceptorB: String! # A creator, claimant of B; never B's lead/provider
   txHash: String!
   acceptedAt: Int!
 }
@@ -2732,8 +2786,8 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 
 - **Dedup counters**: pool/cycle counters increment exactly the way `holderCount`/`grantCount` do in `packages/indexer/src/handlers/greenWill.ts:66-88` (read existing entity, branch on prior existence, never double-count).
 - **Idempotency**: same-tx replay and already-exists guards as `packages/indexer/src/handlers/hypercerts.ts:38-42,71-75`.
-- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, zero allocation/counters, and event timestamps. Commitment placeholders use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional relations/provider/reward/dispute fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts but never resets already-applied monotonic counters or terminal state. Tests exercise each placeholder merge.
-- **ID helpers**: add `getGardenId(chainId, garden)`, `getCommitmentPoolId(chainId, poolId)`,
+- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, zero allocation/counters, and event timestamps. Commitment placeholders use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional relations/provider/reward/dispute/lifecycle-cursor fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts but never resets already-applied monotonic counters or a later lifecycle cursor/state. Tests exercise each placeholder merge.
+- **ID helpers**: retain `getGardenId(garden)` as normalized bare-address compatibility, and add `getCommitmentPoolId(chainId, poolId)`,
   `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`,
   `getCommitmentContributorId(chainId, commitmentId, contributor)`,
   `getCommitmentWorkAttributionId(chainId, workUID)`,
@@ -2763,16 +2817,25 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   not backfill these immutable facts from RPC reads or assume defaults that differ from the event.
 - **CPP-alignment term and reverse-index handlers**: `CommitmentCreated` assigns
   `counterCommitmentId`, its nullable composite `counterCommitmentEntityId`,
-  `declaredUnitValue`, and `declaredValueBasis` directly from the event. When the counter ID is
+  `declaredUnitValue`, and `declaredValueBasis` directly from the event only when the row has no
+  `ValueDeclared` replay cursor. A prior out-of-order `ValueDeclared` creates/updates the
+  placeholder and sets the nullable `(declaredValueUpdateBlockNumber,
+  declaredValueUpdateLogIndex)` cursor, so creation can populate immutable facts without
+  restoring the older creation-time value/basis pair. The value pair itself is never used as an
+  unset sentinel because zero/empty is valid. When the counter ID is
   non-zero, the same handler create-if-not-exists loads
   `CommitmentCounterIndex(chainId, counterCommitmentId)` and appends the new commitment entity ID
-  once; a replay of the same transaction/log cannot append again. `ValueDeclared` assigns the
-  emitted value/basis pair to the commitment and changes no lifecycle, unit, reward, settlement,
-  or counter-index field. No later event reads `counterCommitmentId` to transition either side.
+  once; a replay of the same transaction/log cannot append again. `ValueDeclared` compares its
+  `(blockNumber, logIndex)` lexicographically with the nullable stored cursor, ignores an older or
+  duplicate position, and otherwise assigns the emitted value/basis pair plus the new cursor.
+  It changes no lifecycle, unit, reward, settlement, or counter-index field. Replay fixtures cover
+  creation→update, update→creation, duplicate delivery, and two updates delivered in either order.
+  No later event reads `counterCommitmentId` to transition either side.
 - **Atomic exchange marker**: the two ordinary `CommitmentAccepted` events remain the canonical
   per-commitment lifecycle inputs. `ExchangeAccepted` additionally creates exactly one
   `CommitmentExchange` row with ID
-  `chainId-EXCHANGE-poolId-idA-idB`, ordered as emitted A then B. The handler stores both composite
+  `chainId-EXCHANGE-poolId-idA-idB`, ordered as emitted A then B, using the event's non-indexed
+  `poolId` rather than an RPC read or a prerequisite commitment row. The handler stores both composite
   commitment relationships, both acceptors, the transaction hash, and timestamp. Entity
   existence is the atomic-acceptance marker, so no redundant boolean is stored; the handler does
   not increment pool, member-history, unit, provider, or
@@ -2781,25 +2844,60 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   populate lifecycle fields. Replay never duplicates the pair. Pair status after acceptance is
   derived by joining the two commitments; cancellation, expiry, dispute, or fulfillment on one
   side never mutates the other or the immutable exchange row.
-- **Pool-member-history deltas**: every delta below runs only after the unique
-  `CommitmentEvent(chainId, txHash, logIndex)` replay guard proves the event is new, and every
-  touched row is create-if-not-exists with zero counters. `CommitmentAccepted` increments
-  `leadAccepted` for the emitted non-zero `leadProvider`. `ConfirmationRecorded` increments
-  `confirmationsGiven` for its emitted `confirmer`; `CommitmentDisputed` increments
-  `disputesRaised` for its emitted `raiser`. The first terminal `CommitmentFulfilled` increments
-  `leadFulfilled` for the stored lead, increments `contributorFulfilled` once for each frozen
-  active contributor other than that lead, and increments `receivedFulfilled` for exactly one
-  stored receiving identity: Offer uses `counterparty`, Request uses `creator`. A GardenAccount
-  receiver is counted as that GardenAccount, never fanned out to its current stewards or to every
-  named confirmer. The first terminal `CommitmentCancelled` or `CommitmentExpired` increments
-  `leadCancelled` or `leadExpired` only when the commitment was accepted and has a non-zero stored
-  lead. No request, contributor-roster, readiness, confirmation-threshold, dispute-resolution,
-  reward, value-declaration, or counter-commitment event changes any other history counter.
+- **Confirmation authority and provenance**: `ConfirmerRuleSet` assigns the emitted named/default
+  rule and `protocolFallbackEnabled` together, so a replay never invents Green Goods team authority
+  from pool type or caller identity. `CommitmentFulfilled` assigns its explicit `confirmer`,
+  `confirmationPath`, and reason to `fulfilledBy`, `confirmationPath`, and `fallbackReason`;
+  `fulfilledByFallback` is derived only for `PoolFallback` or `ProtocolFallback`. `Ordinary`
+  requires an empty reason. `PoolFallback` renders as local-garden fallback and
+  `ProtocolFallback` renders as “confirmed by Green Goods team — fallback”; handlers never infer
+  either authority from `transaction.from`. A `DisputeResolved` transition to Fulfilled leaves
+  these confirmation-only fields null.
+- **Lifecycle and terminal projection helper**: after the unique
+  `CommitmentEvent(chainId, txHash, logIndex)` guard proves an event is new, every lifecycle event
+  calls one `applyLifecycleTransition` helper with its explicit next state and
+  `(blockNumber, logIndex)`. The helper compares that cursor lexicographically with the
+  commitment's stored lifecycle cursor; an older delivery may still create its immutable audit row
+  and actor counter, but it cannot regress state or reapply state-derived deltas. The same helper is
+  used by `CommitmentDisputed`, `CommitmentFulfilled`, `CommitmentCancelled`,
+  `CommitmentExpired`, and terminal `DisputeResolved.finalState`; `RestorePrevious` passes the
+  emitted restored state.
+  Transitioning from Expired to Disputed reverses the current Expired pool/cycle/member-history
+  bucket and re-increments a non-zero cycle's `liveCommitmentCount`. Resolving that dispute to
+  Expired restores the Expired bucket, while resolving it to Cancelled applies only the Cancelled
+  bucket. A live Accepted/Ready dispute changes no live count until its terminal resolution.
+  Therefore `Expired -> Disputed -> Cancelled` leaves exactly one current terminal outcome and one
+  paired live-count decrement, never both Expired and Cancelled history for the same commitment.
+- **Pool-member-history deltas**: every touched row is create-if-not-exists with zero counters.
+  `CommitmentAccepted` increments `leadAccepted` for the emitted non-zero `leadProvider`.
+  `ConfirmationRecorded` increments `confirmationsGiven` for its emitted `confirmer`;
+  `CommitmentDisputed` increments `disputesRaised` for its emitted `raiser` even when its lifecycle
+  projection is older than the stored cursor. A transition into Fulfilled increments
+  `leadFulfilled` for the stored lead, increments `contributorFulfilled` once for each frozen active
+  contributor other than that lead, and increments `receivedFulfilled` for exactly one stored
+  receiving identity: Offer uses `counterparty`, Request uses `creator`. A GardenAccount receiver
+  is counted as that GardenAccount, never fanned out to its current stewards or to every named
+  confirmer. A transition into Cancelled or Expired increments `leadCancelled` or `leadExpired`
+  only when the commitment was accepted and has a non-zero stored lead. Reopening Expired reverses
+  its lead bucket before the resolution applies the one current outcome. Request,
+  contributor-roster, readiness, confirmation-threshold, reward, value-declaration, and
+  counter-commitment events change no other history counter.
+- **Terminal side projections**: every transition into Fulfilled, including
+  `DisputeResolved(finalState = Fulfilled)`, loads the bounded attribution index and marks each
+  referenced attribution confirmed, appends the commitment to
+  `NeedCommitmentIndex.fulfilledCommitmentEntityIds` once when `needUID != 0`, and applies the same
+  pool/cycle/current-outcome counters as ordinary fulfillment. Cancelled and Expired resolutions
+  apply their ordinary current-outcome counters. Exact-label units and provider exposure remain
+  event-owned by `UnitsFulfilled`/`UnitsReleased`, so the lifecycle helper never duplicates those
+  accounting deltas.
 - **Cycle live-count read model**: `CommitmentCreated` with non-zero `cycleId` increments
   `CommitmentCycle.liveCommitmentCount`, including Offered/Requested records that do not affect
-  `openCommitmentCount`. The first Fulfilled, Cancelled, or Expired transition decrements it once;
-  Ready and Disputed do not. Replay-idempotent event handling preserves the exact on-chain count,
-  and W26 reads this field rather than accepted-only exposure when deciding whether close can run.
+  `openCommitmentCount`. `applyLifecycleTransition` decrements on every live-to-terminal
+  Fulfilled/Cancelled/Expired transition, including terminal `DisputeResolved`; Expired-to-Disputed
+  re-increments, and its later terminal resolution decrements once. Ready and disputes raised from
+  live states do not change the count. Replay and reverse-delivery fixtures preserve the exact
+  on-chain count, and W26 reads this field rather than accepted-only exposure when deciding whether
+  close can run.
   - **Pool-less authority/configuration audit**: `ModuleUpdated`,
     `ModuleDependencyUpdated`, `ModuleSchemaUIDUpdated`, and `ModulePauseStatusChanged` each create
     exactly one replay-idempotent `CommitmentEvent` with the matching event type, nullable
@@ -2829,9 +2927,10 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   semantics: only the contributor's first evidence attribution changes `evidenceCredits` from
   0 to 1; later distinct CIDs remain separately queryable provenance without adding recognition
   weight. Work events separately increment the named contributor's `approvedWorkCredits`.
-  Fulfillment loads the bounded attribution index and marks each referenced attribution
-  confirmed, never using a database-wide scan. The indexer never increments on-chain-style
-  contributor credits again at fulfillment.
+  The shared terminal projection helper's Fulfilled branch loads the bounded attribution index and
+  marks each referenced attribution confirmed, whether fulfillment arrived through
+  `CommitmentFulfilled` or `DisputeResolved`, never using a database-wide scan. The indexer never
+  increments on-chain-style contributor credits again at fulfillment.
 - **Address normalization**: `normalizeAddress` for every address field (`helpers.ts:68-70`). Generic `CommitmentEvent.actor` is nullable and is populated only from an explicit actor parameter; never infer account-abstraction identity from `transaction.from`.
 - **Effective Work-credit delta**: `ApprovedWorkCounted` loads the durable Work attribution,
   transitions `creditActive` false → true, stores the emitted non-zero sequence and decision UID,
@@ -2869,9 +2968,19 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `Hours` never share an ID. Tests process each unit event before `CommitmentCreated` and prove
   the self-describing keys still converge, alongside same-label, case-distinct, replay,
   cancellation/expiry, fulfillment, and dispute fixtures.
-- **Need lineage**: non-zero `CommitmentCreated.needUID` appends the composite commitment/cycle IDs once to `NeedCommitmentIndex`; Fulfilled appends the commitment to `fulfilledCommitmentEntityIds`; commitment-bundled Hypercert handling appends its composite Hypercert ID. UID zero creates no index row. This is reference indexing from Green Goods events/metadata, not EAS indexing.
+- **Need lineage**: non-zero `CommitmentCreated.needUID` appends the composite commitment/cycle IDs once to `NeedCommitmentIndex`; the terminal projection helper's Fulfilled branch appends the commitment to `fulfilledCommitmentEntityIds` once for both ordinary and dispute-resolved fulfillment; commitment-bundled Hypercert handling appends its composite Hypercert ID. UID zero creates no index row. This is reference indexing from Green Goods events/metadata, not EAS indexing.
 
-**Existing Garden ID migration (required, not a compatibility footnote).** Before these handlers ship, change `Garden.id` from the legacy lowercase address to `${chainId}-${lowercaseAddress}` and update every foreign key, helper, generated operation, handler lookup, shared query, fixture, and consumer. Exact relationship additions are: `GardenDomains.gardenId`; `GardenVault.gardenId`; `GardenVaultIndex.gardenId`; `VaultAddressIndex.gardenId`; `VaultDeposit.gardenId`; `VaultEvent.gardenId`; `YieldAllocation.gardenId`; `Hypercert.gardenId`; `CampaignCookieJar.sourceGardenIds`; and `Gardener.firstGardenId`/`gardenIds`, plus the new commitment/settlement fields above. Existing raw `garden`, `sourceGardens`, `firstGarden`, and `gardens` addresses remain filter/display attributes, never relationship keys. There is no mixed-ID period: deploy the schema/handlers together, perform a full Envio replay for every configured chain, run the shared query cutover against the replayed dataset, then switch consumers. Acceptance proves Arbitrum and Sepolia copies of the same address remain distinct and no raw-address Garden lookup remains.
+**Existing Garden identity compatibility (required).** `Garden.id` remains the normalized bare
+GardenAccount address and every Garden row continues to carry its explicit `chainId`, matching
+`packages/indexer/AGENTS.md`; no Commitment Pooling lane may convert it to a composite ID.
+`gardenId`, `providerGardenId`, and `gardenContextId` relationship fields therefore store the same
+normalized bare Garden ID. Every new Commitment Pooling, settlement, request, index, event, and
+summary entity keeps its own chain-scoped composite `id` plus `chainId`, so their cross-chain
+identity never depends on changing `Garden.id`. Handler/query fixtures prove existing raw-address
+Garden lookups remain compatible, relationship helpers resolve to those Garden rows, and otherwise
+identical Arbitrum/Sepolia commitment entities remain distinct through their own IDs and chain
+fields. A full replay is required for the new schema and handlers, not for a Garden primary-key
+cutover, and there is no mixed Garden-ID mode to support.
 
 **Generated-config preservation.** Extend both `packages/contracts/script/utils/envio-integration.ts` and `packages/indexer/scripts/check-indexing-boundary.mjs` allowlists for `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, and `CeloSettlementExecutor`. A regression fixture must run the deployment-artifact updater twice and prove all four contract blocks and exact event signatures survive unchanged; unknown EAS or Celo token blocks must still fail the boundary check.
 
@@ -3197,7 +3306,7 @@ repeats the schema-key pattern; nothing may ever rewrite an existing key (the
     `Fulfilled`; its units argument does not imply partial-fulfillment readiness. A module v1.1
     must separately specify remaining-slot semantics, register transitions, events, and indexer
     deltas before permitting partial conversion.
-12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the deployer EOA today under the §6.1 ownership note, protocol multisig as the target — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
+12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the protocol 3-of-5 Safe required by §6.1 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 
 ---
 

@@ -2,9 +2,9 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: pre-build review accepted (register #70) — one blocker and twenty-nine further corrections applied. Live Linear read 2026-07-31 confirms every named PRD-721 prerequisite Done: PRD-557, PRD-747, PRD-748, PRD-762, PRD-757, PRD-759. PRD-649 architecture freeze is the single remaining gate and is In Progress with both of its own blockers cleared; merging these corrections is what closes it. Value release, Safe authority, audit, canary, and external evidence remain blocked`
+**Status**: `ACTIVE: specification-ready, dispatch-blocked. PRD-557, PRD-747/748, PRD-762, and PRD-757/759 are cleared; register #70's fine-comb corrections and Decision Log #44's structural protocol fallback are reconciled in the implementation sources. Before PRD-721 starts, merge the corrected sources to develop, complete the authorized live Linear convergence write plus re-read, and dispatch explicitly. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-07-30`
+**Last Updated**: `2026-08-02`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -26,7 +26,7 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `../commitment-credit-follow-on/spec.md` | Borrow-and-repay `CreditRegistry` | **August-wave companion chain** (unblocked 2026-08-01, Decision Log #39); dispatch gates in its status.json |
 | `uiux-spec.md` | Canonical cross-surface flows + §4 state tables + job kinds | UI/UX contract |
 | `wireframes.md` | 27 CP frame headings across four surfaces, including W28–W31 exchange/template additions (W6 is a retirement tombstone) | **Lo-fi structural truth** |
-| `diagrams.md` | D1–D19 Mermaid execution reference (26 named sections rendering 38 Architecture Mermaid blocks; ERDs, sequences, state machines, topology, responsibility, deployment, error taxonomy, and bilateral exchange) | Flow truth |
+| `diagrams.md` | D1–D26 Mermaid execution reference (26 named sections rendering 38 Architecture Mermaid blocks; ERDs, sequences, state machines, topology, responsibility, deployment, error taxonomy, and bilateral exchange) | Flow truth |
 | `prototypes.md` | 36 numbered storyboards, including planned SB-35/SB-36 exchange/template source journeys, plus missing-frame index and action inventory | Fidelity-neutral walks — **adds no design authority** |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration | Asset index |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
@@ -119,8 +119,10 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 41 | **Atomic bilateral paired acceptance joins the August contract scope.** `acceptExchange(B)` resolves one-way counterpart A, permits only Offer×Offer / Offered×Offered / Individual×Individual pairs with distinct creators, and lets A's creator atomically accept both sides. Every ordinary per-side cycle, identity, quota, and provider-cap predicate remains; the two ordinary acceptance events, two registry commits, two provider slots, and one exchange marker all succeed or revert together. After acceptance, neither lifecycle transitions the other. PRD-649 reopens for this one additive function and re-closes through the second same-day amendment. | Afo decision 2026-08-01. Exact function, error, event, permission, count-safety, and indexer semantics are in `contract-spec.md` amendment 2026-08-01 (second same-day amendment), decision 18. Register #75. No implementation, deploy, broadcast, or authority mutation is authorized by this entry. |
 | 42 | **PRD-651 gains a canonical design-only exchange-architecture brief.** `exchange-architecture-brief.md` specifies the ladder from reference record to bilateral acceptance to later voucher wrap, quoter, limiter, and venue, including the Sarafu-pool hybrid fork and evidence/partner/audit/legal gates. `settlementAdapter` and `settlementEnabled` activation remain gated and outside August scope. | Afo decision 2026-08-01. The brief makes the reserved architecture reviewable without dispatching it. Register #76. |
 | 43 | **The August app lane gains an exchange-pair flow, a practice-template library, and a noun-reduction/plain-language pass.** The work reuses shipped primitives, adds no chain state beyond the already-approved exchange fields/function, introduces no new module calls beyond creation plus `acceptExchange`, and keeps templates as content/config only. | Afo decision 2026-08-01. Canonical UX is `uiux-spec.md` Appendix E with W28–W31 and planned journeys SB-35/SB-36. Register #77. Aug 12 remains a stretch date and every evidence/authorization gate binds unchanged. |
+| 44 | **Selected protocol-team confirmation fallback (pre-build).** A commitment may explicitly set `protocolFallbackEnabled` at creation or through the pre-acceptance `setConfirmerRule`. The module stores one write-once `protocolPoolId` from the existing root/community garden's `PoolType.Protocol` registration and resolves its current steward/owner Hats dynamically; no address is hardcoded. Ordinary named/default reachability is evaluated first, but an explicitly selected protocol path satisfies structural reachability when the small garden otherwise has no eligible confirmer. `confirmFulfillmentAsFallback` checks current local-garden Hats first (`PoolFallback`), then selected current protocol-garden Hats (`ProtocolFallback`); module ownership alone is not confirmer authority. Mandatory reason and absolute contributor exclusion remain. `CommitmentFulfilled` emits confirmer plus `ConfirmationPath`, and surfaces render protocol provenance as "confirmed by Green Goods team — fallback". | Afo decision 2026-08-02, refined in the implementation-readiness follow-up. Motivation is the pilot's small, newly established gardens, where one person often both seeds a commitment and works it, leaving nobody eligible to confirm inside that garden. Exact ABI/storage/reachability semantics are in `contract-spec.md` amendment 2026-08-02. Register #79. This closes the architecture question before Solidity exists; dispatch, deploy, and broadcast remain separately gated. |
+| 45 | **The G$ circulation model has an explicit return leg: gardens spend earned G$ on Green Goods team services.** G$ a garden earns by keeping protocol-pool commitments is what it then spends on support sessions, onboarding, and workshops from the Green Goods team, closing the loop the corrected funding topology (`reports/corrections-log.md` §9) left open above garden Safes. `synthesis-circular-gd` draws the arc as a first-class leg and marks local merchant/store routes as unmodeled. **Internally settled; externally pending** — whether charging gardens for protocol services is compatible with the House of Alignment circulation mandate remains an open question with GoodDollar (§9b), so the arc is drawn and labelled as awaiting that confirmation. | Afo decision 2026-08-02, from the visual-gallery review. Supersedes the "no modelled return leg" status of §9b's topology note without closing §9b's external half. No contract, state, or settlement interface depends on the answer; distribution scaling and partner-facing claims do. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–77)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–79)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -174,7 +176,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 42. Broadcast tiering restored (2026-07-20, Afo): **supersedes register #41's “nothing broadcasts during Build” clause and restores register #38's July timing.** The non-value tier — `CommitmentPoolingModule`, non-transferable `CommitmentRegister`, and the two EAS schemas — broadcasts during Build by **2026-07-31** under its narrower gate: full tests, deploy dry-run, post-deploy verification, proven upgrade/rollback, and explicit human authorization. The value tier — `SettlementModule`, `CeloSettlementExecutor`, and per-garden Celo Safes — remains a separately authorized Release action on or after **2026-08-12** under the full audit, timelock, CCIP live-route and dual-chain evidence gate, Safe/Zodiac/AA review, rollback, and live-exit gate. No agent self-authorizes any broadcast; the non-value exception lapses if custody or transferability is introduced.
 43. Scope and Design date correction (2026-07-20, Afo): **supersedes register #40 only for the Scope and Design date.** Scope and Design closes Wednesday, **2026-07-22**. Build remains **2026-07-31**, Release remains **2026-08-12**, Follow On / Hardening remains **2026-12-31**, and the July 31 and September 30 operational checkpoints remain separate from the four native phases.
 44. Follow On / Hardening date correction (2026-07-21, Afo): **supersedes registers #40 and #43 only for the Follow On / Hardening date.** Follow On / Hardening closes **2026-09-30**, alongside but distinct from the Community plus settlement-evidence operational checkpoint. Scope and Design remains **2026-07-22**, Build remains **2026-07-31**, Release remains **2026-08-12**, and the July 31 dry run remains an operational checkpoint. Co-dated September closures are parallel evidence decisions, not a false sequential dependency and not implementation or broadcast authority.
-45. Count-safe accounting and Architecture closure (2026-07-22, Afo): cross-commitment arithmetic uses counts; `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage. Raw units remain per commitment and in `CommitmentUnitSummary` rows keyed by exact UTF-8 label bytes (`hours` and `Hours` differ). The register limit is a concurrent provider commitment-count cap, with one slot acquired at acceptance and released exactly once on fulfillment, accepted cancellation, or accepted expiry; disputes preserve slot state. NET-NEW interfaces are renamed directly with no compatibility aliases or migration. Architecture is self-contained with D7c Hypercert cut-over, D13b exact sensitive permissions, and D14 offline jobs; existing diagrams keep their numbers. Product code, SVGs, wireframes, publication, and Linear writes are outside this correction pass.
+45. Count-safe accounting and Architecture closure (2026-07-22, Afo): cross-commitment arithmetic uses counts; `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the sole cross-commitment percentage. Raw units remain per commitment and in `CommitmentUnitSummary` rows keyed by exact UTF-8 label bytes (`hours` and `Hours` differ). The register limit is a concurrent provider commitment-count cap, with one slot acquired at acceptance and released exactly once on fulfillment, accepted cancellation, or accepted expiry; disputes preserve slot state. NET-NEW interfaces are renamed directly with no compatibility aliases or migration. Architecture is self-contained with D16 Hypercert cut-over, permission table exact sensitive permissions, and D7 offline jobs; existing diagrams keep their numbers. Product code, SVGs, wireframes, publication, and Linear writes are outside this correction pass.
 46. CCIP settlement re-freeze (2026-07-23, Afo): **supersedes the Functions/CRE receipt-verification architecture in register #32, Decision Log #14/#22, and every current lane handoff.** G$ remains canonical on Celo and never enters CCIP token transfer. Arbitrum sends the exact versioned command tuple; a bounded Celo `CeloSettlementExecutor` executes through Zodiac Roles as a member, never a Safe owner; Celo returns the exact versioned acknowledgment tuple. Same-key command retries cannot execute value twice, acknowledgment retry is independent, native ETH/CELO fee reserves are sponsored and monitored, and only an authenticated success acknowledgment for the subject's current key/attempt produces `Confirmed`. Envio indexes bounded executor events but not raw G$ transfers. **Register #53 supersedes this entry's former “no active Celo CCIP testnet” premise:** Celo Sepolia is active and the direct mainnet route is published in both directions, but the exact Arbitrum Sepolia↔Celo Sepolia pair is unavailable and Celo's current official support page lists CCIP only for mainnet; live Celo Sepolia CCIP endpoint proof is therefore conditional on a later official lane/router. This re-freeze defines future implementation and dry-run scope; it does not authorize code changes in the plan-only pass. A fresh lane dispatch is required before implementation. Safe authority, external audit, mainnet broadcasts, and value canaries remain human Release gates.
 47. Pilot evidence boundary (2026-07-23, Afo; structural gate superseded by register #49): `pilot-evidence-spec.md` is the normative source for September evaluation questions, claim strength, baseline and metric-registry requirements, coercion/exposure/repair safeguards, circulation integrity, falsification, privacy tiers, and the evidence packet. It does not expand the settlement or Envio implementation boundary, set numeric thresholds, choose source systems, authorize participant-level tracking, or support causal livelihood/community-wide claims. The human-owned `settlement_evidence` lane and COM-11 (formerly PRD-735) remain blocked; register #49 narrows the remaining gate to the named operational assignments and garden-specific values required before outcome interpretation.
 48. CCIP review reconciliation (2026-07-23, Afo): each settlement implementation accepts one immutable Chainlink CCIP router. Active/previous grace applies only to authenticated peers; router replacement requires pause, disposition of every old-router in-flight message, verified implementation upgrade, and explicit resume. Batch membership remains immutable with compile-time ceiling 24, but batching starts disabled and the production limit is set only after worst-case destination gas plus atomic Safe execution measurement. Authenticated, well-formed policy failures use the frozen bounded `FailureCode`; authentication, token-bearing, unsupported-version, and malformed messages revert without creating a result. Current route values are release evidence, never timeless constants: the verifier live-reads the official directory, rejects zero/mismatch, and persists source/date/block/code hash before dry-run or broadcast. Current prototypes must keep Queued, Dispatched, delayed, executed/ack-pending, Confirmed, and authenticated Failed distinct, and must present command/destination/ack IDs, Explorer links, and manual-execution guidance without inventing a manual delay mutation.
@@ -214,7 +216,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     Register unit events are self-describing with pool, cycle, and exact label; cycle zero creates
     no cycle summary. Official `421614` EAS/SchemaRegistry addresses replace test EAS, while Hats
     remains test-deployed. Immutable permission hashes exclude mutable caps/allowance balances.
-    D7b uses the canonical settlement entities. Envio v2.32.12 uses unordered multichain mode,
+    D20 uses the canonical settlement entities. Envio v2.32.12 uses unordered multichain mode,
     first-event metadata seeding, and Celo Sepolia RPC config. Endpoint proof is an ephemeral
     Arbitrum Sepolia↔Ethereum Sepolia deployment; Celo Sepolia independently proves
     executor/Safe/Roles/surrogate behavior. EntryPoint v0.7 is the AA target. Celo deployment uses
@@ -226,9 +228,9 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     old/new module fields and no accounting mutation. The indexer handoff covers pooling and
     `SettlementModule` on both Arbitrum production/rehearsal networks, and
     `CeloSettlementExecutor` on both Celo production/rehearsal networks with explicit
-    `11142220` RPC configuration. D7b draws all seven canonical settlement entities, and
+    `11142220` RPC configuration. D20 draws all seven canonical settlement entities, and
     `SettlementConfiguration.localContract` makes the verified-artifact seed schema-complete;
-    remote identity means the exact CCIP selector. D9's sequence syntax is parser-safe.
+    remote identity means the exact CCIP selector. D21's sequence syntax is parser-safe.
     Documentation-only validation closes this correction; implementation, Linear/source
     convergence, dependency installation, codegen, deploy, broadcast, and authority changes
     remain separately gated.
@@ -254,7 +256,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     owning an upgrade. AssessmentV3 and Community Testimony registration recover cleanly from an
     on-chain-success/local-artifact-failure split by reusing only an exact existing record.
     `OpenCommitmentCapRequired(poolId)` is the exact module/register zero-cap error, with no event
-    or storage mutation. D9 uses `ResultStatus.Success`, and provider-slot mutations are
+    or storage mutation. D21 uses `ResultStatus.Success`, and provider-slot mutations are
     single-shot/state-guarded rather than idempotent. Its historical AA conclusion is superseded by
     register #58's chain-versus-account-version distinction and two-tier evidence gate.
     Concurrent prototype artifact counts and ARIA tab behavior are outside this contracts/plan
@@ -512,6 +514,20 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     no new chain state, no ranking or per-person score, and no custody follow. The Aug 12 target
     remains a stretch date, all lane and human authorization gates bind unchanged, and this entry
     authorizes no implementation dispatch or external write.
+78. Focused implementation-readiness correction (2026-08-02, Afo authorization; supersedes only
+    the living requirements that conflicted with package contracts, while preserving the dated
+    wording of registers #38 and #70): `Garden.id` remains the normalized bare GardenAccount
+    address with explicit `chainId`, and every new Commitment Pooling entity owns its own
+    chain-scoped composite ID. One cursor-ordered lifecycle projection helper handles ordinary
+    terminal events and terminal `DisputeResolved.finalState`, including reversible
+    `Expired -> Disputed -> RestorePrevious/Cancelled` current-outcome and live-count deltas,
+    Fulfilled attribution confirmation, and Need lineage. `CommitmentExchange.acceptorA/B` are
+    crossed claimants only; each Offer creator remains its own lead/provider. The prior pooling-tier
+    ownership waiver is withdrawn: the repository's external-audit, protocol 3-of-5 Safe,
+    48-hour mainnet timelock, two-week testnet-operation, and tested-rollback requirements block
+    every pooling-tier mainnet upgrade, deployment, activation, and unpause. This correction
+    authorizes plan reconciliation only, not product-package implementation, broadcast, authority
+    transfer, publication, or external write.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
@@ -531,7 +547,7 @@ and creates no new product or architecture decision.
 - [x] Out of scope defined: no bridged G$, bridge custody/unbounded value authority, Sarafu integration, transferable settlement vouchers, indexed Celo/G$ transfers, garden-to-garden federation, leaderboards, or public credit scores; no commitment EAS schema; no claim flow in the community interface v1
 - [x] Lightest honest validation chosen per lane (see Validation)
 - [x] Design coverage audit completed 2026-07-10 (23 assets / 20 Mermaid blocks at that date); superseded by the 2026-07-25 architecture coherency pass — the inventory is now 29 assets rendering 32 Architecture Mermaid blocks, tracked in `diagrams.md` and `wireframes.md`, and every block must parse before implementation handoff.
-- [x] Settlement scoping landed 2026-07-04: `settlement-spec.md` (SettlementModule, Safe topology, gardener receipt, multi-chain tiers, failure states) + diagrams D8–D10 + [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686)
+- [x] Settlement scoping landed 2026-07-04: `settlement-spec.md` (SettlementModule, Safe topology, gardener receipt, multi-chain tiers, failure states) + diagrams D18–D23 + [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686)
 - [x] Settlement transport re-frozen and corrected through 2026-07-24: commitment-bound
   message-only CCIP command; exact command/ack tuples and fee-aware failure codes; idempotent
   same-key command retries; independent acknowledgment retry; one immutable router per
@@ -570,7 +586,7 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | September: independent packages/community PWA after shared-foundation extraction | `community` | [PRD-682](https://linear.app/greenpill-dev-guild/issue/PRD-682) | ⏳ |
 | September: Need intake into the commitment-seeding gate | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) + Community admin handoff (historical label: canceled PRD-683) | ⏳ |
 | September: settlement-capacity evidence definition and signed pilot packet | `settlement_evidence` | [COM-11](https://linear.app/greenpill-dev-guild/issue/COM-11) (historical label: PRD-735) | 🚧 operational-assignment-gated |
-| Follow-on: borrow-and-repay `CreditRegistry` + credit indexer/shared/admin/PWA surfaces | `credit_follow_on` | PRD-697 (Follow On / Hardening; parked) | 🚧 blocked |
+| August companion: borrow-and-repay `CreditRegistry` + credit indexer/shared/admin/PWA surfaces | `credit_follow_on` | PRD-697 (Todo; unblocked into the August wave by register #73) | 🚧 dispatch-gated on in-code interface freeze, spec revalidation, and human legal/operations review |
 
 Spine records (not work items): [PRD-649](https://linear.app/greenpill-dev-guild/issue/PRD-649) architecture record (reopened for one additive exchange function and re-closed by register #75), [PRD-650](https://linear.app/greenpill-dev-guild/issue/PRD-650) proof capability (parent of the August workstreams), [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651) design-only transferable settlement-voucher architecture at `exchange-architecture-brief.md` with implementation and `settlementAdapter`/`settlementEnabled` activation still gated, [RESR-57](https://linear.app/greenpill-dev-guild/issue/RESR-57)/[RESR-58](https://linear.app/greenpill-dev-guild/issue/RESR-58) research framing. Linked research: RESR-15, RESR-4, PRD-275.
 
@@ -602,7 +618,13 @@ does not begin against moving contracts or indexer queries.
 5. [ ] **Build the contracts backend first (PRD-721):** execute the three contract PR chains against the frozen PRD-649 architecture. No client, admin, or editorial implementation begins in this stage.
 6. [ ] **Build the indexer backend second (PRD-722):** implement and prove the indexed read model against PRD-721's frozen events, including generation, replay/cutover, block preservation, and query-boundary evidence.
 7. [ ] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. PRD-723 must close before PRD-724, PRD-725, or PRD-726 begins.
-8. [ ] **Human-authorized core activation:** pass local/fork/testnet, storage, upgrade/rollback, deploy-dry-run, and post-deploy gates; broadcast the approved non-value module/register/schema tier; persist and verify artifacts; update Envio deployment configuration; deploy/reindex; and re-read live entities/queries. Value-bearing settlement remains behind its separate audit/timelock/Safe/CCIP/AA/canary authorization.
+8. [ ] **Human-authorized core activation:** pass local/fork, storage, deploy-dry-run, and post-deploy
+   gates plus every blocking repository requirement: external audit with no unresolved
+   critical/high finding, verified protocol 3-of-5 Safe ownership for every touched UUPS/admin
+   surface, 48-hour mainnet timelock, at least two weeks of testnet operation, and tested rollback.
+   Only then may a human authorize broadcast of the non-value module/register/schema tier, persist
+   and verify artifacts, update Envio deployment configuration, deploy/reindex, and re-read live
+   entities/queries. Value-bearing settlement retains its additional CCIP/AA/canary authorization.
 9. [ ] **Existing admin foundation:** resolve PRD-737 and the explicitly scoped admin-console/output defects against verified live backend data. Do not turn this into a redesign or absorb new Commitment Pooling feature implementation.
 10. [ ] **Complete prototype readiness (PRD-760):** reconcile the hi-fi fixture counts and chrome defects after the backend is proven and before any client, admin, or editorial implementation begins.
 11. [ ] **Implement runtime interfaces:** build PRD-724 client PWA, PRD-725 admin, and PRD-726 editorial surfaces only after PRD-723 and PRD-760 close, using the frozen ABI, generated queries, and verified deployment output.
@@ -767,11 +789,11 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 ## Follow-ups from the 2026-07-18 audit response (Linear MCP was unauthenticated this session — file these when it reconnects)
 
 1. **App-wide Operator → Steward rename**: community glossary (`docs/docs/reference/glossary-community.md`), docs site, i18n keys ×3 locales, admin/client UI copy, vocab-lint update. CP specs/visuals already use steward (mapping note: steward = operator/owner Hats).
-2. **PRD-727 docs-promotion appendix refresh** (historical PRD-680): diagrams.md §Appendix already lists the ship-time docs edits; re-check after the audit-response restructure (D6 acts, D13 matrix, CommitmentRequirement entity).
+2. **PRD-727 docs-promotion appendix refresh** (historical PRD-680): diagrams.md §Appendix already lists the ship-time docs edits; re-check after the audit-response restructure (D10 acts, D4 matrix, CommitmentRequirement entity).
 3. ~~**Linear re-apply pass**~~ — ✅ **DONE 2026-07-19.** The corrected wording was applied live to PRD-686, the project description, RESR-57, RESR-58 and the Pool Identity companion; the archived packs keep their original text as provenance (they are frozen records of what was applied on 2026-07-11, not current guidance). **Closed out 2026-07-22 (live re-read):** the canonical synthesis's two sentence-edits (see #9) are moot — Linear Doc 2 is archived and the corrected model is verified in the Google Doc. The G$-on-Arbitrum correction to PRD-649 + the Lifecycle companion (`reports/corrections-log.md` §9e) was verified **already clean** in live Linear: neither PRD-649's body nor the [Lifecycle And Aggregator Semantics](https://linear.app/greenpill-dev-guild/document/commitment-pooling-lifecycle-and-aggregator-semantics-bfdd633951d6) doc carries any "G$ on Arbitrum / partner-confirmed" claim (the word "Arbitrum" does not appear in either), and the [Pool Identity + Capability Architecture](https://linear.app/greenpill-dev-guild/document/commitment-pooling-pool-identity-capability-architecture-d6b7e5c22324) companion carries the corrected split-state topology explicitly. No Linear write was needed.
 4. **Ops confirmation before the first garden Safe deploys**: designate the Dev Guild recovery multisig's concrete Celo address independently of the retired working-capital Safe, and record the HoA stream's receiving-address evidence (GG protocol Safe) in the settlement handoff (milestone M1, settlement-spec §8).
 5. **Optional hi-fi design pass** (Stitch / Claude Design) over the revised client pool surfaces (W1/W2/W25) once these wireframes settle.
-6. **Resolve the G$-for-protocol-services question** with GoodDollar (`reports/corrections-log.md` §9b): may Green Goods charge gardens G$ for protocol services, given the House of Alignment circulation mandate? Open external dependency; the corrected topology has no return leg.
+6. **Confirm the G$-for-protocol-services return leg with GoodDollar** (`reports/corrections-log.md` §9b and the 2026-08-02 entry): may Green Goods charge gardens G$ for protocol services, given the House of Alignment circulation mandate? **The internal half is now settled** — Decision Log #45 makes the return leg part of the circulation model, and `synthesis-circular-gd` draws it. What remains is the external half: the mandate reading has been raised with GoodDollar governance and never answered, so the arc ships labelled as awaiting confirmation and must not be described to partners as agreed. Call planned 2026-08-19. No contract, state, or settlement interface depends on the answer; distribution scaling and partner-facing claims do.
 7. **Linear archive candidates — only ONE of six is clean.** A 2026-07-18 pre-archive confirmation pass grep-proved each candidate against every repo spec and the canonical synthesis. **The specs carry the WHAT; these docs carry the WHY, and the WHY is almost never reproduced.**
 
    | Linear doc | Verdict | What is lost if archived as-is |
@@ -803,54 +825,36 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
    These were hand edits by design (a 72k-character Linear document cannot be safely regenerated through the MCP write path). **Moot as of 2026-07-22:** Linear Doc 2 is archived, and Google Doc tab 02 — re-authored, not a mirror of Doc 2's `§2.7`/Change-Log structure — already states the corrected model. `working-capital` returns 0 doc-wide, and the tab-01 money map renders the direct HoA → GG protocol Safe → garden route with "No bridged G$, ever." No edit remains outstanding.
 
-## Ontology sidecar gaps found by the 2026-07-26 visual alignment
+## Ontology sidecar coverage — closed 2026-08-02
 
-The ontology foundation (PR #661) made `packages/shared/src/ontology/green-goods-ontology.json` repo
-canon and encoded twelve commitment-pooling vocabularies as `status: "spec"`. Aligning the visual
-artifacts against it confirmed every state/enum label in `diagrams.md` maps 1:1 onto a canonical
-member, and that all four spec state machines render the sidecar's `on-chain` / `derived` /
-`off-chain` storage flags correctly.
+The ontology foundation (PR #661) remains repo canon at
+`packages/shared/src/ontology/green-goods-ontology.json`. This pass added the eleven frozen
+vocabularies that were previously present only in the commitment and settlement specs:
+`ConfirmationPath`, `DisbursementState`, `DisbursementKind` (including the ABI-reserved
+`LoanPrincipal` member), `FundingRoute`, `FailureCode`, `ResultStatus`,
+`AcknowledgmentDeferralCode`, `SettlementExecutionStatus`, `CommitmentClaimRequestState`,
+`CommitmentEventType`, and `CommitmentUnitScope`. Each is `status: "spec"` with a
+`planned_anchor`, so the spec-arrival guard fails when its Solidity or GraphQL symbol lands until
+the sidecar is converted to live representations.
 
-It also surfaced vocabularies these diagrams **must** draw that the sidecar does not yet carry.
-Per the alignment contract these are flagged here rather than invented — each is already frozen in a
-canonical spec, so the gap is sidecar coverage, not an undefined term:
+The commitment state machine also carries Decision #44's structural reachability rule and exact
+`Ordinary` / `PoolFallback` / `ProtocolFallback` provenance. The sidecar now contains 41
+vocabularies and watches 25 planned anchors; `diagrams.md` and the gallery remain the manual visual
+leg because `check:ontology` intentionally parses neither Markdown nor images.
 
-| Vocabulary drawn | Layer and exact members | Frozen in | Drawn by |
-|---|---|---|---|
-| `DisbursementState` | Solidity `None, Queued, Dispatched, Confirmed, Failed, Cancelled`; GraphQL mirror `UNKNOWN, QUEUED, DISPATCHED, CONFIRMED, FAILED, CANCELLED` | `settlement-spec.md` §3.1.2 | D10, D10b, D7b |
-| `FailureCode` | Solidity, 12 members `None` … `BalanceDeltaMismatch` | `settlement-spec.md` §3.1.2 | D16, D7b |
-| `AcknowledgmentDeferralCode` | Solidity `None, QuoteFailed, FeeReserveLow, SendFailed` | `settlement-spec.md` §3.1.2 | D9.2, D16, D7b |
-| `DisbursementKind` | Solidity `ContributorReward, Funding`; GraphQL `UNKNOWN, CONTRIBUTOR_REWARD, FUNDING` | `settlement-spec.md` §3.1.2 | D7b |
-| `FundingRoute` | Solidity `None, ProtocolToGarden`; GraphQL `UNKNOWN, NONE, PROTOCOL_TO_GARDEN` | `settlement-spec.md` §3.1.2 | D7b, D8, D12 |
-| `ResultStatus` / `SettlementExecutionStatus` | **two names, two layers**: Solidity `ResultStatus { None, Success, Failed }`, GraphQL `SettlementExecutionStatus { UNKNOWN, SUCCESS, FAILED }` | `settlement-spec.md` §3.1.2, §6 | D7b, D9.1 |
-| `CommitmentClaimRequestState` | GraphQL `PENDING, ACCEPTED, DECLINED, SUPERSEDED` | `contract-spec.md` §8.2 | D11b, D7.2 |
-| `CommitmentEventType` | GraphQL, 40+ members incl. `UNITS_COMMITTED`, `UNITS_RELEASED`, `UNITS_FULFILLED` | `contract-spec.md` §8.2 | D7.1 |
-| `CommitmentUnitScope` | GraphQL `POOL, CYCLE` | `contract-spec.md` §8.2 | D7.2 |
+Two app-only families remain deliberately outside the domain sidecar: the gardener-facing
+settlement copy states D23 derives (`support-queued` … `support-cancelled-failed`) and the offline
+job runner's operational states (`waiting_for_hat`, `Syncing`, `RetryableFailure`, `Exhausted`,
+`Discarded`). The sidecar models the contract/indexer facts from which those interface states
+derive; it does not make transient presentation/runtime states protocol vocabulary.
 
-Two further families are app-side and may not belong in the sidecar at all — recorded so the decision
-is deliberate rather than an omission: the nine gardener-facing settlement states D10b derives
-(`support-queued` … `support-cancelled-failed`, `uiux-spec.md` §5.9) and the offline job states D14
-draws (`waiting_for_hat`, `Syncing`, `RetryableFailure`, `Exhausted`, `Discarded`); the sidecar's
-`job-kind` covers job *kinds* (`work`, `approval`) but no job *state* vocabulary exists.
-
-Conversely `accounting-state` (`Registered`, `Committed`, `Released`, `Fulfilled`) was in the sidecar
-but surfaced in no visual; D6c's unit-and-slot ledger now names its members explicitly.
-
-Register #70's repo-gate pass added the **entity-level** counterpart to that vocabulary list. These are
-read-model concepts the specs freeze but the sidecar does not carry, so `check:ontology`'s spec-arrival
-guard cannot police them when `ICommitmentPoolingModule.sol` and `ISettlementModule.sol` land:
-`CommitmentProviderExposure` (the count-only per-lead exposure row), the exact-label
-`CommitmentUnitSummary` POOL/CYCLE rows, and `promiseKeptRate` (the sole cross-commitment percentage,
-`commitmentsFulfilled / commitmentsDue`). The same next-step rule applies — encode them with
-`planned_anchor` entries when the interfaces land, in the same PR as the spec edit, per
-`.claude/context/ontology.md`. `bun run check:ontology` passes today (11 guards, 15 entities,
-30 vocabularies, 4 state machines, 14 planned anchors watched); these are coverage gaps, not drift.
-
-**Next step**: when the settlement and indexer enums land in Solidity/GraphQL, add them to the
-sidecar with `planned_anchor` entries so `check:ontology`'s spec-arrival guard watches them the way
-it watches the current twelve. `check:ontology` parses neither Markdown nor images, so `diagrams.md`
-and the gallery remain the manual leg of that contract.
+The three read-model arrivals that do not yet have implementations are watched explicitly in
+`pattern_watches`: `CommitmentProviderExposure`, exact-label `CommitmentUnitSummary`, and
+`promiseKeptRate` (`commitmentsFulfilled / commitmentsDue`). If any symbol appears in
+`packages/indexer/schema.graphql`, `check:ontology` requires the same implementation change to add
+its canonical entity or metric mapping. These are watched implementation obligations, no longer
+silent coverage gaps.
 
 ## Boundary
 
-No implementation code starts from this plan without Afo dispatching the specific lane or handoff. G$ split-state settlement is Build-phase scope via [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) (`settlement-spec.md`, Decision Log #14), targeting the 2026-08-12 Release. Implementation may begin only from its scoped handoff after the pooling reward/provider interface freezes; production Safe/Zodiac authority evidence, audit/timelock, native-fee policy, GoodDollar configuration, AA outcome, broadcasts, and canary remain human Release gates. The date waives no gate. Still out of scope for every lane: bridged G$ (never), arbitrary bridge-executor automation, a `packages/agent` settlement relayer/write path, bridge custody/unbounded value authority, Sarafu integration, transferable settlement vouchers and `settlementAdapter`/`settlementEnabled` activation (PRD-651), indexing raw Celo/G$ transfers, garden-to-garden federation, leaderboards, and public credit scores. PRD-651 now has a canonical design-only brief at `exchange-architecture-brief.md`; that document does not soften any implementation or activation gate. Optional later agent alerts are read-only and hold no settlement authority. Borrow-and-repay `CreditRegistry` is an active August-wave companion lane under the 2026-08-01 scope lock; its contracts lane remains manually blocked until the in-code pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates all clear.
+No implementation code starts from this plan without Afo dispatching the specific lane or handoff. Every pooling-tier mainnet upgrade, deployment, activation, and unpause is blocked by register #78's external-audit, protocol 3-of-5 Safe, 48-hour mainnet timelock, two-week testnet-operation, and tested-rollback requirements. G$ split-state settlement is Build-phase scope via [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) (`settlement-spec.md`, Decision Log #14), targeting the 2026-08-12 Release. Implementation may begin only from its scoped handoff after the pooling reward/provider interface freezes; production Safe/Zodiac authority evidence, native-fee policy, GoodDollar configuration, AA outcome, broadcasts, and canary add settlement-specific human Release gates. The date waives no gate. Still out of scope for every lane: bridged G$ (never), arbitrary bridge-executor automation, a `packages/agent` settlement relayer/write path, bridge custody/unbounded value authority, Sarafu integration, transferable settlement vouchers and `settlementAdapter`/`settlementEnabled` activation (PRD-651), indexing raw Celo/G$ transfers, garden-to-garden federation, leaderboards, and public credit scores. PRD-651 now has a canonical design-only brief at `exchange-architecture-brief.md`; that document does not soften any implementation or activation gate. Optional later agent alerts are read-only and hold no settlement authority. Borrow-and-repay `CreditRegistry` is an active August-wave companion lane under the 2026-08-01 scope lock; its contracts lane remains manually blocked until the in-code pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates all clear.

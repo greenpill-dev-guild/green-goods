@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
 **Created**: 2026-07-04
-**Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D8–D10 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `reports/corrections-log.md`.
+**Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D18–D23 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `reports/corrections-log.md`.
 **Decision basis**: Architecture 2 (split-state) remains locked from the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement" (`657f7233-9ba8-4c38-a0f9-e3a4fdc48739`) and the Architecture 3 re-score (`8243d7ef-f880-418e-86a6-f7da75067aa9`); their comparative reasoning is preserved in §10. The settlement transport was re-frozen on 2026-07-23 after Chainlink Functions retirement: Green Goods now uses **message-only Chainlink CCIP command + acknowledgment**, reusing the repository's existing CCIP sender/receiver pattern. The Arbitrum `SettlementModule` sends an authenticated settlement command; a bounded Celo `CeloSettlementExecutor` executes through Zodiac Roles; the executor sends an authenticated acknowledgment to Arbitrum. Canonical G$ never bridges. This decision replaces every normative Functions/CRE receipt-verification path and removes manual transaction reporting from the settlement lifecycle.
 
 **What stays true from the locked register**: no bridged G$, ever. CCIP transports data only and receives no token amounts. Sarafu integration and transferable settlement vouchers stay deferred. One Celo Safe exists per garden (1:1 mapping, deployed on demand); the Green Goods protocol Safe is the direct House of Alignment receiving account; the only modeled Green Goods funding route is protocol → garden. The Celo executor is a narrowly scoped Zodiac Roles member, never a Safe owner and never an arbitrary-call bridge. Gardeners never initiate a cross-chain command in the field. If the Celo AA/paymaster spike fails, protocol → garden funding may continue while automated gardener reward delivery and gardener sends remain blocked. No broadcast is authorized by this spec, a milestone date, or a passing implementation test.
@@ -94,7 +94,7 @@ success acknowledgment for its current execution key and attempt. The parent pay
 derived from those children. Canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`, Celo)
 never leaves Celo.
 
-## 2. Fund-flow topology (diagrams.md D8)
+## 2. Fund-flow topology (diagrams.md D18)
 
 ```text
 GoodDollar House of Alignment pilot funding (Celo, G$; mechanism pending partner evidence)
@@ -1534,7 +1534,7 @@ type SettlementConfiguration {
   id: ID! # chainId-settlement-config
   chainId: Int!
   role: String! # SOURCE or EXECUTOR
-  gardenerDeliveryEnabled: Boolean # SOURCE only
+  gardenerDeliveryEnabled: Boolean # nullable SOURCE only; null = unknown/not configured and never ready
   protocolGarden: String # SOURCE only; write-once initializer fact
   gDollarToken: String! # source initializer or executor immutable artifact fact
   hatsModule: String # SOURCE only; event-owned mutable trust root
@@ -1568,7 +1568,7 @@ type SettlementAccount {
   id: ID! # chainId-lowercaseGarden
   chainId: Int!
   garden: String!
-  gardenId: String! # composite Garden relationship
+  gardenId: String! # relationship to documented bare-address Garden.id
   accountChainId: Int!
   account: String!
   active: Boolean!
@@ -1587,7 +1587,7 @@ type SettlementGardenRoute {
   chainId: Int! # executor chain, 42220 for the pilot
   sourceChainId: Int! # source Garden identity chain, 42161 for Arbitrum One
   garden: String!
-  gardenId: String! # sourceChainId-lowercaseGarden
+  gardenId: String! # relationship to documented bare-address Garden.id on sourceChainId
   settlementAccountId: String! # sourceChainId-lowercaseGarden
   safe: String!
   rolesModifier: String!
@@ -1600,8 +1600,14 @@ type SettlementGardenRoute {
 }
 type Disbursement {
   id: ID! # chainId-disbursementId
-  chainId: Int! disbursementId: BigInt! garden: String! gardenId: String!
-  executorGarden: String! executorGardenId: String! commitmentId: BigInt commitmentEntityId: String
+  chainId: Int!
+  disbursementId: BigInt!
+  garden: String!
+  gardenId: String! # relationship to documented bare-address Garden.id on the source chain
+  executorGarden: String!
+  executorGardenId: String! # relationship to documented bare-address Garden.id on the source chain
+  commitmentId: BigInt
+  commitmentEntityId: String
   payoutPlanId: BigInt payoutPlanEntityId: String contributor: String contributorEntityId: String
   kind: DisbursementKind! fundingRoute: FundingRoute! source: String!
   recipient: String! token: String! amount: BigInt!
@@ -1619,7 +1625,7 @@ type CommitmentPayoutPlan {
   commitmentId: BigInt!
   commitmentEntityId: String!
   providerGarden: String!
-  providerGardenId: String!
+  providerGardenId: String! # relationship to documented bare-address Garden.id on chainId
   source: String!
   token: String!
   declaredAmount: BigInt!
@@ -1702,7 +1708,7 @@ type SettlementExecution {
   acknowledgmentReceiver: String!
   protocolVersion: Int!
   executorGarden: String!
-  executorGardenId: String!
+  executorGardenId: String! # relationship to documented bare-address Garden.id on sourceChainId
   isBatch: Boolean!
   settlementId: BigInt!
   attempt: Int!
@@ -2270,14 +2276,14 @@ Named sinks: garden store; seed/tool bank, equipment hire, water/solar service f
 ### Conflicts with current truth
 
 - **SUPERSEDED** — the doc's entry point 1, "HoA stream into a garden-controlled account." Current topology: the HoA stream lands directly in the **Green Goods protocol Safe on Celo** as an upstream fact the module never queues; `ProtocolToGarden` is the only modeled queued route onward to a garden Celo Safe (`reports/corrections-log.md` §9). No working-capital hop.
-- **UNMODELED (not superseded)** — the entry points "patron top-ups / matching into a season pool" and "gardener's own claimed UBI G$ brought into the pool," and the loop "store/merchant revenue in G$ reseeds the next season's pool." None has a modeled route; there is no return leg above garden Safes.
+- **UNMODELED (not superseded)** — the entry points "patron top-ups / matching into a season pool" and "gardener's own claimed UBI G$ brought into the pool," and the loop "store/merchant revenue in G$ reseeds the next season's pool." None has a modeled route. **Amended 2026-08-02**: one return leg above garden Safes is now modelled — gardens spending earned G$ on Green Goods team services (plan Decision Log #45; `reports/corrections-log.md` 2026-08-02). That leg is a circulation-model claim, not a settlement route: it adds no `DisbursementKind`, no `FundingRoute`, and no indexed path here, and its external compatibility with the House of Alignment mandate is still unconfirmed. The three entry points above remain unmodeled exactly as recorded.
 - **CONFIRMED** — the exit fee (GIP-24, 10% decreasing to a 5% floor) matches current truth, resolving the doc's own caveat to "confirm the current value before quoting it to gardeners." GIP-24 (exit fee) is distinct from GIP-26 (the House of Alignment distribution stream).
 
 ---
 
 **Settlement-evidence implications (separate blocked lane; not settlement implementation scope)**
 
-1. **A flow-type tag on settled flows.** Nothing in `settlement-spec.md` carries one. `DisbursementKind {ContributorReward, Funding}` and `FundingRoute {None, ProtocolToGarden}` exist but tag the *purpose of an outbound disbursement*, not recirculation vs leak — neither is a substitute.
+1. **A flow-type tag on settled flows.** Nothing in `settlement-spec.md` carries one. `DisbursementKind {ContributorReward, Funding, LoanPrincipal}` and `FundingRoute {None, ProtocolToGarden}` exist but tag the *purpose of an outbound disbursement*, not recirculation vs leak — neither is a substitute.
 2. **Celo-side token observation, which the indexer boundary currently excludes.**
    `settlement-spec.md` §6 indexes Green Goods protocol events from both SettlementModule and
    CeloSettlementExecutor, but no raw G$ transfers or arbitrary token events. Every in-pool
@@ -2315,8 +2321,17 @@ garden, threshold, qualitative, safeguarding, privacy, reproducibility, and publ
 assignments in `pilot-evidence-spec.md` §10.3. Missing evidence remains unavailable rather than
 creating implementation authority. Tracked at `reports/corrections-log.md` §9c.
 
-### 11.10 One conflict carried across deliberately
+### 11.10 Selected return leg and its gate
 
-The source document's Recommendation 1 treats a working sink as a **proceed-gate**: *"Do not scale HoA distributions or add gardens until at least one garden has a working service sink."* The repo rule in `visual-assets.md` says the local spend sink is *"a circulation aim / ordering criterion, never a launch gate."*
+Decision Log #45 resolves the model choice: gardens spend earned G$ on Green Goods team
+services such as support sessions, onboarding, and workshops. Local merchant, store, seed-bank,
+and neighbour-spend routes remain explicitly unmodeled; they are not alternate arrows in the
+selected architecture.
 
-Both are live, and they are reconcilable but not identical: settlement **capability** is not sink-gated, while scaling the G$ **distribution** into a garden does follow sink readiness — which is also what the GoodDollar-facing July plan commits to ("build the place to spend before widening the flow"). Recorded so the tension is visible rather than silently resolved in one direction.
+The selected return leg does not gate the contract, settlement, or indexer interfaces because it
+creates no `DisbursementKind`, `FundingRoute`, or indexed settlement path. GoodDollar confirmation
+that charging for those services satisfies the House of Alignment circulation mandate remains an
+external dependency. It gates partner-facing claims and any widening of the G$ distribution, not
+the first implementation PR. Until that confirmation exists, the gallery and implementation
+surfaces must label the compatibility question as pending rather than imply that the mandate has
+been satisfied.
