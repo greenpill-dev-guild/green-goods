@@ -1,5 +1,5 @@
 // Builds the "Commitment Pooling — Visual Asset Gallery" claude.ai artifact from
-// the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Three audience tabs
+// the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Four audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
 //   2) Architecture — D1–D19 with their "How to read this" panels (Mermaid renders
@@ -19,7 +19,18 @@
 //           Always writes two explicit outputs:
 //           - LOCAL_OUT (or legacy OUT): self-contained file:// preview with Mermaid
 //           - ARTIFACT_OUT: body-content for the Claude Artifact host
-//           Never publish the local document wrapper.
+//           NEITHER OF THEM IS PUBLISHABLE. Both still carry <pre class="mermaid">,
+//           which the Artifact host renders at view time; unauthenticated viewers
+//           cannot invoke that renderer, so the share/version picker refuses the
+//           version and the reader is told the latest version can't be viewed.
+//           Publishing one of these two files is the single recurring defect in this
+//           pipeline (2026-07-22, 2026-07-31, 2026-08-01) — bold prose in the docs and
+//           a console warning here both failed to stop it, so the guard now lives in
+//           the artefacts themselves: the default filenames carry DO-NOT-PUBLISH, and
+//           ARTIFACT_OUT is written with the UNFROZEN_SENTINEL below. The deploy step
+//           (visual-assets-prerender.ts) swaps that sentinel for the shareable one.
+//           Publish only a file that greps positive for GG-GALLERY-BUILD shareable —
+//           `bun visual-assets-prerender.ts --verify <file>` prints the verdict.
 // Republish via the Claude Code Artifact tool with
 //   url: https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d
 // One-shot op per CLAUDE.md scripts policy — lives in .plans, not scripts/.
@@ -28,11 +39,23 @@ import { join } from "node:path";
 
 const DIR = import.meta.dir;
 const ROOT = join(DIR, "../../..");
-const LOCAL_OUT = process.env.LOCAL_OUT ?? process.env.OUT ?? "/tmp/commitment-pooling-visual-assets.html";
-const ARTIFACT_OUT = process.env.ARTIFACT_OUT ?? "/tmp/commitment-pooling-visual-assets.artifact-body.html";
+// The default names are a guard, not decoration: the path string is what gets pasted
+// into the Artifact tool's file_path, so it is the last thing read before a publish.
+// Keep DO-NOT-PUBLISH in both, and keep them in sync with visual-assets-prerender.ts.
+const LOCAL_OUT =
+  process.env.LOCAL_OUT ?? process.env.OUT ?? "/tmp/commitment-pooling-visual-assets.LOCAL-PREVIEW.DO-NOT-PUBLISH.html";
+const ARTIFACT_OUT =
+  process.env.ARTIFACT_OUT ?? "/tmp/commitment-pooling-visual-assets.UNFROZEN.DO-NOT-PUBLISH.html";
 if (LOCAL_OUT === ARTIFACT_OUT) {
   throw new Error("LOCAL_OUT and ARTIFACT_OUT must be different files.");
 }
+// Survives renaming, env overrides, and copy-paste — the filename guard does not.
+// visual-assets-prerender.ts asserts this exact string is present before it freezes,
+// then replaces it with its shareable counterpart, so the two scripts cannot drift
+// apart silently. Must contain no ` src=` — the prerender's external-reference
+// assertion greps for that substring.
+const UNFROZEN_SENTINEL =
+  "<!-- GG-GALLERY-BUILD unfrozen · DO NOT PUBLISH · host-rendered Mermaid refuses public sharing · publish the prerender's PUBLISH-THIS output instead -->\n";
 const MERMAID_DIR = join(ROOT, "node_modules/.bun/node_modules/mermaid");
 const MERMAID_RUNTIME_PATH = join(MERMAID_DIR, "dist/mermaid.min.js");
 const MERMAID_PACKAGE_PATH = join(MERMAID_DIR, "package.json");
@@ -304,7 +327,32 @@ const REFERENCE_RENAMES: Record<string, string> = {
     "Appendix — edits to existing docs diagrams at ship",
 };
 
-const architectureSecs = dia.secs.filter((s) => !REFERENCE_TITLES.includes(s.title));
+// Stable D-numbers are citation IDs, not the reader journey. Preserve those IDs while
+// ordering the Architecture pane by progressive disclosure: orient, follow a promise,
+// understand proof/data, trace value, then operate and recover. New diagrams must be
+// placed in one of these groups instead of being appended to the end.
+const ARCHITECTURE_READING_ORDER = [
+  // 1. Orientation
+  "D1.", "D1b.",
+  // 2. Promise lifecycle and paired acceptance
+  "D2.", "D3.", "D4.", "D5.", "D6.", "D11.", "D11b.", "D19.",
+  // 3. Accountability, proof, and the read model
+  "D17.", "D17b.", "D7.", "D7c.", "D7d.",
+  // 4. Funding and settlement
+  "D8.", "D12.", "D7b.", "D9.", "D10.", "D10b.",
+  // 5. Authority, implementation, operations, and recovery
+  "D13.", "D18.", "D14.", "D15.", "D16.",
+] as const;
+const architectureCandidates = dia.secs.filter((s) => !REFERENCE_TITLES.includes(s.title));
+const architectureSecs = ARCHITECTURE_READING_ORDER.map((prefix) => {
+  const matches = architectureCandidates.filter((s) => s.title.startsWith(prefix));
+  assertBuild(matches.length === 1, `Architecture reading order must resolve ${prefix} exactly once`);
+  return matches[0];
+});
+assertBuild(
+  architectureSecs.length === architectureCandidates.length,
+  "Architecture reading order must include every routed D-section exactly once",
+);
 const referenceSecs = dia.secs.filter((s) => REFERENCE_TITLES.includes(s.title));
 
 const diaOut = sectionsHtml(architectureSecs);
@@ -376,110 +424,139 @@ const diagramHowToPrefixes = [
   "D15.", "D16.", "D17.", "D17b.", "D18.", "D19.",
 ];
 
-const storyBody = `
+const storyBodyRaw = `
 <section id="story-intro">
   <h2>Pooling promises, not money</h2>
-  <p class="lede">How a community's mutual aid becomes visible, verifiable, and worth funding — the story behind every picture in this gallery.</p>
-  <p>Regenerative work runs on promises long before it runs on money. Someone offers to restore the shade beds; a neighbour asks for help hauling compost; an elder pledges three work-parties for planting season. Most of that generosity is invisible the moment it happens — nothing records it, nothing confirms it, and nothing connects it to the people who would gladly fund work they could trust.</p>
-  <p>Commitment pooling is Grassroots Economics' answer, proven in community-currency practice: pool the <em>promises</em> themselves, not tokens. A pool curates whose offers and requests enter, values contributions in each other's terms, limits how much any one account may promise, and keeps exchange honest through mutual confirmation. Green Goods implements that pattern clean-room for gardens — a commitment is a module-native record on Arbitrum, never a coin.</p>
-  <p>What Green Goods adds is evidence and confirmation. Work is documented with photos and approvals on the rails that already run today; the person who <em>received</em> the help — never the person who did it — confirms the promise was kept; seasons close into impact certificates; and when a promise carries a G$ reward, the money moves only on Celo and counts as arrived only after an authenticated receipt returns. Nobody grades their own homework, and no timeout ever pretends to be proof.</p>
-  <p>The sections below follow one promise end to end — from naming a need to funding the outcome it produced. Solid green means built and live today; dashed means planned. The contracts, states, and flows behind each picture live one tab over, in Architecture.</p>
+  <p class="lede">How a community's mutual aid becomes visible, verifiable, and worth funding. This is the story behind every picture in the gallery.</p>
+  <p>Regenerative work runs on promises long before it runs on money. Someone offers to restore the shade beds. A neighbour asks for help hauling compost. An elder pledges three work-parties for planting season.</p>
+  <p>Most of that generosity is invisible the moment it happens. Nothing records it, nothing confirms it, and nothing connects it to the people who would gladly fund work they could trust.</p>
+  <p>Commitment pooling is Grassroots Economics' answer, proven in community-currency practice: pool the <em>promises</em> themselves, not tokens. A pool curates whose offers and requests enter, values contributions in each other's terms, limits how much any one account may promise, and keeps exchange honest through mutual confirmation. Green Goods implements that pattern clean-room for gardens. A commitment is a module-native record on Arbitrum, never a coin.</p>
+  <p>What Green Goods adds is evidence and confirmation. Work is documented with photos and approvals on the rails that already run today. The person who <em>received</em> the help confirms the promise was kept, and never the person who did it. Seasons close into impact certificates. When a promise carries a G$ reward, the money moves only on Celo, and it counts as arrived only after an authenticated receipt returns. A timeout never counts as proof.</p>
+  <p>The sections below follow one promise end to end, from naming a Need to funding the outcome it produced. Throughout the gallery, solid green means built and live today, and dashed means planned. The contracts, states, and flows behind each picture live one tab over, in Architecture.</p>
 </section>
 <section id="story-loop">
   <h2>The commitment loop</h2>
-  <p class="lede">Seven steps from a Need to a funded outcome. Solid green = built and live today; dashed = planned and not live. Community testimony is September-only; optional rewards remain separately gated. The loop is a clean-room implementation of Grassroots Economics' commitment-pooling pattern — pooling <em>promises</em>, not money.</p>
-  <p>Follow the shade-bed promise around the circle. The community names the need and the outcome it wants (1); an Evaluator records the baseline so change is measurable (2); a Gardener makes the commitment as a request or an offer (3); the work happens, and photos plus approvals prove it (4); the neighbour who received the help confirms it (5); from September, the wider community adds its testimony (6); and the season's confirmed promises roll up into an impact certificate a funder can trust (7). Every step carries its own built-or-planned label — the drawing never claims more than the code does.</p>
+  <p class="lede">Seven steps from a Need to a funded outcome. Community testimony is September-only, and optional rewards remain separately gated.</p>
+  <p>Follow the shade-bed promise around the circle. The community names the Need and the outcome it wants (1). An Evaluator records the baseline so change is measurable (2). A Gardener makes the commitment as a request or an offer (3). The work happens, and photos plus approvals prove it (4). The neighbour who received the help confirms it (5). From September, the wider community adds its testimony (6). The season's confirmed promises roll up into an impact certificate a funder can trust (7).</p>
+  <p>Every step carries its own built-or-planned label, so the drawing never claims more than the code does.</p>
   ${respSvg(loopSvg, "The commitment loop")}
 </section>
 <section id="story-roles">
   <h2>Who does what</h2>
   <p class="lede">Five roles, and what each one does in the loop: Gardener, Garden Steward, Evaluator, Funder and Community. Scoped settlement permissions move G$ under separate operational controls. Nobody confirms their own promise.</p>
-  <p>The Gardener makes and keeps promises and captures evidence — fully offline in the field when the network is gone. The Garden Steward seeds commitments from confirmed needs, reviews claims, approves work, and runs the season; when an elder without a phone makes a promise in conversation, the steward records it on their behalf and the promise stays the elder's own. The Evaluator anchors the baseline and the delta. Funders back outcomes; the Community signals needs and, from September, testifies to what it can see. The one thing no role can ever do is confirm its own delivery.</p>
+  <p>The Gardener makes and keeps promises and captures evidence, fully offline in the field when the network is gone. The Garden Steward seeds commitments from confirmed Needs, reviews claims, approves work, and runs the season. When an elder without a phone makes a promise in conversation, the steward records it on their behalf, and the promise stays the elder's own. The Evaluator anchors the baseline and the delta. Funders back outcomes. The Community signals Needs and, from September, testifies to what it can see.</p>
   ${respSvg(rolesSvg, "Five roles and their Built or Planned actions")}
 </section>
 <section id="story-use-cases">
   <h2>Three grounded journeys</h2>
   <p class="lede">A Need records the problem and desired outcome. A commitment then makes a Request or Offer to address it. The three journeys distinguish mutual aid, shared projects on today's evidence rails, and separately gated G$ settlement.</p>
-  <p>The first journey is pure mutual aid — childcare during a work day, a ride to the market — where the recipient's confirmation <em>is</em> the whole review. The second is a shared project on the evidence rails that run today: planting, composting, restoration work that travels through photo evidence and steward approval before anyone confirms. The third adds a declared G$ reward, settled separately on Celo under its own gates. It is the same loop each time; only the proof required and the payout attached differ.</p>
+  <p>The first journey is pure mutual aid, like childcare during a work day or a ride to the market, where the recipient's confirmation <em>is</em> the whole review. The second is a shared project on the evidence rails that run today: planting, composting, and restoration work that travels through photo evidence and steward approval before anyone confirms. The third adds a declared G$ reward, settled separately on Celo under its own gates. It is the same loop each time. Only the proof required and the payout attached differ.</p>
   ${respSvg(useCasesSvg, "Three ways a Need becomes action")}
 </section>
 <section id="story-money">
   <h2>Where value lives, and how we know it moved</h2>
-  <p class="lede">Proof and coordination stay on Arbitrum; G$ lives and moves only on Celo. The designated Green Goods topology receives Foundation-funded House of Alignment pilot funds directly in the protocol Safe once partner mechanism and address evidence clear; from there, one derived funding route reaches garden accounts. A settlement counts as received only after the authenticated Celo executor acknowledgment returns through CCIP.</p>
-  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's Safe pays the exact net amount on Celo — upstream, the pilot's House of Alignment stream lands in the protocol Safe. No token ever bridges. And no person's report, no elapsed time, can mark support as arrived; only the executor's authenticated acknowledgment can say that.</p>
+  <p class="lede">Proof and coordination stay on Arbitrum. G$ lives and moves only on Celo. The designated Green Goods topology receives Foundation-funded House of Alignment pilot funds directly in the protocol Safe, once partner mechanism and address evidence clear. From there, one derived funding route reaches garden accounts. A settlement counts as received only after the authenticated Celo executor acknowledgment returns through CCIP.</p>
+  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's Safe pays the exact net amount on Celo. Upstream of all that, the pilot's House of Alignment stream lands in the protocol Safe. No token ever bridges at any point. Neither a person's report nor elapsed time can mark support as arrived. Only the executor's authenticated acknowledgment does that.</p>
   ${respSvg(moneySvg, "Arbitrum proof and Celo value map")}
 </section>
 <section id="story-settlement">
   <h2>How a payout becomes provable</h2>
-  <p class="lede">Queued through Dispatched and Celo execution to Confirmed — or authenticated Failed. Cancellation is allowed only before dispatch or after that authenticated failure; delay never unlocks it. There is no human verification path: only the Celo executor acknowledgment through CCIP finalizes the source state.</p>
-  <p>The gardener watching their reward sees plain words, not machinery: support is queued, support on its way, confirming arrival, support arrived. Behind those words the settlement record moves Queued → Dispatched → Confirmed, or to an authenticated Failed. A slow transfer only ever reads as "taking longer than usual"; a failed one can be requeued deliberately by a steward, never re-fired by a timer. The vocabulary in these drawings and the vocabulary on screen are the same five stored states — nothing is renamed on the way to the person it matters to.</p>
+  <p class="lede">Queued through Dispatched and Celo execution to Confirmed, or to authenticated Failed. Cancellation is allowed only before dispatch or after that authenticated failure, and delay never unlocks it. There is no human verification path: only the Celo executor acknowledgment through CCIP finalizes the source state.</p>
+  <p>The gardener watching their reward sees exactly three settlement phrases rather than any machinery: support on its way before an authenticated outcome, support arrived after authenticated success, and support is being rearranged after authenticated failure. Behind those words the settlement record moves Queued → Dispatched → Confirmed, or to an authenticated Failed. A slow transfer only adds a calm explanation to "support on its way". A failed one can be requeued deliberately by a steward, and never re-fired by a timer. The operational state names stay on steward surfaces.</p>
   ${respSvg(statesSvg, "Settlement evidence states")}
 </section>
 <section id="story-funding">
   <h2>How delivered outcomes attract funding</h2>
   <p class="lede">Three funding rails, converging on one place: delivered outcomes. Protocol funding, garden funding and direct support all terminate at work that was promised, done, and confirmed by the person who received it.</p>
-  <p>Funders never fund activity here; they fund outcomes somebody vouched for. Protocol funding seeds gardens from the shared treasury, garden funding tops up a specific garden's Safe, and direct support backs an impact certificate on the marketplace — three different doors into the same room. All of them end at the one object this whole system exists to produce: a promise that was made, worked, and confirmed by its recipient. That is what makes a season's certificate more than a report. It is a receipt.</p>
+  <p>Funders here never fund activity. They fund outcomes somebody vouched for. Protocol funding seeds gardens from the shared treasury, garden funding tops up a specific garden's Safe, and direct support backs an impact certificate on the marketplace. All three end at the same object, the one this system exists to produce: a promise that was made, worked, and confirmed by its recipient. That confirmation is what makes a season's certificate a receipt rather than a report.</p>
   ${respSvg(railsSvg, "Funding rails to delivered outcomes")}
 </section>
 <section id="story-flywheel">
   <h2>The full flywheel</h2>
-  <p class="lede">The whole system in one frame — the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring drawn as gated: unblocked into the August wave on 2026-08-01, still behind its own dispatch gates.</p>
-  <p>Read it from the centre out: promises kept feed certificates, certificates attract funding, and funding seeds the next season's promises — the shade beds this season make the tool library believable next season. The borrow-and-repay ring around the outside is drawn dashed on purpose. It joined the August wave on 2026-08-01, and it stays dashed because its gates are real: the pooling and settlement interfaces freeze in code first, its design is revalidated against them, and a human-owned legal and operations review clears before any of it dispatches. When it arrives it arrives as interest-free, records-only mutual credit — never custody, never a per-person score.</p>
+  <p class="lede">The whole system in one frame: the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring drawn as gated. It was unblocked into the August wave on 2026-08-01 and still sits behind its own dispatch gates.</p>
+  <p>Read it from the centre out. Promises kept feed certificates, certificates attract funding, and funding seeds the next season's promises. The shade beds this season are what make the tool library believable next season.</p>
+  <p>The borrow-and-repay ring around the outside is drawn dashed on purpose. It stays dashed because the three gates described under Three tiers of support are still ahead of it. When it arrives, it arrives as interest-free, records-only mutual credit, with no custody and no per-person score.</p>
   ${respSvg(flywheelSvg, "The Commitment Pooling flywheel")}
 </section>
 <section id="story-tiers">
   <h2>Three tiers of mutual support</h2>
-  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. All three now sit in the August wave — the third joined on 2026-08-01, records-only, interest-free, behind its own gates, and never a per-person credit score.</p>
-  <p>Trust is the ladder's rail. Mutual aid needs only neighbours and a confirmation, so it ships first and works everywhere — including fully offline. G$-paid work adds a treasury, Safes, and settlement discipline, so it arrives gated and rehearsed. Borrow-and-repay needs the deepest trust of all, which is exactly why its gates are the strictest: the interfaces it attaches to freeze in code first, its design is revalidated against them, and a legal and operations review clears before it dispatches. No interest, no per-person scores, no leverage — a recorded loop of advance and repayment riding rails that already exist.</p>
+  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. All three now sit in the August wave. The third joined on 2026-08-01 and stays behind its own gates.</p>
+  <p>Trust is the ladder's rail. Mutual aid needs only neighbours and a confirmation, so it ships first and works everywhere, including fully offline. G$-paid work adds a treasury, Safes, and settlement discipline, so it arrives gated and rehearsed.</p>
+  <p>Borrow-and-repay needs the deepest trust of all, which is why its gates are the strictest. Three of them stand in front of it: the interfaces it attaches to freeze in code, its design is revalidated against them, and a human-owned legal and operations review clears before it dispatches. What arrives at the end of that is a recorded loop of advance and repayment riding rails that already exist, with no interest, no per-person score, and no leverage.</p>
   ${respSvg(tiersSvg, "Three tiers of commitment pooling")}
 </section>
 <section id="story-circular">
   <h2>A circular G$ economy</h2>
   <p class="lede">The aim is circulation, not extraction: support streams in, flows to gardens and gardeners, and a local spend sink carries value back into the pool.</p>
-  <p>A pool that only pays out eventually empties. The circle drawn here is the aim: support streams into the protocol Safe, flows to gardens and gardeners for promises kept, and — through local spending at the garden store, the seed bank, participating neighbours — carries value back around to fund the next round. Recirculation is an ordering criterion for what gets built, never a launch gate, and the metrics behind this picture measure it honestly rather than promising it.</p>
+  <p>A pool that only pays out eventually empties. The circle drawn here is the aim: support streams into the protocol Safe, flows to gardens and gardeners for promises kept, and then carries value back around to fund the next round through local spending at the garden store, the seed bank, and participating neighbours. Recirculation is an ordering criterion for what gets built and never a launch gate, and the metrics behind this picture measure it honestly rather than promising it.</p>
   ${respSvg(circSvg, "Circular G dollar economy")}
 </section>
 <section id="story-ge-functions">
   <h2>Six protocol functions, calibrated</h2>
-  <p class="lede">This is commitment pooling built in stages. Curation, valuation, limitation, exchange, route and repair stay visible, with each function labeled as August mechanics, an August record or partial pathway, or later roadmap work.</p>
-  <p>Grassroots Economics names the functions a commitment pool has to serve, and Green Goods keeps all six visible without claiming more than the current wave carries. Curation, limitation and repair arrive with full August mechanics. Valuation arrives as a declared value record that never drives settlement arithmetic or a conversion rule. Exchange now ships as a one-way counter-commitment reference plus bilateral atomic acceptance, with each promise remaining independent after the paired start. Route is partial: cross-garden claims and protocol-to-garden support run through bounded pathways, while garden-to-garden routing remains on the later roadmap. Multilateral and transferable exchange execution plus relative-pricing enforcement are later seams in the same commitment-pooling architecture. The Architecture tab shows which machinery carries each horizon.</p>
-  ${respSvg(geSvg, "Six functions of commitment pooling built in stages")}
+  <p class="lede">This is commitment pooling built in stages. Curation, valuation, limitation, exchange, route and repair all stay visible, and a two-part colour contract carries the status. A solid green rule marks full August mechanics. A dashed brown rule marks an August foundation that a roadmap seam extends.</p>
+  <p>Grassroots Economics names the functions a commitment pool has to serve. Green Goods keeps all six visible without claiming more than the current wave carries.</p>
+  <p>Curation, limitation and repair have full August mechanics in the approved scope. Valuation is a declared value record, and it never drives settlement arithmetic or a conversion rule. Exchange's approved August contract scope is a one-way counter-commitment reference plus bilateral atomic acceptance, and each promise stays independent after the paired start. It remains planned until that contract lane lands and is verified. Route is partial: cross-garden claims and protocol-to-garden support use bounded pathways, while garden-to-garden routing remains on the later roadmap.</p>
+  <p>Multilateral and transferable exchange execution, along with relative-pricing enforcement, are later seams in the same commitment-pooling architecture. The Architecture tab shows which machinery carries each horizon.</p>
+  ${respSvg(geSvg, "Six commitment-pooling functions built in stages")}
 </section>
 <section id="story-layers">
   <h2>Three layers, named honestly</h2>
-  <p class="lede">After review with Grassroots Economics, the system describes one Commitment Pooling build in three explicit layers: an August coordination foundation, outcome-linked support on separate funding rails, and later reciprocal routing and exchange seams. "Commitment coordination" names the first layer; it does not rename or reduce the product.</p>
-  <p>Naming the layers keeps the claim honest in both directions. Layer one is the August foundation: needs, offers and requests, evidence, independent confirmation, and repair, with declared value and exchange references recorded as terms. Counts-only standing, rotation, and reserve framing are approved August app-roadmap additions, not current shipped UI. Layer two is how value reaches verified outcomes today: direct support, supporter-vault yield, impact certificates, and the separately gated G$ settlement rail; pooled funds live in treasury Safes and vaults, never inside the pooling mechanism. The records-only, interest-free CreditRegistry is an August companion behind interface-freeze, spec-revalidation, and human legal/operations gates. Layer three names later roadmap extensions: transferable vouchers, exchange execution, relative pricing, and garden-to-garden routing. They extend the same reserved fields and records without being presented as shipped.</p>
+  <p class="lede">After review with Grassroots Economics, the system describes one Commitment Pooling build in three explicit layers: an August coordination foundation, outcome-linked support on separate funding rails, and later reciprocal routing and exchange seams. "Commitment coordination" names the first layer. It does not rename or reduce the product.</p>
+  <p>Naming the layers keeps the claim honest in both directions.</p>
+  <p>Layer one is the August foundation: Needs, offers and requests, evidence, independent confirmation, and repair, with declared value and exchange references recorded as terms. Counts-only standing, rotation, and reserve framing are approved August app-roadmap additions rather than current shipped UI.</p>
+  <p>Layer two is how value reaches verified outcomes today: direct support, supporter-vault yield, impact certificates, and the separately gated G$ settlement rail. Pooled funds live in treasury Safes and vaults, never inside the pooling mechanism. The CreditRegistry is an August companion, records-only and interest-free, sitting behind interface-freeze, spec-revalidation, and human legal/operations gates.</p>
+  <p>Layer three names later roadmap extensions: transferable vouchers, exchange execution, relative pricing, and garden-to-garden routing. They extend the same reserved fields and records without being presented as shipped.</p>
   ${respSvg(layersSvg, "Three layers of commitment pooling built in stages")}
 </section>
 <section id="story-timeline">
   <h2>The rollout sequence</h2>
   <p class="lede">Four native phases and two operational checkpoints. Follow On / Hardening and Community + evidence remain distinct parallel closures on September 30.</p>
-  <p>August builds the pooling core — pools, cycles, commitments, evidence, confirmation, and the gated settlement rails — rehearsed on test networks before anything touches mainnet. September adds the Community app: needs, signals, and testimony. The two closures on September 30 are deliberately parallel lines of work: hardening the August core is one, community evidence is the other, and keeping them distinct is what lets either one finish honestly without blurring the other.</p>
+  <p>August builds the pooling core, meaning pools, cycles, commitments, evidence, confirmation, and the gated settlement rails. All of it is rehearsed on test networks before anything touches mainnet. September adds the Community app: Needs, signals, and testimony.</p>
+  <p>The two closures on September 30 are deliberately parallel lines of work. Hardening the August core is one, community evidence is the other, and keeping them distinct is what lets either one finish honestly without blurring the other.</p>
   ${respSvg(timelineSvg, "Four phases and two operational checkpoints")}
 </section>
 <section id="story-ownership">
   <h2>Where each document lives</h2>
   <p class="lede">Three truth surfaces feed one six-tab external document. The repo plan hub owns execution and specification truth, Linear owns current build status and the canonical synthesis, and the Google Doc owns the external narrative. Corrections flow repo → Linear → Doc.</p>
-  <p>Every picture in this gallery has a home for its deeper truth. The repo's plan hub holds the frozen specifications these diagrams are drawn from; Linear holds live build status and the canonical synthesis; the external Google Doc carries the narrative partners read. Corrections travel one way — repo to Linear to Doc — so a fact fixed at the source can never be quietly un-fixed by an older copy living downstream.</p>
+  <p>Every picture in this gallery has a home for its deeper truth. The repo's plan hub holds the frozen specifications these diagrams are drawn from. Linear holds live build status and the canonical synthesis. The external Google Doc carries the narrative partners read. Corrections travel one way, from repo to Linear to Doc, so a fact fixed at the source can never be quietly un-fixed by an older copy living downstream.</p>
   ${respSvg(ownershipSvg, "Six-tab documentation source map")}
 </section>`;
 
-const storyNav = [
+// The Story pane follows the same progressive-disclosure contract as Architecture:
+// concrete promise first, then system framing, value movement, expansion, and rollout.
+// Source blocks may be authored where convenient; this list is the reader-facing order.
+const STORY_READING_ORDER = [
   ["story-intro", "Pooling promises, not money"],
   ["story-loop", "The commitment loop"],
   ["story-roles", "Who does what"],
   ["story-use-cases", "Three grounded journeys"],
+  ["story-layers", "Three layers, named honestly"],
+  ["story-ge-functions", "Six protocol functions"],
   ["story-money", "Where value lives"],
   ["story-settlement", "How a payout becomes provable"],
   ["story-funding", "How outcomes attract funding"],
-  ["story-flywheel", "The full flywheel"],
   ["story-tiers", "Three tiers of support"],
+  ["story-flywheel", "The full flywheel"],
   ["story-circular", "A circular G$ economy"],
-  ["story-ge-functions", "Six protocol functions"],
-  ["story-layers", "Three layers, named honestly"],
   ["story-timeline", "The rollout sequence"],
   ["story-ownership", "Where each document lives"],
-].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
+] as const;
+const storySections = new Map(
+  [...storyBodyRaw.matchAll(/<section id="([^"]+)">[\s\S]*?<\/section>/g)]
+    .map((match) => [match[1], match[0]] as const),
+);
+assertBuild(
+  storySections.size === STORY_READING_ORDER.length,
+  "Story reading order must include every authored section exactly once",
+);
+const storyBody = STORY_READING_ORDER.map(([id]) => {
+  const section = storySections.get(id);
+  assertBuild(section !== undefined, `Story reading order references missing section #${id}`);
+  return section;
+}).join("\n");
+const storyNav = STORY_READING_ORDER
+  .map(([id, title]) => `<a href="#${id}">${title}</a>`)
+  .join("");
 
 // Hand-written Architecture opener. It carries only what you need in hand to read a
 // diagram — where things live, and the two colour contracts. Everything deeper is
@@ -488,18 +565,13 @@ const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
   <p class="lede">${architectureSecs.length} named diagrams, D1 through D19, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
-  <p><strong>Start anywhere.</strong> Every section carries a “How to read this” panel, so no section depends on the one before it. Where a section splits into sub-blocks, that panel sits at the top of the section and covers all of them — D7 is the exception that guides each sub-block separately.</p>
+  <p><strong>For a first pass, follow the order below.</strong> It moves from orientation to one promise's lifecycle, then proof/data, value delivery, and finally authority plus recovery. Stable D-numbers remain citation IDs, so the reading order is intentionally not numeric. Returning readers can still open any section directly: every section carries its own “How to read this” panel, and D7 guides each sub-block separately.</p>
   <ul class="wayfind">
-    <li><b>D1 · D1b</b> <span>the widest frame — who participates, and which boundary may authorize what</span></li>
-    <li><b>D2 · D3 · D6</b> <span>one promise end to end, plus the analog capture path</span></li>
-    <li><b>D4 · D5</b> <span>pool and cycle state machines</span></li>
-    <li><b>D7 · D7b · D7c · D7d</b> <span>the Envio read model, its ERDs and its cut-overs</span></li>
-    <li><b>D8 – D12</b> <span>G$ topology, settlement sequence, disbursement states, funding route</span></li>
-    <li><b>D13</b> <span>capability summary — the exact per-function permission table (D13b) lives on the Reference tab</span></li>
-    <li><b>D14 – D16</b> <span>offline jobs, deployment topology, error taxonomy</span></li>
-    <li><b>D17 · D17b</b> <span>accountability separation, then the worked value-and-recognition numbers</span></li>
-    <li><b>D18</b> <span>the Solidity surface — contracts, ownership, and upgrade authority</span></li>
-    <li><b>D19</b> <span>bilateral exchange — one referenced pair starts atomically, then proceeds as two independent promises</span></li>
+    <li><b>Orient · D1, D1b</b> <span>who participates, where state and value live, and which boundary may authorize what</span></li>
+    <li><b>Follow a promise · D2, D3, D4, D5, D6, D11, D11b, D19</b> <span>creation through confirmation, including claims and the paired-start exchange branch</span></li>
+    <li><b>Understand proof · D17, D17b, D7, D7c, D7d</b> <span>accountability and worked recognition first, then the read model, certificate cut-over, and indexer pipeline</span></li>
+    <li><b>Trace value · D8, D12, D7b, D9, D10, D10b</b> <span>funding topology and route, settlement data, command sequence, stored states, and truthful gardener copy</span></li>
+    <li><b>Operate safely · D13, D18, D14, D15, D16</b> <span>capabilities, the Solidity surface, offline work, deployment, and error recovery; D13b's exact permission table lives on Reference</span></li>
   </ul>
   <p><strong>Six sections open with an overview and then zoom in.</strong> D2 and D6 split into three acts, D7 into an entity map plus two field blocks, D9 into healthy path, idempotency and retries, D16 into the error, where it manifests, and how the person responds, and D17b into recognition and payment. Sub-blocks are indented in the section list on the left.</p>
   <p><strong>Two colour systems, never mixed.</strong> Component diagrams carry <em>build status</em> — the three treatments below. State machines carry <em>storage provenance</em> — the second key. Green tint always and only means built/live; people are paper with an ink outline; and every diagram footnotes exactly the treatments it uses, so the key you need is always directly under the drawing. Each entity-relationship diagram likewise carries its own cardinality key.</p>
@@ -916,12 +988,13 @@ ul.legend li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:s
 .erd-key .erd-note{flex-basis:100%;margin-top:-.1rem;}
 .legend b{color:var(--ink);}
 .legend span{color:var(--stone);}
-/* Where-to-look map for the 23 diagrams. */
-ul.wayfind{display:grid;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));gap:.4rem 1.5rem;
-  margin:.8rem 0 1.2rem;padding:0;list-style:none;max-width:none;}
-ul.wayfind li{display:grid;grid-template-columns:minmax(7rem,auto) minmax(0,1fr);gap:.75rem;margin:0;
-  align-items:baseline;font-size:.83rem;line-height:1.5;}
-.wayfind b{color:var(--ink);white-space:nowrap;}
+/* First-pass map for the 26 stable D-sections. One thematic group per row keeps
+   the non-numeric order legible instead of squeezing long D-ranges into columns. */
+ul.wayfind{display:grid;grid-template-columns:1fr;gap:.45rem;
+  margin:.8rem 0 1.2rem;padding:0;list-style:none;max-width:82ch;}
+ul.wayfind li{display:grid;grid-template-columns:minmax(15rem,19rem) minmax(0,1fr);gap:.85rem;margin:0;
+  align-items:start;font-size:.83rem;line-height:1.5;}
+.wayfind b{color:var(--ink);}
 .wayfind span{color:var(--stone);}
 /* Open questions — decisions parked for their owners, not answered here. */
 .qpanel{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:1rem 1.15rem;
@@ -966,6 +1039,7 @@ section,h4[id]{scroll-margin-top:calc(var(--header-h) + 1rem);}
   .mast .sub{font-size:.72rem;margin:.1rem 0 .3rem;}
   nav.tabs button{padding:.4rem .5rem;font-size:.8rem;}
   main{padding:.9rem;}
+  ul.wayfind li{grid-template-columns:1fr;gap:.08rem;}
   /* The control overlays the corner of the artwork, which is free space on a wide
      card and directly on top of the drawing on a phone. Give it its own row there. */
   .expand-control{position:static;width:max-content;margin:.1rem .1rem .4rem auto;
@@ -2067,15 +2141,21 @@ assertBuild(
 );
 assertBuild((artifactBody.match(/class="mermaid"/g) || []).length === mermaidCount, "Artifact output lost Mermaid source blocks");
 
+// The sentinel is prepended at write time only — every assertion above runs against
+// the pristine body, including the one requiring it to start with <meta charset>.
 writeFileSync(LOCAL_OUT, localDocument);
-writeFileSync(ARTIFACT_OUT, artifactBody);
+writeFileSync(ARTIFACT_OUT, UNFROZEN_SENTINEL + artifactBody);
 console.log(`local preview: ${LOCAL_OUT} (${Buffer.byteLength(localDocument).toLocaleString()} bytes, embedded Mermaid ${mermaidVersion})`);
 console.log(`Artifact body: ${ARTIFACT_OUT} (${Buffer.byteLength(artifactBody).toLocaleString()} bytes, host-rendered Mermaid)`);
 console.log(`sections: story ${storyAssetCount} · architecture ${architectureSectionCount} · screens ${wfOut.body.split("<section").length - 1} · reference ${referenceSectionCount}`);
 console.log(`mermaid blocks: ${mermaidCount} · ascii frames: ${frameCount} · wireframe screens: ${wfScreenCount} · wf-only tags: ${WF_ONLY_FRAMES.length}`);
-console.log(
-  "NOT directly publishable: <pre class=\"mermaid\"> blocks refuse public sharing (prerender header, confirmed 2026-07-22).",
-);
-console.log(
-  "Deploy via visual-assets-prerender.ts and publish its SHAREABLE_OUT; open the local preview directly with file://",
-);
+console.log("");
+console.log("┌───────────────────────────────────────────────────────────────────────────┐");
+console.log("│  NEITHER FILE ABOVE MAY BE PUBLISHED.                                     │");
+console.log("│  Both carry <pre class=\"mermaid\">, which the Artifact host renders at      │");
+console.log("│  view time — public viewers cannot, so the share is refused and readers    │");
+console.log("│  are told the latest version can't be viewed.                             │");
+console.log("│                                                                           │");
+console.log("│  Deploy step (writes the publishable file):                               │");
+console.log("│    bun .plans/active/commitment-pooling/visual-assets-prerender.ts        │");
+console.log("└───────────────────────────────────────────────────────────────────────────┘");
