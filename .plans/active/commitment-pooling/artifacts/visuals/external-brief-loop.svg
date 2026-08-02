@@ -24,12 +24,12 @@
     <path d="M 315.9 129.0 A 250 250 0 0 1 368.6 103.6"/>
   </g>
 
-  <!-- 1 · Name a need · Planned -->
+  <!-- 1 · Name a Need · Planned -->
   <g>
     <rect x="360" y="61" width="180" height="58" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
     <circle cx="360" cy="61" r="11" fill="#988D77"/>
     <text x="360" y="65" text-anchor="middle" font-size="15" font-weight="700" fill="#2A2722">1</text>
-    <text x="450" y="86" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Name a need</text>
+    <text x="450" y="86" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Name a Need</text>
     <text x="450" y="103" text-anchor="middle" font-size="12.5" fill="#6E6857">problem + desired outcome</text>
   </g>
 
@@ -99,5 +99,5 @@
     <text x="598" y="647" font-size="15" fill="#2A2722">Marketplace Built · bundling Planned</text>
   </g>
 
-  <text x="450" y="676" text-anchor="middle" font-size="14.5" fill="#6E6857">Green Goods · Commitment Pooling — v1.4 (2026-07)</text>
+  <text x="450" y="676" text-anchor="middle" font-size="14.5" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
 </svg>
