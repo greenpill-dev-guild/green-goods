@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="circular-gd-title circular-gd-desc">
   <title id="circular-gd-title">A circular G dollar economy</title>
-  <desc id="circular-gd-desc">A clockwise Celo flow moves from the House of Alignment stream to the Green Goods protocol treasury, garden accounts, members, and a local spend sink before circulating back. Member delivery remains gated.</desc>
+  <desc id="circular-gd-desc">A clockwise Celo flow moves from the House of Alignment stream to the Green Goods protocol treasury, garden accounts, gardeners, and a local spend sink before circulating back. Gardener delivery remains gated.</desc>
   <defs>
     <marker id="circular-gd-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -47,12 +47,12 @@
     <text x="591" y="654" text-anchor="middle" font-size="18" font-weight="600" fill="#3B372E">garden accounts</text>
   </g>
 
-  <!-- members · lower left -->
+  <!-- gardeners · lower left -->
   <g>
     <rect x="254" y="625" width="110" height="48" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="309" y="654" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">members</text>
+    <text x="309" y="654" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">gardeners</text>
   </g>
-  <!-- note on the arrow into members -->
+  <!-- note on the arrow into gardeners -->
   <text x="450" y="728" text-anchor="middle" font-size="15" fill="#6E6857">sponsored-account</text>
   <text x="450" y="742" text-anchor="middle" font-size="15" fill="#6E6857">gate applies</text>
 

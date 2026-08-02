@@ -134,6 +134,7 @@ not a numeric composite:
 | Were failures repaired fairly? | Repair receipts, time to resolution, outcome, appeal/re-entry state | Closing a ticket is not evidence that trust or participation was restored |
 | Did G$ circulate meaningfully? | Cohort-based, non-duplicative measures from `settlement-spec.md` §11 | Raw transfer count or volume is not healthy circulation |
 | Were benefits and burdens distributed without public ranking? | Garden/cycle aggregates, concentration review, qualitative context | No participant score, leaderboard, or public comparative ranking |
+| After a commitment was fulfilled, what reciprocal relation remained among the contributor, recipient, group, and pool? | Qualitative evidence (§6.2) per garden; counter-commitment pair records; standing read-model consultation during claim acceptance; rotation-template turns where a garden opted in | Added 2026-08-01 (Grassroots Economics review; plan register #73). Distinguishes evidence-backed project contribution (only a certificate or gated reward remains) from ROLA-like reciprocity (fulfillment changes later access, obligation, rotation, or collective capacity). Observational only — it never scores or ranks anyone, and a low-reciprocity answer is a valid design finding, not a garden failure |
 | Can findings be shared without exposing participants? | Publication tier, consent, suppression, linkability, retention, and access review | A UI display threshold alone is not a research privacy decision |
 
 ## 4. Units of analysis

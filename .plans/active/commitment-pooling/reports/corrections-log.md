@@ -956,3 +956,92 @@ Payment snapshots now hash one explicit immutable ordered tuple:
 chain, plan, version, retention, contributor total, and
 `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Child IDs and
 lifecycle counters are excluded, so preparation cannot mutate the frozen hash.
+
+## 2026-07-31 — Gallery polish round: vocabulary convergence + reference routing
+
+Founder review of the published Visual Asset Gallery produced a fine-tooth polish
+round. Decisions recorded here because they change hub-wide vocabulary, not just
+the gallery:
+
+- **Gardener is the actor noun.** Person-sense "member" was drift and is swept to
+  **gardener** across diagrams.md, wireframes.md, uiux-spec.md, plan.todo.md,
+  prototypes.md, and the story SVGs. Preserved senses: vocabulary-enum `members`,
+  Zodiac Roles member, Hats `membership`, the **Community member** persona, and
+  "member of a garden" as a membership predicate. Grassroots Economics synthesis
+  assets keep GE's own "member" vocabulary. Identifiers are untouched —
+  `memberDeliveryEnabled` / `setMemberDeliveryEnabled` and
+  `queryKeys.settlement.memberBalance` remain spec-canonical names; renaming them
+  is a contract/spec-level follow-up to decide before the August build.
+- **"Batch entry"** names a disbursement row inside an immutable settlement batch
+  (formerly "batch member").
+- **"Accepted provider" is retired as a label.** The 2026-07-28 amendment's
+  accountable-lead framing wins: the actor label is **lead provider**
+  (`leadProvider`); the acceptance *step* (Open vs ApprovalGated) is unchanged.
+  Self-confirmation prohibitions are worded contributor-wide, matching
+  `SelfConfirmation` semantics.
+- **`NeedsResolver`** replaces `CommunityNeedsResolver` (schemas/fields were
+  already bare `Need`/`NeedSignal`/`NeedStatus`/`needUID`; only the unbuilt Sept
+  resolver contract carried the long form). Renamed across the ontology sidecar,
+  community-interface spec/diagrams/plan/handoff, and this hub; interface
+  `INeedsResolverConfig`, deploy key `needsResolver`. Hub/product titles
+  ("Community Needs Interface", Linear "Community Needs & Signals") are names,
+  not schema naming, and stay.
+- **StewardCaptured promise sources are gardener-only** (confirmed against
+  contract-spec: acceptance revalidates `onBehalfOf` via the same membership
+  predicate, reverting `NotEligibleContributor`); D3 copy now says gardener.
+- **Gallery structure**: D13b routed to the Reference tab; D10b became a
+  stored-state strip + derivation table; D16.1/D16.2 became tables (Mermaid count
+  36 → 34). `.howto` reading guides are capped at the 72ch prose measure. D1's
+  how-to-read now names Admin among the five surfaces. D2 preconditions,
+  D5/D14/D16 state prose, and the D9 steward roles are tables/bullets. The D2.1,
+  D2.2, D2.3, D6b, and D6c overflow labels were re-broken or shortened.
+- **Follow-up (not this round):** `Need` has no ontology `entities` row and no
+  glossary planned-entities row (only `schemas.need`) — belongs to the
+  community-interface workstream (PRD-687–696). Hi-fi registry state id
+  `W9@pick-member` keeps its anchor name until a registry regeneration pass.
+
+## 2026-07-31 — Round 2: full spec vocabulary sync (resolves the round-1 deferred item)
+
+The frozen specs now speak the gallery's vocabulary, before any contract code
+exists (settlement-spec records everything as net-new with no compatibility
+aliases, so this is the cheapest moment it will ever be):
+
+- **settlement-spec.md identifier renames** (dated amendment at the top of the
+  spec): `memberDeliveryEnabled` → `gardenerDeliveryEnabled`,
+  `setMemberDeliveryEnabled` → `setGardenerDeliveryEnabled`,
+  `MemberDeliveryStatusChanged` → `GardenerDeliveryStatusChanged`,
+  `MemberDeliveryDisabled` → `GardenerDeliveryDisabled`,
+  `DuplicateBatchMember` → `DuplicateBatchEntry`, `BatchMemberMismatch` →
+  `BatchEntryMismatch`. §5 is now "Gardener receipt + multi-chain app". The
+  uiux query key is `queryKeys.settlement.gardenerBalance`. Prose swept:
+  person-sense member → gardener; batch rows → "batch entry"; Zodiac Roles
+  membership and quoted GoodDAO language preserved.
+- **contract-spec.md prose sync** (no identifiers change — its surface was
+  already clean): the role legend defines **garden member** as the membership
+  predicate and **gardener** as the acting persona noun; "accepted provider"
+  phrasing converges on lead provider / the stored provider garden;
+  self-confirmation prohibitions are contributor-wide; §9.3's allocation class
+  prose says operator with the drawn label "steward share" (identifier
+  `operatorBps` unchanged). `NotCommunityMember` (Community persona) and
+  `CommitmentProviderExposure.provider` (self-justified generic field) stay.
+- **Ripples**: D13b/D7b/D12 gallery references, wireframes, uiux-spec,
+  prototypes, plan.todo, the four settlement/indexer/state-api/ui handoffs,
+  and the status.json lane acceptance strings all use the new names.
+
+## 2026-08-01 — Exchange-wave review fixes: audit-input immutability + dated-record restorations
+
+- `reports/audit-2026-07-20.md` cross-hub seam line: the credit-hub promotion had been edited
+  into this **immutable audit input** in place. The original backlog-path text is restored; the
+  correction lives here instead: the credit hub moved
+  `.plans/backlog/commitment-credit-follow-on/` → `.plans/active/commitment-credit-follow-on/`
+  on 2026-08-01 (Decision Log #39 / register #73). Read the audit's path as historically accurate
+  for its 2026-07-20 date.
+- `plan.todo.md` register #24 and `status.json` history event 2026-07-19: in-place rewrites of
+  verbatim dated records were reverted. The credit unblock is now recorded the conventional way —
+  appended parentheticals on the dated entries plus new dated `history[]` records for both
+  2026-08-01 waves.
+- Gardener settlement copy: the plain-language rule briefly mapped an authenticated execution
+  failure to the success phrase "Support on its way". Corrected to a third truthful phrase,
+  "support is being rearranged", across acceptance-matrix §1, settlement-spec §7 W2,
+  uiux-spec §5.3/§5.11/Appendix E, and wireframes §6; a failed state never renders a success
+  phrase.

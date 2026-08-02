@@ -11,17 +11,24 @@
   admin-console fixes and polish led by PRD-737; settlement controls wait for settlement selectors
 - Linear context: PRD-725 (admin UI lane) under parent PRD-650; PRD-682 is Community context
 
+Concurrent agents share this repository. Stay inside the admin lane's named paths, preserve
+unrelated working-tree changes, and do not switch the primary tree's branch.
+
 ## Inputs
 
 - GREEN shared hooks/selectors and indexer query contract
 - Corrected admin contract: CanvasLayout, /hub reference, and /community route
-- uiux-spec.md, admin frames, settlement batch/CCIP command-ack state contract
+- uiux-spec.md Appendix E, W28–W31 pair/template frames, admin frames, and the settlement
+  batch/CCIP command-ack state contract
 - acceptance-matrix.md for exact role/permission, copy/state, payout, and final-proof contracts
 - Existing Admin wrappers, Storybook-backed shared primitives, and authenticated Brave access
 
 ## Outputs
 
 - Garden pool console with one-open-Season plus concurrent-Campaign management, scoped seeding/state counts/exact-label summaries, analog capture, gated claims, confirmations, disputes, assessment v3, allocation, and settlement controls.
+- Pair oversight distinguishes proposed, atomically matched, and counterpart-lapsed derivations.
+  Claims choose one accountable lead; contributor team formation remains a separate roster action.
+  Admin copy follows Appendix E.3 while retaining the full operational settlement states.
 - Protocol-pool plus current-garden Pools mode inside admin `/community`; no new top-level Pools
   route. Alphabetical all-garden oversight and batch/CCIP operations live in the capability-gated
   Operations workspace. `showOperations = isDeployer || canQueueFunding || canOperateSettlement`;
@@ -80,7 +87,7 @@
 
 ## RED / GREEN
 
-- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-member control, CCIP command/ack states, fee health, and Safe role separation.
+- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-entry control, CCIP command/ack states, fee health, and Safe role separation.
 - GREEN: the same tests pass; admin build passes; authenticated Brave proves the live operator flow.
 
 ## Exact Bun commands

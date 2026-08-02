@@ -2,17 +2,18 @@
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Three audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
-//   2) Architecture — D1–D16 with their "How to read this" panels (Mermaid renders
+//   2) Architecture — D1–D19 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
-//   3) Screens      — cross-surface flow map + the low-fi ASCII wireframes W1–W26,
+//   3) Screens      — cross-surface flow map + 37 low-fi ASCII screen headings:
+//                     the legacy W1–W26 family, the seven §8 deltas/W27, and W28–W31,
 //                     reconciled to the hi-fi registry (2026-07-27). The hi-fi screen
 //                     set is a different artifact entirely — see
 //                     prototypes-artifact.build.ts.
-//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 29-asset
-//                     coverage matrix, the ship-time appendix, and the audited
-//                     Open-questions findings panel, so the diagrams lead their
-//                     own tab.
+//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 33-asset
+//                     coverage matrix, the D13b permission table (routed 2026-07-31),
+//                     the ship-time appendix, and the audited Open-questions
+//                     findings panel, so the diagrams lead their own tab.
 //
 // Rebuild:  bun .plans/active/commitment-pooling/visual-assets-artifact.build.ts
 //           Always writes two explicit outputs:
@@ -71,6 +72,56 @@ function slug(t: string): string {
   return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
 }
 
+// ---------- per-diagram keys, auto-derived from each mermaid source ----------
+// The footnote under a diagram lists exactly the treatments that diagram uses,
+// so a reader never has to remember the global legend, and the key can never
+// claim a colour the drawing doesn't carry.
+const CLASS_CHIPS: Record<string, [swClass: string, label: string]> = {
+  built: ["sw", "built / live"],
+  planned: ["sw-planned", "planned / gated"],
+  existingPlannedDelta: ["sw-delta", "existing surface, planned delta"],
+  derived: ["sw-derived", "derived by the indexer"],
+  appOnly: ["sw-app", "app-only"],
+  value: ["sw-derived", "value custody"],
+  actor: ["sw-person", "people"],
+  person: ["sw-person", "people"],
+};
+const ERD_GLYPHS: Array<[svg: string, label: string]> = [
+  [`<svg width="46" height="14" viewBox="0 0 46 14" aria-hidden="true"><path d="M2 7h42M34 2v10M39 2v10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`, "exactly one"],
+  [`<svg width="46" height="14" viewBox="0 0 46 14" aria-hidden="true"><path d="M2 7h42M39 2v10" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="30" cy="7" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`, "zero or one"],
+  [`<svg width="46" height="14" viewBox="0 0 46 14" aria-hidden="true"><path d="M2 7h24M36 7l8-5M36 7h8M36 7l8 5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="30" cy="7" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`, "zero or many"],
+  [`<svg width="46" height="14" viewBox="0 0 46 14" aria-hidden="true"><path d="M2 7h34M32 2v10M36 7l8-5M36 7h8M36 7l8 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`, "one or many"],
+];
+function diagramKey(source: string): string {
+  const head = source.trim().split(/\s/, 1)[0] ?? "";
+  if (head === "erDiagram") {
+    const items = ERD_GLYPHS.map(([glyph, label]) => `<span>${glyph}${label}</span>`).join("");
+    return `<div class="erd-key" role="note" aria-label="Entity-relationship cardinality key">${items}<span class="erd-note">Read each line-end at the box it touches; the quoted label is the relationship reading.</span></div>`;
+  }
+  if (head !== "flowchart" && !head.startsWith("stateDiagram")) return "";
+  const declared = new Set([...source.matchAll(/^\s*classDef\s+(\w+)/gm)].map((m) => m[1]));
+  const classLists = [...source.matchAll(/^\s*class\s+([\w,\s]+?)\s+(\w+)\s*$/gm)];
+  const usedClasses = new Set(classLists.map((m) => m[2]).filter((c) => declared.has(c)));
+  const chips: string[] = [];
+  if (head.startsWith("stateDiagram")) {
+    const classedIds = new Set(classLists.flatMap((m) => m[1].split(/[\s,]+/).filter(Boolean)));
+    const stateIds = new Set<string>();
+    for (const m of source.matchAll(/^\s*(\w+)\s*-->/gm)) stateIds.add(m[1]);
+    for (const m of source.matchAll(/-->\s*(\w+)/g)) stateIds.add(m[1]);
+    for (const m of source.matchAll(/^\s*(\w+):\s/gm)) stateIds.add(m[1]);
+    for (const m of source.matchAll(/\sas\s+(\w+)/g)) stateIds.add(m[1]);
+    stateIds.delete("direction");
+    if ([...stateIds].some((id) => !classedIds.has(id))) {
+      chips.push(`<span><i class="sw sw-onchain"></i>on-chain</span>`);
+    }
+  }
+  for (const cls of usedClasses) {
+    const chip = CLASS_CHIPS[cls];
+    if (chip) chips.push(`<span><i class="sw ${chip[0]}"></i>${chip[1]}</span>`);
+  }
+  return chips.length ? `<div class="dia-key" role="note" aria-label="Colour key for this diagram">${chips.join("")}</div>` : "";
+}
+
 type Sec = { id: string; title: string; level: number; html: string[]; subs: { id: string; title: string }[] };
 
 function renderMd(md: string): { secs: Sec[] } {
@@ -92,7 +143,7 @@ function renderMd(md: string): { secs: Sec[] } {
       while (i < lines.length && !/^```\s*$/.test(lines[i])) { buf.push(lines[i]); i++; }
       i++; // closing fence
       const body = buf.join("\n");
-      if (lang === "mermaid") push(`<div class="dia"><pre class="mermaid">${esc(body)}</pre></div>`);
+      if (lang === "mermaid") push(`<div class="dia"><pre class="mermaid">${esc(body)}</pre></div>${diagramKey(body)}`);
       else if (lang === "text") push(`<div class="framewrap"><pre class="frame">${esc(body)}</pre></div>`);
       else push(`<div class="framewrap"><pre class="code">${esc(body)}</pre></div>`);
       continue;
@@ -195,6 +246,7 @@ const statesSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-settlement-stat
 const flywheelSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-flywheel.svg`, "utf8");
 const tiersSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-three-tiers.svg`, "utf8");
 const geSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-ge-protocol.svg`, "utf8");
+const layersSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-three-layers.svg`, "utf8");
 const timelineSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-timeline-band.svg`, "utf8");
 const ownershipSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-ownership-map.svg`, "utf8");
 const useCasesSvg = readFileSync(`${DIR}/artifacts/visuals/use-cases-journey-strip.svg`, "utf8");
@@ -234,13 +286,16 @@ function sectionsHtml(secs: Sec[], opts: SectionOpts = {}): { nav: string; body:
   return { nav, body };
 }
 
-// Tab routing (2026-07-27): the diagrams must lead the Architecture pane, so the
-// preamble, the 29-asset coverage matrix, and the ship-time appendix move to a
-// Reference pane. Nothing is dropped — the deep material renders there in full,
-// and a purpose-written intro carries only what you need to read a diagram.
+// Tab routing (2026-07-27; D13b added 2026-07-31): the diagrams must lead the
+// Architecture pane, so the preamble, the 33-asset coverage matrix, the D13b
+// permission table (pure reference matrix, zero diagrams), and the ship-time
+// appendix move to a Reference pane. Nothing is dropped — the deep material
+// renders there in full, and a purpose-written intro carries only what you need
+// to read a diagram.
 const REFERENCE_TITLES = [
   "Commitment Pooling: Diagrams",
   "Visual coverage matrix",
+  "D13b. Exact sensitive-action permission table",
   "Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)",
 ];
 const REFERENCE_RENAMES: Record<string, string> = {
@@ -298,7 +353,7 @@ const requiredArchitectureSections = [
   ["D8.", "d8-g-funding-topology-safe-recovery-and-ccip-boundary"],
   ["D9.", "d9-settlement-sequence-with-failure-retry"],
   ["D10.", "d10-disbursement-state-machine-all-module-native-on-chain"],
-  ["D10b.", "d10b-settlement-status-the-member-sees-5-stored-9-rendered"],
+  ["D10b.", "d10b-settlement-status-the-gardener-sees-5-stored-9-rendered"],
   ["D11.", "d11-approval-gated-claim-request-decline-acceptance-and-superses"],
   ["D11b.", "d11b-claim-request-state-machine"],
   ["D12.", "d12-protocol-to-garden-funding-route"],
@@ -307,6 +362,10 @@ const requiredArchitectureSections = [
   ["D14.", "d14-commitment-offline-job-lifecycle"],
   ["D15.", "d15-deployment-and-upgrade-topology"],
   ["D16.", "d16-error-taxonomy-surface-and-recovery-map"],
+  ["D17.", "d17-accountability-recognition-and-payment-separation"],
+  ["D17b.", "d17b-where-value-and-recognition-flow-worked-model-1"],
+  ["D18.", "d18-solidity-surface-contracts-ownership-and-upgrade-authority"],
+  ["D19.", "d19-bilateral-exchange-sequence-paired-start-independent-promise"],
 ];
 // Every diagram-bearing section carries a reading guide. The list used to skip
 // exactly the dense ones (D7 had none at 138 source lines) — that inversion is
@@ -314,72 +373,99 @@ const requiredArchitectureSections = [
 const diagramHowToPrefixes = [
   "D1.", "D1b.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D7b.", "D7c.", "D7d.",
   "D8.", "D9.", "D10.", "D10b.", "D11.", "D11b.", "D12.", "D13.", "D13b.", "D14.",
-  "D15.", "D16.",
+  "D15.", "D16.", "D17.", "D17b.", "D18.", "D19.",
 ];
 
 const storyBody = `
+<section id="story-intro">
+  <h2>Pooling promises, not money</h2>
+  <p class="lede">How a community's mutual aid becomes visible, verifiable, and worth funding — the story behind every picture in this gallery.</p>
+  <p>Regenerative work runs on promises long before it runs on money. Someone offers to restore the shade beds; a neighbour asks for help hauling compost; an elder pledges three work-parties for planting season. Most of that generosity is invisible the moment it happens — nothing records it, nothing confirms it, and nothing connects it to the people who would gladly fund work they could trust.</p>
+  <p>Commitment pooling is Grassroots Economics' answer, proven in community-currency practice: pool the <em>promises</em> themselves, not tokens. A pool curates whose offers and requests enter, values contributions in each other's terms, limits how much any one account may promise, and keeps exchange honest through mutual confirmation. Green Goods implements that pattern clean-room for gardens — a commitment is a module-native record on Arbitrum, never a coin.</p>
+  <p>What Green Goods adds is evidence and confirmation. Work is documented with photos and approvals on the rails that already run today; the person who <em>received</em> the help — never the person who did it — confirms the promise was kept; seasons close into impact certificates; and when a promise carries a G$ reward, the money moves only on Celo and counts as arrived only after an authenticated receipt returns. Nobody grades their own homework, and no timeout ever pretends to be proof.</p>
+  <p>The sections below follow one promise end to end — from naming a need to funding the outcome it produced. Solid green means built and live today; dashed means planned. The contracts, states, and flows behind each picture live one tab over, in Architecture.</p>
+</section>
 <section id="story-loop">
   <h2>The commitment loop</h2>
-  <p class="lede">Seven steps from a community need to a funded outcome. Solid green = built and live today; dashed = planned and not live. Community testimony is September-only; optional rewards remain separately gated. The loop is a clean-room implementation of Grassroots Economics' commitment-pooling pattern — pooling <em>promises</em>, not money.</p>
+  <p class="lede">Seven steps from a Need to a funded outcome. Solid green = built and live today; dashed = planned and not live. Community testimony is September-only; optional rewards remain separately gated. The loop is a clean-room implementation of Grassroots Economics' commitment-pooling pattern — pooling <em>promises</em>, not money.</p>
+  <p>Follow the shade-bed promise around the circle. The community names the need and the outcome it wants (1); an Evaluator records the baseline so change is measurable (2); a Gardener makes the commitment as a request or an offer (3); the work happens, and photos plus approvals prove it (4); the neighbour who received the help confirms it (5); from September, the wider community adds its testimony (6); and the season's confirmed promises roll up into an impact certificate a funder can trust (7). Every step carries its own built-or-planned label — the drawing never claims more than the code does.</p>
   ${respSvg(loopSvg, "The commitment loop")}
 </section>
 <section id="story-roles">
   <h2>Who does what</h2>
   <p class="lede">Five roles, and what each one does in the loop: Gardener, Garden Steward, Evaluator, Funder and Community. Scoped settlement permissions move G$ under separate operational controls. Nobody confirms their own promise.</p>
+  <p>The Gardener makes and keeps promises and captures evidence — fully offline in the field when the network is gone. The Garden Steward seeds commitments from confirmed needs, reviews claims, approves work, and runs the season; when an elder without a phone makes a promise in conversation, the steward records it on their behalf and the promise stays the elder's own. The Evaluator anchors the baseline and the delta. Funders back outcomes; the Community signals needs and, from September, testifies to what it can see. The one thing no role can ever do is confirm its own delivery.</p>
   ${respSvg(rolesSvg, "Five roles and their Built or Planned actions")}
 </section>
 <section id="story-use-cases">
   <h2>Three grounded journeys</h2>
   <p class="lede">A Need records the problem and desired outcome. A commitment then makes a Request or Offer to address it. The three journeys distinguish mutual aid, shared projects on today's evidence rails, and separately gated G$ settlement.</p>
+  <p>The first journey is pure mutual aid — childcare during a work day, a ride to the market — where the recipient's confirmation <em>is</em> the whole review. The second is a shared project on the evidence rails that run today: planting, composting, restoration work that travels through photo evidence and steward approval before anyone confirms. The third adds a declared G$ reward, settled separately on Celo under its own gates. It is the same loop each time; only the proof required and the payout attached differ.</p>
   ${respSvg(useCasesSvg, "Three ways a Need becomes action")}
 </section>
 <section id="story-money">
   <h2>Where value lives, and how we know it moved</h2>
   <p class="lede">Proof and coordination stay on Arbitrum; G$ lives and moves only on Celo. The designated Green Goods topology receives Foundation-funded House of Alignment pilot funds directly in the protocol Safe once partner mechanism and address evidence clear; from there, one derived funding route reaches garden accounts. A settlement counts as received only after the authenticated Celo executor acknowledgment returns through CCIP.</p>
+  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's Safe pays the exact net amount on Celo — upstream, the pilot's House of Alignment stream lands in the protocol Safe. No token ever bridges. And no person's report, no elapsed time, can mark support as arrived; only the executor's authenticated acknowledgment can say that.</p>
   ${respSvg(moneySvg, "Arbitrum proof and Celo value map")}
 </section>
 <section id="story-settlement">
   <h2>How a payout becomes provable</h2>
   <p class="lede">Queued through Dispatched and Celo execution to Confirmed — or authenticated Failed. Cancellation is allowed only before dispatch or after that authenticated failure; delay never unlocks it. There is no human verification path: only the Celo executor acknowledgment through CCIP finalizes the source state.</p>
+  <p>The gardener watching their reward sees plain words, not machinery: support is queued, support on its way, confirming arrival, support arrived. Behind those words the settlement record moves Queued → Dispatched → Confirmed, or to an authenticated Failed. A slow transfer only ever reads as "taking longer than usual"; a failed one can be requeued deliberately by a steward, never re-fired by a timer. The vocabulary in these drawings and the vocabulary on screen are the same five stored states — nothing is renamed on the way to the person it matters to.</p>
   ${respSvg(statesSvg, "Settlement evidence states")}
 </section>
 <section id="story-funding">
   <h2>How delivered outcomes attract funding</h2>
   <p class="lede">Three funding rails, converging on one place: delivered outcomes. Protocol funding, garden funding and direct support all terminate at work that was promised, done, and confirmed by the person who received it.</p>
+  <p>Funders never fund activity here; they fund outcomes somebody vouched for. Protocol funding seeds gardens from the shared treasury, garden funding tops up a specific garden's Safe, and direct support backs an impact certificate on the marketplace — three different doors into the same room. All of them end at the one object this whole system exists to produce: a promise that was made, worked, and confirmed by its recipient. That is what makes a season's certificate more than a report. It is a receipt.</p>
   ${respSvg(railsSvg, "Funding rails to delivered outcomes")}
 </section>
 <section id="story-flywheel">
   <h2>The full flywheel</h2>
-  <p class="lede">The whole system in one frame — the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring drawn as gated: designed, parked, and not authorized by any current work.</p>
+  <p class="lede">The whole system in one frame — the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring drawn as gated: unblocked into the August wave on 2026-08-01, still behind its own dispatch gates.</p>
+  <p>Read it from the centre out: promises kept feed certificates, certificates attract funding, and funding seeds the next season's promises — the shade beds this season make the tool library believable next season. The borrow-and-repay ring around the outside is drawn dashed on purpose. It joined the August wave on 2026-08-01, and it stays dashed because its gates are real: the pooling and settlement interfaces freeze in code first, its design is revalidated against them, and a human-owned legal and operations review clears before any of it dispatches. When it arrives it arrives as interest-free, records-only mutual credit — never custody, never a per-person score.</p>
   ${respSvg(flywheelSvg, "The Commitment Pooling flywheel")}
 </section>
 <section id="story-tiers">
   <h2>Three tiers of mutual support</h2>
-  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. Only the first two are in scope — the third is design-only, records-only, interest-free, and never a per-person credit score.</p>
+  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. All three now sit in the August wave — the third joined on 2026-08-01, records-only, interest-free, behind its own gates, and never a per-person credit score.</p>
+  <p>Trust is the ladder's rail. Mutual aid needs only neighbours and a confirmation, so it ships first and works everywhere — including fully offline. G$-paid work adds a treasury, Safes, and settlement discipline, so it arrives gated and rehearsed. Borrow-and-repay needs the deepest trust of all, which is exactly why its gates are the strictest: the interfaces it attaches to freeze in code first, its design is revalidated against them, and a legal and operations review clears before it dispatches. No interest, no per-person scores, no leverage — a recorded loop of advance and repayment riding rails that already exist.</p>
   ${respSvg(tiersSvg, "Three tiers of commitment pooling")}
 </section>
 <section id="story-circular">
   <h2>A circular G$ economy</h2>
-  <p class="lede">The aim is circulation, not extraction: support streams in, flows to gardens and members, and a local spend sink carries value back into the pool.</p>
+  <p class="lede">The aim is circulation, not extraction: support streams in, flows to gardens and gardeners, and a local spend sink carries value back into the pool.</p>
+  <p>A pool that only pays out eventually empties. The circle drawn here is the aim: support streams into the protocol Safe, flows to gardens and gardeners for promises kept, and — through local spending at the garden store, the seed bank, participating neighbours — carries value back around to fund the next round. Recirculation is an ordering criterion for what gets built, never a launch gate, and the metrics behind this picture measure it honestly rather than promising it.</p>
   ${respSvg(circSvg, "Circular G dollar economy")}
 </section>
 <section id="story-ge-functions">
-  <h2>Six protocol functions</h2>
-  <p class="lede">Curation, valuation, limitation, exchange, route and repair remain equally visible. The framing is adapted clean-room from the current cited protocol source and introduces no four-function shortcut.</p>
-  ${respSvg(geSvg, "Six protocol functions adapted by Green Goods")}
+  <h2>Six protocol functions, calibrated</h2>
+  <p class="lede">This is commitment pooling built in stages. Curation, valuation, limitation, exchange, route and repair stay visible, with each function labeled as August mechanics, an August record or partial pathway, or later roadmap work.</p>
+  <p>Grassroots Economics names the functions a commitment pool has to serve, and Green Goods keeps all six visible without claiming more than the current wave carries. Curation, limitation and repair arrive with full August mechanics. Valuation arrives as a declared value record that never drives settlement arithmetic or a conversion rule. Exchange now ships as a one-way counter-commitment reference plus bilateral atomic acceptance, with each promise remaining independent after the paired start. Route is partial: cross-garden claims and protocol-to-garden support run through bounded pathways, while garden-to-garden routing remains on the later roadmap. Multilateral and transferable exchange execution plus relative-pricing enforcement are later seams in the same commitment-pooling architecture. The Architecture tab shows which machinery carries each horizon.</p>
+  ${respSvg(geSvg, "Six functions of commitment pooling built in stages")}
+</section>
+<section id="story-layers">
+  <h2>Three layers, named honestly</h2>
+  <p class="lede">After review with Grassroots Economics, the system describes one Commitment Pooling build in three explicit layers: an August coordination foundation, outcome-linked support on separate funding rails, and later reciprocal routing and exchange seams. "Commitment coordination" names the first layer; it does not rename or reduce the product.</p>
+  <p>Naming the layers keeps the claim honest in both directions. Layer one is the August foundation: needs, offers and requests, evidence, independent confirmation, and repair, with declared value and exchange references recorded as terms. Counts-only standing, rotation, and reserve framing are approved August app-roadmap additions, not current shipped UI. Layer two is how value reaches verified outcomes today: direct support, supporter-vault yield, impact certificates, and the separately gated G$ settlement rail; pooled funds live in treasury Safes and vaults, never inside the pooling mechanism. The records-only, interest-free CreditRegistry is an August companion behind interface-freeze, spec-revalidation, and human legal/operations gates. Layer three names later roadmap extensions: transferable vouchers, exchange execution, relative pricing, and garden-to-garden routing. They extend the same reserved fields and records without being presented as shipped.</p>
+  ${respSvg(layersSvg, "Three layers of commitment pooling built in stages")}
 </section>
 <section id="story-timeline">
   <h2>The rollout sequence</h2>
   <p class="lede">Four native phases and two operational checkpoints. Follow On / Hardening and Community + evidence remain distinct parallel closures on September 30.</p>
+  <p>August builds the pooling core — pools, cycles, commitments, evidence, confirmation, and the gated settlement rails — rehearsed on test networks before anything touches mainnet. September adds the Community app: needs, signals, and testimony. The two closures on September 30 are deliberately parallel lines of work: hardening the August core is one, community evidence is the other, and keeping them distinct is what lets either one finish honestly without blurring the other.</p>
   ${respSvg(timelineSvg, "Four phases and two operational checkpoints")}
 </section>
 <section id="story-ownership">
   <h2>Where each document lives</h2>
   <p class="lede">Three truth surfaces feed one six-tab external document. The repo plan hub owns execution and specification truth, Linear owns current build status and the canonical synthesis, and the Google Doc owns the external narrative. Corrections flow repo → Linear → Doc.</p>
+  <p>Every picture in this gallery has a home for its deeper truth. The repo's plan hub holds the frozen specifications these diagrams are drawn from; Linear holds live build status and the canonical synthesis; the external Google Doc carries the narrative partners read. Corrections travel one way — repo to Linear to Doc — so a fact fixed at the source can never be quietly un-fixed by an older copy living downstream.</p>
   ${respSvg(ownershipSvg, "Six-tab documentation source map")}
 </section>`;
 
 const storyNav = [
+  ["story-intro", "Pooling promises, not money"],
   ["story-loop", "The commitment loop"],
   ["story-roles", "Who does what"],
   ["story-use-cases", "Three grounded journeys"],
@@ -390,6 +476,7 @@ const storyNav = [
   ["story-tiers", "Three tiers of support"],
   ["story-circular", "A circular G$ economy"],
   ["story-ge-functions", "Six protocol functions"],
+  ["story-layers", "Three layers, named honestly"],
   ["story-timeline", "The rollout sequence"],
   ["story-ownership", "Where each document lives"],
 ].map(([id, t]) => `<a href="#${id}">${t}</a>`).join("");
@@ -400,7 +487,7 @@ const storyNav = [
 const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
-  <p class="lede">${architectureSecs.length} named diagrams, D1 through D16, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p class="lede">${architectureSecs.length} named diagrams, D1 through D19, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
   <p><strong>Start anywhere.</strong> Every section carries a “How to read this” panel, so no section depends on the one before it. Where a section splits into sub-blocks, that panel sits at the top of the section and covers all of them — D7 is the exception that guides each sub-block separately.</p>
   <ul class="wayfind">
     <li><b>D1 · D1b</b> <span>the widest frame — who participates, and which boundary may authorize what</span></li>
@@ -408,10 +495,14 @@ const archIntro = `
     <li><b>D4 · D5</b> <span>pool and cycle state machines</span></li>
     <li><b>D7 · D7b · D7c · D7d</b> <span>the Envio read model, its ERDs and its cut-overs</span></li>
     <li><b>D8 – D12</b> <span>G$ topology, settlement sequence, disbursement states, funding route</span></li>
-    <li><b>D13 · D13b</b> <span>capabilities, then the exact per-function permission table</span></li>
+    <li><b>D13</b> <span>capability summary — the exact per-function permission table (D13b) lives on the Reference tab</span></li>
     <li><b>D14 – D16</b> <span>offline jobs, deployment topology, error taxonomy</span></li>
+    <li><b>D17 · D17b</b> <span>accountability separation, then the worked value-and-recognition numbers</span></li>
+    <li><b>D18</b> <span>the Solidity surface — contracts, ownership, and upgrade authority</span></li>
+    <li><b>D19</b> <span>bilateral exchange — one referenced pair starts atomically, then proceeds as two independent promises</span></li>
   </ul>
-  <p><strong>Five sections open with an overview and then zoom in.</strong> D2 and D6 split into three acts, D7 into an entity map plus two field blocks, D9 into healthy path, idempotency and retries, and D16 into the error, where it manifests, and how the person responds. Sub-blocks are indented in the section list on the left.</p>
+  <p><strong>Six sections open with an overview and then zoom in.</strong> D2 and D6 split into three acts, D7 into an entity map plus two field blocks, D9 into healthy path, idempotency and retries, D16 into the error, where it manifests, and how the person responds, and D17b into recognition and payment. Sub-blocks are indented in the section list on the left.</p>
+  <p><strong>Two colour systems, never mixed.</strong> Component diagrams carry <em>build status</em> — the three treatments below. State machines carry <em>storage provenance</em> — the second key. Green tint always and only means built/live; people are paper with an ink outline; and every diagram footnotes exactly the treatments it uses, so the key you need is always directly under the drawing. Each entity-relationship diagram likewise carries its own cardinality key.</p>
   <p><strong>Three status treatments, and only three.</strong> A fill never means two different things in two diagrams, and the meaning of a relationship is always written on the arrow.</p>
   <ul class="legend">
     <li><span class="sw" aria-hidden="true"></span><span><b>Built / live</b> — ships today, in production</span></li>
@@ -420,11 +511,11 @@ const archIntro = `
   </ul>
   <p><strong>State provenance is not decoration.</strong> The state machines render where a state is stored, so a value the indexer computes never reads as a chain write.</p>
   <ul class="legend">
-    <li><span class="sw" aria-hidden="true"></span><span><b>On-chain</b> — the module stores it; a transaction moved it here</span></li>
+    <li><span class="sw sw-onchain" aria-hidden="true"></span><span><b>On-chain</b> — paper with a solid stone outline; the module stores it; a transaction moved it here</span></li>
     <li><span class="sw sw-derived" aria-hidden="true"></span><span><b>Derived</b> — the indexer computes it from events; no transaction writes it</span></li>
     <li><span class="sw sw-app" aria-hidden="true"></span><span><b>App-only</b> — client-side; <code>Draft</code> lives in IndexedDB and has no chain presence</span></li>
   </ul>
-  <p><strong>The Reference tab holds the rest</strong> — the 29-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, and the open questions this set does not answer.</p>
+  <p><strong>The Reference tab holds the rest</strong> — the 33-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the exact per-function permission table (D13b), and the open questions this set does not answer.</p>
 </section>`;
 
 // Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
@@ -452,7 +543,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Do we enable commitment fulfillment just from actions being completed?",
     verdict: "answered",
     finding:
-      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every action/count requirement is met and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with every frozen team member excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
+      "No. Approved work only advances a commitment to `ReadyForConfirmation` — three paths: automatic once every action/count requirement is met and any declared assessment is attached; `submitForConfirmation` for evidence-only kinds; steward `markReadyForConfirmation` with a visible reason. Fulfillment is a separate human act: `confirmFulfillment` by the direction-aware counterparty — an Offer’s recipient, a Request’s creator — reaching threshold N, with every frozen contributor excluded from every path including the reasoned steward fallback. For evidence-only kinds (D3), the counterparty’s confirmation doubles as the review — it removes the approval step, never the confirmation step. D2 and D6 already draw this rule.",
     cites:
       "contract-spec.md §5.3 transition tables + locked fulfillment posture · Linear PRD-649 and the Lifecycle & Aggregator Semantics doc",
   },
@@ -460,7 +551,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Can a commitment have multiple requirements attached?",
     verdict: "answered",
     finding:
-      "Yes. DomainImpact commitments store repeatable `CommitmentRequirement { actionUID, requiredCount }` rows. Actions may share a domain; domain tags are derived from ActionRegistry rather than stored as a positional uniqueness constraint. Every required count is non-zero, each work approval credits one requirement, and approved units are the weighted sum across requirements. Evidence-only kinds carry none. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1) are what members see between Accepted and Ready. The UI starts with four rows but may add more; implementation benchmarks 8/16/24/32 before freezing `MAX_REQUIREMENTS` (provisional 16).",
+      "Yes. DomainImpact commitments store repeatable `CommitmentRequirement { actionUID, requiredCount }` rows. Actions may share a domain; domain tags are derived from ActionRegistry rather than stored as a positional uniqueness constraint. Every required count is non-zero, each work approval credits one requirement, and approved units are the weighted sum across requirements. Evidence-only kinds carry none. `PartiallyApproved` is derived, and the per-requirement progress rows (D7.1) are what gardeners see between Accepted and Ready. The UI starts with four rows but may add more; implementation benchmarks 8/16/24/32 before freezing `MAX_REQUIREMENTS` (provisional 16).",
     cites: "contract-spec.md §5.3 + §8.2 · Decision Log #21 and #63",
   },
   {
@@ -493,7 +584,7 @@ const OPEN_QUESTIONS: ReadonlyArray<{
     question: "Can the needs architecture be simplified (fewer schemas/resolvers)?",
     verdict: "answered",
     finding:
-      "Answered 2026-07-27. Keep four immutable EAS schema records because Need, NeedSignal, NeedStatus, and FundingAttribution each retain a distinct payload, attester gate, volume, and schema-visible revocability policy. Deploy two UUPS resolver proxies: `CommunityNeedsResolver` serves Need/NeedSignal/NeedStatus through exact schema-UID dispatch, and `FundingAttributionResolver` stays separate as the only ungated branch with chain policy. EAS `recipient` is the canonical garden; child `refUID` is the Need UID; custom data no longer duplicates those relationships. NeedSignal carries only `bool support`, with latest-winner support/non-support state derived reader-side.",
+      "Answered 2026-07-27. Keep four immutable EAS schema records because Need, NeedSignal, NeedStatus, and FundingAttribution each retain a distinct payload, attester gate, volume, and schema-visible revocability policy. Deploy two UUPS resolver proxies: `NeedsResolver` (contract name shortened from `CommunityNeedsResolver`, 2026-07-31) serves Need/NeedSignal/NeedStatus through exact schema-UID dispatch, and `FundingAttributionResolver` stays separate as the only ungated branch with chain policy. EAS `recipient` is the canonical garden; child `refUID` is the Need UID; custom data no longer duplicates those relationships. NeedSignal carries only `bool support`, with latest-winner support/non-support state derived reader-side.",
     riderLabel: "Implementation lock",
     rider:
       "Root Need uses zero `refUID`; every child resolver validates an exact, same-recipient, live Need reference. All v1 attestations are non-expiring. Signal switching writes a newer attestation, clear revokes the winner, pending directions coalesce, and support/non-support counts never become a net score.",
@@ -544,7 +635,8 @@ const refBody = `${openQuestionsSection}\n${refOut.body}`;
 
 // Counted, never typed by hand — the masthead line is clamped to two lines and a
 // stale number there is the kind of drift nobody notices.
-const storyAssetCount = storyBody.split("<section").length - 1;
+// Count drawn assets, not sections — the narrative opener carries no SVG.
+const storyAssetCount = (storyBody.match(/class="svgcard"/g) || []).length;
 const archDiagramCount = (diaOut.body.match(/class="mermaid"/g) || []).length;
 
 // ---------- Artifact body-content (the publisher owns doctype/html/head/body) ----------
@@ -562,7 +654,9 @@ const artifactContent = `
   --moss:#4C7A57; --moss-tint:#DFEBDE; --moss-ink:#24422E; --sand:#988D77;
   --diagram-paper:#FBF8F2; --diagram-ink:#2A2722; --diagram-stone:#6E6857;
   --diagram-fill:#EEF5E7; --diagram-border:#3E7C59; --diagram-line:#6E6857;
-  --diagram-note:#F7EBDD; --diagram-note-border:#B66A3C;
+  --diagram-note:#FBF8F2; --diagram-note-border:#B66A3C;
+  --diagram-derived:#F6ECDC; --diagram-derived-border:#B98A3E;
+  --diagram-onchain-fill:#FBF8F2;
   --diagram-planned-fill:#F4EFE6; --diagram-planned-border:#6E6857;
   --diagram-app-fill:#F1ECE3; --diagram-app-border:#8A7F6A;
   --frame-bg:#FFFFFF;
@@ -572,7 +666,9 @@ const artifactContent = `
          --moss:#7FA88B; --moss-tint:#2F3A31; --moss-ink:#CBDDCF; --sand:#8A7F6A;
          --diagram-paper:#2A2722; --diagram-ink:#EDE7DB; --diagram-stone:#B0A794;
          --diagram-fill:#2F3A31; --diagram-border:#7FA88B; --diagram-line:#B0A794;
-         --diagram-note:#3A2D25; --diagram-note-border:#C78660;
+         --diagram-note:#332F29; --diagram-note-border:#C78660;
+         --diagram-derived:#3A2D25; --diagram-derived-border:#C78660;
+         --diagram-onchain-fill:#332F29;
          --diagram-planned-fill:#332F29; --diagram-planned-border:#B0A794;
          --diagram-app-fill:#302D28; --diagram-app-border:#8A7F6A; }
 }
@@ -580,14 +676,18 @@ const artifactContent = `
          --moss:#7FA88B; --moss-tint:#2F3A31; --moss-ink:#CBDDCF; --sand:#8A7F6A;
          --diagram-paper:#2A2722; --diagram-ink:#EDE7DB; --diagram-stone:#B0A794;
          --diagram-fill:#2F3A31; --diagram-border:#7FA88B; --diagram-line:#B0A794;
-         --diagram-note:#3A2D25; --diagram-note-border:#C78660;
+         --diagram-note:#332F29; --diagram-note-border:#C78660;
+         --diagram-derived:#3A2D25; --diagram-derived-border:#C78660;
+         --diagram-onchain-fill:#332F29;
          --diagram-planned-fill:#332F29; --diagram-planned-border:#B0A794;
          --diagram-app-fill:#302D28; --diagram-app-border:#8A7F6A; }
 :root[data-theme="light"]{ color-scheme:light; --paper:#FBF8F2; --panel:#FFFFFF; --ink:#2A2722; --stone:#6E6857; --line:#E4DDD0;
          --moss:#4C7A57; --moss-tint:#DFEBDE; --moss-ink:#24422E; --sand:#988D77;
          --diagram-paper:#FBF8F2; --diagram-ink:#2A2722; --diagram-stone:#6E6857;
          --diagram-fill:#EEF5E7; --diagram-border:#3E7C59; --diagram-line:#6E6857;
-         --diagram-note:#F7EBDD; --diagram-note-border:#B66A3C;
+         --diagram-note:#FBF8F2; --diagram-note-border:#B66A3C;
+         --diagram-derived:#F6ECDC; --diagram-derived-border:#B98A3E;
+         --diagram-onchain-fill:#FBF8F2;
          --diagram-planned-fill:#F4EFE6; --diagram-planned-border:#6E6857;
          --diagram-app-fill:#F1ECE3; --diagram-app-border:#8A7F6A; }
 *{box-sizing:border-box}
@@ -651,7 +751,7 @@ code{background:var(--moss-tint);color:var(--moss-ink);border-radius:5px;padding
 blockquote{border-left:3px solid var(--sand);margin:.8rem 0;padding:.15rem 1rem;color:var(--stone);}
 hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
 .howto{background:var(--moss-tint);color:var(--moss-ink);border-radius:12px;padding: .8rem 1rem;
-  margin:.7rem 0 1rem;max-width:none;font-size:.95rem;}
+  margin:.7rem 0 1rem;max-width:calc(72ch + 2rem);font-size:.95rem;}
 .howto code{background:rgba(255,255,255,.5);}
 :root[data-theme="dark"] .howto code{background:rgba(0,0,0,.25);}
 @media (prefers-color-scheme: dark){
@@ -674,10 +774,16 @@ hr{border:0;border-top:1px solid var(--line);margin:2rem 0;}
 .dia svg .diagram-background{fill:var(--diagram-paper)!important;}
 .dia svg text,.dia svg text>tspan,.dia svg .nodeLabel,.dia svg .nodeLabel p,.dia svg .edgeLabel,.dia svg .edgeLabel p{
   color:var(--diagram-ink)!important;fill:var(--diagram-ink)!important;}
+/* Unclassed shapes are PAPER with a solid stone outline — the documented on-chain
+   provenance treatment. Green tint means built/live and arrives only through a
+   classDef; before 2026-07-31 this default was the green fill, which made every
+   on-chain state and ER entity read as "built" (the round-2 colour finding). */
 .dia svg .node rect,.dia svg .node circle,.dia svg .node ellipse,.dia svg .node polygon,.dia svg .node path,
 .dia svg .statediagram-state rect,.dia svg .stateGroup rect,.dia svg .entityBox,
-.dia svg .attributeBoxOdd,.dia svg .attributeBoxEven,.dia svg .row-rect-odd,.dia svg .row-rect-even{
-  fill:var(--diagram-fill)!important;stroke:var(--diagram-border)!important;}
+.dia svg .attributeBoxOdd,.dia svg .row-rect-odd{
+  fill:var(--diagram-onchain-fill)!important;stroke:var(--diagram-stone)!important;}
+.dia svg .attributeBoxEven,.dia svg .row-rect-even{
+  fill:var(--diagram-app-fill)!important;stroke:var(--diagram-stone)!important;}
 .dia svg .cluster rect,.dia svg .cluster polygon,.dia svg .stateGroup .composit,.dia svg .statediagram .outer-path{
   fill:var(--diagram-paper)!important;stroke:var(--diagram-stone)!important;}
 .dia svg .edgeLabel rect,.dia svg .edgeLabel .labelBkg,.dia svg .relationshipLabelBox{
@@ -786,8 +892,28 @@ ul.legend li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:s
   border:2px solid var(--diagram-border);background:var(--diagram-fill);}
 .legend .sw-planned{background:var(--diagram-planned-fill);border-color:var(--diagram-planned-border);border-style:dashed;}
 .legend .sw-delta{background:var(--diagram-paper);border-color:var(--diagram-border);}
-.legend .sw-derived{background:var(--diagram-note);border-color:var(--diagram-note-border);}
+.legend .sw-derived{background:var(--diagram-derived);border-color:var(--diagram-derived-border);}
 .legend .sw-app{background:var(--diagram-app-fill);border-color:var(--diagram-app-border);}
+.legend .sw-onchain{background:var(--diagram-onchain-fill);border-color:var(--diagram-stone);}
+.legend .sw-person{background:var(--diagram-paper);border-color:var(--diagram-ink);}
+/* Per-diagram key: auto-generated from each diagram's own classDefs, so the
+   footnote can never claim a treatment the drawing does not use. */
+.dia-key{display:flex;flex-wrap:wrap;gap:.3rem 1.05rem;margin:-.45rem 0 1.1rem;
+  font-size:.73rem;color:var(--stone);align-items:center;}
+.dia-key .sw{display:inline-block;width:1.15rem;height:.8rem;border-radius:4px;
+  border:2px solid var(--diagram-border);background:var(--diagram-fill);
+  vertical-align:-2px;margin-right:.38rem;}
+.dia-key .sw-planned{background:var(--diagram-planned-fill);border-color:var(--diagram-planned-border);border-style:dashed;}
+.dia-key .sw-delta{background:var(--diagram-paper);border-color:var(--diagram-border);}
+.dia-key .sw-derived{background:var(--diagram-derived);border-color:var(--diagram-derived-border);}
+.dia-key .sw-app{background:var(--diagram-app-fill);border-color:var(--diagram-app-border);}
+.dia-key .sw-onchain{background:var(--diagram-onchain-fill);border-color:var(--diagram-stone);}
+.dia-key .sw-person{background:var(--diagram-paper);border-color:var(--diagram-ink);}
+/* ERD cardinality key — repeated under every entity-relationship diagram. */
+.erd-key{display:flex;flex-wrap:wrap;gap:.3rem 1.05rem;margin:-.45rem 0 1.1rem;
+  font-size:.73rem;color:var(--stone);align-items:center;}
+.erd-key svg{vertical-align:-3px;margin-right:.34rem;color:var(--diagram-stone);}
+.erd-key .erd-note{flex-basis:100%;margin-top:-.1rem;}
 .legend b{color:var(--ink);}
 .legend span{color:var(--stone);}
 /* Where-to-look map for the 23 diagrams. */
@@ -1523,6 +1649,25 @@ ${mermaidRuntime}
     return themeMedia.matches ? 'dark' : 'light';
   }
 
+  // classDef hexes in diagrams.md are authored for the light theme; the dark
+  // render maps them onto the dark token family at the source level so both
+  // frozen themes carry correct colours (round-2 fix: dark used to keep the
+  // light chips verbatim).
+  var DARK_HEX = {
+    'fbf8f2': '332F29', 'edf3e8': '2F3A31', 'e4efe2': '2F3A31', 'f4efe6': '332F29',
+    'f6ecdc': '3A2D25', 'ececec': '302D28',
+    '50784a': '7FA88B', '4c7a57': '7FA88B', '426a45': '7FA88B', '3e7c59': '7FA88B',
+    '6e6857': 'B0A794', 'b98a3e': 'C78660', '8a8a8a': '8A7F6A', '988d77': '8A7F6A', 'b66a3c': 'C78660',
+    '2a2722': 'EDE7DB', '233020': 'CBDDCF', '373226': 'EDE7DB', '4b3820': 'EDE7DB'
+  };
+  function toThemeSource(src, theme){
+    if (theme !== 'dark') return src;
+    return src.replace(/#([0-9a-fA-F]{6})(?![0-9a-fA-F])/g, function(full, hex){
+      var mapped = DARK_HEX[hex.toLowerCase()];
+      return mapped ? '#' + mapped : full;
+    });
+  }
+
   function themePalette(theme){
     if (theme === 'dark') {
       return {
@@ -1530,7 +1675,7 @@ ${mermaidRuntime}
         primary: '#2F3A31', primaryText: '#EDE7DB', primaryBorder: '#7FA88B',
         secondary: '#3A2D25', secondaryText: '#EDE7DB', secondaryBorder: '#C78660',
         tertiary: '#332F29', tertiaryText: '#EDE7DB', tertiaryBorder: '#8A7F6A',
-        line: '#B0A794', labelBackground: '#201E1A', note: '#3A2D25', noteBorder: '#C78660', sequenceNumber: '#EDE7DB'
+        line: '#B0A794', labelBackground: '#201E1A', note: '#332F29', noteBorder: '#C78660', sequenceNumber: '#EDE7DB'
       };
     }
     return {
@@ -1538,7 +1683,7 @@ ${mermaidRuntime}
       primary: '#EEF5E7', primaryText: '#2A2722', primaryBorder: '#3E7C59',
       secondary: '#F7EBDD', secondaryText: '#2A2722', secondaryBorder: '#B66A3C',
       tertiary: '#F1ECE3', tertiaryText: '#2A2722', tertiaryBorder: '#B7B09C',
-      line: '#6E6857', labelBackground: '#FBF8F2', note: '#F7EBDD', noteBorder: '#B66A3C', sequenceNumber: '#FBF8F2'
+      line: '#6E6857', labelBackground: '#FBF8F2', note: '#FBF8F2', noteBorder: '#B66A3C', sequenceNumber: '#FBF8F2'
     };
   }
 
@@ -1563,8 +1708,8 @@ ${mermaidRuntime}
         tertiaryBorderColor: palette.tertiaryBorder,
         lineColor: palette.line,
         textColor: palette.primaryText,
-        mainBkg: palette.primary,
-        nodeBorder: palette.primaryBorder,
+        mainBkg: palette.background,
+        nodeBorder: palette.line,
         clusterBkg: palette.background,
         clusterBorder: palette.tertiaryBorder,
         edgeLabelBackground: palette.labelBackground,
@@ -1653,7 +1798,7 @@ ${mermaidRuntime}
       var record = records[index];
       if (record.cache[theme] || record.failed) continue;
       try {
-        var result = await window.mermaid.render('cp-mermaid-' + (index + 1) + '-' + theme, record.source);
+        var result = await window.mermaid.render('cp-mermaid-' + (index + 1) + '-' + theme, toThemeSource(record.source, theme));
         var rendered = buildRendered(record, result, theme);
         record.cache[theme] = rendered.outerHTML;
       } catch (error) {
@@ -1756,6 +1901,27 @@ for (const [prefix, requiredId] of requiredArchitectureSections) {
   assertBuild(matches.length === 1, `Architecture must contain exactly one ${prefix} section`);
   assertBuild(matches[0].id === requiredId, `${prefix} section ID must remain ${requiredId}`);
 }
+// Every flowchart node must carry a status class: the unclassed fallback is the
+// on-chain paper treatment, and a component silently falling into it would lie
+// about build status (the round-2 colour finding, made structural).
+{
+  const flowchartFences = [...diagramsMd.matchAll(/```mermaid\n([\s\S]*?)```/g)]
+    .map((m) => m[1])
+    .filter((src) => src.trim().startsWith("flowchart"));
+  flowchartFences.forEach((src, i) => {
+    const classed = new Set(
+      [...src.matchAll(/^\s*class\s+([\w,\s]+?)\s+\w+\s*$/gm)].flatMap((m) => m[1].split(/[\s,]+/).filter(Boolean)),
+    );
+    const nodeIds = new Set<string>();
+    for (const line of src.split("\n")) {
+      if (/^\s*(?:subgraph|%%)\b/.test(line)) continue;
+      for (const m of line.matchAll(/(?:^|[\s(>|])([A-Za-z]\w*)\[/g)) nodeIds.add(m[1]);
+    }
+    for (const id of nodeIds) {
+      assertBuild(classed.has(id), `flowchart block ${i + 1}: node ${id} has no status class and would fall to the on-chain default`);
+    }
+  });
+}
 for (const prefix of diagramHowToPrefixes) {
   const section = dia.secs.find((candidate) => candidate.title.startsWith(prefix));
   assertBuild(Boolean(section), `${prefix} How-to owner is missing`);
@@ -1826,7 +1992,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 25, "Architecture output must contain 25 sections (24 D-sections + the hand-written intro)");
+assertBuild(architectureSectionCount === 27, "Architecture output must contain 27 sections (26 D-sections + the hand-written intro; D13b renders on Reference)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -1834,8 +2000,8 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 35, "Architecture output must contain 35 Mermaid blocks");
-assertBuild(mermaidCount === 36, "Gallery output must contain 36 Mermaid blocks including the Screens flow");
+assertBuild(architectureMermaidCount === 38, "Architecture output must contain 38 Mermaid blocks (D16 is split into two recovery maps and D19 adds the bilateral exchange sequence)");
+assertBuild(mermaidCount === 39, "Gallery output must contain 39 Mermaid blocks including the Screens flow");
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");
@@ -1865,7 +2031,12 @@ assertBuild(
   !refBody.includes("Parked for decision") && !refBody.includes("deliberately does not answer"),
   "the pre-audit framing cannot survive alongside findings",
 );
-assertBuild(wfScreenCount === 26, `the Screens pane must present all 26 wireframe frames (found ${wfScreenCount})`);
+// 26 → 33 on 2026-08-01: wireframes.md §8 added seven CPP-alignment frames/deltas;
+// 33 → 37 in the exchange wave: W28–W31 add the exchange and template-first frames.
+// (W8/W3/W2/W5 deltas, W7/W10 claims-queue delta, W27 rotation template, W21/W23
+// reserve-framing copy delta). They carry no hi-fi deep links yet — hi-fi additions
+// are an explicit follow-up pass per §8's preamble.
+assertBuild(wfScreenCount === 37, `the Screens pane must present all 37 wireframe frames (found ${wfScreenCount})`);
 for (const id of WF_ONLY_FRAMES) {
   assertBuild(wf.secs.some((s) => s.id === id), `WF_ONLY_FRAMES names #${id}, which is not a Screens section`);
 }

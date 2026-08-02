@@ -9,6 +9,9 @@
 - Current state: blocked; this handoff does not self-dispatch
 - Linear context: PRD-721 (contracts lane) under parent PRD-650; PRD-671/672 are historical labels
 
+Concurrent agents share this repository. Stay inside this lane's named paths, preserve unrelated
+working-tree changes, and do not switch branches from another session's primary tree.
+
 ## Inputs
 
 Every item below is a required prerequisite, and each stays outstanding until its own verified
@@ -23,7 +26,18 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   close before PRD-649.
 - Afo's PRD-649 architecture fine-comb, with every resulting correction reconciled into the
   contract/event/indexer/state/API boundaries.
-- contract-spec.md, especially sections 5-8
+- contract-spec.md, especially sections 5-8 — including the 2026-08-01 CPP-alignment amendment
+  (decisions 16-17): the `declaredUnitValue`/`declaredValueBasis` pair with `setDeclaredValue` +
+  `ValueDeclared`, and the `counterCommitmentId` creation-time reference with its
+  existence/same-pool/non-self errors. Both are additive creation-fact fields with no
+  state-machine change; `CommitmentCreated` carries all three new params.
+- The second 2026-08-01 amendment and canonical decision 18: implement only
+  `acceptExchange(uint256 exchangeCommitmentId)` plus `ExchangeAccepted` and the named exchange
+  errors. Section 6.1 is the exact semantics source: B references A, only A's creator calls,
+  creator consent bypasses both claim-mode operator paths, Offer×Offer and Individual×Individual
+  are mandatory, both ordinary per-side predicates run, both registry commits and slots are
+  atomic, and the ordinary lifecycles never couple after acceptance. The architecture brief does
+  not authorize the transferable/multilateral layer.
 - settlement-spec.md, which holds the canonical `validateRecognitionSnapshot` hash preimage this
   lane must implement: `recognitionSnapshotHash = keccak256(abi.encode(block.chainid,
   commitmentId, recognitionEntries))` (`settlement-spec.md` §3.1.3, mirrored into contract-spec
@@ -39,8 +53,8 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 ## Outputs
 
 - An in-place upgrade of the existing AssessmentResolver for the AssessmentV3 schema, plus the
-  NET-NEW CommunityTestimonyResolver and approved additive schema-registration targets.
-- CommitmentPoolingModule and non-transferable CommitmentRegister with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
+  NET-NEW TestimonyResolver and approved additive schema-registration targets.
+- CommitmentPoolingModule and non-transferable CommitmentRegistry with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
 - GardenToken and WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks.
 - Contract tests and deployment-script tests that become the frozen ABI/event source for indexer and shared lanes.
 - The `421614` toolchain that every `--network arbitrum-sepolia` command below depends on and
@@ -100,7 +114,7 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - The onchain Ready predicate requires a charter and non-zero register provider open-commitment cap. A current, non-revoked Baseline assessment is an app/shared/admin preflight and is never added to the contract predicate. `pausePool` requires a reason CID and blocks only the operational mutations enumerated in contract-spec §6.1.
 - `CommitmentPoolingModule` initializes paused. All six dependency setters and `setSchemaUIDs`
   require pause, reject zero/collision before mutation, and emit exact old/new facts; unpause
-  requires the complete six-address/four-UID configuration. `CommitmentRegister.setModule`
+  requires the complete six-address/four-UID configuration. `CommitmentRegistry.setModule`
   permits the initial zero → non-zero wiring only; later replacement requires the current module
   paused and emits exact old/new without touching accounting state. The frozen
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
@@ -151,7 +165,7 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   Partial, zero, repeated, wrong-account, and terminal-state register calls revert before any
   balance or count mutation. Pre-acceptance cancel/expiry changes no balance or slot; dispute
   entry/restoration makes no register call and preserves the slot.
-- Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by the accepted provider/counterparty or steward, never by an unrelated creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
+- Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by the lead provider/counterparty or steward, never by an unrelated creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
 - The count-cap API is the initial interface: `ProviderOpenCommitmentCapUpdated`,
   `OpenCommitmentCapRequired`, `OpenCommitmentCapExceeded`,
   `providerOpenCommitmentCapOf`, and `openCommitmentCountOf`. After pool/steward resolution the
@@ -186,7 +200,7 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   failure; a mismatched existing record fails closed. UID setters reconcile zero → set,
   exact → skip, conflicting non-zero → fail. The append-only artifact merge uses that same UID in
   every path.
-- CommunityTestimonyResolver implementation/proxy deployment uses deterministic versioned CREATE2
+- TestimonyResolver implementation/proxy deployment uses deterministic versioned CREATE2
   predictions and is resumable after an on-chain-success/local-artifact-failure split. Existing
   addresses are reused only after exact implementation bytecode, ERC-1967 implementation,
   initializer lock, owner, EAS, and module/schema-state verification; mismatch fails closed and an
@@ -217,7 +231,7 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 ## RED / GREEN
 
 - RED: add focused tests in test/unit/CommitmentPooling.t.sol and
-  test/unit/CommitmentRegister.t.sol; include write-once Accepted-and-unfrozen assessment
+  test/unit/CommitmentRegistry.t.sol; include write-once Accepted-and-unfrozen assessment
   attachment (replacement and post-freeze rejection), contributor-steward direct-dispute
   Fulfilled rejection, Garden-Request `requestedBy` lead accounting, creator-operated Garden
   rejection in both Open and ApprovalGated modes (including acceptance-time revalidation),
@@ -232,18 +246,18 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 
 ## Exact Bun commands
 
-`CommitmentPooling.t.sol`, `CommitmentRegister.t.sol`,
-`CommunityTestimonyResolver.t.sol`, and `CommitmentPoolingBounds.t.sol` do not exist yet; each is
+`CommitmentPooling.t.sol`, `CommitmentRegistry.t.sol`,
+`TestimonyResolver.t.sol`, and `CommitmentPoolingBounds.t.sol` do not exist yet; each is
 an intentional to-be-created
 RED-first deliverable. The existing `AssessmentResolver.t.sol` is extended with the in-place
 upgrade and dual-schema cases. `WorkApprovalResolver.t.sol` and `StorageLayout.t.sol` are
 existing regression surfaces.
 
 - bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol
-- bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentRegister.t.sol
+- bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentRegistry.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/unit/AssessmentResolver.t.sol
-- bun run --filter @green-goods/contracts test:match -- test/unit/CommunityTestimonyResolver.t.sol
+- bun run --filter @green-goods/contracts test:match -- test/unit/TestimonyResolver.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/unit/WorkApprovalResolver.t.sol
 - bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol
 - bun run --filter @green-goods/contracts check:storage-layout
@@ -322,7 +336,7 @@ say why the next size up was rejected.
 
 ## Out of scope
 
-- SettlementModule implementation, Celo execution, bridged G$, transferable vouchers, CreditRegister, raw Celo indexing, Sarafu integration, UI, and any broadcast.
+- SettlementModule implementation, Celo execution, bridged G$, transferable vouchers, CreditRegistry, raw Celo indexing, Sarafu integration, UI, and any broadcast.
 - Editing existing production schema definitions or using bulk --update-schemas.
 
 ## Unblock evidence
@@ -424,7 +438,7 @@ Each line below is a condition to be met, not a statement of current state. None
   GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
   checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
   declarations require zero source/token sentinels; SettlementModule exclusively derives its
-  configured G$ token, and the accepted provider-garden Safe becomes authoritative only there.
+  configured G$ token, and the provider-garden Safe becomes authoritative only there.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
   than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments

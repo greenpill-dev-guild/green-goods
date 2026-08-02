@@ -1,7 +1,7 @@
 # Commitment Pooling — Cross-Surface Acceptance Matrix
 
 **Status**: canonical execution companion  
-**Updated**: 2026-07-28
+**Updated**: 2026-08-01
 **Sources**: `contract-spec.md`, `settlement-spec.md`, `pilot-evidence-spec.md`, `uiux-spec.md`, `wireframes.md`
 **Purpose**: one exact target for the handoffs' copy/state matrix, public claim/copy matrix, and final QA acceptance matrix. Specs win if this summary drifts.
 
@@ -17,22 +17,25 @@
 | Claim Pending | Canonical claimant + “requested by” actor + provider context | Same stored row; accept/decline key canonical claimant | Counts only | Accept, decline, supersede, cancel, or expire |
 | Claim Declined | Reason + fresh-request CTA | Selected row only | Not public | New request, never retry old row |
 | Claim Superseded | Taken/no-longer-available copy; no retry | Indexed terminal row | Not public | Browse exit |
+| Exchange proposed | Pair chip names the other Offer and reads “in exchange for”; no acceptance CTA unless the viewer created A | Same reference and eligibility facts | Aggregate counts only | A creator opens W30 or either Offer leaves `Offered` |
+| Exchange matched | “Both promises started together; each is kept on its own” + the two ordinary commitment timelines | `ExchangeAccepted` marker beside the two ordinary `CommitmentAccepted` records | Neutral exchange-feed row | Each commitment proceeds independently |
+| Exchange counterpart lapsed | The surviving commitment keeps its own state; pair status explains that its counterpart lapsed | No transition action on the surviving side | Not public as a person-level fact | None — S5 boundary: counterpart cancellation or expiry never transitions the other commitment |
 | Team forming | Lead + active contributors + join/approval policy; requirement assignments are planning only | Roster editor, eligibility, contribution credit, and confirmer reachability | Counts/roles only | Add/remove/join events |
 | Contributor roster and credit ledger frozen | “Team locked for confirmation” + who is credited | No roster edits or new contribution credit; contributor exclusion is visible beside confirmer rule | Recognition roster may be reported | ReadyForConfirmation transition |
 | Evidence-only Accepted | Evidence + declared assessment requirements | Attach assessment; submit Ready; override separate | Active counts only | Evidence, assessment when declared, submit Ready |
 | DomainImpact Accepted | Repeatable per-action Work/approval progress; no manual Ready-submit | Requirement rows may repeat domains; Add requirement is not capped at four in UX; override separate | Active counts only | Every requirement `approvedCount >= requiredCount` + assessment when declared |
 | Payout-plan draft | Recognition and proposed payment shown side by side; garden-retained amount explicit | Steward can reopen and atomically resubmit the complete vector/retention/reason before finalization; invariant and derived recipient accounts visible | No “paid” claim | Exact declared = retained + contributor total |
-| Settlement queued | “Support is queued” | Dispatch action + fee quote/reserve | Planned, not sent | Successful command dispatch |
+| Settlement queued | “Support on its way” | Dispatch action + fee quote/reserve | Planned, not sent | Successful command dispatch |
 | Command dispatched | “Support on its way” | Command message ID, elapsed time, fee/route health | Sent, never received | Indexed Celo execution or authenticated failure acknowledgment |
-| Executed; acknowledgment pending | “Confirming arrival” | Celo execution + retry acknowledgment guidance | Confirming, never received | Authenticated success acknowledgment |
+| Executed; acknowledgment pending | “Support on its way” | Celo execution + retry acknowledgment guidance | Confirming, never received | Authenticated success acknowledgment |
 | Confirmed settlement | “Support arrived” | Command, Celo execution, acknowledgment, Celo ref | Confirmed | Authenticated current success acknowledgment |
-| Payout partially complete | Per-contributor arrived/pending/failed receipts; never one blanket success | Parent status derived from child disbursements; failed contributor requeues independently | “Partially distributed” | Every non-zero child terminal/confirmed |
+| Payout partially complete | Per-contributor “on its way” / “arrived” receipts; never one blanket success | Parent status derived from child disbursements; failed contributor requeues independently | “Partially distributed” | Every non-zero child terminal/confirmed |
 | Payout complete | Every non-zero contributor row arrived; retained amount stays in garden | Recognition/payment comparison and child receipts preserved | “Distributed” with retained amount | Every non-zero child Confirmed |
-| Authenticated execution failure | Calm failure/recovery | Bounded failure code + per-member new-attempt/cancel controls | Failed | Explicit reconciliation |
+| Authenticated execution failure | “Support is being rearranged” plus a calm action explanation, never the internal state noun and never a success phrase | Bounded failure code + per-member new-attempt/cancel controls | Failed | Explicit reconciliation |
 | Cancelled from Queued | “Support was withdrawn before it was sent” | Cancellation reason + Queued origin | Cancelled before send | Terminal; no execution key |
 | Cancelled from Failed | “Support was closed after delivery could not complete” | Failed attempt/code + cancellation reason/origin | Cancelled after authenticated failure | Terminal; no new execution key |
 | Queued batch cancelled | Each member uses Cancelled-from-Queued copy | One whole-batch action, reason, immutable member list, and blast radius; no member-level cancel | Batch and every member Cancelled before send | Atomic terminal transition; no partial queued-batch state |
-| Delivery/fee delay | Still on its way / confirming; never failed | Retry same command or stored acknowledgment; manual-execution guidance | Delivery delayed, not payment failure | Delivery/fee recovery |
+| Delivery/fee delay | “Support on its way”; no transport-state vocabulary | Retry same command or stored acknowledgment; manual-execution guidance | Delivery delayed, not payment failure | Delivery/fee recovery |
 | Member delivery disabled | No G$ balance/send or first contributor-child preparation CTA; fulfilled commitment, payout plan, retention, unprepared rows, and historical children remain visible | Gate reason; the separate treasury funding route remains | Explicit delivery-blocked copy with no retry for an unprepared row | AA/paymaster exit evidence + enabled event |
 
 ## 2. Identity, permissions, and payout formulas
@@ -88,6 +91,23 @@
 | Exact-label unit summaries | ID uses chain + POOL/CYCLE scope + scope ID + `viem.keccak256(viem.stringToBytes(unitLabel))` over the exact stored UTF-8 string | Indexer declares direct `viem@2.55.0` dependency matching the repo pin; two `hours` commitments share a row; `Hours` is distinct; composed/decomposed Unicode remains byte-distinct; replay changes neither row |
 | Cross-commitment rate | `promiseKeptRate = commitmentsFulfilled / commitmentsDue` | Sole aggregate percentage; active progress uses state counts and exact-label groups |
 
+### 2.1 Bilateral exchange and template-first acceptance
+
+| Case | Expected contract/read-model result | Surface assertion |
+|---|---|---|
+| Offer×Offer success | A creator calls `acceptExchange(B)`; B references existing same-pool A; both are `Offered`, have different creators, and use `Individual`. B creator claims A and A creator claims B atomically. Emit two ordinary `CommitmentAccepted` events plus `ExchangeAccepted(A, B, B.creator, A.creator)`; call `CommitmentRegistry.commitUnits` for both exact-label classes and consume one provider slot per lead. One `CommitmentExchange` entity exists, and its existence is the atomic marker; no redundant boolean is stored | W30 repeats “You'll receive [B]. [B's creator] will receive [A]. Both promises start together; each is kept on its own.” W29 and the pool feed render the pair from creation references plus the marker event |
+| `ExchangeCounterpartMismatch(exchangeCommitmentId)` | B has no counterpart, A does not exist, or A belongs to another pool; no state, event, class accounting, or slot changes | A creator is returned to W29/W30 with the pair marked unavailable and a route back to the pool |
+| `ExchangeDirectionInvalid(commitmentIdA, commitmentIdB, directionA, directionB)` | At least one side is not an Offer; no writes | The confirmation action is removed and both actual directions are explained without suggesting an unsupported path |
+| `ExchangeStateInvalid(commitmentId, actual)` | Directions are Offer×Offer but either side is not `Offered`; no writes | Pair status shows the current state and the confirmation action remains unavailable |
+| `SelfExchange(creator)` | A and B have the same creator; no writes | Creation validation asks the creator to choose another member's Offer |
+| `ExchangeClaimTypeUnsupported(commitmentId, actual)` | Either side is not `Individual`; no writes | Garden×garden is labeled a later extension seam and no call is offered |
+| Existing cycle predicate failure | A or B has `cycleId != 0` and its cycle is not open; the ordinary named cycle error wins and no writes survive | Pair status names the closed season or campaign and offers no retry action |
+| Existing creator/identity failure | Caller is not A's creator, or an ordinary per-side identity predicate fails; no writes | Only A's creator sees the action; a stale deep link exits to the pair detail |
+| Existing register quota/cap failure | If either `commitUnits` call or provider-slot check fails, both acceptance transitions, both ordinary events, the marker, both unit commits, and both slot changes revert | One calm failure identifies the side and the steward action needed; the UI never renders a half-matched pair |
+| Post-acceptance independence | Fulfillment, cancellation, expiry, and dispute on either side never transition the other; direction-aware confirmation and contributor self-confirmation exclusions apply independently | W29 shows “counterpart lapsed” only as an app/indexer-derived pair status while the unaffected promise keeps its own state and actions |
+| Exchange-pair UX states | Proposed derives from B's creation reference; matched derives from `ExchangeAccepted`; counterpart-lapsed derives from either ordinary lifecycle | Picker, review line, pair chip, detail, feed, confirmation, submitted, error, matched, and counterpart-lapsed states match uiux Appendix E.1 and W28–W30 |
+| Template-picker creation | W31 precedes the blank Offer/Request form; Rotation, Work party, Harvest share, Tool lending, Mentorship circle, and Exchange circle pre-fill only existing commitment/cycle/campaign/claim/roster/exchange fields | Every default is editable, en/es/pt content uses the §10 key family, and choosing a template creates no new chain state or module call |
+
 ## 3. Public claim and copy matrix
 
 | Claim | Allowed wording | Forbidden wording | Authority |
@@ -101,7 +121,7 @@
 | Fourth garden | “a fourth slot for a mature MRV-adoption anchor — open; candidates under consideration, none selected” | Any named fourth garden in any artifact, or any claim that a fourth garden is selected or participating | `plan.todo.md` Decision Log #29 (supersedes Decision Log #25 and Decision Log #27) |
 | Community comparison | Alphabetical/neutral aggregates with small-community suppression | Rankings, leaderboards, credit scores | `uiux-spec.md` §7.2 |
 | Funding | Supports the garden; not per-Need escrow or steering | Funding buys priority/control | Community spec |
-| Credit/vouchers | Design-only/evidence-gated follow-on | August capability or dispatchable work | `../../backlog/commitment-credit-follow-on/spec.md`, PRD-651/697 |
+| Borrow-and-repay / vouchers | `CreditRegistry` is an active August-wave companion at `../commitment-credit-follow-on/spec.md`, but its contracts lane stays undispatchable until the in-code interface freeze, spec revalidation, and human legal/operations review clear; transferable vouchers remain evidence-gated follow-on scope | Treating credit as already dispatchable; transferable vouchers, `settlementAdapter` activation, or voucher exchange as August capability | `../commitment-credit-follow-on/spec.md`, PRD-697 for credit; PRD-651 for vouchers |
 | Pilot outcome | Observed change, mixed result, or strengthened settlement capacity only at the approved claim class | Settlement/transaction volume, feature use, or fulfillment alone described as causal livelihood/community impact | `pilot-evidence-spec.md` |
 
 ## 4. Final role / route / state proof

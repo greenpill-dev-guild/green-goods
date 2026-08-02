@@ -10,7 +10,7 @@
 ## Locked architecture
 
 - Four exact schema records across two UUPS proxies:
-  - `CommunityNeedsResolver`: Need, NeedSignal, NeedStatus with exact-schema dispatch and unknown branches failing closed.
+  - `NeedsResolver`: Need, NeedSignal, NeedStatus with exact-schema dispatch and unknown branches failing closed.
   - `FundingAttributionResolver`: FundingAttribution plus dependent Need UID and native-direct policy.
 - EAS `recipient` is the garden. Root Need requires `refUID = 0`; every child requires `refUID` to an exact, same-recipient, non-revoked, non-expired Need.
 - `NeedSignal` decodes only `bool support`. NeedStatus keeps `mergedIntoNeedUID` because that is a second relationship.
@@ -18,7 +18,7 @@
 ## Outputs
 
 - Two implementations/proxies, four schema registrations, atomic UID configuration/events, typed custom errors, deterministic `moderationHead[attestation.refUID]`, native-direct-funding policy, `need-schemas` deploy target, tests, exact deployment artifact keys, and post-deploy verification described in `spec.md` §3.
-- Deployment artifacts expose only `communityNeedsResolver` and `fundingAttributionResolver` at the resolver level; all four schema strings and UIDs remain independently persisted.
+- Deployment artifacts expose only `needsResolver` and `fundingAttributionResolver` at the resolver level; all four schema strings and UIDs remain independently persisted.
 
 ## Acceptance
 

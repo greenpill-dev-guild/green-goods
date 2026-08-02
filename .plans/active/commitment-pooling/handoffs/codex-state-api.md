@@ -9,9 +9,13 @@
 - Current state: two-phase — core waits for core indexer GREEN; settlement selectors wait for settlement indexer GREEN
 - Linear context: PRD-723 (state/API lane) under parent PRD-650
 
+Concurrent agents share this repository. Stay inside this lane's named shared/state paths,
+preserve unrelated working-tree changes, and do not switch the primary tree's branch.
+
 ## Inputs
 
 - Frozen pooling ABI/events for the core phase; frozen CCIP command/ack and Celo executor ABI/events for the settlement phase
+- The 2026-08-01 CPP-alignment amendment (contract-spec decisions 16–17): commitment types carry `counterCommitmentId` and `declaredUnitValue`/`declaredValueBasis`; selectors add the `CommitmentCounterIndex` pair view and the counts-only `PoolMemberHistory` standing read (never a score, percentage, or ranking; value sums only per exact basis). Raw history rows derive from public events and are not confidential. The shared selector requires viewer account plus current pool-steward capability and returns a participant row only for that steward or the member themself; client/admin code must not bind raw history entities, and editorial selectors expose aggregates only.
 - GREEN core indexer codegen/build and agreed entity/query contract; settlement entities join only for the settlement phase
 - acceptance-matrix.md for shared identity, status, copy, and final-proof contracts
 - Composite Garden-ID query cutover
@@ -20,6 +24,10 @@
 ## Outputs
 
 - Core shared domain types, centralized query keys, EAS/Envio adapters, hooks, selectors, mutation hooks, and invalidation rules, including missing-evidence and Assessment v3 readiness outputs.
+- Exchange state/API adds the creation `counterCommitmentId` selector, pair lookup/feed,
+  proposed/matched/counterpart-lapsed derivation, and online `acceptExchange` mutation. It exposes
+  `CommitmentExchange` as the atomic marker while preserving ordinary commitment queries and
+  independent lifecycle invalidation on each side.
 - Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
 - Settlement and ProtocolToGarden funding remain online authority-gated mutations; neither is a
   sixth offline job, per-device attempt, or background queue.
@@ -37,7 +45,7 @@
   Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
   asserts matching EntryPoint/factory/implementation/initializer/passkey/salt; it never silently
   falls back, infers a version from chain support, or mixes profile components.
-- `memberDeliveryEnabled` is false for every testnet-profile result. Production enablement consumes
+- `gardenerDeliveryEnabled` is false for every testnet-profile result. Production enablement consumes
   only the separately recorded Kernel `0.3.1` mainnet evidence gate; testnet sponsorship or
   provider-list presence cannot enable the production action.
 - Stored claim-request terms and Pending/Accepted/Declined/Superseded selectors.
@@ -109,7 +117,7 @@
 - Account-profile tests prove that `421614` and `11142220` use the explicit Kernel `0.2.4`
   test profile, `42161` and `42220` retain Kernel `0.3.1`, both members of a profile derive the
   same counterfactual address, unsupported/mixed profiles fail closed, and testnet evidence never
-  changes `memberDeliveryEnabled`.
+  changes `gardenerDeliveryEnabled`.
 - New user-visible shared strings have en/es/pt messages and accessible status announcements.
 
 ## RED / GREEN

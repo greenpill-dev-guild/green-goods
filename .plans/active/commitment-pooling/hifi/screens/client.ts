@@ -951,7 +951,7 @@ function w2(state: W2State): string {
       break;
     case "captured-ready-confirmer":
       band = card(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">The accepted provider remains excluded. The named counterparty reviews the captured promise.</div>${hot("w2.confirm-captured-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">The lead provider remains excluded. The named counterparty reviews the captured promise.</div>${hot("w2.confirm-captured-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
       );
       break;
     case "captured-confirmation-pending":

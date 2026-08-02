@@ -35,7 +35,7 @@
   <rect x="44" y="566" width="130" height="70" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
   <text x="109" y="608" text-anchor="middle" font-size="20" font-weight="600" fill="#24422E">donations</text>
   <rect x="188" y="566" width="230" height="70" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="303" y="594" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">G$ pays members for</text>
+  <text x="303" y="594" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">G$ pays gardeners for</text>
   <text x="303" y="619" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">fulfilled commitments</text>
 
   <!-- converging arrows -->

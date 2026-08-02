@@ -364,11 +364,11 @@ _Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPool
 
 ### `accounting-state`
 
-CommitmentRegister unit-class accounting states (non-transferable, ERC-1155-style).
+CommitmentRegistry unit-class accounting states (non-transferable, ERC-1155-style).
 
 **Canonical members:** Registered (0) · Committed (1) · Released (2) · Fulfilled (3)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentRegister.sol` · `AccountingState`. The drift gate flags arrival so the status flips to live with declared representations._
+_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentRegistry.sol` · `AccountingState`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ### `commitment-payout-plan-status`
 
@@ -467,9 +467,9 @@ Community-Hat-gated testimony attached to a commitment; the second of exactly tw
 
 ### `need` — Green Goods Need
 
-status: spec · revocable: true · planned resolver: `CommunityNeedsResolver`
+status: spec · revocable: true · planned resolver: `NeedsResolver`
 
-Root Needs use EAS recipient as the canonical garden, refUID zero, and expirationTime zero. CommunityNeedsResolver authorizes the attester through the recipient garden's Community role.
+Root Needs use EAS recipient as the canonical garden, refUID zero, and expirationTime zero. NeedsResolver authorizes the attester through the recipient garden's Community role.
 
 | Field | Type |
 |---|---|
@@ -480,7 +480,7 @@ Root Needs use EAS recipient as the canonical garden, refUID zero, and expiratio
 
 ### `needSignal` — Green Goods Need Signal
 
-status: spec · revocable: true · planned resolver: `CommunityNeedsResolver`
+status: spec · revocable: true · planned resolver: `NeedsResolver`
 
 Child signal records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. Readers derive one current direction per attester through the canonical latest-winner rule.
 
@@ -490,7 +490,7 @@ Child signal records use EAS recipient as the garden, refUID as the exact live s
 
 ### `needStatus` — Green Goods Need Status
 
-status: spec · revocable: false · planned resolver: `CommunityNeedsResolver`
+status: spec · revocable: false · planned resolver: `NeedsResolver`
 
 Operator-authored child moderation records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. mergedIntoNeedUID remains custom data because it is a second Need relationship.
 
@@ -505,7 +505,7 @@ Operator-authored child moderation records use EAS recipient as the garden, refU
 
 status: spec · revocable: false · planned resolver: `FundingAttributionResolver`
 
-Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from CommunityNeedsResolver and the joined reader verifies canonical receipts before display.
+Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.
 
 | Field | Type |
 |---|---|
@@ -534,10 +534,10 @@ Cross-layer invariants and where they are enforced. This catalog is documentatio
 - **`pooling-payout-plan-conservation`** · sum · spec — An explicitly finalized commitment payout plan conserves the declared support amount exactly: garden-retained amount plus all contributor child amounts equals the parent amount. A zero-child all-retained plan completes at finalization without a transfer. _(enforced at: `.plans/active/commitment-pooling/settlement-spec.md`)_
 - **`pooling-payout-plan-integrity`** · functional · spec — Each fulfilled commitment has at most one stable payout-plan pointer. The complete recognition vector matches its snapshot hash, payment weights derive from the atomic amount vector, finalization precedes dispatch, and child or batch cancellation never clears the parent pointer. _(enforced at: `.plans/active/commitment-pooling/settlement-spec.md`)_
 - **`pooling-one-open-season`** · functional · spec — A pool may have at most one open Season at a time (O(1) openSeasonCycleId guard); Campaigns may overlap freely. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`commitment-register-non-transferable`** · non-transferable · spec — CommitmentRegister unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
+- **`commitment-register-non-transferable`** · non-transferable · spec — CommitmentRegistry unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
 - **`needs-eas-envelope-reference`** · domain-range · spec — All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need. _(enforced at: `.plans/active/community-interface/spec.md`)_
 - **`need-signal-latest-winner`** · functional · spec — For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts. _(enforced at: `.plans/active/community-interface/spec.md`)_
-- **`needs-resolver-trust-boundaries`** · closed-set · spec — Exactly four Needs schemas route through two resolvers: CommunityNeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed. _(enforced at: `.plans/active/community-interface/spec.md`)_
+- **`needs-resolver-trust-boundaries`** · closed-set · spec — Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed. _(enforced at: `.plans/active/community-interface/spec.md`)_
 
 ## State Machines
 

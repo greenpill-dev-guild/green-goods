@@ -15,7 +15,10 @@
 
 - Frozen CommitmentPoolingModule Fulfilled reward/provider interface.
 - `settlement-spec.md` exact command/ack tuples, state machine, events, authority boundary,
-  GoodDollar exact-net fee model, and current direct-lane/testnet evidence gate.
+  GoodDollar exact-net fee model, and current direct-lane/testnet evidence gate — including the
+  2026-08-01 amendment: `DisbursementKind` ships with three members
+  (`ContributorReward`, `Funding`, `LoanPrincipal`); `LoanPrincipal` is reserved for the
+  unblocked credit chain and no code path queues it until that lane dispatches.
 - Existing `packages/contracts/src/registries/LocalCCIPRouter.sol` is the local-router starting
   point. Extend or adapt it into the paired-router harness; do not create an unrelated parallel
   CCIP mock that can drift from the repository's existing local transport behavior.
@@ -147,7 +150,7 @@
   or masquerade as one another.
 - Native ETH/CELO fee balances, quote, reserve threshold, low-balance state, and withdrawal constraints are observable and tested. Arbitrum command dispatch/retry always spends the module reserve; Celo `AcknowledgmentSent.reserveFunded` distinguishes automatic/sponsored reserve spend from an exact caller-funded retry. LINK fee payment is out of scope.
 - `dispatcher` is a single optional Arbitrum address with dispatch/retry authority only. Protocol garden and canonical G$ have no post-initialization setter. Both contracts preserve their configured native-fee floor on sends and withdrawals.
-- `memberDeliveryEnabled()` remains the canonical AA capability gate for non-zero contributor
+- `gardenerDeliveryEnabled()` remains the canonical AA capability gate for non-zero contributor
   preparation and member sends. Failure does not block payout-plan creation/edit/finalization,
   all-retained zero-child completion, or `ProtocolToGarden`.
 - Shared currently constructs Kernel `0.3.1` accounts. Pimlico's official support matrix lists
@@ -166,7 +169,7 @@
 
 ## RED / GREEN
 
-- RED: focused tests fail for tuple compatibility, exact decimal-string selector parsing/round-trip without JS number coercion, disbursement/batch execution-key domain separation, homogeneous batch kind/funding-route and duplicate-recipient rejection before mutation, inactive protocol-source or target-garden Funding account rejection at batch creation and dispatch, source/sender/version/token validation, originating-message-to-key binding, per-command destination snapshot and previous-peer forgery/cross-executor retry rejection, paused-first initialization, unpaused/zero trust-root rejection, exact old/new dependency events, incomplete-unpause rejection, write-once canonical configuration, dispatcher scope, persisted contributor-order enumeration, version-1 creation snapshot and later versioned full-vector replacement with incomplete/mismatched trailing-summary rejection, observable fee floors, unbatched-Queued/Failed individual cancellation, failed-batch member requeue clearing only the active batch association, atomic Queued-batch cancellation with no partial-member path, disabled/configured/hard batch bounds, same-key duplicate/out-of-order delivery, acknowledgment retry, stale/duplicate acknowledgment, bounded failure codes, fee shortage, pause, previous-peer command acknowledgment back to its exact originating module, UUPS immutable-router cutover with unchanged G$, Safe owner/role/native-allowance separation, exact-net GoodDollar fee modes, token pause, proportional/absolute fee policy, and balance deltas, direct-G$ role scoping with no executor self-call permission, cap failure, and compiler-generated storage layouts with concrete slot/offset assertions.
+- RED: focused tests fail for tuple compatibility, exact decimal-string selector parsing/round-trip without JS number coercion, disbursement/batch execution-key domain separation, homogeneous batch kind/funding-route and duplicate-recipient rejection before mutation, inactive protocol-source or target-garden Funding account rejection at batch creation and dispatch, source/sender/version/token validation, originating-message-to-key binding, per-command destination snapshot and previous-peer forgery/cross-executor retry rejection, paused-first initialization, unpaused/zero trust-root rejection, exact old/new dependency events, incomplete-unpause rejection, write-once canonical configuration, dispatcher scope, persisted contributor-order enumeration, version-1 creation snapshot and later versioned full-vector replacement with incomplete/mismatched trailing-summary rejection, observable fee floors, unbatched-Queued/Failed individual cancellation, failed-batch entry requeue clearing only the active batch association, atomic Queued-batch cancellation with no partial-entry path, disabled/configured/hard batch bounds, same-key duplicate/out-of-order delivery, acknowledgment retry, stale/duplicate acknowledgment, bounded failure codes, fee shortage, pause, previous-peer command acknowledgment back to its exact originating module, UUPS immutable-router cutover with unchanged G$, Safe owner/role/native-allowance separation, exact-net GoodDollar fee modes, token pause, proportional/absolute fee policy, and balance deltas, direct-G$ role scoping with no executor self-call permission, cap failure, and compiler-generated storage layouts with concrete slot/offset assertions.
 - GREEN: the same tests pass; a deterministic two-router local harness and separate fork processes prove asynchronous command/ack behavior without broadcasting.
 
 ## Exact Bun commands
@@ -197,7 +200,7 @@ Deployment commands must be added through the existing deploy wrapper and verifi
 
 ## Out of scope
 
-- Broadcasts, Safe role grants, message-only mainnet ping/ack, value canary, arbitrary Safe execution, CCIP token transfer, bridged G$, raw G$ indexing, manual report/verification, any `packages/agent` settlement relayer or write authority, garden-custody member claims, transferable vouchers, and CreditRegister. Optional later agent alerts may consume indexed health read-only.
+- Broadcasts, Safe role grants, message-only mainnet ping/ack, value canary, arbitrary Safe execution, CCIP token transfer, bridged G$, raw G$ indexing, manual report/verification, any `packages/agent` settlement relayer or write authority, garden-custody member claims, transferable vouchers, and CreditRegistry. Optional later agent alerts may consume indexed health read-only.
 
 ## Release blockers that do not block implementation
 
