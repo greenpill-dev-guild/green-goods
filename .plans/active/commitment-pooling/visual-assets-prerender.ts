@@ -25,10 +25,22 @@
 //   Deploy body   (SHAREABLE_OUT) — this file's output: frozen SVG, publicly shareable.
 //
 // Run:      bun .plans/active/commitment-pooling/visual-assets-prerender.ts
+// Verify:   bun .plans/active/commitment-pooling/visual-assets-prerender.ts --verify <file>
+//           Prints SAFE TO PUBLISH / DO NOT PUBLISH and exits non-zero on the latter.
+//           Run it on the exact path you are about to hand the Artifact tool.
 // Publish:  the Claude Code Artifact tool with SHAREABLE_OUT and
 //           url: https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d
+//
+// RECURRING DEFECT (2026-07-22, 2026-07-31, 2026-08-01): the wrong file gets published.
+// It presents as a Mermaid *rendering* regression — the reader is told the latest version
+// can't be viewed — while diagrams.md is perfectly healthy, so the hunt starts in the
+// wrong place. Diagnose from the published side first: fetch the artifact URL and grep the
+// body. `<pre class="mermaid">` present and `dia-frozen` absent means the wrong build is
+// live, and the fix is a republish, not a source edit. Guards, in the order they bite:
+// DO-NOT-PUBLISH in the unpublishable filenames, a sentinel comment inside each body that
+// survives renames and env overrides, and --verify above.
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 // `playwright`/`playwright-core` aren't symlinked at the repo root (bun workspace
 // hoisting); `@playwright/test` is, and it re-exports the same chromium driver.
@@ -36,14 +48,66 @@ import { chromium } from "@playwright/test";
 
 const DIR = import.meta.dir;
 const BUILD = join(DIR, "visual-assets-artifact.build.ts");
-const LOCAL_OUT = process.env.LOCAL_OUT ?? "/tmp/cp-visual-local.html";
-const ARTIFACT_OUT = process.env.ARTIFACT_OUT ?? "/tmp/cp-visual-artifact-body.html";
-const SHAREABLE_OUT = process.env.SHAREABLE_OUT ?? "/tmp/cp-visual-shareable.html";
+// DO-NOT-PUBLISH / PUBLISH-THIS are load-bearing, not decoration: the path string is the
+// last thing read before it becomes the Artifact tool's file_path. Keep in sync with the
+// builder's own defaults.
+const LOCAL_OUT = process.env.LOCAL_OUT ?? "/tmp/cp-visual-local.DO-NOT-PUBLISH.html";
+const ARTIFACT_OUT = process.env.ARTIFACT_OUT ?? "/tmp/cp-visual-artifact-body.DO-NOT-PUBLISH.html";
+const SHAREABLE_OUT = process.env.SHAREABLE_OUT ?? "/tmp/cp-visual-shareable.PUBLISH-THIS.html";
+
+// Must match visual-assets-artifact.build.ts's UNFROZEN_SENTINEL exactly. Asserted below
+// rather than assumed, so a rename in either script fails loudly instead of quietly
+// disarming the guard. Neither may contain ` src=` — the external-reference check greps it.
+const UNFROZEN_SENTINEL =
+  "<!-- GG-GALLERY-BUILD unfrozen · DO NOT PUBLISH · host-rendered Mermaid refuses public sharing · publish the prerender's PUBLISH-THIS output instead -->";
+const SHAREABLE_SENTINEL =
+  "<!-- GG-GALLERY-BUILD shareable · Mermaid frozen to inline SVG · safe to publish -->";
 
 const DIA_RE = /<div class="dia"><pre class="mermaid">[\s\S]*?<\/pre><\/div>/g;
 
 function fail(message: string): never {
   throw new Error(`prerender invariant failed: ${message}`);
+}
+
+// The single definition of "publishable". Used by --verify and by this script's own final
+// gate, so the check that clears a file is literally the check that produced it.
+function publishBlockers(file: string): string[] {
+  if (!existsSync(file)) return [`file does not exist: ${file}`];
+  const html = readFileSync(file, "utf8");
+  const problems: string[] = [];
+  const unfrozen = (html.match(/<pre class="mermaid"/g) || []).length;
+
+  if (html.includes(UNFROZEN_SENTINEL))
+    problems.push("carries the builder's DO-NOT-PUBLISH sentinel — this is a build output, not a deploy output");
+  if (!html.includes(SHAREABLE_SENTINEL))
+    problems.push("missing the shareable sentinel — this file did not come out of the prerender");
+  if (unfrozen > 0)
+    problems.push(`${unfrozen} <pre class="mermaid"> block(s) — the host renders these at view time, so public sharing is refused`);
+  if (!html.includes("dia-frozen")) problems.push("no frozen diagrams — expected inline <svg> tagged dia-frozen");
+  if (html.trimStart().startsWith("<!doctype"))
+    problems.push("complete HTML document — the Artifact tool wants body content only");
+  if (html.includes('data-embedded-runtime="mermaid@')) problems.push("embeds the Mermaid runtime");
+  if (/<script[^>]+ src=/.test(html)) problems.push("references an external script — blocked by the artifact CSP");
+  return problems;
+}
+
+function reportVerdict(file: string): number {
+  const problems = publishBlockers(file);
+  console.log(`\n  file: ${file}`);
+  if (problems.length === 0) {
+    console.log("\n  ✅ SAFE TO PUBLISH — Mermaid frozen to inline SVG, nothing renders at view time.\n");
+    return 0;
+  }
+  console.log("\n  ⛔ DO NOT PUBLISH\n");
+  for (const problem of problems) console.log(`     · ${problem}`);
+  console.log("\n  Produce a publishable body with:");
+  console.log("     bun .plans/active/commitment-pooling/visual-assets-prerender.ts\n");
+  return 1;
+}
+
+const verifyFlag = process.argv.indexOf("--verify");
+if (verifyFlag !== -1) {
+  process.exit(reportVerdict(process.argv[verifyFlag + 1] ?? SHAREABLE_OUT));
 }
 
 // Trackpad/pan hardening for the frozen deploy build. The gallery preview opens every
@@ -90,6 +154,10 @@ const built = spawnSync("bun", [BUILD], { env: { ...process.env, LOCAL_OUT, ARTI
 if (built.status !== 0) fail("gallery build failed");
 
 const artifactBody = readFileSync(ARTIFACT_OUT, "utf8");
+// If this trips, the builder's UNFROZEN_SENTINEL was renamed or dropped. Fix both scripts
+// together — a silently absent sentinel would let an unfrozen body pass --verify.
+if (!artifactBody.includes(UNFROZEN_SENTINEL))
+  fail(`builder output is missing UNFROZEN_SENTINEL — the two scripts have drifted apart; re-sync the constant in visual-assets-artifact.build.ts`);
 const diaCount = (artifactBody.match(DIA_RE) || []).length;
 if (diaCount === 0) fail("no <div class=\"dia\"><pre class=\"mermaid\"> blocks found to freeze");
 console.log(`    diagrams to freeze: ${diaCount}`);
@@ -164,14 +232,23 @@ try {
 console.log("3.5/4 hardening preview pan/zoom (open oversize diagrams pannable; scroll-to-pan)…");
 shareable = patchPreviewInteractions(shareable);
 
-console.log("4/4 verifying shareable invariants…");
-const remaining = (shareable.match(/<pre class="mermaid"/g) || []).length;
-if (remaining !== 0) fail(`shareable still contains ${remaining} <pre class="mermaid"> block(s)`);
-if (shareable.includes('data-embedded-runtime="mermaid@')) fail("shareable must not embed the Mermaid runtime");
-if (shareable.includes(" src=") || /<script[^>]+src=/.test(shareable)) fail("shareable must not reference external scripts");
+console.log("4/4 flipping the sentinel and verifying shareable invariants…");
+// The body is only publishable from here on, so this is exactly where it stops carrying
+// the builder's DO-NOT-PUBLISH marker and starts carrying the shareable one.
+shareable = shareable.replace(UNFROZEN_SENTINEL, SHAREABLE_SENTINEL);
+if (shareable.includes(UNFROZEN_SENTINEL)) fail("failed to clear the DO-NOT-PUBLISH sentinel");
+if (shareable.includes(" src=")) fail("shareable must not reference external scripts");
 const svgCount = (shareable.match(/<svg[\s>]/g) || []).length;
 
+// Write first, then verify the bytes on disk — the file is what gets published, not the
+// string in memory, and this runs the same check --verify runs.
 writeFileSync(SHAREABLE_OUT, shareable);
+const blockers = publishBlockers(SHAREABLE_OUT);
+if (blockers.length) fail(`shareable output is not publishable:\n     · ${blockers.join("\n     · ")}`);
+
 console.log(`\n✅ shareable body: ${SHAREABLE_OUT}`);
 console.log(`   ${Buffer.byteLength(shareable).toLocaleString()} bytes · froze ${diaCount} diagrams (light+dark) · total <svg>=${svgCount} · <pre class="mermaid">=0`);
-console.log(`   publish this file to artifact 007ef090; open ${LOCAL_OUT} with file:// for the live local preview.`);
+console.log(`   verified publishable — publish THIS path to artifact 007ef090:`);
+console.log(`     ${SHAREABLE_OUT}`);
+console.log(`   re-check any candidate path with:  bun ${BUILD.replace("visual-assets-artifact.build.ts", "visual-assets-prerender.ts")} --verify <file>`);
+console.log(`   local visual validation (never publish this one): open ${LOCAL_OUT} with file://`);
