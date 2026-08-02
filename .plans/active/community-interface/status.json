@@ -77,7 +77,7 @@
   },
   "notes": [
     "Vocabulary is Need, never problem — code and copy alike (decision #1).",
-    "Four immutable EAS schemas (Need, NeedSignal, NeedStatus, FundingAttribution) across two UUPS resolvers: CommunityNeedsResolver owns the three role-gated branches and FundingAttributionResolver retains a separate ungated blast wall.",
+    "Four immutable EAS schemas (Need, NeedSignal, NeedStatus, FundingAttribution) across two UUPS resolvers: NeedsResolver owns the three role-gated branches and FundingAttributionResolver retains a separate ungated blast wall.",
     "EAS recipient is the canonical garden, root Need refUID is zero, and child NeedSignal/NeedStatus/FundingAttribution refUID is the Need UID; custom data does not duplicate those relationships.",
     "NeedSignal custom data is bool support. The latest unsigned (timeCreated, uid) per (refUID, attester) wins before revoked/expired filtering; revoked/expired winners clear state without resurrecting older signals; support and non-support remain separate counts with no net score.",
     "EAS is never indexed by Envio: status and signal derivation are an app-side join of easscan reads and Envio commitment entities carrying needUID.",
