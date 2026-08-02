@@ -371,7 +371,9 @@ const W2_STATES = [
   ["active", "Active"], ["evidence-queued", "Evidence queued"],
   ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
-  ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
+  ["fulfilled", "Fulfilled"], ["fulfilled-pool-fallback", "Fulfilled — garden fallback"],
+  ["fulfilled-protocol-fallback", "Fulfilled — Green Goods team fallback"],
+  ["reward-released", "Reward released"],
   ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
   ["support-executed", "Celo executed"], ["support-confirming", "Confirming arrival"],
   ["support-arrived", "Support arrived"], ["support-failed", "Support failed"],
@@ -413,7 +415,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
   "evidence-queued": "Active", "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
-  fulfilled: "Fulfilled", "reward-released": "Fulfilled",
+  fulfilled: "Fulfilled", "fulfilled-pool-fallback": "Fulfilled",
+  "fulfilled-protocol-fallback": "Fulfilled", "reward-released": "Fulfilled",
   "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
   "support-executed": "Fulfilled", "support-confirming": "Fulfilled", "support-arrived": "Fulfilled",
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
@@ -530,19 +533,19 @@ function w2RewardRow(state: W2State): string {
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
     case "support-queued":
-      return line("Support is queued (G$).", "Queued");
+      return line("Support on its way (G$).", "On its way");
     case "support-en-route":
       return line("Support on its way (G$).", "On its way");
     case "support-delayed":
       return line("Support on its way — delivery delayed. Your promise remains recorded.", "Delayed", "warn");
     case "support-executed":
-      return line("Celo execution recorded — confirming arrival.", "Executed");
+      return line("Support on its way (G$).", "On its way");
     case "support-confirming":
-      return line("Execution stored — authenticated acknowledgment pending.", "Confirming");
+      return line("Support on its way (G$).", "On its way");
     case "support-arrived":
       return line("Support arrived ↗ — reference in Details.", "Arrived", "ok");
     case "support-failed":
-      return line("Still arranging support — your promise is recorded and stays kept.", "Arranging", "warn");
+      return line("Support is being rearranged — your promise is recorded and stays kept.", "Being rearranged", "warn");
     case "support-cancelled-queued":
       return line("This support was withdrawn before it was sent — your promise and its record stay intact.", "Withdrawn", "warn");
     case "support-cancelled-failed":
@@ -667,7 +670,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       { label: "Requested", meta: "protocol pool · Jul 2" },
       { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
       { label: "Evidence in", meta: "survey sheet · Jul 10" },
-      { label: "Promise kept", meta: "confirmed by the protocol stewards · Jul 12", open: true },
+      { label: "Promise kept", meta: "confirmed by Sofia · ordinary named confirmation · Jul 12", open: true },
     ];
   const opened: Moment[] = [
     { label: "Offered", meta: "Maria · Jul 2" },
@@ -694,6 +697,10 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
   const ready: Moment = overrideNote
     ? { label: "Ready", meta: "steward note", note: "“confirmed on site visit” (steward record)", warn: true }
     : { label: "Ready to confirm", meta: "waiting on João", open: true };
+  if (state === "fulfilled-pool-fallback")
+    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by garden steward — fallback · David · Jul 12", note: "“confirmed at the field gathering”", open: true }];
+  if (state === "fulfilled-protocol-fallback")
+    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by Green Goods team — fallback · Sofia · Jul 12", note: "“no eligible local confirmer”", open: true }];
   if (state === "fulfilled" || state === "reconciled" || W2_SETTLED.has(state))
     return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by João · Jul 12", open: true }];
   return [...worked, ready];
@@ -1006,6 +1013,12 @@ function w2(state: W2State): string {
     case "fulfilled":
       band = card(hero("Promise kept", "Confirmed by João · the season's count just grew", "checkbox-circle-fill"));
       break;
+    case "fulfilled-pool-fallback":
+      band = card(hero("Promise kept", "Confirmed by garden steward — fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      break;
+    case "fulfilled-protocol-fallback":
+      band = card(hero("Promise kept", "Confirmed by Green Goods team — fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      break;
     case "expired":
       band = card(
         `<div class="t-title">This promise ran through Aug 12</div><div class="t-meta">The season moved on — you can offer it again.</div>${hot("w2.offer-again", btn("Offer it again", { kind: "pri", full: true }))}`,
@@ -1276,16 +1289,18 @@ const W2A_HOTS: HifiDef["hots"] = {
 
 const W3_STATES = [
   ["step-what", "1 · What"], ["step-howmuch", "2 · How much"], ["step-anchors", "3 · Anchors"],
-  ["step-review", "4 · Review"], ["support-howmuch", "Support · amount"], ["support-review", "Support · review"],
+  ["step-confirmers", "4 · Who confirms"], ["step-review", "5 · Review"],
+  ["support-howmuch", "Support · amount"], ["support-confirmers", "Support · who confirms"],
+  ["support-review", "Support · review"],
   ["request-variant", "Request · review"], ["draft-resume", "Draft resume"],
   ["validation", "Validation error"],
 ] as const;
 type W3State = (typeof W3_STATES)[number][0];
 
 // `total` is a parameter because the request path skips action anchors: a
-// support/service ask is three steps, and showing four dots promises a step
+// support/service ask is four steps, and showing five dots promises a step
 // that never arrives (UX:153 · WF:199).
-const w3Head = (title: string, step: number, total = 4) =>
+const w3Head = (title: string, step: number, total = 5) =>
   `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(total, step)}</span></div>`;
 
 function w3(state: W3State): string {
@@ -1315,22 +1330,37 @@ function w3(state: W3State): string {
         hot("w3.continue-anchors", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
-    case "step-review":
+    case "step-confirmers":
       body = `${w3Head("Make an offer", 3)}${pagepad(
-        card(`${kv("Direction", "Offer support")}${kv("Kind", "Garden work")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("Requirements", "Prune × 2 · Plant × 12")}`),
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Reachability", "No eligible local confirmer after contributor exclusion")}`),
+        hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Safety path only. Contributors can never confirm their own work.</span></span></label>`),
+        banner("Choose this option or change the team or confirmer rule before continuing.", "amber", "information-line"),
+        hot("w3.continue-confirmers", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "step-review":
+      body = `${w3Head("Make an offer", 4)}${pagepad(
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Garden work")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("Requirements", "Prune × 2 · Plant × 12")}${kv("Who confirms", "Offer recipient · Green Goods team fallback selected")}`),
         `<div class="t-meta">Submitting queues the promise on this device and returns you to the pool — it sends when connected.</div>`,
         hot("w3.submit", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
       break;
     case "support-review":
-      body = `${w3Head("Make an offer", 2, 3)}${pagepad(
-        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}`),
+      body = `${w3Head("Make an offer", 3, 4)}${pagepad(
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}${kv("Who confirms", "Recipient · Green Goods team fallback off")}`),
         `<div class="t-meta">Service offers skip action anchors. Evidence and the named recipient carry the proof.</div>`,
         hot("w3.submit-support", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
       break;
+    case "support-confirmers":
+      body = `${w3Head("Make an offer", 2, 4)}${pagepad(
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Reachability", "Recipient remains eligible")}`),
+        hot("w3.protocol-fallback-support", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Off by default · every contributor stays excluded.</span></span></label>`),
+        hot("w3.continue-confirmers-support", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
     case "support-howmuch":
-      body = `${w3Head("Make an offer", 1, 3)}${pagepad(
+      body = `${w3Head("Make an offer", 1, 4)}${pagepad(
         field("Unit", input("repair sessions", { select: true })),
         field("How many", input("1")),
         field("Campaign", input("Tool library", { select: true })),
@@ -1339,8 +1369,8 @@ function w3(state: W3State): string {
       )}`;
       break;
     case "request-variant":
-      body = `${w3Head("Ask for help", 2, 3)}${pagepad(
-        card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}`),
+      body = `${w3Head("Ask for help", 3, 4)}${pagepad(
+        card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}${kv("Who confirms", "Request creator · Green Goods team fallback off")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
         hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true })),
       )}`;
@@ -1386,11 +1416,15 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.direction": { l: "Direction", info: "Offer vs request — season/campaign seeding and on-behalf capture are console-seeded only, never here (UX:150)." },
   "w3.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy before creation; the final review repeats the selected join rule." },
   "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:153)." },
-  "w3.continue-support-howmuch": { l: "Continue with service amount", to: "screen:W3@support-review", info: "Carries the entered service unit and quantity into review without introducing action anchors." },
+  "w3.continue-support-howmuch": { l: "Continue with service amount", to: "screen:W3@support-confirmers", info: "Carries the entered service unit and quantity into Who confirms without introducing action anchors." },
   "w3.cycle": { l: "Cycle scope", info: "Every promise names its cycle; Season and Campaigns never blur (UX:127)." },
   "w3.continue-what": { l: "Continue to amount", to: "screen:W3@step-howmuch", info: "What + cycle scope → amount (UX:150-153)." },
   "w3.continue-howmuch": { l: "Continue to anchors", to: "screen:W3@step-anchors", info: "Amount → action anchors for garden work (UX:150-153)." },
-  "w3.continue-anchors": { l: "Continue to review", to: "screen:W3@step-review", info: "Action anchors → review (UX:150-153)." },
+  "w3.continue-anchors": { l: "Continue to who confirms", to: "screen:W3@step-confirmers", info: "Action anchors → ordinary reachability and explicit protocol fallback selection (UX §5.4)." },
+  "w3.protocol-fallback": { l: "Green Goods team fallback", info: "Explicitly writes protocolFallbackEnabled. It is off by default and never permits a contributor to confirm." },
+  "w3.continue-confirmers": { l: "Continue to review", to: "screen:W3@step-review", info: "Carries the ordinary rule and explicit fallback selection into review." },
+  "w3.protocol-fallback-support": { l: "Green Goods team fallback", info: "Explicit optional protocol fallback for this SupportService commitment; the ordinary recipient remains the default." },
+  "w3.continue-confirmers-support": { l: "Continue to service review", to: "screen:W3@support-review", info: "Carries the service's receiver default and explicit fallback selection into review." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-request": { l: "Ask for this help", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
@@ -1645,7 +1679,8 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
       state === "support-confirmation-pending" ||
       state === "captured-ready-confirmer" || state === "captured-confirmation-pending"
       ? "ReadyForConfirmation"
-    : state === "fulfilled" || state === "request-fulfilled" || state === "campaign-request-fulfilled" ||
+    : state === "fulfilled" || state === "fulfilled-pool-fallback" ||
+      state === "fulfilled-protocol-fallback" || state === "request-fulfilled" || state === "campaign-request-fulfilled" ||
       state === "support-fulfilled" || state === "captured-fulfilled" ||
       state === "garden-support-arrived" || W2_SETTLED.has(state) ? "Fulfilled"
     : state === "cancelled" || state === "withdrawn" || state === "support-cancelled" ? "Cancelled"

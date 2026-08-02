@@ -254,7 +254,7 @@ Route `/home/:id/pool/new?direction=offer|request`. Full-screen (AppBar hidden),
 
 ```text
 ┌──────────────────────────────────────────────┐   Step 2 — How much
-│ ✕  Make an offer              ● ● ○ ○        │   ┌────────────────────────┐
+│ ✕  Make an offer            ● ● ○ ○ ○        │   ┌────────────────────────┐
 ├──────────────────────────────────────────────┤   │ Unit  [ hours        ▾ ]│
 │ Step 1 — What                                │   │ suggestions: hours,     │
 │ direction   ◉ Offer support  ○ Request help  │   │ tasks, meals, rides,    │
@@ -271,7 +271,7 @@ Route `/home/:id/pool/new?direction=offer|request`. Full-screen (AppBar hidden),
 │                        [ Continue ]          │   ┌────────────────────────┐
 └──────────────────────────────────────────────┘   │ What anchors this?     │
                                                    │ ◉ Prune the north beds │
-Step 4 — Review and promise                        │ ○ Plant native seedl…  │
+Step 5 — Review and promise                        │ ○ Plant native seedl…  │
 ┌──────────────────────────────────────────────┐   │ action-card picker from│
 │ summary card (all fields, incl. policy and   │   │ the work-flow intro;   │
 │  "needs: Prune × 2 · Plant × 1")             │   │ per-action counts draw │
@@ -281,7 +281,25 @@ Step 4 — Review and promise                        │ ○ Plant native seedl�
 └──────────────────────────────────────────────┘
 ```
 
+```text
+Step 4 — Who confirms
+┌──────────────────────────────────────────────┐
+│ Default: offer recipient confirms            │
+│ □ Let the Green Goods team confirm if nobody │
+│   local is eligible                          │
+│   Safety path only · contributors can never  │
+│   confirm their own work                     │
+│ Ordinary path: no eligible local confirmer   │
+│ Choose this option or change the team/rule.  │
+└──────────────────────────────────────────────┘
+```
+
 - Step 3 ("Anchors") carries the **repeatable requirements builder** (amended 2026-07-28): each row binds one registered action to a required approved-work count. Actions may repeat a domain; domain chips are derived tags. Four rows are visible initially, and **Add requirement** continues until the implementation's measured `MAX_REQUIREMENTS`. The UI never presents four domains as a product cap. The review step reads the whole requirement in one line ("needs: Prune × 2 · Plant × 1").
+- Step 4 ("Who confirms") previews the direction-aware receiver or named group and includes a
+  native checkbox: **Let the Green Goods team confirm if nobody local is eligible**. It is off by
+  default, writes `protocolFallbackEnabled`, and retains visible helper text that contributors
+  can never confirm. An unreachable ordinary rule blocks review until repaired or explicitly
+  opted in; a missing registered protocol pool disables the checkbox with its prerequisite named.
 - SupportService skips step 3 entirely (evidence + confirmation is its proof).
 - Draft persists in IndexedDB (`WorkDraftRecord` semantics); re-entry offers resume via the existing `DraftDialog` pattern.
 
@@ -368,6 +386,24 @@ DomainImpact — the approved work IS the evidence   SupportService / StewardCap
 - The two paths compose, they don't compete: DomainImpact reaches this sheet only after every per-action approved-work count is met (the approved-work chips carry that proof into the confirmation moment); no-work-requirement kinds reach it on evidence alone, and here the confirmation IS the review (register #10/register #20).
 - For a Request, the helper instead reads “claimant provides · request creator confirms.” Named groups never include the lead provider; an acceptance that would make `N` unreachable fails before any units commit.
 - Optimistic tick on the meter; if this was the Nth confirmation, Fulfilled hero fires on **sync completion**, not enqueue.
+
+Fallback confirmation is a distinct state of the same sheet, not an invisible privilege:
+
+```text
+GREEN GOODS TEAM FALLBACK — ONLINE ONLY
+┌──────────────────────────────────────────────┐
+│ Confirm for Green Goods team                 │
+│ Eligibility: protocol fallback · selected    │
+│ Every contributor is excluded.               │
+│ Reason * [ No eligible local confirmer     ] │
+│ [ Confirm for Green Goods team ]             │
+│ [ Not yet — tell the stewards why ]          │
+└──────────────────────────────────────────────┘
+```
+
+The local-garden variant says **Confirm as garden fallback**. A dual-role caller sees local
+fallback because the contract classifies local authority first. Both variants require a reason,
+remain online, and later render their emitted actor/path/reason rather than inferring wallet role.
 
 ### W5 — WalletDrawer pools panel (uiux-spec §5.8)
 
@@ -495,14 +531,17 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ confirmers  [ + add address ]  ≡ Maria ✕  ≡ João ✕       │  {AddressGroupField} NET-NEW
 │ threshold   N = [ 2 ] of 2                               │  validates N ≤ group size
 │ Every frozen contributor is excluded from confirmation.  │
-│ Claim acceptance fails if N then becomes unreachable.    │
+│ □ Let Green Goods team confirm if nobody local is eligible│  protocolFallbackEnabled · off
+│ Claim acceptance fails if N becomes unreachable unless   │
+│ that safety path is explicitly selected.                 │
 │ claim mode  ◉ open   ○ steward-reviewed                  │  prefilled by context (register #19)
 ├──────────────────────────────────────────────────────────┤
 │ Step 4 — Reward                                          │
 │ reward rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
 │ external    source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
 ├──────────────────────────────────────────────────────────┤
-│ Step 5 — Review · team: Lead-managed · reward: External  │
+│ Step 5 — Review · team: Lead-managed · GG fallback: off  │
+│          reward: External                                │
 │                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -521,7 +560,8 @@ Flow `{AdminDialog}` at `/garden/pool/capture` with its **own three-step rail** 
 ├──────────────────────────────────────────────────────────┤
 │ Step 2 — What kind                                       │
 │ capture  ◉ their offer  ○ their request  ○ confirmation  │
-│          (captured confirmations always carry a reason)  │
+│          confirmation names garden/protocol fallback;    │
+│          both require current Hats + a reason             │
 ├──────────────────────────────────────────────────────────┤
 │ Step 3 — Record                                          │
 │ details as W8 fields · [ Record this promise ]           │
@@ -545,8 +585,9 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **H
 │ Rail: External payout record (`ArbitrumExternal`)        │
 │ Reward: 20 DAI · garden jar · unpaid                     │  recording a payout is a
 │                                                          │  Fulfilled-only act (§6.7)
-│ [ Confirm as fallback… ]  [ Raise dispute… ]             │  reason required; fallback
-│ Provider address can never use fallback confirmation.    │  enforces self-action guard
+│ Eligibility: garden fallback                             │  or Green Goods team fallback
+│ [ Confirm as garden fallback… ] [ Raise dispute… ]       │  reason required
+│ Every contributor is excluded; module owner alone cannot confirm. │
 └──────────────────────────────────────────────────────────┘
 
 FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
@@ -666,16 +707,21 @@ NET-NEW stage on the existing Hub pipeline rail, route `/hub/confirm`.
 │ Hub      work (3) · assess (1) · certify (2) · ◉confirm (2) · history  │  stage rail + counts
 ├────────────────────────────────────────────────────────────────────────┤
 │ Ready for confirmation — where you are named or fallback-eligible      │
-│ ≡ Maria — Prune the north beds   (Rocinha)   ▓▓▓░░ 2 of 3          ▸   │  {AdminLinearProgress}
-│ ≡ TAS — Field survey ride        (Awka)      ░░░░░ 0 of 1          ▸   │  row ▸ W10
+│ ≡ Maria — Prune beds (Rocinha) [garden fallback] ▓▓▓░░ 2 of 3      ▸   │  {AdminLinearProgress}
+│ ≡ TAS — Survey ride (Awka) [Green Goods team fallback] ░░░ 0 of 1 ▸   │  opted-in cross-garden row
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-Empty state: keep the Hub stage rail and show “Nothing waiting for confirmation”; never collapse the whole route into a blank canvas. **Hi-fi**: [`#screens/W13@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W13@queue) (4 states).
+Protocol-garden stewards see opted-in rows from any pool here without receiving full other-garden
+pool browsing. Every row carries an ordinary / garden fallback / Green Goods team fallback text
+badge; the path is not color-only. Empty state: keep the Hub stage rail and show “Nothing waiting
+for confirmation”; never collapse the whole route into a blank canvas. **Hi-fi**:
+[`#screens/W13@queue`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W13@queue)
+(4 states).
 
 ### W13b — Commitment-context chip on Hub work cards (delta to the existing work stage)
 
-Where steward approval intersects promises — the D2 touchpoint the sequence diagram annotates — without any new surface:
+Where steward approval intersects promises — the D5 touchpoint the sequence diagram annotates — without any new surface:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -951,7 +997,7 @@ The gardener journey the protocol pool exists for: claiming and fulfilling a pro
 └──────────────────────────────────────────────┘
 ```
 
-- No new grammar: the protocol pool reuses W1's cards and wait states, W2's delivery, W4's confirmation. Only the `(Protocol)` chip and the **pre-claim provider-context sheet** are new (register #51 / MF-8 — the card never asks the context question). Solo/team and Open/Lead-managed are immutable seeding facts, so this sheet displays them read-only and never attempts to change them through `claimCommitment`. Work/assessments anchor to the claiming garden even though the commitment lives in the root pool (D2's providerGarden rule). **Hi-fi**: [`#screens/W25@card`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@card) · sheet: [`#screens/W25@context-chooser`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@context-chooser).
+- No new grammar: the protocol pool reuses W1's cards and wait states, W2's delivery, W4's confirmation. Only the `(Protocol)` chip and the **pre-claim provider-context sheet** are new (register #51 / MF-8 — the card never asks the context question). Solo/team and Open/Lead-managed are immutable seeding facts, so this sheet displays them read-only and never attempts to change them through `claimCommitment`. Work/assessments anchor to the claiming garden even though the commitment lives in the root pool (D5's providerGarden rule). **Hi-fi**: [`#screens/W25@card`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@card) · sheet: [`#screens/W25@context-chooser`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W25@context-chooser).
 
 ### W26 — Cycle close → allocation → certificate wizard (admin)
 
@@ -978,7 +1024,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 │   pipeline; the garden account holds the certificate)    │
 │ Step 4 — Rest the cycle       [ Compost closed cycle ]   │
 │   aggregates roll into pool history; the next season     │
-│   seeds fresh on this pool (D5)                          │
+│   seeds fresh on this pool (D9)                          │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -1214,7 +1260,7 @@ timeline. Pair status never replaces the ordinary commitment state.
 
 This is the existing confirmation-sheet / `DialogShell` pattern. The action is visible only to
 A's creator. It calls `acceptExchange(B)` once, shows no optimistic partial success, and returns
-focus to the trigger on dismissal. Each error state names the actor and next action from D16.
+focus to the trigger on dismissal. Each error state names the actor and next action from D25.
 
 ### W31 — Practice-template picker (uiux-spec Appendix E.2) NET-NEW
 

@@ -15,7 +15,8 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 
 ## Inputs
 
-- GREEN shared hooks/selectors/jobs and composite Garden query contract
+- GREEN shared hooks/selectors/jobs, including the documented bare-address `Garden.id` query
+  contract plus chain-scoped IDs for new Commitment Pooling entities
 - uiux-spec.md Appendix E and client frames W28–W31 in wireframes.md, plus planned SB-35/SB-36
 - acceptance-matrix.md for exact identity, copy/state, and role proof
 - CCIP command/execution/acknowledgment states and gardenerDeliveryEnabled selector
@@ -38,8 +39,9 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Commitment deep links open `WFLOW@review`, the existing Work Review state with a read-only “Fulfills” row. The row carries the canonical `meta.commitmentId`, shows the linked commitment context without making it editable, and preserves the dependent work link used by evidence/approval review.
 - Pool readiness checklist exposes charter, qualifying baseline, and provider open-commitment cap; Paused exposes its reason while leaving only the contract-authorized recovery actions available.
 - Pool and cycle summaries show state counts and exact-label unit groups; `promiseKeptRate` is the only cross-commitment percentage. `hours` and `Hours` remain visibly separate, and active progress never adds unlike units.
-- Direction-aware confirmation UI: Offer recipient or Request creator, with every frozen team
-  member omitted from eligibility.
+- Direction-aware confirmation UI: Offer receiver or Request creator, a named-group option, and
+  distinct `PoolFallback` / `ProtocolFallback` provenance, with every frozen contributor omitted
+  from every path.
 - G$ reward status and online send flow gated by authenticated acknowledgment and member delivery readiness.
 - The protocol pool uses the same provider-garden payout-plan read model as other pools. The client
   never creates a settlement offline job or permissionlessly queues a disbursement after
@@ -63,7 +65,7 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Reward presentation follows the declared rail: an external payout record never appears as a
   Celo settlement, and a `CeloSettlement` declaration never exposes the external
   `recordRewardPaid` path.
-- Queued renders “support is queued”; Dispatched renders “support on its way”; derived delay adds “delivery delayed” without becoming Failed; Celo executed/acknowledgment-pending renders “confirming arrival”; only Confirmed renders “support arrived”; authenticated failure renders “still arranging support”; Cancelled renders different locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
+- Gardener settlement rows use exactly three phrases: Queued, Dispatched, derived delay, Celo executed, and acknowledgment-pending all render “support on its way”; only Confirmed renders “support arrived”; authenticated Failed renders “support is being rearranged,” never a success phrase. A calm action explanation may accompany the phrase without exposing the internal state noun. Cancelled renders its separate locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
 - AA failure leaves the fulfilled commitment, payout-plan summary, garden retention, unprepared
   contributor rows, and historical child states visible while disabling only first child
   preparation and member sends. It never offers a garden-custody claim path or a retry for an
@@ -117,3 +119,21 @@ Both named client test files do not exist yet; they are intentional to-be-create
   split as recognition/payment-only and “Not certificate eligible · no cycle allocation.”
 - W23 contributor receipts distinguish Hypercert recognition from garden-funded child payment, name the garden payer and retained amount, and never say “arrived” before authenticated confirmation.
 - The hi-fi artifact and SB-33 are the interaction reference; all new user-facing copy lands in en/es/pt and requires authenticated Brave plus real-device proof.
+
+## Binding confirmation amendment — 2026-08-02
+
+- W3 includes a native, off-by-default “Let the Green Goods team confirm if nobody local is
+  eligible” control. The offline creation job persists `protocolFallbackEnabled`; review and retry
+  show the stored choice. If no protocol pool is registered, the control is disabled with an
+  explanation rather than accepting a promise with a dead-end confirmer.
+- W2 and W4 consume indexed `fulfilledBy`, `confirmationPath`, and `fallbackReason`. Ordinary
+  confirmation names the counterparty. `PoolFallback` reads “confirmed by your garden steward —
+  fallback”; `ProtocolFallback` reads “confirmed by the Green Goods team — fallback.” Both show
+  the reason and never rely on colour alone.
+- Protocol fallback is structural, not time-based. The client never promises automatic escalation
+  or a waiting period, and never exposes either fallback to a frozen contributor. A wallet that is
+  only the CommitmentPoolingModule owner receives no confirmation control.
+- RED fixtures cover a small garden with no ordinary/local eligible confirmer, opt-in preserved
+  through offline restart, successful Green Goods protocol fallback, local fallback precedence
+  when one wallet holds both roles, missing-protocol-pool recovery, and explicit actor/path/reason
+  rendering.

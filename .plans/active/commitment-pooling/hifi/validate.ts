@@ -342,7 +342,7 @@ const ADMIN_HERO: [RegExp, string][] = [
 // new reason-taking confirmation is drawn.
 const REASON_CONFIRMS = new Set([
   "pause-confirm", "cancel-cycle-confirm", "paused-cancel-cycle-confirm", "decline-claim-confirm",
-  "fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
+  "fallback-confirm", "protocol-fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
   "cancel-queued-confirm",
   "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
 ]);

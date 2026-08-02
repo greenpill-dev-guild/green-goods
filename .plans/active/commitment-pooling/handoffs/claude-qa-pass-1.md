@@ -20,14 +20,20 @@
 
 - Human-flow QA record across member, gardener/provider, operator, evaluator, funder, and collaborator/steward roles.
 - Confirmed pass/visible defect/external blocker separation.
-- Evidence for direction-aware confirmation, claims recovery, offline sync, dispute recovery, batching/CCIP states, public claims, accessibility, and locales.
+- Evidence for direction-aware ordinary confirmation, local and Green Goods protocol fallback
+  provenance, claims recovery, offline sync, dispute recovery, batching/CCIP states, public
+  claims, accessibility, and locales.
 - Defect list routed back to the owning lane; no implementation in the QA handoff.
 
 ## Acceptance
 
 - Member/client and admin flows are exercised through authenticated Brave; installed PWA/offline/restart/member-delivery behavior is exercised on a real device.
 - Every loading, empty, offline, pending, waiting, declined, superseded, failed, retry, queued, dispatched, executed/acknowledgment-pending, delayed, Confirmed, and delivery-disabled state in scope has an exit.
-- Offer recipient and Request creator confirmation are correct; provider exclusion holds in ordinary and fallback flows.
+- Offer receiver and Request creator confirmation are correct. The opted-in Green Goods protocol
+  fallback rescues a small garden with no eligible ordinary/local confirmer; an unselected
+  commitment never silently escalates. Local fallback wins for a dual-role wallet, module
+  ownership alone never confirms, every contributor is excluded, and actor/path/reason are
+  distinct in both admin and client history.
 - Batching starts disabled, uses a measured matching 0–24 limit on both chains, and retains a
   hard ceiling of 24. Immutable failed batches, unbatched per-member recovery, same-key command
   retry, independent acknowledgment retry, and authenticated-only confirmation are visible and
