@@ -129,10 +129,14 @@ emitting a second event. Reusing the same holder/key with a different creation p
 This is the replay boundary because the supported wallet, embedded, and passkey
 `TransactionSender` implementations expose a hash only after submission. They cannot promise
 pre-broadcast signed bytes. After restart, shared reads
-`getCommitmentSeriesIdByCreationRequest(holder, creationRequestKey)`: a non-zero result binds the
-local job immediately, while zero permits a fresh send using the same key. If an earlier
-transaction is merely pending, both submissions remain safe because only the first mined call
-creates or emits the series.
+`getCommitmentSeriesIdByCreationRequest(holder, creationRequestKey)`: a non-zero result is only a
+candidate. Shared fetches the series and its pool, verifies `poolId`, `createdBy`/holder, and garden
+against the queued payload, and compares the immutable `creationPayloadHash` with
+`keccak256(abi.encode(poolId, keccak256(bytes(initialMetadataCID))))`. It deliberately does not
+compare the mutable current `metadataCID`. Only an exact canonical match binds the local job; any
+mismatch is a terminal local identity conflict that neither binds nor sends. Zero permits a fresh
+send using the same key. If an earlier transaction is merely pending, both submissions remain safe
+because only the first mined call creates or emits the series.
 
 ### 3.2 Creation and lifecycle rules
 
@@ -279,12 +283,14 @@ runner materializes the onchain ID and submits the ordinary Commitment payload.
 Series submission has one additional durable boundary. The queued payload persists
 `clientSeriesId` and its deterministically derived `creationRequestKey` before the first send.
 Restart recovery reads `getCommitmentSeriesIdByCreationRequest` before retrying. A non-zero result
-binds the local job to that onchain ID even if the process stopped after broadcast but before hash
-or receipt persistence; zero permits another ordinary `TransactionSender` call with the same key.
-Contract idempotency makes overlapping or repeated wallet/UserOperation submissions converge on
-one series. A mined receipt or successful read-through binds `clientSeriesId` before dependent
-Commitment jobs resume. Tests cover process stop after broadcast, a still-pending first
-submission, exact replay, key/payload conflict, and one-event/one-series convergence.
+is followed by the canonical series/pool comparison in §3.1; only a matching pool, initial
+metadata hash, holder, and garden bind the local job to that onchain ID. A mismatch rejects locally
+without binding or broadcasting. Zero permits another ordinary `TransactionSender` call with the
+same key. Contract idempotency makes overlapping or repeated wallet/UserOperation submissions
+converge on one series. A mined receipt or validated read-through binds `clientSeriesId` before
+dependent Commitment jobs resume. Tests cover process stop after broadcast, a still-pending first
+submission, a non-zero lookup with each canonical payload mismatch, exact replay, key/payload
+conflict, and one-event/one-series convergence.
 
 This dependency and contract-idempotent recovery are explicit queue states, not guessed
 transaction ordering or an indexer-side join. Discarding a failed local series job keeps its
@@ -329,6 +335,7 @@ type SavedOfferPayloadV1 = {
   }>;
   seriesLinks: Array<{
     chainId: number;
+    moduleAddress: Address;
     poolId: string;
     commitmentSeriesId: string;
   }>;
@@ -338,9 +345,14 @@ type SavedOfferPayloadV1 = {
 Pool, cycle, claimant, due-date, reward-payment, confirmer, availability, and active Commitment
 state are deliberately absent. They are chosen or validated when the owner explicitly creates an
 Offer. `seriesLinks` are convenience references only; the module remains authoritative for series
-holder, lifecycle, pool, and linked instances. A payload is rejected unless it is canonical JSON,
-at most 32 KiB, uses unique normalized tags, has no more than `MAX_REQUIREMENTS` requirements, and
-has no more than 32 unique series links.
+holder, lifecycle, pool, and linked instances. `moduleAddress` is the normalized canonical
+`CommitmentPoolingModule` address that created the series. Shared validation, Agent persistence,
+and Client reads preserve and resolve the exact
+`(chainId, moduleAddress, poolId, commitmentSeriesId)` tuple; no reader substitutes a chain's
+current default module, so a redeploy or multiple modules on one chain cannot retarget a saved
+link. A payload is rejected unless it is canonical JSON, at most 32 KiB, uses unique normalized
+tags, has no more than `MAX_REQUIREMENTS` requirements, and has no more than 32 unique series links
+by that full tuple.
 
 The private API is:
 
@@ -374,9 +386,10 @@ series links.
 Implementation order is Agent API/store first, then the shared adapter and client sync. RED proof
 must cover EOA/EIP-1271/counterfactual authentication, nonce replay and expiry, owner isolation,
 canonical/oversized payload rejection, encrypt/decrypt without plaintext persistence, optimistic
-concurrency across two devices, tombstone conflict behavior, redacted logs, and a local draft
-remaining visibly unsaved when the service is unavailable. No saved-Offer UI may claim
-cross-device durability until those tests and the live service configuration are GREEN.
+concurrency across two devices, tombstone conflict behavior, exact module-scoped series-link
+round-trip and resolution, redacted logs, and a local draft remaining visibly unsaved when the
+service is unavailable. No saved-Offer UI may claim cross-device durability until those tests and
+the live service configuration are GREEN.
 
 ## 7. Product behavior
 

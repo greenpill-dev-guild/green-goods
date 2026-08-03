@@ -41,12 +41,16 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   dependent drafts recoverable and visibly waiting.
 - Before the first send, the runner deterministically derives and persists `creationRequestKey`
   from the chain, module, holder, and private `clientSeriesId`. Recovery first reads
-  `getCommitmentSeriesIdByCreationRequest(holder, creationRequestKey)`. A non-zero result binds the
-  local job without another write; zero permits a fresh ordinary sender call with the same key.
-  The contract returns the original ID on exact replay and rejects key reuse with a different
-  payload, so wallet, embedded, and passkey senders converge even when they expose a hash only
-  after submission. Receipt or read-through materialization then binds `clientSeriesId` to the
-  onchain `seriesId`.
+  `getCommitmentSeriesIdByCreationRequest(holder, creationRequestKey)`. For a non-zero result, the
+  runner must fetch the canonical series and pool before binding: `poolId`, immutable
+  `creationPayloadHash`, `createdBy`/holder, and the pool's garden must match the queued
+  `{ poolId, metadataCID, holder, gardenAddress }`. The hash comparison uses the initial metadata
+  payload, not the series' mutable current `metadataCID`. A mismatch is a terminal local
+  identity-conflict error and never binds or broadcasts. A validated match binds without another
+  write; zero permits a fresh ordinary sender call with the same key. The contract returns the
+  original ID on exact replay and rejects key reuse with a different payload, so wallet, embedded,
+  and passkey senders converge even when they expose a hash only after submission. Receipt or
+  validated read-through materialization then binds `clientSeriesId` to the onchain `seriesId`.
 - Ordinary Commitment job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
   rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
@@ -157,9 +161,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 - RED: add focused shared selector, hook, mutation, query-key, and job tests, including
   `commitmentSeries` payload round-trip, deterministic creation-key derivation and persistence,
-  restart-time mapping read-through, exact contract replay, key/payload conflict rejection,
-  pending-first-send convergence, dependency waiting, receipt/read materialization, and
-  failure/discard recovery; capture expected failures before implementation.
+  restart-time mapping read-through, non-zero lookup rejection when the canonical series/pool
+  payload mismatches the queued pool, initial metadata hash, holder, or garden, exact contract
+  replay, key/payload conflict rejection, pending-first-send convergence, dependency waiting,
+  receipt/read materialization, and failure/discard recovery; capture expected failures before
+  implementation.
 - RED: add saved-Offer protocol and adapter tests for canonical `SavedOfferPayloadV1` validation,
   owner-scoped session/list/read/PUT/DELETE calls, optimistic version conflicts, tombstone
   handling, and the rule that an unavailable service leaves a draft visibly unsaved. The Agent
@@ -171,8 +177,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## Exact Bun commands
 
-The four named shared test files do not exist yet; they are intentional to-be-created RED-first deliverables of this lane.
+The four named shared test files and the named Agent saved-Offer test file do not exist yet; they
+are intentional to-be-created RED-first deliverables of this lane. The Agent test is a blocking
+prerequisite for the saved-Offer shared/client GREEN state, not optional follow-up coverage.
 
+- bun run --filter @green-goods/agent test -- src/__tests__/saved-offers.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-pooling.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-jobs.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/settlement-selectors.test.ts
@@ -223,7 +232,10 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
   unsaved local draft or cache. Dispatch and land the Agent API/store lane first. Shared/client
   tests cover version conflicts, tombstones, owner-scoped calls, and service-unavailable behavior;
   they must never label a local-only draft Saved or Synced. Saved records are private by default.
-  Choosing Offer over time and linking it to a pool series is explicit and never merges series
-  across pools. Offer once keeps `commitmentSeriesId == 0`.
+  Each `seriesLinks` row carries the exact `moduleAddress` and readers resolve the tuple
+  `{ chainId, moduleAddress, poolId, commitmentSeriesId }`; they never substitute the current
+  default module for a saved historical link. Choosing Offer over time and linking it to a pool
+  series is explicit and never merges series across pools. Offer once keeps
+  `commitmentSeriesId == 0`.
 - No selector computes a personal/series score, rate, rank, inferred participant count, automatic
   renewal, or protocol permission from Story history.

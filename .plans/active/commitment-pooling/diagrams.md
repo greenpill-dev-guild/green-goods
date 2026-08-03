@@ -1330,6 +1330,11 @@ erDiagram
     Boolean creditActive "latest effective decision contributes"
   }
 
+  %% Identity rule: chainId-workUID is one mutable projection row. A workUID has
+  %% exactly one active attribution while linked (zero after unlink), and a later
+  %% valid linkage updates that row to the latest effective commitment,
+  %% contributor, requirement, and decision state rather than creating a sibling.
+
   COMMITMENT_EVIDENCE_ATTRIBUTION {
     ID id "chainId-commitmentId-cidHash-contributor"
     String contributor "credited active contributor"
@@ -2177,8 +2182,10 @@ into "the saved details are on-chain", the second into "a claim creates the plac
 bottom through four layers, with the signed-offchain saved details drawn as a planned dashed boundary
 because it is profile data rather than protocol state; D27.1 reads left to right and contrasts the
 two directions, marking the single moment on each side where capacity is committed. Node outlines
-follow the same built/planned encoding as the rest of this file. Everything drawn here is planned
-August scope: the series amendment is specified, not deployed. Owning architecture:
+follow the same built/planned encoding as the rest of this file. The saved-detail, series,
+instance, registry-capacity, and Story additions are planned August scope: the series amendment is
+specified, not deployed. `PH` is the existing built pool-participation-history context used to
+distinguish that view from the planned Story. Owning architecture:
 `standing-commitments-spec.md` §2–§5.
 
 #### D27.0 Four layers, and what each one owns
@@ -2252,8 +2259,8 @@ nothing can be reserved until one accepts.
 
 Consequences carried by the rest of the system:
 
-- `providerOpenCommitmentCount` counts every non-terminal provider obligation — Offered Offers as
-  well as Accepted Offers and Requests. It still never counts contributors.
+- `providerOpenCommitmentCount` counts every non-terminal provider obligation — Offered Offers,
+  Accepted Offers, and Accepted Requests. It still never counts contributors.
 - Atomic bilateral `acceptExchange` revalidates both sides but performs **no** second registry
   commit, consumes **no** second provider slot, and does **not** reapply provider-cap headroom,
   because both Offered classes are already Committed. Cap changes affect only later reservations.
