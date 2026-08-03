@@ -7,6 +7,7 @@ import {
 } from "../../modules/data/hypercerts";
 import type { GardenAssessment } from "../../types/domain";
 import { CynefinPhase, Domain } from "../../types/domain";
+import type { EASGardenAssessment } from "../../types/eas-responses";
 import type { HypercertAttestation } from "../../types/hypercerts";
 
 // ============================================
@@ -46,6 +47,25 @@ function createMockAssessment(overrides: Partial<GardenAssessment> = {}): Garden
     reportingPeriod: { start: 1704067200, end: 1711929600 }, // 2024-01-01 to 2024-04-01
     sdgTargets: [],
     attachments: [],
+    location: "",
+    createdAt: 1704067200,
+    ...overrides,
+  };
+}
+
+function createMockEASAssessment(
+  overrides: Partial<EASGardenAssessment> = {}
+): EASGardenAssessment {
+  return {
+    id: "assessment-eas-1",
+    authorAddress: "0x0000000000000000000000000000000000000099",
+    gardenAddress: "0x0000000000000000000000000000000000000001",
+    title: "Indexed solar assessment",
+    description: "Indexed assessment description",
+    assessmentConfigCID: "bafy-assessment-config",
+    domain: Domain.SOLAR,
+    startDate: 1704067200,
+    endDate: 1711929600,
     location: "",
     createdAt: 1704067200,
     ...overrides,
@@ -203,6 +223,22 @@ describe("prefillMetadataFromAssessment", () => {
     const assessment = createMockAssessment({ title: "Q1 Harvest" });
     const prefill = prefillMetadataFromAssessment(assessment);
     expect(prefill.title).toBe("Q1 Harvest");
+  });
+
+  it("prefills the fields available on an EAS assessment", () => {
+    const assessment = createMockEASAssessment();
+    const prefill = prefillMetadataFromAssessment(assessment, getSDGLabel);
+
+    expect(prefill).toMatchObject({
+      title: "Indexed solar assessment",
+      description: "Indexed assessment description",
+      workScopes: ["solar"],
+      impactScopes: [],
+      workTimeframeStart: 1704067200,
+      workTimeframeEnd: 1711929600,
+      sdgs: [],
+    });
+    expect(prefill.outcomes.predefined).toEqual({});
   });
 
   it("maps assessment diagnosis to prefill description", () => {

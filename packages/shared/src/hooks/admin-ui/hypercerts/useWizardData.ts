@@ -82,10 +82,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     if (lastPrefillId.current === selectedAssessment.id) return;
     lastPrefillId.current = selectedAssessment.id;
 
-    const prefill = prefillMetadataFromAssessment(
-      selectedAssessment as unknown as Parameters<typeof prefillMetadataFromAssessment>[0],
-      getSDGLabel
-    );
+    const prefill = prefillMetadataFromAssessment(selectedAssessment, getSDGLabel);
     updateMetadata(prefill);
   }, [selectedAssessment, updateMetadata]);
 
