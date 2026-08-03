@@ -28,7 +28,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## Outputs
 
-- Core phase: fifteen pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`, `CommitmentExchange`, `CommitmentSeries`, `CommitmentSeriesCycleSummary`, and `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their Garden relationship fields deliberately retain the documented bare-address `Garden.id` compatibility contract. Eight auxiliary contributor/provenance/replay-coordination entities live in the same schema but stay outside this core-phase count, including `CommitmentPendingLifecycleProjection` and its commitment-keyed index. The commitment entity also carries `creationSeen`, `counterCommitmentId`, `declaredUnitValue`/`declaredValueBasis`, the nullable `ValueDeclared` `(blockNumber, logIndex)` replay cursor, the nullable lifecycle cursor used by state-derived projections, `protocolFallbackEnabled`, `fulfilledBy`, nullable `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves confirmation-only fields null. `CommitmentCreated` initializes the value pair only when that cursor is absent; `ValueDeclared` applies only when its cursor is later than the stored cursor. Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker treatment, lifecycle projection, and every member-history delta. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- Core phase: fifteen pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`, `CommitmentExchange`, `CommitmentSeries`, `CommitmentSeriesCycleSummary`, and `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their Garden relationship fields deliberately retain the documented bare-address `Garden.id` compatibility contract. Eight auxiliary contributor/provenance/replay-coordination entities live in the same schema but stay outside this core-phase count, including `CommitmentPendingLifecycleProjection` and its commitment-keyed index. The commitment entity also carries `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`, `declaredUnitValue`/`declaredValueBasis`, the nullable `ValueDeclared` `(blockNumber, logIndex)` replay cursor, the nullable lifecycle cursor used by state-derived projections, `protocolFallbackEnabled`, `fulfilledBy`, nullable `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves confirmation-only fields null. `CommitmentCreated` initializes the value pair only when that cursor is absent; `ValueDeclared` applies only when its cursor is later than the stored cursor. Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker treatment, lifecycle projection, late-fact terminal member-history reconciliation, and every member-history delta. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
 - `ExchangeAccepted` creates one `CommitmentExchange` marker keyed
   `chainId-EXCHANGE-poolId-idA-idB`, using the event's non-indexed `poolId` without an RPC read or
   prior commitment row. Entity existence proves atomic acceptance. The two ordinary
@@ -105,6 +105,14 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   RestorePrevious-to-Expired or resolution-to-Cancelled applies exactly one final bucket and
   decrements once. Unit summaries and provider exposure remain owned only by their self-describing
   unit events.
+- Terminal member history is a separate idempotent side projection so older acceptance and roster
+  events can complete a newer terminal outcome. `CommitmentAccepted` always stores the immutable
+  lead/receiver facts and sets `acceptanceSeen`, even when its lifecycle tuple is older than the
+  current cursor. `ContributorRosterFrozen` stores the emitted exact roster count. The terminal
+  projector and the Accepted, ContributorAdded/Removed, and roster-freeze handlers all call the
+  same reconciler. A nullable `memberHistoryOutcome` owns the reversible lead bucket; Fulfilled
+  participant history waits until acceptance is seen and the bounded contributor index contains
+  the exact frozen active roster, then flips `fulfilledParticipantHistoryApplied` once.
 - `CommitmentCycle.liveCommitmentCount` mirrors the on-chain close/cancel guard independently of
   provider-capacity exposure: non-zero-cycle `CommitmentCreated` increments it, every live-to-terminal
   Fulfilled/Cancelled/Expired transition decrements it, and the Expired dispute reopen/resolve pair
@@ -142,6 +150,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   marks each pending row applied once, and the final read model has one current member-history
   outcome, exact pool/cycle and series state counts, exact `liveCommitmentCount`, Fulfilled
   attribution/Need lineage, and no duplicated unit/exposure delta.
+- Late-fact member-history fixtures cover Fulfilled before `CommitmentAccepted`, before
+  `ContributorAdded`, before `ContributorRosterFrozen`, and with the roster-freeze event before
+  its contributor rows; they also cover Cancelled/Expired before Accepted. Every permutation and
+  duplicate delivery converges to one lead outcome, the exact frozen Fulfilled participant set,
+  and no second history delta.
 - Confirmation fixtures prove `ConfirmerRuleSet` persists the explicit protocol opt-in under
   duplicate and reverse delivery. `CommitmentFulfilled` persists its emitted confirmer and exact
   `ORDINARY` / `POOL_FALLBACK` / `PROTOCOL_FALLBACK` path; only the two fallback paths set

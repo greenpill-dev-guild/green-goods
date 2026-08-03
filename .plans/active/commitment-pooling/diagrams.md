@@ -1245,6 +1245,10 @@ erDiagram
   COMMITMENT {
     ID id "chainId-commitmentId"
     Boolean creationSeen "false only for update-before-create placeholder"
+    Boolean acceptanceSeen "immutable acceptance facts have arrived"
+    Int frozenContributorCount "nullable exact roster size from freeze event"
+    CommitmentOnchainState memberHistoryOutcome "nullable reversible lead-history bucket"
+    Boolean fulfilledParticipantHistoryApplied "once-only exact frozen-roster projection"
     BigInt commitmentSeriesId "nullable; zero means one-shot"
     String commitmentSeriesEntityId "nullable chainId-seriesId relationship"
     String gardenId "bare normalized Garden.id relationship"
@@ -1494,7 +1498,7 @@ flowchart LR
 
 ## D17. Indexer pipeline and Garden identity compatibility
 
-**How to read this**: D15 and D20 show the entities that come *out*; this shows how they are produced. Four rules govern every handler and none of them is optional: an entity is created-if-not-exists so an out-of-order event never drops a row; unit events converge regardless of arrival order because each one is an integer delta rather than a recomputed total; lifecycle events pass through one cursor-ordered projection helper so ordinary and dispute-resolved terminal outcomes cannot diverge; and no handler ever infers an actor from `transaction.from` or scans the database. The bottom lane is a compatibility guard, not a migration: `Garden.id` stays the normalized bare address with explicit `chainId`, while every new Commitment Pooling entity keeps its own chain-scoped composite ID under the one-canonical-proxy-per-chain boundary.
+**How to read this**: D15 and D20 show the entities that come *out*; this shows how they are produced. Five rules govern every handler and none of them is optional: an entity is created-if-not-exists so an out-of-order event never drops a row; unit events converge regardless of arrival order because each one is an integer delta rather than a recomputed total; lifecycle events pass through one cursor-ordered projection helper so ordinary and dispute-resolved terminal outcomes cannot diverge; terminal member history re-enters an idempotent reconciler when late acceptance or frozen-roster facts arrive; and no handler ever infers an actor from `transaction.from` or scans the database. The bottom lane is a compatibility guard, not a migration: `Garden.id` stays the normalized bare address with explicit `chainId`, while every new Commitment Pooling entity keeps its own chain-scoped composite ID under the one-canonical-proxy-per-chain boundary.
 
 ```mermaid
 flowchart TB
@@ -1509,6 +1513,7 @@ flowchart TB
     HMERGE["create-if-not-exists merge<br/>an out-of-order event never drops a row"]
     HUNITS["integer unit deltas<br/>converge in any arrival order"]
     HLIFE["cursor-ordered lifecycle projection<br/>ordinary + DisputeResolved terminal states"]
+    HHIST["late-fact terminal history reconciliation<br/>acceptance + exact frozen roster · idempotent"]
     HIDX["direct index lookup<br/>claim requests by chainId-commitmentId"]
   end
 
@@ -1521,12 +1526,14 @@ flowchart TB
 
   EV1 --> HMERGE
   EV1 --> HLIFE
+  EV1 --> HHIST
   EV2 --> HUNITS
   EV3 --> HMERGE
   EV4 --> HMERGE
   EV1 --> HIDX
   HMERGE --> E1
   HLIFE --> E1
+  HHIST --> E1
   HUNITS --> E1
   HIDX --> E1
   HMERGE --> E2
@@ -1540,7 +1547,7 @@ flowchart TB
 
   classDef built fill:#edf3e8,stroke:#50784a,stroke-width:2px,color:#2a2722
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
-  class EV1,EV2,EV3,EV4,HMERGE,HUNITS,HLIFE,HIDX,E1,E2,M1,M2,M3,NOSCAN planned
+  class EV1,EV2,EV3,EV4,HMERGE,HUNITS,HLIFE,HHIST,HIDX,E1,E2,M1,M2,M3,NOSCAN planned
 ```
 
 The pipeline itself is the existing Envio runtime, which is live; every box above is the planned pooling delta to it. `ModuleUpdated` creates one pool-less `COMMITMENT_EVENT` and never invents pool `0`. EAS attestations and raw Celo G$ transfers are outside this pipeline entirely — the joined Community read is composed in shared query code, not fabricated in a handler.

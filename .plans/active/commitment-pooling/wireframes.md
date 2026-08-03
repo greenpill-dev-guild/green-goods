@@ -1420,11 +1420,15 @@ review step:
 │                 [ Start offering over time ]        │
 ```
 
-States: `garden` · `terms` · `review` · `queued` · `place-waiting` · `failed`.
+States: `garden` · `terms` · `review` · `queued` · `place-waiting` ·
+`waiting-membership` · `failed` · `discarded-dependency`.
 
 `place-waiting` is the dependent-draft state: a place drafted before its series exists waits on
 explicit queue state, consumes no retry budget, and says what it is waiting for. Discarding the
-series keeps the place drafts recoverable.
+series keeps the place drafts recoverable. `waiting-membership` keeps that dependent place visible
+while the parent series job waits for the required Hat; cancelling the wait routes to
+`discarded-dependency`, where the member must explicitly recreate the series, retarget the draft,
+or remove only the draft.
 
 ### W34 — Ongoing Offer detail and Story (uiux Appendix F.2/F.3/F.4) NET-NEW
 
@@ -1463,8 +1467,9 @@ Story state:
 │ ● Ran out of time — nobody took it up Apr 30 │
 ```
 
-States: `active-two` · `active-none` · `active-one` · `places-queued` · `story` ·
-`participation` · `ask-again` · `claimant-view` · `resting` · `retire-confirm` · `retired` ·
+States: `active-two` · `active-none` · `active-one` · `places-queued` · `places-partial` ·
+`places-partial-failed` · `story` · `participation` · `ask-again` · `claimant-view` ·
+`pool-paused` · `pool-closed` · `pool-composted` · `resting` · `retire-confirm` · `retired` ·
 `succession` · `loading` · `read-error`.
 
 Rules the frame encodes:
@@ -1477,12 +1482,20 @@ Rules the frame encodes:
   holder and current stewards.
 - **`places-queued`** keeps both queued rows visible while reporting **0 places available**.
   Nobody can take them up until each creation syncs and reserves provider capacity.
+- **`places-partial` / `places-partial-failed`** preserve the independently synced Offered row
+  while showing the queued or failed sibling and its retry/discard recovery. A partial batch is
+  never redrawn as all-sent or all-failed.
 - **`participation`** draws the series Story and the member's pool participation history as two
   separately titled blocks with an explicit line saying they are different views and neither is a
   score. A participant total appears only as **Reported participants · from evidence notes**.
-- **`resting`** keeps the taken-up promise and the whole Story visible and removes only
-  **Add places**. **`retire-confirm`** names the terminal effect and takes **no reason field**,
-  because `retireCommitmentSeries` has no reason parameter.
+- **`pool-paused` / `pool-closed` / `pool-composted`** preserve the series and its history while
+  applying the pool's exact availability rule: paused blocks claims temporarily, closed blocks
+  them until reopening, and composted remains terminal and read-only.
+- **`resting`** keeps existing Offered places claimable and the whole Story visible while removing
+  only **Add places**. **`retire-confirm`** names the terminal effect and takes **no reason field**,
+  because `retireCommitmentSeries` has no reason parameter. **`retired`** also preserves existing
+  Offered places as read-only rows for the holder and ordinary claimant discovery while the pool
+  remains Open; it blocks only new places and future Resume.
 - **`succession`** is a labelled, non-interactive horizon: co-holding, teaching alongside, handing
   on, starting a linked offer, and garden-held stewardship, each noted as needing both people to
   agree, above a line stating what is possible today (add places, rest, retire).
@@ -1505,9 +1518,11 @@ Rules the frame encodes:
 └─────────────────────────────────────────────────────┘
 ```
 
-States: `compose` · `queued`. Queued places are explicitly **not** shown as available until each
-creation has synced and reserved its provider slot. Returning from `queued` lands on
-`W34@places-queued`, not an empty state that hides the pending work.
+States: `compose` · `queued` · `mixed-queued` · `mixed-failed`. Queued places are explicitly
+**not** shown as available until each creation has synced and reserved its provider slot. Returning
+from `queued` lands on `W34@places-queued`, not an empty state that hides the pending work.
+`mixed-queued` and `mixed-failed` each retain the already-synced Offered sibling; only the pending
+or failed job can be retried or discarded.
 
 ### W7/W10 deltas — admin grouping by ongoing Offer (uiux Appendix F.5)
 

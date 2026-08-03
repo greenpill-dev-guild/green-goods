@@ -45,6 +45,8 @@
 >
 > **Review hardening 2026-08-03 (creation-order replay and root backfill).** A commitment lifecycle event that arrives at the indexer before `CommitmentCreated` is stored as a typed, event-keyed pending projection and consumes neither the placeholder lifecycle cursor nor any state-derived delta. Creation supplies the immutable pool/cycle/series/lead/Need facts and atomically drains that commitment's explicit pending index in block/log order through the same lifecycle helper, so reverse delivery converges for live count, series outcome, PoolMemberHistory, attribution confirmation, and Need lineage. Operationally, the root GardenAccount receives exactly one Protocol pool; the 13-garden enumeration records that normalized root as `SKIPPED_PROTOCOL_ROOT` and submits Garden-type registrations only for the 12 non-root gardens.
 >
+> **Review hardening 2026-08-03 (terminal capacity and late member-history facts).** Cancelling or expiring an unaccepted Offer releases the class and provider slot reserved at creation exactly once; an unaccepted Request still has no registry effect. Indexer terminal state projection no longer assumes acceptance and frozen-roster facts have already arrived: `CommitmentAccepted`, contributor mutations, and `ContributorRosterFrozen` all invoke an idempotent terminal-member-history reconciler. It applies the lead's current terminal outcome only after acceptance facts exist and applies Fulfilled contributor/receiver history only after the frozen active roster is fully materialized, so a reverse-delivered Fulfilled event cannot permanently omit history counters.
+>
 > **Frozen-text conflict surfaced, not rewritten.** Canonical decision 17 says “afterwards the module never reads it” and “Atomic swap acceptance remains out of scope with the transferable-voucher layer.” This amendment preserves that historical text while making `acceptExchange` the sole additive acceptance-time read of B's reference and the sole bilateral exception. Decision 17's post-acceptance no-coupling rule remains verbatim.
 >
 > **Naming alignment recorded with this amendment.** `CommitmentRegister` → `CommitmentRegistry`, `ICommitmentRegister` → `ICommitmentRegistry`, `CreditRegister` → `CreditRegistry`, and `CommunityTestimonyResolver` → `TestimonyResolver` in all living and normative text, for consistency with `registries/Action.sol` and `resolvers/Assessment.sol`. Planned file targets remain `registries/Commitment.sol`, `registries/Credit.sol`, and `resolvers/Testimony.sol`; the GE “register” grammar remains prose vocabulary, and `communityTestimony` schema config and schema names do not change. Older dated amendments and decision/register history retain the names originally recorded.
@@ -199,8 +201,8 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy for contributor recognition and payout defaults only), proving every active linked Work is current against `WorkApprovalResolver.latestDecisionSequence`, freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkDecision`, `syncWorkDecisions`, or the one-time `attachAssessment` call once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with `requirements.length == 0`, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy, verified-credit, or linked-Work freshness prerequisites. All paths require either an ordinary named/default threshold that remains reachable after excluding every contributor, or an explicitly enabled protocol fallback backed by a registered `protocolPoolId`. |
 | ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator), where a GardenAccount default resolves to that garden's operator/owner Hat wearers as direct callers rather than an ERC-6551 `execute`; each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled(..., confirmer, Ordinary, "")`. Every frozen contributor is excluded from every confirmation path. `confirmFulfillmentAsFallback(commitmentId, reason)` is available only while that ordinary path is unreachable after contributor exclusion; it requires a current local garden steward/owner and emits `PoolFallback`, or, only when `protocolFallbackEnabled`, a current protocol-garden steward/owner and emits `ProtocolFallback`. Both require a reason and reject contributors. Local authority is tested first for dual-role callers, and module ownership alone grants neither confirmation path. Register converts the lead provider's units (`UnitsFulfilled`). |
 | Fulfilled -> Reconciled | derived | `CycleClosed` for the commitment's cycleId; cycle-less commitments (cycleId == 0) derive Reconciled from `PoolClosed`. |
-| -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. Offered/Requested have no committed units and emit no register release; Accepted releases exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
-| -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. Offered/Requested emit no register release; Accepted/ReadyForConfirmation release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
+| -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. An Offered Offer releases exactly `targetUnits` and its provider slot because creation already committed them; an unaccepted Request has no committed units and emits no register release; Accepted Offers and Requests release exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
+| -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. An Offered Offer releases exactly `targetUnits` and its provider slot; an unaccepted Request emits no register release; Accepted/ReadyForConfirmation Offers and Requests release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
 | -> Disputed | on-chain | `raiseDispute(commitmentId, reasonCID)` from Accepted/ReadyForConfirmation/Expired (the locked EvidenceSubmitted/PartiallyApproved entries map to on-chain Accepted). Before setting Disputed, the module stores the exact prior state in `preDisputeState`. Raiser: creator, counterparty, named confirmer, or steward. Event `CommitmentDisputed`. |
 | Disputed -> previous state / Fulfilled / Cancelled / Expired | on-chain | `resolveDispute(commitmentId, RestorePrevious / Fulfilled / Cancelled / Expired, reasonCID)` steward-only. `RestorePrevious` restores the stored state. An Expired prior state may only restore Expired or resolve Cancelled; it can never resolve Fulfilled. A Fulfilled resolution applies the ordinary anti-farming guard first: a resolving steward who is on the current or already-frozen contributor roster reverts `SelfConfirmation`. It then requires the same opened-policy, `totalVerifiedCredits > 0`, and complete linked-Work freshness predicates as ReadyForConfirmation; when the pre-dispute state was not already ReadyForConfirmation, it freezes the roster and contribution-credit accounting and emits `ContributorRosterFrozen` before `DisputeResolved`. Unit effects depend on `preDisputeState`: Fulfilled converts still-committed units; Cancelled/Expired release still-committed units; no resolution releases units that Expired already released. Event `DisputeResolved` carries the restored/final state. |
 | Cancelled/Expired -> Reconciled at cycle close | derived | `CycleClosed` event; no on-chain per-commitment write (no unbounded loops at close). |
@@ -2665,6 +2667,7 @@ type Commitment {
   chainId: Int!
   commitmentId: BigInt!
   creationSeen: Boolean! # false only for an update-before-create placeholder
+  acceptanceSeen: Boolean! # true once the unique CommitmentAccepted payload is stored, even if its lifecycle cursor is older
   poolId: BigInt!
   poolEntityId: String! # relationship: chainId-poolId
   cycleId: BigInt # null when not cycle-scoped
@@ -2690,6 +2693,9 @@ type Commitment {
   requirementCount: Int!
   contributorCount: Int!
   contributorsFrozen: Boolean!
+  frozenContributorCount: Int # exact ContributorRosterFrozen count; null until that event arrives
+  memberHistoryOutcome: CommitmentOnchainState # nullable lead terminal bucket currently applied
+  fulfilledParticipantHistoryApplied: Boolean! # contributorFulfilled + receivedFulfilled idempotency guard
   contributorEntityIds: [String!]!
   unitLabel: String!
   targetUnits: BigInt!
@@ -3129,20 +3135,35 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   bucket. A live Accepted/Ready dispute changes no live count until its terminal resolution.
   Therefore `Expired -> Disputed -> Cancelled` leaves exactly one current terminal outcome and one
   paired live-count decrement, never both Expired and Cancelled history for the same commitment.
-- **Pool-member-history deltas**: every touched row is create-if-not-exists with zero counters.
-  `CommitmentAccepted` increments `leadAccepted` for the emitted non-zero `leadProvider`.
-  `ConfirmationRecorded` increments `confirmationsGiven` for its emitted `confirmer`;
-  `CommitmentDisputed` increments `disputesRaised` for its emitted `raiser` even when its lifecycle
-  projection is older than the stored cursor. A transition into Fulfilled increments
-  `leadFulfilled` for the stored lead, increments `contributorFulfilled` once for each frozen active
-  contributor other than that lead, and increments `receivedFulfilled` for exactly one stored
-  receiving identity: Offer uses `counterparty`, Request uses `creator`. A GardenAccount receiver
-  is counted as that GardenAccount, never fanned out to its current stewards or to every named
-  confirmer. A transition into Cancelled or Expired increments `leadCancelled` or `leadExpired`
-  only when the commitment was accepted and has a non-zero stored lead. Reopening Expired reverses
-  its lead bucket before the resolution applies the one current outcome. Request,
-  contributor-roster, readiness, confirmation-threshold, reward, value-declaration, and
-  counter-commitment events change no other history counter.
+- **Pool-member-history deltas and late-fact reconciliation**: every touched row is
+  create-if-not-exists with zero counters. `CommitmentAccepted` stores its immutable acceptance
+  payload and sets `acceptanceSeen = true` even when its lifecycle cursor is older than an already
+  applied terminal event; its unique audit event increments `leadAccepted` once for the emitted
+  non-zero `leadProvider`. `ConfirmationRecorded` increments `confirmationsGiven` for its emitted
+  `confirmer`; `CommitmentDisputed` increments `disputesRaised` for its emitted `raiser` even when
+  its lifecycle projection is older than the stored cursor. `ContributorRosterFrozen` stores its
+  emitted exact count in `frozenContributorCount`; contributor add/remove handlers continue to
+  materialize their event-owned rows independently of terminal state.
+
+  `reconcileTerminalMemberHistory(commitment)` is called after every terminal lifecycle
+  projection and after `CommitmentAccepted`, `ContributorAdded`, `ContributorRemoved`, and
+  `ContributorRosterFrozen`. When the current state is Fulfilled, Cancelled, or Expired and
+  `acceptanceSeen` supplies a non-zero lead, it reverses any different non-null
+  `memberHistoryOutcome`, applies exactly one `leadFulfilled`, `leadCancelled`, or `leadExpired`
+  bucket for the current terminal state, and stores that outcome. Expired-to-Disputed reverses and
+  clears the stored outcome before a restored or replacement terminal result can apply. Therefore
+  a terminal event delivered before acceptance cannot lose or duplicate the lead outcome.
+
+  The Fulfilled participant portion waits until `acceptanceSeen`, `contributorsFrozen`, a non-null
+  `frozenContributorCount`, and exactly that many active rows from the bounded contributor index
+  are materialized. If `fulfilledParticipantHistoryApplied == false`, it then increments
+  `contributorFulfilled` once for each frozen active contributor other than the lead and
+  `receivedFulfilled` for exactly one stored receiving identity (Offer uses `counterparty`; Request
+  uses `creator`), then flips the guard atomically. A GardenAccount receiver is counted as that
+  GardenAccount, never fanned out to its current stewards or named confirmers. Late acceptance,
+  contributor, or freeze delivery re-enters this helper; duplicate delivery or later calls observe
+  the guards and apply no second delta. Request, readiness, confirmation-threshold, reward,
+  value-declaration, and counter-commitment events change no other history counter.
 - **Terminal side projections**: every transition into Fulfilled, including
   `DisputeResolved(finalState = Fulfilled)`, loads the bounded attribution index and marks each
   referenced attribution confirmed, appends the commitment to
@@ -3164,7 +3185,8 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   Fulfilled/Cancelled/Expired transition, including terminal `DisputeResolved`; Expired-to-Disputed
   re-increments, and its later terminal resolution decrements once. Ready and disputes raised from
   live states do not change the count. Replay fixtures deliver Accepted, Ready, Fulfilled,
-  Cancelled, Expired, Disputed, and resolved-dispute events both before and after creation; every
+  Cancelled, Expired, Disputed, and resolved-dispute events both before and after creation, plus
+  Fulfilled/Cancelled/Expired before acceptance and Fulfilled before contributor/freeze rows. Every
   order preserves the exact on-chain count and the same series outcome, PoolMemberHistory rows,
   attribution confirmation, and Need lineage. W26 reads this field rather than provider-capacity
   exposure when deciding whether close can run.

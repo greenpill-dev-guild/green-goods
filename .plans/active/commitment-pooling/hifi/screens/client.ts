@@ -1135,7 +1135,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm-captured-detail": { l: "Review captured-promise confirmation", to: "screen:W4@confirm-captured", info: "Opens the named counterparty's confirmation without changing the captured member source." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
   "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
-  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145).", calls: ["cancelCommitment"] },
+  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on this Offered-Offer creator path releases its already-committed units and provider slot exactly once. An unaccepted Request has no registry release (CS §5.3).", calls: ["cancelCommitment"] },
   "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
@@ -2022,12 +2022,14 @@ function w33(state: W33State): string {
     case "waiting-membership":
       body = `${w33Head("Offer over time", 3)}${pagepad(
         card(
-          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Rocinha Community Garden", chipHtml: chip("Waiting for membership", "plain") }),
+          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Rocinha Community Garden", chipHtml: chip("Waiting for membership", "plain") }) +
+            listRow({ icon: "calendar-line", primary: "1 workshop place · Season of First Rains", meta: "Waiting for this ongoing Offer", chipHtml: chip("Waiting", "queued") }),
+          { cls: "flat" },
         ),
         banner("This send is waiting for your garden membership. No retry is used while it waits.", "stone", "time-line"),
-        `<div class="t-meta">It resumes automatically when membership is visible. You can check again now or cancel this send and keep the offer details saved privately.</div>`,
+        `<div class="t-meta">It resumes automatically when membership is visible. If you cancel the series send, the waiting place stays as a local draft until you recreate, retarget, or remove it.</div>`,
         `<div class="brow">${hot("w33.membership-resume", btn("Check again", { kind: "pri", icon: "refresh-line" }))}${hot("w33.membership-cancel", btn("Cancel this send", { kind: "ghost" }))}</div>`,
-      )}${syncBar("1 waiting for membership")}`;
+      )}${syncBar("2 waiting · membership required")}`;
       break;
     case "failed":
       body = `${w33Head("Offer over time", 3)}${pagepad(
@@ -2073,7 +2075,7 @@ const W33_HOTS: HifiDef["hots"] = {
   "w33.queued-done": { l: "Back to my offers", to: "screen:W32@series-queued", info: "The ongoing Offer remains visibly queued and unavailable; it appears as Active only after its creation syncs." },
   "w33.waiting-done": { l: "Back to my offers", to: "screen:W32@series-queued-place-waiting", info: "Both the queued ongoing Offer and its dependent waiting place remain visible without fabricating availability or transaction order." },
   "w33.membership-resume": { l: "Check membership again", to: "screen:W33@queued", info: "Rechecks the required pool-garden Hat. The same series job resumes without spending a retry only after membership is observed." },
-  "w33.membership-cancel": { l: "Cancel this send", to: "screen:W32@saved", info: "Cancels the waiting series job without deleting the signed private Offer details. No onchain series or place exists." },
+  "w33.membership-cancel": { l: "Cancel this send", to: "screen:W33@discarded-dependency", info: "Cancels only the waiting series job. The signed private Offer details and dependent place draft remain visible for explicit recreation, retargeting, or removal; no onchain series or place exists." },
   "w33.retry": { l: "Try again", to: "screen:W33@queued", info: "Re-queues the same series creation; the entered description is preserved." },
   "w33.discard": { l: "Discard the send", to: "screen:W33@discarded-dependency", info: "Discards only the queued series job. The saved details and any dependent place draft remain visible for explicit repair, retarget, or removal." },
   "w33.dependency-recreate": { l: "Recreate the ongoing Offer", to: "screen:W33@garden", info: "Repairs the retained dependency by starting a new series job. The place draft remains local until the replacement series syncs." },
@@ -2319,7 +2321,14 @@ function w34(state: W34State): string {
       break;
     case "retired":
       body = `${w34Head({ state: "Retired", tone: "ink" })}${pagepad(
-        banner("Retired on Aug 2. This ongoing Offer is closed for good.", "stone", "information-line"),
+        banner("Retired on Aug 2. You cannot add places or start this ongoing Offer again.", "stone", "information-line"),
+        card(
+          `<div class="t-title">2 existing places remain available</div><div class="t-meta">Retirement changes only the ongoing Offer. These already-reserved Offers stay discoverable and claimable until each one is accepted, cancelled, or expires.</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            hot("w34.open-retired-place", btn("View an open place", { kind: "ghost", full: true })),
+          { cls: "flat" },
+        ),
         card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story stays here. Nothing that was already promised or kept has changed.</div>`),
         card(w34StoryTimeline(), { cls: "flat" }),
         `<div class="t-meta">Your saved details are still there. You can offer it in a garden again whenever you want to.</div>`,
@@ -2383,6 +2392,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.retire": { l: "Retire it", to: "screen:W34@retire-confirm", info: "Opens the terminal confirmation. Retiring takes no reason in the initial contract, so no reason field is drawn." },
   "w34.retire-confirm": { l: "Retire it", to: "screen:W34@retired", info: "Terminal. Existing instances keep their state and history; the saved details stay privately stored.", calls: ["retireCommitmentSeries"] },
   "w34.retire-cancel": { l: "Keep it", to: "screen:W34@active-two", info: "Dismisses the confirmation with no state change." },
+  "w34.open-retired-place": { l: "View an open place", to: "screen:W2@support-offered", info: "Opens one surviving Offered instance. Retirement blocks only new series instances; ordinary claimant discovery and claim remain available while the pool is Open." },
   "w34.ask-again-yes": { l: "Add places", to: "screen:W35@compose", info: "Current consent before any new promise. The protocol never creates a place on a schedule." },
   "w34.ask-again-not-now": { l: "Not this season", to: "screen:W34@active-none", info: "Declining creates nothing and changes neither this offer nor its story." },
   "w34.succession": { l: "Sharing and handing on — later", to: "screen:W34@succession", info: "Labelled horizon only. The initial contract exposes rest, resume, and retire and nothing else." },
@@ -2471,7 +2481,8 @@ const w34Facts = (state: W34State): StateFacts | undefined => {
   if (state === "loading" || state === "read-error") return undefined;
   if (state === "resting")
     return { pool: "Open", cycle: "Open", series: "Resting", commitment: "Offered", kind: "SupportService" };
-  if (state === "retired") return { pool: "Open", series: "Retired" };
+  if (state === "retired") return { pool: "Open", cycle: "Open", series: "Retired", commitment: "Offered", kind: "SupportService" };
+  if (state === "retire-confirm") return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
   if (state === "pool-paused") return { pool: "Paused", series: "Active", commitment: "Offered", kind: "SupportService" };
   if (state === "pool-closed") return { pool: "Closed", series: "Active", commitment: "Offered", kind: "SupportService" };
   if (state === "pool-composted") return { pool: "Composted", series: "Active" };

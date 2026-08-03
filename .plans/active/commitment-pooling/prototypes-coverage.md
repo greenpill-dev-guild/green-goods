@@ -6,7 +6,7 @@ Updated 2026-08-03. This is the human-readable screen-by-state audit for the sel
 
 - 36 registered screens / 347 rendered states in the full source registry
 - 29 presentation-visible hi-fi screens / 340 states: 14 Client PWA (211 states), 13 Admin console (124 states), 2 Editorial website (5 states)
-- 468 registered hotspots
+- 469 registered hotspots
 - 44 validated source flows / 359 scenes; 43 presentation-visible flows / 350 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
 - 0 build warnings
 
