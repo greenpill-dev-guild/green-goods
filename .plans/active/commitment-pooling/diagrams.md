@@ -1129,7 +1129,7 @@ flowchart TB
 
 ## D15. Indexer entity delta (ERD)
 
-Thirteen core NET-NEW pooling entities plus six auxiliary contributor/provenance entities use `chainId-identifier` composite IDs under one explicit namespace rule: the initial indexer accepts exactly one canonical UUPS Commitment Pooling module/register proxy pair per chain, and implementation upgrades retain those proxy addresses. Duplicate same-chain blocks or proxy replacement fail the boundary check until a future migration defines a versioned namespace and full replay. D15 draws those 19 alongside the existing `GARDEN` and `HYPERCERT` anchors; the contract overview and indexer handoff use the thirteen-entity core-phase count and name the six auxiliaries separately. Pooling core and auxiliary rows are populated from `CommitmentPoolingModule` and `CommitmentRegistry` events except `HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION`, which the Hypercert `ClaimStored` handler upserts for `COMMITMENT` bundles. Settlement entities are shown separately in D20. The docs-site ERD gains this delta at ship via PRD-727 (historical label PRD-680). **Need lineage lives here**: a commitment created with a non-zero `needUID` appends to `NEED_COMMITMENT_INDEX` (bottom edge of D15.0) — the seed-from-Need workflow that sets the reference is Community D9 and the cross-surface map (matrix rows 14 and 16); the module stores the UID as-is and never reads EAS for it. **Exchange-wave delta (2026-08-01, registers #75–#77)**: `COMMITMENT` carries the one-way `counterCommitmentId`; `COMMITMENT_COUNTER_INDEX` supplies reverse lookup; `COMMITMENT_EXCHANGE` records the atomic marker; and `POOL_MEMBER_HISTORY` remains the counts-only per-member standing row. Raw history rows are public event-derived data; shared viewer-aware selectors enforce the steward/self product-disclosure rule, and editorial surfaces use aggregates only. No surface renders a score, percentage, or ranking.
+Fifteen core NET-NEW pooling entities plus eight auxiliary contributor/provenance/replay-coordination entities use `chainId-identifier` composite IDs under one explicit namespace rule: the initial indexer accepts exactly one canonical UUPS Commitment Pooling module/register proxy pair per chain, and implementation upgrades retain those proxy addresses. Duplicate same-chain blocks or proxy replacement fail the boundary check until a future migration defines a versioned namespace and full replay. D15 draws those 23 alongside the existing `GARDEN` and `HYPERCERT` anchors; the contract overview and indexer handoff use the fifteen-entity core-phase count and name the eight auxiliaries separately. Pooling core and auxiliary rows are populated from `CommitmentPoolingModule` and `CommitmentRegistry` events except `HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION`, which the Hypercert `ClaimStored` handler upserts for `COMMITMENT` bundles. Settlement entities are shown separately in D20. The docs-site ERD gains this delta at ship via PRD-727 (historical label PRD-680). **Need lineage lives here**: a commitment created with a non-zero `needUID` appends to `NEED_COMMITMENT_INDEX` (bottom edge of D15.0) — the seed-from-Need workflow that sets the reference is Community D9 and the cross-surface map (matrix rows 14 and 16); the module stores the UID as-is and never reads EAS for it. **Exchange-wave delta (2026-08-01, registers #75–#77)**: `COMMITMENT` carries the one-way `counterCommitmentId`; `COMMITMENT_COUNTER_INDEX` supplies reverse lookup; `COMMITMENT_EXCHANGE` records the atomic marker; and `POOL_MEMBER_HISTORY` remains the counts-only per-member standing row. **Offer-over-time and replay delta (2026-08-02)**: `COMMITMENT_SERIES` and `COMMITMENT_SERIES_CYCLE_SUMMARY` provide the durable series read model, while `COMMITMENT_PENDING_LIFECYCLE_PROJECTION` and its commitment-keyed index buffer lifecycle projections until reverse-delivered creation facts arrive. Raw history rows are public event-derived data; shared viewer-aware selectors enforce the steward/self product-disclosure rule, and editorial surfaces use aggregates only. No surface renders a score, percentage, or ranking.
 
 **Count-safe units model**: every commitment keeps its own exact `unitLabel`, `targetUnits`, and per-commitment `approvedUnits`. Pool/cycle totals never add unlike labels. `CommitmentUnitSummary` groups only exact UTF-8 label matches (`hours` and `Hours` are distinct), while `CommitmentProviderExposure` counts concurrent accepted commitments regardless of their quantities:
 
@@ -1140,12 +1140,17 @@ Thirteen core NET-NEW pooling entities plus six auxiliary contributor/provenance
 
 #### D15.0 Entity map — names and relationships only
 
-**How to read this**: the boxes and their cardinality, with no fields. Read this first to check trust and shape; the two blocks below add only keys and discriminators. `GARDEN` and `HYPERCERT` are existing anchors; the 19 pooling/contributor records are NET-NEW read models. Their event-source contract stays in `contract-spec.md` §8.2 and §9.2, including the Hypercert `ClaimStored` expansion for contributor allocations.
+**How to read this**: the boxes and their cardinality, with no fields. Read this first to check trust and shape; the two blocks below add only keys and discriminators. `GARDEN` and `HYPERCERT` are existing anchors; the 23 pooling/contributor/replay records are NET-NEW read models. Their event-source contract stays in `contract-spec.md` §8.2 and §9.2, including the Hypercert `ClaimStored` expansion for contributor allocations.
 
 ```mermaid
 erDiagram
   GARDEN ||--o| COMMITMENT_POOL : "at most one pool per garden; backfilled for pre-upgrade gardens"
   COMMITMENT_POOL ||--o{ COMMITMENT_CYCLE : "cycles"
+  COMMITMENT_POOL ||--o{ COMMITMENT_SERIES : "ongoing Offers in this pool"
+  COMMITMENT_SERIES |o--o{ COMMITMENT : "optional series relationship; one-shot commitments have none"
+  COMMITMENT_SERIES ||--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "non-zero-cycle outcome counts"
+  COMMITMENT_CYCLE |o--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "cycle-scoped series summary"
+  COMMITMENT_POOL ||--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "pool-scoped series summary"
   COMMITMENT_POOL ||--o{ COMMITMENT : "commitments"
   COMMITMENT_CYCLE |o--o{ COMMITMENT : "cycle-scoped, optional"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
@@ -1171,16 +1176,24 @@ erDiagram
   COMMITMENT_POOL ||--o{ COMMITMENT_EXCHANGE : "atomic bilateral markers"
   COMMITMENT ||--o{ COMMITMENT_EXCHANGE : "A and B pair relationships"
   COMMITMENT_POOL ||--o{ POOL_MEMBER_HISTORY : "one counts-only standing row per member"
+  COMMITMENT ||--o{ COMMITMENT_PENDING_LIFECYCLE_PROJECTION : "reverse-delivered lifecycle payloads"
+  COMMITMENT ||--o| COMMITMENT_PENDING_LIFECYCLE_PROJECTION_INDEX : "bounded replay lookup"
+  COMMITMENT_PENDING_LIFECYCLE_PROJECTION_INDEX ||--o{ COMMITMENT_PENDING_LIFECYCLE_PROJECTION : "projection IDs sorted before drain"
 ```
 
-#### D15.1 Commitment core — pool, cycle, commitment, requirements, audit
+#### D15.1 Commitment core — pool, cycle, series, commitment, requirements, audit
 
-**How to read this**: the six core entities with only relationship keys and discriminators. Every field is event-derived; derived overlays such as `Active` and `PartiallyApproved` are computed in shared selectors and never stored. For accounting and display fields, use `contract-spec.md` §8.2.
+**How to read this**: the seven core entity kinds with only relationship keys and discriminators. Every field is event-derived; derived overlays such as `Active` and `PartiallyApproved` are computed in shared selectors and never stored. For accounting and display fields, use `contract-spec.md` §8.2.
 
 ```mermaid
 erDiagram
   GARDEN ||--o| COMMITMENT_POOL : "at most one pool per garden; backfilled for pre-upgrade gardens"
   COMMITMENT_POOL ||--o{ COMMITMENT_CYCLE : "cycles"
+  COMMITMENT_POOL ||--o{ COMMITMENT_SERIES : "ongoing Offers"
+  COMMITMENT_SERIES |o--o{ COMMITMENT : "optional series relationship"
+  COMMITMENT_SERIES ||--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "non-zero-cycle outcome counts"
+  COMMITMENT_CYCLE |o--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "cycle relationship"
+  COMMITMENT_POOL ||--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "pool relationship"
   COMMITMENT_POOL ||--o{ COMMITMENT : "commitments"
   COMMITMENT_CYCLE |o--o{ COMMITMENT : "cycle-scoped, optional"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
@@ -1189,13 +1202,14 @@ erDiagram
   COMMITMENT |o--o{ COMMITMENT_EVENT : "commitment events"
 
   GARDEN {
-    ID id "chainId-address"
-    Int chainId "required on every entity"
+    ID id "normalized bare GardenAccount address"
+    Int chainId "separate compatibility field"
   }
 
   COMMITMENT_POOL {
     ID id "chainId-poolId"
-    String garden "garden account address"
+    String garden "normalized garden account address"
+    String gardenId "bare normalized Garden.id relationship"
     CommitmentPoolType poolType "GARDEN or PROTOCOL"
     CommitmentPoolState state "NOT_READY to COMPOSTED, the D8 vocabulary"
   }
@@ -1206,8 +1220,35 @@ erDiagram
     CommitmentCycleState state "on-chain vocabulary only; InProgress-Reviewing derived"
   }
 
+  COMMITMENT_SERIES {
+    ID id "chainId-seriesId"
+    BigInt seriesId "durable pool-scoped identity"
+    BigInt poolId "pool relationship key"
+    String currentHolder "current accountable holder"
+    CommitmentSeriesState state "ACTIVE RESTING or RETIRED"
+    String metadataCID "latest reusable Offer metadata"
+    BigInt latestLifecycleBlock "lifecycle replay cursor"
+    Int latestLifecycleLogIndex "lifecycle cursor partner"
+    BigInt latestMetadataBlock "metadata replay cursor"
+    Int latestMetadataLogIndex "metadata cursor partner"
+  }
+
+  COMMITMENT_SERIES_CYCLE_SUMMARY {
+    ID id "chainId-seriesId-cycleId"
+    BigInt seriesId "series relationship key"
+    BigInt cycleId "non-zero cycle relationship key"
+    BigInt poolId "pool relationship key"
+    BigInt instanceCount "exact instances in this series and cycle"
+    BigInt fulfilledCount "current fulfilled outcomes"
+  }
+
   COMMITMENT {
     ID id "chainId-commitmentId"
+    Boolean creationSeen "false only for update-before-create placeholder"
+    BigInt commitmentSeriesId "nullable; zero means one-shot"
+    String commitmentSeriesEntityId "nullable chainId-seriesId relationship"
+    String gardenId "bare normalized Garden.id relationship"
+    String providerGardenId "nullable bare normalized Garden.id relationship"
     String creator "social source of the promise"
     String providerGarden "EAS recipient and role scope"
     String leadProvider "accountable Offer creator or Request counterparty"
@@ -1244,7 +1285,7 @@ erDiagram
 
 #### D15.2 Claims, counts, and lineage
 
-**How to read this**: handler-owned lookup and accounting relationships, including contributor and evidence attribution indexes so no handler scans the database. Only keys and discriminators render here. `COMMITMENT`, `COMMITMENT_POOL`, and `COMMITMENT_CYCLE` appear as bare boxes; the complete fields remain in `contract-spec.md` §8.2. Contributor rows are event-sourced only from `ContributorAdded`: ordinary acceptance emits the resolved lead once, while bilateral acceptance emits one lead event for A's creator on A and one for B's creator on B. `ExchangeAccepted` is the pair marker and never substitutes for either roster event.
+**How to read this**: handler-owned lookup and accounting relationships, including contributor, evidence-attribution, and pending-lifecycle indexes so no handler scans the database. Only keys and discriminators render here. `COMMITMENT`, `COMMITMENT_POOL`, and `COMMITMENT_CYCLE` appear as bare boxes; the complete fields remain in `contract-spec.md` §8.2. Contributor rows are event-sourced only from `ContributorAdded`: ordinary acceptance emits the resolved lead once, while bilateral acceptance emits one lead event for A's creator on A and one for B's creator on B. `ExchangeAccepted` is the pair marker and never substitutes for either roster event. The replay index is populated only while `creationSeen == false` and is drained through the ordinary cursor-ordered lifecycle projector after creation facts arrive.
 
 ```mermaid
 erDiagram
@@ -1269,6 +1310,9 @@ erDiagram
   COMMITMENT_POOL ||--o{ COMMITMENT_EXCHANGE : "atomic bilateral marker"
   COMMITMENT ||--o{ COMMITMENT_EXCHANGE : "two commitment relationships"
   COMMITMENT_POOL ||--o{ POOL_MEMBER_HISTORY : "counts-only standing rows (2026-08-01)"
+  COMMITMENT ||--o{ COMMITMENT_PENDING_LIFECYCLE_PROJECTION : "buffered state-derived payloads"
+  COMMITMENT ||--o| COMMITMENT_PENDING_LIFECYCLE_PROJECTION_INDEX : "commitment-keyed replay lookup"
+  COMMITMENT_PENDING_LIFECYCLE_PROJECTION_INDEX ||--o{ COMMITMENT_PENDING_LIFECYCLE_PROJECTION : "stable projection IDs"
 
   COMMITMENT_CLAIM_REQUEST {
     ID id "chainId-commitmentId-claimant"
@@ -1277,7 +1321,7 @@ erDiagram
     String claimant "normalized address"
     String requestedBy "authenticated caller; differs for Garden claims"
     CommitmentClaimType claimType "INDIVIDUAL or GARDEN"
-    String gardenContextId "chainId-address relationship"
+    String gardenContextId "bare normalized Garden.id relationship"
     CommitmentClaimRequestState state "PENDING ACCEPTED DECLINED SUPERSEDED"
     String resolutionCode "five codes — enumerated in D12"
   }
@@ -1381,10 +1425,26 @@ erDiagram
     Int confirmationsGiven "confirmations recorded"
     Int disputesRaised "disputes raised"
   }
+
+  COMMITMENT_PENDING_LIFECYCLE_PROJECTION {
+    ID id "chainId-txHash-logIndex"
+    BigInt commitmentId "commitment relationship key"
+    CommitmentEventType eventType "exact buffered lifecycle event"
+    BigInt blockNumber "drain ordering cursor"
+    Int logIndex "drain ordering cursor partner"
+    CommitmentOnchainState nextState "nullable emitted target state"
+    Boolean applied "true only after projection succeeds"
+  }
+
+  COMMITMENT_PENDING_LIFECYCLE_PROJECTION_INDEX {
+    ID id "chainId-commitmentId"
+    BigInt commitmentId "handler lookup key"
+    String projectionIds "stable IDs drained in block-log order"
+  }
 ```
 
 
-On acceptance, the handler loads `COMMITMENT_CLAIM_REQUEST_INDEX` by `chainId-commitmentId`, marks the accepted request `ACCEPTED`, and marks every other still-pending indexed request `SUPERSEDED`. Pre-acceptance commitment cancellation or expiry uses the same indexed IDs to supersede every pending row with its resolution code. Decline updates only the named request. `EvidenceAttached` appends its composite row ID once to `COMMITMENT_EVIDENCE_ATTRIBUTION_INDEX`; the shared lifecycle helper's Fulfilled branch loads those bounded IDs and confirms the rows for both ordinary and dispute-resolved fulfillment. `ModuleUpdated` creates one pool-less `COMMITMENT_EVENT` with normalized old/new module addresses and no accounting mutation; it never invents pool `0`. No handler performs a database-wide scan, and no audit-event actor is inferred from `transaction.from`. `Garden.id` remains the normalized bare GardenAccount address with explicit `chainId`; new entities and non-Garden relationships use their own `chainId-*` IDs.
+On acceptance, the handler loads `COMMITMENT_CLAIM_REQUEST_INDEX` by `chainId-commitmentId`, marks the accepted request `ACCEPTED`, and marks every other still-pending indexed request `SUPERSEDED`. Pre-acceptance commitment cancellation or expiry uses the same indexed IDs to supersede every pending row with its resolution code. Decline updates only the named request. `EvidenceAttached` appends its composite row ID once to `COMMITMENT_EVIDENCE_ATTRIBUTION_INDEX`; the shared lifecycle helper's Fulfilled branch loads those bounded IDs and confirms the rows for both ordinary and dispute-resolved fulfillment. A lifecycle event received before `CommitmentCreated` writes one typed `COMMITMENT_PENDING_LIFECYCLE_PROJECTION`, appends its event ID once to the commitment-keyed index, and consumes no state cursor or derived delta. Creation supplies the immutable facts, sorts those bounded IDs by `(blockNumber, logIndex)`, and drains them through the same projection helper before clearing the index; no database-wide scan or externally visible transient live increment occurs. `ModuleUpdated` creates one pool-less `COMMITMENT_EVENT` with normalized old/new module addresses and no accounting mutation; it never invents pool `0`. No handler infers an audit-event actor from `transaction.from`. `Garden.id` remains the normalized bare GardenAccount address with explicit `chainId`; new entities and non-Garden relationships use their own `chainId-*` IDs.
 
 Full field lists: contract-spec §8.2. The ERD intentionally shows the key identity, relationship, state, and accounting fields needed to review trust and cardinality; it is not a substitute for the canonical GraphQL block. Only `promiseKeptRate` divides across commitments. Exact-label unit rows and provider count rows remain integer event-derived facts.
 

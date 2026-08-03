@@ -82,7 +82,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
   register through the standalone badge-schemas path (register #14, register #26, register #53
   as amended by register #54).
 - Deployment plumbing: `DeployHelper.sol` result fields, `DeploymentBase.sol` helpers, artifact keys, storage-layout baselines.
-- Envio indexer plan: two new contract blocks, fifteen core pooling entities (including the bilateral marker, `CommitmentSeries`, and `CommitmentSeriesCycleSummary`), one handler module; count stats and exact-label unit summaries derive from module and registry events alone. Six auxiliary contributor/provenance entities remain in the same schema but are not part of the core-phase count used by D15 and the indexer handoff.
+- Envio indexer plan: two new contract blocks, fifteen core pooling entities (including the bilateral marker, `CommitmentSeries`, and `CommitmentSeriesCycleSummary`), one handler module; count stats and exact-label unit summaries derive from module and registry events alone. Eight auxiliary contributor/provenance/replay-coordination entities remain in the same schema but are not part of the core-phase count used by D15 and the indexer handoff.
 - Hypercert cut-over: `bundleKind` discriminator, fulfilled-commitment bundling, on-chain allocation-class bps at cycle open with app-computed allowlists.
 
 ### Out of scope
