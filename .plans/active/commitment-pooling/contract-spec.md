@@ -2704,6 +2704,8 @@ type Commitment {
   confirmationCount: Int!
   confirmers: [String!]!
   protocolFallbackEnabled: Boolean!
+  confirmerRuleUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ConfirmerRuleSet update was observed
+  confirmerRuleUpdateLogIndex: Int # nullable partner to confirmerRuleUpdateBlockNumber; compare the pair lexicographically
   requiresAssessment: Boolean!
   assessmentUID: String
   needUID: String # community Need this commitment addresses; null/zero when none (amendment 2026-07-04)
@@ -3100,9 +3102,19 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   populate lifecycle fields. Replay never duplicates the pair. Pair status after acceptance is
   derived by joining the two commitments; cancellation, expiry, dispute, or fulfillment on one
   side never mutates the other or the immutable exchange row.
-- **Confirmation authority and provenance**: `ConfirmerRuleSet` assigns the emitted named/default
-  rule and `protocolFallbackEnabled` together, so a replay never invents Green Goods team authority
-  from pool type or caller identity. `CommitmentFulfilled` assigns its explicit `confirmer`,
+- **Confirmation authority, provenance, and replay cursor**: `CommitmentCreated` initializes the
+  emitted named/default rule and `protocolFallbackEnabled` only when the nullable
+  `(confirmerRuleUpdateBlockNumber, confirmerRuleUpdateLogIndex)` cursor is absent.
+  `ConfirmerRuleSet` compares its `(blockNumber, logIndex)` lexicographically with that cursor;
+  an older or duplicate event may retain its immutable audit row but cannot mutate the rule,
+  threshold, confirmers, fallback flag, cursor, or `updatedAt`. A newer event atomically assigns
+  the complete emitted rule, threshold, confirmer list, `protocolFallbackEnabled`, and cursor, so
+  reverse delivery never combines fields from different rule versions or invents Green Goods team
+  authority from pool type or caller identity. A `ConfirmerRuleSet` delivered before
+  `CommitmentCreated` may populate those rule fields on the placeholder; creation then fills its
+  immutable facts without restoring the older creation-time rule. Replay fixtures cover
+  creation→update, update→creation, duplicate delivery, and two opposing opt-in/opt-out updates
+  delivered in either order. `CommitmentFulfilled` assigns its explicit `confirmer`,
   `confirmationPath`, and reason to `fulfilledBy`, `confirmationPath`, and `fallbackReason`;
   `fulfilledByFallback` is derived only for `PoolFallback` or `ProtocolFallback`. `Ordinary`
   requires an empty reason. `PoolFallback` renders as local-garden fallback and

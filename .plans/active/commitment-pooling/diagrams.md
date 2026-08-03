@@ -1269,6 +1269,8 @@ erDiagram
     String declaredValueBasis "optional exact-label basis; paired with declaredUnitValue"
     BigInt declaredValueUpdateBlockNumber "nullable ValueDeclared replay cursor"
     Int declaredValueUpdateLogIndex "nullable cursor partner; latest tuple wins"
+    BigInt confirmerRuleUpdateBlockNumber "nullable ConfirmerRuleSet replay cursor"
+    Int confirmerRuleUpdateLogIndex "nullable cursor partner; latest complete rule wins"
     BigInt lifecycleBlockNumber "nullable state-projection cursor"
     Int lifecycleLogIndex "nullable cursor partner; terminal outcomes never regress"
   }
