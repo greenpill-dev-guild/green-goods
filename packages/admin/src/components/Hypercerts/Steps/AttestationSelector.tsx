@@ -7,6 +7,7 @@ import {
   FormInput,
   filterAttestationsByAssessment,
   formatDateTime,
+  type EASGardenAssessment,
   type GardenAssessment,
   type HypercertAttestation,
   NativeSelect,
@@ -26,7 +27,7 @@ interface AttestationSelectorProps {
   hasError?: boolean;
   bundledInfo?: Record<string, { hypercertId: string; title?: string | null }>;
   /** Available assessments for filtering attestations */
-  assessments?: GardenAssessment[];
+  assessments?: (GardenAssessment | EASGardenAssessment)[];
   /** Currently selected assessment ID */
   selectedAssessmentId?: string | null;
   /** Callback when assessment selection changes */

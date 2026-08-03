@@ -178,6 +178,20 @@ describe("filterAttestationsByAssessment", () => {
     expect(result[0].domain).toBe("solar");
   });
 
+  it("filters using the EAS assessment date fields", () => {
+    const attestations = [
+      createMockAttestation({ createdAt: 1706000000, domain: "solar" }),
+      createMockAttestation({ createdAt: 1720000000, domain: "solar" }),
+      createMockAttestation({ createdAt: 1706000000, domain: "waste" }),
+    ];
+    const assessment = createMockEASAssessment();
+
+    const result = filterAttestationsByAssessment(attestations, assessment);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ createdAt: 1706000000, domain: "solar" });
+  });
+
   it("returns empty array when no attestations match", () => {
     const attestations = [createMockAttestation({ createdAt: 1700000000, domain: "waste" })];
     const assessment = createMockAssessment({ domain: Domain.SOLAR });

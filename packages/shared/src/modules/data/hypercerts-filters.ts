@@ -1,4 +1,5 @@
 import { Domain, type GardenAssessment } from "../../types/domain";
+import type { EASGardenAssessment } from "../../types/eas-responses";
 import {
   type ActionDomain,
   type AttestationFilters,
@@ -83,10 +84,13 @@ export function applyAttestationFilters(
  */
 export function filterAttestationsByAssessment(
   attestations: HypercertAttestation[],
-  assessment: GardenAssessment
+  assessment: GardenAssessment | EASGardenAssessment
 ): HypercertAttestation[] {
   const actionDomain = domainToActionDomain(assessment.domain);
-  const { start, end } = assessment.reportingPeriod;
+  const { start, end } =
+    "reportingPeriod" in assessment
+      ? assessment.reportingPeriod
+      : { start: assessment.startDate, end: assessment.endDate };
 
   return attestations.filter((attestation) => {
     // Filter by reporting period (work must fall within the assessment window)
