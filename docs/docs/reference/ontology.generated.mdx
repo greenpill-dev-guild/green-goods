@@ -40,6 +40,7 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 | **Season** | live | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
 | **Commitment Pool** | spec | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | spec |
 | **Commitment Cycle** | spec | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | spec |
+| **Commitment Series** | spec | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | spec |
 | **Commitment** | spec | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | spec |
 | **Commitment Contributor** | spec | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | spec |
 | **Commitment Payout Plan** | spec | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | spec |
@@ -470,7 +471,7 @@ _Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentUn
 
 Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.
 
-**Canonical members:** NONE (0) · ACTIVE (1) · RESTING (2) · RETIRED (3)
+**Canonical members:** None (0) · Active (1) · Resting (2) · Retired (3)
 
 _Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CommitmentSeriesState`. The drift gate flags arrival so the status flips to live with declared representations._
 

@@ -210,6 +210,21 @@
       "relationships": [{ "to": "commitment-pool", "kind": "run-of" }]
     },
     {
+      "id": "commitment-series",
+      "display": "Commitment Series",
+      "status": "spec",
+      "definition": "The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun.",
+      "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "relationships": [
+        { "to": "commitment-pool", "kind": "scoped-to" },
+        {
+          "to": "commitment",
+          "kind": "groups-offer-instances",
+          "note": "only explicit non-zero commitmentSeriesId links; Offer once uses zero"
+        }
+      ]
+    },
+    {
       "id": "commitment",
       "display": "Commitment",
       "status": "spec",
@@ -222,6 +237,11 @@
           "to": "work",
           "kind": "fulfilled-by",
           "note": "operator-curated workUID linkage with contributor attribution"
+        },
+        {
+          "to": "commitment-series",
+          "kind": "optionally-instance-of",
+          "note": "Offer instances only; zero means Offer once and Requests never link"
         },
         { "to": "commitment-contributor", "kind": "performed-by" },
         { "to": "commitment-payout-plan", "kind": "optionally-paid-through" }
@@ -1475,7 +1495,7 @@
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
-        "members": ["NONE", "ACTIVE", "RESTING", "RETIRED"]
+        "members": ["None", "Active", "Resting", "Retired"]
       },
       "planned_anchor": {
         "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
@@ -2195,7 +2215,7 @@
       "file": "packages/indexer/schema.graphql",
       "pattern": "type\\s+CommitmentSeries\\b",
       "expect": "absent",
-      "note": "When CommitmentSeries lands, convert its spec vocabulary and entity relationships to live ontology representations in the same change."
+      "note": "The spec entity and Solidity-spelled lifecycle are canonical now. When CommitmentSeries lands, add its live indexer/shared representations and the explicit GraphQL uppercase mapping in the same change."
     },
     {
       "id": "commitment-series-cycle-summary-arrival",

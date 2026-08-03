@@ -1,13 +1,13 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-08-02. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
+Updated 2026-08-03. This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, and contract calls that are illegal for a state's declared pool/cycle/commitment/settlement facts.
 
 ## Build snapshot
 
-- 36 registered screens / 337 rendered states in the full source registry
-- 29 presentation-visible hi-fi screens / 330 states: 14 Client PWA (201 states), 13 Admin console (124 states), 2 Editorial website (5 states)
-- 453 registered hotspots
-- 44 validated source flows / 357 scenes; 43 presentation-visible flows / 348 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
+- 36 registered screens / 343 rendered states in the full source registry
+- 29 presentation-visible hi-fi screens / 336 states: 14 Client PWA (207 states), 13 Admin console (124 states), 2 Editorial website (5 states)
+- 465 registered hotspots
+- 44 validated source flows / 359 scenes; 43 presentation-visible flows / 350 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers

@@ -188,11 +188,15 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
 - Commitment creation rejects an empty exact unit label and zero target. The register's per-class
   accounting state enforces only `Registered -> Committed -> Released|Fulfilled`; commit accepts
   exactly the full non-zero quota, and release/fulfillment accept exactly the full live committed
-  balance. Acceptance therefore increments `providerOpenCommitmentCount` exactly once, while
-  fulfillment, accepted cancellation, and accepted expiry release exactly one slot once.
+  balance. Offer creation commits the creator's class and increments
+  `providerOpenCommitmentCount` exactly once; Offer acceptance performs no second register
+  mutation. Request creation remains Registered, and Request acceptance commits the resolved
+  provider class and increments the count exactly once. Fulfillment, accepted cancellation, and
+  accepted expiry release exactly one slot once.
   Partial, zero, repeated, wrong-account, and terminal-state register calls revert before any
-  balance or count mutation. Pre-acceptance cancel/expiry changes no balance or slot; dispute
-  entry/restoration makes no register call and preserves the slot.
+  balance or count mutation. Pre-acceptance Offer cancel/expiry releases its committed class and
+  slot; pre-acceptance Request cancel/expiry changes no balance or slot. Dispute entry/restoration
+  makes no register call and preserves any committed slot.
 - Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by an active contributor, the lead provider, or the steward, never by an unrelated counterparty or inactive creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
 - The count-cap API is the initial interface: `ProviderOpenCommitmentCapUpdated`,
   `OpenCommitmentCapRequired`, `OpenCommitmentCapExceeded`,
@@ -209,11 +213,12 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   `ClassRegistered` carries no account, so it writes only the class row and the placeholder pool
   and exact-label rows its keys imply plus the recorded `quota`. It never writes a
   `CommitmentProviderExposure` row — that entity is keyed `chainId-poolId-lowercaseProvider`, and
-  no provider exists in the event or in the commitment at registration time, since the lead is
-  resolved at acceptance; the first `UnitsCommitted` for an account creates it. `ClassRegistered`
+  `ClassRegistered` itself carries no provider. For an Offer the immediately following
+  `UnitsCommitted` names the creator and creates the exposure row; for a Request the first
+  `UnitsCommitted` arrives only when acceptance resolves the provider. `ClassRegistered`
   mutates no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class
-  registered at creation but never accepted reads as a known label with zero units. Expected/open
-  units move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
+  registered for an unaccepted Request reads as a known label with zero units. Expected/open units
+  move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
 - `recordRewardPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-reward facts.
 - AssessmentResolver dual-schema config ABI, setter, event, errors, no-new-initializer UUPS
   upgrade, v2 state-preservation proof, and 3+47 storage layout match contract-spec §6.4.3

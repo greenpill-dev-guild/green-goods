@@ -193,7 +193,7 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
 | PartiallyApproved <-> EvidenceSubmitted | derived | New evidence/work after partial approvals flips forward; the counter events flip back. |
 | -> ReadyForConfirmation | on-chain | Three paths, all requiring `totalVerifiedCredits > 0` as the pre-fulfillment verified-credit predicate, requiring an Open cycle when `cycleId != 0` (cycle-less commitments use the immutable protocol 20/80 policy for contributor recognition and payout defaults only), proving every active linked Work is current against `WorkApprovalResolver.latestDecisionSequence`, freezing both the contributor roster and contribution-credit accounting, and emitting `ContributorRosterFrozen` before `CommitmentReadyForConfirmation`: (a) automatic inside `onWorkDecision`, `syncWorkDecisions`, or the one-time `attachAssessment` call once every requirement reaches its non-zero count and any declared assessment is attached; (b) `submitForConfirmation(commitmentId)` only for SupportService, StewardCaptured, or SeasonCampaign commitments with `requirements.length == 0`, with >= 1 pre-freeze evidence record and any declared assessment attached; DomainImpact can never use this path; (c) `markReadyForConfirmation(commitmentId, reason)` steward override, reason emitted. The override may bypass requirement counts, never the recognition-policy, verified-credit, or linked-Work freshness prerequisites. All paths require either an ordinary named/default threshold that remains reachable after excluding every contributor, or an explicitly enabled protocol fallback backed by a registered `protocolPoolId`. |
-| ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator), where a GardenAccount default resolves to that garden's operator/owner Hat wearers as direct callers rather than an ERC-6551 `execute`; each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled(..., confirmer, Ordinary, "")`. Every frozen contributor is excluded from every confirmation path. `confirmFulfillmentAsFallback(commitmentId, reason)` requires a current local garden steward/owner and emits `PoolFallback`, or, only when `protocolFallbackEnabled`, a current protocol-garden steward/owner and emits `ProtocolFallback`; both require a reason and reject contributors. Local authority is tested first for dual-role callers, and module ownership alone grants neither confirmation path. Register converts the lead provider's units (`UnitsFulfilled`). |
+| ReadyForConfirmation -> Fulfilled | on-chain | `confirmFulfillment(commitmentId)` by a named confirmer or the direction-aware default (Offer recipient; Request creator), where a GardenAccount default resolves to that garden's operator/owner Hat wearers as direct callers rather than an ERC-6551 `execute`; each confirmation emits `ConfirmationRecorded`; reaching threshold N emits `CommitmentFulfilled(..., confirmer, Ordinary, "")`. Every frozen contributor is excluded from every confirmation path. `confirmFulfillmentAsFallback(commitmentId, reason)` is available only while that ordinary path is unreachable after contributor exclusion; it requires a current local garden steward/owner and emits `PoolFallback`, or, only when `protocolFallbackEnabled`, a current protocol-garden steward/owner and emits `ProtocolFallback`. Both require a reason and reject contributors. Local authority is tested first for dual-role callers, and module ownership alone grants neither confirmation path. Register converts the lead provider's units (`UnitsFulfilled`). |
 | Fulfilled -> Reconciled | derived | `CycleClosed` for the commitment's cycleId; cycle-less commitments (cycleId == 0) derive Reconciled from `PoolClosed`. |
 | -> Cancelled | on-chain | `cancelCommitment(commitmentId, reasonCID)` from Offered/Requested (creator or steward) and Accepted (steward only; derived Active/PartiallyApproved are on-chain Accepted). Event `CommitmentCancelled`. Offered/Requested have no committed units and emit no register release; Accepted releases exactly `targetUnits`. Not allowed from ReadyForConfirmation except via dispute resolution. Envio uses the commitment request index to mark any still-Pending claim requests Superseded with terminal reason `COMMITMENT_CANCELLED`. |
 | -> Expired | on-chain | `expireCommitment(commitmentId)`, permissionless, allowed once block time > dueDate (or the cycle endTime when dueDate == 0), from Offered/Requested/Accepted/ReadyForConfirmation. Event `CommitmentExpired`. Offered/Requested emit no register release; Accepted/ReadyForConfirmation release exactly `targetUnits`. Envio marks any still-Pending indexed claim requests Superseded with terminal reason `COMMITMENT_EXPIRED`. |
@@ -810,6 +810,7 @@ interface ICommitmentPoolingModule {
     error RecognitionPolicyUnavailable(uint256 cycleId);
     error InvalidRequirementAssignment(uint256 requirementIndex, address contributor);
     error ConfirmationThresholdUnreachable(uint256 commitmentId);
+    error OrdinaryConfirmationStillReachable(uint256 commitmentId);
     error UnknownAction(uint256 actionUID);
     error ClaimNotPending(uint256 commitmentId, address claimant);
     error ProviderMismatch(address attester, address providerGarden);
@@ -1093,8 +1094,11 @@ interface ICommitmentPoolingModule {
     ///         only when protocolFallbackEnabled, current registered protocol-
     ///         pool steward/owner Hat wearer. Local authority is tested first,
     ///         so a dual-role caller records PoolFallback. Module ownership
-    ///         alone is not confirmer authority. Reason is mandatory and
-    ///         SelfConfirmation excludes every contributor on both paths.
+    ///         alone is not confirmer authority. The current ordinary
+    ///         named/default path must be unreachable after contributor
+    ///         exclusion or OrdinaryConfirmationStillReachable reverts.
+    ///         Reason is mandatory and SelfConfirmation excludes every
+    ///         contributor on both paths.
     function confirmFulfillmentAsFallback(uint256 commitmentId, string calldata reason) external;
 
     // ─────────────── Exits, disputes, rewards ────────────────────────
@@ -1236,7 +1240,7 @@ retry.
 | Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
 | Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
 | Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
-| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
+| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | current ordinary named/default path is unreachable after contributor exclusion (`OrdinaryConfirmationStillReachable` otherwise); mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
 | Exit | `cancelCommitment` | creator or steward (from Offered/Requested) · steward only (from Accepted) | reason CID; never from ReadyForConfirmation except via dispute resolution; allowed while module paused |
 | Exit | `expireCommitment` | anyone (permissionless) | past dueDate, or cycle endTime when dueDate == 0 |
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
@@ -1307,9 +1311,11 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   caller-supplied number, de-duplication happens at acceptance, and it is the de-duplicated
   eligible count — after excluding every active contributor — that the ordinary
   `InvalidConfirmerRule` check compares the stored threshold against. The named group is data,
-  not a hat. Fallback confirmation always checks `SelfConfirmation` and a non-empty reason, then
-  classifies current pool-garden Hat authority as `PoolFallback` before checking the opted-in
-  protocol-garden Hat authority as `ProtocolFallback`; module ownership alone satisfies neither.
+  not a hat. Fallback confirmation first proves that the current ordinary named/default path is
+  unreachable after contributor exclusion, reverting `OrdinaryConfirmationStillReachable`
+  otherwise. It then checks `SelfConfirmation` and a non-empty reason and classifies current
+  pool-garden Hat authority as `PoolFallback` before checking the opted-in protocol-garden Hat
+  authority as `ProtocolFallback`; module ownership alone satisfies neither.
 - **Lead-provider identity (one formula everywhere)**: acceptance stores the Offer creator for
   every Offer; an Individual Request stores the accepted counterparty; and a Garden-claimed
   Request stores the authenticated operator/owner who requested the claim: the current
@@ -1577,9 +1583,11 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   default confirmer resolved to the claiming garden's operator/owner wearers with the GardenAccount
   address itself rejected and a wearer who is also a contributor reverting `SelfConfirmation`,
   protocol fallback disabled by default, `ModuleNotReady` when it is enabled before protocol-pool
-  registration, ordinary-unreachable acceptance/Ready rejection when disabled, the same
-  structural case reaching Ready and being confirmed by a non-contributor protocol-garden
-  steward/owner when enabled, local-vs-protocol `ConfirmationPath` provenance including
+  registration, `OrdinaryConfirmationStillReachable` when either fallback path is attempted while
+  a named/default confirmer remains reachable, ordinary-unreachable acceptance/Ready rejection
+  when disabled, the same structural case reaching Ready and being confirmed by a
+  non-contributor protocol-garden steward/owner when enabled, local-vs-protocol
+  `ConfirmationPath` provenance including
   local-first classification for a dual-role caller, and module-owner-only rejection,
   lead-provider `submitForConfirmation` on a Garden-claimed Request, explicit repeated-action
   requirement binding, canonical recognition-vector recomputation/hash rejection including
