@@ -2409,7 +2409,6 @@ function w35(state: W35State): string {
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 place")}${kv("Waiting to send", "1 place")}`),
-        hot("w35.claim-synced", btn("Take up the available place", { kind: "pri", full: true })),
         hot("w35.mixed-queued-done", btn("Back to this offer", { kind: "ghost", full: true })),
       )}${syncBar("1 waiting to send")}`;
       break;
@@ -2422,7 +2421,6 @@ function w35(state: W35State): string {
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 place")}${kv("Needs attention", "1 place")}`),
-        hot("w35.claim-synced", btn("Take up the available place", { kind: "pri", full: true })),
         `<div class="brow">${hot("w35.retry-failed", btn("Try failed place again", { kind: "pri", icon: "refresh-line" }))}${hot("w35.discard-failed", btn("Discard failed place", { kind: "ghost" }))}</div>`,
         hot("w35.mixed-failed-done", btn("Back to this offer", { kind: "ghost", full: true })),
       )}`;
@@ -2447,7 +2445,6 @@ function w35(state: W35State): string {
 const W35_HOTS: HifiDef["hots"] = {
   "w35.submit": { l: "Add places", to: "screen:W35@queued", info: "Queues one ordinary createCommitment per place against the Active series. Each creation registers its class and reserves one provider slot immediately.", calls: ["createCommitment"], pendingSync: true },
   "w35.queued-done": { l: "Back to this offer", to: "screen:W34@places-queued", info: "The two queued places remain visible but unavailable. Availability appears only after the place creations sync and their capacity is reserved." },
-  "w35.claim-synced": { l: "Take up the available place", to: "screen:W2@support-active", info: "Claims only the synced Offered service row. Its queued or failed sibling remains an independent job.", calls: ["claimCommitment"] },
   "w35.mixed-queued-done": { l: "Back to this offer", to: "screen:W34@places-partial", info: "The ongoing Offer shows one real available place and one queued sibling." },
   "w35.retry-failed": { l: "Try failed place again", to: "screen:W35@mixed-queued", info: "Retries only the failed createCommitment job and leaves the synced Offered row untouched.", calls: ["createCommitment"], pendingSync: true },
   "w35.discard-failed": { l: "Discard failed place", to: "screen:W34@active-one", info: "Discards only the failed local job. The synced place remains available." },

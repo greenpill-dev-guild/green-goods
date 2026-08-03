@@ -61,7 +61,9 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
 - An in-place upgrade of the existing AssessmentResolver for the AssessmentV3 schema, plus the
   NET-NEW TestimonyResolver and approved additive schema-registration targets.
 - CommitmentPoolingModule and non-transferable CommitmentRegistry with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
-- The module's 32nd named storage entry is write-once `protocolPoolId` (`__gap[18]`). The first
+- The module's 35th named storage entry is write-once `protocolPoolId` (`__gap[15]`). The series
+  amendment adds `nextCommitmentSeriesId`, `commitmentSeries`, and the holder-scoped
+  `seriesIdByCreationRequest` idempotency mapping before it. The first
   module-owner `PoolType.Protocol` registration sets it; a second Protocol registration reuses
   `PoolExists(existingProtocolGarden)`. No deployment address is hardcoded.
 - GardenToken and WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks.
@@ -439,7 +441,9 @@ During the **first contracts PR**, before bounded module behavior is called GREE
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 32-feature-slot Commitment Pooling declaration order and `__gap[18]`, including
+- Implement the 35-feature-slot Commitment Pooling declaration order and `__gap[15]`, including
+  `nextCommitmentSeriesId`, `commitmentSeries`, the holder-scoped
+  `seriesIdByCreationRequest` idempotency mapping,
   `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
   sequence plus audit UID, the bounded enumerable active Work set, and the write-once
   `protocolPoolId`, but treat the generated compiler baseline plus concrete
@@ -511,9 +515,10 @@ During the **first contracts PR**, before bounded module behavior is called GREE
 
 - Read `standing-commitments-spec.md` first. It supersedes this handoff wherever older text says
   Offer capacity begins at acceptance or `acceptExchange` performs two registry commits.
-- Add module-owned `CommitmentSeries`, storage entries 15 and 20 in the amended layout, exact
-  errors/events/functions, direct-holder Active/Resting/Retired lifecycle, and validated
-  `commitmentSeriesId` on Commitment/Create params/creation event.
+- Add module-owned `CommitmentSeries`, storage entries 15, 20, and 21 in the amended layout, exact
+  errors/events/functions, holder-scoped creation-request replay, direct-holder
+  Active/Resting/Retired lifecycle, and validated `commitmentSeriesId` on
+  Commitment/Create params/creation event.
 - A non-zero series reference is Active, same-pool, current-holder-authored, Individual Offer,
   with zero `onBehalfOf`. `0` preserves one-shot behavior. No holder mutation or other succession
   verb ships initially.
@@ -523,7 +528,10 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   reduction constrains only a new reservation and cannot strand an existing Offer.
   Requests remain Registered until provider acceptance. Cancel/expiry/fulfillment release only
   when the direction/state currently owns a committed class.
-- RED proof must cover unknown/wrong-pool/non-holder/resting/retired/request/garden/on-behalf-of
+- RED proof must cover zero creation key, exact replay returning one ID with one increment/event,
+  a still-pending first submission followed by the same-key call, same-holder key reuse with a
+  different pool/initial metadata reverting, and independent holders safely reusing the same
+  key. It must also cover unknown/wrong-pool/non-holder/resting/retired/request/garden/on-behalf-of
   references, prospective metadata, no instance mutation on series lifecycle, cap exhaustion at
   Offer creation, unaccepted Offer release, unaccepted Request no-op, no double count at claim or
   exchange, and exact storage/ABI/event layout.

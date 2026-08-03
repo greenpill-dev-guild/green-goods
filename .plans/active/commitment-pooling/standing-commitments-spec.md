@@ -71,17 +71,21 @@ struct CommitmentSeries {
     address currentHolder;
     CommitmentSeriesState state;
     string metadataCID;
+    bytes32 creationPayloadHash;
 }
 ```
 
-Storage adds `nextCommitmentSeriesId` and
-`mapping(uint256 seriesId => CommitmentSeries) commitmentSeries`.
+Storage adds `nextCommitmentSeriesId`,
+`mapping(uint256 seriesId => CommitmentSeries) commitmentSeries`, and
+`mapping(address holder => mapping(bytes32 creationRequestKey => uint256 seriesId))
+seriesIdByCreationRequest`. The last mapping is the sender-compatible idempotency boundary.
 
 The initial functions are:
 
 ```solidity
 function createCommitmentSeries(
     uint256 poolId,
+    bytes32 creationRequestKey,
     string calldata metadataCID
 ) external returns (uint256 seriesId);
 
@@ -112,11 +116,23 @@ event CommitmentSeriesRetired(uint256 indexed seriesId);
 
 Series IDs start at 1. `0` is the one-shot sentinel everywhere.
 
-`clientSeriesId` remains a private local dependency key and is intentionally absent from this
-public ABI. Replay safety is instead part of the offline submission contract in §6: the runner
-must durably persist the exact signed transaction or UserOperation and its locally derived hash
-before broadcast, recover that submission by hash after restart, and never construct a second
-series-creation transaction for the same queued job.
+`clientSeriesId` remains private local dependency state. Before the job's first send, shared
+derives a public-safe key as
+`keccak256(abi.encode("green-goods.commitment-series.v1", chainId, moduleAddress, holder,
+clientSeriesId))`; only that `bytes32 creationRequestKey` enters calldata. The contract scopes the
+key again by `msg.sender`. First use stores the new series ID and the immutable
+`creationPayloadHash = keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))`. An exact
+replay returns that existing ID without incrementing `nextCommitmentSeriesId`, mutating state, or
+emitting a second event. Reusing the same holder/key with a different creation payload reverts
+`SeriesCreationRequestConflict`; zero key reverts `InvalidSeriesCreationRequestKey`.
+
+This is the replay boundary because the supported wallet, embedded, and passkey
+`TransactionSender` implementations expose a hash only after submission. They cannot promise
+pre-broadcast signed bytes. After restart, shared reads
+`getCommitmentSeriesIdByCreationRequest(holder, creationRequestKey)`: a non-zero result binds the
+local job immediately, while zero permits a fresh send using the same key. If an earlier
+transaction is merely pending, both submissions remain safe because only the first mined call
+creates or emits the series.
 
 ### 3.2 Creation and lifecycle rules
 
@@ -260,15 +276,17 @@ stable `clientSeriesId`. A queued Commitment may refer to either an onchain seri
 the Commitment job waits without consuming retry budget. After the series receipt is indexed, the
 runner materializes the onchain ID and submits the ordinary Commitment payload.
 
-Series submission has one additional durable boundary. Before the first broadcast, the runner
-stores the exact signed transaction or UserOperation, its locally derived hash, and a `submitted`
-state in IndexedDB. Restart recovery polls that hash before any submission attempt. If the
-submission was not observed, the runner may rebroadcast only the identical signed bytes with the
-same nonce and hash; it may not prepare a fresh call. A mined receipt binds `clientSeriesId` to
-the emitted `seriesId` before dependent Commitment jobs resume. Tests cover a process stop after
-broadcast but before receipt persistence and prove that recovery produces one onchain series.
+Series submission has one additional durable boundary. The queued payload persists
+`clientSeriesId` and its deterministically derived `creationRequestKey` before the first send.
+Restart recovery reads `getCommitmentSeriesIdByCreationRequest` before retrying. A non-zero result
+binds the local job to that onchain ID even if the process stopped after broadcast but before hash
+or receipt persistence; zero permits another ordinary `TransactionSender` call with the same key.
+Contract idempotency makes overlapping or repeated wallet/UserOperation submissions converge on
+one series. A mined receipt or successful read-through binds `clientSeriesId` before dependent
+Commitment jobs resume. Tests cover process stop after broadcast, a still-pending first
+submission, exact replay, key/payload conflict, and one-event/one-series convergence.
 
-This dependency and submitted-transaction recovery are explicit queue states, not guessed
+This dependency and contract-idempotent recovery are explicit queue states, not guessed
 transaction ordering or an indexer-side join. Discarding a failed local series job keeps its
 dependent Commitment drafts recoverable and explains why they are waiting.
 

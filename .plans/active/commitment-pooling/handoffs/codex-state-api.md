@@ -33,17 +33,20 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `confirmation`.
 - Settlement and ProtocolToGarden funding remain online authority-gated mutations; neither is a
   seventh offline job, per-device attempt, or background queue.
-- `commitmentSeries` carries `{ clientSeriesId, poolId, gardenAddress, metadataCID }`.
+- `commitmentSeries` carries
+  `{ clientSeriesId, creationRequestKey, poolId, gardenAddress, metadataCID }`.
   `clientSeriesId` is the stable local deduplication and dependency key: an exact retry reuses the
   same queued series record, while a dependent `commitment` job waits without consuming retries
   until the indexed receipt supplies the onchain series ID. Discarding a failed series job leaves
   dependent drafts recoverable and visibly waiting.
-- Before broadcasting a series job, the runner persists the exact signed submission payload and
-  its locally derived transaction or UserOperation hash in IndexedDB and moves the job to
-  `submitted`. Recovery polls that hash before any send. If the network never observed it, the
-  runner may rebroadcast only the identical signed payload, preserving the same nonce and hash;
-  it must never construct a fresh series-creation transaction. Receipt materialization then binds
-  `clientSeriesId` to the emitted onchain `seriesId`.
+- Before the first send, the runner deterministically derives and persists `creationRequestKey`
+  from the chain, module, holder, and private `clientSeriesId`. Recovery first reads
+  `getCommitmentSeriesIdByCreationRequest(holder, creationRequestKey)`. A non-zero result binds the
+  local job without another write; zero permits a fresh ordinary sender call with the same key.
+  The contract returns the original ID on exact replay and rejects key reuse with a different
+  payload, so wallet, embedded, and passkey senders converge even when they expose a hash only
+  after submission. Receipt or read-through materialization then binds `clientSeriesId` to the
+  onchain `seriesId`.
 - Ordinary Commitment job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
   rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
@@ -153,10 +156,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 ## RED / GREEN
 
 - RED: add focused shared selector, hook, mutation, query-key, and job tests, including
-  `commitmentSeries` payload round-trip, stable deduplication, pre-broadcast submitted-hash
-  persistence, restart-time receipt polling, identical-payload rebroadcast without a fresh nonce,
-  dependency waiting, receipt materialization, and failure/discard recovery; capture expected
-  failures before implementation.
+  `commitmentSeries` payload round-trip, deterministic creation-key derivation and persistence,
+  restart-time mapping read-through, exact contract replay, key/payload conflict rejection,
+  pending-first-send convergence, dependency waiting, receipt/read materialization, and
+  failure/discard recovery; capture expected failures before implementation.
 - RED: add saved-Offer protocol and adapter tests for canonical `SavedOfferPayloadV1` validation,
   owner-scoped session/list/read/PUT/DELETE calls, optimistic version conflicts, tombstone
   handling, and the rule that an unavailable service leaves a draft visibly unsaved. The Agent

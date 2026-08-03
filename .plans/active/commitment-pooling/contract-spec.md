@@ -5,7 +5,7 @@
 **Created**: 2026-07-03
 **Companions**: `reports/corrections-log.md` (verified repo facts, exact UIDs and addresses), `uiux-spec.md` (surface flows), `plan.todo.md` (execution plan). This spec is the contract-layer source of truth for the August release build track.
 
-> **Amendment 2026-08-02 (approved ongoing-Offer architecture; supersedes “counts-only standing has no additional Solidity” and acceptance-only Offer capacity)**: the initial module gains a pool-scoped, Offer-only `CommitmentSeries` identity, lifecycle, and event surface. `Commitment`, `CreateCommitmentParams`, and `CommitmentCreated` gain `uint256 commitmentSeriesId` (`0` = Offer once). A non-zero reference means Offer over time and must resolve to an Active series in the same pool whose `currentHolder` is the direct Offer creator; it cannot attach to a Request, Garden claim, or steward-recorded `onBehalfOf` commitment. Series metadata changes are prospective and never rewrite an instance. Initial lifecycle is Active, Resting, or Retired; succession relationships remain follow-on. The owning architecture, indexer, shared-state, saved-Offer, product, trust, and artifact contract is `standing-commitments-spec.md`. `Practice` is not a contract or product object.
+> **Amendment 2026-08-02 (approved ongoing-Offer architecture; sender-safe idempotency corrected 2026-08-03; supersedes “counts-only standing has no additional Solidity” and acceptance-only Offer capacity)**: the initial module gains a pool-scoped, Offer-only `CommitmentSeries` identity, lifecycle, and event surface. `Commitment`, `CreateCommitmentParams`, and `CommitmentCreated` gain `uint256 commitmentSeriesId` (`0` = Offer once). A non-zero reference means Offer over time and must resolve to an Active series in the same pool whose `currentHolder` is the direct Offer creator; it cannot attach to a Request, Garden claim, or steward-recorded `onBehalfOf` commitment. Series creation also takes a stable, holder-scoped `bytes32 creationRequestKey`; exact request replay returns the first `seriesId` without creating or emitting a second series, while key reuse with a different creation payload reverts. This contract boundary is required because the supported wallet, embedded, and passkey senders expose a hash only after submission and cannot persist signed bytes before broadcast. Series metadata changes are prospective and never rewrite an instance. Initial lifecycle is Active, Resting, or Retired; succession relationships remain follow-on. The owning architecture, indexer, shared-state, saved-Offer, product, trust, and artifact contract is `standing-commitments-spec.md`. `Practice` is not a contract or product object.
 >
 > **Honest-capacity correction.** Every Offer is an accountable provider obligation before it is claimed, so `createCommitment` registers its class and immediately calls `commitUnits`; Offered and Accepted Offers occupy the same single slot with no second registry mutation at acceptance. An unaccepted Offer releases on cancel/expiry. Requests remain `Registered` until acceptance because their provider is not yet known. `acceptExchange` revalidates both already-Committed Offer classes but does not commit either class again. `providerOpenCommitmentCount` therefore means non-terminal provider obligations, not merely accepted commitments. One displayed available place is one already-created Offer instance with reserved capacity; a claim never spawns an instance. These are initial-deploy corrections, not migrations.
 
@@ -257,22 +257,23 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 18 | `cycles` | `mapping(uint256 cycleId => Cycle)` |
 | 19 | `commitments` | `mapping(uint256 commitmentId => Commitment)` |
 | 20 | `commitmentSeries` | `mapping(uint256 seriesId => CommitmentSeries)` |
-| 21 | `commitmentConfirmers` | `mapping(uint256 commitmentId => address[])` |
-| 22 | `hasConfirmed` | `mapping(uint256 commitmentId => mapping(address => bool))` |
-| 23 | `workCommitment` | `mapping(bytes32 workUID => uint256 commitmentId)` |
-| 24 | `approvalCounted` | `mapping(bytes32 approvalUID => bool)` |
-| 25 | `pendingClaim` | `mapping(uint256 commitmentId => mapping(address claimant => PendingClaim))` |
-| 26 | `contributors` | `mapping(uint256 commitmentId => mapping(address contributor => ContributorRecord))` |
-| 27 | `requirementAssignments` | `mapping(uint256 commitmentId => mapping(uint16 requirementIndex => mapping(address contributor => bool)))` |
-| 28 | `evidenceAttached` | `mapping(uint256 commitmentId => mapping(bytes32 cidHash => bool))` |
-| 29 | `workRequirementIndexPlusOne` | `mapping(bytes32 workUID => uint16 requirementIndexPlusOne)` (0 = no DomainImpact requirement binding) |
-| 30 | `workCreditActive` | `mapping(bytes32 workUID => bool)` (current effective pre-freeze Work decision contributes credit) |
-| 31 | `latestWorkDecisionSequence` | `mapping(bytes32 workUID => uint64 sequence)` (resolver-assigned chronological order; 0 = no sequenced decision) |
-| 32 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (identity/audit only; never an ordering key) |
-| 33 | `commitmentWorkUIDs` | `mapping(uint256 commitmentId => bytes32[] activeWorkUIDs)` (bounded enumerable active-link set used by every readiness/freeze preflight) |
-| 34 | `protocolPoolId` | `uint256` (set once by the first and only `PoolType.Protocol` registration; 0 = not registered) |
+| 21 | `seriesIdByCreationRequest` | `mapping(address holder => mapping(bytes32 creationRequestKey => uint256 seriesId))` (0 = unseen; exact replay returns the existing series) |
+| 22 | `commitmentConfirmers` | `mapping(uint256 commitmentId => address[])` |
+| 23 | `hasConfirmed` | `mapping(uint256 commitmentId => mapping(address => bool))` |
+| 24 | `workCommitment` | `mapping(bytes32 workUID => uint256 commitmentId)` |
+| 25 | `approvalCounted` | `mapping(bytes32 approvalUID => bool)` |
+| 26 | `pendingClaim` | `mapping(uint256 commitmentId => mapping(address claimant => PendingClaim))` |
+| 27 | `contributors` | `mapping(uint256 commitmentId => mapping(address contributor => ContributorRecord))` |
+| 28 | `requirementAssignments` | `mapping(uint256 commitmentId => mapping(uint16 requirementIndex => mapping(address contributor => bool)))` |
+| 29 | `evidenceAttached` | `mapping(uint256 commitmentId => mapping(bytes32 cidHash => bool))` |
+| 30 | `workRequirementIndexPlusOne` | `mapping(bytes32 workUID => uint16 requirementIndexPlusOne)` (0 = no DomainImpact requirement binding) |
+| 31 | `workCreditActive` | `mapping(bytes32 workUID => bool)` (current effective pre-freeze Work decision contributes credit) |
+| 32 | `latestWorkDecisionSequence` | `mapping(bytes32 workUID => uint64 sequence)` (resolver-assigned chronological order; 0 = no sequenced decision) |
+| 33 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (identity/audit only; never an ordering key) |
+| 34 | `commitmentWorkUIDs` | `mapping(uint256 commitmentId => bytes32[] activeWorkUIDs)` (bounded enumerable active-link set used by every readiness/freeze preflight) |
+| 35 | `protocolPoolId` | `uint256` (set once by the first and only `PoolType.Protocol` registration; 0 = not registered) |
 
-Gap: `uint256[16] private __gap;` (34 named + 16 reserved = 50 total). This declaration-order
+Gap: `uint256[15] private __gap;` (35 named + 15 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
 slot/offset assertions remain authoritative at implementation time.
 
@@ -405,6 +406,7 @@ interface ICommitmentPoolingModule {
         address currentHolder;
         CommitmentSeriesState state;
         string metadataCID;
+        bytes32 creationPayloadHash; // immutable poolId + initial metadataCID hash for replay conflict detection
     }
 
     struct Commitment {
@@ -745,6 +747,8 @@ interface ICommitmentPoolingModule {
     error CommitmentSeriesOfferOnly(uint256 seriesId);
     error CommitmentSeriesIndividualOnly(uint256 seriesId);
     error InvalidCommitmentSeriesState(uint256 seriesId, CommitmentSeriesState state);
+    error InvalidSeriesCreationRequestKey();
+    error SeriesCreationRequestConflict(bytes32 creationRequestKey, uint256 existingSeriesId);
     error UnknownCommitment(uint256 commitmentId);
     error CommitmentNotInState(uint256 commitmentId, CommitmentState actual);
     error NotEligibleClaimant(address claimant);
@@ -871,9 +875,12 @@ interface ICommitmentPoolingModule {
     // ══════════════════════ Commitment series ═════════════════════
 
     /// @notice Direct-holder creation. Caller must be a current member of the
-    ///         pool garden; pool must be Ready or Open.
+    ///         pool garden; pool must be Ready or Open. Exact replay of the
+    ///         same holder-scoped key and payload returns the original ID
+    ///         without a second state mutation or event.
     function createCommitmentSeries(
         uint256 poolId,
+        bytes32 creationRequestKey,
         string calldata metadataCID
     ) external returns (uint256 seriesId);
     function updateCommitmentSeriesMetadata(uint256 seriesId, string calldata metadataCID) external;
@@ -1131,6 +1138,10 @@ interface ICommitmentPoolingModule {
     function getPoolByGarden(address garden) external view returns (uint256 poolId, Pool memory pool);
     function getCycle(uint256 cycleId) external view returns (Cycle memory);
     function getCommitmentSeries(uint256 seriesId) external view returns (CommitmentSeries memory);
+    function getCommitmentSeriesIdByCreationRequest(
+        address holder,
+        bytes32 creationRequestKey
+    ) external view returns (uint256 seriesId);
     function getCommitment(uint256 commitmentId) external view returns (Commitment memory);
     function getRequirement(
         uint256 commitmentId,
@@ -1220,7 +1231,7 @@ retry.
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation-class bps sum == 10_000; recognition-policy bps sum == 10_000 (protocol default 2_000 equal / 8_000 verified); both become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
 | Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID; `liveCommitmentCount == 0` |
-| Commitment series | `createCommitmentSeries` | current member of the pool garden, direct holder only | pool Ready or Open; non-empty metadata; caller becomes immutable `createdBy` and initial `currentHolder` |
+| Commitment series | `createCommitmentSeries` | current member of the pool garden, direct holder only | pool Ready or Open; non-zero holder-scoped `creationRequestKey`; non-empty metadata; caller becomes immutable `createdBy` and initial `currentHolder`. First use stores `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))`; exact replay returns the existing `seriesId` without mutation/event, while the same holder/key with a different payload reverts `SeriesCreationRequestConflict`. |
 | Commitment series | `updateCommitmentSeriesMetadata` | current holder | Active or Resting; non-empty metadata; prior and open Commitment instances remain unchanged |
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; a non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`); `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation; Offer creation commits its class and reserves one provider slot, while Request creation only registers its class |
@@ -1606,7 +1617,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   tests cover the current non-revoked Baseline preflight and deterministic Hypercert recognition
   expansion.
 - The compiler-generated baseline and concrete slot/offset assertions prove the expected
-  34-feature-slot declaration order plus the 16-slot `__gap` (50 total slots); arithmetic alone
+  35-feature-slot declaration order plus the 15-slot `__gap` (50 total slots); arithmetic alone
   is not proof. The Bun-wrapped
   storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
@@ -3370,7 +3381,7 @@ Acceptance: local Docker stack replays a scripted Sepolia fixture and produces c
 
 Deliverables: domain types (`CommitmentPool`, `CommitmentCycle`, `Commitment`, allocation preset constants; `Address` type per repo rules); ABI + address exports from the deployment artifact (import pattern per root CLAUDE.md Contract Integration); query hooks + `queryKeys.*` entries; derived-state selectors implementing the section 5 overlays (Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, Reconciled) and the 8.4 rate math; **six August offline job kinds**: `commitmentSeries` (create one pool-scoped ongoing Offer identity), `commitment` (create offer/request), `claim` (claim/accept), `evidence` (attach evidence CID), `workLink` (link approved work), and `confirmation` (confirm fulfillment), plus the separate online-only wallet action `transfer` (settlement-chain G$ send), extending the exactly-two-kinds baseline where applicable (`packages/shared/src/types/job-queue.ts` + `packages/shared/src/modules/job-queue/`, `reports/corrections-log.md` §6); mutation hooks with `createMutationErrorHandler`.
 
-Acceptance: hooks exported from the barrel only; the six offline pool job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) run through the existing IndexedDB + XState machine with MAX_RETRIES parity, including explicit `clientSeriesId` dependency waiting that consumes no retry and the durable pre-broadcast submission-hash recovery contract in `standing-commitments-spec.md` §6; `transfer` is an online-only settlement wallet action with no offline queue entry and no MAX_RETRIES replay (per `uiux-spec.md` §5.11 and `settlement-spec.md` §5); locale keys mirrored es/pt (repo i18n gate); `bun run --filter @green-goods/shared test` green.
+Acceptance: hooks exported from the barrel only; the six offline pool job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) run through the existing IndexedDB + XState machine with MAX_RETRIES parity, including explicit `clientSeriesId` dependency waiting that consumes no retry and sender-compatible contract-idempotent series recovery from `standing-commitments-spec.md` §6; `transfer` is an online-only settlement wallet action with no offline queue entry and no MAX_RETRIES replay (per `uiux-spec.md` §5.11 and `settlement-spec.md` §5); locale keys mirrored es/pt (repo i18n gate); `bun run --filter @green-goods/shared test` green.
 
 ### `packages/admin`
 

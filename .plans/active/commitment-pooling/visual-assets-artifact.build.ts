@@ -43,9 +43,9 @@ const ROOT = join(DIR, "../../..");
 // into the Artifact tool's file_path, so it is the last thing read before a publish.
 // Keep DO-NOT-PUBLISH in both, and keep them in sync with visual-assets-prerender.ts.
 const LOCAL_OUT =
-  process.env.LOCAL_OUT ?? process.env.OUT ?? "/tmp/commitment-pooling-visual-assets.LOCAL-PREVIEW.DO-NOT-PUBLISH.html";
+  process.env.LOCAL_OUT ?? process.env.OUT ?? "/tmp/cp-visual-local.DO-NOT-PUBLISH.html";
 const ARTIFACT_OUT =
-  process.env.ARTIFACT_OUT ?? "/tmp/commitment-pooling-visual-assets.UNFROZEN.DO-NOT-PUBLISH.html";
+  process.env.ARTIFACT_OUT ?? "/tmp/cp-visual-artifact-body.DO-NOT-PUBLISH.html";
 if (LOCAL_OUT === ARTIFACT_OUT) {
   throw new Error("LOCAL_OUT and ARTIFACT_OUT must be different files.");
 }
