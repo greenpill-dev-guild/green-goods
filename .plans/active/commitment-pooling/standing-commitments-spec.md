@@ -193,8 +193,10 @@ Offered Offers plus Accepted Offers and Accepted Requests with a resolved provid
 capacity. It still never counts unaccepted Requests or contributors.
 
 For atomic bilateral `acceptExchange`, both Offered classes are already Committed. The function
-revalidates both classes, providers, memberships, cycles, and identities, but performs no second
-registry commit and consumes no second provider slot. Both acceptance transitions and the marker
+verifies both exact full reservations plus the providers, memberships, cycles, and identities, but
+performs no second registry commit, consumes no second provider slot, and does not reapply
+provider-cap headroom. Provider caps are checked only when `commitUnits` reserves a new slot, so a
+later cap reduction cannot strand an existing Offer. Both acceptance transitions and the marker
 event remain atomic.
 
 This is still the existing non-transferable, full-quota, one-shot accounting model. There is no
@@ -274,6 +276,89 @@ The signed offchain model stores reusable Offer metadata and explicit references
 pool-scoped series created from it. Unsaved edits may remain in IndexedDB. Saved Offer metadata
 must use signed offchain persistence so it survives device changes. It defaults private; using it
 to create a one-time Offer or an ongoing Offer in a pool is always explicit.
+
+### 6.1 Signed saved-Offer persistence contract
+
+“Saved” means owner-authenticated cross-device storage, not a browser-local draft. The service
+boundary follows the existing profile-avatar pattern but is private and encrypted:
+
+- `packages/shared` owns `SavedOfferPayloadV1`, record/error types, canonical auth-message
+  builders, validators, query keys, and a typed API adapter. Hooks remain in
+  `@green-goods/shared`.
+- `packages/agent` owns the Hono routes, wallet-signature verification, short-lived sessions, and
+  encrypted compare-and-swap store. Its persistence key is
+  `(chainId, normalizedOwnerAddress, savedOfferId)`.
+- `packages/client` consumes the shared adapter and may cache decrypted owner-visible records in
+  IndexedDB. A local-only record is an **unsaved draft** and may not display Saved or Synced.
+
+The versioned plaintext before encryption is:
+
+```ts
+type SavedOfferPayloadV1 = {
+  schemaVersion: 1;
+  savedOfferId: string; // client-generated UUID
+  title: string;
+  description: string;
+  commitmentKind: "DomainImpact" | "SupportService";
+  unitLabel: string;
+  targetUnits: string; // canonical base-10 uint256 text
+  claimMode: "Open" | "ApprovalGated";
+  domainTags: string[];
+  requirements: Array<{
+    actionId: string;
+    requiredCount: number;
+    note?: string;
+  }>;
+  seriesLinks: Array<{
+    chainId: number;
+    poolId: string;
+    commitmentSeriesId: string;
+  }>;
+};
+```
+
+Pool, cycle, claimant, due-date, reward-payment, confirmer, availability, and active Commitment
+state are deliberately absent. They are chosen or validated when the owner explicitly creates an
+Offer. `seriesLinks` are convenience references only; the module remains authoritative for series
+holder, lifecycle, pool, and linked instances. A payload is rejected unless it is canonical JSON,
+at most 32 KiB, uses unique normalized tags, has no more than `MAX_REQUIREMENTS` requirements, and
+has no more than 32 unique series links.
+
+The private API is:
+
+| Method and route | Contract |
+|---|---|
+| `POST /public/saved-offers/session/challenge` | Accepts `chainId` and normalized owner address; returns a cryptographically random, single-use nonce with a five-minute expiry and the service audience. |
+| `POST /public/saved-offers/session` | Verifies the canonical `Green Goods Saved Offers Session` message over version, chain ID, owner, nonce, audience, and issued-at; returns an opaque owner-scoped bearer session with a fifteen-minute expiry. |
+| `GET /public/saved-offers` | Lists the authenticated owner's non-deleted records as `{ savedOfferId, payload, version, updatedAt }`; no address query parameter may select another owner. |
+| `GET /public/saved-offers/:savedOfferId` | Reads one non-deleted record owned by the authenticated session. |
+| `PUT /public/saved-offers/:savedOfferId` | Accepts `{ payload, expectedVersion }`; the path ID must equal `payload.savedOfferId`; creates only at version 0 or atomically advances the current version. |
+| `DELETE /public/saved-offers/:savedOfferId` | Accepts `{ expectedVersion }`; atomically writes a tombstone at the next version so an older device cannot resurrect the record without first observing the conflict. |
+
+Session signatures support an EOA, deployed EIP-1271 account, or counterfactual account with the
+same fail-closed verifier and paired `factory`/`factoryData` inputs used by profile-avatar writes.
+Only the saved-Offer owner may list, read, write, or delete. Pool stewardship, module ownership,
+admin roles, and possession of a `CommitmentSeries` ID grant no access. Challenges are
+single-use, expire after five minutes, bind to the configured service audience, and cannot be
+replayed across chain IDs or owners. Expired sessions return `401`; ownership failures return
+`404`; stale writes/deletes return `409 version_conflict` with the current version but no payload.
+
+The agent encrypts each canonical payload at rest with an authenticated cipher, a dedicated
+saved-Offer encryption key, and a fresh random nonce for every version. Database rows retain only
+the owner key, record ID, ciphertext, cipher nonce, version, timestamps, and tombstone flag.
+Encryption at rest protects database disclosure but is not end-to-end encryption: the agent
+decrypts after owner authentication to serve another device. Origin allowlisting, request-size
+limits, per-owner and per-IP rate limits, constant-time signature handling, and log redaction are
+mandatory. Logs may contain error code, route, payload byte count, and a non-reversible request
+hash; they may not contain wallet addresses, bearer sessions, signatures, plaintext metadata, or
+series links.
+
+Implementation order is Agent API/store first, then the shared adapter and client sync. RED proof
+must cover EOA/EIP-1271/counterfactual authentication, nonce replay and expiry, owner isolation,
+canonical/oversized payload rejection, encrypt/decrypt without plaintext persistence, optimistic
+concurrency across two devices, tombstone conflict behavior, redacted logs, and a local draft
+remaining visibly unsaved when the service is unavailable. No saved-Offer UI may claim
+cross-device durability until those tests and the live service configuration are GREEN.
 
 ## 7. Product behavior
 

@@ -35,9 +35,11 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   `acceptExchange(uint256 exchangeCommitmentId)` plus `ExchangeAccepted` and the named exchange
   errors. Section 6.1 is the exact semantics source: B references A, only A's creator calls,
   creator consent bypasses both claim-mode operator paths, Offer×Offer and Individual×Individual
-  are mandatory, both ordinary per-side predicates run, and claimant identities cross while
-  provider identities do not: A's creator remains A's lead/registry account and B's creator
-  remains B's. Both registry commits and slots are atomic. `ExchangeAccepted` carries non-indexed
+  are mandatory, cycle and identity predicates run, and both full immutable-quota classes must
+  remain Committed to their creators. Claimant identities cross while provider identities do not:
+  A's creator remains A's lead/registry account and B's creator remains B's. Acceptance does not
+  recommit either class or reapply provider-cap headroom; cap checks run only when `commitUnits`
+  reserves a new slot. `ExchangeAccepted` carries non-indexed
   `poolId` so its marker is self-describing without an RPC read, and the ordinary lifecycles never
   couple after acceptance. The architecture brief does not authorize the
   transferable/multilateral layer.
@@ -516,6 +518,8 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   verb ships initially.
 - Offer creation registers and commits its exact class against the creator, reserving the provider
   slot through Offered and Accepted. Offer acceptance and `acceptExchange` do not recommit.
+  They verify the existing full reservation without reapplying provider-cap headroom; a later cap
+  reduction constrains only a new reservation and cannot strand an existing Offer.
   Requests remain Registered until provider acceptance. Cancel/expiry/fulfillment release only
   when the direction/state currently owns a committed class.
 - RED proof must cover unknown/wrong-pool/non-holder/resting/retired/request/garden/on-behalf-of

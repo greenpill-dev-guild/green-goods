@@ -1001,7 +1001,7 @@ A `DECLINED` row is never reopened: a later request from the same claimant is a 
 
 ## D13. Bilateral exchange sequence — paired start, independent promises
 
-**How to read this**: B is created after A and carries the immutable one-way `counterCommitmentId = A`. B's creator consents at creation. A's creator consents by calling `acceptExchange(B)`. Both Offer classes and provider slots were already committed when their Offers were created. The transaction revalidates that capacity and accepts both Offers atomically without a second registry commit. The dashed boundary is the permanent no-coupling rule: after acceptance, fulfillment, confirmation, cancellation, expiry, and dispute proceed on each ordinary commitment alone.
+**How to read this**: B is created after A and carries the immutable one-way `counterCommitmentId = A`. B's creator consents at creation. A's creator consents by calling `acceptExchange(B)`. Both Offer classes and provider slots were already committed when their Offers were created. The transaction verifies those exact full reservations and accepts both Offers atomically without a second registry commit or a new-slot provider-cap check. A later cap reduction cannot strand either Offer. The dashed boundary is the permanent no-coupling rule: after acceptance, fulfillment, confirmation, cancellation, expiry, and dispute proceed on each ordinary commitment alone.
 
 **The two recipients on the right are the same two people on the left.** Because each side is an Offer, the person who receives A's work is B's creator, and the person who receives B's work is A's creator. They appear as separate lifelines only to keep the two independent confirmation lanes readable after the boundary; no third or fourth party exists in this exchange.
 
@@ -1020,8 +1020,8 @@ sequenceDiagram
   BC->>M: createCommitment(B, counterCommitmentId=A)
   M-->>I: CommitmentCreated(B, A reference)
   AC->>M: acceptExchange(B)
-  Note over BC,R: validate B→A · same pool · Offer×Offer<br/>both Offered · different creators<br/>Individual claim types · open cycles<br/>creator identity · both quotas · both provider caps
-  Note over M,R: both classes are already Committed<br/>revalidate only · no registry write · no second provider slot
+  Note over BC,R: validate B→A · same pool · Offer×Offer<br/>both Offered · different creators<br/>Individual claim types · open cycles<br/>creator identity · both full reservations
+  Note over M,R: both classes are already Committed<br/>no registry write · no second slot · no cap-headroom check
   M-->>I: CommitmentAccepted(A, claimant B creator, lead A creator)
   M-->>I: CommitmentAccepted(B, claimant A creator, lead B creator)
   M-->>I: ExchangeAccepted(A, B, poolId, B creator, A creator)
@@ -1126,7 +1126,7 @@ Thirteen core NET-NEW pooling entities plus six auxiliary contributor/provenance
 **Count-safe units model**: every commitment keeps its own exact `unitLabel`, `targetUnits`, and per-commitment `approvedUnits`. Pool/cycle totals never add unlike labels. `CommitmentUnitSummary` groups only exact UTF-8 label matches (`hours` and `Hours` are distinct), while `CommitmentProviderExposure` counts concurrent accepted commitments regardless of their quantities:
 
 - `promiseKeptRate = commitmentsFulfilled / commitmentsDue` is the only cross-commitment percentage;
-- `openCommitmentCount` is a count, not a unit total, and the provider cap consumes one slot per accepted commitment;
+- `openCommitmentCount` is a count, not a unit total, and the provider cap consumes one slot per committed Offer or accepted Request;
 - exact-label summaries keep `expectedUnits`, `approvedUnits`, `fulfilledUnits`, and `openUnits` for operational detail;
 - active-cycle surfaces show state counts plus exact-label groups, never a synthetic mixed-unit progress rate.
 
@@ -2249,8 +2249,8 @@ Consequences carried by the rest of the system:
 - `providerOpenCommitmentCount` counts every non-terminal provider obligation — Offered Offers as
   well as Accepted Offers and Requests. It still never counts contributors.
 - Atomic bilateral `acceptExchange` revalidates both sides but performs **no** second registry
-  commit and consumes **no** second provider slot, because both Offered classes are already
-  Committed.
+  commit, consumes **no** second provider slot, and does **not** reapply provider-cap headroom,
+  because both Offered classes are already Committed. Cap changes affect only later reservations.
 - Availability shown anywhere in the product is a count of currently Offered, capacity-backed
   instances. A queued place is not available until its creation has synced.
 

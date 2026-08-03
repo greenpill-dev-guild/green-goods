@@ -64,6 +64,7 @@ const SHAREABLE_SENTINEL =
   "<!-- GG-GALLERY-BUILD shareable · Mermaid frozen to inline SVG · safe to publish -->";
 
 const DIA_RE = /<div class="dia"><pre class="mermaid">[\s\S]*?<\/pre><\/div>/g;
+const EXTERNAL_SCRIPT_RE = /<script\b[^>]*\ssrc\s*=/i;
 
 function fail(message: string): never {
   throw new Error(`prerender invariant failed: ${message}`);
@@ -87,7 +88,8 @@ function publishBlockers(file: string): string[] {
   if (html.trimStart().startsWith("<!doctype"))
     problems.push("complete HTML document — the Artifact tool wants body content only");
   if (html.includes('data-embedded-runtime="mermaid@')) problems.push("embeds the Mermaid runtime");
-  if (/<script[^>]+ src=/.test(html)) problems.push("references an external script — blocked by the artifact CSP");
+  if (EXTERNAL_SCRIPT_RE.test(html))
+    problems.push("references an external script — blocked by the artifact CSP");
   return problems;
 }
 

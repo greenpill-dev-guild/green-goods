@@ -157,6 +157,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   persistence, restart-time receipt polling, identical-payload rebroadcast without a fresh nonce,
   dependency waiting, receipt materialization, and failure/discard recovery; capture expected
   failures before implementation.
+- RED: add saved-Offer protocol and adapter tests for canonical `SavedOfferPayloadV1` validation,
+  owner-scoped session/list/read/PUT/DELETE calls, optimistic version conflicts, tombstone
+  handling, and the rule that an unavailable service leaves a draft visibly unsaved. The Agent
+  API/store authentication, encryption, isolation, replay, and log-redaction tests from
+  `standing-commitments-spec.md` §6.1 must be GREEN before these shared tests can turn GREEN.
 - GREEN: run the same files after implementation with all six offline kinds and the online-only
   transfer exclusion passing, then shared typecheck and story checks for any changed shared
   component.
@@ -208,8 +213,14 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
   supplies its onchain ID; failure/discard leaves the dependent draft recoverable.
 - Add canonical series types, query keys, hooks, lifecycle mutations, Story selectors, and
   capacity-backed availability. Hooks remain in `@green-goods/shared`.
-- Reusable Offer metadata is signed offchain and private by default. Only an unsaved Offer draft
-  may be local-only. Choosing Offer over time and linking it to a pool series is explicit and
-  never merges series across pools. Offer once keeps `commitmentSeriesId == 0`.
+- Reusable Offer metadata implements the exact signed cross-device contract in
+  `standing-commitments-spec.md` §6.1. Shared owns `SavedOfferPayloadV1`, canonical auth messages,
+  validators, query keys, and the typed adapter; Agent owns the owner-authenticated session routes
+  and encrypted compare-and-swap store; Client consumes the shared adapter and may keep only an
+  unsaved local draft or cache. Dispatch and land the Agent API/store lane first. Shared/client
+  tests cover version conflicts, tombstones, owner-scoped calls, and service-unavailable behavior;
+  they must never label a local-only draft Saved or Synced. Saved records are private by default.
+  Choosing Offer over time and linking it to a pool series is explicit and never merges series
+  across pools. Offer once keeps `commitmentSeriesId == 0`.
 - No selector computes a personal/series score, rate, rank, inferred participant count, automatic
   renewal, or protocol permission from Story history.
