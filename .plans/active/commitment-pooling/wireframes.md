@@ -1197,7 +1197,7 @@ when a garden opts in; the pilot reciprocity question (pilot-evidence-spec §3) 
 │ ○ Seedling delivery · 12 trays · Apr 18            │
 │   Offer · by Ana                                    │
 │ ● Childcare during the work party · 6 hours         │
-│   Offer · by Maria                                  │
+│   Offer · by Ana                                    │
 │ ○ Tool repair · 2 sessions · Apr 22                 │
 │   Offer · by João                                   │
 │                                                     │
@@ -1211,11 +1211,14 @@ Review line after selection:
 
 Uses the existing full-screen creation chrome, labelled input, list rows, and `StatusBadge`.
 Results are contract-eligible same-pool Offers only: still Offered, Individual, capacity-backed,
-and created by someone other than the signed-in creator of B. Accepted, lapsed, self-owned,
-non-Individual, and capacity-inconsistent rows are excluded. Empty, loading, read-error, clear,
-selected, and selection-became-invalid states are required; keyboard order follows the visible
-order and focus returns to the row after closing. The executor re-reads the predicates immediately
-before B creation. If they changed, it creates no B and returns focus to a clear-or-replace action.
+and created by someone other than the signed-in direct creator of B. The control is absent from
+`StewardCaptured` / on-behalf creation. Accepted, lapsed, self-owned, non-Individual, and
+capacity-inconsistent rows are excluded. Empty, loading, read-error, clear, selected, and
+selection-became-invalid states are required; keyboard order follows the visible order and focus
+returns to the row after closing. The executor re-reads the predicates for early feedback;
+`createCommitment` repeats them atomically before allocating/storing B or registering its class.
+If A changes before mining, the transaction creates no B and returns focus to a clear-or-replace
+action.
 
 ### W29 — Exchange pair detail and status (uiux-spec Appendix E.1) NET-NEW
 
@@ -1257,9 +1260,9 @@ timeline. Pair status never replaces the ordinary commitment state.
 ┌─────────────────────────────────────────────────────┐
 │ Start both promises?                              × │
 ├─────────────────────────────────────────────────────┤
-│ You'll receive Childcare during the work party.     │
+│ You'll receive Repair the shared water pump.        │
 │                                                     │
-│ Maria will receive Repair the shared water pump.    │
+│ Maria will receive Childcare during the work party. │
 │                                                     │
 │ Both promises start together; each is kept on       │
 │ its own.                                            │

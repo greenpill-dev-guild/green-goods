@@ -35,11 +35,13 @@
 >
 > **(4) Product identity and roadmap boundary (plan Decision Log #40 / register #74; amended 2026-08-02).** These additions are staged **Commitment Pooling**, not a separate "commitment coordination" product. Coordination names the first layer of the pool. Contract implementation in the August wave includes the value and exchange records above, the separately gated credit companion, and the module-native series amendment in `standing-commitments-spec.md`. The former “counts-only standing with no additional Solidity” conclusion is superseded. Garden-to-garden routing, transferable vouchers/exchange execution, relative-pricing enforcement, protocol-consumed standing, and succession verbs remain later-roadmap seams. Narrative surfaces must connect those seams to this architecture while never presenting them as shipped.
 >
-> **Amendment 2026-08-01 (approved bilateral-exchange addition — second same-day amendment)**: PRD-649's architecture freeze reopens for exactly one additive module function and re-closes with this amendment set (plan Decision Log #41 / register #75). `acceptExchange(uint256 exchangeCommitmentId)` atomically accepts an Offer×Offer pair. Its argument is commitment B, created after A with `B.counterCommitmentId == A`; the immutable one-way reference means A never points back to B. The caller must be A's creator. B's creator consented to the pair at B's creation, and A's creator consents by calling. Creator consent is stricter than either claim gate, so this path is valid for Open and ApprovalGated commitments on both sides and never consults the ApprovalGated operator path.
+> **Amendment 2026-08-01 (approved bilateral-exchange addition — second same-day amendment; direct consent hardened 2026-08-03)**: PRD-649's architecture freeze reopens for exactly one additive module function and re-closes with this amendment set (plan Decision Log #41 / register #75). `acceptExchange(uint256 exchangeCommitmentId)` atomically accepts an Offer×Offer pair. Its argument is commitment B, created after A with `B.counterCommitmentId == A`; the immutable one-way reference means A never points back to B. The caller must be A's creator. B must have been created directly by B's creator, never by a steward through `StewardCaptured` / `onBehalfOf`, and A's creator consents by calling. These two direct creator actions are stricter than either claim gate, so this path is valid for Open and ApprovalGated commitments on both sides and never consults the ApprovalGated operator path.
 >
-> Preconditions are fail-closed and named: B must carry a non-zero counterpart that resolves to an existing same-pool A (`ExchangeCounterpartMismatch`); both directions must be Offer (`ExchangeDirectionInvalid`); both on-chain states must be Offered (`ExchangeStateInvalid`); creators must differ (`SelfExchange`); and both stored claim types must be Individual (`ExchangeClaimTypeUnsupported`). Every ordinary acceptance predicate then runs independently for A and B, including the conditional Open-cycle rule when `cycleId != 0`, creator-identity exclusions, class quota, and provider open-commitment cap. If either side fails, the entire transaction reverts.
+> Preconditions are fail-closed and named: B must carry a non-zero counterpart that resolves to an existing same-pool A (`ExchangeCounterpartMismatch`); both directions must be Offer (`ExchangeDirectionInvalid`); both on-chain states must be Offered (`ExchangeStateInvalid`); creators must differ (`SelfExchange`); both stored claim types must be Individual (`ExchangeClaimTypeUnsupported`); and B must be direct-created (`ExchangeCreatorConsentRequired`). The Offer-B creation transaction already checks A's direction/state/claim type/creator/reservation before any B mutation, and `acceptExchange` repeats every mutable predicate. Every ordinary acceptance predicate then runs independently for A and B, including the conditional Open-cycle rule when `cycleId != 0`, creator-identity exclusions, and exact class quota/reservation. If either side fails, the entire transaction reverts.
 >
 > Effects are one atomic transaction with no exchange-specific storage field or state-machine addition: B's creator becomes A's claimant, A's creator becomes B's claimant, and each Offer keeps its own creator as its lead provider (A creator → A lead; B creator → B lead). Both commitments simply reach `Accepted`. Under the 2026-08-02 honest-capacity correction, both Offer classes are already `Committed` from creation, so acceptance performs no second `CommitmentRegistry.commitUnits` call and consumes no second provider slot. The module emits the two ordinary `CommitmentAccepted` events plus `ExchangeAccepted(A, B, poolId, B.creator, A.creator)`. After acceptance nothing couples: fulfillment, cancellation, expiry, dispute, confirmation, and count-safe exact-label accounting proceed per side. Pair status and “counterpart lapsed” remain app/indexer derivations. Multilateral and transferable exchange remain reserved for `exchange-architecture-brief.md`.
+>
+> **Review hardening 2026-08-03 (consent, transaction ordering, root identity, and index namespace).** A direct Individual Offer B may name A for bilateral acceptance only when B is created by its own creator: `StewardCaptured` / non-zero `onBehalfOf` creation is rejected for this path, and `acceptExchange` repeats the B-kind guard before mutation. In the same `createCommitment` transaction, before allocating/storing B or registering its class, the module revalidates A as a same-pool, Offered, Individual Offer owned by someone other than B's creator with its exact full class still Committed to A's creator; the app's preflight remains early feedback, not the safety boundary. Protocol registration is bound to the non-zero canonical `rootGarden` supplied at initialization and rejects any other garden before writing `protocolPoolId`. Each emitted `CommitmentAccepted` independently sweeps its bounded request index, so exchange acceptance cannot leave an unrelated claim request Pending. The initial indexer supports exactly one canonical UUPS `CommitmentPoolingModule` proxy per chain; its chain-scoped entity IDs rely on that stable proxy identity, and config rejects a second/replacement proxy unless a future migration defines a new namespace and full-replay plan. Saved Offer `moduleAddress` keeps client links fail-closed against the configured proxy and does not authorize concurrent multi-module indexing.
 >
 > **Frozen-text conflict surfaced, not rewritten.** Canonical decision 17 says “afterwards the module never reads it” and “Atomic swap acceptance remains out of scope with the transferable-voucher layer.” This amendment preserves that historical text while making `acceptExchange` the sole additive acceptance-time read of B's reference and the sole bilateral exception. Decision 17's post-acceptance no-coupling rule remains verbatim.
 >
@@ -112,8 +114,8 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 14. **Anti-farming posture from day one**: direction-aware independent confirmation (Offer recipient; Request creator), contributor self-confirmation blocked on both ordinary and steward-fallback paths (mirrors `SelfAttestation`, `packages/contracts/src/resolvers/WorkApproval.sol:153-156`), operator fallback requires a visible reason, concurrent open-commitment caps in the register, and disputes restore an explicitly stored prior state.
 15. **Protocol-pool parity, not a settlement fork** (register #69). Protocol-pool commitments use the same provider-garden payout-plan lifecycle as garden-pool commitments after Fulfilled. The app may expose those existing plan writes from indexed state, but core fulfillment never synchronously moves value or creates a browser-local settlement attempt. Discretionary ProtocolToGarden funding remains an independently authorized settlement action and never changes commitment state.
 16. **Valuation is a recorded term, never protocol arithmetic** (register #71, amendment 2026-08-01). `declaredUnitValue`/`declaredValueBasis` state one unit's relative value against a named basis as commitment terms — settable at creation, steward-adjustable pre-acceptance, immutable after. Valid with `RewardRail.None`. No transition, cap, quota, recognition weight, or settlement amount is derived from it on-chain; the app pre-fills `reward.amount` from it as a suggestion only. Cross-commitment value aggregation exists only per-exact-basis at the read-model layer. This realizes the GE "valuing" primitive as data while relative-pricing execution stays reserved for the transferable-voucher layer (§6.2).
-17. **Exchange-of-commitments is a one-way reference, never a coupling** (register #72, amendment 2026-08-01). `counterCommitmentId` records "made in exchange for" against an existing same-pool commitment at creation and is immutable. Existence, same-pool, and non-self checks run at creation; afterwards the module never reads it — cancellation, expiry, dispute, or fulfillment of either side never transitions the other. Pair views and counterpart-lapsed states are derived app/indexer-side. Atomic swap acceptance remains out of scope with the transferable-voucher layer. (Amended by decision 18, second 2026-08-01 amendment: `acceptExchange` is the sole additive acceptance-time read of the reference and the sole bilateral exception; the post-acceptance no-coupling rule stands unchanged.)
-18. **Bilateral exchange acceptance is atomic; multilateral and transferable exchange stay reserved** (Decision Log #41 / register #75, second amendment 2026-08-01; capacity effects amended 2026-08-02). `acceptExchange(B)` requires `B.counterCommitmentId == A`, A and B in the same pool, both directions Offer, both states Offered, distinct creators, Individual claim type on both sides, and every ordinary per-side cycle and identity predicate. It also verifies that both immutable full-quota classes remain Committed to their creators. Only A's creator calls. B's creator consented at creation and A's creator consents by calling, so neither claim mode invokes the ApprovalGated operator path. B's creator accepts A and A's creator accepts B; both ordinary acceptance events, one `ContributorAdded` lead event per side, and the `ExchangeAccepted` marker succeed or revert together. Both classes and lead-provider slots are already committed from Offer creation, so acceptance performs no second registry mutation and does not reapply provider-cap headroom. A later cap reduction constrains only a new `commitUnits` reservation; it cannot strand an already-reserved Offer. Thereafter decision 17's lifecycle-independence rule applies per side; no cross-side arithmetic or transition exists. The transferable and multilateral layer remains design-only in `exchange-architecture-brief.md`.
+17. **Exchange-of-commitments is a one-way reference, never a coupling** (register #72, amendment 2026-08-01; creation guard hardened 2026-08-03). `counterCommitmentId` records "made in exchange for" against an existing same-pool commitment at creation and is immutable. Existence, same-pool, and non-self checks run for every reference. When new B is an Offer, `createCommitment` additionally performs the bilateral eligibility check in the same transaction before allocating/storing B or registering its class: B must be Individual and direct (`onBehalfOf == 0`, therefore not `StewardCaptured`); A must still be an Offered Individual Offer with a different creator and its exact full class Committed to A's creator. Afterwards the module never reads the reference except through decision 18's `acceptExchange`; cancellation, expiry, dispute, or fulfillment of either side never transitions the other. Pair views and counterpart-lapsed states are derived app/indexer-side. Atomic swap acceptance remains out of scope with the transferable-voucher layer. (Amended by decision 18, second 2026-08-01 amendment: `acceptExchange` is the sole additive acceptance-time read of the reference and the sole bilateral exception; the post-acceptance no-coupling rule stands unchanged.)
+18. **Bilateral exchange acceptance is atomic; multilateral and transferable exchange stay reserved** (Decision Log #41 / register #75, second amendment 2026-08-01; capacity effects amended 2026-08-02; consent hardened 2026-08-03). `acceptExchange(B)` requires `B.counterCommitmentId == A`, A and B in the same pool, both directions Offer, both states Offered, distinct creators, Individual claim type on both sides, direct creation of B rather than `StewardCaptured` / `onBehalfOf`, and every ordinary per-side cycle and identity predicate. It also verifies that both immutable full-quota classes remain Committed to their creators. Only A's creator calls. B's direct creator consented by creating B and A's creator consents by calling; a steward cannot consent for B's represented gardener, so neither claim mode invokes the ApprovalGated operator path. B's creator accepts A and A's creator accepts B; both ordinary acceptance events, one `ContributorAdded` lead event per side, and the `ExchangeAccepted` marker succeed or revert together. Each ordinary acceptance event independently resolves any matching request and supersedes every other still-Pending indexed request for that commitment, even when no matching request exists. Both classes and lead-provider slots are already committed from Offer creation, so acceptance performs no second registry mutation and does not reapply provider-cap headroom. A later cap reduction constrains only a new `commitUnits` reservation; it cannot strand an already-reserved Offer. Thereafter decision 17's lifecycle-independence rule applies per side; no cross-side arithmetic or transition exists. The transferable and multilateral layer remains design-only in `exchange-architecture-brief.md`.
 19. **An Offer used over time has a module-native series, not an inferred grouping** (Decision Log #46 / register #81, amendment 2026-08-02). `CommitmentSeries` is the internal durable pool-scoped Offer identity with direct-holder authorship, prospective metadata, and Active/Resting/Retired lifecycle. A validated non-zero `commitmentSeriesId` links ordinary immutable instances; zero preserves Offer once. No cross-pool merge, holder transfer, or automatic obligation creation exists.
 20. **Availability is reserved capacity, not a promise to try later** (Decision Log #47 / register #82, amendment 2026-08-02). Offer creation registers and commits its exact class against the creator immediately; claim and exchange acceptance do not recommit it. Requests commit only when an actual provider accepts. Cancellation or expiry releases only when the direction's class is currently committed. This makes each visible available place an independently claimable, already-reserved instance.
 21. **Saved Offer metadata and Story stay outside protocol reputation** (Decision Log #48 / register #83, amendment 2026-08-02). Reusable Offer metadata may be signed offchain and private by default. The indexed Story is exact linked-instance history with absolute state counts and fulfilled-cycle IDs. Neither becomes a score, rate, rank, permission input, cross-pool identity, or transferable asset.
@@ -185,9 +187,9 @@ On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForCo
 | Transition | Layer | Mechanism |
 |---|---|---|
 | Draft (exists) | off-chain | Client/admin IndexedDB draft (offline-first). |
-| Draft -> Offered or Requested | on-chain | `createCommitment(params)`. Event `CommitmentCreated` (direction Offer or Request sets the initial state). A non-zero `commitmentSeriesId` must resolve to an Active same-pool direct-holder Individual Offer. Offer creation also commits the full class quota and reserves the creator's provider slot; Request creation only registers its class. |
+| Draft -> Offered or Requested | on-chain | `createCommitment(params)`. Event `CommitmentCreated` (direction Offer or Request sets the initial state). A non-zero `commitmentSeriesId` must resolve to an Active same-pool direct-holder Individual Offer. For Offer B with non-zero `counterCommitmentId`, the same transaction rejects `StewardCaptured` / non-zero `onBehalfOf` and revalidates A as a same-pool Offered Individual Offer with a distinct creator and exact full reservation before B ID allocation, storage, class registration, or event emission. Offer creation then commits B's full class quota and reserves the creator's provider slot; Request creation only registers its class. |
 | Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`; either identity matching the creator reverts. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` rechecks the stored requester against the creator, consumes the canonical claimant-keyed terms, and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Request acceptance records committed units and reserves its resolved provider slot; Offer acceptance validates the already-Committed class and does not mutate registry accounting again. |
-| Offered + Offered -> Accepted + Accepted | on-chain | `acceptExchange(exchangeCommitmentId)` takes B, resolves A from B's immutable same-pool `counterCommitmentId`, and requires A's creator as caller. Offer×Offer, Offered×Offered, distinct-creator, Individual×Individual, cycle, and identity checks pass before mutation, and both full immutable-quota classes must still be Committed to their creators. B's creator accepts A; A's creator accepts B. Two `CommitmentAccepted` events, `ContributorAdded(A, A.creator)` and `ContributorAdded(B, B.creator)`, and one `ExchangeAccepted` marker commit atomically; no second registry commit, slot consumption, or provider-cap headroom check occurs. Provider caps apply only when reserving a new slot. Any failure reverts both sides. Later lifecycle remains independent. |
+| Offered + Offered -> Accepted + Accepted | on-chain | `acceptExchange(exchangeCommitmentId)` takes direct-created B, resolves A from B's immutable same-pool `counterCommitmentId`, and requires A's creator as caller. Offer×Offer, Offered×Offered, distinct-creator, Individual×Individual, B-not-`StewardCaptured`, cycle, and identity checks pass before mutation, and both full immutable-quota classes must still be Committed to their creators. B's creator accepts A; A's creator accepts B. Two `CommitmentAccepted` events, `ContributorAdded(A, A.creator)` and `ContributorAdded(B, B.creator)`, and one `ExchangeAccepted` marker commit atomically; each ordinary acceptance event independently supersedes every other still-Pending request in its bounded request index, even when the accepted counterpart had no request row. No second registry commit, slot consumption, or provider-cap headroom check occurs. Provider caps apply only when reserving a new slot. Any failure reverts both sides. Later lifecycle remains independent. |
 | Accepted -> Active | derived | First `WorkLinked` or `EvidenceAttached` after acceptance. |
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
 | EvidenceSubmitted -> PartiallyApproved | derived | `ApprovedWorkCounted` events: at least one requirement counter above zero while any requirement remains below its required count. |
@@ -272,8 +274,9 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 33 | `latestWorkDecisionUID` | `mapping(bytes32 workUID => bytes32 approvalUID)` (identity/audit only; never an ordering key) |
 | 34 | `commitmentWorkUIDs` | `mapping(uint256 commitmentId => bytes32[] activeWorkUIDs)` (bounded enumerable active-link set used by every readiness/freeze preflight) |
 | 35 | `protocolPoolId` | `uint256` (set once by the first and only `PoolType.Protocol` registration; 0 = not registered) |
+| 36 | `rootGarden` | `address` (non-zero canonical root GardenAccount fixed by `initialize`; the Protocol pool must use this exact garden) |
 
-Gap: `uint256[15] private __gap;` (35 named + 15 reserved = 50 total). This declaration-order
+Gap: `uint256[14] private __gap;` (36 named + 14 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
 slot/offset assertions remain authoritative at implementation time.
 
@@ -726,6 +729,8 @@ interface ICommitmentPoolingModule {
       error ModuleMustBePaused();
       error ModuleNotReady();
       error ZeroAddress();
+      error RootGardenRequired();
+      error ProtocolGardenMismatch(address expectedRootGarden, address suppliedGarden);
       error SchemaUIDRequired(ModuleSchemaKind schemaKind);
       error SchemaUIDCollision(bytes32 uid);
     error PoolExists(address garden);
@@ -797,6 +802,7 @@ interface ICommitmentPoolingModule {
     error ExchangeStateInvalid(uint256 commitmentId, CommitmentState actual);
     error SelfExchange(address creator);
     error ExchangeClaimTypeUnsupported(uint256 commitmentId, ClaimType actual);
+    error ExchangeCreatorConsentRequired(uint256 exchangeCommitmentId);
       error ReasonRequired();
       error UnitLabelRequired();
       error TargetUnitsRequired();
@@ -828,10 +834,11 @@ interface ICommitmentPoolingModule {
     function onGardenMinted(address garden) external returns (uint256 poolId);
 
     /// @notice Backfill for pre-upgrade gardens and the protocol pool.
-    ///         Gating: PoolType.Protocol requires module owner, sets the
-    ///         write-once protocolPoolId, and rejects a second Protocol pool
-    ///         with PoolExists(existingProtocolGarden). PoolType.Garden
-    ///         requires garden operator/owner or module owner.
+    ///         Gating: PoolType.Protocol requires module owner, requires
+    ///         garden == rootGarden before any pool write, sets the write-once
+    ///         protocolPoolId, and rejects a second Protocol pool with
+    ///         PoolExists(existingProtocolGarden). PoolType.Garden requires
+    ///         garden operator/owner or module owner.
     function registerPool(address garden, PoolType poolType) external returns (uint256 poolId);
 
     /// @notice Gating for the pool lifecycle functions below: pool steward (garden operator/owner
@@ -897,6 +904,11 @@ interface ICommitmentPoolingModule {
     ///         protocol-pool commitments require root-garden steward or module owner.
     ///         StewardCaptured must set onBehalfOf (the gardener stays the
     ///         social source; msg.sender is recorded as recordedBy in the event).
+    ///         For a non-zero counterCommitmentId on Offer B, this transaction
+    ///         rejects StewardCaptured/onBehalfOf creation and, before allocating
+    ///         or storing B or registering its class, revalidates A as a
+    ///         same-pool Offered Individual Offer with a distinct creator and an
+    ///         exact full reservation still Committed to A's creator.
     function createCommitment(CreateCommitmentParams calldata params) external returns (uint256 commitmentId);
 
     /// @notice Forwards to the module-only register setter. Gating: pool
@@ -940,8 +952,9 @@ interface ICommitmentPoolingModule {
     ///         whose immutable counterCommitmentId resolves A. Only A's creator
     ///         calls. B's creator becomes A's claimant and A's creator becomes
     ///         B's claimant. Cycle and identity predicates run per side, and
-    ///         both full immutable-quota reservations must still belong to
-    ///         their creators; the ApprovalGated operator path is not
+    ///         B must have been created directly, not through StewardCaptured
+    ///         onBehalfOf; both full immutable-quota reservations must still
+    ///         belong to their creators; the ApprovalGated operator path is not
     ///         consulted. Both Offer classes already reserve their providers'
     ///         slots, so no second registry commit or provider-cap headroom
     ///         check occurs. Both CommitmentAccepted events, one
@@ -1159,6 +1172,7 @@ interface ICommitmentPoolingModule {
     function getPendingClaim(uint256 commitmentId, address claimant) external view returns (PendingClaim memory);
     function getConfirmers(uint256 commitmentId) external view returns (address[] memory);
     function protocolPoolId() external view returns (uint256);
+    function rootGarden() external view returns (address);
     function workCommitmentOf(bytes32 workUID) external view returns (uint256 commitmentId);
     function getLinkedWorkUIDs(uint256 commitmentId) external view returns (bytes32[] memory);
     function isApprovalCounted(bytes32 approvalUID) external view returns (bool);
@@ -1178,9 +1192,10 @@ interface ICommitmentPoolingModule {
 
     // ══════════════════════ Admin (module owner) ═════════════════════
 
-    /// @notice Initializes with paused == true. Configuration is completed
-    ///         through the paused-only setters before the first unpause.
-    function initialize(address owner_) external;
+    /// @notice Initializes with paused == true and a non-zero canonical root
+    ///         GardenAccount. Configuration is completed through the
+    ///         paused-only setters before the first unpause.
+    function initialize(address owner_, address rootGarden_) external;
     function setGardenToken(address gardenToken) external;
     function setHatsModule(address hatsModule) external;
     function setActionRegistry(address actionRegistry) external;
@@ -1223,7 +1238,7 @@ retry.
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
 | Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the post-unpause `registerPool` backfill |
-| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); first Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)` |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)` |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume |
@@ -1234,11 +1249,11 @@ retry.
 | Commitment series | `createCommitmentSeries` | current member of the pool garden, direct holder only | pool Ready or Open; non-zero holder-scoped `creationRequestKey`; non-empty metadata; caller becomes immutable `createdBy` and initial `currentHolder`. First use stores `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))`; exact replay returns the existing `seriesId` without mutation/event, while the same holder/key with a different payload reverts `SeriesCreationRequestConflict`. |
 | Commitment series | `updateCommitmentSeriesMetadata` | current holder | Active or Resting; non-empty metadata; prior and open Commitment instances remain unchanged |
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; a non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`); `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation; Offer creation commits its class and reserves one provider slot, while Request creation only registers its class |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation; Offer creation commits its class and reserves one provider slot, while Request creation only registers its class |
 | Commitment | `setDeclaredReward` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
-| Commitment | `acceptExchange` | creator of referenced commitment A | B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's creation consent plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Cap headroom is checked only when `commitUnits` reserves a new slot. |
+| Commitment | `acceptExchange` | creator of referenced commitment A | B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; B must be direct-created rather than `StewardCaptured`/`onBehalfOf`; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's direct creation plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Each ordinary acceptance independently sweeps every other still-Pending indexed request for its commitment. Cap headroom is checked only when `commitUnits` reserves a new slot. |
 | Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible gardener | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
@@ -1574,7 +1589,12 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 - `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol`
   covers pool/cycle invariants, one open Season plus concurrent Campaigns,
   allocation/recognition-policy validation and locking at `openCycle`, zero-live-commitment
-  closure with exact once-only terminal decrements, paused-first configuration,
+  closure with exact once-only terminal decrements, paused-first configuration with non-zero
+  immutable `rootGarden`, exact-root Protocol registration, wrong-root rejection before any
+  pool or `protocolPoolId` write, atomic Offer-B counterparty revalidation before any B
+  allocation/storage/class event, stale-A rollback, StewardCaptured/on-behalf B rejection,
+  direct-B plus A-caller consent, exchange request-index supersession when neither accepted
+  counterpart has a request row,
   action UID `0`, repeated domains, caller input limited to `actionUID`/`requiredCount` while
   stored `domain`/`approvedCount` remain module-derived, provisional `MAX_REQUIREMENTS` and
   max-plus-one rejection before mutation, per-requirement approval counts,
@@ -1617,7 +1637,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   tests cover the current non-revoked Baseline preflight and deterministic Hypercert recognition
   expansion.
 - The compiler-generated baseline and concrete slot/offset assertions prove the expected
-  35-feature-slot declaration order plus the 15-slot `__gap` (50 total slots); arithmetic alone
+  36-feature-slot declaration order plus the 14-slot `__gap` (50 total slots); arithmetic alone
   is not proof. The Bun-wrapped
   storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
@@ -2365,7 +2385,7 @@ wrappers; never raw forge (`.claude/rules/contracts.md`).
 
 ## 8. Indexer plan
 
-Boundary restated: Envio indexes Green Goods core state only; EAS attestations are read from easscan (`packages/indexer/schema.graphql:282-288`). Every entity and stat below derives exclusively from `CommitmentPoolingModule` and `CommitmentRegistry` events. Rules that bind every net-new entity here: `chainId: Int!`, composite IDs `${chainId}-${identifier}`, create-if-not-exists in update handlers, and `bun codegen` after any `schema.graphql`/`config.yaml` change (`.claude/rules/indexer.md`). The one documented package exception remains the existing `Garden.id` bare-address primary key; Garden rows still carry `chainId`, and relationship helpers point to that unchanged ID.
+Boundary restated: Envio indexes Green Goods core state only; EAS attestations are read from easscan (`packages/indexer/schema.graphql:282-288`). Every entity and stat below derives exclusively from `CommitmentPoolingModule` and `CommitmentRegistry` events. This initial schema indexes exactly one canonical UUPS Commitment Pooling proxy pair per chain, so proxy identity is stable while implementations upgrade in place. A second `CommitmentPoolingModule`/`CommitmentRegistry` block on the same chain, or replacement of either proxy address, fails the indexing-boundary check unless a separately approved migration first defines a new entity namespace and full-replay plan. The saved-Offer `moduleAddress` is a client-side fail-closed link key, not authorization for concurrent multi-module indexing. Under that explicit boundary, rules that bind every net-new entity here are: `chainId: Int!`, composite IDs `${chainId}-${identifier}`, create-if-not-exists in update handlers, and `bun codegen` after any `schema.graphql`/`config.yaml` change (`.claude/rules/indexer.md`). The one documented package exception remains the existing `Garden.id` bare-address primary key; Garden rows still carry `chainId`, and relationship helpers point to that unchanged ID.
 
 ### 8.1 `config.yaml` additions
 
@@ -3083,9 +3103,13 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `${chainId}-${commitmentId}-${claimant}` as `PENDING` from emitted canonical claimant,
   `requestedBy`, kind, context, and requestedAt, then appends that ID once to the request index.
   `ClaimDeclined` marks that key `DECLINED`. `CommitmentAccepted` carries
-  claimant/counterparty/leadProvider/providerGarden, marks the matching request `ACCEPTED`, marks
-  siblings `SUPERSEDED` only when an ApprovalGated request row exists; Open acceptance has no
-  request row and stores the emitted authenticated caller as the Garden Request lead. It relies
+  claimant/counterparty/leadProvider/providerGarden, marks the matching request `ACCEPTED` when
+  that row exists, then independently loads `CommitmentClaimRequestIndex` and marks every other
+  still-`PENDING` row `SUPERSEDED` with `COMMITMENT_ACCEPTED`. The bounded sweep never depends on
+  finding a matching row: the two ordinary events emitted by `acceptExchange` therefore clear
+  stale requests for both A and B even when neither counterpart creator requested first. Open
+  acceptance normally has no request row and stores the emitted authenticated caller as the
+  Garden Request lead. It relies
   on the same-transaction `ContributorAdded` event to create the
   lead's roster row. Contributor add/remove/assignment events update the composite contributor
   row and stable contributor index. `WorkLinked` creates or activates the workUID-keyed
@@ -3156,12 +3180,14 @@ identical Arbitrum/Sepolia commitment entities remain distinct through their own
 fields. A full replay is required for the new schema and handlers, not for a Garden primary-key
 cutover, and there is no mixed Garden-ID mode to support.
 
-**Generated-config preservation.** Extend both `packages/contracts/script/utils/envio-integration.ts` and `packages/indexer/scripts/check-indexing-boundary.mjs` allowlists for `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, and `CeloSettlementExecutor`. A regression fixture must run the deployment-artifact updater twice and prove all four contract blocks and exact event signatures survive unchanged; unknown EAS or Celo token blocks must still fail the boundary check.
+**Generated-config preservation.** Extend both `packages/contracts/script/utils/envio-integration.ts` and `packages/indexer/scripts/check-indexing-boundary.mjs` allowlists for `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, and `CeloSettlementExecutor`. A regression fixture must run the deployment-artifact updater twice and prove all four contract blocks and exact event signatures survive unchanged; unknown EAS or Celo token blocks must still fail the boundary check. The same boundary fixture rejects duplicate Commitment Pooling module/register blocks on one chain and rejects an address replacement without an explicit versioned namespace/migration manifest, preserving the single-canonical-proxy assumption behind every `chainId-*` pooling ID.
 
 Run `bun codegen` in `packages/indexer` after the schema/config edits and before writing handler
 code (`.claude/rules/indexer.md`). Codegen acceptance includes typed
 `CommitmentClaimRequestIndex` and `CommitmentEvidenceAttributionIndex` stores. Handler tests prove
-two pending requests become one `ACCEPTED` plus one `SUPERSEDED`, and multiple evidence rows
+two pending requests become one `ACCEPTED` plus one `SUPERSEDED`; exchange acceptance with
+pending rows but no matching counterpart request supersedes every pending row for both A and B;
+and multiple evidence rows
 become confirmed on fulfillment, using only their bounded event-owned indexes and no
 database-wide scan.
 

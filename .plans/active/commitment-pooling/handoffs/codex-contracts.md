@@ -34,9 +34,13 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
 - The second 2026-08-01 amendment and canonical decision 18: implement only
   `acceptExchange(uint256 exchangeCommitmentId)` plus `ExchangeAccepted` and the named exchange
   errors. Section 6.1 is the exact semantics source: B references A, only A's creator calls,
-  creator consent bypasses both claim-mode operator paths, Offer×Offer and Individual×Individual
-  are mandatory, cycle and identity predicates run, and both full immutable-quota classes must
-  remain Committed to their creators. Claimant identities cross while provider identities do not:
+  and B must have been created directly rather than by a steward through
+  `StewardCaptured` / `onBehalfOf`. `createCommitment` atomically validates A's Offered,
+  Individual, distinct-creator, and exact-reservation predicates before allocating/storing B or
+  registering B's class; the UI preflight is not the safety boundary. Those two direct creator
+  actions bypass both claim-mode operator paths. Offer×Offer and Individual×Individual are
+  mandatory, cycle and identity predicates run, and both full immutable-quota classes must remain
+  Committed to their creators. Claimant identities cross while provider identities do not:
   A's creator remains A's lead/registry account and B's creator remains B's. Acceptance does not
   recommit either class or reapply provider-cap headroom; cap checks run only when `commitUnits`
   reserves a new slot. Emit one `ContributorAdded` lead event for A's creator on A and one for B's
@@ -61,11 +65,16 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
 - An in-place upgrade of the existing AssessmentResolver for the AssessmentV3 schema, plus the
   NET-NEW TestimonyResolver and approved additive schema-registration targets.
 - CommitmentPoolingModule and non-transferable CommitmentRegistry with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
-- The module's 35th named storage entry is write-once `protocolPoolId` (`__gap[15]`). The series
+- The module's 35th named storage entry is write-once `protocolPoolId`; the 36th is the non-zero
+  initializer-fixed `rootGarden` (`__gap[14]`). `registerPool(..., Protocol)` requires the exact
+  root before any pool/protocol ID write. The series
   amendment adds `nextCommitmentSeriesId`, `commitmentSeries`, and the holder-scoped
   `seriesIdByCreationRequest` idempotency mapping before it. The first
-  module-owner `PoolType.Protocol` registration sets it; a second Protocol registration reuses
-  `PoolExists(existingProtocolGarden)`. No deployment address is hardcoded.
+  module-owner exact-root `PoolType.Protocol` registration sets `protocolPoolId`; a wrong root
+  reverts `ProtocolGardenMismatch`, and a second Protocol registration reuses
+  `PoolExists(existingProtocolGarden)`. The deployment wrapper supplies the artifact-verified
+  root GardenAccount to `initialize(owner, rootGarden)`; no chain address is hardcoded in the
+  implementation.
 - GardenToken and WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks.
 - Contract tests and deployment-script tests that become the frozen ABI/event source for indexer and shared lanes.
 - The `421614` toolchain that every `--network arbitrum-sepolia` command below depends on and
@@ -274,6 +283,11 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   attachment (replacement and post-freeze rejection), contributor-steward direct-dispute
   Fulfilled rejection, Garden-Request `requestedBy` lead accounting, creator-operated Garden
   rejection in both Open and ApprovalGated modes (including acceptance-time revalidation),
+  non-zero initializer root, wrong-root Protocol registration reverting before pool/protocol ID
+  mutation, direct Offer-B exchange creation, steward-captured/on-behalf B rejection, stale A
+  changing before B mining with zero B/class/event residue, acceptance-time direct-B
+  defense-in-depth, and two exchange acceptances sweeping pending request indexes even when
+  neither counterpart creator has a matching request row,
   evidence-only `requirements.length == 0`, one evidence-derived recognition credit per
   contributor across multiple distinct CIDs, stale catch-up omission before mutation, unlink
   after effective rejection, current provider-garden eligibility for Offer/StewardCaptured
@@ -441,12 +455,13 @@ During the **first contracts PR**, before bounded module behavior is called GREE
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 35-feature-slot Commitment Pooling declaration order and `__gap[15]`, including
+- Implement the 36-feature-slot Commitment Pooling declaration order and `__gap[14]`, including
   `nextCommitmentSeriesId`, `commitmentSeries`, the holder-scoped
   `seriesIdByCreationRequest` idempotency mapping,
   `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
   sequence plus audit UID, the bounded enumerable active Work set, and the write-once
-  `protocolPoolId`, but treat the generated compiler baseline plus concrete
+  `protocolPoolId` followed by initializer-fixed `rootGarden`, but treat the generated compiler
+  baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
   measured-bounded credited list, and may mutate recognition credit only while the commitment is

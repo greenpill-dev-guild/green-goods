@@ -785,8 +785,10 @@ contract. Every pair state has text in addition to color or icon treatment.
 **Creation, step 1.** The existing creation form gains an optional row labelled **“Offer this in
 exchange for…”**. It opens a picker over contract-eligible same-pool **Offer** commitments only:
 each row is still Offered, uses Individual claim type, has its provider capacity reserved, and is
-owned by someone other than the signed-in creator of B. Accepted, cancelled, expired, self-owned,
-non-Individual, and capacity-inconsistent records are excluded. Search and filters reuse the
+owned by someone other than the signed-in direct creator of B. This control is absent from
+`StewardCaptured` / non-zero-`onBehalfOf` creation because a steward cannot consent for the
+represented gardener. Accepted, cancelled, expired, self-owned, non-Individual, and
+capacity-inconsistent records are excluded. Search and filters reuse the
 creation/list patterns already specified; each result uses existing list rows, `StatusBadge`,
 title, exact unit label, calm date, and creator identity. Selecting A sets B's
 `counterCommitmentId = A`. Clearing the row returns it to zero. The selection remains visible and
@@ -794,9 +796,13 @@ editable through review.
 
 Immediately before B is enqueued or broadcast, the executor re-reads A and repeats the
 Offered×Offered, same-pool, Individual, distinct-creator, and reserved-capacity predicates. If A
-became ineligible, creation stops before `CommitmentCreated(B, counterCommitmentId=A)` and the
-review returns to the picker with a clear-or-replace message. It never creates B first and waits
-for `acceptExchange` to expose the stale selection.
+became ineligible, the executor returns early to the picker with a clear-or-replace message.
+That preflight improves feedback but is not the safety boundary: `createCommitment` repeats the
+same A predicates plus direct-B consent atomically before allocating/storing B, registering its
+class, reserving B's capacity, or emitting `CommitmentCreated`. If A changes between the re-read
+and transaction execution, the transaction reverts with no B and the same clear-or-replace
+recovery. It never creates an unstartable B and waits for `acceptExchange` to expose the stale
+selection.
 
 The review step renders one mirrored sentence before submission:
 
@@ -825,8 +831,9 @@ filter-chip, `ListPrimitives`, status, empty, loading, and read-error treatments
 “offered in exchange for”; matched rows say “both promises started”; lapsed context stays on the
 pair detail. The feed is never sorted by value, volume, person, or success.
 
-**Accept-exchange confirmation sheet.** Only A's creator sees the action when B references A and
-both sides remain eligible. The existing confirmation-sheet pattern (`DialogShell`) names both
+**Accept-exchange confirmation sheet.** Only A's creator sees the action when direct-created B
+references A and both sides remain eligible. A `StewardCaptured` / on-behalf B never exposes the
+action. The existing confirmation-sheet pattern (`DialogShell`) names both
 people, both promises, and the atomic effect before calling `acceptExchange(B)`:
 
 > You'll receive [B]. [B's creator] will receive [A]. Both promises start together; each is kept on its own.

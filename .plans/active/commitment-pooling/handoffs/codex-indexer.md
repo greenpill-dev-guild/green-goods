@@ -37,7 +37,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `ContributorAdded(B, B.creator)` to seed the two lead roster rows; `ExchangeAccepted` substitutes
   for neither contributor event and never applies any delta a third time. Pair status joins the
   two ordinary commitments and never mutates either after cancellation, expiry, dispute, or
-  fulfillment.
+  fulfillment. Each ordinary `CommitmentAccepted` handler attempts to mark its matching request
+  Accepted when present, then independently loads the commitment's request index and marks every
+  other still-Pending row Superseded. The sweep runs even when the accepted counterpart has no
+  request row, so exchange acceptance clears pending requests for both A and B without a scan.
 - `PoolMemberHistory` is public event-derived index data. The indexer does not claim row-level confidentiality; it exposes no public ranking or comparison query. Shared viewer-aware selectors own steward/self product disclosure, and editorial consumers receive aggregates only.
 - Pool-less `ModuleUpdated`, pooling dependency/schema/pause events use the generic
   `CommitmentEvent.configurationKey/previousValue/newValue` audit fields, never a synthetic pool
@@ -66,6 +69,12 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   Configuration rows seed from generated verified deployment constants on the first relevant
   protocol event; no imaginary deployment-block callback is assumed. Celo Sepolia uses
   `rpc_config` because HyperSync coverage is not assumed.
+- The pooling ID namespace supports exactly one canonical UUPS
+  `CommitmentPoolingModule` / `CommitmentRegistry` proxy pair per chain. Implementation upgrades
+  keep those addresses. The updater and boundary checker reject a duplicate same-chain block or
+  proxy replacement unless a separately approved migration introduces a versioned entity
+  namespace and full replay. Saved Offer `moduleAddress` is a fail-closed client link key, not a
+  multi-module indexing contract.
 - Commitment-keyed request index that marks accept/decline/supersede without a database-wide scan.
 - Preserve `Garden.id` as the normalized bare GardenAccount address with explicit `chainId`.
   `gardenId`, `providerGardenId`, and `gardenContextId` relationship helpers store that existing ID;
@@ -291,4 +300,6 @@ lane and must be created before their commands can pass.
 - RED/GREEN includes inverted creation/lifecycle order, metadata-before-Rest,
   lifecycle-before-metadata, later-metadata-before-earlier-Rest, later-Resume-before-earlier-
   metadata, same-type stale/duplicate delivery, prospective metadata, mixed outcomes across
-  cycles, and exact replay convergence.
+  cycles, exact replay convergence, duplicate/replacement same-chain pooling block rejection, and
+  an exchange pair whose A and B each have pending requests but neither accepted counterpart has
+  a request row; both indexes must converge with no Pending rows and no database scan.

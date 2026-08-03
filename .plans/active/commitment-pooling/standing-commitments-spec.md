@@ -249,6 +249,14 @@ The initial indexer adds:
 - no unit totals across unlike labels
 - no rate, rank, grade, comparison, or funding-order field
 
+These IDs share the core indexer's explicit single-canonical-proxy boundary: exactly one UUPS
+`CommitmentPoolingModule` / `CommitmentRegistry` proxy pair is indexed per chain, and
+implementation upgrades retain those proxy addresses. `config.yaml`, its artifact updater, and
+the indexing-boundary check must reject a second block or proxy-address replacement on the same
+chain unless a separately approved migration first introduces a versioned entity namespace and a
+full-replay plan. Saved Offer links keep `moduleAddress` so recovery fails closed against a stale
+or wrong configured proxy; that field does not authorize concurrent multi-module indexing.
+
 `Commitment` gains nullable `commitmentSeriesId` and `commitmentSeriesEntityId`. Series-linked
 creation increments instance and current-state counts once. The existing cursor-ordered lifecycle
 projection helper applies the same reversible current-outcome deltas to the series and series-cycle
