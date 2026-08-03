@@ -148,7 +148,14 @@ Both named client test files do not exist yet; they are intentional to-be-create
 - Add Things I can offer, signed private saved-Offer metadata, the Offer once / Offer over time
   choice, garden selection for the ongoing path, finite Add places,
   claim-one-pre-created-instance, series Story, Ask me again next cycle, and holder-only
-  rest/resume/retire. “I’m learning this” is outside the Commitment Pooling Offer flow.
+  prospective metadata edit/rest/resume/retire. Active and Resting metadata edits call
+  `updateCommitmentSeriesMetadata` without rewriting existing instance snapshots. Zero-place
+  series keep Rest and Retire reachable without first creating capacity. “I’m learning this” is
+  outside the Commitment Pooling Offer flow.
+- Preserve the selected pool lifecycle through ongoing-Offer creation and detail. A Ready pool may
+  create the series but renders a Ready-specific detail with no Add-places/W35 path until indexed
+  state is Open. Composted remains distinct from Closed: participation is unavailable now, while
+  member copy preserves the steward-owned `reopenPool` path and history.
 - The canonical six-kind list is `commitmentSeries`, `commitment`, `claim`, `evidence`,
   `workLink`, and `confirmation`; `transfer` remains online-only. Availability appears only after
   Offer creation sync reserved the slot.

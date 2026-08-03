@@ -768,9 +768,9 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 - [ ] Entities, handlers, stats per the spec's fenced definitions; Envio regeneration preserves all new blocks; the existing normalized bare-address `Garden.id` and its foreign keys remain unchanged while new pooling entities use their own chain-scoped composite IDs; generic audit actor stays nullable unless explicit; `bun codegen` clean
 - [ ] Add `CommitmentSeries` and `CommitmentSeriesCycleSummary`, nullable Commitment relationships,
-  cursor-ordered lifecycle deltas, an independent latest-wins `ConfirmerRuleSet` block/log cursor,
-  exact fulfilled-cycle IDs, and replay fixtures; derive no score, rate, rank, participant count,
-  or cross-pool grouping
+  independent latest-wins pool/cycle/series/commitment lifecycle cursors, an independent latest-wins
+  `ConfirmerRuleSet` block/log cursor, exact fulfilled-cycle IDs, and reverse-delivery replay
+  fixtures; derive no score, rate, rank, participant count, or cross-pool grouping
 - [ ] Record RED/GREEN proof (scripted event-sequence test) before marking complete
 - [x] Write `handoffs/codex-indexer.md`
 - [ ] Dispatch core indexing when pooling events freeze; hold only settlement handlers for settlement event freeze. Record snapshot, switch criterion, rollback package, and Afolabi Aiyeloja as accountable live-cutover owner

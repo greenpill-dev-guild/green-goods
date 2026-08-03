@@ -64,7 +64,9 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Core seeding exposes an off-by-default protocol-fallback choice before acceptance. W10 and W13
   render indexed `Ordinary`, `PoolFallback`, and `ProtocolFallback` paths with the confirming actor
   and reason; cross-garden protocol-fallback rows are visually and textually distinct from local
-  garden confirmations.
+  garden confirmations. A fallback action or queue row appears only when indexed eligibility proves
+  the ordinary named/default path cannot reach threshold; ordinary-reachable W10 detail never
+  offers a transaction that would revert `OrdinaryConfirmationStillReachable`.
 
 ## Acceptance
 
@@ -168,6 +170,9 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   W10 protocol fallback requires explicit opt-in plus current steward/owner authority in the
   registered Green Goods protocol garden. A wallet holding both authorities uses and renders
   `PoolFallback`; module ownership alone provides no confirmation action.
+- W10 and W13 consume the indexed ordinary-reachability result before rendering either fallback
+  entry. The ordinary-reachable detail keeps only its valid ordinary/dispute actions; the separate
+  fallback-eligible state names why the ordinary threshold is unreachable and requires a reason.
 - Every reasoned confirmation review names the garden whose authority is being used. Confirmation
   history and W13 queue rows render indexed actor, `confirmationPath`, and `fallbackReason`, with
   explicit “your garden steward — fallback” versus “Green Goods team — fallback” labels.

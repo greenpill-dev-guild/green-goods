@@ -928,7 +928,8 @@ const W9_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W10_STATES = [
-  ["detail", "Detail"], ["external-fulfilled", "Fulfilled — external payout unpaid"],
+  ["detail", "Detail"], ["detail-fallback-eligible", "Detail · ordinary confirmation unreachable"],
+  ["external-fulfilled", "Fulfilled — external payout unpaid"],
   ["fulfilled", "Fulfilled — Celo plan needed"],
   ["contributor-allocation", "Contributor allocation"],
   ["record-payout", "Record payout"],
@@ -959,7 +960,8 @@ const w10Behind = () =>
   });
 
 const W10_TITLE: Record<W10State, string> = {
-  detail: "Prune the north beds", "external-fulfilled": "Prune the north beds", fulfilled: "Prune the north beds",
+  detail: "Prune the north beds", "detail-fallback-eligible": "Prune the north beds",
+  "external-fulfilled": "Prune the north beds", fulfilled: "Prune the north beds",
   "contributor-allocation": "Contributor recognition and payment",
   accepted: "Repair tool handles", "record-payout": "Record payout",
   "fallback-confirm": "Confirm as garden fallback",
@@ -1079,6 +1081,15 @@ ${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-g
       );
       actions = hot("w10.back-pool", btn("Back to pool", { kind: "ghost" }));
       break;
+    case "detail-fallback-eligible":
+      body = `${cmChips(chip("Offer", "offer"), chip("Ready", "warn", { dot: true }))}
+${kv("Maria → João", "6 hours · due Aug 12 · open claim")}
+${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 3)}
+${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria — cannot confirm")}${kv("Ordinary path", "Unreachable · no eligible named/default confirmer remains")}
+${banner("The indexed eligibility check found that the ordinary path cannot reach its threshold. A current non-contributor garden steward may use fallback with a required reason.", "amber", "shield-check-line")}
+${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid — recordable once confirmed")}`;
+      actions = `${dismiss("Close")}${hot("w10.fallback", btn("Confirm as garden fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
+      break;
     case "fulfilled":
       // Recording a payout is a Fulfilled-only act (uiux-spec §6.7). Giving it
       // its own state keeps it off the Ready detail and makes sb10's declared
@@ -1101,7 +1112,7 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
       // An inspection state legitimately has no dominant act, but it still needs
       // a way out that is not the X: both remaining controls open further
       // dialogs, so neither can double as the dismiss.
-      actions = `${dismiss("Close")}${hot("w10.fallback", btn("Confirm as garden fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
+      actions = `${dismiss("Close")}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
   }
   return deskWin(
     "admin.greengoods.app/dashboard/garden/pool",
@@ -1331,7 +1342,7 @@ ${banner("Work cards show which promise they fulfil; the approval rails are unch
     inner = acard(
       "Confirm queue",
       `<div class="t-meta">Each row names the authority path; protocol rows do not grant full other-garden browsing.</div>
-<div class="arow"><div class="grow">${hot("w13.row", `<b>Maria — Prune the north beds</b>`)} <span class="t-meta">Rocinha</span> ${chip("garden fallback", "warn")}</div>${meter(66, { right: "2 of 3" })}</div>
+<div class="arow"><div class="grow">${hot("w13.row", `<b>Maria — Prune the north beds</b>`)} <span class="t-meta">Rocinha · ordinary path unreachable</span> ${chip("garden fallback", "warn")}</div>${meter(0, { right: "0 eligible" })}</div>
 <div class="arow"><div class="grow">${hot("w13.protocol-row", `<b>TAS — Field survey ride</b>`)} <span class="t-meta">Awka</span> ${chip("Green Goods team fallback", "offer")}</div>${meter(0, { right: "0 of 1" })}</div>`,
     );
   }
@@ -1343,7 +1354,7 @@ ${banner("Work cards show which promise they fulfil; the approval rails are unch
 }
 
 const W13_HOTS: HifiDef["hots"] = {
-  "w13.row": { l: "Garden fallback row", to: "screen:W10", info: "Current local-garden Hat path. The detail keeps the mandatory reason and PoolFallback provenance visible." },
+  "w13.row": { l: "Garden fallback row", to: "screen:W10@detail-fallback-eligible", info: "The row is present only after indexed eligibility proves the ordinary path cannot reach threshold. The detail keeps the mandatory reason and PoolFallback provenance visible." },
   "w13.protocol-row": { l: "Green Goods team fallback row", to: "screen:W10@protocol-fallback-confirm", info: "Cross-garden row appears only because the commitment explicitly opted in and this account currently wears a protocol-pool steward/owner Hat." },
   "w13.chip": { l: "Commitment-context chip (W13b)", info: "Work cards show which promise they fulfill; approval rails untouched (UX:285)." },
   "w13.new-assessment": { l: "Create assessment", to: "screen:W14", info: "Opens the existing Create Assessment flow, which §6.6 extends rather than forks." },
@@ -1481,7 +1492,7 @@ const w10Facts = (state: W10State): StateFacts | undefined => {
     };
   if (["external-fulfilled", "fulfilled", "contributor-allocation", "record-payout", "garden-fulfilled", "queue-settlement-garden"].includes(state))
     return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
-  if (["detail", "fallback-confirm", "protocol-fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
+  if (["detail", "detail-fallback-eligible", "fallback-confirm", "protocol-fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
     return { ...context, commitment: "ReadyForConfirmation", kind: "DomainImpact" };
   if (state === "resolve-dispute") return { ...context, commitment: "Disputed", kind: "DomainImpact" };
   if (state === "attach-assessment") return { ...context, commitment: "PartiallyApproved", kind: "DomainImpact" };

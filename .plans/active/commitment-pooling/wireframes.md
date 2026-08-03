@@ -100,7 +100,7 @@ Route `/home/:id/pool` — NET-NEW fourth `GardenTab` on the existing garden det
 - Membership-wait variant (register #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
 - Tap card ▸ W2. Offer/Request CTAs ▸ W3 with direction preset.
 
-**Hi-fi**: [`#screens/W1@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W1@open) — canonical state registry for this frame (27 states). Cycle-banner and read-recovery states use the same W1 shell:
+**Hi-fi**: [`#screens/W1@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W1@open) — canonical state registry for this frame (28 states). Cycle-banner and read-recovery states use the same W1 shell; `composted` remains distinct from Closed and names the steward-owned reopen path:
 
 ```text
 SEEDED / OPENS SOON                 REVIEWING
@@ -570,7 +570,7 @@ Flow `{AdminDialog}` at `/garden/pool/capture` with its **own three-step rail** 
 
 ### W10 — Commitment detail dialog (uiux-spec §6.2/§6.7)
 
-Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (16 states; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
+Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (18 states; `detail-fallback-eligible` is separate from ordinary-reachable `detail`; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
 
 ```text
 ┌── Prune the north beds ──────────────── (Offer)(Ready) ──┐
@@ -1376,7 +1376,7 @@ choose-path sheet (after picking saved details):
 │ └──────────────────────────────────────────┘ │
 ```
 
-States: `saved` · `saved-with-ongoing` · `series-queued` ·
+States: `saved` · `saved-with-ongoing` · `saved-with-ongoing-ready` · `series-queued` ·
 `series-queued-place-waiting` · `empty` · `compose` · `choose-path` · `draft-unsaved` ·
 `persistence` · `loading` · `read-error`.
 
@@ -1407,7 +1407,7 @@ Creates the pool-scoped ongoing Offer. It opens no places.
 ├─────────────────────────────────────────────────────┤
 │ Choose where you will keep offering this.           │
 │ ◉ Rocinha Community Garden — gardener · pool open   │
-│ ○ Muizenberg Deep South    — gardener · pool open   │
+│ ○ Muizenberg Deep South    — gardener · pool ready  │
 │ ⚠ An ongoing Offer lives in one garden. Offering    │
 │   the same thing elsewhere is a separate ongoing    │
 │   Offer there.                                      │
@@ -1420,8 +1420,14 @@ review step:
 │                 [ Start offering over time ]        │
 ```
 
-States: `garden` · `terms` · `review` · `queued` · `place-waiting` ·
-`waiting-membership` · `failed` · `discarded-dependency`.
+States: `garden` · `garden-ready` · `terms` · `terms-ready` · `review` ·
+`review-ready` · `queued` · `queued-ready` · `place-waiting` · `waiting-membership` · `failed` ·
+`discarded-dependency`.
+
+The Ready variants preserve the chosen pool state through review, queue, sync, the personal
+ongoing-Offer row, and `W34@pool-ready`. A Ready pool may receive `createCommitmentSeries`, but
+the resulting detail has no **Add places** action and cannot reach W35 until indexed pool state is
+Open.
 
 `place-waiting` is the dependent-draft state: a place drafted before its series exists waits on
 explicit queue state, consumes no retry budget, and says what it is waiting for. Discarding the
@@ -1455,6 +1461,7 @@ instance lifecycle.
 │ [ See the whole story ]                      │
 │                                              │
 │ Looking after this offer                     │
+│ [ Edit offer details ]                       │
 │ [ Rest it for now ]   [ Retire it ]          │
 │ [ Sharing and handing on — later ]           │
 └──────────────────────────────────────────────┘
@@ -1469,13 +1476,25 @@ Story state:
 
 States: `active-two` · `active-none` · `active-one` · `places-queued` · `places-partial` ·
 `places-partial-failed` · `story` · `participation` · `ask-again` · `claimant-view` ·
-`pool-paused` · `pool-closed` · `pool-composted` · `resting` · `retire-confirm` · `retired` ·
-`succession` · `loading` · `read-error`.
+`pool-ready` · `pool-paused` · `pool-closed` · `pool-composted` · `edit-active` ·
+`edit-active-none` · `edit-active-ready` · `edit-resting` · `edit-resting-none` ·
+`edit-resting-ready` · `resting` · `resting-none` · `resting-ready` · `retire-confirm` ·
+`retire-confirm-none` · `retire-confirm-resting` · `retire-confirm-resting-none` ·
+`retire-confirm-ready` · `retire-confirm-resting-ready` · `retired` · `retired-none` ·
+`retired-ready` · `succession` · `loading` · `read-error`.
 
 Rules the frame encodes:
 
 - **Availability is reserved, not advertised.** `active-none` says "No places available right
-  now" rather than hiding the offer; each drawn place is a real Offered instance.
+  now" rather than hiding the offer; each drawn place is a real Offered instance. The same
+  zero-place state keeps Edit, Rest, and Retire reachable, so ending or pausing an ongoing Offer
+  never requires creating capacity first.
+- **Metadata revision is prospective.** Active and Resting holder states expose **Edit offer
+  details** → `updateCommitmentSeriesMetadata`. Existing place snapshots keep their exact title,
+  terms, and metadata; the edit never resumes a Resting series or creates availability.
+- **`pool-ready` and its Ready-preserving edit/rest/retire variants** expose no Add-places
+  hotspot. The holder may manage the series, but W35 remains unreachable until indexed pool state
+  becomes Open.
 - **`claimant-view`** is what another member sees: available places, Offer terms, and approved
   pool context plus **Take up one place**, which accepts one existing instance and routes to its
   ordinary commitment detail. The holder's Story and exact kept count remain visible only to the
@@ -1490,7 +1509,8 @@ Rules the frame encodes:
   score. A participant total appears only as **Reported participants · from evidence notes**.
 - **`pool-paused` / `pool-closed` / `pool-composted`** preserve the series and its history while
   applying the pool's exact availability rule: paused blocks claims temporarily, closed blocks
-  them until reopening, and composted remains terminal and read-only.
+  them until reopening, and composted blocks participation now while retaining the steward-owned
+  `reopenPool` path. The member detail links to a distinct Composted pool state, never Closed.
 - **`resting`** keeps existing Offered places claimable and the whole Story visible while removing
   only **Add places**. **`retire-confirm`** names the terminal effect and takes **no reason field**,
   because `retireCommitmentSeries` has no reason parameter. **`retired`** also preserves existing

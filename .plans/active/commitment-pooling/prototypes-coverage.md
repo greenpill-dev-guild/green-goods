@@ -4,9 +4,9 @@ Updated 2026-08-03. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 36 registered screens / 347 rendered states in the full source registry
+- 36 registered screens / 370 rendered states in the full source registry
 - 29 presentation-visible hi-fi screens / 340 states: 14 Client PWA (211 states), 13 Admin console (124 states), 2 Editorial website (5 states)
-- 469 registered hotspots
+- 507 registered hotspots
 - 44 validated source flows / 359 scenes; 43 presentation-visible flows / 350 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
 - 0 build warnings
 
@@ -117,7 +117,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
-| W1 | Client PWA | 27 | open, not-ready, ready, seeded, request-open, request-queued, reviewing, paused, closed, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
+| W1 | Client PWA | 28 | open, not-ready, ready, seeded, request-open, request-queued, reviewing, paused, closed, composted, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
 | W2 | Client PWA | 67 | accepted, offered, requested, active, evidence-queued, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, fulfilled-pool-fallback, fulfilled-protocol-fallback, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-accepted, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error |
 | W2a | Client PWA | 7 | compose, compose-request, compose-campaign-request, compose-support, compose-captured, queued, failed |
 | W2b | Client PWA | 9 | forming, add-contributor, remove-contributor, assign-requirement, open-eligible, join-submitted, open-member, frozen, recognition |
@@ -127,14 +127,14 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W23 | Client PWA | 6 | balance, contributor-receipt, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
 | WFLOW | Client PWA | 1 | review |
-| W32 | Client PWA | 11 | saved, saved-with-ongoing, series-queued, series-queued-place-waiting, empty, compose, choose-path, draft-unsaved, persistence, loading, read-error |
-| W33 | Client PWA | 8 | garden, terms, review, queued, place-waiting, waiting-membership, failed, discarded-dependency |
-| W34 | Client PWA | 19 | active-two, active-none, active-one, places-queued, places-partial, places-partial-failed, story, participation, ask-again, claimant-view, pool-paused, pool-closed, pool-composted, resting, retire-confirm, retired, succession, loading, read-error |
+| W32 | Client PWA | 12 | saved, saved-with-ongoing, saved-with-ongoing-ready, series-queued, series-queued-place-waiting, empty, compose, choose-path, draft-unsaved, persistence, loading, read-error |
+| W33 | Client PWA | 12 | garden, garden-ready, terms, terms-ready, review, review-ready, queued, queued-ready, place-waiting, waiting-membership, failed, discarded-dependency |
+| W34 | Client PWA | 35 | active-two, active-none, active-one, places-queued, places-partial, places-partial-failed, story, participation, ask-again, claimant-view, pool-ready, pool-paused, pool-closed, pool-composted, edit-active, edit-active-none, edit-active-ready, edit-resting, edit-resting-none, edit-resting-ready, resting, resting-none, resting-ready, retire-confirm, retire-confirm-none, retire-confirm-resting, retire-confirm-resting-none, retire-confirm-ready, retire-confirm-resting-ready, retired, retired-none, retired-ready, succession, loading, read-error |
 | W35 | Client PWA | 4 | compose, queued, mixed-queued, mixed-failed |
 | W7 | Admin console | 27 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
-| W10 | Admin console | 17 | detail, external-fulfilled, fulfilled, contributor-allocation, record-payout, fallback-confirm, protocol-fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
+| W10 | Admin console | 18 | detail, detail-fallback-eligible, external-fulfilled, fulfilled, contributor-allocation, record-payout, fallback-confirm, protocol-fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
 | W11 | Admin console | 8 | presets, invalid-sum, guard, recognition-policy, campaign-allocation, campaign-open, discard, campaign-discard |
 | W12 | Admin console | 2 | protocol, current-garden |
 | W13 | Admin console | 4 | queue, context-chip, assess, empty |

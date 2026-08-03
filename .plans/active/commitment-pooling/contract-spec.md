@@ -2527,6 +2527,8 @@ type CommitmentPool {
   openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
   openCampaignEntityIds: [String!]! # relationship IDs in matching order
   providerOpenCommitmentCap: BigInt!
+  lifecycleBlockNumber: BigInt # nullable latest PoolReady/Open/Pause/Resume/Close/Compost/Reopen cursor
+  lifecycleLogIndex: Int # nullable cursor partner; older pool state events never regress state/reason
   # Lifetime counts (event-driven counters, greenWill dedup pattern)
   commitmentsOffered: BigInt!
   commitmentsRequested: BigInt!
@@ -2569,6 +2571,8 @@ type CommitmentCycle {
   equalParticipationBps: Int!
   verifiedContributionBps: Int!
   liveCommitmentCount: BigInt! # every non-terminal cycle commitment, including Offered/Requested
+  lifecycleBlockNumber: BigInt # nullable latest CycleOpened/Closed/Composted/Cancelled cursor
+  lifecycleLogIndex: Int # nullable cursor partner; older cycle events never regress state/relations
   # Per-cycle count stats. Unit totals live in exact-label summary rows.
   commitmentsAccepted: BigInt!
   commitmentsReadyForConfirmation: BigInt!
@@ -3019,7 +3023,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 
 - **Dedup counters**: pool/cycle counters increment exactly the way `holderCount`/`grantCount` do in `packages/indexer/src/handlers/greenWill.ts:66-88` (read existing entity, branch on prior existence, never double-count).
 - **Idempotency**: same-tx replay and already-exists guards as `packages/indexer/src/handlers/hypercerts.ts:38-42,71-75`.
-- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, zero allocation/counters, and event timestamps. Series placeholders use `UNKNOWN` state, zero pool ID, empty holder/creator/metadata, empty fulfilled-cycle IDs, zero outcome counts, and event cursor/timestamps. Commitment placeholders set `creationSeen = false` and use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional series/cycle/provider/reward/dispute/lifecycle-cursor fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts, sets `creationSeen = true`, and never resets already-applied monotonic counters. State-derived events that require those immutable facts are buffered rather than consuming their lifecycle cursor on the placeholder; creation drains that typed buffer atomically as specified below. Tests exercise each placeholder merge.
+- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, null lifecycle cursor, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, null lifecycle cursor, zero allocation/counters, and event timestamps. Series placeholders use `UNKNOWN` state, zero pool ID, empty holder/creator/metadata, empty fulfilled-cycle IDs, zero outcome counts, and event cursor/timestamps. Commitment placeholders set `creationSeen = false` and use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional series/cycle/provider/reward/dispute/lifecycle-cursor fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts, sets `creationSeen = true`, and never resets already-applied monotonic counters. State-derived events that require those immutable facts are buffered rather than consuming their lifecycle cursor on the placeholder; creation drains that typed buffer atomically as specified below. Tests exercise each placeholder merge.
 - **ID helpers**: retain `getGardenId(garden)` as normalized bare-address compatibility, and add `getCommitmentPoolId(chainId, poolId)`,
   `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`,
   `getCommitmentSeriesId(chainId, seriesId)`,
@@ -3048,6 +3052,20 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   plan does not authorize an install. Exact strings use no trim, case fold, Unicode normalization,
   locale transform, or ABI encoding. Raw numeric IDs and addresses remain display/filter
   attributes only; every cross-entity pointer uses its composite relationship field.
+- **Pool and cycle lifecycle projection**: `CommitmentPool` and `CommitmentCycle` each own an
+  independent nullable `(lifecycleBlockNumber, lifecycleLogIndex)` cursor. Every pool state event
+  (`PoolReady`, `PoolOpened`, `PoolPaused`, `PoolResumed`, `PoolClosed`, `PoolComposted`,
+  `PoolReopened`) and cycle state event (`CycleOpened`, `CycleClosed`, `CycleComposted`,
+  `CycleCancelled`) compares its event position lexicographically before changing state,
+  `pauseReasonCID`, or the pool's open Season/Campaign relationships. Older and duplicate events
+  may retain their immutable audit row but do not mutate those projections or `updatedAt`.
+  `PoolRegistered` and `CycleSeeded` fill immutable placeholder facts and initialize state only
+  when no later lifecycle cursor exists. A reverse-delivered `CycleOpened` still fills its
+  immutable allocation/recognition snapshots once, but cannot reopen a cycle whose newer
+  close/compost/cancel cursor already won. Fixtures deliver opposing pool Open/Pause/Resume and
+  cycle Open/Close/Compost/Cancel sequences in both orders, including lifecycle-before-creation
+  and duplicates, and assert identical state, pause reason, open-cycle relationships, snapshots,
+  and `updatedAt`.
 - **Series and Story projection**: series state and series metadata are independently mutable and
   therefore use separate lexicographic cursor pairs. `CommitmentSeriesRested`,
   `CommitmentSeriesResumed`, and `CommitmentSeriesRetired` compare only

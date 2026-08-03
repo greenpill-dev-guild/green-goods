@@ -1212,12 +1212,16 @@ erDiagram
     String gardenId "bare normalized Garden.id relationship"
     CommitmentPoolType poolType "GARDEN or PROTOCOL"
     CommitmentPoolState state "NOT_READY to COMPOSTED, the D8 vocabulary"
+    BigInt lifecycleBlockNumber "nullable pool-state replay cursor"
+    Int lifecycleLogIndex "cursor partner; latest state and pause reason win"
   }
 
   COMMITMENT_CYCLE {
     ID id "chainId-cycleId"
     CommitmentCycleType cycleType "SEASON or CAMPAIGN"
     CommitmentCycleState state "on-chain vocabulary only; InProgress-Reviewing derived"
+    BigInt lifecycleBlockNumber "nullable cycle-state replay cursor"
+    Int lifecycleLogIndex "cursor partner; latest state and pool relationship win"
   }
 
   COMMITMENT_SERIES {

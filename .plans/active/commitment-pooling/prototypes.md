@@ -1039,7 +1039,7 @@ flowchart LR
 | 1 | save the details of something you can offer | signed offchain write; no pool, series, or commitment state | W32 saved | edit or remove freely; nothing is promised |
 | 2 | choose one garden | binds the series to one pool | W33 garden | a second garden means a second series, never a merge |
 | 3 | start offering it over time | queues `createCommitmentSeries`; caller becomes immutable creator and initial current holder | W33 queued | offline retry; the saved details survive either way |
-| 4 | sync lands | series is Active with **zero** places | W34 active-none | an Active series with nothing open is a real state, not an error |
+| 4 | sync lands | series is Active with **zero** places | W34 active-none | an Active series with nothing open is a real state, not an error; Edit, Rest, and Retire remain reachable without creating capacity |
 | 5 | add a finite batch of places | one ordinary `createCommitment` per place, each reserving its class and one provider slot at creation | W35 queued | places are not shown as available until each has synced |
 | 6 | both sync | two genuinely reserved, independently claimable promises | W34 active-two | each place has its own terms, route, and terminal lifecycle |
 
@@ -1085,6 +1085,19 @@ next-cycle posture is **Ask me again next cycle** — declining creates nothing.
 | 2 | rest the offer | `restCommitmentSeries` blocks new places | W34 resting | the taken-up promise and the whole Story are untouched |
 | 3 | resume | `resumeCommitmentSeries` returns it to Active; both indexed Offered places remain available and no new place is created | W34 active-two | the two existing places remain claimable; add more only when ready |
 | 4 | retire | terminal `retireCommitmentSeries`; the confirmation takes **no reason field** because the call has no reason parameter | W34 retired | existing promises keep their state; the saved details stay privately stored |
+
+### Corrected holder-management and pool-state variants
+
+These are executable W32–W34 states and hotspots inside the same SB-37–SB-41 feature set, not
+additional product concepts:
+
+| Variant | Executable path | Contract-safe behavior |
+|---|---|---|
+| Ready pool selected | `W33@garden-ready` → `terms-ready` → `review-ready` → `queued-ready`; after sync `W32@saved-with-ongoing-ready` → `W34@pool-ready` | `createCommitmentSeries` is allowed, but no Add-places hotspot or W35 route exists until indexed pool state becomes Open |
+| Active metadata revision | `W34@active-*` → `edit-active*` → save | holder-only `updateCommitmentSeriesMetadata`; existing place snapshots and availability remain unchanged |
+| Resting metadata revision | `W34@resting*` → `edit-resting*` → save | updates prospective series metadata without resuming or rewriting an instance |
+| Zero-place lifecycle | `active-none` → `resting-none` / `retire-confirm-none` → `retired-none` | Rest and Retire remain independent of instance count; no `createCommitment` or capacity reservation is required |
+| Composted pool | `W34@pool-composted` → `W1@composted` | participation is unavailable now, history remains readable, and copy preserves the steward-owned `reopenPool` path |
 
 ### What this set deliberately does not draw
 
