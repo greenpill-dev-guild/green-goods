@@ -142,15 +142,7 @@ export function MetadataEditor({
 
       <FormInput
         id="hypercert-title"
-        label={
-          <>
-            {formatMessage({ id: "app.hypercerts.metadata.title" })}
-            <span className="ml-0.5 text-error-base" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only">{formatMessage({ id: "app.form.required" })}</span>
-          </>
-        }
+        label={`${formatMessage({ id: "app.hypercerts.metadata.title" })} *`}
         value={draft.title}
         onChange={(event) => onUpdate({ title: event.target.value })}
         placeholder={formatMessage({ id: "app.hypercerts.metadata.title.placeholder" })}
@@ -170,15 +162,7 @@ export function MetadataEditor({
         <div className="space-y-1">
           <FormInput
             id="hypercert-work-scope"
-            label={
-              <>
-                {formatMessage({ id: "app.hypercerts.metadata.workScope" })}
-                <span className="ml-0.5 text-error-base" aria-hidden="true">
-                  *
-                </span>
-                <span className="sr-only">{formatMessage({ id: "app.form.required" })}</span>
-              </>
-            }
+            label={`${formatMessage({ id: "app.hypercerts.metadata.workScope" })} *`}
             value={workScopesText}
             onChange={(event) => onUpdate({ workScopes: parseCommaList(event.target.value) })}
             placeholder={formatMessage({ id: "app.hypercerts.metadata.scope.placeholder" })}
