@@ -304,6 +304,11 @@ This section is an applied historical pack, not a pending instruction. The authe
 If a future correction is needed, re-read the live issue first, preserve newer human edits, and
 author a new dated addendum rather than replaying these payloads.
 
+> **Archival payload boundary:** every subsection and imperative phrase below, including “Add,”
+> “Handle,” “Point,” and “Apply,” quotes the already-applied 2026-08-01 payload. None is executable
+> or pending. Only a new dated addendum written after a live Linear re-read may authorize another
+> change.
+
 ### PRD-649 — Bilateral exchange amendment re-closes the architecture freeze
 
 The Commitment Pooling architecture freeze was reopened for exactly one additive function and is

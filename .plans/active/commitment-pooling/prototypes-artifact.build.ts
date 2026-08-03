@@ -184,7 +184,7 @@ const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc
 const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
 <p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
 <p><strong>Exchange-wave source additions</strong>: W28–W31 and SB-35/SB-36 are approved planned source journeys for bilateral exchange and template-first creation. They render in the Reference document only until the separate Claude review pass adds them to the executable hi-fi registry; this artifact does not claim they are already drawn or validated.</p>
-<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
+<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the six pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
 <p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
 
 const sections = secs.map(s => {
@@ -710,8 +710,25 @@ for (const [pattern, label] of staleOfferNounPatterns) {
 const stateHtml = (screenId: string, stateId: string) =>
   SCREENS.find((screen) => screen.id === screenId)?.states.find((state) => state.id === stateId)?.html ?? "";
 const claimantView = stateHtml("W34", "claimant-view");
-if (!claimantView || claimantView.includes("12 times across 5 cycles") || claimantView.includes("Kept here")) {
-  throw new Error("Privacy regression: W34@claimant-view exposes the holder's personal Story or exact kept count.");
+const claimantAllowedFields = [
+  "provider",
+  "terms",
+  "garden",
+  "availablePlaces",
+  "placeTerms",
+  "claimExplanation",
+];
+const claimantRenderedFields = [...claimantView.matchAll(/data-claimant-field="([^"]+)"/g)].map(
+  (match) => match[1],
+);
+if (
+  !claimantView ||
+  !claimantView.includes('data-privacy-contract="ongoing-offer-claimant-v1"') ||
+  JSON.stringify(claimantRenderedFields) !== JSON.stringify(claimantAllowedFields)
+) {
+  throw new Error(
+    "Privacy regression: W34@claimant-view must render only the approved structural claimant fields; holder Story and kept-count fields are not permitted.",
+  );
 }
 for (const stateId of ["review", "active-two"]) {
   const screenId = stateId === "review" ? "W33" : "W34";

@@ -2055,6 +2055,27 @@ const W34_STATES = [
 ] as const;
 type W34State = (typeof W34_STATES)[number][0];
 
+const W34_CLAIMANT_ALLOWED_FIELDS = [
+  "provider",
+  "terms",
+  "garden",
+  "availablePlaces",
+  "placeTerms",
+  "claimExplanation",
+] as const;
+type W34ClaimantField = (typeof W34_CLAIMANT_ALLOWED_FIELDS)[number];
+const W34_CLAIMANT_PUBLIC_DATA: Record<W34ClaimantField, string> = {
+  provider: "Maria",
+  terms: "A two-hour session on local climate work",
+  garden: "Rocinha Community Garden",
+  availablePlaces: "2",
+  placeTerms: "Season of First Rains · 2 hours",
+  claimExplanation:
+    "Taking up a place opens that promise. The other place stays available for someone else.",
+};
+const claimantField = (fieldName: W34ClaimantField, html: string) =>
+  `<div data-claimant-field="${fieldName}">${html}</div>`;
+
 const w34Head = (opts: { state: string; tone: "offer" | "plain" | "ink" }) =>
   `${hdr("Hosting climate workshops", { back: true })}<div class="hsub">Rocinha Community Garden · ${opts.state}</div>`;
 
@@ -2152,14 +2173,29 @@ function w34(state: W34State): string {
       break;
     case "claimant-view":
       body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
-        card(`${kv("Offered by", "Maria")}${kv("What you receive", "A two-hour session on local climate work")}${kv("Garden", "Rocinha Community Garden")}`),
-        card(
-          `<div class="t-title num">2 places available now</div><div class="t-meta">Each place is already held open for whoever takes it up.</div>` +
-            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            hot("w34.claim", btn("Take up one place", { kind: "pri", full: true })),
-        ),
-        `<div class="t-meta">Taking up a place opens that promise. The other place stays available for someone else.</div>`,
+        `<div data-privacy-contract="ongoing-offer-claimant-v1">` +
+          card(
+            claimantField("provider", kv("Offered by", W34_CLAIMANT_PUBLIC_DATA.provider)) +
+              claimantField("terms", kv("What you receive", W34_CLAIMANT_PUBLIC_DATA.terms)) +
+              claimantField("garden", kv("Garden", W34_CLAIMANT_PUBLIC_DATA.garden)),
+          ) +
+          card(
+            claimantField(
+              "availablePlaces",
+              `<div class="t-title num">${W34_CLAIMANT_PUBLIC_DATA.availablePlaces} places available now</div><div class="t-meta">Each place is already held open for whoever takes it up.</div>`,
+            ) +
+              claimantField(
+                "placeTerms",
+                listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: W34_CLAIMANT_PUBLIC_DATA.placeTerms, chipHtml: stateChip("Offered") }) +
+                  listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: W34_CLAIMANT_PUBLIC_DATA.placeTerms, chipHtml: stateChip("Offered") }) +
+                  hot("w34.claim", btn("Take up one place", { kind: "pri", full: true })),
+              ),
+          ) +
+          claimantField(
+            "claimExplanation",
+            `<div class="t-meta">${W34_CLAIMANT_PUBLIC_DATA.claimExplanation}</div>`,
+          ) +
+          `</div>`,
       )}`;
       break;
     case "resting":

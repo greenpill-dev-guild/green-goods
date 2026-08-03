@@ -3,7 +3,7 @@
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
 - **Updated**: 2026-08-02 — offering over time (W32–W35, SB-37–SB-41) realized in the hi-fi registry and recorded in §20, then corrected to the one-noun Offer vocabulary per `handoffs/claude-offer-vocabulary-correction.md`; bilateral exchange acceptance, exchange-pair UX, Offer templates, and the plain-language pass remain in §19 (see Changelog).
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
-- **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D1–D26) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
+- **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D1–D27) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
 ## Changelog
 
@@ -51,7 +51,11 @@
 
 ## Storyboard index
 
-**At a glance** — thirty-six numbered storyboards mapped to personas, scenarios, and surfaces. SB-35 and SB-36 are planned source journeys for the exchange wave; the executable registry still contains the thirty-four validated hi-fi storyboards until the separate review pass draws them.
+**At a glance** — forty-one numbered storyboards mapped to personas, scenarios, and surfaces.
+SB-35 and SB-36 remain planned source journeys for the exchange wave. The executable registry
+contains 44 validated journey entries for the other 39 numbered storyboards: 43 are review-visible,
+and the September Community source flow remains hidden but validated. Split cross-surface walks
+account for the additional executable entries.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
@@ -91,8 +95,17 @@
 | SB-34 | Seed or top up a garden outside a commitment | Protocol steward / module owner | S9 discretionary treasury support | Admin |
 | SB-35 | Create and accept a bilateral exchange pair | Two offer creators | Exchange wave | Client PWA |
 | SB-36 | Start from an Offer template | Gardener or steward | Exchange wave | Client PWA + Admin |
+| SB-37 | Save offer details, then offer over time | Gardener (Maria) | S15 ongoing Offer creation | Client PWA |
+| SB-38 | Create an ongoing Offer and dependent place offline | Gardener (Maria) | S15 offline dependency | Client PWA |
+| SB-39 | Take up one pre-created available place | Member (João) | S15 claimant view | Client PWA |
+| SB-40 | Read one ongoing Offer's exact Story | Gardener (Maria) | S15 Story and renewal | Client PWA |
+| SB-41 | Rest, resume, and retire an ongoing Offer | Gardener (Maria) | S15 holder lifecycle | Client PWA |
 
-Grouping: gardener journeys SB-1–7, SB-15–18, SB-26–30, and planned SB-35–36 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · treasury SB-34 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33 proves recognition and payment stay linked but distinct.
+Grouping: gardener journeys SB-1–7, SB-15–18, SB-26–30, planned SB-35–36, and realized
+SB-37–41 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · treasury SB-34 · settlement
+SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle
+cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33
+proves recognition and payment stay linked but distinct.
 
 ---
 
@@ -366,7 +379,7 @@ flowchart LR
 | 6 | — | (membership-wait lane) a brand-new member's job needs a garden hat that hasn't landed | S6: the job waits in `waiting_for_hat` **without consuming retries**, resumes after membership, "never fabricates a successful write" (LAP:191); the ≥99% sync metric explicitly excludes time in this state (`acceptance-matrix.md` §6) | waiting (local) | — |
 
 **Spec gap (finding input)** — `waiting_for_hat` is required by scenario S6 and the acceptance metric, and CI-W4 draws it for September community jobs (CI-WF:124-159):
-- but for the five pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
+- but for the six pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
 - S6 also names **Edit/Retry/Cancel/Delete** for queued jobs (LAP:191), where §5.12 offers only retry/discard (UX:240).
 
 **Decided 2026-07-11 (register #34c)**: in scope for August — the pre-flight membership check consumes no retries, the join-request approval (register #35) is the canonical resume trigger, and uiux-spec §5.11/§5.12 are updated. Realized source sketch:
@@ -647,7 +660,7 @@ This storyboard stays at wireframe depth on purpose: the community frames are ca
 
 ---
 
-### Additional guided-flow catalogue (SB-15–36)
+### Additional guided-flow catalogue (SB-15–41)
 
 The executable artifact also carries the focused, shorter journeys below. They
 reuse the contracts and screens specified above; their purpose is to make every
@@ -678,6 +691,11 @@ scenario chapters.
 | 34 | protocol funding form → typed Funding/ProtocolToGarden queued row | separately authorized treasury support with no commitment identity |
 | 35 (planned) | create B in exchange for A → A creator starts both → each proceeds independently → one lapses | `counterCommitmentId`, `acceptExchange`, two ordinary acceptance streams, no post-acceptance coupling |
 | 36 (planned) | choose an Offer template → inspect plain defaults → edit ordinary fields → submit or start blank | content/config prefills only; no new contract type or module call |
+| 37 | save Offer details → choose Offer over time → create series → add two finite places | one pool-scoped durable identity plus two ordinary capacity-backed Offers |
+| 38 | queue series offline → queue dependent place → wait without retry use → sync in order | stable `clientSeriesId` dependency and receipt-derived onchain series ID |
+| 39 | open another member's ongoing Offer → take up one pre-created place | claimant view exposes approved Offer terms and availability, not holder Story or kept count |
+| 40 | open exact Story → inspect linked instance → compare with separate pool history → ask again | exact event-derived history, no score/rate/rank, and current consent before new places |
+| 41 | preview later succession → rest → resume → retire | only Rest/Resume/Retire are active; existing instances and history remain independent |
 
 ---
 
@@ -711,9 +729,11 @@ The table preserves the source gap that created each MF identifier; it is not a 
 
 ## 16. Action inventory — how many new user-facing actions does this feature add?
 
-**At a glance** — August adds ~37 net-new user-facing actions (9 gardener · 28 operator), riding 5 offline-safe job kinds plus one online G$ send; the Celo settlement executor is automated and adds no human-facing action.
+**At a glance** — August adds ~37 net-new user-facing actions (9 gardener · 28 operator), riding
+six offline-safe job kinds plus one online G$ send; the Celo settlement executor is automated and
+adds no human-facing action.
 
-**Sources of truth** — the permission matrix spans two files: `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186), cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitment, claim, evidence, workLink, confirmation`; `transfer` is online-only; `work`/`approval` are untouched (CS:1536; UX:206).
+**Sources of truth** — the permission matrix spans two files: `contract-spec.md` §6.1 (CS:719-763) and `settlement-spec.md` (SS:166-186), cross-read with uiux-spec §5–§7 placements and the job-kind table (UX:204-224). Offline kinds are exactly `commitmentSeries, commitment, claim, evidence, workLink, confirmation`; `transfer` is online-only; `work`/`approval` are untouched (CS:1536; UX:206).
 
 **Counting rules**:
 - **Net-new user-facing** = a persona triggers it from a realized frame or an explicit locked spec placement.
@@ -812,10 +832,10 @@ The table preserves the source gap that created each MF identifier; it is not a 
 | System-only rows | 6 (16.3) |
 | New routes | client 3 (`/home/:id/pool`, `…/pool/:commitmentId`, `…/pool/new`) + admin 5 (`/garden/pool`, `…/seed`, `…/capture`, `/community/pools`, `/hub/confirm`) (UX:120,252-259) |
 | New in-place screen locations (no new route) | client 3 (Pool GardenTab · WalletDrawer pools panel, including the W6→W5 compatibility target · W23 G$ section) · admin 4 (W21 settlement section · W10 reward/dispute delta · W13 stage · W14 fields) · editorial 2 sections (W15, W16) |
-| New offline job kinds | 5 (`commitment, claim, evidence, workLink, confirmation`) + 1 online-only `transfer` (CS:1536) |
+| New offline job kinds | 6 (`commitmentSeries, commitment, claim, evidence, workLink, confirmation`) + 1 online-only `transfer` (CS:1536) |
 | New i18n key families | 8 (UX:393-402) + `settlement.*` extensions (SS:539); every key en + es + pt |
 
-**Platform delta (one line for the external brief's operator note)**: August adds one new place on each existing surface — a Pool tab in the garden app, a Pool tab, Confirm stage, and Pools mode in the steward console, a promises section on public garden pages — and about 37 new things a person can do there: 9 for gardeners, from making an offer to withdrawing one or sending G$ onward, and 28 for stewards seeding promises, reviewing claims, running seasons, and recording or settling rewards. The Celo executor is automated; these actions ride 5 new offline-safe job kinds plus one online G$ send, shipped in English, Spanish, and Portuguese.
+**Platform delta (one line for the external brief's operator note)**: August adds one new place on each existing surface — a Pool tab in the garden app, a Pool tab, Confirm stage, and Pools mode in the steward console, a promises section on public garden pages — and about 37 new things a person can do there: 9 for gardeners, from making an offer to withdrawing one or sending G$ onward, and 28 for stewards seeding promises, reviewing claims, running seasons, and recording or settling rewards. The Celo executor is automated; these actions ride six new offline-safe job kinds plus one online G$ send, shipped in English, Spanish, and Portuguese.
 
 ---
 

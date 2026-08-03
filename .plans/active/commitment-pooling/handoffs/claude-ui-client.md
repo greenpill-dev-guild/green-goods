@@ -50,7 +50,9 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 
 ## Acceptance
 
-- The five field job kinds work offline, survive restart, expose waiting/retry/failure, and do not duplicate submissions.
+- The six field job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`,
+  `confirmation`) work offline, survive restart, expose waiting/retry/failure, and do not duplicate
+  submissions. `transfer` remains online-only and never enters the offline queue.
 - DomainImpact creation rejects an empty or over-`MAX_REQUIREMENTS` requirement list, missing
   actions, and zero required counts; actions in the same domain remain valid. Successful jobs
   preserve the complete ordered requirement payload through restart and retry. Per-action progress
@@ -141,14 +143,15 @@ Both named client test files do not exist yet; they are intentional to-be-create
 ## Binding ongoing-Offer amendment — 2026-08-02
 
 - Runtime implementation follows `standing-commitments-spec.md`, `uiux-spec.md` Appendix F, and
-  the completed `claude-standing-artifacts.md` output. Artifact work may continue now; product
-  code remains behind the backend and artifact gates.
+  the completed `claude-standing-artifacts.md` output. The approved artifacts are canonical;
+  product code remains behind the backend gates.
 - Add Things I can offer, signed private saved-Offer metadata, the Offer once / Offer over time
   choice, garden selection for the ongoing path, finite Add places,
   claim-one-pre-created-instance, series Story, Ask me again next cycle, and holder-only
   rest/resume/retire. “I’m learning this” is outside the Commitment Pooling Offer flow.
-- Supersede every “five job kinds” line in this handoff with six, including
-  `commitmentSeries`. Availability appears only after Offer creation sync reserved the slot.
+- The canonical six-kind list is `commitmentSeries`, `commitment`, `claim`, `evidence`,
+  `workLink`, and `confirmation`; `transfer` remains online-only. Availability appears only after
+  Offer creation sync reserved the slot.
 - Keep Pool participation history separate from one ongoing Offer’s Story. No device-only saved
   Offer metadata, claim-spawned instance, auto-renewal, active succession control, inferred
   participant count, reliability score, or cross-pool identity.

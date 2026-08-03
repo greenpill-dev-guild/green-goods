@@ -1481,7 +1481,7 @@ const w10Facts = (state: W10State): StateFacts | undefined => {
     };
   if (["external-fulfilled", "fulfilled", "contributor-allocation", "record-payout", "garden-fulfilled", "queue-settlement-garden"].includes(state))
     return { ...context, commitment: "Fulfilled", kind: "DomainImpact" };
-  if (["detail", "fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
+  if (["detail", "fallback-confirm", "protocol-fallback-confirm", "raise-dispute", "garden-ready"].includes(state))
     return { ...context, commitment: "ReadyForConfirmation", kind: "DomainImpact" };
   if (state === "resolve-dispute") return { ...context, commitment: "Disputed", kind: "DomainImpact" };
   if (state === "attach-assessment") return { ...context, commitment: "PartiallyApproved", kind: "DomainImpact" };

@@ -4,7 +4,8 @@
 
 - Work unit: canonical prototype + visual asset gallery architecture pass
 - Owner: Claude Code
-- Current state: ready for artifact work after Afo's 2026-08-02 scope lock
+- Current state: completed; artifact correction published on 2026-08-02 and approved after
+  verification on 2026-08-03. Do not rebuild or publish again without new authorization.
 - Linear context: [PRD-789](https://linear.app/greenpill-dev-guild/issue/PRD-789), unblocked after
   the [PRD-788](https://linear.app/greenpill-dev-guild/issue/PRD-788) architecture gate closed
   under PRD-650

@@ -183,7 +183,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## RED / GREEN
 
-- RED: `test/commitmentPool.test.ts`, `test/settlement.test.ts`, and `test/gardenCompositeIdMigration.test.ts` are explicit to-be-created first-failing deliverables; focused handler/migration/preservation fixtures fail before schema, config, helper, and handler changes.
+- RED: `test/commitmentPool.test.ts`, `test/settlement.test.ts`, and `test/gardenIdentityCompatibility.test.ts` are explicit to-be-created first-failing deliverables; focused handler/compatibility/preservation fixtures fail before schema, config, helper, and handler changes.
 - GREEN: the same fixtures pass after codegen; generated operations expose every entity; setup-generated, boundary, tests, and build pass.
 - Generated ReScript setup runs through the exact pnpm `10.33.2` Corepack pin declared by
   `packages/indexer/package.json`. The root monorepo remains `bun@1.3.14`; no generated-workspace

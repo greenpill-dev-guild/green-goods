@@ -2,7 +2,7 @@
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Four audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
-//   2) Architecture — D1–D26 with their "How to read this" panels (Mermaid renders
+//   2) Architecture — D1–D27 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
 //   3) Screens      — cross-surface flow map + 37 low-fi ASCII screen headings:
@@ -135,10 +135,11 @@ const ERD_GLYPHS: Array<[svg: string, label: string]> = [
   [`<svg width="46" height="14" viewBox="0 0 46 14" aria-hidden="true"><path d="M2 7h24M36 7l8-5M36 7h8M36 7l8 5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="30" cy="7" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`, "zero or many"],
   [`<svg width="46" height="14" viewBox="0 0 46 14" aria-hidden="true"><path d="M2 7h34M32 2v10M36 7l8-5M36 7h8M36 7l8 5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`, "one or many"],
 ];
-// Arrow style is a semantic, not decoration, and the same three meanings hold in
-// every diagram: solid = an action taken, dashed/dotted = observed or derived,
-// thick = value actually moving. The key is emitted only when a diagram actually
-// mixes styles — a single-style drawing has nothing to disambiguate.
+// Arrow style is semantic, not decoration. Sequence diagrams use dashed arrows
+// for emitted/observed messages. Flowcharts use dashed arrows for qualified
+// relationships whose exact meaning is carried by the edge label; planned
+// status remains a separate node/class treatment. The key is emitted only when
+// a diagram actually mixes styles.
 const ARROW_GLYPHS: Record<string, string> = {
   solid: `<svg width="34" height="12" viewBox="0 0 34 12" aria-hidden="true"><path d="M1 6h24" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M25 2l7 4-7 4z" fill="currentColor"/></svg>`,
   dashed: `<svg width="34" height="12" viewBox="0 0 34 12" aria-hidden="true"><path d="M1 6h24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="4 3"/><path d="M25 2l7 4-7 4z" fill="currentColor"/></svg>`,
@@ -154,7 +155,9 @@ function arrowKey(head: string, source: string): string {
     if (/-->>/.test(source)) found.push(["dashed", "observed or derived — an event or acknowledgment"]);
   } else {
     if (/-->/.test(source)) found.push(["solid", "an action taken — a call, transaction, or transition"]);
-    if (/-\.-+>/.test(source)) found.push(["dashed", "observed or derived — an event, reference, or invariant"]);
+    if (/-\.-+>/.test(source)) {
+      found.push(["dashed", "qualified relationship — read this edge's label for its meaning"]);
+    }
     if (/==+>/.test(source)) found.push(["thick", "value actually moving"]);
   }
   if (found.length < 2) return "";

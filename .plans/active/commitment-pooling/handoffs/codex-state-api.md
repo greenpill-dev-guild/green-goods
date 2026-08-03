@@ -29,10 +29,16 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   proposed/matched/counterpart-lapsed derivation, and online `acceptExchange` mutation. It exposes
   `CommitmentExchange` as the atomic marker while preserving ordinary commitment queries and
   independent lifecycle invalidation on each side.
-- Five offline job kinds: commitment, claim, evidence, workLink, and confirmation.
+- Six offline job kinds: `commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, and
+  `confirmation`.
 - Settlement and ProtocolToGarden funding remain online authority-gated mutations; neither is a
-  sixth offline job, per-device attempt, or background queue.
-- Job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
+  seventh offline job, per-device attempt, or background queue.
+- `commitmentSeries` carries `{ clientSeriesId, poolId, gardenAddress, metadataCID }`.
+  `clientSeriesId` is the stable local deduplication and dependency key: an exact retry reuses the
+  same queued series record, while a dependent `commitment` job waits without consuming retries
+  until the indexed receipt supplies the onchain series ID. Discarding a failed series job leaves
+  dependent drafts recoverable and visibly waiting.
+- Ordinary Commitment job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
   rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
   selection. DomainImpact creation never accepts caller-authored
@@ -96,7 +102,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 - All hooks live in @green-goods/shared and use centralized queryKeys.
 - Mutations use the shared error pattern and event-driven invalidation.
-- Offline jobs survive restart, dedupe correctly, and never enqueue an online G$ transfer.
+- All six offline jobs survive restart and dedupe correctly. Tests prove stable
+  `clientSeriesId` retry identity, receipt-derived onchain-series materialization, dependent
+  Commitment waiting with no retry consumption, and recoverable dependent drafts after a failed or
+  discarded series job. No path enqueues an online G$ transfer.
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data. A small-garden fixture with every local confirmer on the contributor roster blocks when protocol fallback is unselected, becomes Ready when it was selected pre-acceptance, and renders “confirmed by Green Goods team — fallback” only from `PROTOCOL_FALLBACK` provenance. Local fallback and ordinary confirmation use distinct labels, and a contributor is disabled on every path.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator;
   Individual requests expose the same address for both. Runtime claim type cannot diverge from
@@ -136,8 +145,12 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## RED / GREEN
 
-- RED: add focused shared selector, hook, mutation, query-key, and job tests; capture expected failures before implementation.
-- GREEN: run the same files after implementation, then shared typecheck and story checks for any changed shared component.
+- RED: add focused shared selector, hook, mutation, query-key, and job tests, including
+  `commitmentSeries` payload round-trip, stable deduplication, dependency waiting, receipt
+  materialization, and failure/discard recovery; capture expected failures before implementation.
+- GREEN: run the same files after implementation with all six offline kinds and the online-only
+  transfer exclusion passing, then shared typecheck and story checks for any changed shared
+  component.
 
 ## Exact Bun commands
 

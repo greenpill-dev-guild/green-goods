@@ -1115,8 +1115,7 @@ awaiting confirmation. It must not be described to partners as agreed. No contra
 settlement, or indexer interface changes either way; distribution scaling and partner-facing
 claims do depend on the answer.
 
-**Knock-on for §9b's metrics note**: reseed rate was recorded as *unmodeled* rather than
-merely untagged, because its numerator needed a return leg above garden Safes. That leg now
-exists in the model. It remains unmeasured — the numerator is Celo-side and §6 excludes raw
-Celo transfers from the indexer boundary — so the metric moves from *unmodeled* to
-*modelled but out of indexer scope*, and still cannot be evaluated pass/fail.
+**Knock-on for §9b's metrics note**: reseed rate remains unmeasured because its numerator requires
+season-to-season G$ attribution inside the garden Safe. The selected Green Goods service-spend
+return leg does not change that dependency. Celo-side observation and season attribution remain
+outside the current indexer boundary, so reseed rate still cannot be evaluated pass/fail.

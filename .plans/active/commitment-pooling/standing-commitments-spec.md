@@ -183,7 +183,8 @@ The initial-deploy accounting therefore changes asymmetrically by direction:
 
 The register's `Committed` state means “provider capacity reserved,” not “a claimant has accepted.”
 `providerOpenCommitmentCount` therefore counts every non-terminal provider obligation:
-Offered Offers plus Accepted Offers and Requests. It still never counts contributors.
+Offered Offers plus Accepted Offers and Accepted Requests with a resolved provider and committed
+capacity. It still never counts unaccepted Requests or contributors.
 
 For atomic bilateral `acceptExchange`, both Offered classes are already Committed. The function
 revalidates both classes, providers, memberships, cycles, and identities, but performs no second

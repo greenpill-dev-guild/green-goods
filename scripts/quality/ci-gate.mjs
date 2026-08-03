@@ -103,6 +103,7 @@ const WORKFLOW_MATCHERS = new Map([
         "scripts/data/ontology-drift-baseline.json",
         ".github/workflows/ontology.yml",
         ".plans/active/commitment-pooling/contract-spec.md",
+        ".plans/active/commitment-pooling/standing-commitments-spec.md",
         ".plans/active/community-interface/spec.md",
         ".plans/active/commitment-pooling/settlement-spec.md",
         "docs/docs/builders/architecture/erd.mdx",
