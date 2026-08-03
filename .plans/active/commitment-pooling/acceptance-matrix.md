@@ -129,7 +129,7 @@
 | Rest with live instances | Series becomes Resting; existing Offered/Accepted instances and Story remain unchanged | Add places disappears; clear copy says existing promises continue |
 | Resume | Resting becomes Active with no implicit instance creation | Add places returns; available stays at the indexed Offered count |
 | Retire | Active/Resting becomes terminal Retired; existing instances remain unchanged | Confirmation names terminal effect; no new-place or resume control |
-| Metadata revision | Holder updates Active/Resting series metadata; prior/open instances preserve their snapshots | Story shows prospective current description without rewriting historical terms |
+| Metadata revision | Holder updates Active/Resting series metadata; prior/open instances preserve their snapshots; metadata and lifecycle handlers use separate cursor pairs so cross-type reverse delivery converges | Story shows prospective current description without rewriting historical terms or regressing Rest/Resume/Retire state |
 | Next-cycle posture | Default is Ask me again next cycle; any carry-forward option prepares a draft only | No protocol or background process auto-creates obligations |
 | Saved Offer persistence | Signed saved Offer metadata survives device change; a local unsaved draft does not claim that guarantee | The persistence explanation distinguishes the two honestly |
 | Series Story | Lifecycle replay converges to exact current counts and unique fulfilled-cycle IDs, including dispute restore paths | Absolute counts only; no score/rate/rank, no inferred participant count, no cross-pool identity |

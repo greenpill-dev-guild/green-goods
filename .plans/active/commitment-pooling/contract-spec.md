@@ -2603,8 +2603,10 @@ type CommitmentSeries {
   expiredCount: BigInt!
   disputedCount: BigInt!
   fulfilledCycleIds: [String!]!
-  latestMutationBlock: BigInt!
-  latestMutationLogIndex: Int!
+  latestLifecycleBlock: BigInt!
+  latestLifecycleLogIndex: Int!
+  latestMetadataBlock: BigInt!
+  latestMetadataLogIndex: Int!
   createdAt: Int!
   updatedAt: Int!
 }
@@ -2964,10 +2966,20 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   plan does not authorize an install. Exact strings use no trim, case fold, Unicode normalization,
   locale transform, or ABI encoding. Raw numeric IDs and addresses remain display/filter
   attributes only; every cross-entity pointer uses its composite relationship field.
-- **Series and Story projection**: series lifecycle events upsert the canonical
-  `CommitmentSeries` row using cursor order; `CommitmentCreated` with a non-zero series ID links
-  the Commitment and increments instance/current-state counts once. The existing reversible
-  lifecycle-delta helper updates both series and non-zero-cycle summary rows through
+- **Series and Story projection**: series state and series metadata are independently mutable and
+  therefore use separate lexicographic cursor pairs. `CommitmentSeriesRested`,
+  `CommitmentSeriesResumed`, and `CommitmentSeriesRetired` compare only
+  `(latestLifecycleBlock, latestLifecycleLogIndex)` before updating `state`;
+  `CommitmentSeriesMetadataUpdated` compares only
+  `(latestMetadataBlock, latestMetadataLogIndex)` before updating `metadataCID`.
+  `CommitmentSeriesCreated` fills immutable placeholder facts and initializes each mutable field
+  only when that field has no later same-type cursor. Cross-type delivery order never blocks the
+  other field: a later metadata event followed by an earlier Rest still applies the Rest, while a
+  later Resume followed by an earlier metadata event still applies the metadata. Cross-type
+  reverse-delivery and same-type stale/duplicate fixtures prove convergence.
+  `CommitmentCreated` with a non-zero series ID links the Commitment and increments
+  instance/current-state counts once. The existing reversible lifecycle-delta helper updates both
+  series and non-zero-cycle summary rows through
   Offered/Accepted/Ready/Fulfilled/Cancelled/Expired/Disputed and dispute restoration. The first
   Fulfilled instance in a cycle appends its composite cycle ID once. No handler computes a rate,
   score, rank, participant count, cross-pool grouping, or unit total across labels.

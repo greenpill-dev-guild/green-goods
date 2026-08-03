@@ -2016,7 +2016,7 @@
           "from": "…",
           "to": "ReadyForConfirmation",
           "layer": "on-chain",
-          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and a reachable ordinary/local confirmer or an explicitly selected registered protocol-garden fallback; contributor roster and credit ledger freeze atomically before the ready event"
+          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event"
         },
         {
           "from": "ReadyForConfirmation",

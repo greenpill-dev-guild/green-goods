@@ -279,10 +279,16 @@ lane and must be created before their commands can pass.
 - Add `CommitmentSeries`, `CommitmentSeriesCycleSummary`, the nullable Commitment series
   relationship, series event handlers, and composite ID helpers exactly as specified in
   `standing-commitments-spec.md`.
+- Give `CommitmentSeries` separate lifecycle and metadata cursor pairs. Lifecycle events compare
+  only the lifecycle cursor; metadata events compare only the metadata cursor; creation fills
+  immutable placeholder facts and initializes a mutable field only when that field has no later
+  same-type cursor. One cross-type event may never suppress the other field's update.
 - Reuse the cursor-ordered reversible lifecycle projection to maintain exact current state counts
   for the series and its non-zero-cycle summary, including dispute reopen/restore paths. Append a
   fulfilled cycle ID once. Cycle zero never creates a series-cycle row.
 - Available count derives from current capacity-backed Offered instances. Do not add participant
   counts, rates, rankings, reliability fields, cross-pool groupings, or mixed-label unit sums.
-- RED/GREEN includes inverted creation/lifecycle order, duplicate delivery, prospective metadata,
-  mixed outcomes across cycles, and exact replay convergence.
+- RED/GREEN includes inverted creation/lifecycle order, metadata-before-Rest,
+  lifecycle-before-metadata, later-metadata-before-earlier-Rest, later-Resume-before-earlier-
+  metadata, same-type stale/duplicate delivery, prospective metadata, mixed outcomes across
+  cycles, and exact replay convergence.

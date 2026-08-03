@@ -1972,6 +1972,7 @@ const W33_STATES = [
   ["garden", "Choose a garden"], ["terms", "Describe the offer"], ["review", "Review"],
   ["queued", "Creating — queued"], ["place-waiting", "Place waiting for the offer"],
   ["waiting-membership", "Waiting for membership"], ["failed", "Send failed"],
+  ["discarded-dependency", "Discarded series · draft retained"],
 ] as const;
 type W33State = (typeof W33_STATES)[number][0];
 
@@ -2039,22 +2040,35 @@ function w33(state: W33State): string {
         `<div class="brow">${hot("w33.retry", btn("Try again", { kind: "pri", icon: "refresh-line" }))}${hot("w33.discard", btn("Discard the send", { kind: "ghost" }))}</div>`,
       )}`;
       break;
+    case "discarded-dependency":
+      body = `${w33Head("Place draft kept", 3)}${pagepad(
+        banner("The ongoing Offer send was discarded. Your waiting place is still a draft on this device.", "amber", "information-line"),
+        card(
+          listRow({ icon: "calendar-line", primary: "1 workshop place · Season of First Rains", meta: "Waiting for an ongoing Offer", chipHtml: chip("Needs attention", "queued") }) +
+            `<div class="t-meta">Nothing was sent or made available. Choose how this retained draft should continue.</div>`,
+          { cls: "flat" },
+        ),
+        `<div class="brow">${hot("w33.dependency-recreate", btn("Recreate the ongoing Offer", { kind: "pri" }))}${hot("w33.dependency-retarget", btn("Choose another ongoing Offer", { kind: "ghost" }))}</div>`,
+        hot("w33.dependency-remove", btn("Remove this draft", { kind: "ghost", full: true })),
+      )}`;
+      break;
     default:
       body = `${w33Head("Offer over time", 0)}${pagepad(
         `<div class="t-meta">Choose where you will keep offering this. Each garden keeps its own ongoing Offer and its own history.</div>`,
         field("Garden", radio([
           { label: "Rocinha Community Garden", meta: "you are a gardener here · pool open", on: true },
-          { label: "Muizenberg Deep South", meta: "you are a gardener here · pool open" },
+          { label: "Muizenberg Deep South", meta: "you are a gardener here · pool ready" },
         ], { interactive: true, name: "series-garden" })),
-        banner("An ongoing Offer lives in one garden. Offering the same thing elsewhere is a separate ongoing Offer there.", "stone", "information-line"),
+        banner("Ready and open pools are available. Paused, closed, and composted pools stay out of this list.", "stone", "information-line"),
+        `<div class="t-meta">An ongoing Offer lives in one garden. Offering the same thing elsewhere is a separate ongoing Offer there.</div>`,
         hot("w33.continue-garden", btn("Continue", { kind: "pri", full: true })),
       )}`;
   }
-  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "queued" || state === "place-waiting" || state === "waiting-membership" || state === "failed", appBar: false });
+  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "queued" || state === "place-waiting" || state === "waiting-membership" || state === "failed" || state === "discarded-dependency", appBar: false });
 }
 
 const W33_HOTS: HifiDef["hots"] = {
-  "w33.continue-garden": { l: "Continue to the offer", to: "screen:W33@terms", info: "Binds the series to one pool. Cross-garden merge does not exist; a second garden means a second series." },
+  "w33.continue-garden": { l: "Continue to the offer", to: "screen:W33@terms", info: "Binds the series to one eligible Ready or Open pool. Paused, Closed, and Composted pools are excluded; cross-garden merge does not exist." },
   "w33.continue-terms": { l: "Continue to review", to: "screen:W33@review", info: "Series metadata only. Places, counts, and cycle scope belong to the ordinary commitments created later." },
   "w33.create": { l: "Start offering over time", to: "screen:W33@queued", info: "Queues createCommitmentSeries. The caller becomes immutable creator and initial current holder; no place and no availability exist yet.", calls: ["createCommitmentSeries"], pendingSync: true },
   "w33.queued-done": { l: "Back to my offers", to: "screen:W32@series-queued", info: "The ongoing Offer remains visibly queued and unavailable; it appears as Active only after its creation syncs." },
@@ -2062,7 +2076,10 @@ const W33_HOTS: HifiDef["hots"] = {
   "w33.membership-resume": { l: "Check membership again", to: "screen:W33@queued", info: "Rechecks the required pool-garden Hat. The same series job resumes without spending a retry only after membership is observed." },
   "w33.membership-cancel": { l: "Cancel this send", to: "screen:W32@saved", info: "Cancels the waiting series job without deleting the signed private Offer details. No onchain series or place exists." },
   "w33.retry": { l: "Try again", to: "screen:W33@queued", info: "Re-queues the same series creation; the entered description is preserved." },
-  "w33.discard": { l: "Discard the send", to: "screen:W32@saved", info: "Discards the queued series job. The saved details stay privately stored and any dependent place draft explains what it was waiting for." },
+  "w33.discard": { l: "Discard the send", to: "screen:W33@discarded-dependency", info: "Discards only the queued series job. The saved details and any dependent place draft remain visible for explicit repair, retarget, or removal." },
+  "w33.dependency-recreate": { l: "Recreate the ongoing Offer", to: "screen:W33@garden", info: "Repairs the retained dependency by starting a new series job. The place draft remains local until the replacement series syncs." },
+  "w33.dependency-retarget": { l: "Choose another ongoing Offer", to: "screen:W32@saved-with-ongoing", info: "Returns to the member's ongoing Offers so the retained place draft can be linked explicitly to another eligible Active series." },
+  "w33.dependency-remove": { l: "Remove this draft", to: "screen:W32@saved", info: "Deletes only the retained local place draft. Saved Offer details remain private and no onchain state changes." },
 };
 
 const W34_STATES = [
@@ -2170,8 +2187,7 @@ function w34(state: W34State): string {
         banner("One place is available. The other is still waiting to send.", "amber", "time-line"),
         card(
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }) +
-            hot("w34.claim-partial", btn("Take up the available place", { kind: "pri", full: true })),
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }),
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 place")}${kv("Waiting to send", "1 place")}`),
@@ -2183,8 +2199,7 @@ function w34(state: W34State): string {
         banner("One place is available. The other could not be sent.", "error", "error-warning-line"),
         card(
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · send failed", chipHtml: chip("Send failed", "err") }) +
-            hot("w34.claim-partial", btn("Take up the available place", { kind: "pri", full: true })),
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · send failed", chipHtml: chip("Send failed", "err") }),
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 place")}${kv("Needs attention", "1 place")}`),
@@ -2286,8 +2301,7 @@ function w34(state: W34State): string {
         card(
           `<div class="t-title">2 existing places remain available</div><div class="t-meta">Resting blocks only new places. These already-reserved Offers can still be taken up.</div>` +
             listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            hot("w34.claim-resting", btn("Take up one place", { kind: "pri", full: true })),
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }),
         ),
         card(`${kv("Kept", "12 times across 5 cycles")}${kv("Available now", "2 places")}${kv("Add places", "Paused while resting")}`),
         `<div class="brow">${hot("w34.resume", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
@@ -2359,8 +2373,6 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.open-story-resting": { l: "See the story", to: "screen:W34@story", info: "Resting hides nothing: the story stays fully readable." },
   "w34.story-row": { l: "Open one kept promise", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
   "w34.claim": { l: "Take up one place", to: "screen:W2@support-active", info: "Accepts one already-created Offered service instance. No new place is created and no second provider slot is consumed.", calls: ["claimCommitment"] },
-  "w34.claim-partial": { l: "Take up the available place", to: "screen:W2@support-active", info: "Accepts only the already-synced Offered service instance. The queued or failed sibling remains independent.", calls: ["claimCommitment"] },
-  "w34.claim-resting": { l: "Take up one resting-series place", to: "screen:W2@support-active", info: "Resting blocks new instance creation only. This accepts an existing capacity-backed Offered service instance without resuming the series.", calls: ["claimCommitment"] },
   "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
   "w34.open-closed-pool": { l: "View the closed pool", to: "screen:W1@closed", info: "Shows the closed pool state. Reopening is a steward action; the ongoing Offer detail does not fabricate a gardener write." },
   "w34.open-composted-pool": { l: "View the archived pool", to: "screen:W1@closed", info: "Returns to the terminal pool archive. Composted pools cannot reopen, while existing series history remains readable." },

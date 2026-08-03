@@ -4,9 +4,9 @@ Updated 2026-08-03. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 36 registered screens / 346 rendered states in the full source registry
-- 29 presentation-visible hi-fi screens / 339 states: 14 Client PWA (210 states), 13 Admin console (124 states), 2 Editorial website (5 states)
-- 467 registered hotspots
+- 36 registered screens / 347 rendered states in the full source registry
+- 29 presentation-visible hi-fi screens / 340 states: 14 Client PWA (211 states), 13 Admin console (124 states), 2 Editorial website (5 states)
+- 468 registered hotspots
 - 44 validated source flows / 359 scenes; 43 presentation-visible flows / 350 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
 - 0 build warnings
 
@@ -128,7 +128,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
 | WFLOW | Client PWA | 1 | review |
 | W32 | Client PWA | 11 | saved, saved-with-ongoing, series-queued, series-queued-place-waiting, empty, compose, choose-path, draft-unsaved, persistence, loading, read-error |
-| W33 | Client PWA | 7 | garden, terms, review, queued, place-waiting, waiting-membership, failed |
+| W33 | Client PWA | 8 | garden, terms, review, queued, place-waiting, waiting-membership, failed, discarded-dependency |
 | W34 | Client PWA | 19 | active-two, active-none, active-one, places-queued, places-partial, places-partial-failed, story, participation, ask-again, claimant-view, pool-paused, pool-closed, pool-composted, resting, retire-confirm, retired, succession, loading, read-error |
 | W35 | Client PWA | 4 | compose, queued, mixed-queued, mixed-failed |
 | W7 | Admin console | 27 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
