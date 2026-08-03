@@ -399,7 +399,7 @@ const W2_STATES = [
   ["request-ready-pending", "Request — readiness queued"], ["request-ready-confirmer", "Request — ready"],
   ["request-confirmation-pending", "Request — confirmation queued"],
   ["request-fulfilled", "Request — help arrived"], ["request-disputed", "Request — steward review"],
-  ["support-offered", "Service offer — open"], ["support-active", "Service offer — active"],
+  ["support-offered", "Service offer — open"], ["support-accepted", "Service offer — accepted"],
   ["support-evidence-queued", "Service offer — evidence queued"],
   ["support-evidence-submitted", "Service offer — evidence in"], ["support-ready-pending", "Service offer — readiness queued"],
   ["support-ready-confirmer", "Service offer — ready"],
@@ -437,7 +437,7 @@ const w2StateChip: Record<W2ChipState, string> = {
   "request-evidence-submitted": "Evidence in", "request-ready-pending": "Evidence in",
   "request-ready-confirmer": "Ready to confirm", "request-confirmation-pending": "Ready to confirm",
   "request-fulfilled": "Fulfilled", "request-disputed": "Under review",
-  "support-offered": "Offered", "support-active": "Active", "support-evidence-queued": "Active",
+  "support-offered": "Offered", "support-accepted": "Accepted", "support-evidence-queued": "Accepted",
   "support-evidence-submitted": "Evidence in", "support-ready-pending": "Evidence in",
   "support-ready-confirmer": "Ready to confirm", "support-confirmation-pending": "Ready to confirm",
   "support-fulfilled": "Fulfilled", "support-cancelled": "Cancelled",
@@ -456,7 +456,7 @@ const W2_CAMPAIGN_REQUEST = new Set<string>([
   "campaign-request-fulfilled", "campaign-request-disputed",
 ]);
 const W2_SUPPORT = new Set<string>([
-  "support-offered", "support-active", "support-evidence-queued",
+  "support-offered", "support-accepted", "support-evidence-queued",
   "support-evidence-submitted", "support-ready-pending", "support-ready-confirmer", "support-fulfilled",
   "support-confirmation-pending",
   "support-cancelled", "support-disputed",
@@ -622,7 +622,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       { label: "Offered", meta: "Maria · Jul 2" },
       { label: "Accepted", meta: "João took this up · Jul 3" },
     ];
-    if (state === "support-active") return [...offered, { label: "Getting it done", meta: "waiting on the repair", open: true }];
+    if (state === "support-accepted") return offered;
     if (state === "support-evidence-queued")
       return [...offered, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "support-evidence-submitted")
@@ -898,9 +898,9 @@ function w2(state: W2State): string {
         `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching evidence.</div><div class="brow">${hot("w2.take-up-support", btn("Take this up", { kind: "pri" }))}</div>`,
       );
       break;
-    case "support-active":
+    case "support-accepted":
       band = card(
-        `<div class="t-title">Repair underway</div><div class="t-meta">Add evidence as the tool handles are repaired. This service offer does not require linked garden work.</div><div class="brow">${hot("w2.add-evidence-support", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or evidence reaches the promise.</div><div class="brow">${hot("w2.add-evidence-support", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
       break;
     case "support-evidence-queued":
@@ -1056,7 +1056,7 @@ function w2(state: W2State): string {
     "request-evidence-queued",
     "request-evidence-submitted", "request-ready-pending", "request-ready-confirmer",
     "request-confirmation-pending", "request-fulfilled",
-    "support-offered", "support-active", "support-evidence-queued", "support-evidence-submitted",
+    "support-offered", "support-accepted", "support-evidence-queued", "support-evidence-submitted",
     "support-ready-pending", "support-ready-confirmer", "support-confirmation-pending",
     "captured", "captured-evidence-queued", "captured-evidence-submitted",
     "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
@@ -1114,7 +1114,7 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
 }
 
 const W2_HOTS: HifiDef["hots"] = {
-  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-active", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
+  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-accepted", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider. The commitment stays Accepted until WorkLinked or EvidenceAttached lands.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
   "w2.open-team-forming": { l: "See editable team and contributions", to: "screen:W2b@forming", info: "Before readiness, the accountable lead can add, remove, and assign contributors through online contract actions." },
   "w2.open-team-frozen": { l: "See frozen team and contributions", to: "screen:W2b@frozen", info: "After readiness, opens the frozen contributor roster and contribution record without implying that every participant receives an equal share." },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
@@ -1710,7 +1710,7 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
     state === "offered" || state === "support-offered" || state === "withdraw-confirm" ? "Offered"
     : state === "requested" ? "Requested"
     : state === "active" || state === "evidence-queued" || state === "request-active" || state === "campaign-request-active" ||
-      state === "support-active" || state === "support-evidence-queued" ||
+      state === "support-evidence-queued" ||
       state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
       state === "captured" || state === "captured-evidence-queued" ? "Active"
     : state === "evidence-submitted" || state === "request-evidence-submitted" ||
@@ -2372,7 +2372,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.open-story": { l: "See the whole story", to: "screen:W34@story", info: "Exact linked-instance history and absolute counts. Never a rate, rank, or comparison." },
   "w34.open-story-resting": { l: "See the story", to: "screen:W34@story", info: "Resting hides nothing: the story stays fully readable." },
   "w34.story-row": { l: "Open one kept promise", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
-  "w34.claim": { l: "Take up one place", to: "screen:W2@support-active", info: "Accepts one already-created Offered service instance. No new place is created and no second provider slot is consumed.", calls: ["claimCommitment"] },
+  "w34.claim": { l: "Take up one place", to: "screen:W2@support-accepted", info: "Accepts one already-created Offered service instance. No new place is created, no second provider slot is consumed, and the instance stays Accepted until Work or evidence lands.", calls: ["claimCommitment"] },
   "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
   "w34.open-closed-pool": { l: "View the closed pool", to: "screen:W1@closed", info: "Shows the closed pool state. Reopening is a steward action; the ongoing Offer detail does not fabricate a gardener write." },
   "w34.open-composted-pool": { l: "View the archived pool", to: "screen:W1@closed", info: "Returns to the terminal pool archive. Composted pools cannot reopen, while existing series history remains readable." },

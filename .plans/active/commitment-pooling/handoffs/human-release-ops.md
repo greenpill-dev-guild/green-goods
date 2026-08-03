@@ -78,7 +78,9 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
       both-direction wiring, and rollback state while pooling remains paused; unpause only after
       every stage-2 and stage-3 readiness fact passes; then register the protocol pool on the root
-      garden and backfill `registerPool` for the verified live-garden set.
+      garden, enumerate the verified 13-garden set, record the normalized root as
+      `SKIPPED_PROTOCOL_ROOT`, and backfill `registerPool(garden, Garden)` only for the 12 non-root
+      gardens.
    Rehearse the exact sequence locally and operate it on Arbitrum Sepolia for at least two weeks
    before separately authorizing Arbitrum One. Ethereum Sepolia remains a legacy regression lane
    and is not target-chain proof.

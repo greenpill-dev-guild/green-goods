@@ -43,6 +43,8 @@
 >
 > **Review hardening 2026-08-03 (consent, transaction ordering, root identity, and index namespace).** A direct Individual Offer B may name A for bilateral acceptance only when B is created by its own creator: `StewardCaptured` / non-zero `onBehalfOf` creation is rejected for this path, and `acceptExchange` repeats the B-kind guard before mutation. In the same `createCommitment` transaction, before allocating/storing B or registering its class, the module revalidates A as a same-pool, Offered, Individual Offer owned by someone other than B's creator with its exact full class still Committed to A's creator; the app's preflight remains early feedback, not the safety boundary. Protocol registration is bound to the non-zero canonical `rootGarden` supplied at initialization and rejects any other garden before writing `protocolPoolId`. Each emitted `CommitmentAccepted` independently sweeps its bounded request index, so exchange acceptance cannot leave an unrelated claim request Pending. The initial indexer supports exactly one canonical UUPS `CommitmentPoolingModule` proxy per chain; its chain-scoped entity IDs rely on that stable proxy identity, and config rejects a second/replacement proxy unless a future migration defines a new namespace and full-replay plan. Saved Offer `moduleAddress` keeps client links fail-closed against the configured proxy and does not authorize concurrent multi-module indexing.
 >
+> **Review hardening 2026-08-03 (creation-order replay and root backfill).** A commitment lifecycle event that arrives at the indexer before `CommitmentCreated` is stored as a typed, event-keyed pending projection and consumes neither the placeholder lifecycle cursor nor any state-derived delta. Creation supplies the immutable pool/cycle/series/lead/Need facts and atomically drains that commitment's explicit pending index in block/log order through the same lifecycle helper, so reverse delivery converges for live count, series outcome, PoolMemberHistory, attribution confirmation, and Need lineage. Operationally, the root GardenAccount receives exactly one Protocol pool; the 13-garden enumeration records that normalized root as `SKIPPED_PROTOCOL_ROOT` and submits Garden-type registrations only for the 12 non-root gardens.
+>
 > **Frozen-text conflict surfaced, not rewritten.** Canonical decision 17 says “afterwards the module never reads it” and “Atomic swap acceptance remains out of scope with the transferable-voucher layer.” This amendment preserves that historical text while making `acceptExchange` the sole additive acceptance-time read of B's reference and the sole bilateral exception. Decision 17's post-acceptance no-coupling rule remains verbatim.
 >
 > **Naming alignment recorded with this amendment.** `CommitmentRegister` → `CommitmentRegistry`, `ICommitmentRegister` → `ICommitmentRegistry`, `CreditRegister` → `CreditRegistry`, and `CommunityTestimonyResolver` → `TestimonyResolver` in all living and normative text, for consistency with `registries/Action.sol` and `resolvers/Assessment.sol`. Planned file targets remain `registries/Commitment.sol`, `registries/Credit.sol`, and `resolvers/Testimony.sol`; the GE “register” grammar remains prose vocabulary, and `communityTestimony` schema config and schema names do not change. Older dated amendments and decision/register history retain the names originally recorded.
@@ -1238,7 +1240,7 @@ retry.
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
 | Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the post-unpause `registerPool` backfill |
-| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)` |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume |
@@ -1853,8 +1855,10 @@ Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): after 
 `workApprovalResolver.setCommitmentModule(module)`; verify both reverse links, updater
 preservation, storage, ownership, and every chain-2/chain-3 readiness fact while the pooling
 module remains paused; then call `module.setPaused(false)`, register the protocol pool on the
-root garden, backfill `registerPool(garden, Garden)` for the 13 live gardens, and run the
-operational smoke.
+root garden, enumerate the 13 live GardenToken gardens, skip the normalized root GardenAccount
+because it already owns the Protocol pool, submit `registerPool(garden, Garden)` for the remaining
+12 non-root gardens, and run the operational smoke. The backfill records the root as
+`SKIPPED_PROTOCOL_ROOT`; it never attempts a second pool registration for that garden.
 
 ### 6.4 EAS schema work: exactly two registrations (register #14)
 
@@ -2264,7 +2268,8 @@ as named deliverables.
    `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and
    both-direction wiring; unpause the pooling module only after those reverse links and every
    chain-2 readiness fact pass; then register the protocol pool on the root garden
-   (`deployments/42161-latest.json:40-43`) and backfill `registerPool` for the 13 live gardens.
+   (`deployments/42161-latest.json:40-43`), enumerate all 13 live gardens, skip that normalized
+   root address, and backfill `registerPool(garden, Garden)` for the 12 non-root gardens.
 4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump
    `start_block` (8.1).
 
@@ -2341,7 +2346,9 @@ bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-sim
 bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
 
 # One-shot backfill stays in the plan hub, not scripts/. It reads the deployment
-# artifact, prints the root + 13 garden calls, and writes no state in dry-run mode.
+# artifact, prints one Protocol call for the root plus 12 Garden calls for the non-root
+# members of the verified 13-garden set, records the root as SKIPPED_PROTOCOL_ROOT, and
+# writes no chain state in dry-run mode.
 bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
 # Post-broadcast targets below are also created by this lane. They run only after separately
@@ -2377,11 +2384,13 @@ registry record before activating the verified module last. `upgrade.ts commitme
 upgrades exactly GardenToken and
 WorkApprovalResolver, verifies implementation slots and storage baselines, wires both module
 setters, and merges no schema keys. `backfill-pools.ts` persists a resumable result artifact at
-`.plans/active/commitment-pooling/artifacts/{chainId}-pool-backfill.json` keyed by garden; dry-run
-produces a simulation artifact under `.generated/runtime` only, while an explicitly authorized
-broadcast records tx hash, receipt block, and resulting poolId per garden. Deploy dry-runs write
-simulation output only; broadcasts merge only the named append-only keys. All invocations use bun
-wrappers; never raw forge (`.claude/rules/contracts.md`).
+`.plans/active/commitment-pooling/artifacts/{chainId}-pool-backfill.json` keyed by garden. It
+normalizes every enumerated address, records the exact root as `SKIPPED_PROTOCOL_ROOT`, and emits
+no Garden-type call for it; the remaining 12 entries record their Garden registration plan or
+receipt. Dry-run produces a simulation artifact under `.generated/runtime` only, while an
+explicitly authorized broadcast records tx hash, receipt block, and resulting poolId per submitted
+garden. Deploy dry-runs write simulation output only; broadcasts merge only the named append-only
+keys. All invocations use bun wrappers; never raw forge (`.claude/rules/contracts.md`).
 
 ## 8. Indexer plan
 
@@ -2655,6 +2664,7 @@ type Commitment {
   id: ID! # chainId-commitmentId
   chainId: Int!
   commitmentId: BigInt!
+  creationSeen: Boolean! # false only for an update-before-create placeholder
   poolId: BigInt!
   poolEntityId: String! # relationship: chainId-poolId
   cycleId: BigInt # null when not cycle-scoped
@@ -2881,6 +2891,48 @@ type CommitmentEvent {
   timestamp: Int!
 }
 
+# Durable replay buffer for commitment events whose state-derived projection requires immutable
+# facts from CommitmentCreated. ID is the event audit ID, so duplicate delivery cannot enqueue
+# twice. The typed optional fields preserve the exact emitted payload needed by the handler named
+# by eventType; no RPC read or transaction.from inference is permitted during the later drain.
+type CommitmentPendingLifecycleProjection {
+  id: ID! # chainId-txHash-logIndex; same identity as the CommitmentEvent audit row
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  eventType: CommitmentEventType!
+  blockNumber: BigInt!
+  logIndex: Int!
+  nextState: CommitmentOnchainState
+  actor: String
+  claimType: CommitmentClaimType
+  gardenContext: String
+  claimant: String
+  counterparty: String
+  leadProvider: String
+  providerGarden: String
+  confirmationCount: Int
+  confirmationThreshold: Int
+  overridden: Boolean
+  confirmationPath: CommitmentConfirmationPath
+  previousState: CommitmentOnchainState
+  disputeResolution: Int
+  data: String
+  applied: Boolean!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# Explicit lookup companion; creation drains these IDs without a database-wide scan.
+type CommitmentPendingLifecycleProjectionIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  projectionIds: [String!]! # stable insertion; drained in blockNumber/logIndex order
+  updatedAt: Int!
+}
+
 # Protocol-event-only companion for Community joined reads. It indexes the
 # needUID reference carried by CommitmentCreated; it does not index EAS.
 type NeedCommitmentIndex {
@@ -2959,7 +3011,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 
 - **Dedup counters**: pool/cycle counters increment exactly the way `holderCount`/`grantCount` do in `packages/indexer/src/handlers/greenWill.ts:66-88` (read existing entity, branch on prior existence, never double-count).
 - **Idempotency**: same-tx replay and already-exists guards as `packages/indexer/src/handlers/hypercerts.ts:38-42,71-75`.
-- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, zero allocation/counters, and event timestamps. Series placeholders use `UNKNOWN` state, zero pool ID, empty holder/creator/metadata, empty fulfilled-cycle IDs, zero outcome counts, and event cursor/timestamps. Commitment placeholders use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional series/cycle/provider/reward/dispute/lifecycle-cursor fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts but never resets already-applied monotonic counters or a later lifecycle cursor/state. Tests exercise each placeholder merge.
+- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, zero allocation/counters, and event timestamps. Series placeholders use `UNKNOWN` state, zero pool ID, empty holder/creator/metadata, empty fulfilled-cycle IDs, zero outcome counts, and event cursor/timestamps. Commitment placeholders set `creationSeen = false` and use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional series/cycle/provider/reward/dispute/lifecycle-cursor fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts, sets `creationSeen = true`, and never resets already-applied monotonic counters. State-derived events that require those immutable facts are buffered rather than consuming their lifecycle cursor on the placeholder; creation drains that typed buffer atomically as specified below. Tests exercise each placeholder merge.
 - **ID helpers**: retain `getGardenId(garden)` as normalized bare-address compatibility, and add `getCommitmentPoolId(chainId, poolId)`,
   `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`,
   `getCommitmentSeriesId(chainId, seriesId)`,
@@ -2969,6 +3021,8 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `getCommitmentEvidenceAttributionId(chainId, commitmentId, cid, contributor)`,
   `getCommitmentEvidenceAttributionIndexId(chainId, commitmentId)`,
   `getCommitmentClaimRequestId(chainId, commitmentId, claimant)`,
+  `getCommitmentPendingLifecycleProjectionId(chainId, txHash, logIndex)`,
+  `getCommitmentPendingLifecycleProjectionIndexId(chainId, commitmentId)`,
   `getCommitmentUnitSummaryId(chainId, scope, scopeId, unitLabelHash)`,
   `getCommitmentProviderExposureId(chainId, poolId, leadProvider)`,
   `getNeedCommitmentIndexId(chainId, needUID)`,
@@ -2998,8 +3052,11 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   later Resume followed by an earlier metadata event still applies the metadata. Cross-type
   reverse-delivery and same-type stale/duplicate fixtures prove convergence.
   `CommitmentCreated` with a non-zero series ID links the Commitment and increments
-  instance/current-state counts once. The existing reversible lifecycle-delta helper updates both
-  series and non-zero-cycle summary rows through
+  instance/current-state counts once. When lifecycle events were buffered before creation, the
+  creation handler initializes the creation state and then drains those events in cursor order in
+  the same database transaction, so the one committed series/current-state result reflects the
+  final replay state rather than an Offered row stranded behind a newer cursor. The existing
+  reversible lifecycle-delta helper updates both series and non-zero-cycle summary rows through
   Offered/Accepted/Ready/Fulfilled/Cancelled/Expired/Disputed and dispute restoration. The first
   Fulfilled instance in a cycle appends its composite cycle ID once. No handler computes a rate,
   score, rank, participant count, cross-pool grouping, or unit total across labels.
@@ -3047,14 +3104,25 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   either authority from `transaction.from`. A `DisputeResolved` transition to Fulfilled leaves
   these confirmation-only fields null.
 - **Lifecycle and terminal projection helper**: after the unique
-  `CommitmentEvent(chainId, txHash, logIndex)` guard proves an event is new, every lifecycle event
-  calls one `applyLifecycleTransition` helper with its explicit next state and
-  `(blockNumber, logIndex)`. The helper compares that cursor lexicographically with the
+  `CommitmentEvent(chainId, txHash, logIndex)` guard proves an event is new, every commitment event
+  whose state/member/series/cycle/Need projection requires immutable creation facts first checks
+  `creationSeen`. When false, the handler writes one typed
+  `CommitmentPendingLifecycleProjection` with the same event ID, appends that ID once to
+  `CommitmentPendingLifecycleProjectionIndex`, and returns without mutating state, the lifecycle
+  cursor, actor/member counters, series outcomes, `liveCommitmentCount`, attribution confirmation,
+  or Need lineage. `CommitmentCreated` then populates the immutable facts, applies its Offered or
+  Requested base projection exactly once, sorts the explicit pending IDs by
+  `(blockNumber, logIndex)`, and invokes the same internal projection functions directly from the
+  stored payloads; the existing audit rows do not cause the drain to skip them. Each drained row is
+  marked applied and the pending ID list is cleared only after all projections succeed. The Envio
+  handler transaction exposes neither a transient live increment nor a partially drained result.
+  When `creationSeen` is true, the event calls `applyLifecycleTransition` directly with its
+  explicit next state and cursor. The helper compares that cursor lexicographically with the
   commitment's stored lifecycle cursor; an older delivery may still create its immutable audit row
-  and actor counter, but it cannot regress state or reapply state-derived deltas. The same helper is
-  used by `CommitmentDisputed`, `CommitmentFulfilled`, `CommitmentCancelled`,
-  `CommitmentExpired`, and terminal `DisputeResolved.finalState`; `RestorePrevious` passes the
-  emitted restored state.
+  and actor counter, but it cannot regress state or reapply state-derived deltas. The same path is
+  used by `CommitmentAccepted`, `CommitmentReadyForConfirmation`, `ConfirmationRecorded`,
+  `CommitmentDisputed`, `CommitmentFulfilled`, `CommitmentCancelled`, `CommitmentExpired`, and
+  terminal `DisputeResolved.finalState`; `RestorePrevious` passes the emitted restored state.
   Transitioning from Expired to Disputed reverses the current Expired pool/cycle/member-history
   bucket and re-increments a non-zero cycle's `liveCommitmentCount`. Resolving that dispute to
   Expired restores the Expired bucket, while resolving it to Cancelled applies only the Cancelled
@@ -3082,16 +3150,24 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   pool/cycle/current-outcome counters as ordinary fulfillment. Cancelled and Expired resolutions
   apply their ordinary current-outcome counters. Exact-label units and provider exposure remain
   event-owned by `UnitsFulfilled`/`UnitsReleased`, so the lifecycle helper never duplicates those
-  accounting deltas.
+  accounting deltas. If an `EvidenceAttached` row is itself delivered after the Fulfilled
+  projection, its handler creates the attribution as `confirmed = true`; if evidence arrives while
+  a terminal projection is buffered, the creation-time drain sees it through the explicit index.
+  Both delivery orders therefore converge without a database scan.
 - **Cycle live-count read model**: `CommitmentCreated` with non-zero `cycleId` increments
   `CommitmentCycle.liveCommitmentCount`, including Requested records that do not yet affect
   `openCommitmentCount`; Offered records affect both counts because creation reserves provider
-  capacity. `applyLifecycleTransition` decrements on every live-to-terminal
+  capacity. A creation-time pending-projection drain occurs in that same atomic handler
+  transaction, so a reverse-delivered terminal commitment commits the correct zero live count and
+  final series/member/Need outcome without exposing or stranding an intermediate live increment.
+  `applyLifecycleTransition` decrements on every live-to-terminal
   Fulfilled/Cancelled/Expired transition, including terminal `DisputeResolved`; Expired-to-Disputed
   re-increments, and its later terminal resolution decrements once. Ready and disputes raised from
-  live states do not change the count. Replay and reverse-delivery fixtures preserve the exact
-  on-chain count, and W26 reads this field rather than provider-capacity exposure when deciding
-  whether close can run.
+  live states do not change the count. Replay fixtures deliver Accepted, Ready, Fulfilled,
+  Cancelled, Expired, Disputed, and resolved-dispute events both before and after creation; every
+  order preserves the exact on-chain count and the same series outcome, PoolMemberHistory rows,
+  attribution confirmation, and Need lineage. W26 reads this field rather than provider-capacity
+  exposure when deciding whether close can run.
   - **Pool-less authority/configuration audit**: `ModuleUpdated`,
     `ModuleDependencyUpdated`, `ModuleSchemaUIDUpdated`, and `ModulePauseStatusChanged` each create
     exactly one replay-idempotent `CommitmentEvent` with the matching event type, nullable
@@ -3166,7 +3242,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `Hours` never share an ID. Tests process each unit event before `CommitmentCreated` and prove
   the self-describing keys still converge, alongside same-label, case-distinct, replay,
   cancellation/expiry, fulfillment, and dispute fixtures.
-- **Need lineage**: non-zero `CommitmentCreated.needUID` appends the composite commitment/cycle IDs once to `NeedCommitmentIndex`; the terminal projection helper's Fulfilled branch appends the commitment to `fulfilledCommitmentEntityIds` once for both ordinary and dispute-resolved fulfillment; commitment-bundled Hypercert handling appends its composite Hypercert ID. UID zero creates no index row. This is reference indexing from Green Goods events/metadata, not EAS indexing.
+- **Need lineage**: non-zero `CommitmentCreated.needUID` appends the composite commitment/cycle IDs once to `NeedCommitmentIndex`; the terminal projection helper's Fulfilled branch appends the commitment to `fulfilledCommitmentEntityIds` once for both ordinary and dispute-resolved fulfillment, including when that terminal event was buffered until creation supplied the UID; commitment-bundled Hypercert handling appends its composite Hypercert ID. UID zero creates no index row. This is reference indexing from Green Goods events/metadata, not EAS indexing.
 
 **Existing Garden identity compatibility (required).** `Garden.id` remains the normalized bare
 GardenAccount address and every Garden row continues to carry its explicit `chainId`, matching
@@ -3400,14 +3476,15 @@ authorization.
 
 ### `packages/contracts` PR chain 3: live upgrades + backfill
 
-Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, 13-garden pool backfill.
+Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, and a verified 13-garden enumeration that records the root skip and submits 12 non-root Garden registrations.
 
 Acceptance: storage-layout gates green pre-broadcast; GardenToken and WorkApprovalResolver are
 upgraded and both reverse links are verified while pooling remains paused; unpause succeeds only
-after every chain-2 and chain-3 readiness fact passes; protocol/root and live-garden pools are then
-registered; a scripted offer -> fulfilled smoke passes; the post-broadcast artifact shows both new
-addresses and non-zero pool count; and a live approval on an existing garden emits
-`ApprovedWorkCounted` for a linked work.
+after every chain-2 and chain-3 readiness fact passes; the root receives exactly one Protocol pool,
+the backfill proves `SKIPPED_PROTOCOL_ROOT` for that address, and the 12 remaining live gardens
+receive Garden pools without a `PoolExists` abort; a scripted offer -> fulfilled smoke passes; the
+post-broadcast artifact shows both new addresses and non-zero pool count; and a live approval on an
+existing garden emits `ApprovedWorkCounted` for a linked work.
 
 ### `packages/indexer`
 

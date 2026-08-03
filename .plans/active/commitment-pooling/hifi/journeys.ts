@@ -384,7 +384,7 @@ export const SBS: SB[] = [
   { f: "W3@support-review", hot: { h: "w3.submit-support", l: "Make this offer" }, who: "Maria", st: "SupportService review", ev: "the commitment job is saved locally with the service offer and campaign scope", cite: "UX:154,216" },
   { f: "W1@support-queued", hot: null, marks: ["w1.queued-card"], who: "Maria", st: "Queued (local)", ev: "the optimistic service card stays visible in its pool scope until CommitmentCreated syncs", cite: "UX:154,216" },
   { f: "W2@support-offered", hot: { h: "w2.take-up-support", l: "Take this up" }, who: "João", st: "Offered", ev: "the service remains Offered until João claims it; Maria cannot claim her own offer", cite: "CS:143 · CS:855" },
-  { f: "W2@support-active", hot: { h: "w2.add-evidence-support", l: "Add evidence" }, who: "Maria", st: "Active", ev: "evidence is the provider's next legal act; linked work stays absent for this kind", cite: "CS:138b" },
+  { f: "W2@support-accepted", hot: { h: "w2.add-evidence-support", l: "Add evidence" }, who: "Maria", st: "Accepted", ev: "claiming alone does not derive Active; evidence is the provider's next legal act and linked work stays absent for this kind", cite: "CS:138b" },
   { f: "W2a@compose-support", hot: { h: "w2a.attach-support", l: "Attach evidence" }, who: "Maria", st: "Evidence draft", ev: "the photo, link, or note queues on the ordinary offline evidence rail", cite: "CS:739" },
   { f: "W2@support-evidence-queued", hot: null, who: "Maria", st: "Evidence queued (local)", ev: "the evidence row is visible with queued chrome; confirmation stays unavailable before EvidenceAttached syncs", cite: "UX:218" },
   { f: "W2@support-evidence-submitted", hot: { h: "w2.send-confirmation", l: "Send for confirmation" }, who: "Maria", st: "EvidenceSubmitted", ev: "the evidence-only call advances to ReadyForConfirmation without a work gate", cite: "CS:741" },
@@ -491,7 +491,7 @@ export const SBS: SB[] = [
 
 { id: "sb39", n: 39, title: "Take up one place that is already open", persona: "Recipient (João)", scen: "S15 · claim accepts a pre-created place", reviewVisible: true, reviewGroup: "client", steps: [
   { f: "W34@claimant-view", hot: { h: "w34.claim", l: "Take up one place" }, who: "João", st: "2 places Offered", ev: "another member sees the ongoing Offer, its approved pool context, and two available places; Maria's personal Story and kept count remain private to her and current stewards" },
-  { f: "W2@support-active", hot: null, who: "João", st: "Accepted", ev: "the claim ACCEPTS one existing Offered service instance: no new place is created, and the provider slot reserved at creation is not consumed a second time" },
+  { f: "W2@support-accepted", hot: null, who: "João", st: "Accepted", ev: "the claim ACCEPTS one existing Offered service instance: no new place is created, the provider slot reserved at creation is not consumed a second time, and Active waits for WorkLinked or EvidenceAttached" },
   { f: "W34@active-one", hot: null, who: "Maria", st: "Series Active · 1 place", ev: "availability drops from two to one because one real instance left the Offered set; the series itself did not transition" },
 ]},
 

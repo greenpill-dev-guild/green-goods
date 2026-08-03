@@ -2094,7 +2094,7 @@ flowchart TB
     D5["Establish BOTH reverse links<br/>setCommitmentPoolingModule · setCommitmentModule"]
     D6["Verify updater preservation, post-upgrade storage/ownership,<br/>and both-direction wiring — while still paused"]
     D8["UNPAUSE the pooling module"]
-    D9["registerPool on the root garden<br/>then backfill the 13 live gardens"]
+    D9["register Protocol pool on the root<br/>enumerate 13 live gardens · skip root<br/>register 12 non-root Garden pools"]
     D1 --> D5 --> D6 --> D8 --> D9
   end
 

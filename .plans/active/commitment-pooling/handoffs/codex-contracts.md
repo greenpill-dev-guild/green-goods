@@ -328,7 +328,9 @@ separate pure-simulation process changed chain state. The AssessmentResolver tar
 `commitment-pooling` deploys and finalizes the module/register while leaving the module paused.
 The grouped `commitment-pooling` upgrade target upgrades GardenToken and WorkApprovalResolver,
 wires and verifies both reverse links, and unpauses only after the complete chain-2/chain-3
-readiness plan passes. `backfill-pools.ts` runs only after that verified unpause.
+readiness plan passes. `backfill-pools.ts` runs only after that verified unpause. It registers the
+root as Protocol exactly once, enumerates the verified 13-garden set, records the normalized root
+as `SKIPPED_PROTOCOL_ROOT`, and submits Garden registrations only for the 12 non-root addresses.
 
 Every `--network arbitrum-sepolia` line below is unrunnable against the current tree and stays
 unrunnable until this lane ships the `421614` toolchain named in Outputs: the networks.json
@@ -357,7 +359,8 @@ authorized receipt, post-action verifier, and persisted artifact between stages:
 AssessmentResolver upgrade → schema preparation → module/register deployment → Community
 Testimony finalization with pooling still paused → grouped GardenToken/WorkApprovalResolver
 upgrade and reverse wiring while paused → complete readiness verification → pooling unpause →
-pool backfill and operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
+root Protocol registration → 13-garden enumeration with root skipped → 12 non-root Garden
+registrations → operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
 first. Every tx-plan sender
 must equal the relevant live proxy `owner()` before plan persistence; the grouped upgrade fails
 unless both proxies share that verified owner. That is the contract this lane builds, not current

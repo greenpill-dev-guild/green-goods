@@ -1077,13 +1077,13 @@ next-cycle posture is **Ask me again next cycle** — declining creates nothing.
 
 ### SB-41 — Rest it, resume it, retire it
 
-**Persona**: Maria. **Frames**: W34@succession → W34@resting → W34@active-none → W34@retired.
+**Persona**: Maria. **Frames**: W34@succession → W34@resting → W34@active-two → W34@retired.
 
 | Step | Person action | System response | Review state | Recovery |
 |---|---|---|---|---|
 | 1 | open the later-succession preview | labelled horizon; co-holding, teaching alongside, handing on, linked offers, garden-held stewardship | W34 succession | nothing is interactive; the initial ABI has rest, resume, retire only |
 | 2 | rest the offer | `restCommitmentSeries` blocks new places | W34 resting | the taken-up promise and the whole Story are untouched |
-| 3 | resume | `resumeCommitmentSeries` returns it to Active and creates no availability | W34 active-none | add places again when ready |
+| 3 | resume | `resumeCommitmentSeries` returns it to Active; both indexed Offered places remain available and no new place is created | W34 active-two | the two existing places remain claimable; add more only when ready |
 | 4 | retire | terminal `retireCommitmentSeries`; the confirmation takes **no reason field** because the call has no reason parameter | W34 retired | existing promises keep their state; the saved details stay privately stored |
 
 ### What this set deliberately does not draw

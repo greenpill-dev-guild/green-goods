@@ -63,12 +63,35 @@ const UNFROZEN_SENTINEL =
 const SHAREABLE_SENTINEL =
   "<!-- GG-GALLERY-BUILD shareable · Mermaid frozen to inline SVG · safe to publish -->";
 
-const DIA_RE = /<div class="dia"><pre class="mermaid">[\s\S]*?<\/pre><\/div>/g;
+// Match class tokens independently of attribute order, quote style, or casing. The builder
+// currently emits `<div class="dia"><pre class="mermaid">`, but publish safety must not depend
+// on that serializer detail: a host-rendered Mermaid block left behind under a reordered `id`
+// attribute is still unpublishable.
+const MERMAID_PRE_RE =
+  /<pre\b(?=[^>]*\bclass\s*=\s*(["'])[^"']*\bmermaid\b[^"']*\1)[^>]*>/gi;
+const DIA_RE =
+  /<div\b(?=[^>]*\bclass\s*=\s*(["'])[^"']*\bdia\b[^"']*\1)[^>]*>\s*<pre\b(?=[^>]*\bclass\s*=\s*(["'])[^"']*\bmermaid\b[^"']*\2)[^>]*>[\s\S]*?<\/pre>\s*<\/div>/gi;
 const EXTERNAL_SCRIPT_RE = /<script\b[^>]*\ssrc\s*=/i;
 
 function fail(message: string): never {
   throw new Error(`prerender invariant failed: ${message}`);
 }
+
+function countMermaidPreBlocks(html: string): number {
+  return (html.match(MERMAID_PRE_RE) || []).length;
+}
+
+function assertMermaidMatcherContract(): void {
+  const reordered =
+    "<DIV data-kind='diagram' CLASS='dia frame'><PRE id='left-behind' CLASS='extra mermaid'>graph TD</PRE></DIV>";
+  if (countMermaidPreBlocks(reordered) !== 1 || (reordered.match(DIA_RE) || []).length !== 1)
+    fail("Mermaid matcher does not cover reordered attributes, single quotes, and mixed tag/attribute casing");
+  const frozenOnly = '<div class="dia"><svg class="dia-frozen"></svg></div>';
+  if (countMermaidPreBlocks(frozenOnly) !== 0 || (frozenOnly.match(DIA_RE) || []).length !== 0)
+    fail("Mermaid matcher mistakes an already-frozen SVG for a host-rendered block");
+}
+
+assertMermaidMatcherContract();
 
 // The single definition of "publishable". Used by --verify and by this script's own final
 // gate, so the check that clears a file is literally the check that produced it.
@@ -76,7 +99,7 @@ function publishBlockers(file: string): string[] {
   if (!existsSync(file)) return [`file does not exist: ${file}`];
   const html = readFileSync(file, "utf8");
   const problems: string[] = [];
-  const unfrozen = (html.match(/<pre class="mermaid"/g) || []).length;
+  const unfrozen = countMermaidPreBlocks(html);
 
   if (html.includes(UNFROZEN_SENTINEL))
     problems.push("carries the builder's DO-NOT-PUBLISH sentinel — this is a build output, not a deploy output");
@@ -252,7 +275,7 @@ const blockers = publishBlockers(SHAREABLE_OUT);
 if (blockers.length) fail(`shareable output is not publishable:\n     · ${blockers.join("\n     · ")}`);
 
 console.log(`\n✅ shareable body: ${SHAREABLE_OUT}`);
-console.log(`   ${Buffer.byteLength(shareable).toLocaleString()} bytes · froze ${diaCount} diagrams (light+dark) · total <svg>=${svgCount} · <pre class="mermaid">=0`);
+console.log(`   ${Buffer.byteLength(shareable).toLocaleString()} bytes · froze ${diaCount} diagrams (light+dark) · total <svg>=${svgCount} · host-rendered Mermaid blocks=${countMermaidPreBlocks(shareable)}`);
 console.log(`   verified publishable — publish THIS path to artifact 007ef090:`);
 console.log(`     ${SHAREABLE_OUT}`);
 console.log(`   re-check any candidate path with:  bun ${BUILD.replace("visual-assets-artifact.build.ts", "visual-assets-prerender.ts")} --verify <file>`);

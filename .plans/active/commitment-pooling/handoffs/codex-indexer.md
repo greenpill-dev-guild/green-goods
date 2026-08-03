@@ -28,7 +28,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## Outputs
 
-- Core phase: thirteen pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`, `CommitmentExchange`, and `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their Garden relationship fields deliberately retain the documented bare-address `Garden.id` compatibility contract. Six auxiliary contributor/provenance entities live in the same schema but stay outside this core-phase count. The commitment entity also carries `counterCommitmentId`, `declaredUnitValue`/`declaredValueBasis`, the nullable `ValueDeclared` `(blockNumber, logIndex)` replay cursor, the nullable lifecycle cursor used by state-derived projections, `protocolFallbackEnabled`, `fulfilledBy`, nullable `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves confirmation-only fields null. `CommitmentCreated` initializes the value pair only when that cursor is absent; `ValueDeclared` applies only when its cursor is later than the stored cursor. Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker treatment, lifecycle projection, and every member-history delta. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- Core phase: thirteen pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`, `CommitmentExchange`, and `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their Garden relationship fields deliberately retain the documented bare-address `Garden.id` compatibility contract. Eight auxiliary contributor/provenance/replay-coordination entities live in the same schema but stay outside this core-phase count, including `CommitmentPendingLifecycleProjection` and its commitment-keyed index. The commitment entity also carries `creationSeen`, `counterCommitmentId`, `declaredUnitValue`/`declaredValueBasis`, the nullable `ValueDeclared` `(blockNumber, logIndex)` replay cursor, the nullable lifecycle cursor used by state-derived projections, `protocolFallbackEnabled`, `fulfilledBy`, nullable `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves confirmation-only fields null. `CommitmentCreated` initializes the value pair only when that cursor is absent; `ValueDeclared` applies only when its cursor is later than the stored cursor. Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker treatment, lifecycle projection, and every member-history delta. Requests persist canonical claimant and requestedBy; pools persist the current pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
 - `ExchangeAccepted` creates one `CommitmentExchange` marker keyed
   `chainId-EXCHANGE-poolId-idA-idB`, using the event's non-indexed `poolId` without an RPC read or
   prior commitment row. Entity existence proves atomic acceptance. The two ordinary
@@ -94,11 +94,17 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - `CommitmentProviderExposure` is keyed by chain, pool, and provider and stores only the current open commitment count.
 - One replay-idempotent, cursor-ordered lifecycle helper applies every current-state pool/cycle,
   member-history, attribution-confirmation, Need-lineage, and `liveCommitmentCount` delta.
+  A commitment placeholder has `creationSeen = false`. Accepted, Ready, confirmation, dispute, and
+  terminal events that need immutable creation facts write one typed pending projection keyed by
+  their audit event and return without consuming the lifecycle cursor or applying side effects.
+  `CommitmentCreated` fills the facts, applies its base projection, and drains the explicit
+  commitment-keyed pending IDs in block/log order within the same handler transaction.
   `CommitmentDisputed`, `CommitmentFulfilled`, `CommitmentCancelled`, `CommitmentExpired`, and
-  terminal `DisputeResolved.finalState` all use it. Expired-to-Disputed reverses the current
-  Expired bucket and re-increments a cycle's live count; RestorePrevious-to-Expired or
-  resolution-to-Cancelled applies exactly one final bucket and decrements once. Unit summaries and
-  provider exposure remain owned only by their self-describing unit events.
+  terminal `DisputeResolved.finalState` all use that shared projection path. Expired-to-Disputed
+  reverses the current Expired bucket and re-increments a cycle's live count;
+  RestorePrevious-to-Expired or resolution-to-Cancelled applies exactly one final bucket and
+  decrements once. Unit summaries and provider exposure remain owned only by their self-describing
+  unit events.
 - `CommitmentCycle.liveCommitmentCount` mirrors the on-chain close/cancel guard independently of
   provider-capacity exposure: non-zero-cycle `CommitmentCreated` increments it, every live-to-terminal
   Fulfilled/Cancelled/Expired transition decrements it, and the Expired dispute reopen/resolve pair
@@ -121,14 +127,21 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   and never translate selectors into EVM chain IDs or substitute the local Celo event chain.
 - Full replay preserves existing raw-address Garden lookup compatibility while every new
   commitment/settlement row remains chain-distinct through its own ID and `chainId`.
-- Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and never infer immutable creation facts from RPC.
+- Handlers are idempotent, tolerate out-of-order events, update both sides of relationships, and
+  never infer immutable creation facts from RPC. A lifecycle event delivered before
+  `CommitmentCreated` remains pending and applies only after creation facts exist; the creation
+  handler drains the typed queue atomically without a database scan or externally visible
+  intermediate count.
 - Lifecycle fixtures prove ordinary Fulfilled/Cancelled/Expired and every terminal
   `DisputeResolved` outcome share one projection path. They cover
   `Accepted -> Disputed -> Fulfilled`, `Ready -> Disputed -> Cancelled`,
   `Expired -> Disputed -> RestorePrevious(Expired)`, and
-  `Expired -> Disputed -> Cancelled`, including duplicate and reverse event delivery. Each fixture
-  asserts one current member-history outcome, exact pool/cycle state counts, exact
-  `liveCommitmentCount`, Fulfilled attribution/Need lineage, and no duplicated unit/exposure delta.
+  `Expired -> Disputed -> Cancelled`, including duplicate delivery and every lifecycle sequence
+  both before and after `CommitmentCreated`. Each fixture asserts that a pre-creation event does
+  not consume the commitment lifecycle cursor or mutate state-derived counters, the creation drain
+  marks each pending row applied once, and the final read model has one current member-history
+  outcome, exact pool/cycle and series state counts, exact `liveCommitmentCount`, Fulfilled
+  attribution/Need lineage, and no duplicated unit/exposure delta.
 - Confirmation fixtures prove `ConfirmerRuleSet` persists the explicit protocol opt-in under
   duplicate and reverse delivery. `CommitmentFulfilled` persists its emitted confirmer and exact
   `ORDINARY` / `POOL_FALLBACK` / `PROTOCOL_FALLBACK` path; only the two fallback paths set
@@ -270,7 +283,8 @@ lane and must be created before their commands can pass.
 - Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
   `ReadyForConfirmation`, every direct terminal `DisputeResolved` outcome, the exact reversible
   `Expired -> Disputed -> RestorePrevious/Cancelled` projection, duplicate/reverse lifecycle
-  delivery, one-credit-per-Work replay, stale catch-up rejection before mutation, unlink after
+  delivery with Accepted/Ready/terminal events arriving before creation and draining only after
+  immutable facts exist, one-credit-per-Work replay, stale catch-up rejection before mutation, unlink after
   effective rejection, exact `liveCommitmentCount` including Offered/Requested,
   declared-value creation→update, update→creation, duplicate delivery, and two-update
   forward/reverse delivery with the same latest `(blockNumber, logIndex)` winner,
