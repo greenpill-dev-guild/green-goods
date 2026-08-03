@@ -58,6 +58,13 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
   is enabled only when both are zero; otherwise W7 names that live promises must be wound down and
   links to commitment/cycle recovery. Open and Paused pools retain cancel/expire/resolve plus
   cycle cancel/compost controls until the guard passes.
+- `W7@due-live` renders every past-due commitment that is still live with **Expire now** and calls
+  permissionless `expireCommitment`. It routes to `W7@expiry-queue` only after indexed Expired
+  success; failure keeps the due-live row and never claims capacity or live-count release. The
+  later keeper is only a backstop.
+- Offered/Requested W7 rows may open `W10@edit-declared-value`; the complete value/basis pair uses
+  the shared `setDeclaredValue` mutation. Accepted/terminal rows have no edit and historical
+  instance snapshots are unchanged.
 - Cycle seeding carries no allocation or recognition policy. The open-cycle step accepts the six
   allocation percentages plus equal/verified recognition percentages, converts both groups to
   basis points, requires each group to total exactly 10,000, and submits both snapshots atomically
@@ -80,6 +87,10 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Pool pause requires a reason and disables only new commitments, claims, Ready submissions, and confirmations; evidence/linkage and safe recovery remain available. Provider open-commitment caps are steward-gated and class quotas are not editable.
 - `closePool` can never be submitted from a state with live commitments or a Seeded/Open/
   Reconciled cycle. The confirmation carries zero-count facts; non-zero states expose no call.
+- Past due alone never renders Expired. `W7@due-live` submits `expireCommitment`, preserves the
+  live row on failure, and exposes re-seed/history only from the indexed post-success queue.
+- The pre-acceptance declared-value editor is reachable only from Offered/Requested facts and
+  emits `setDeclaredValue`; it never rewrites an Accepted or historical instance.
 - In `W10@accepted`, steward cancellation and the authorized Ready override both require a captured reason; confirmation remains unavailable until the normal evidence gate or the explicit override has produced Ready. The three actions retain separate permissions, labels, and audit outcomes.
 - `W10@attach-assessment` accepts only the eligible Assessment v3 set scoped to the accepted `providerGarden`; no assessment from another provider or garden can be selected, and a required-but-empty set blocks normal Ready submission with a recovery explanation.
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
@@ -99,7 +110,7 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 
 ## RED / GREEN
 
-- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-entry control, CCIP command/ack states, fee health, and Safe role separation.
+- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, due-live expiry success/failure truth, pre-acceptance declared-value editing, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-entry control, CCIP command/ack states, fee health, and Safe role separation.
 - GREEN: the same tests pass; admin build passes; authenticated Brave proves the live operator flow.
 
 ## Exact Bun commands

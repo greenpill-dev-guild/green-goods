@@ -121,7 +121,7 @@ export const SBS: SB[] = [
   { f: "W2@ready-confirmer", hot: null, st: "ReadyForConfirmation restored", ev: "RestorePrevious returns the exact stored pre-dispute state — no unit movement — and every resolution reason renders in the member timeline", cite: "LAP:186 · UX:300", note: "This fixture entered dispute from ReadyForConfirmation, so RestorePrevious must return there rather than Accepted." },
 ]},
 { id: "sb6a", n: 6, title: "Offer again after a promise expires", persona: "Promise owner", scen: "S1/S5 edge", reviewVisible: true, reviewGroup: "client", steps: [
-  { f: "W2@expired", hot: null, st: "past due", ev: "expireCommitment is permissionless — admin sweep in August, keeper cron later (register #34d)", cite: "CS:746", br: [{ l: "Stewards re-seed lapsed seeded promises", to: "sb6b:0" }] },
+  { f: "W2@expired", hot: null, st: "Expired", ev: "a submitted permissionless expiry released units and live counts; the admin due-live action ships in August and a keeper remains only a later backstop (register #34d)", cite: "CS:746", br: [{ l: "Stewards expire and re-seed lapsed promises", to: "sb6b:0" }] },
   { f: "W2@expired", hot: { h: "w2.offer-again", l: "Offer again" }, who: "owner", st: "Expired", ev: "units released exactly once · pending claim requests → Superseded (COMMITMENT_EXPIRED)", cite: "CS:142", mf: true },
   { f: "W3@step-what", hot: { h: "w3.continue-what", l: "Continue" }, who: "owner", st: "Prefilled draft", ev: "a fresh promise begins with the expired promise's useful context", cite: "UX:94" },
   { f: "W3@step-howmuch", hot: { h: "w3.continue-howmuch", l: "Continue" }, who: "owner", st: "Prefilled draft", ev: "the owner checks the amount and due rule", cite: "UX:94" },
@@ -132,6 +132,7 @@ export const SBS: SB[] = [
   { f: "W1@queued", hot: null, marks: ["w1.queued-card"], st: "Queued (local)", ev: "the fresh commitment waits to sync as a new record", cite: "UX:212" },
 ]},
 { id: "sb6b", n: 6, title: "Re-seed a promise that lapsed", persona: "Steward (David)", scen: "S1/S5 edge", reviewVisible: true, reviewGroup: "admin", steps: [
+  { f: "W7@due-live", hot: { h: "w7.expire-commitment", l: "Expire now" }, who: "David", st: "Accepted · past due", ev: "permissionless expireCommitment → Expired; releases the reservation once, supersedes pending claims, and decrements pool/cycle live counts", cite: "CS:746 · UX:94", mf: true },
   { f: "W7@expiry-queue", hot: { h: "w7.reseed", l: "Re-seed" }, who: "David", ev: "lapsed seeded promise re-enters W8 prefilled", cite: "UX:94", mf: true },
   { f: "W8@step1", hot: { h: "w8.continue-scope", l: "Continue" }, who: "David", ev: "checks the seeded promise's type and cycle scope", cite: "UX:94" },
   { f: "W8@step2", hot: { h: "w8.continue-requirements", l: "Continue" }, who: "David", ev: "checks units, target, action requirements, and due rule", cite: "UX:94" },

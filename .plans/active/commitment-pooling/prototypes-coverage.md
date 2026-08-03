@@ -4,10 +4,10 @@ Updated 2026-08-03. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 36 registered screens / 375 rendered states in the full source registry
-- 29 presentation-visible hi-fi screens / 368 states: 14 Client PWA (237 states), 13 Admin console (126 states), 2 Editorial website (5 states)
-- 515 registered hotspots
-- 44 validated source flows / 365 scenes; 43 presentation-visible flows / 356 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
+- 36 registered screens / 377 rendered states in the full source registry
+- 29 presentation-visible hi-fi screens / 370 states: 14 Client PWA (237 states), 13 Admin console (128 states), 2 Editorial website (5 states)
+- 518 registered hotspots
+- 44 validated source flows / 366 scenes; 43 presentation-visible flows / 357 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers

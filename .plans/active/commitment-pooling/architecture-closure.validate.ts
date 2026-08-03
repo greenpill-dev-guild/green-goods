@@ -107,19 +107,94 @@ for (let index = 1; index <= 28; index += 1) {
   require(entityMatrix.includes(`ER-${String(index).padStart(2, "0")}`), `missing ER-${String(index).padStart(2, "0")}`);
 }
 
+const materializationMatrix = section(
+  matrix,
+  "### A3. Sparse-event materialization ledger",
+  "---\n\n## Matrix B",
+);
+for (let index = 1; index <= 8; index += 1) {
+  require(
+    materializationMatrix.includes(`PM-${String(index).padStart(2, "0")}`),
+    `missing PM-${String(index).padStart(2, "0")}`,
+  );
+}
+
+const poolingInterface = section(
+  contract,
+  "interface ICommitmentPoolingModule {",
+  "interface ICommitmentRegistry {",
+);
+const poolingFunctions = [
+  ...poolingInterface.matchAll(/^\s*function\s+([A-Za-z][A-Za-z0-9_]*)\s*\(/gm),
+].map((match) => match[1]);
+require(
+  poolingFunctions.length === 86,
+  `expected 86 ICommitmentPoolingModule functions, found ${poolingFunctions.length}`,
+);
+require(
+  new Set(poolingFunctions).size === poolingFunctions.length,
+  "ICommitmentPoolingModule contains duplicate function names",
+);
+
+const abiClassification = section(
+  matrix,
+  "### B1. Complete Commitment Pooling ABI classification",
+  "### B2. Retry policies",
+);
+const classifiedFunctions: string[] = [];
+let matrixExecutableFunctions: string[] = [];
+for (const line of abiClassification.split("\n")) {
+  if (!line.startsWith("|") || line.startsWith("|---") || line.startsWith("| Class")) continue;
+  const cells = line.split("|");
+  const className = (cells[1] ?? "").trim();
+  const names = namesInBackticks(cells[2] ?? "");
+  classifiedFunctions.push(...names);
+  if (className === "Hi-fi executable now") matrixExecutableFunctions = names;
+}
+for (const functionName of poolingFunctions) {
+  require(
+    classifiedFunctions.filter((candidate) => candidate === functionName).length === 1,
+    `${functionName} must appear exactly once in Matrix B1`,
+  );
+}
+for (const functionName of new Set(classifiedFunctions)) {
+  require(
+    poolingFunctions.includes(functionName),
+    `Matrix B1 names unknown ICommitmentPoolingModule function ${functionName}`,
+  );
+}
+
 const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n\/\/ Metadata/)?.[1] ?? "";
 const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
-require(contractCalls.length === 52, `expected 52 executable hi-fi call names, found ${contractCalls.length}`);
-const callCoverage = section(matrix, "### B2. Executable-call coverage", "---\n\n## Matrix C");
+require(contractCalls.length === 56, `expected 56 executable hi-fi call names, found ${contractCalls.length}`);
+const executablePoolingCalls = contractCalls.filter((call) => poolingFunctions.includes(call));
+require(
+  executablePoolingCalls.length === 41,
+  `expected 41 executable Commitment Pooling calls, found ${executablePoolingCalls.length}`,
+);
+for (const call of executablePoolingCalls) {
+  require(
+    matrixExecutableFunctions.filter((candidate) => candidate === call).length === 1,
+    `${call} must appear exactly once in Matrix B1's hi-fi executable class`,
+  );
+}
+for (const call of matrixExecutableFunctions) {
+  require(
+    executablePoolingCalls.includes(call),
+    `Matrix B1 classifies ${call} as executable but ContractCall omits it`,
+  );
+}
+
+const callCoverage = section(matrix, "### B3. Executable-call coverage", "---\n\n## Matrix C");
 const matrixCallNames = namesInBackticks(callCoverage);
 for (const call of contractCalls) {
   require(
     matrixCallNames.filter((candidate) => candidate === call).length === 1,
-    `${call} must appear exactly once in Matrix B2`,
+    `${call} must appear exactly once in Matrix B3`,
   );
 }
 for (const call of new Set(matrixCallNames)) {
-  require(contractCalls.includes(call), `Matrix B2 names unknown executable call ${call}`);
+  require(contractCalls.includes(call), `Matrix B3 names unknown executable call ${call}`);
 }
 
 const offlineKinds = [
@@ -161,6 +236,18 @@ const sourceChecks: Array<[boolean, string]> = [
   [/type CommitmentPool \{[\s\S]*nonTerminalCycleCount: BigInt!/.test(contract), "CommitmentPool.nonTerminalCycleCount is missing from the indexer schema"],
   [/type CommitmentPool \{[\s\S]*charterUpdateBlockNumber/.test(contract), "pool charter replay cursor is missing"],
   [/type CommitmentPool \{[\s\S]*providerCapUpdateBlockNumber/.test(contract), "pool provider-cap replay cursor is missing"],
+  [/type CommitmentPool \{[\s\S]*registrationSeen: Boolean!/.test(contract), "pool sparse-registration marker is missing"],
+  [/type CommitmentCycle \{[\s\S]*seedSeen: Boolean!/.test(contract), "cycle sparse-seed marker is missing"],
+  [/type CommitmentSeries \{[\s\S]*creationSeen: Boolean!/.test(contract), "series sparse-creation marker is missing"],
+  [/type CommitmentSeries \{[\s\S]*latestLifecycleBlock: BigInt(?:\s|#)/.test(contract), "series lifecycle cursor is not nullable"],
+  [/type CommitmentSeries \{[\s\S]*latestLifecycleLogIndex: Int(?:\s|#)/.test(contract), "series lifecycle log cursor is not nullable"],
+  [/type CommitmentSeries \{[\s\S]*latestMetadataBlock: BigInt(?:\s|#)/.test(contract), "series metadata cursor is not nullable"],
+  [/type CommitmentSeries \{[\s\S]*latestMetadataLogIndex: Int(?:\s|#)/.test(contract), "series metadata log cursor is not nullable"],
+  [/type Commitment \{[\s\S]*creationSeen: Boolean!/.test(contract), "commitment sparse-creation marker is missing"],
+  [/type CommitmentClaimRequest \{[\s\S]*requestSeen: Boolean!/.test(contract), "claim sparse-request marker is missing"],
+  [/type CommitmentClaimRequest \{[\s\S]*requestedBy: String(?:\s|#)/.test(contract), "claim sparse placeholder payload is not nullable"],
+  [/type CommitmentContributor \{[\s\S]*additionSeen: Boolean!/.test(contract), "contributor sparse-add marker is missing"],
+  [/type CommitmentWorkAttribution \{[\s\S]*linkSeen: Boolean!/.test(contract), "Work sparse-link marker is missing"],
   [/type Commitment \{[\s\S]*rewardUpdateBlockNumber/.test(contract), "commitment reward replay cursor is missing"],
   [/type Commitment \{[\s\S]*acceptanceBlockNumber/.test(contract), "commitment acceptance position is missing"],
   [/type CommitmentContributor \{[\s\S]*membershipBlockNumber/.test(contract), "contributor membership cursor is missing"],
@@ -169,6 +256,17 @@ const sourceChecks: Array<[boolean, string]> = [
   [contract.includes("CommitmentContributorRequirementAssignment"), "contributor requirement assignment entity is missing"],
   [contract.includes("CommitmentContributorRequirementIndex"), "contributor requirement assignment index is missing"],
   [contract.includes("late `ClaimRequested`"), "late ClaimRequested reconciliation rule is missing"],
+  [
+    contract.includes("terminal placeholder with `requestSeen = false`") &&
+      contract.includes("without") &&
+      contract.includes("regressing `DECLINED`"),
+    "decline-before-request materialization rule is missing",
+  ],
+  [
+    contract.includes("nullable fields plus an explicit seen flag") &&
+      contract.includes("unrelated cursor pairs remain null"),
+    "sparse parent/series placeholder contract is incomplete",
+  ],
   [contract.includes("signed commutative deltas"), "register reverse-delivery policy is missing"],
   [contract.includes("confirmationCount = max(currentCount, emittedCount)"), "confirmation cumulative-count convergence is missing"],
   [contract.includes("deterministically sorted"), "relationship-array convergence is missing"],
@@ -189,7 +287,25 @@ const sourceChecks: Array<[boolean, string]> = [
   [validate.includes('poolNonTerminalCycles: ["Zero"]'), "hi-fi closePool rule lacks zero-cycle guard"],
   [admin.includes("live promises must be wound down"), "admin close flow lacks a live-commitment blocker"],
   [admin.includes('"close-blocked-live"') && admin.includes('poolLiveCommitments: "NonZero"'), "admin close blocker lacks non-zero facts"],
+  [
+    admin.includes('["due-live", "Past due — expiry available"]') &&
+      admin.includes('"w7.expire-commitment"') &&
+      admin.includes('calls: ["expireCommitment"]'),
+    "admin due-live expiry action is missing",
+  ],
+  [types.includes('| "expireCommitment"'), "hi-fi ContractCall omits expireCommitment"],
+  [
+    validate.includes("expireCommitment:") &&
+      validate.includes('next: "Expired"'),
+    "hi-fi expireCommitment rule is missing",
+  ],
   [settlement.includes('poolNonTerminalCycles: "One"'), "last-cycle compost flow lacks pre-compost count facts"],
+  [
+    journeys.includes('W7@due-live') &&
+      journeys.includes('w7.expire-commitment') &&
+      journeys.includes('W7@expiry-queue'),
+    "admin expiry journey does not prove due-live to Expired",
+  ],
   [journeys.includes('W32@saving') && journeys.includes('W32@offline-local'), "saved-Offer journeys omit saving/offline truth"],
   [!section(journeys, '{ id: "sb38"', '{ id: "sb39"').includes('W32@saved'), "SB-38 still claims a no-signal save succeeded"],
   [acceptance.includes("Pool.nonTerminalCycleCount == 0"), "acceptance matrix lacks the pool close guard"],
@@ -216,17 +332,46 @@ const sourceChecks: Array<[boolean, string]> = [
       diagrams.includes('BigInt linkLifecycleBlockNumber "latest link/unlink event position"'),
     "D15 omits relationship replay cursors",
   ],
+  [
+    diagrams.includes('Boolean registrationSeen "false only for update-before-registration placeholder"') &&
+      diagrams.includes('Boolean seedSeen "false only for lifecycle-before-seed placeholder"') &&
+      diagrams.includes('Boolean requestSeen "false for decline-before-request placeholder"') &&
+      diagrams.includes('Boolean additionSeen "false for remove-or-decision-before-add placeholder"') &&
+      diagrams.includes('Boolean linkSeen "false for unlink-or-decision-before-link placeholder"'),
+    "D15 omits sparse-event materialization markers",
+  ],
   [prototypes.includes("clientCommitmentId") && prototypes.includes("creationRequestKey"), "prototype spec lacks place idempotency"],
+  [
+    prototypes.includes("`W7@due-live` → `W7@expiry-queue`") &&
+      prototypes.includes("`W10@edit-declared-value`"),
+    "prototype spec omits executable expiry or declared-value paths",
+  ],
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
-  [wireframes.includes("#screens/W7@open") && wireframes.includes("(28 states)"), "wireframe W7 state count is stale"],
-  [coverage.includes("375 rendered states") && coverage.includes("515 registered hotspots"), "prototype coverage snapshot is stale"],
+  [wireframes.includes("#screens/W7@open") && wireframes.includes("(29 states)"), "wireframe W7 state count is stale"],
+  [
+    coverage.includes("377 rendered states") &&
+      coverage.includes("518 registered hotspots") &&
+      coverage.includes("366 scenes"),
+    "prototype coverage snapshot is stale",
+  ],
   [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],
   [status.includes("38 named plus __gap[12]"), "status still declares the old storage layout"],
   [contractHandoff.includes("38-feature-slot") && contractHandoff.includes("operationKey"), "contract handoff omits closure contract"],
-  [indexerHandoff.includes("sixteen pooling entities") && indexerHandoff.includes("late `ClaimRequested`"), "indexer handoff omits closure entities or late claims"],
+  [
+    indexerHandoff.includes("sixteen pooling entities") &&
+      indexerHandoff.includes("late `ClaimRequested`") &&
+      indexerHandoff.includes("`requestSeen = false`") &&
+      indexerHandoff.includes("decline-first fixture"),
+    "indexer handoff omits closure entities or reverse-delivered claims",
+  ],
   [stateHandoff.includes("clientCommitmentId") && stateHandoff.includes("OFFLINE_LOCAL"), "state/API handoff omits retry or persistence truth"],
   [clientHandoff.includes("clientCommitmentId") && clientHandoff.includes("SAVING_REMOTE"), "client handoff omits retry or persistence truth"],
-  [adminHandoff.includes("Pool.nonTerminalCycleCount"), "admin handoff omits pool close guard"],
+  [
+    adminHandoff.includes("Pool.nonTerminalCycleCount") &&
+      adminHandoff.includes("`W7@due-live`") &&
+      adminHandoff.includes("`W10@edit-declared-value`"),
+    "admin handoff omits pool close, expiry, or declared-value paths",
+  ],
 ];
 for (const [condition, message] of sourceChecks) require(condition, message);
 
@@ -263,6 +408,7 @@ if (failures.length > 0) {
 
 console.log(
   `Architecture closure validation passed: ${canonicalEvents.length} events, ` +
-  `${requiredEntities.length} indexed entities, ${contractCalls.length} executable calls, ` +
+  `${requiredEntities.length} indexed entities, ${poolingFunctions.length} classified module functions, ` +
+  `8 sparse-event materialization rows, ${contractCalls.length} executable calls, ` +
   `${offlineKinds.length} offline kinds, 6 persistence states, and 7 lifecycle subjects.`,
 );

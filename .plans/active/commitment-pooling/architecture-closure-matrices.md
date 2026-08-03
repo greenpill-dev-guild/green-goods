@@ -35,20 +35,20 @@ projection policy below. Audit-row insertion is independently idempotent for all
 
 | ID | Events | Primary projection | Ordering and replay contract | Required reverse-delivery proof |
 |---|---|---|---|---|
-| EO-01 | `PoolRegistered` | Pool immutable identity | Create/fill placeholder once. It may initialize a mutable field only when that field has no later cursor. | registration after charter, cap, or lifecycle update |
+| EO-01 | `PoolRegistered` | Pool immutable identity | Fill the `registrationSeen = false` placeholder once, set the flag, and initialize a mutable field only when that field has no later cursor. | registration after charter, cap, or lifecycle update |
 | EO-02 | `PoolCharterUpdated` | Pool charter | Independent latest-wins charter cursor. Never coupled to pool lifecycle or cap. | two charters in both orders; update before registration |
 | EO-03 | `ProviderOpenCommitmentCapUpdated` | Pool provider cap | Independent latest-wins cap cursor. Never coupled to pool lifecycle or charter. | two caps in both orders; update before registration |
 | EO-04 | `PoolReady`, `PoolOpened`, `PoolPaused`, `PoolResumed`, `PoolClosed`, `PoolComposted`, `PoolReopened` | Pool lifecycle and pause reason | One pool-lifecycle cursor. Only a winning event may change state, pause reason, or `updatedAt`. | every opposing transition in both orders and before registration |
-| EO-05 | `CycleSeeded` | Cycle immutable identity | Create/fill placeholder once. Seeded initializes state only when no later lifecycle cursor exists. | lifecycle event before seed |
+| EO-05 | `CycleSeeded` | Cycle immutable identity | Fill the `seedSeen = false` placeholder once, set the flag, and initialize state only when no later lifecycle cursor exists. | lifecycle event before seed |
 | EO-06 | `CycleOpened`, `CycleClosed`, `CycleComposted`, `CycleCancelled` | Cycle lifecycle, allocation snapshot, pool open-cycle relationships | One cycle-lifecycle cursor. `CycleOpened` fills immutable snapshots once even when an older Open cannot regress a newer terminal state. Pool Season/Campaign relationships change only with a winning cycle event. | Open/Close/Compost/Cancel in both orders; Open before Seed |
-| EO-07 | `CommitmentSeriesCreated` | Series immutable identity | Create/fill placeholder once. It initializes lifecycle/metadata only when the corresponding cursor is absent. | metadata or lifecycle before creation |
+| EO-07 | `CommitmentSeriesCreated` | Series immutable identity | Fill the `creationSeen = false` placeholder once and set the flag. Lifecycle and metadata cursors are independent and nullable; creation initializes only the field whose cursor is absent. | metadata or lifecycle before creation |
 | EO-08 | `CommitmentSeriesMetadataUpdated` | Series metadata | Independent latest-wins metadata cursor. | two metadata updates in both orders |
 | EO-09 | `CommitmentSeriesRested`, `CommitmentSeriesResumed`, `CommitmentSeriesRetired` | Series lifecycle | Independent latest-wins lifecycle cursor. Retired remains terminal on-chain. | Rest/Resume/Retire in both orders |
 | EO-10 | `CommitmentCreated` | Commitment immutable identity, requirements, Need/counter relationships, base pool/cycle/series counts | Create once, fill placeholders, apply the base Offered/Requested projection once, then atomically drain typed pending projections in position order. Set-like relationship arrays are unique and deterministically sorted. | every dependent event before creation; duplicate creation |
 | EO-11 | `RewardDeclared` | Declared reward tuple | Independent latest-wins reward cursor. Creation may not restore an older initial tuple. | two declarations in both orders; declaration before creation |
 | EO-12 | `ValueDeclared` | Declared value/basis tuple | Independent latest-wins value cursor. Zero/empty values are data, not absence. | two updates in both orders; update before creation |
 | EO-13 | `ConfirmerRuleSet` | Complete confirmer rule tuple | Independent latest-wins rule cursor. The list, threshold, and fallback flag move atomically. | opposing rules in both orders; update before creation |
-| EO-14 | `ClaimRequested`, `ClaimDeclined`, `CommitmentAccepted` | Claim request row/index plus immutable acceptance facts | Each claimant row owns a lifecycle cursor. A late request older than acceptance becomes `ACCEPTED` for the accepted claimant or `SUPERSEDED` otherwise. A late request older than cancellation/expiry becomes terminal, never `PENDING`. A later fresh request after decline may become `PENDING`. | request/decline, request/acceptance, request/cancel, and request/expiry in both orders |
+| EO-14 | `ClaimRequested`, `ClaimDeclined`, `CommitmentAccepted` | Claim request row/index plus immutable acceptance facts | Each claimant row owns a lifecycle cursor and `requestSeen`. Decline-before-request creates a terminal placeholder with nullable request payload; an older Request fills payload without reviving it, while a genuinely newer post-decline Request may become `PENDING`. Acceptance/cancel/expiry still win by position. | decline-before-request, fresh request after decline, request/acceptance, request/cancel, and request/expiry in both orders |
 | EO-15 | `ExchangeAccepted` | Immutable exchange pair | Create once from emitted facts. It never adds lifecycle, unit, exposure, or member-history deltas. | marker before both ordinary acceptances; duplicate marker |
 | EO-16 | `ContributorAdded`, `ContributorRemoved` | Contributor active membership | Each commitment/contributor row owns a latest-wins membership cursor. Older membership events may fill immutable actor/time facts but never regress `active`. The contributor index is a unique address-sorted set. | Add/Remove/Add in every delivery order and before acceptance/freeze |
 | EO-17 | `ContributorRequirementAssigned` | One contributor/requirement assignment relationship | One relationship row per `(commitment, contributor, requirementIndex)`, with its own latest-wins cursor. The contributor's active requirement list is rebuilt from the bounded assignment index and sorted numerically. | assign/unassign for the same row in both orders plus interleaved different rows |
@@ -68,24 +68,24 @@ projection policy below. Audit-row insertion is independently idempotent for all
 
 | ID | Entity or relationship | Owning events/derivation | Replay invariant |
 |---|---|---|---|
-| ER-01 | `CommitmentPool` | EO-01–04, EO-03, EO-28, commitment lifecycle | Immutable identity; separate charter/cap/lifecycle cursors; event-owned lifetime counters; commutative open counts; cursor-ordered live count. |
-| ER-02 | `CommitmentCycle` | EO-05–06, EO-28, commitment lifecycle | Immutable seed/open snapshots; lifecycle cursor; commutative unit/open counts; cursor-ordered live count. |
+| ER-01 | `CommitmentPool` | EO-01–04, EO-03, EO-28, commitment lifecycle | `registrationSeen` plus nullable base identity; separate charter/cap/lifecycle cursors; event-owned lifetime counters; commutative open counts; cursor-ordered live count. |
+| ER-02 | `CommitmentCycle` | EO-05–06, EO-28, commitment lifecycle | `seedSeen` plus nullable seed facts; lifecycle cursor; commutative unit/open counts; cursor-ordered live count. |
 | ER-03 | `CommitmentClass` | EO-27 | Immutable `chainId-classId` row; no inferred provider. |
 | ER-04 | `CommitmentUnitSummary` | EO-20, EO-28 | Exact-label identity and unique signed deltas; case-sensitive labels never merge. |
 | ER-05 | `CommitmentProviderExposure` | EO-28 | Provider comes only from unit events; unique signed slot deltas. |
-| ER-06 | `CommitmentSeries` | EO-07–10 and lifecycle | Separate lifecycle/metadata cursors; current-state counts use the reversible transition helper. |
+| ER-06 | `CommitmentSeries` | EO-07–10 and lifecycle | `creationSeen` plus nullable base facts and independent nullable lifecycle/metadata cursors; current-state counts use the reversible transition helper. |
 | ER-07 | `CommitmentSeriesCycleSummary` | EO-10 and lifecycle | Current-state counts are the same reversible transition applied to one series/cycle key. |
 | ER-08 | `Commitment` | EO-10–25 | Immutable creation/acceptance facts, independent mutable-field cursors, and one lifecycle cursor/buffer. |
 | ER-09 | `CommitmentRequirement` | EO-10, EO-20 | Immutable requirement identity; emitted cumulative approval count assignment. |
-| ER-10 | `CommitmentContributor` | EO-16, EO-19–21 | Membership cursor; credits change only from effective state transitions. |
+| ER-10 | `CommitmentContributor` | EO-16, EO-19–21 | `additionSeen` and nullable Add facts support remove/decision-first delivery; membership cursor and credits change only from effective state transitions. |
 | ER-11 | `CommitmentContributorRequirementAssignment` | EO-17 | Per-relationship cursor; one current boolean. |
 | ER-12 | `HypercertCommitmentContributorAllocation` | frozen recognition output | Immutable bundle allocation keyed by hypercert/commitment/contributor; replay upserts exact values only. |
-| ER-13 | `CommitmentWorkAttribution` | EO-19–20 | Independent link cursor and resolver decision sequence. |
+| ER-13 | `CommitmentWorkAttribution` | EO-19–20 | `linkSeen` and nullable Link facts support unlink/decision-first delivery; link cursor and resolver decision sequence remain independent. |
 | ER-14 | `CommitmentContributorIndex` | EO-16 | Unique normalized-address-sorted relationship IDs; order cannot depend on delivery. |
 | ER-15 | `CommitmentContributorRequirementIndex` | EO-17 | Unique relationship IDs sorted by contributor then numeric requirement index. |
 | ER-16 | `CommitmentEvidenceAttribution` | EO-21, EO-24 | Immutable evidence/contributor identity; confirmed follows current Fulfilled state. |
 | ER-17 | `CommitmentEvidenceAttributionIndex` | EO-21 | Unique sorted IDs; bounded direct lookup only. |
-| ER-18 | `CommitmentClaimRequest` | EO-14, EO-24 | Per-row lifecycle cursor plus current request payload; never revives behind a newer acceptance/terminal marker. |
+| ER-18 | `CommitmentClaimRequest` | EO-14, EO-24 | `requestSeen`, nullable Request payload, and per-row lifecycle cursor; decline-first and commitment-terminal delivery never revive behind a winning marker. |
 | ER-19 | `CommitmentClaimRequestIndex` | EO-14 | Unique claimant-key IDs sorted lexicographically; sweep semantics do not depend on insertion order. |
 | ER-20 | `CommitmentEvent` | all 54 events | Immutable `chainId-txHash-logIndex` audit guard. |
 | ER-21 | `CommitmentPendingLifecycleProjection` | EO-10, EO-23–24 | Typed event payload; same ID as audit event; applied once. |
@@ -97,9 +97,41 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | ER-27 | Garden relationships (`gardenId`, `providerGardenId`, `gardenContextId`) | emitted addresses | Existing normalized bare-address `Garden.id`; never migrated to a composite key. |
 | ER-28 | Pool/cycle/series/commitment relationship fields and arrays | owning entity events | Composite IDs for new entities; every set-like array is unique and deterministically sorted, while semantically ordered pending projections sort by event position. |
 
+### A3. Sparse-event materialization ledger
+
+Every event that may arrive before the event supplying its base row has one representable strategy.
+Nullable payload means actual absence; no handler invents an enum, address, raw ID, timestamp, or
+empty-string identity. Ordinary queries exclude a row whose base-event seen flag is false.
+
+| ID | Base entity | Sparse events delivered first | Representation before base event | Base-event merge proof |
+|---|---|---|---|---|
+| PM-01 | `CommitmentPool` | charter, cap, or pool lifecycle before `PoolRegistered` | `registrationSeen = false`; registration-only facts null; supplied mutable field/cursor retained | registration fills identity and cannot regress charter/cap/lifecycle |
+| PM-02 | `CommitmentCycle` | cycle lifecycle before `CycleSeeded` | `seedSeen = false`; seed-only facts null; supplied pool/lifecycle/snapshot facts retained | seed fills immutable facts and cannot reopen a newer terminal cycle |
+| PM-03 | `CommitmentSeries` | metadata, Rest/Resume/Retire, or linked instance before `CommitmentSeriesCreated` | `creationSeen = false`; base facts null; lifecycle and metadata cursor pairs independently nullable | creation fills base facts and initializes only cursor-absent fields |
+| PM-04 | `Commitment` | reward/value/rule update before `CommitmentCreated`; state-derived lifecycle event before creation | `creationSeen = false` with nullable creation-only fields for independent updates; state-derived events use the typed pending index | creation fills base facts, then drains pending lifecycle projections in position order |
+| PM-05 | `CommitmentClaimRequest` | `ClaimDeclined` before `ClaimRequested` | `requestSeen = false`; request payload null; terminal decline cursor/reason retained and indexed | older Request fills payload without revival; newer post-decline Request may become Pending |
+| PM-06 | `CommitmentContributor` | Remove or Work decision before Add | `additionSeen = false`; Add actor/time null; membership/credit facts retained | Add fills audit facts without regressing the winning membership cursor |
+| PM-07 | `CommitmentWorkAttribution` | Unlink or approval decision before Link | `linkSeen = false`; Link-only payload null; supplied link/decision cursor retained | Link fills immutable payload without regressing a newer unlink/decision |
+| PM-08 | Remaining ER rows | owning event before related parent entity | owning event carries the complete row identity/payload, or EO-23/24 uses the typed pending lifecycle buffer | parent arrival changes only relationship availability, never row identity or outcome |
+
 ---
 
 ## Matrix B — Retry and idempotency
+
+### B1. Complete Commitment Pooling ABI classification
+
+The canonical `ICommitmentPoolingModule` interface contains **86 functions**. Every function is
+classified exactly once. “No hi-fi surface” is an explicit product boundary, not silent omission.
+
+| Class | Functions |
+|---|---|
+| Hi-fi executable now | `setPoolCharter`, `setProviderOpenCommitmentCap`, `markPoolReady`, `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool`, `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle`, `createCommitmentSeries`, `updateCommitmentSeriesMetadata`, `restCommitmentSeries`, `resumeCommitmentSeries`, `retireCommitmentSeries`, `createCommitment`, `setDeclaredValue`, `claimCommitment`, `acceptClaim`, `declineClaim`, `joinCommitment`, `leaveCommitment`, `addContributor`, `removeContributor`, `setContributorRequirement`, `linkWork`, `attachEvidence`, `attachAssessment`, `submitForConfirmation`, `markReadyForConfirmation`, `confirmFulfillment`, `confirmFulfillmentAsFallback`, `cancelCommitment`, `expireCommitment`, `raiseDispute`, `resolveDispute`, `recordRewardPaid` |
+| Planned app surface, not current hi-fi | `acceptExchange` |
+| Explicit operator action with no current hi-fi surface | `setDeclaredReward`, `setConfirmerRule`, `unlinkWork`, `syncWorkDecisions` |
+| System, deployment, or governance only | `onGardenMinted`, `registerPool`, `onWorkDecision`, `initialize`, `setGardenToken`, `setHatsModule`, `setActionRegistry`, `setCommitmentRegistry`, `setWorkApprovalResolver`, `setEAS`, `setSchemaUIDs`, `setPaused` |
+| Read-only or pure | `getCommitmentIdByCreationRequest`, `getWorkLinkOperationPayloadHash`, `validateRecognitionSnapshot`, `getPool`, `getPoolByGarden`, `getCycle`, `getCommitmentSeries`, `getCommitmentSeriesIdByCreationRequest`, `getCommitment`, `getRequirement`, `getContributor`, `isContributor`, `isEligibleContributor`, `getPendingClaim`, `getConfirmers`, `protocolPoolId`, `rootGarden`, `workCommitmentOf`, `getLinkedWorkUIDs`, `isApprovalCounted`, `isEvidenceAttached`, `MAX_CONFIRMERS`, `MAX_REQUIREMENTS`, `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, `MAX_CONTRIBUTORS_PER_COMMITMENT`, `MAX_LINKED_WORKS_PER_COMMITMENT`, `cyclelessRecognitionPolicy`, `paused` |
+
+### B2. Retry policies
 
 | ID | Transaction or operation | Lane | Durable identity before first send | Recovery before retry | Automatic rebroadcast |
 |---|---|---|---|---|---|
@@ -114,7 +146,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | RI-09 | Saved Offer delete | authenticated remote `DELETE` | `savedOfferId`, `expectedVersion` | tombstone/current version read; matching tombstone completes, conflict requires user choice | yes after read-through |
 | RI-10 | Series metadata, Rest, Resume, Retire | online wallet mutation | no background job | re-read series target state/metadata; exact target is success, incompatible newer state stops | no automatic retry |
 | RI-11 | Pool and cycle lifecycle/configuration | online steward mutation | no background job | re-read current state and exact charter/cap/snapshot; exact target is success, stale target returns to review | no automatic retry |
-| RI-12 | Accept/decline claim | online steward mutation | canonical claimant plus current request state | re-read request and commitment; exact terminal outcome is success, newer outcome disables action | no automatic retry |
+| RI-12 | Accept/decline claim or planned paired exchange | online steward/creator mutation | canonical claimant or immutable exchange pair | re-read request/commitments; exact terminal outcome is success, newer outcome disables action; paired acceptance never retries after either side is already Accepted | no automatic retry |
 | RI-13 | Join/leave/add/remove/assign contributor | online participant/lead mutation | target contributor/relationship | re-read cursor-correct target state; exact target is success, frozen/newer target stops | no automatic retry |
 | RI-14 | Assessment, Ready override, cancellation, expiry, dispute, dispute resolution | online mutation | target commitment and entered reason/UID | re-read current lifecycle and immutable result; exact result is success, incompatible newer state stops | no automatic retry |
 | RI-15 | Fallback confirmation and external reward receipt | online steward mutation | commitment plus reason or payout reference | re-read fulfillment/payout result; exact authenticated result is success | no automatic retry |
@@ -123,8 +155,9 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | RI-18 | Settlement acknowledgment retry | existing settlement recovery | stored execution outcome | destination reads stored outcome; never move G$ again | yes with stored outcome |
 | RI-19 | Settlement requeue/new logical attempt | online authority-gated | new attempt ID allowed only after authenticated failure | read prior terminal failure and preserve lineage | no hidden retry; explicit new attempt |
 | RI-20 | Payout plan parent/child recovery | online authority-gated | stable plan ID; child identity per contributor | retry only the failed vector/child; never recreate the parent | explicit targeted retry |
+| RI-21 | Pre-acceptance term edits and Work correction | online steward mutation | target commitment/Work plus exact new term or current resolver decision | re-read the cursor-winning value/reward/rule/link/decision; exact target is success and a newer conflicting target returns to review | no automatic retry |
 
-### B2. Executable-call coverage
+### B3. Executable-call coverage
 
 Every call name emitted by the hi-fi registry belongs to one RI policy. Calls in a family inherit
 that row's recovery rule; this table prevents a new visible mutation from bypassing the matrix.
@@ -133,15 +166,16 @@ that row's recovery rule; this table prevents a new visible mutation from bypass
 |---|---|
 | RI-01 | `createCommitmentSeries` |
 | RI-02 | `createCommitment` |
+| RI-21 | `setDeclaredValue` |
 | RI-03 | `claimCommitment` |
 | RI-04 | `attachEvidence` |
 | RI-05 | `linkWork` |
 | RI-06, RI-07 | `submitForConfirmation`, `confirmFulfillment` |
 | RI-10 | `updateCommitmentSeriesMetadata`, `restCommitmentSeries`, `resumeCommitmentSeries`, `retireCommitmentSeries` |
-| RI-11 | `markPoolReady`, `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool`, `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` |
+| RI-11 | `setPoolCharter`, `setProviderOpenCommitmentCap`, `markPoolReady`, `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool`, `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` |
 | RI-12 | `acceptClaim`, `declineClaim` |
 | RI-13 | `joinCommitment`, `leaveCommitment`, `addContributor`, `removeContributor`, `setContributorRequirement` |
-| RI-14 | `attachAssessment`, `markReadyForConfirmation`, `cancelCommitment`, `raiseDispute`, `resolveDispute` |
+| RI-14 | `attachAssessment`, `markReadyForConfirmation`, `cancelCommitment`, `expireCommitment`, `raiseDispute`, `resolveDispute` |
 | RI-15 | `confirmFulfillmentAsFallback`, `recordRewardPaid` |
 | RI-17–RI-19 | `registerSettlementAccount`, `requeue`, `queueFunding`, `createBatch`, `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand`, `retryAcknowledgment`, `cancelBatch`, `cancelDisbursement` |
 | RI-20 | `createCommitmentPayoutPlan`, `setContributorPayouts`, `finalizeCommitmentPayoutPlan`, `prepareContributorPayout` |
@@ -220,11 +254,14 @@ The architecture is closed only when:
 
 1. all 54 ABI events appear exactly once in Matrix A and every indexed entity/relationship has an
    ER row;
-2. all six offline job kinds and every visible retry control have an RI policy;
-3. Saved appears only after confirmed remote persistence and the W32/SB-38 states match Matrix C;
-4. all seven lifecycle subjects have an LC row and pool/cycle zero-live guards are represented in
+2. all 86 `ICommitmentPoolingModule` functions are classified exactly once, every one of the 56
+   executable hi-fi calls has an RI policy, and all six offline job kinds are covered;
+3. all eight sparse-event materialization rows have explicit seen/null/fill semantics and
+   reverse-delivery proof;
+4. Saved appears only after confirmed remote persistence and the W32/SB-38 states match Matrix C;
+5. all seven lifecycle subjects have an LC row and pool/cycle zero-live guards are represented in
    contract, indexer, shared-state, admin, and client artifacts;
-5. `bun .plans/active/commitment-pooling/architecture-closure.validate.ts` passes;
-6. the normal prototype, visual, ontology, format, and repo verification gates pass; and
-7. one final adversarial PR review reports no unresolved blocker or major finding against these
+6. `bun .plans/active/commitment-pooling/architecture-closure.validate.ts` passes;
+7. the normal prototype, visual, ontology, format, and repo verification gates pass; and
+8. one final adversarial PR review reports no unresolved blocker or major finding against these
    matrices.

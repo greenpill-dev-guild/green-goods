@@ -40,6 +40,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `CommitmentContributorRequirementIndex`, `CommitmentPendingLifecycleProjection`, and its
   commitment-keyed index. Pool and cycle each carry an independent nullable lifecycle
   `(blockNumber, logIndex)` cursor; pool charter and provider cap use their own cursor pairs.
+  Sparse delivery is represented, never faked: Pool has `registrationSeen`, Cycle has `seedSeen`,
+  Series and Commitment have `creationSeen`, claim rows have `requestSeen`, contributor rows have
+  `additionSeen`, and Work attribution has `linkSeen`. Base-event-only facts and unrelated cursor
+  pairs are nullable until their owning event arrives; ordinary queries exclude unseen
+  placeholders while handlers may load them by ID.
   The commitment entity also carries creation key/hash, immutable acceptance position,
   `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable
   `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`,
@@ -104,7 +109,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   Each request row owns a lifecycle cursor. A late `ClaimRequested` delivered after a newer
   acceptance materializes as Accepted for the winning claimant or Superseded for every other
   claimant; after a newer cancellation/expiry it materializes Superseded. It can never revive an
-  actionable Pending row behind the commitment result.
+  actionable Pending row behind the commitment result. `ClaimDeclined` also upserts the
+  claimant-keyed row and request index when it arrives first: `requestSeen = false`, request-only
+  payload null, state Declined, and the decline cursor/reason retained. An older Request later
+  fills payload without revival; only a genuinely newer request may advance the cursor and return
+  to Pending.
 - Preserve `Garden.id` as the normalized bare GardenAccount address with explicit `chainId`.
   `gardenId`, `providerGardenId`, and `gardenContextId` relationship helpers store that existing ID;
   every new Commitment Pooling entity retains its own chain-scoped composite ID. No Garden
@@ -216,7 +225,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   still-pending sibling requests through the companion index; Open acceptance has no request row
   and stores the emitted authenticated requester as the Garden Request lead. Reverse fixtures
   also deliver acceptance/cancellation/expiry before the older ClaimRequested row and prove the
-  late row materializes Accepted or Superseded, never Pending.
+  late row materializes Accepted or Superseded, never Pending. A separate decline-first fixture
+  delivers `ClaimDeclined` before its older `ClaimRequested`, proves the terminal placeholder is
+  indexed immediately, then proves the late payload fill leaves the row Declined; a newer
+  post-decline Request is the only case that returns it to Pending.
 - Evidence replay preserves every distinct attribution row but changes a contributor's
   `evidenceCredits` only on the first 0-to-1 transition. Multiple CIDs attributed to the same
   contributor never multiply recognition, while the first attribution to another contributor

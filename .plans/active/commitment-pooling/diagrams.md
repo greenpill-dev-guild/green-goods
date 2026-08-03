@@ -918,9 +918,13 @@ The module stores `preDisputeState` before entering `Disputed`; `RestorePrevious
 
 This ledger *is* the register's `accounting-state` vocabulary — the sidecar's fourth commitment-pooling state family, whose members are `Registered`, `Committed`, `Released`, `Fulfilled`. Each bullet below names the transition that moves a class between them, and the enum is single-shot per class: a slot is claimed once and released once, which is what `ClassAccountingStateMismatch` enforces.
 
-- create **registers** the class (`Registered`) but commits no units;
-- cancellation or expiry from `Offered`/`Requested` releases nothing — the class stays `Registered`;
-- acceptance **commits** units (`Committed`) and acquires one provider open-commitment slot once, regardless of `targetUnits`;
+- Offer creation **registers and commits** the class (`Committed`) and acquires one provider
+  open-commitment slot before the Offered place becomes available. Request creation registers its
+  class but leaves it `Registered`;
+- cancellation or expiry from an unaccepted Offered Offer **releases** its existing reservation
+  once; cancellation or expiry from an unaccepted Requested Request releases nothing;
+- Offer acceptance verifies the existing reservation and performs no second commit. Request
+  acceptance moves its `Registered` class to `Committed` and acquires one provider slot once;
 - cancellation or expiry from `Accepted`/`ReadyForConfirmation` **releases** those committed units and that one slot once (`Released`);
 - fulfillment converts committed units with `fulfillUnits` (`Fulfilled`) and releases that one slot;
 - raising or restoring a dispute has no unit or slot effect;
@@ -968,9 +972,22 @@ sequenceDiagram
     IDX->>RI: load request IDs by chainId-id
     Note over IDX,RI: every pending row=SUPERSEDED<br/>resolutionCode names cancellation or expiry
   end
+  opt indexer receives decline before its older request event
+    M-->>IDX: ClaimDeclined delivered first
+    IDX->>RI: upsert DECLINED placeholder<br/>requestSeen=false; request payload null
+    M-->>IDX: older ClaimRequested delivered later
+    IDX->>RI: fill payload; requestSeen=true;<br/>retain DECLINED and decline cursor
+  end
 ```
 
-There is no numeric sentinel or database-wide query. A later request after a decline is a fresh active request with a new timestamp; acceptance is deterministic because it cannot substitute caller-provided terms. Superseded copy distinguishes another lead's acceptance from commitment cancellation/expiry through `resolutionCode`. Contributor roster formation begins only after that lead is chosen.
+There is no numeric sentinel or database-wide query. `ClaimDeclined` can materialize the
+claimant-keyed row and request index before its older `ClaimRequested` delivery. The placeholder
+uses `requestSeen = false`, nullable request-only facts, and the terminal decline cursor; the
+older request later fills those facts without reviving Pending. Only a genuinely newer request
+after the decline becomes a fresh active request with a new timestamp. Acceptance is deterministic
+because it cannot substitute caller-provided terms. Superseded copy distinguishes another lead's
+acceptance from commitment cancellation/expiry through `resolutionCode`. Contributor roster
+formation begins only after that lead is chosen.
 
 ## D12. Claim-request state machine
 
@@ -1217,6 +1234,7 @@ erDiagram
 
   COMMITMENT_POOL {
     ID id "chainId-poolId"
+    Boolean registrationSeen "false only for update-before-registration placeholder"
     String garden "normalized garden account address"
     String gardenId "bare normalized Garden.id relationship"
     CommitmentPoolType poolType "GARDEN or PROTOCOL"
@@ -1227,6 +1245,7 @@ erDiagram
 
   COMMITMENT_CYCLE {
     ID id "chainId-cycleId"
+    Boolean seedSeen "false only for lifecycle-before-seed placeholder"
     CommitmentCycleType cycleType "SEASON or CAMPAIGN"
     CommitmentCycleState state "on-chain vocabulary only; InProgress-Reviewing derived"
     BigInt lifecycleBlockNumber "nullable cycle-state replay cursor"
@@ -1244,15 +1263,16 @@ erDiagram
 
   COMMITMENT_SERIES {
     ID id "chainId-seriesId"
+    Boolean creationSeen "false only for event-before-series-created placeholder"
     BigInt seriesId "durable pool-scoped identity"
     BigInt poolId "pool relationship key"
     String currentHolder "current accountable holder"
     CommitmentSeriesState state "ACTIVE RESTING or RETIRED"
     String metadataCID "latest reusable Offer metadata"
-    BigInt latestLifecycleBlock "lifecycle replay cursor"
-    Int latestLifecycleLogIndex "lifecycle cursor partner"
-    BigInt latestMetadataBlock "metadata replay cursor"
-    Int latestMetadataLogIndex "metadata cursor partner"
+    BigInt latestLifecycleBlock "nullable independent lifecycle replay cursor"
+    Int latestLifecycleLogIndex "nullable lifecycle cursor partner"
+    BigInt latestMetadataBlock "nullable independent metadata replay cursor"
+    Int latestMetadataLogIndex "nullable metadata cursor partner"
   }
 
   COMMITMENT_SERIES_CYCLE_SUMMARY {
@@ -1349,16 +1369,17 @@ erDiagram
 
   COMMITMENT_CLAIM_REQUEST {
     ID id "chainId-commitmentId-claimant"
+    Boolean requestSeen "false for decline-before-request placeholder"
     Int chainId "required"
     BigInt commitmentId "relationship key"
     String claimant "normalized address"
-    String requestedBy "authenticated caller; differs for Garden claims"
-    CommitmentClaimType claimType "INDIVIDUAL or GARDEN"
-    String gardenContextId "bare normalized Garden.id relationship"
+    String requestedBy "nullable until requestSeen; authenticated caller"
+    CommitmentClaimType claimType "nullable until requestSeen; INDIVIDUAL or GARDEN"
+    String gardenContextId "nullable until requestSeen; bare Garden.id relationship"
     CommitmentClaimRequestState state "PENDING ACCEPTED DECLINED SUPERSEDED"
     String resolutionCode "five codes — enumerated in D12"
-    BigInt lifecycleBlockNumber "latest request-state event position"
-    Int lifecycleLogIndex "request cursor partner"
+    BigInt lifecycleBlockNumber "nullable latest request-state event position"
+    Int lifecycleLogIndex "nullable request cursor partner"
   }
 
   COMMITMENT_CLAIM_REQUEST_INDEX {
@@ -1384,6 +1405,7 @@ erDiagram
 
   COMMITMENT_CONTRIBUTOR {
     ID id "chainId-commitmentId-contributor"
+    Boolean additionSeen "false for remove-or-decision-before-add placeholder"
     String contributor "normalized address"
     Boolean active "current roster membership"
     Boolean isLead "accountability flag"
@@ -1421,6 +1443,7 @@ erDiagram
 
   COMMITMENT_WORK_ATTRIBUTION {
     ID id "chainId-workUID"
+    Boolean linkSeen "false for unlink-or-decision-before-link placeholder"
     String workUID "linked Work attestation"
     BigInt commitmentId "commitment relationship key"
     String contributor "credited active contributor"
@@ -1499,7 +1522,7 @@ erDiagram
 ```
 
 
-On acceptance, the handler loads `COMMITMENT_CLAIM_REQUEST_INDEX` by `chainId-commitmentId`, marks the accepted request `ACCEPTED`, and marks every other still-pending indexed request `SUPERSEDED`. Pre-acceptance commitment cancellation or expiry uses the same indexed IDs to supersede every pending row with its resolution code. Decline updates only the named request. `EvidenceAttached` appends its composite row ID once to `COMMITMENT_EVIDENCE_ATTRIBUTION_INDEX`; the shared lifecycle helper's Fulfilled branch loads those bounded IDs and confirms the rows for both ordinary and dispute-resolved fulfillment. A lifecycle event received before `CommitmentCreated` writes one typed `COMMITMENT_PENDING_LIFECYCLE_PROJECTION`, appends its event ID once to the commitment-keyed index, and consumes no state cursor or derived delta. Creation supplies the immutable facts, sorts those bounded IDs by `(blockNumber, logIndex)`, and drains them through the same projection helper before clearing the index; no database-wide scan or externally visible transient live increment occurs. `ModuleUpdated` creates one pool-less `COMMITMENT_EVENT` with normalized old/new module addresses and no accounting mutation; it never invents pool `0`. No handler infers an audit-event actor from `transaction.from`. `Garden.id` remains the normalized bare GardenAccount address with explicit `chainId`; new entities and non-Garden relationships use their own `chainId-*` IDs.
+On acceptance, the handler loads `COMMITMENT_CLAIM_REQUEST_INDEX` by `chainId-commitmentId`, marks the accepted request `ACCEPTED`, and marks every other still-pending indexed request `SUPERSEDED`. Pre-acceptance commitment cancellation or expiry uses the same indexed IDs to supersede every pending row with its resolution code. Decline updates or creates only the named claimant-keyed row; when its request payload has not arrived, it creates `requestSeen = false` with nullable payload and retains the terminal decline cursor until the older Request fills those facts. `EvidenceAttached` appends its composite row ID once to `COMMITMENT_EVIDENCE_ATTRIBUTION_INDEX`; the shared lifecycle helper's Fulfilled branch loads those bounded IDs and confirms the rows for both ordinary and dispute-resolved fulfillment. Pool, cycle, series, commitment, contributor, Work-attribution, and claim sparse rows use their explicit base-event seen flags plus nullable base-only facts; ordinary readers exclude unseen placeholders. A lifecycle event received before `CommitmentCreated` writes one typed `COMMITMENT_PENDING_LIFECYCLE_PROJECTION`, appends its event ID once to the commitment-keyed index, and consumes no state cursor or derived delta. Creation supplies the immutable facts, sorts those bounded IDs by `(blockNumber, logIndex)`, and drains them through the same projection helper before clearing the index; no database-wide scan or externally visible transient live increment occurs. `ModuleUpdated` creates one pool-less `COMMITMENT_EVENT` with normalized old/new module addresses and no accounting mutation; it never invents pool `0`. No handler infers an audit-event actor from `transaction.from`. `Garden.id` remains the normalized bare GardenAccount address with explicit `chainId`; new entities and non-Garden relationships use their own `chainId-*` IDs.
 
 Full field lists: contract-spec §8.2. The ERD intentionally shows the key identity, relationship, state, and accounting fields needed to review trust and cardinality; it is not a substitute for the canonical GraphQL block. Only `promiseKeptRate` divides across commitments. Exact-label unit rows and provider count rows remain integer event-derived facts.
 

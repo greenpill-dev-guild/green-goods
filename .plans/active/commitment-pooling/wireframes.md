@@ -438,7 +438,7 @@ All admin frames: `{CanvasRouteFrame}` + `{CanvasRouteHeader}` + `{CanvasRouteCo
 
 ### W7 — Garden workspace: Pool tab (uiux-spec §6.2)
 
-Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (28 states).
+Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (29 states).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -501,7 +501,7 @@ The app enables **Mark pool ready** only after all three checks pass. The contra
 
 Adopted 2026-07-11 (register #34; the lifecycle/readiness states above and the hi-fi artifact supersede the original lo-fi gap drawings in `prototypes.md`):
 - **Pool-card lifecycle actions** (register #34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears only when every cycle is Cancelled/Composted and indexed pool live commitments are zero (then Compost/Reopen per uiux-spec §4.1). A non-zero count routes to the live-promise/cycle wind-down list. The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
-- **Lapsed this cycle** (register #34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
+- **Past due → lapsed this cycle** (register #34d): `W7@due-live` lists still-live past-due promises with `[ Expire now ]`. Only a successful permissionless `expireCommitment` routes to `W7@expiry-queue`, where the now-Expired row exposes `[ Re-seed… ]` into W8 and `[ View history ]`. A failed write keeps the due-live row and never claims that capacity or live counts were released. The later keeper is a backstop, not the August trigger. Drawing: prototypes.md MF-4.
 - **Waiting to join** (register #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome. *Wireframe-only — the hi-fi registry does not draw this queue; it belongs to the community-interface build.*
 - Recovery states follow the canonical prototype ([`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open)): **Loading** keeps the Pool card and cycle-console skeleton in place; **No commitments yet** keeps the header `[ Seed ]` action and an empty-state explanation instead of showing a blank table.
 
@@ -570,7 +570,7 @@ Flow `{AdminDialog}` at `/garden/pool/capture` with its **own three-step rail** 
 
 ### W10 — Commitment detail dialog (uiux-spec §6.2/§6.7)
 
-Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (18 states; `detail-fallback-eligible` is separate from ordinary-reachable `detail`; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
+Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **Hi-fi**: [`#screens/W10@detail`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@detail) (19 states; `detail-fallback-eligible` is separate from ordinary-reachable `detail`; `edit-declared-value` is the Offered/Requested records-term editor; steward cancel = [`#screens/W10@cancel`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W10@cancel), MF-2b).
 
 ```text
 ┌── Prune the north beds ──────────────── (Offer)(Ready) ──┐

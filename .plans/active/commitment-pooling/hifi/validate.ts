@@ -73,6 +73,7 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   resumeCommitmentSeries: { key: "series", allowed: ["Resting"], next: "Active" },
   retireCommitmentSeries: { key: "series", allowed: ["Active", "Resting"], next: "Retired" },
   createCommitment: { key: "pool", allowed: ["Open"] },
+  setDeclaredValue: { key: "commitment", allowed: ["Offered", "Requested"] },
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
@@ -89,6 +90,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   confirmFulfillment: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
   confirmFulfillmentAsFallback: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
   cancelCommitment: { key: "commitment", allowed: ["Offered", "Requested", "Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "Cancelled" },
+  expireCommitment: {
+    key: "commitment",
+    allowed: ["Offered", "Requested", "Accepted", "ReadyForConfirmation"],
+    next: "Expired",
+  },
   raiseDispute: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved", "ReadyForConfirmation", "Expired"], next: "Disputed" },
   resolveDispute: {
     key: "commitment",
@@ -96,6 +102,14 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     resultAllowed: ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
   },
   recordRewardPaid: { key: "commitment", allowed: ["Fulfilled"] },
+  setPoolCharter: {
+    key: "pool",
+    allowed: ["NotReady", "Ready", "Open", "Paused", "Closed", "Composted"],
+  },
+  setProviderOpenCommitmentCap: {
+    key: "pool",
+    allowed: ["NotReady", "Ready", "Open", "Paused", "Closed", "Composted"],
+  },
   markPoolReady: { key: "pool", allowed: ["NotReady"], next: "Ready" },
   openPool: { key: "pool", allowed: ["Ready"], next: "Open" },
   pausePool: { key: "pool", allowed: ["Open"], next: "Paused" },

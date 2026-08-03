@@ -2578,10 +2578,11 @@ type CommitmentPool {
   id: ID! # chainId-poolId
   chainId: Int!
   poolId: BigInt!
-  garden: String! # garden account address, lowercase
-  gardenId: String! # relationship to documented bare-address Garden.id
-  poolType: CommitmentPoolType!
-  state: CommitmentPoolState!
+  registrationSeen: Boolean! # false only for an update-before-PoolRegistered placeholder
+  garden: String # garden account address, lowercase; null until registrationSeen
+  gardenId: String # relationship to documented bare-address Garden.id
+  poolType: CommitmentPoolType
+  state: CommitmentPoolState # null only when a charter/cap update created the placeholder first
   charterCID: String
   pauseReasonCID: String # set by PoolPaused; cleared by PoolResumed
   openSeasonCycleId: BigInt # null when no Season is open; Campaigns may overlap
@@ -2612,7 +2613,7 @@ type CommitmentPool {
   # CommitmentUnitSummary rows.
   openCommitmentCount: BigInt! # committed Offers plus accepted Requests not released or fulfilled
   commitmentsDue: BigInt!     # accepted minus cancelled (mutually released promises are not broken promises)
-  createdAt: Int!
+  createdAt: Int # PoolRegistered timestamp; null until registrationSeen
   updatedAt: Int!
 }
 
@@ -2620,15 +2621,16 @@ type CommitmentCycle {
   id: ID! # chainId-cycleId
   chainId: Int!
   cycleId: BigInt!
+  seedSeen: Boolean! # false only for a lifecycle-before-CycleSeeded placeholder
   poolId: BigInt!
   poolEntityId: String! # relationship: chainId-poolId
-  garden: String!
-  gardenId: String! # relationship to documented bare-address Garden.id
-  cycleType: CommitmentCycleType!
-  state: CommitmentCycleState!
-  startTime: BigInt!
-  endTime: BigInt!
-  metadataCID: String!
+  garden: String # copied only from a registrationSeen pool
+  gardenId: String # relationship to documented bare-address Garden.id
+  cycleType: CommitmentCycleType # null until seedSeen
+  state: CommitmentCycleState # null only when no seed/lifecycle event has supplied it
+  startTime: BigInt # null until seedSeen
+  endTime: BigInt # null until seedSeen
+  metadataCID: String # null until seedSeen
   # Allocation-class snapshot from CycleOpened (Hypercert cut-over input)
   gardenersBps: Int!
   treasuryBps: Int!
@@ -2650,7 +2652,7 @@ type CommitmentCycle {
   commitmentsDisputed: BigInt!
   commitmentsDue: BigInt!
   openCommitmentCount: BigInt!
-  createdAt: Int!
+  createdAt: Int # CycleSeeded timestamp; null until seedSeen
   updatedAt: Int!
 }
 
@@ -2707,12 +2709,13 @@ type CommitmentSeries {
   id: ID! # chainId-seriesId
   chainId: Int!
   seriesId: BigInt!
-  poolId: BigInt!
-  poolEntityId: String!
-  createdBy: String!
-  currentHolder: String!
-  state: CommitmentSeriesState!
-  metadataCID: String!
+  creationSeen: Boolean! # false only for an event-before-CommitmentSeriesCreated placeholder
+  poolId: BigInt # null until creationSeen
+  poolEntityId: String # null until creationSeen
+  createdBy: String # null until creationSeen
+  currentHolder: String # null until creationSeen
+  state: CommitmentSeriesState # null only when no creation/lifecycle event has supplied it
+  metadataCID: String # null only when no creation/metadata event has supplied it
   instanceCount: BigInt!
   offeredCount: BigInt!
   acceptedCount: BigInt!
@@ -2722,11 +2725,11 @@ type CommitmentSeries {
   expiredCount: BigInt!
   disputedCount: BigInt!
   fulfilledCycleIds: [String!]!
-  latestLifecycleBlock: BigInt!
-  latestLifecycleLogIndex: Int!
-  latestMetadataBlock: BigInt!
-  latestMetadataLogIndex: Int!
-  createdAt: Int!
+  latestLifecycleBlock: BigInt # independent nullable lifecycle cursor
+  latestLifecycleLogIndex: Int
+  latestMetadataBlock: BigInt # independent nullable metadata cursor
+  latestMetadataLogIndex: Int
+  createdAt: Int # CommitmentSeriesCreated timestamp; null until creationSeen
   updatedAt: Int!
 }
 
@@ -2758,27 +2761,27 @@ type Commitment {
   acceptanceSeen: Boolean! # true once the unique CommitmentAccepted payload is stored, even if its lifecycle cursor is older
   creationRequestKey: String # creator-scoped sender-safe key emitted by CommitmentCreated
   creationPayloadHash: String # full normalized immutable creation payload
-  poolId: BigInt!
-  poolEntityId: String! # relationship: chainId-poolId
+  poolId: BigInt # null until creationSeen
+  poolEntityId: String # relationship: chainId-poolId; null until creationSeen
   cycleId: BigInt # null when not cycle-scoped
   cycleEntityId: String # relationship: chainId-cycleId
   commitmentSeriesId: BigInt # null when one-shot
   commitmentSeriesEntityId: String # relationship: chainId-seriesId
-  garden: String!
-  gardenId: String! # relationship to documented bare-address Garden.id
-  creator: String!
-  recordedBy: String!
+  garden: String # null until creationSeen and the registered pool relation exists
+  gardenId: String # relationship to documented bare-address Garden.id
+  creator: String # null until creationSeen
+  recordedBy: String # null until creationSeen
   counterparty: String # null until accepted
   leadProvider: String # Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
   providerGarden: String # EAS recipient/provider role scope after acceptance
   providerGardenId: String # relationship to documented bare-address Garden.id
   counterpartyKind: CommitmentClaimType
-  direction: CommitmentDirection!
-  commitmentType: CommitmentKind!
-  state: CommitmentOnchainState!
-  claimType: CommitmentClaimType!
-  claimMode: CommitmentClaimMode!
-  contributorPolicy: CommitmentContributorPolicy!
+  direction: CommitmentDirection # null until creationSeen
+  commitmentType: CommitmentKind # null until creationSeen
+  state: CommitmentOnchainState # null only when a non-lifecycle update created the placeholder first
+  claimType: CommitmentClaimType # null until creationSeen
+  claimMode: CommitmentClaimMode # null until creationSeen
+  contributorPolicy: CommitmentContributorPolicy # null until creationSeen
   domains: [Int!]! # unique derived tags; not positional and not a cardinality bound
   requirementCount: Int!
   contributorCount: Int!
@@ -2787,8 +2790,8 @@ type Commitment {
   memberHistoryOutcome: CommitmentOnchainState # nullable lead terminal bucket currently applied
   fulfilledParticipantHistoryApplied: Boolean! # contributorFulfilled + receivedFulfilled idempotency guard
   contributorEntityIds: [String!]!
-  unitLabel: String!
-  targetUnits: BigInt!
+  unitLabel: String # null until creationSeen
+  targetUnits: BigInt # null until creationSeen
   approvedUnits: BigInt!
   confirmationThreshold: Int!
   confirmationCount: Int!
@@ -2796,7 +2799,7 @@ type Commitment {
   protocolFallbackEnabled: Boolean!
   confirmerRuleUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ConfirmerRuleSet update was observed
   confirmerRuleUpdateLogIndex: Int # nullable partner to confirmerRuleUpdateBlockNumber; compare the pair lexicographically
-  requiresAssessment: Boolean!
+  requiresAssessment: Boolean # null until creationSeen
   assessmentUID: String
   needUID: String # community Need this commitment addresses; null/zero when none (amendment 2026-07-04)
   counterCommitmentId: BigInt # same-pool exchange reference; null/zero when none (amendment 2026-08-01)
@@ -2805,12 +2808,12 @@ type Commitment {
   declaredValueBasis: String # exact-label basis; null when undeclared; value aggregation only per exact basis, read-model informational sums only
   declaredValueUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ValueDeclared update was observed
   declaredValueUpdateLogIndex: Int # nullable partner to declaredValueUpdateBlockNumber; compare the pair lexicographically
-  metadataCID: String!
+  metadataCID: String # null until creationSeen
   workUIDs: [String!]!
   evidenceCIDs: [String!]!
   evidenceCount: Int!
-  dueDate: BigInt!
-  rewardRail: CommitmentRewardRail!
+  dueDate: BigInt # null until creationSeen
+  rewardRail: CommitmentRewardRail # null until creation or RewardDeclared supplies it
   rewardSource: String
   rewardRecipient: String # ArbitrumExternal RewardPaid recipient only; Celo beneficiary is on Disbursement
   rewardToken: String
@@ -2832,7 +2835,7 @@ type Commitment {
   lifecycleLogIndex: Int # nullable partner; compare the pair lexicographically
   disputeReasonCID: String
   cancelReasonCID: String
-  createdAt: Int!
+  createdAt: Int # CommitmentCreated timestamp; null until creationSeen
   updatedAt: Int!
 }
 
@@ -2858,6 +2861,7 @@ type CommitmentContributor {
   commitmentId: BigInt!
   commitmentEntityId: String!
   contributor: String!
+  additionSeen: Boolean! # false only for remove/decision-before-ContributorAdded
   active: Boolean!
   isLead: Boolean!
   approvedWorkCredits: Int!
@@ -2867,8 +2871,8 @@ type CommitmentContributor {
   recognitionWeightBps: Int
   membershipBlockNumber: BigInt # nullable latest ContributorAdded/ContributorRemoved cursor
   membershipLogIndex: Int
-  addedBy: String!
-  addedAt: Int!
+  addedBy: String # null until additionSeen
+  addedAt: Int # null until additionSeen
   removedBy: String
   removedAt: Int
   updatedAt: Int!
@@ -2910,18 +2914,19 @@ type CommitmentWorkAttribution {
   workUID: String!
   commitmentId: BigInt!
   commitmentEntityId: String!
-  contributor: String!
-  contributorEntityId: String!
-  requirementIndex: Int!
-  operationKey: String!
+  linkSeen: Boolean! # false only for unlink/decision-before-WorkLinked
+  contributor: String # null until linkSeen or a decision event supplies it
+  contributorEntityId: String
+  requirementIndex: Int
+  operationKey: String # null until linkSeen
   linked: Boolean!
   creditActive: Boolean!
-  linkLifecycleBlockNumber: BigInt!
-  linkLifecycleLogIndex: Int!
+  linkLifecycleBlockNumber: BigInt # nullable until a Link/Unlink event is observed
+  linkLifecycleLogIndex: Int
   latestDecisionSequence: BigInt
   latestDecisionUID: String
-  linkedBy: String!
-  linkedAt: Int!
+  linkedBy: String # null until linkSeen
+  linkedAt: Int # null until linkSeen
   unlinkedBy: String
   unlinkedAt: Int
   updatedAt: Int!
@@ -2976,16 +2981,17 @@ type CommitmentClaimRequest {
   commitmentId: BigInt!
   commitmentEntityId: String! # relationship: chainId-commitmentId
   claimant: String!
-  requestedBy: String! # authenticated caller; differs from claimant for Garden claims
-  claimType: CommitmentClaimType!
-  gardenContext: String!
-  gardenContextId: String! # relationship to documented bare-address Garden.id
+  requestSeen: Boolean! # false only for ClaimDeclined-before-ClaimRequested
+  requestedBy: String # authenticated caller; null until requestSeen
+  claimType: CommitmentClaimType # null until requestSeen
+  gardenContext: String # null until requestSeen
+  gardenContextId: String # relationship to documented bare-address Garden.id
   state: CommitmentClaimRequestState!
   reasonCID: String
   resolutionCode: String # CLAIM_DECLINED / CLAIM_ACCEPTED / COMMITMENT_ACCEPTED / COMMITMENT_CANCELLED / COMMITMENT_EXPIRED
-  lifecycleBlockNumber: BigInt!
-  lifecycleLogIndex: Int!
-  requestedAt: Int!
+  lifecycleBlockNumber: BigInt # nullable until a request/decline resolution event is observed
+  lifecycleLogIndex: Int
+  requestedAt: Int # null until requestSeen
   resolvedAt: Int
   updatedAt: Int!
 }
@@ -3143,7 +3149,23 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 
 - **Dedup counters**: pool/cycle counters increment exactly the way `holderCount`/`grantCount` do in `packages/indexer/src/handlers/greenWill.ts:66-88` (read existing entity, branch on prior existence, never double-count).
 - **Idempotency**: same-tx replay and already-exists guards as `packages/indexer/src/handlers/hypercerts.ts:38-42,71-75`.
-- **Create-if-not-exists, exact defaults**: update-before-create handlers materialize placeholders instead of throwing (`createDefaultGarden` precedent, `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Pool placeholders use `UNKNOWN` type/state, empty garden/gardenId/charter, empty campaign arrays, null open Season, null lifecycle cursor, and zero counters/timestamps except `updatedAt = event.block.timestamp`. Cycle placeholders use `UNKNOWN` type/state, zero raw IDs, composite relation IDs derived from the event when present, empty metadata, null lifecycle cursor, zero allocation/counters, and event timestamps. Series placeholders use `UNKNOWN` state, zero pool ID, empty holder/creator/metadata, empty fulfilled-cycle IDs, zero outcome counts, and event cursor/timestamps. Commitment placeholders set `creationSeen = false` and use `UNKNOWN` direction/kind/state/claim type/mode, empty strings/arrays, zero numeric counters, null optional series/cycle/provider/reward/dispute/lifecycle-cursor fields, and event timestamps. Unit-summary placeholders preserve their exact scope/label identity and start every unit counter at zero; provider-exposure placeholders preserve pool/provider identity and start at zero. A later creation event overwrites immutable placeholder facts, sets `creationSeen = true`, and never resets already-applied monotonic counters. State-derived events that require those immutable facts are buffered rather than consuming their lifecycle cursor on the placeholder; creation drains that typed buffer atomically as specified below. Tests exercise each placeholder merge.
+- **Create-if-not-exists, representable placeholders**: update-before-base handlers materialize
+  placeholders instead of throwing (`createDefaultGarden` precedent,
+  `packages/indexer/src/handlers/helpers.ts:89-110`; `.claude/rules/indexer.md`). Absence is
+  represented only by nullable fields plus an explicit seen flag—never by an invented enum,
+  zero address, zero raw identity, or empty-string identity that a reader could mistake for
+  emitted data. `CommitmentPool.registrationSeen`, `CommitmentCycle.seedSeen`,
+  `CommitmentSeries.creationSeen`, `Commitment.creationSeen`,
+  `CommitmentClaimRequest.requestSeen`, `CommitmentContributor.additionSeen`, and
+  `CommitmentWorkAttribution.linkSeen` are false until their base event arrives. Only counters,
+  booleans, and relationship arrays with an unambiguous empty identity default to zero/false/`[]`;
+  missing immutable payload fields and unrelated cursor pairs remain null. App/shared queries
+  exclude unseen placeholders from ordinary lists while handlers may load them by ID.
+  A later base event fills nullable immutable facts, sets its seen flag, and never resets a
+  winning mutable cursor, terminal state, credit, counter, or sorted relationship. State-derived
+  commitment events that require creation facts remain in the typed pending-projection index
+  rather than consuming a placeholder lifecycle cursor. Tests cover every sparse event named in
+  Matrix A3 before and after its base event.
 - **ID helpers**: retain `getGardenId(garden)` as normalized bare-address compatibility, and add `getCommitmentPoolId(chainId, poolId)`,
   `getCommitmentCycleId(chainId, cycleId)`, `getCommitmentId(chainId, commitmentId)`,
   `getCommitmentSeriesId(chainId, seriesId)`,
@@ -3186,8 +3208,9 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   `CycleCancelled`) compares its event position lexicographically before changing state,
   `pauseReasonCID`, or the pool's open Season/Campaign relationships. Older and duplicate events
   may retain their immutable audit row but do not mutate those projections or `updatedAt`.
-  `PoolRegistered` and `CycleSeeded` fill immutable placeholder facts and initialize state only
-  when no later lifecycle cursor exists. A reverse-delivered `CycleOpened` still fills its
+  `PoolRegistered` and `CycleSeeded` fill nullable immutable placeholder facts, set
+  `registrationSeen` / `seedSeen`, and initialize state only when no later lifecycle cursor
+  exists. A reverse-delivered `CycleOpened` still fills its
   immutable allocation/recognition snapshots once, but cannot reopen a cycle whose newer
   close/compost/cancel cursor already won. Fixtures deliver opposing pool Open/Pause/Resume and
   cycle Open/Close/Compost/Cancel sequences in both orders, including lifecycle-before-creation
@@ -3204,13 +3227,16 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   fixtures prove a pool cannot project Closed while either counter is non-zero and that every
   supported wind-down order converges to zero.
 - **Series and Story projection**: series state and series metadata are independently mutable and
-  therefore use separate lexicographic cursor pairs. `CommitmentSeriesRested`,
+  therefore use separate nullable lexicographic cursor pairs. A metadata-first placeholder has
+  only the metadata cursor; a lifecycle-first placeholder has only the lifecycle cursor.
+  `CommitmentSeriesRested`,
   `CommitmentSeriesResumed`, and `CommitmentSeriesRetired` compare only
   `(latestLifecycleBlock, latestLifecycleLogIndex)` before updating `state`;
   `CommitmentSeriesMetadataUpdated` compares only
   `(latestMetadataBlock, latestMetadataLogIndex)` before updating `metadataCID`.
-  `CommitmentSeriesCreated` fills immutable placeholder facts and initializes each mutable field
-  only when that field has no later same-type cursor. Cross-type delivery order never blocks the
+  `CommitmentSeriesCreated` fills nullable immutable placeholder facts, sets
+  `creationSeen = true`, and initializes each mutable field only when that field has no later
+  same-type cursor. Cross-type delivery order never blocks the
   other field: a later metadata event followed by an earlier Rest still applies the Rest, while a
   later Resume followed by an earlier metadata event still applies the metadata. Cross-type
   reverse-delivery and same-type stale/duplicate fixtures prove convergence.
@@ -3381,15 +3407,22 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
     booleans use `false`/`true`. These events mutate no pool, cycle, commitment, unit-summary, or
     provider-exposure row, and never use a synthetic pool `0` or `transaction.from`.
 - **Claim request and contributor lifecycle**: every `CommitmentClaimRequest` owns a nullable
-  `(lifecycleBlockNumber, lifecycleLogIndex)` cursor. `ClaimRequested` upserts
+  `(lifecycleBlockNumber, lifecycleLogIndex)` cursor and an explicit `requestSeen` marker.
+  `ClaimRequested` upserts
   `${chainId}-${commitmentId}-${claimant}` from the emitted canonical claimant, `requestedBy`,
   kind, context, and requestedAt, then appends that ID once to the lexicographically sorted
   request index. A **late `ClaimRequested`** first compares its position with the commitment's
   stored acceptance and terminal positions: when a newer acceptance already won, the matching
   accepted claimant materializes directly as `ACCEPTED` and every other claimant as
   `SUPERSEDED`; when a newer Cancelled or Expired marker already won, it materializes directly as
-  `SUPERSEDED`. It can become `PENDING` only when no newer commitment result exists.
-  `ClaimDeclined` updates the row only when its position wins. `CommitmentAccepted` carries
+  `SUPERSEDED`. It can become `PENDING` only when no newer commitment result or same-row decline
+  exists. `ClaimDeclined` always upserts the claimant-keyed row and request index. When the
+  request payload has not arrived, it creates a terminal placeholder with `requestSeen = false`,
+  nullable request fields, `DECLINED`, the reason/resolution, and the decline position. A later
+  older `ClaimRequested` fills the nullable payload and sets `requestSeen = true` without
+  regressing `DECLINED`; a genuinely newer post-decline request fills/replaces the payload,
+  clears the old resolution, advances the row cursor, and becomes `PENDING` unless a still-newer
+  commitment acceptance/cancel/expiry marker wins. `CommitmentAccepted` carries
   claimant/counterparty/leadProvider/providerGarden, stores its immutable acceptance position,
   marks the matching request `ACCEPTED` when that row exists, then independently loads
   `CommitmentClaimRequestIndex` and marks every other still-`PENDING` row `SUPERSEDED` with
@@ -3397,23 +3430,29 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   ordinary events emitted by `acceptExchange` therefore clear stale requests for both A and B
   even when neither counterpart creator requested first. Cancellation and expiry use the same
   index and terminal-position comparison. Reverse-delivery fixtures run Request/Decline/Accept/
-  Cancel/Expire in every relevant order and assert the same non-actionable result.
+  Cancel/Expire in every relevant order, including decline-before-request and a later fresh
+  request after decline, and assert the same cursor-winning result.
 
   Open acceptance normally has no request row and stores the emitted authenticated caller as the
   Garden Request lead. It relies on the same-transaction `ContributorAdded` event to create the
   lead's roster row. Each `CommitmentContributor` owns an independent
   `(membershipBlockNumber, membershipLogIndex)` cursor; an older Add delivered after a newer
   Remove cannot reactivate the row, and an older Remove cannot deactivate a newer Add.
+  A remove-before-add row sets `additionSeen = false` and leaves `addedBy`/`addedAt` null until
+  the older Add fills those immutable audit facts without reactivating the newer removal.
   `CommitmentContributorIndex.contributorEntityIds` is unique and sorted by normalized address,
   never insertion order. Each `ContributorRequirementAssigned` writes one
   `CommitmentContributorRequirementAssignment` row with its own lifecycle cursor and appends its
   ID once to `CommitmentContributorRequirementIndex`, sorted by contributor and numeric
   requirement index. Assignment delivery never rewrites the contributor membership cursor.
 
-  `WorkLinked` creates or activates the workUID-keyed `CommitmentWorkAttribution`, stores its
+  `WorkLinked` creates or activates the workUID-keyed `CommitmentWorkAttribution`, sets
+  `linkSeen = true`, stores its
   caller-scoped `operationKey`, and compares `(linkLifecycleBlockNumber,
   linkLifecycleLogIndex)` independently from the Work decision sequence. A later Unlink followed
-  by an earlier Link stays unlinked; an older Unlink cannot hide a newer Link.
+  by an earlier Link stays unlinked; an older Unlink cannot hide a newer Link. Unlink/decision
+  before Link may create a `linkSeen = false` placeholder whose link-only payload remains null;
+  the later Link fills those immutable facts without overriding the winning link/decision state.
   `uncountedLinkedWorkCount` changes only on the winning linked-state transition. Exact replay of
   the same contract operation key produces no second event; conflicting key reuse is rejected.
   `ContributorRosterFrozen` locks the read model. Every
