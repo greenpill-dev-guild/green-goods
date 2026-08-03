@@ -31,6 +31,8 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `prototypes.md` | Numbered storyboards, guided-flow catalogue, missing-frame index, and action inventory; the ongoing-Offer journeys are realized and review-visible | Fidelity-neutral walks — **adds no design authority** |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration; the ongoing-Offer story and architecture assets are published | Asset index |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
+| `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
+| `architecture-closure.validate.ts` | Machine gate for the complete event/entity/call/job/persistence/lifecycle inventories and required source assertions | **Must pass before dispatch or merge** |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
 | `external-brief.md` | Pointer to the canonical Google Doc plus the repo's implementation/evidence source map | **Pointer only — never a prose mirror** |
 | `reports/audit-2026-07-20.md` | Original CP-AUD-001–021 dispatch-readiness audit | **IMMUTABLE INPUT — never edit** |
@@ -771,6 +773,10 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
   independent latest-wins pool/cycle/series/commitment lifecycle cursors, an independent latest-wins
   `ConfirmerRuleSet` block/log cursor, exact fulfilled-cycle IDs, and reverse-delivery replay
   fixtures; derive no score, rate, rank, participant count, or cross-pool grouping
+- [ ] Implement all 26 matrix entities and their independent replay policies: pool charter/cap,
+  reward, acceptance, claim row, contributor membership/assignment, Work link, deterministic
+  relationship arrays, and signed commutative register deltas. Add reverse-delivery fixtures for
+  every Matrix A row, including late ClaimRequested after acceptance/terminal state.
 - [ ] Record RED/GREEN proof (scripted event-sequence test) before marking complete
 - [x] Write `handoffs/codex-indexer.md`
 - [ ] Dispatch core indexing when pooling events freeze; hold only settlement handlers for settlement event freeze. Record snapshot, switch criterion, rollback package, and Afolabi Aiyeloja as accountable live-cutover owner
@@ -783,7 +789,12 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Hooks, stores, query keys, six offline queue kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) plus an online-only wallet `transfer` capability that remains disabled unless the AA gate passes; hooks stay in shared
 - [ ] Add signed offchain saved-Offer persistence, private-by-default use/linking, stable
   `clientSeriesId` dependency materialization, series mutations/selectors, and truthful Story/
-  availability derivations; unsaved drafts alone may be local-only
+  availability derivations. Implement `LOCAL_DRAFT`, `SAVING_REMOTE`, `SAVED_REMOTE`,
+  `SAVE_FAILED`, `OFFLINE_LOCAL`, and `VERSION_CONFLICT`; only confirmed remote persistence may
+  claim Saved.
+- [ ] Add `clientCommitmentId` + creator-scoped creation-key recovery for every ordinary
+  Commitment/place and caller-scoped operation-key recovery for Work links. Same-button retry
+  reuses the same key and validates the complete immutable payload before binding.
 - [ ] Add typed exchange-pair state, `CommitmentExchange` queries, `acceptExchange` mutation,
   proposed/matched/counterpart-lapsed derivation, and template/config types without adding an
   offline job kind or a new persistence system
@@ -811,6 +822,9 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
   PRD-760 prototype-readiness gate close. PRD-789 is approved canonical reference for Things I can
   offer, Offer once/Offer over time, garden selection for the ongoing path, finite Add places,
   claim one pre-created instance, Story, ask-again, rest/resume/retire, and persistence explanation
+- [ ] W32 exposes saving/failure/offline/conflict truth and SB-38 never labels a no-signal draft
+  Saved. W35 retries the exact failed place with its persisted creation key and cannot duplicate
+  capacity.
 - [ ] Implement `uiux-spec.md` Appendix E.1–E.3 on the existing creation/detail/feed/sheet
   primitives: exchange pair states, Offer-template entry, and plain-language first exposure;
   W28–W31 are the lo-fi source and SB-35/SB-36 the planned journeys
@@ -822,6 +836,8 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Admin tasks only; AdminDialog anatomy (side sheets retired); i18n; Storybook coverage
 - [ ] Add viewer-authorized series grouping and Story context without steward mutation of another
   person's holder metadata or lifecycle; keep person-level Story off editorial/public surfaces
+- [ ] Gate `closePool` on indexed zero pool live commitments and zero non-terminal cycles; non-zero
+  states link to safe commitment/cycle wind-down and expose no close call.
 - [ ] Mirror only the steward-facing exchange pair/status/feed, Offer-template, and first-exposure
   copy requirements in `uiux-spec.md` Appendix E; reuse the named primitives and flag gaps in §9
 - [ ] Canceled PRD-683 is not part of this executable lane; Community seeding intake is owned by PRD-691 and `.plans/active/community-interface/handoffs/claude-ui-admin.md`

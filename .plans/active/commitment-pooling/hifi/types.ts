@@ -33,6 +33,8 @@ export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" 
 // Draft/InProgress/Reviewing remain UI overlays, matching the ontology sidecar.
 export type CycleLifecycle = "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
 export type CycleLiveCommitments = "Zero" | "NonZero";
+export type PoolLiveCommitments = "Zero" | "NonZero";
+export type PoolNonTerminalCycles = "Zero" | "One" | "Many";
 export type CommitmentLifecycle =
   | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
@@ -62,6 +64,8 @@ export type StateFacts = {
   cycle?: CycleLifecycle;
   series?: CommitmentSeriesLifecycle;
   cycleLiveCommitments?: CycleLiveCommitments;
+  poolLiveCommitments?: PoolLiveCommitments;
+  poolNonTerminalCycles?: PoolNonTerminalCycles;
   commitment?: CommitmentLifecycle;
   kind?: CommitmentKind;
   settlementAccount?: SettlementAccountState;

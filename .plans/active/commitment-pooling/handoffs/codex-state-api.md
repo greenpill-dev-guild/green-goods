@@ -51,14 +51,23 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   original ID on exact replay and rejects key reuse with a different payload, so wallet, embedded,
   and passkey senders converge even when they expose a hash only after submission. Receipt or
   validated read-through materialization then binds `clientSeriesId` to the onchain `seriesId`.
-- Ordinary Commitment job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
+- Every ordinary Commitment job persists a stable private `clientCommitmentId` and deterministic
+  creator-scoped `creationRequestKey` before its first send. Recovery calls
+  `getCommitmentIdByCreationRequest`; a non-zero result binds only after every immutable creation
+  field and stored payload hash match. Zero permits the same-key sender call. Exact replay
+  completes without another commitment/class/provider slot/pool-live increment; a mismatch is a
+  terminal local identity conflict.
+- Ordinary Commitment job payloads mirror the full ABI: creation includes
+  `clientCommitmentId`, `creationRequestKey`, cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
   rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
   selection. DomainImpact creation never accepts caller-authored
   domain tags; the contract derives them from ActionRegistry, while evidence-only types preserve
   their optional validated tags. Evidence jobs serialize the explicit non-empty bounded
   `creditedContributors` address vector and retry with the same vector; claim preserves
-  kind/garden context; confirmation is the submit-or-confirm union. Accept/decline, contributor changes, roster freeze,
+  kind/garden context; confirmation is the submit-or-confirm union. `workLink` persists a
+  caller-scoped `operationKey`, reads its contract payload hash before retry, and treats an exact
+  applied link or later unlink as complete rather than relinking. Accept/decline, contributor changes, roster freeze,
   assessment attach, Ready submission, and override remain explicit online mutations.
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
@@ -85,7 +94,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - Pool/cycle selectors expose state counts, provider-capacity `openCommitmentCount` (every
   committed Offer plus accepted Request until release or fulfillment), exact on-chain
   `liveCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. W26 uses
-  `liveCommitmentCount` for close/cancel preflight because it includes Offered/Requested rows.
+  cycle `liveCommitmentCount`, pool `liveCommitmentCount`, and pool
+  `nonTerminalCycleCount`. W26 uses the cycle count for close/cancel. Pool closure controls require
+  both pool counts to be zero, including cycle-less Offered/Requested rows.
   Terminal `DisputeResolved` outcomes arrive already projected through the indexer's canonical
   lifecycle helper, including Expired dispute reopen/restore/cancel behavior; shared selectors do
   not reconstruct or double-apply those deltas.
@@ -164,8 +175,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   restart-time mapping read-through, non-zero lookup rejection when the canonical series/pool
   payload mismatches the queued pool, initial metadata hash, holder, or garden, exact contract
   replay, key/payload conflict rejection, pending-first-send convergence, dependency waiting,
-  receipt/read materialization, and failure/discard recovery; capture expected failures before
-  implementation.
+  receipt/read materialization, and failure/discard recovery. Add ordinary commitment
+  `clientCommitmentId`/creation-key crash-window tests and Work-link operation-key tests covering
+  exact replay, payload conflict, and a stale retry after a later unlink; capture expected failures
+  before implementation.
 - RED: add saved-Offer protocol and adapter tests for canonical `SavedOfferPayloadV1` validation,
   owner-scoped session/list/read/PUT/DELETE calls, optimistic version conflicts, tombstone
   handling, and the rule that an unavailable service leaves a draft visibly unsaved. The Agent
@@ -231,7 +244,10 @@ prerequisite for the saved-Offer shared/client GREEN state, not optional follow-
   and encrypted compare-and-swap store; Client consumes the shared adapter and may keep only an
   unsaved local draft or cache. Dispatch and land the Agent API/store lane first. Shared/client
   tests cover version conflicts, tombstones, owner-scoped calls, and service-unavailable behavior;
-  they must never label a local-only draft Saved or Synced. Saved records are private by default.
+  they implement `LOCAL_DRAFT`, `SAVING_REMOTE`, `SAVED_REMOTE`, `SAVE_FAILED`,
+  `OFFLINE_LOCAL`, and `VERSION_CONFLICT` explicitly and must never label a local-only,
+  in-flight, failed, offline, or unknown result Saved or Synced. Only a confirmed owner-scoped
+  Agent response enters `SAVED_REMOTE`. Saved records are private by default.
   Each `seriesLinks` row carries the exact `moduleAddress` and readers resolve the tuple
   `{ chainId, moduleAddress, poolId, commitmentSeriesId }`; they never substitute the current
   default module for a saved historical link. Choosing Offer over time and linking it to a pool

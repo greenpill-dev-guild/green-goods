@@ -53,6 +53,10 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - The six field job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`,
   `confirmation`) work offline, survive restart, expose waiting/retry/failure, and do not duplicate
   submissions. `transfer` remains online-only and never enters the offline queue.
+- Every Commitment draft/place persists `clientCommitmentId` plus creator-scoped
+  `creationRequestKey` before send. Retry reads through the contract mapping and reuses the same
+  key; it never creates a new key behind the same button. Work-link jobs do the equivalent with a
+  caller-scoped `operationKey`, including the stale-retry-after-unlink case.
 - DomainImpact creation rejects an empty or over-`MAX_REQUIREMENTS` requirement list, missing
   actions, and zero required counts; actions in the same domain remain valid. Successful jobs
   preserve the complete ordered requirement payload through restart and retry. Per-action progress
@@ -73,12 +77,18 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
   preparation and member sends. It never offers a garden-custody claim path or a retry for an
   unprepared row.
 - Every flow includes loading, empty, offline, pending, declined, superseded, failed, retry, and terminal states where applicable.
+- Saved Offer metadata renders `LOCAL_DRAFT`, `SAVING_REMOTE`, `SAVED_REMOTE`, `SAVE_FAILED`,
+  `OFFLINE_LOCAL`, and `VERSION_CONFLICT` truthfully. Save first enters Saving; only a confirmed
+  owner-authenticated Agent response may claim Saved or cross-device durability. SB-38 remains
+  visibly unsaved with no signal.
 - Controls have accessible names, logical focus order, 44px targets, sufficient contrast, and reduced-motion behavior.
 - Fulfillment/cycle-close hero moments remain PWA-only and do not obscure status.
 
 ## RED / GREEN
 
 - RED: focused component/flow tests fail for concurrent Season/Campaign scope, direction-aware eligibility, stored claim terms and decline/supersession recovery, offline jobs, and settlement/member-delivery precedence.
+- RED includes the broadcast-before-local-hash crash window for Commitment creation, Work-link
+  replay after unlink, and every saved-Offer persistence result including offline and conflict.
 - GREEN: the same tests pass; client build passes; authenticated Brave and real-device walkthroughs prove the visible flows.
 
 ## Exact Bun commands

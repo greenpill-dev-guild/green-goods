@@ -467,6 +467,7 @@ export const SBS: SB[] = [
 { id: "sb37", n: 37, title: "Save offer details, then offer it over time", persona: "Gardener (Maria)", scen: "S15 · ongoing Offer creation", reviewVisible: true, reviewGroup: "client", steps: [
   { f: "W32@empty", hot: { h: "w32.add-first" }, who: "Maria", st: "Nothing saved yet", ev: "the personal surface starts empty and asks for nothing; saved details carry no obligation and no pool state" },
   { f: "W32@compose", hot: { h: "w32.save", l: "Save privately" }, who: "Maria", st: "Details draft", ev: "captures what she is offering, one line about it, and the unit; saving is signed offchain, never a contract call" },
+  { f: "W32@saving", hot: null, who: "Maria", st: "Saving remotely", ev: "the local draft remains visible while the owner-authenticated service request is in flight; the UI does not claim cross-device durability yet" },
   { f: "W32@saved", hot: { h: "w32.use-saved", l: "Use these details" }, who: "Maria", st: "Details saved (private)", ev: "the newly saved list contains only private reusable metadata: no garden, pool state, ongoing Offer, or availability has been fabricated", br: [{ l: "Saving and drafts", to: "sb38:0" }] },
   { f: "W32@choose-path", hot: { h: "w32.offer-over-time", l: "Offer it over time" }, who: "Maria", st: "Details saved (private)", ev: "the two paths are named once, in one place: offer it once as an ordinary promise, or offer it over time in one garden", br: [{ l: "Offer once — prefilled ordinary Offer", to: "screen:W3@saved-offer-edit" }] },
   { f: "W33@garden", hot: { h: "w33.continue-garden", l: "Continue" }, who: "Maria", st: "Pool Ready or Open", ev: "the ongoing Offer binds to exactly one garden; offering the same thing elsewhere becomes a separate series with its own history" },
@@ -479,11 +480,16 @@ export const SBS: SB[] = [
   { f: "W34@active-two", hot: null, who: "Maria", st: "Series Active · 2 places", ev: "each place registers its class and commits the full quota at creation, so two displayed places are two genuinely reserved promises" },
 ]},
 
-{ id: "sb38", n: 38, title: "Save the details, then offer over time offline", persona: "Gardener (Maria) with no signal", scen: "S15 · persistence and dependent drafts", reviewVisible: true, reviewGroup: "client", steps: [
+{ id: "sb38", n: 38, title: "Keep a local draft, then offer over time offline", persona: "Gardener (Maria) with no signal", scen: "S15 · persistence and dependent drafts", reviewVisible: true, reviewGroup: "client", steps: [
   { f: "W32@draft-unsaved", hot: { h: "w32.persistence", l: "How saving works" }, who: "Maria", st: "Draft on this device", ev: "an unsaved draft is honest about its limit: it lives in this browser only" },
-  { f: "W32@persistence", hot: { h: "w32.persistence-done", l: "Got it" }, who: "Maria", ev: "names the three states plainly — saved privately, draft on this device, offered in a garden — without claiming the saved details are on-chain" },
-  { f: "W32@draft-unsaved", hot: { h: "w32.save-draft", l: "Save privately" }, who: "Maria", st: "Draft on this device", ev: "promotes the local draft to signed offchain storage so it survives a change of phone" },
-  { f: "W32@saved", hot: null, who: "Maria", st: "Details saved (private)", ev: "the saved details are now portable across devices and still private; no ongoing Offer or available place appears merely because she saved them" },
+  { f: "W32@persistence", hot: { h: "w32.persistence-done", l: "Got it" }, who: "Maria", ev: "distinguishes saved privately, saving, failed, offline local, version conflict, and offered in a garden without calling any of them onchain" },
+  { f: "W32@draft-unsaved", hot: { h: "w32.save-draft", l: "Save privately" }, who: "Maria", st: "Draft on this device", ev: "starts an authenticated remote save but does not label the draft Saved" },
+  { f: "W32@saving", hot: null, who: "Maria", st: "Saving remotely", ev: "the request cannot complete with no signal; the device copy remains authoritative for this moment" },
+  { f: "W32@offline-local", hot: { h: "w32.use-local-offline", l: "Use this draft" }, who: "Maria", st: "Offline · local only", ev: "the failed network path stays visibly unsaved and makes no cross-device claim; Maria may still use the local details" },
+  { f: "W32@choose-path", hot: { h: "w32.offer-over-time", l: "Offer it over time" }, who: "Maria", st: "Local details", ev: "using a local draft for an Offer does not retroactively make the metadata remotely saved" },
+  { f: "W33@garden", hot: { h: "w33.continue-garden", l: "Continue" }, who: "Maria", st: "Pool selected from cache", ev: "the series still binds to one selected garden" },
+  { f: "W33@terms", hot: { h: "w33.continue-terms", l: "Continue" }, who: "Maria", st: "Series draft (local)", ev: "the series payload is prepared locally" },
+  { f: "W33@review", hot: { h: "w33.create", l: "Start offering over time" }, who: "Maria", st: "Series draft (local)", ev: "queues the series call with its persisted sender-safe request key" },
   { f: "W33@queued", hot: null, who: "Maria", st: "Series queued", ev: "the ongoing Offer is queued while offline; it is not Active and shows no availability" },
   { f: "W33@place-waiting", hot: null, who: "Maria", st: "Place draft waiting", ev: "a place drafted before its series exists waits on explicit queue state — it consumes no retry budget and never guesses transaction order" },
   { f: "W34@active-two", hot: null, who: "Maria", st: "Series Active · 2 places", ev: "after the series receipt is indexed the dependent places submit as ordinary commitments; discarding the series instead would keep the place drafts recoverable" },

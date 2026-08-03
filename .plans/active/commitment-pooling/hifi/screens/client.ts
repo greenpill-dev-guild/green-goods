@@ -1798,6 +1798,8 @@ const W32_STATES = [
   ["series-queued", "Ongoing Offer queued"], ["series-queued-place-waiting", "Ongoing Offer and place queued"],
   ["empty", "Nothing yet"], ["compose", "Save offer details"],
   ["choose-path", "Once or over time"], ["draft-unsaved", "Unsaved draft"],
+  ["saving", "Saving privately"], ["save-failed", "Save failed"],
+  ["offline-local", "No signal — local only"], ["version-conflict", "Newer saved version"],
   ["persistence", "How saving works"], ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W32State = (typeof W32_STATES)[number][0];
@@ -1838,7 +1840,7 @@ function w32(state: W32State): string {
         "Save offer details",
         `${field("What are you offering?", input("Hosting climate workshops"))}` +
           `${field("One line about it", input("A two-hour session on local climate work"))}` +
-          `<div class="t-meta">Saved privately. It follows you to a new phone.</div>` +
+          `<div class="t-meta">This stays a draft on this device until the private save is confirmed.</div>` +
           hot("w32.save", btn("Save privately", { kind: "pri", full: true })),
       );
       break;
@@ -1868,6 +1870,49 @@ function w32(state: W32State): string {
           { cls: "flat" },
         ),
         hot("w32.persistence", btn("How saving works", { kind: "ghost", sm: true, icon: "information-line" })),
+      )}`;
+      break;
+    case "saving":
+      body = `${head}${pagepad(
+        intro,
+        banner("Saving privately… Keep this app open while your account confirms the remote copy.", "stone", "loader4-line"),
+        card(
+          `${kv("Hosting climate workshops", "Draft retained on this device")}${kv("Remote status", "Waiting for confirmation")}`,
+          { cls: "flat" },
+        ),
+        `<div class="t-meta">This is not called Saved until the owner-authenticated service confirms it.</div>`,
+      )}`;
+      break;
+    case "save-failed":
+      body = `${head}${pagepad(
+        intro,
+        banner("Save failed. This is still a draft on this device.", "error", "error-warning-line"),
+        card(
+          listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft retained · nothing lost", chipHtml: chip("Not saved", "err") }),
+          { cls: "flat" },
+        ),
+        `<div class="brow">${hot("w32.retry-save", btn("Try saving again", { kind: "pri", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep editing", { kind: "ghost" }))}</div>`,
+      )}`;
+      break;
+    case "offline-local":
+      body = `${head}${pagepad(
+        intro,
+        banner("No signal; this stays on this device. Nothing is queued as a private remote save.", "amber", "wifi-off-line"),
+        card(
+          listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft on this device", chipHtml: chip("Offline · not saved", "warn") }),
+          { cls: "flat" },
+        ),
+        hot("w32.use-local-offline", btn("Use this draft", { kind: "pri", full: true })),
+        `<div class="brow">${hot("w32.retry-save-online", btn("Try when connected", { kind: "sec", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep editing", { kind: "ghost" }))}</div>`,
+      )}`;
+      break;
+    case "version-conflict":
+      body = `${head}${pagepad(
+        intro,
+        banner("A newer saved version exists. Your local edits are still on this device.", "amber", "refresh-line"),
+        card(`${kv("Saved account copy", "newer")}${kv("This device", "local edits retained")}`, { cls: "flat" }),
+        `<div class="brow">${hot("w32.reload-remote", btn("Use saved version", { kind: "pri" }))}${hot("w32.keep-local-copy", btn("Keep a local copy", { kind: "ghost" }))}</div>`,
+        hot("w32.overwrite-current", btn("Replace the saved version…", { kind: "danger", full: true })),
       )}`;
       break;
     case "persistence":
@@ -1973,7 +2018,7 @@ function w32(state: W32State): string {
       )}`;
   }
   return phoneFrame(`${body}<div style="flex:1"></div>`, {
-    offline: state === "draft-unsaved" || state === "series-queued" || state === "series-queued-place-waiting",
+    offline: state === "draft-unsaved" || state === "offline-local" || state === "series-queued" || state === "series-queued-place-waiting",
     appBar: appBar("profile"),
   });
 }
@@ -1981,8 +2026,15 @@ function w32(state: W32State): string {
 const W32_HOTS: HifiDef["hots"] = {
   "w32.add": { l: "Save offer details", to: "screen:W32@compose", info: "Saved Offer details are signed offchain profile data and reusable input to either path. Saving writes no pool, series, or commitment state." },
   "w32.add-first": { l: "Save offer details", to: "screen:W32@compose", info: "Empty-state entry into the same compose sheet." },
-  "w32.save": { l: "Save privately", to: "screen:W32@saved", info: "Signed offchain persistence: the saved details follow the account to another device. Private until they are used to make an offer." },
-  "w32.save-draft": { l: "Save privately", to: "screen:W32@saved", info: "Promotes a device-only draft to signed offchain storage. Until this runs, the draft cannot survive a device change." },
+  "w32.save": { l: "Save privately", to: "screen:W32@saving", info: "Begins the authenticated remote write while retaining the local draft. Only the confirmed service response may enter Saved." },
+  "w32.save-draft": { l: "Save privately", to: "screen:W32@saving", info: "Begins remote persistence. Until a confirmed response arrives, the draft cannot survive a device change." },
+  "w32.retry-save": { l: "Try saving again", to: "screen:W32@saving", info: "Retries the owner-authenticated write from the retained local draft; it does not claim success optimistically." },
+  "w32.retry-save-online": { l: "Try when connected", to: "screen:W32@saving", info: "Connectivity is rechecked before entering the remote-saving state." },
+  "w32.use-local-offline": { l: "Use this draft", to: "screen:W32@choose-path", info: "Uses the local metadata without relabeling it Saved. A later series/commitment queue is separate from remote saved-Offer persistence." },
+  "w32.keep-editing": { l: "Keep editing", to: "screen:W32@draft-unsaved", info: "Returns to the retained local draft without claiming it is saved." },
+  "w32.reload-remote": { l: "Use saved version", to: "screen:W32@saved", info: "Loads the newer confirmed remote version and preserves no false merge claim." },
+  "w32.keep-local-copy": { l: "Keep a local copy", to: "screen:W32@draft-unsaved", info: "Keeps these edits as a visibly unsaved device draft." },
+  "w32.overwrite-current": { l: "Replace saved version", to: "screen:W32@saving", info: "Starts an explicit compare-and-swap write against the current remote version; success is still not assumed." },
   "w32.persistence": { l: "How saving works", to: "screen:W32@persistence", info: "Explains the honest difference between signed saved details and an unsaved local draft." },
   "w32.persistence-done": { l: "Got it", to: "screen:W32@draft-unsaved", info: "Dismisses the explanation and returns to the unsaved draft." },
   "w32.use-saved": { l: "Use these details", to: "screen:W32@choose-path", info: "Opens the once-or-over-time choice. Saved details are input to either path, never a separate product object." },
@@ -2686,7 +2738,7 @@ function w35(state: W35State): string {
       break;
     case "mixed-failed":
       body = `${head}${pagepad(
-        banner("One place sent. The other could not be sent.", "error", "error-warning-line"),
+        banner("One place sent. The other could not be sent. Retrying uses the same creationRequestKey, so it cannot reserve a second place.", "error", "error-warning-line"),
         card(
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · capacity reserved", chipHtml: stateChip("Offered") }) +
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · send failed", chipHtml: chip("Send failed", "err") }),
@@ -2715,10 +2767,10 @@ function w35(state: W35State): string {
 }
 
 const W35_HOTS: HifiDef["hots"] = {
-  "w35.submit": { l: "Add places", to: "screen:W35@queued", info: "Queues one ordinary createCommitment per place against the Active series. Each creation registers its class and reserves one provider slot immediately.", calls: ["createCommitment"], pendingSync: true },
+  "w35.submit": { l: "Add places", to: "screen:W35@queued", info: "Queues one ordinary createCommitment per place against the Active series. Each gets its own persisted clientCommitmentId and creationRequestKey before send; exact replay cannot create or reserve it twice.", calls: ["createCommitment"], pendingSync: true },
   "w35.queued-done": { l: "Back to this offer", to: "screen:W34@places-queued", info: "The two queued places remain visible but unavailable. Availability appears only after the place creations sync and their capacity is reserved." },
   "w35.mixed-queued-done": { l: "Back to this offer", to: "screen:W34@places-partial", info: "The ongoing Offer shows one real available place and one queued sibling." },
-  "w35.retry-failed": { l: "Try failed place again", to: "screen:W35@mixed-queued", info: "Retries only the failed createCommitment job and leaves the synced Offered row untouched.", calls: ["createCommitment"], pendingSync: true },
+  "w35.retry-failed": { l: "Try failed place again", to: "screen:W35@mixed-queued", info: "Reads creator + creationRequestKey first, then retries only with the same creationRequestKey. A matching commitment completes; zero permits the same-key call; any payload mismatch stops. The synced Offered sibling is untouched.", calls: ["createCommitment"], pendingSync: true },
   "w35.discard-failed": { l: "Discard failed place", to: "screen:W34@active-one", info: "Discards only the failed local job. The synced place remains available." },
   "w35.mixed-failed-done": { l: "Back to this offer", to: "screen:W34@places-partial-failed", info: "The ongoing Offer preserves the synced place's availability and the failed sibling's recovery controls." },
 };

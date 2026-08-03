@@ -4,10 +4,10 @@ Updated 2026-08-03. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 36 registered screens / 370 rendered states in the full source registry
-- 29 presentation-visible hi-fi screens / 340 states: 14 Client PWA (211 states), 13 Admin console (124 states), 2 Editorial website (5 states)
-- 507 registered hotspots
-- 44 validated source flows / 359 scenes; 43 presentation-visible flows / 350 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
+- 36 registered screens / 375 rendered states in the full source registry
+- 29 presentation-visible hi-fi screens / 368 states: 14 Client PWA (237 states), 13 Admin console (126 states), 2 Editorial website (5 states)
+- 515 registered hotspots
+- 44 validated source flows / 365 scenes; 43 presentation-visible flows / 356 scenes: 21 Client PWA, 21 Admin console, 1 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -84,6 +84,7 @@ requires the protocol-fallback fixture to preserve its Ready/Open/DomainImpact f
 | Read error with retry | `W1@read-error`, `W2@read-error`, `W5@read-error` |
 | Scope-named empty | `W1@empty-open` and `W1@no-season` are guided because they offer legal next acts; `W5@empty`, `W7@empty`, and `W13@empty` remain exhaustive Screen-library references |
 | Offline queue / exhausted retry | `W1@queued`, `W1@support-queued`, `W1@sync-failed`, `W1@waiting-membership`, `W2@evidence-queued`, `W2@support-evidence-queued`, `W2a@queued`, `W2a@failed` |
+| Saved-Offer persistence truth | `W32@draft-unsaved`, `W32@saving`, `W32@saved`, `W32@save-failed`, `W32@offline-local`, `W32@version-conflict`; only Saved claims cross-device durability |
 | Confirmation outcome / retry | `W4@confirmed-pending`, `W4@confirmed`, request- and service-specific pending/synced variants, `W4@not-yet`, `W4@not-yet-failed` |
 | Wallet send retention / retry | `W23@send`, `W23@send-pending`, `W23@send-failed` |
 | Cycle banners | `W1@reviewing`, `W1@paused`, `W1@closed`, `W1@cancelled-cycle`, `W1@paused-cancelled-cycle`, `W1@cycle-summary`; reviewing and paused wind-down both have guided legal paths |
@@ -101,7 +102,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | Act | Confirmation state | Blast radius named |
 | --- | --- | --- |
 | Pause pool | `W7@pause-confirm` | 23 members · 7 open promises · what stays open |
-| Close pool | `W7@close-pool-confirm` | ends participation for 23 members · reachable only once the last cycle composts (`W7@cycle-composted`) · no stored reason |
+| Close pool | `W7@close-pool-confirm` | ends participation for 23 members · reachable only with zero live pool commitments and zero non-terminal cycles (`W7@cycle-composted`) · `W7@close-blocked-live` routes to wind-down instead · no stored reason |
 | Close paused pool | `W7@paused-close-pool-confirm` | pool remains Paused through cycle compost · `closePool` alone changes it to Closed · no stored reason |
 | Compost pool | `W7@compost-pool-confirm` | archives the closed pool · history remains readable · no stored reason |
 | Reopen pool | `W7@reopen-confirm` | Composted → Ready · history preserved · participation stays closed |
@@ -127,11 +128,11 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W23 | Client PWA | 6 | balance, contributor-receipt, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
 | WFLOW | Client PWA | 1 | review |
-| W32 | Client PWA | 12 | saved, saved-with-ongoing, saved-with-ongoing-ready, series-queued, series-queued-place-waiting, empty, compose, choose-path, draft-unsaved, persistence, loading, read-error |
+| W32 | Client PWA | 16 | saved, saved-with-ongoing, saved-with-ongoing-ready, series-queued, series-queued-place-waiting, empty, compose, choose-path, draft-unsaved, saving, save-failed, offline-local, version-conflict, persistence, loading, read-error |
 | W33 | Client PWA | 12 | garden, garden-ready, terms, terms-ready, review, review-ready, queued, queued-ready, place-waiting, waiting-membership, failed, discarded-dependency |
 | W34 | Client PWA | 35 | active-two, active-none, active-one, places-queued, places-partial, places-partial-failed, story, participation, ask-again, claimant-view, pool-ready, pool-paused, pool-closed, pool-composted, edit-active, edit-active-none, edit-active-ready, edit-resting, edit-resting-none, edit-resting-ready, resting, resting-none, resting-ready, retire-confirm, retire-confirm-none, retire-confirm-resting, retire-confirm-resting-none, retire-confirm-ready, retire-confirm-resting-ready, retired, retired-none, retired-ready, succession, loading, read-error |
 | W35 | Client PWA | 4 | compose, queued, mixed-queued, mixed-failed |
-| W7 | Admin console | 27 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
+| W7 | Admin console | 28 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, close-blocked-live, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty |
 | W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
 | W10 | Admin console | 18 | detail, detail-fallback-eligible, external-fulfilled, fulfilled, contributor-allocation, record-payout, fallback-confirm, protocol-fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |

@@ -28,7 +28,32 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## Outputs
 
-- Core phase: fifteen pooling entities — pool, cycle, commitment, requirement, claim request, claim-request index, event, `NeedCommitmentIndex`, `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`, `CommitmentExchange`, `CommitmentSeries`, `CommitmentSeriesCycleSummary`, and `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their Garden relationship fields deliberately retain the documented bare-address `Garden.id` compatibility contract. Eight auxiliary contributor/provenance/replay-coordination entities live in the same schema but stay outside this core-phase count, including `CommitmentPendingLifecycleProjection` and its commitment-keyed index. Pool and cycle each carry an independent nullable lifecycle `(blockNumber, logIndex)` cursor. The commitment entity also carries `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`, `declaredUnitValue`/`declaredValueBasis`, the nullable `ValueDeclared` and `ConfirmerRuleSet` `(blockNumber, logIndex)` replay cursors, the nullable lifecycle cursor used by state-derived projections, `protocolFallbackEnabled`, `fulfilledBy`, nullable `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves confirmation-only fields null. Creation events initialize independently mutable state only when its cursor is absent; every later pool, cycle, value, confirmer-rule, series, or commitment lifecycle projection applies only when its own cursor wins. Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker treatment, lifecycle projection, late-fact terminal member-history reconciliation, and every member-history delta. Requests persist canonical claimant and requestedBy; pools persist the cursor-winning pause reason CID; cycles persist the six-field allocation only from `CycleOpened`.
+- Core phase: sixteen pooling entities — pool, cycle, immutable `CommitmentClass`, commitment,
+  requirement, claim request, claim-request index, event, `NeedCommitmentIndex`,
+  `CommitmentUnitSummary`, `CommitmentProviderExposure`, `CommitmentCounterIndex`,
+  `CommitmentExchange`, `CommitmentSeries`, `CommitmentSeriesCycleSummary`, and
+  `PoolMemberHistory` — with chainId and chain-scoped composite IDs for the new entities. Their
+  Garden relationship fields deliberately retain the documented bare-address `Garden.id`
+  compatibility contract. Ten auxiliary contributor/provenance/replay-coordination entities live
+  in the same schema but stay outside this core-phase count, including
+  `CommitmentContributorRequirementAssignment`,
+  `CommitmentContributorRequirementIndex`, `CommitmentPendingLifecycleProjection`, and its
+  commitment-keyed index. Pool and cycle each carry an independent nullable lifecycle
+  `(blockNumber, logIndex)` cursor; pool charter and provider cap use their own cursor pairs.
+  The commitment entity also carries creation key/hash, immutable acceptance position,
+  `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable
+  `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`,
+  `declaredUnitValue`/`declaredValueBasis`, independent value, reward, confirmer-rule, and
+  lifecycle cursor pairs, `protocolFallbackEnabled`, `fulfilledBy`, nullable
+  `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. Contributor membership,
+  requirement assignment, and Work link membership each own independent event-position cursors.
+  `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only
+  authority for confirmation actor/path/reason; `DisputeResolved -> Fulfilled` leaves
+  confirmation-only fields null. Creation events initialize independently mutable state only when
+  its cursor is absent; every later projection applies only when its own cursor wins.
+  Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker
+  treatment, lifecycle projection, late-fact reconciliation, signed commutative register deltas,
+  and deterministic relationship ordering.
 - `ExchangeAccepted` creates one `CommitmentExchange` marker keyed
   `chainId-EXCHANGE-poolId-idA-idB`, using the event's non-indexed `poolId` without an RPC read or
   prior commitment row. Entity existence proves atomic acceptance. The two ordinary
@@ -76,6 +101,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   namespace and full replay. Saved Offer `moduleAddress` is a fail-closed client link key, not a
   multi-module indexing contract.
 - Commitment-keyed request index that marks accept/decline/supersede without a database-wide scan.
+  Each request row owns a lifecycle cursor. A late `ClaimRequested` delivered after a newer
+  acceptance materializes as Accepted for the winning claimant or Superseded for every other
+  claimant; after a newer cancellation/expiry it materializes Superseded. It can never revive an
+  actionable Pending row behind the commitment result.
 - Preserve `Garden.id` as the normalized bare GardenAccount address with explicit `chainId`.
   `gardenId`, `providerGardenId`, and `gardenContextId` relationship helpers store that existing ID;
   every new Commitment Pooling entity retains its own chain-scoped composite ID. No Garden
@@ -105,6 +134,15 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   RestorePrevious-to-Expired or resolution-to-Cancelled applies exactly one final bucket and
   decrements once. Unit summaries and provider exposure remain owned only by their self-describing
   unit events.
+- `CommitmentPool.liveCommitmentCount` mirrors every non-terminal commitment in the pool,
+  including cycle-less rows, and follows the same reversible transition helper.
+  `CommitmentPool.nonTerminalCycleCount` increments on seed and decrements once on cancel or
+  compost. `PoolClosed` may project only when both are zero.
+- Pool charter, provider cap, commitment reward, contributor membership, contributor requirement
+  assignment, and Work link lifecycle each compare an independent `(blockNumber, logIndex)`
+  cursor. `CommitmentContributorIndex`, its requirement-assignment companion, request/evidence/
+  Need/counter indexes, and every other set-like relationship array are de-duplicated and sorted
+  deterministically; only pending lifecycle projections use event-position order.
 - Terminal member history is a separate idempotent side projection so older acceptance and roster
   events can complete a newer terminal outcome. `CommitmentAccepted` always stores the immutable
   lead/receiver facts and sets `acceptanceSeen`, even when its lifecycle tuple is older than the
@@ -118,6 +156,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   Fulfilled/Cancelled/Expired transition decrements it, and the Expired dispute reopen/resolve pair
   re-increments/decrements it exactly once. Offered/Requested rows therefore block close in the
   indexed read model exactly as they do on-chain.
+- Unit and exposure totals are unique-event signed commutative deltas, not last-delivered
+  assignments. Commit/Release/Fulfill permutations converge to the same final counts and
+  exact-label units; `updatedAt` is the maximum event position.
 - Generated-config preservation changes and a regression fixture proving
   `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, and
   `CeloSettlementExecutor` blocks survive repeated artifact updates on every applicable
@@ -173,7 +214,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   team — fallback” from a local garden fallback or ordinary counterparty confirmation.
 - ApprovalGated claim acceptance consumes the stored request identity and supersedes only
   still-pending sibling requests through the companion index; Open acceptance has no request row
-  and stores the emitted authenticated requester as the Garden Request lead.
+  and stores the emitted authenticated requester as the Garden Request lead. Reverse fixtures
+  also deliver acceptance/cancellation/expiry before the older ClaimRequested row and prove the
+  late row materializes Accepted or Superseded, never Pending.
 - Evidence replay preserves every distinct attribution row but changes a contributor's
   `evidenceCredits` only on the first 0-to-1 transition. Multiple CIDs attributed to the same
   contributor never multiply recognition, while the first attribution to another contributor
@@ -184,19 +227,24 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   two Hypercerts produces distinct unit rows and never overwrites either certificate or the
   contributor's stable commitment-level `recognitionWeightBps`.
 - Commitment cancellation/expiry supersede still-pending requests through the same companion index; no terminal commitment retains an actionable Pending row.
+- Contributor fixtures reverse Add/Remove and assignment true/false events and prove independent
+  latest-wins membership/assignment rows, deterministically sorted indexes, and an exact active
+  frozen roster. Work fixtures reverse Link/Unlink separately from approval/reversal sequence and
+  prove neither cursor suppresses the other.
 - `ApprovedWorkCounted` and `ApprovedWorkReversed` update exactly the matching
   `requirementIndex`, replace that row's cumulative count, and store the event-emitted
   per-commitment `approvedUnits`. The count event adds `newlyApprovedUnits`; the reversal event
   subtracts `removedApprovedUnits` from only the matching exact-label pool/cycle summary.
   `UnitsReleased` and `UnitsFulfilled` update only that same label hash; cumulative event values
   are never summed or re-derived.
-- `CommitmentAccepted` stores the canonical claimant/counterparty/provider/providerGarden and
+- `CommitmentAccepted` stores its immutable event position plus the canonical claimant/counterparty/provider/providerGarden and
   resolves claim-request rows, but it never mutates count exposure. `UnitsCommitted` is the
   sole increment for pool/cycle open counts and `CommitmentProviderExposure`; `UnitsReleased`
   and `UnitsFulfilled` are the sole decrements. Fulfillment, accepted cancellation, and
   accepted expiry therefore change exposure only through the emitted register event. Dispute
   entry/restoration emits no register delta and preserves the count. Replaying any event leaves
-  summaries and exposure unchanged.
+  summaries and exposure unchanged. All unit-event order permutations converge through signed
+  commutative deltas rather than delivery-order assignment.
 - Unit events are independently self-describing with `poolId`, `cycleId`, and exact
   `unitLabel`; an event arriving before `CommitmentCreated` still produces the final canonical
   IDs. `cycleId == 0` never creates or mutates a cycle summary.

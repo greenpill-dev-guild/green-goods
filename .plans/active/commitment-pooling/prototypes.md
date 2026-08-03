@@ -135,7 +135,7 @@ flowchart LR
 | 3 | W3 (WF:172-196) | Direction Offer, type Garden work, AGRO action anchors, 6 hours, due Aug 12 → **[ Make this offer ]** | enqueues `commitment` job (UX:212); returns to W1 with optimistic queued card | Draft → local; Offered (optimistic) | Offline/retry lanes → SB-7 |
 | 4 | W1 | — (sync completes) | `CommitmentCreated` (CS:132); SyncStatusBar count clears (UX:237) | **Offered** (on-chain) | After 5 retries: Failed chip + retry/discard (UX:240) |
 | 5 | W1 | João taps **[ Take this up ]** on the open-mode card (WF:86; helper text names the mode, UX:129) | enqueues `claim`; on sync `CommitmentAccepted` validates the Offer's creation-time committed class without emitting a second `UnitsCommitted` (CS:133; DG:176-181). Accountable lead = Maria (Offer creator); contributors may join before roster freeze; confirmer default = João (recipient) — AM:34, UX:32 | **Accepted** | Approval-gated variant → SB-3 |
-| 6 | W2 → WFLOW | Maria submits work with `meta.commitmentId` and the selected `meta.requirementIndex`; a second existing work may be linked to an explicitly selected row | existing work job plus `linkWork(commitmentId, workUID, requirementIndex)`; DomainImpact never exposes `submitForConfirmation` (CS:735,138b) | Accepted → Active | Repeated action UIDs remain unambiguous; existing work/evidence recovery stays on its ordinary rail |
+| 6 | W2 → WFLOW | Maria submits work with `meta.commitmentId` and the selected `meta.requirementIndex`; a second existing work may be linked to an explicitly selected row | existing work job plus `linkWork(commitmentId, workUID, requirementIndex, operationKey)`; DomainImpact never exposes `submitForConfirmation` (CS:735,138b) | Accepted → Active | Repeated action UIDs remain unambiguous; same-key retry cannot relink after a later unlink |
 | 7 | HUBWORK → W10 | Stewards approve the required works; a steward or evaluator attaches the qualifying assessment | `onWorkDecision` applies the latest pre-freeze approval/rejection; `attachAssessment` re-runs auto-Ready | PartiallyApproved → ReadyForConfirmation | Missing/reversed approval or assessment keeps the promise out of Ready |
 | 8 | W4 | Maria's provider view is read-only; João's eligible-recipient sheet names the provider exclusion | — | ReadyForConfirmation | João picks **Not yet** → SB-5 |
 | 9 | W4 | João **[ Confirm — promise kept ]** | queued confirmation syncs, then `ConfirmationRecorded` reaches the threshold and fulfills | pending local sync → **Fulfilled** | No Fulfilled result is shown before sync |
@@ -455,7 +455,7 @@ flowchart LR
 | 11 | W26 | Verify every commitment is terminal and `liveCommitmentCount == 0`, then **[ Close cycle and continue ]** | `closeCycle` locks the exact fulfilled bundle before share review or certificate mint | Reviewing/Open-on-chain → **Reconciled** | Close failure blocks shares and mint |
 | 12 | W26 | Read locked shares, mint the certificate, then **[ Compost closed cycle ]** | existing Hypercert mint uses the Reconciled bundle; `compostCycle` runs only after mint | Reconciled → **Composted** | Mint failure leaves the cycle Reconciled and recoverable; compost is not attempted |
 | 13 | W1@cycle-summary | (gardener echo) realized cycle summary card + medium cycle-close hero, once (MF-10; UX:75,200) | — | Pool remains Open · cycle Composted | reduced-motion → static (UX:430) |
-| 14 | W7 | Close pool → compost pool → confirm **Reopen to Ready** | `closePool` → `compostPool` → `reopenPool(poolId,false)` | Closed → Composted → Ready | Reopening preserves history and does not reopen participation |
+| 14 | W7 | After every cycle is Cancelled/Composted and every pool commitment is terminal, close pool → compost pool → confirm **Reopen to Ready** | zero `Pool.liveCommitmentCount` + zero `Pool.nonTerminalCycleCount`; then `closePool` → `compostPool` → `reopenPool(poolId,false)` | Open → Closed → Composted → Ready | A non-zero counter routes to live-promise/cycle wind-down; reopening preserves history and does not reopen participation |
 
 ```text
 REALIZED — source sketch for W7 pool status card action row (MF-1)
@@ -463,7 +463,7 @@ REALIZED — source sketch for W7 pool status card action row (MF-1)
 │ (Ready) charter ✓ baseline ✓ cap 24                                │
 │ [ Open pool ]                    [ Edit charter ] [ Pause… ]       │  openPool (CS:100)
 │  — once Open —                                                     │
-│ [ Close pool… ]  after the last cycle composts                     │  closePool (CS:102)
+│ [ Close pool… ]  after all cycles end and pool live count = 0      │  closePool (CS:102)
 └────────────────────────────────────────────────────────────────────┘
 
 REALIZED — source sketch for W26 reconciliation report (MF-9, AdminDialog)
@@ -747,7 +747,7 @@ adds no human-facing action.
 | M1 | Make an offer / ask for help | `createCommitment` (CS:730) | W1 → W3 | offline `commitment` (UX:212) | NEW | direction + type + cycle binding in-flow; "offer again" (SB-6) is a re-entry |
 | M2 | Take this up / ask to take this up | `claimCommitment` (CS:732) | W1 card + §4.4 panels (WF:111-127) | offline `claim` (UX:213) | NEW | open vs steward-reviewed is card helper text, never a gardener toggle (UX:129); "ask again" = fresh request (UX:105) |
 | M3 | Add evidence (photo / link / note) | `attachEvidence` (CS:739) | W2 → W2a | offline `evidence` (UX:214) | NEW | steward also authorized on-chain, no admin control drawn (W10 read-only) |
-| M4 | Link existing work to a promise requirement | `linkWork(commitmentId, workUID, requirementIndex)` (CS:735) | W2 picker | offline `workLink` (UX:215) | NEW | picker binds one exact requirement row; deep-linked NEW work rides the existing `work` job (extension row E1 below) |
+| M4 | Link existing work to a promise requirement | `linkWork(commitmentId, workUID, requirementIndex, operationKey)` (CS:735) | W2 picker | offline `workLink` (UX:215) | NEW | picker binds one exact requirement row; caller-scoped key makes restart replay idempotent, including after a later unlink |
 | M5 | Send for confirmation | `submitForConfirmation` (CS:741) | `W2@request-evidence-submitted` (MF-6 realized); admin twin UX:287 | offline `confirmation{submit}` (UX:216) | NEW | evidence-only kinds; DomainImpact `W2@evidence-submitted` exposes only legal work linkage |
 | M6 | Confirm — promise kept | `confirmFulfillment` (CS:743) | W4 sheet · W5 inbox · admin W13 stage · W12 protocol queue | offline `confirmation{confirm}` (UX:216) | NEW | provider always excluded (`SelfConfirmation`); once per confirmer |
 | M7 | Not yet — ask the stewards to look | `raiseDispute` (CS:747) | W4 decline branch | **online** (UX:217) | NEW | gardener entry exists only at ReadyForConfirmation via W4; contract also allows creator/counterparty from Accepted/Expired — unsurfaced |
@@ -1025,7 +1025,10 @@ inferred participant count.
 
 ```mermaid
 flowchart LR
-  P["W32 details saved privately"] -->|"Offer it over time"| G["W33 choose garden"]
+  L["W32 local draft"] -->|"save request"| S["W32 saving"]
+  S -->|"confirmed remote response"| P["W32 details saved privately"]
+  S -->|"offline or failed"| U["W32 still unsaved"]
+  P -->|"Offer it over time"| G["W33 choose garden"]
   G -->|"describe"| R["W33 review"]
   R -->|"start offering over time"| Q["W33 queued"]
   Q -->|"sync"| A["W34 Active · 0 places"]
@@ -1036,20 +1039,20 @@ flowchart LR
 
 | Step | Person action | System response | Review state | Recovery |
 |---|---|---|---|---|
-| 1 | save the details of something you can offer | signed offchain write; no pool, series, or commitment state | W32 saved | edit or remove freely; nothing is promised |
+| 1 | save the details of something you can offer | local draft → Saving; only a confirmed signed offchain write enters Saved; no pool, series, or commitment state | W32 saving → saved, or visibly unsaved failure/offline | retry keeps the local draft; nothing is promised |
 | 2 | choose one garden | binds the series to one pool | W33 garden | a second garden means a second series, never a merge |
 | 3 | start offering it over time | queues `createCommitmentSeries`; caller becomes immutable creator and initial current holder | W33 queued | offline retry; the saved details survive either way |
 | 4 | sync lands | series is Active with **zero** places | W34 active-none | an Active series with nothing open is a real state, not an error; Edit, Rest, and Retire remain reachable without creating capacity |
-| 5 | add a finite batch of places | one ordinary `createCommitment` per place, each reserving its class and one provider slot at creation | W35 queued | places are not shown as available until each has synced |
+| 5 | add a finite batch of places | one ordinary `createCommitment` per place, each with a persisted `clientCommitmentId`/`creationRequestKey` and one class/provider reservation | W35 queued | places are not shown as available until each has synced; retry reuses the same key and cannot create a duplicate |
 | 6 | both sync | two genuinely reserved, independently claimable promises | W34 active-two | each place has its own terms, route, and terminal lifecycle |
 
-### SB-38 — Save the details, then offer over time offline
+### SB-38 — Keep a local draft, then offer over time offline
 
 **Persona**: Maria with no signal. **Frames**: W32 → W33 → W34.
 
-The persistence lane. `draft-unsaved` states plainly that the draft lives on this device only;
-the explainer names *saved privately*, *draft on this device*, and *offered in a garden* without
-claiming the saved details are on-chain. Then the offline series creation queues, and a place drafted
+The persistence lane. `draft-unsaved` states plainly that the draft lives on this device only.
+Save enters `saving`; with no signal it lands in `offline-local`, keeps the draft, and never claims
+cross-device durability. Maria can still use that local input to queue the series. A place drafted
 before its series exists enters `W33@place-waiting` — an explicit dependent-queue state that
 consumes no retry budget and never guesses transaction order. Discarding the series keeps the
 place drafts recoverable and explains what they were waiting for.

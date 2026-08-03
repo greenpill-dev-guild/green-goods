@@ -300,6 +300,25 @@ dependent Commitment jobs resume. Tests cover process stop after broadcast, a st
 submission, a non-zero lookup with each canonical payload mismatch, exact replay, key/payload
 conflict, and one-event/one-series convergence.
 
+Ordinary Commitment creation uses the same sender-safe boundary. Every local place or one-time
+Offer/Request owns a private stable `clientCommitmentId`; before first send the queue persists the
+creator-scoped non-zero `creationRequestKey` derived from chain, module, creator, and that private
+ID. The contract stores the complete normalized creation payload hash and
+`commitmentIdByCreationRequest[creator][creationRequestKey]`. Restart recovery first calls
+`getCommitmentIdByCreationRequest(creator, creationRequestKey)`. A non-zero result binds only
+after pool, cycle, series, creator, direction, kind, claim terms, contributor policy, requirements,
+units, assessment, due date, metadata, Need, counter-commitment, value, fallback, and reward
+snapshots all match. Zero permits another send with the same key. Exact contract replay returns
+the first ID with no second event, class commitment, provider slot, or pool-live increment;
+conflicting payload reuse stops locally and reverts onchain. A retry control may therefore say
+“Retry the same place,” never create a fresh key invisibly.
+
+The offline `workLink` job likewise persists a private caller-scoped `operationKey` with the exact
+commitment/work/requirement payload before send. Restart recovery calls
+`getWorkLinkOperationPayloadHash(caller, operationKey)`. An exact applied result completes the
+job; if a later unlink already superseded it, recovery still completes without re-linking.
+Conflicting reuse stops. Only an explicit new user action receives a new operation key.
+
 This dependency and contract-idempotent recovery are explicit queue states, not guessed
 transaction ordering or an indexer-side join. Discarding a failed local series job keeps its
 dependent Commitment drafts recoverable and explains why they are waiting.
@@ -322,6 +341,22 @@ boundary follows the existing profile-avatar pattern but is private and encrypte
   `(chainId, normalizedOwnerAddress, savedOfferId)`.
 - `packages/client` consumes the shared adapter and may cache decrypted owner-visible records in
   IndexedDB. A local-only record is an **unsaved draft** and may not display Saved or Synced.
+
+The client represents persistence truth explicitly:
+
+| State | Truth and allowed copy | Exit |
+|---|---|---|
+| `LOCAL_DRAFT` | IndexedDB only; “Draft on this device.” Never Saved or synced. | edit, discard, or begin save |
+| `SAVING_REMOTE` | Local draft retained while the authenticated request is in flight; “Saving privately…” | confirmed response, failure, or offline interruption |
+| `SAVED_REMOTE` | Agent store confirmed the owner/version; “Saved privately to your account.” | edit, delete, or use |
+| `SAVE_FAILED` | Local draft retained with a typed error; “Still a draft on this device.” | retry after auth/connectivity, edit, or discard |
+| `OFFLINE_LOCAL` | No remote request was confirmed; “No signal; this stays on this device.” | reconnect, then enter Saving |
+| `VERSION_CONFLICT` | A newer remote version exists; never silently overwrite it. | reload remote, copy local edits, or explicitly overwrite from the current version |
+
+Only a successful owner-authenticated `PUT` response may enter `SAVED_REMOTE`. Closing the app,
+losing signal, a timeout, `401`, `409`, or any unknown result preserves the local draft and uses
+the corresponding non-saved state. There is no background saved-Offer queue kind and no optimistic
+cross-device claim.
 
 The versioned plaintext before encryption is:
 

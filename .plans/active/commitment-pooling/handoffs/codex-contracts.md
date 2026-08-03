@@ -66,7 +66,9 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   NET-NEW TestimonyResolver and approved additive schema-registration targets.
 - CommitmentPoolingModule and non-transferable CommitmentRegistry with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
 - The module's 35th named storage entry is write-once `protocolPoolId`; the 36th is the non-zero
-  initializer-fixed `rootGarden` (`__gap[14]`). `registerPool(..., Protocol)` requires the exact
+  initializer-fixed `rootGarden`; slot 37 is the creator-scoped commitment creation-key mapping
+  and slot 38 is the caller-scoped Work-link operation mapping (`__gap[12]`).
+  `registerPool(..., Protocol)` requires the exact
   root before any pool/protocol ID write. The series
   amendment adds `nextCommitmentSeriesId`, `commitmentSeries`, and the holder-scoped
   `seriesIdByCreationRequest` idempotency mapping before it. The first
@@ -458,12 +460,13 @@ During the **first contracts PR**, before bounded module behavior is called GREE
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 36-feature-slot Commitment Pooling declaration order and `__gap[14]`, including
+- Implement the 38-feature-slot Commitment Pooling declaration order and `__gap[12]`, including
   `nextCommitmentSeriesId`, `commitmentSeries`, the holder-scoped
   `seriesIdByCreationRequest` idempotency mapping,
   `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
   sequence plus audit UID, the bounded enumerable active Work set, and the write-once
-  `protocolPoolId` followed by initializer-fixed `rootGarden`, but treat the generated compiler
+  `protocolPoolId` followed by initializer-fixed `rootGarden`,
+  `commitmentIdByCreationRequest`, and `workLinkPayloadHashByOperation`, but treat the generated compiler
   baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
@@ -480,8 +483,15 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   contributor with uncounted linked Work may leave/be removed. `ContributorRecord` carries the
   O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
   the first countable approval decrements exactly once.
-- `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row and
+- Every `createCommitment` requires a non-zero creator-scoped `creationRequestKey`, stores the
+  full normalized payload hash and resulting ID, returns the original ID without mutation/event
+  on exact replay, and rejects conflicting key reuse. Pool `liveCommitmentCount` increments once
+  per successful creation and follows the same reversible live/terminal transition helper.
+  `closePool` requires that count and `nonTerminalCycleCount` to both be zero.
+- `linkWork(commitmentId, workUID, requirementIndex, operationKey)` binds a repeated action to one exact row and
   stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
+  The non-zero caller-scoped operation key stores the exact link payload hash; replay is a no-op
+  even after a later unlink, and conflicting reuse reverts.
   `approvalCounted` makes each decision-attestation delivery idempotent; WorkApprovalResolver
   assigns and persists a monotonic per-Work sequence in EVM execution order, including same-block
   transactions, and the greatest non-zero sequence is the deterministic effective decision.

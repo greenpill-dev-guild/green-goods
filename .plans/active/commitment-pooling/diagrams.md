@@ -531,7 +531,7 @@ sequenceDiagram
   Note over M,EAS: Work attester must be an active contributor<br/>within the stored providerGarden role scope
   Note over M,EAS: protocol-pool Work and assessment<br/>recipient = providerGarden while the<br/>commitment pool remains the root protocol pool
   C->>EAS: contributor submits Work matching a repeatable requirement
-  C->>M: linkWork(commitmentId, workUID, requirementIndex)
+  C->>M: linkWork(commitmentId, workUID, requirementIndex, operationKey)
   M->>EAS: check schema, action ∈ requirements, active contributor, providerGarden recipient
   M-->>IDX: WorkLinked(contributor) (derived state flips to Active)
   OP->>EAS: attest WorkApproval decision (existing approval/rejection flow)
@@ -581,7 +581,7 @@ sequenceDiagram
     M-->>IDX: RewardPaid(derived source, leadProvider, token, amount)
     Note over RAILS,IDX: CeloSettlement rewards never<br/>use this lane — they queue on<br/>the SettlementModule (D21, D19)
   end
-  Note over OP,M: close requires liveCommitmentCount = 0
+  Note over OP,M: cycle close requires cycle.liveCommitmentCount = 0<br/>pool close also requires pool.liveCommitmentCount = 0<br/>and pool.nonTerminalCycleCount = 0
   alt cycle-scoped (cycleId != 0)
     OP->>M: closeCycle(cycleId)
     M-->>IDX: CycleClosed (derived Reconciled for the cycle's commitments)
@@ -684,8 +684,8 @@ stateDiagram-v2
   Ready --> Open : openPool
   Open --> Paused : pausePool(reasonCID) — reason mandatory
   Paused --> Open : resumePool
-  Open --> Closed : closePool
-  Paused --> Closed : closePool
+  Open --> Closed : closePool when pool live commitments = 0 and non-terminal cycles = 0
+  Paused --> Closed : same zero-live wind-down guard
   Closed --> Composted : compostPool
   Composted --> Ready : reopenPool(toOpen = false)
   Composted --> Open : reopenPool(toOpen = true)
@@ -699,7 +699,7 @@ stateDiagram-v2
 | Ready | onchain charter + non-zero provider open-commitment cap are present; the app offered the write only after a current non-revoked Baseline preflight | seed cycles; open the pool | steward |
 | Open | promises can flow | create / claim / confirm commitments; seed and open cycles | gardeners + steward |
 | Paused | **the emergency freeze** | create, claim, Ready-submit, and confirm are disabled; browse, evidence/work linkage, cancellation, expiry, and dispute recovery remain available | steward (resume); existing actors keep allowed evidence/recovery paths |
-| Closed | wind-down | no new activity; terminal cleanup of open commitments | steward |
+| Closed | wind-down complete | no new activity; every commitment was terminal and every cycle Cancelled or Composted before entry | steward |
 | Composted | **archival rest — history + "ready for the next season"** | read everything; `reopenPool` back to Ready or Open; nothing else | steward |
 
 Composting is archival, not deletion and not the freeze — `Paused` is the freeze; a composted pool keeps its full promise history visible and can wake for a new season via `reopenPool`. And there are two freezes with different scopes:
@@ -1129,7 +1129,7 @@ flowchart TB
 
 ## D15. Indexer entity delta (ERD)
 
-Fifteen core NET-NEW pooling entities plus eight auxiliary contributor/provenance/replay-coordination entities use `chainId-identifier` composite IDs under one explicit namespace rule: the initial indexer accepts exactly one canonical UUPS Commitment Pooling module/register proxy pair per chain, and implementation upgrades retain those proxy addresses. Duplicate same-chain blocks or proxy replacement fail the boundary check until a future migration defines a versioned namespace and full replay. D15 draws those 23 alongside the existing `GARDEN` and `HYPERCERT` anchors; the contract overview and indexer handoff use the fifteen-entity core-phase count and name the eight auxiliaries separately. Pooling core and auxiliary rows are populated from `CommitmentPoolingModule` and `CommitmentRegistry` events except `HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION`, which the Hypercert `ClaimStored` handler upserts for `COMMITMENT` bundles. Settlement entities are shown separately in D20. The docs-site ERD gains this delta at ship via PRD-727 (historical label PRD-680). **Need lineage lives here**: a commitment created with a non-zero `needUID` appends to `NEED_COMMITMENT_INDEX` (bottom edge of D15.0) — the seed-from-Need workflow that sets the reference is Community D9 and the cross-surface map (matrix rows 14 and 16); the module stores the UID as-is and never reads EAS for it. **Exchange-wave delta (2026-08-01, registers #75–#77)**: `COMMITMENT` carries the one-way `counterCommitmentId`; `COMMITMENT_COUNTER_INDEX` supplies reverse lookup; `COMMITMENT_EXCHANGE` records the atomic marker; and `POOL_MEMBER_HISTORY` remains the counts-only per-member standing row. **Offer-over-time and replay delta (2026-08-02)**: `COMMITMENT_SERIES` and `COMMITMENT_SERIES_CYCLE_SUMMARY` provide the durable series read model, while `COMMITMENT_PENDING_LIFECYCLE_PROJECTION` and its commitment-keyed index buffer lifecycle projections until reverse-delivered creation facts arrive. Raw history rows are public event-derived data; shared viewer-aware selectors enforce the steward/self product-disclosure rule, and editorial surfaces use aggregates only. No surface renders a score, percentage, or ranking.
+Sixteen core NET-NEW pooling entities plus ten auxiliary contributor/provenance/replay-coordination entities use `chainId-identifier` composite IDs under one explicit namespace rule: the initial indexer accepts exactly one canonical UUPS Commitment Pooling module/register proxy pair per chain, and implementation upgrades retain those proxy addresses. Duplicate same-chain blocks or proxy replacement fail the boundary check until a future migration defines a versioned namespace and full replay. D15 draws those 26 alongside the existing `GARDEN` and `HYPERCERT` anchors; the contract overview and indexer handoff use the sixteen-entity core-phase count and name the ten auxiliaries separately. Pooling core and auxiliary rows are populated from `CommitmentPoolingModule` and `CommitmentRegistry` events except `HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION`, which the Hypercert `ClaimStored` handler upserts for `COMMITMENT` bundles. Settlement entities are shown separately in D20. The docs-site ERD gains this delta at ship via PRD-727 (historical label PRD-680). **Need lineage lives here**: a commitment created with a non-zero `needUID` appends to `NEED_COMMITMENT_INDEX` (bottom edge of D15.0) — the seed-from-Need workflow that sets the reference is Community D9 and the cross-surface map (matrix rows 14 and 16); the module stores the UID as-is and never reads EAS for it. **Exchange-wave delta (2026-08-01, registers #75–#77)**: `COMMITMENT` carries the one-way `counterCommitmentId`; `COMMITMENT_COUNTER_INDEX` supplies reverse lookup; `COMMITMENT_EXCHANGE` records the atomic marker; and `POOL_MEMBER_HISTORY` remains the counts-only per-member standing row. **Offer-over-time and replay delta (2026-08-02)**: `COMMITMENT_SERIES` and `COMMITMENT_SERIES_CYCLE_SUMMARY` provide the durable series read model, while `COMMITMENT_PENDING_LIFECYCLE_PROJECTION` and its commitment-keyed index buffer lifecycle projections until reverse-delivered creation facts arrive. **Closure delta (2026-08-03)**: immutable `COMMITMENT_CLASS` rows preserve class-registration facts, while contributor requirement assignments and their commitment-keyed indexes give every roster mutation its own cursor-gated, scan-free relationship. Raw history rows are public event-derived data; shared viewer-aware selectors enforce the steward/self product-disclosure rule, and editorial surfaces use aggregates only. No surface renders a score, percentage, or ranking.
 
 **Count-safe units model**: every commitment keeps its own exact `unitLabel`, `targetUnits`, and per-commitment `approvedUnits`. Pool/cycle totals never add unlike labels. `CommitmentUnitSummary` groups only exact UTF-8 label matches (`hours` and `Hours` are distinct), while `CommitmentProviderExposure` counts concurrent accepted commitments regardless of their quantities:
 
@@ -1140,7 +1140,7 @@ Fifteen core NET-NEW pooling entities plus eight auxiliary contributor/provenanc
 
 #### D15.0 Entity map — names and relationships only
 
-**How to read this**: the boxes and their cardinality, with no fields. Read this first to check trust and shape; the two blocks below add only keys and discriminators. `GARDEN` and `HYPERCERT` are existing anchors; the 23 pooling/contributor/replay records are NET-NEW read models. Their event-source contract stays in `contract-spec.md` §8.2 and §9.2, including the Hypercert `ClaimStored` expansion for contributor allocations.
+**How to read this**: the boxes and their cardinality, with no fields. Read this first to check trust and shape; the two blocks below add only keys and discriminators. `GARDEN` and `HYPERCERT` are existing anchors; the 26 pooling/contributor/replay records are NET-NEW read models. Their event-source contract stays in `contract-spec.md` §8.2 and §9.2, including the Hypercert `ClaimStored` expansion for contributor allocations.
 
 ```mermaid
 erDiagram
@@ -1152,11 +1152,18 @@ erDiagram
   COMMITMENT_CYCLE |o--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "cycle-scoped series summary"
   COMMITMENT_POOL ||--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "pool-scoped series summary"
   COMMITMENT_POOL ||--o{ COMMITMENT : "commitments"
+  COMMITMENT_POOL ||--o{ COMMITMENT_CLASS : "immutable registered classes"
+  COMMITMENT ||--o| COMMITMENT_CLASS : "classId equals commitmentId"
   COMMITMENT_CYCLE |o--o{ COMMITMENT : "cycle-scoped, optional"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
   COMMITMENT ||--o{ COMMITMENT_CONTRIBUTOR : "lead plus active/removed contributors"
   COMMITMENT ||--o| COMMITMENT_CONTRIBUTOR_INDEX : "stable direct lookup"
   COMMITMENT_CONTRIBUTOR_INDEX ||--o{ COMMITMENT_CONTRIBUTOR : "contributor IDs"
+  COMMITMENT ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "current contributor requirement assignments"
+  COMMITMENT ||--o| COMMITMENT_CONTRIBUTOR_REQUIREMENT_INDEX : "scan-free assignment lookup"
+  COMMITMENT_CONTRIBUTOR_REQUIREMENT_INDEX ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "assignment IDs"
+  COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "assigned contributor"
+  COMMITMENT_REQUIREMENT ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "assigned requirement"
   COMMITMENT ||--o{ COMMITMENT_WORK_ATTRIBUTION : "linked Work and effective decision"
   COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_WORK_ATTRIBUTION : "credited Work provenance"
   COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "repeatable provenance; first row grants one recognition credit"
@@ -1183,7 +1190,7 @@ erDiagram
 
 #### D15.1 Commitment core — pool, cycle, series, commitment, requirements, audit
 
-**How to read this**: the seven core entity kinds with only relationship keys and discriminators. Every field is event-derived; derived overlays such as `Active` and `PartiallyApproved` are computed in shared selectors and never stored. For accounting and display fields, use `contract-spec.md` §8.2.
+**How to read this**: these eight core entity kinds show only relationship keys and discriminators. Every field is event-derived; derived overlays such as `Active` and `PartiallyApproved` are computed in shared selectors and never stored. For accounting and display fields, use `contract-spec.md` §8.2.
 
 ```mermaid
 erDiagram
@@ -1195,6 +1202,8 @@ erDiagram
   COMMITMENT_CYCLE |o--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "cycle relationship"
   COMMITMENT_POOL ||--o{ COMMITMENT_SERIES_CYCLE_SUMMARY : "pool relationship"
   COMMITMENT_POOL ||--o{ COMMITMENT : "commitments"
+  COMMITMENT_POOL ||--o{ COMMITMENT_CLASS : "immutable registered classes"
+  COMMITMENT ||--o| COMMITMENT_CLASS : "classId equals commitmentId"
   COMMITMENT_CYCLE |o--o{ COMMITMENT : "cycle-scoped, optional"
   COMMITMENT ||--o{ COMMITMENT_REQUIREMENT : "per-action progress rows"
   COMMITMENT_POOL |o--o{ COMMITMENT_EVENT : "audit trail; poolId is null for pool-less authority and configuration events"
@@ -1222,6 +1231,15 @@ erDiagram
     CommitmentCycleState state "on-chain vocabulary only; InProgress-Reviewing derived"
     BigInt lifecycleBlockNumber "nullable cycle-state replay cursor"
     Int lifecycleLogIndex "cursor partner; latest state and pool relationship win"
+  }
+
+  COMMITMENT_CLASS {
+    ID id "chainId-classId"
+    BigInt classId "equals commitmentId in MVP"
+    BigInt poolId "pool relationship key"
+    String creator "normalized class creator"
+    String unitLabel "exact immutable class label"
+    BigInt targetUnits "immutable class quota"
   }
 
   COMMITMENT_SERIES {
@@ -1308,6 +1326,11 @@ erDiagram
   COMMITMENT ||--o{ COMMITMENT_CONTRIBUTOR : "roster"
   COMMITMENT ||--o| COMMITMENT_CONTRIBUTOR_INDEX : "direct roster lookup"
   COMMITMENT_CONTRIBUTOR_INDEX ||--o{ COMMITMENT_CONTRIBUTOR : "stable contributor IDs"
+  COMMITMENT ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "current requirement assignments"
+  COMMITMENT ||--o| COMMITMENT_CONTRIBUTOR_REQUIREMENT_INDEX : "direct assignment lookup"
+  COMMITMENT_CONTRIBUTOR_REQUIREMENT_INDEX ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "stable assignment IDs"
+  COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "assigned contributor"
+  COMMITMENT_REQUIREMENT ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT : "assigned requirement"
   COMMITMENT ||--o{ COMMITMENT_WORK_ATTRIBUTION : "linked Work and effective decision"
   COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_WORK_ATTRIBUTION : "credited Work provenance"
   COMMITMENT_CONTRIBUTOR ||--o{ COMMITMENT_EVIDENCE_ATTRIBUTION : "repeatable provenance; first attribution grants one credit"
@@ -1334,6 +1357,8 @@ erDiagram
     String gardenContextId "bare normalized Garden.id relationship"
     CommitmentClaimRequestState state "PENDING ACCEPTED DECLINED SUPERSEDED"
     String resolutionCode "five codes — enumerated in D12"
+    BigInt lifecycleBlockNumber "latest request-state event position"
+    Int lifecycleLogIndex "request cursor partner"
   }
 
   COMMITMENT_CLAIM_REQUEST_INDEX {
@@ -1362,6 +1387,24 @@ erDiagram
     String contributor "normalized address"
     Boolean active "current roster membership"
     Boolean isLead "accountability flag"
+    BigInt membershipBlockNumber "latest add/remove event position"
+    Int membershipLogIndex "membership cursor partner"
+  }
+
+  COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT {
+    ID id "chainId-commitmentId-contributor-requirementIndex"
+    BigInt commitmentId "commitment relationship key"
+    String contributor "normalized contributor relationship"
+    Int requirementIndex "stable requirement relationship"
+    Boolean assigned "current assignment state"
+    BigInt lifecycleBlockNumber "latest assignment event position"
+    Int lifecycleLogIndex "assignment cursor partner"
+  }
+
+  COMMITMENT_CONTRIBUTOR_REQUIREMENT_INDEX {
+    ID id "chainId-commitmentId"
+    BigInt commitmentId "handler lookup key"
+    String assignmentEntityIds "unique deterministically sorted IDs"
   }
 
   HYPERCERT_COMMITMENT_CONTRIBUTOR_ALLOCATION {
@@ -1384,6 +1427,8 @@ erDiagram
     Int requirementIndex "stable requirement-row binding"
     Boolean linked "current linkage"
     Boolean creditActive "latest effective decision contributes"
+    BigInt linkLifecycleBlockNumber "latest link/unlink event position"
+    Int linkLifecycleLogIndex "link cursor partner"
   }
 
   %% Identity rule: chainId-workUID is one mutable projection row. A workUID has
@@ -2204,13 +2249,13 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `onGardenMinted` | GardenToken only | Idempotent; creates one Garden pool in NotReady |
 | `registerPool` | Protocol: module owner; Garden: garden operator/owner or module owner | One pool per garden; Protocol requires the exact initializer-fixed `rootGarden` before any write; the first/only exact-root Protocol registration sets write-once `protocolPoolId` |
 | `setPoolCharter`, `markPoolReady` | Resolved pool steward | Ready requires non-empty charter and a previously configured non-zero provider open-commitment cap; Baseline remains an app preflight |
-| `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool` | Resolved pool steward | Exact D8 transition; pause reason mandatory |
+| `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool` | Resolved pool steward | Exact D8 transition; pause reason mandatory; close requires `Pool.liveCommitmentCount == 0` and `Pool.nonTerminalCycleCount == 0` after safe wind-down |
 | `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D9 transition; allocation exists only on open and totals 10,000 BPS; close/cancel require `liveCommitmentCount == 0`; a commitment-bundle certificate may compose only after close writes Reconciled, then compost follows mint; cancel reason mandatory |
-| `createCommitment` | Pool gardener for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; stored authorship and `onBehalfOf` determine the lead provider; DomainImpact arrays are valid |
+| `createCommitment` | Pool gardener for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; non-zero creator-scoped `creationRequestKey`; exact payload replay returns the first ID with no second reservation; stored authorship and `onBehalfOf` determine the lead provider; DomainImpact arrays are valid |
 | `setDeclaredReward`, `setConfirmerRule` | Resolved pool steward | Pre-acceptance only; named confirmer input is bounded by the benchmark-frozen `MAX_CONFIRMERS`; `setConfirmerRule` stores the explicit protocol-fallback selection, which requires registered `protocolPoolId` |
 | `claimCommitment` | Gardener of the eligible garden; or protocol-pool garden operator/owner / individual gardener according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
 | `acceptClaim`, `declineClaim` | Resolved pool steward | Named pending claimant exists; acceptance consumes stored terms and one provider count slot; decline reason mandatory |
-| `linkWork` | Active contributor, lead, or steward | Accepted; schema/provider authorship/provider-garden recipient checks pass; DomainImpact names an exact matching requirement index |
+| `linkWork` | Active contributor, lead, or steward | Accepted; non-zero caller-scoped `operationKey`; exact replay is a no-op and conflicting reuse reverts; schema/provider authorship/provider-garden recipient checks pass; DomainImpact names an exact matching requirement index |
 | `unlinkWork`, `syncWorkDecisions` | Resolved pool steward | Unlink whenever current credit is inactive, including after rejection; sync preflights supplied decisions, applies only current decisions, and the complete bounded active-link set must match resolver maxima before any readiness freeze |
 | `onWorkDecision` | WorkApprovalResolver only | Non-blocking; applies only a newer effective pre-freeze approval/rejection |
 | `attachEvidence` | Active contributor, lead, or steward | Accepted and unfrozen only; exact credited-contributor vector; offline-queueable but a late job fails without credit |

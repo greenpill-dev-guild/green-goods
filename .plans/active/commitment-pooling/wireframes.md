@@ -438,7 +438,7 @@ All admin frames: `{CanvasRouteFrame}` + `{CanvasRouteHeader}` + `{CanvasRouteCo
 
 ### W7 — Garden workspace: Pool tab (uiux-spec §6.2)
 
-Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (27 states).
+Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (28 states).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -500,7 +500,7 @@ charter ✕ · cap ✕ · baseline ✕  charter ✓ · cap ✓ · baseline ✓  
 The app enables **Mark pool ready** only after all three checks pass. The contract enforces the charter plus non-zero provider open-commitment cap; the current non-revoked qualifying Baseline remains the shared/admin preflight. A successful `markPoolReady` produces the separate Ready card; it never silently opens participation.
 
 Adopted 2026-07-11 (register #34; the lifecycle/readiness states above and the hi-fi artifact supersede the original lo-fi gap drawings in `prototypes.md`):
-- **Pool-card lifecycle actions** (register #34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
+- **Pool-card lifecycle actions** (register #34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears only when every cycle is Cancelled/Composted and indexed pool live commitments are zero (then Compost/Reopen per uiux-spec §4.1). A non-zero count routes to the live-promise/cycle wind-down list. The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
 - **Lapsed this cycle** (register #34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
 - **Waiting to join** (register #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome. *Wireframe-only — the hi-fi registry does not draw this queue; it belongs to the community-interface build.*
 - Recovery states follow the canonical prototype ([`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open)): **Loading** keeps the Pool card and cycle-console skeleton in place; **No commitments yet** keeps the header `[ Seed ]` action and an empty-state explanation instead of showing a blank table.
@@ -1378,7 +1378,8 @@ choose-path sheet (after picking saved details):
 
 States: `saved` · `saved-with-ongoing` · `saved-with-ongoing-ready` · `series-queued` ·
 `series-queued-place-waiting` · `empty` · `compose` · `choose-path` · `draft-unsaved` ·
-`persistence` · `loading` · `read-error`.
+`saving` · `save-failed` · `offline-local` · `version-conflict` · `persistence` · `loading` ·
+`read-error`.
 
 **The two paths are named once, in one place.** `choose-path` is the only frame that offers the
 choice; **Offer it once** enters the ordinary W3 creation flow through
@@ -1391,11 +1392,12 @@ enters W33. Neither is a different kind of thing — both produce Offers.
 Offer visible with zero availability, and `series-queued-place-waiting` keeps both the queued
 series and its dependent place visible without calling either one Active or available.
 
-**Persistence is drawn honestly.** `draft-unsaved` says the draft is on this device only;
-`persistence` names the three states side by side — *saved privately* (signed offchain, survives a
-device change), *draft on this device*, and *offered in a garden*. Saved details are never
-described as local-only, and a local draft never claims durability. Learning or aspiration states
-are out of scope for the initial Offer flow and are not drawn.
+**Persistence is drawn honestly.** `draft-unsaved` says the draft is on this device only; Save
+enters `saving`, and only a confirmed owner-authenticated response reaches `saved`.
+`save-failed` and `offline-local` retain the local draft and explicitly deny cross-device
+durability. `version-conflict` keeps both truths visible and requires reload, local-copy, or
+explicit compare-and-swap overwrite. Learning or aspiration states are out of scope for the
+initial Offer flow and are not drawn.
 
 ### W33 — Offer over time: choose a garden (uiux Appendix F.2) NET-NEW
 
@@ -1542,7 +1544,9 @@ States: `compose` · `queued` · `mixed-queued` · `mixed-failed`. Queued places
 **not** shown as available until each creation has synced and reserved its provider slot. Returning
 from `queued` lands on `W34@places-queued`, not an empty state that hides the pending work.
 `mixed-queued` and `mixed-failed` each retain the already-synced Offered sibling; only the pending
-or failed job can be retried or discarded.
+or failed job can be retried or discarded. Every place persists its own `clientCommitmentId` and
+`creationRequestKey` before send; retry reads through and reuses that same key, so an interrupted
+send cannot create or reserve a duplicate place.
 
 ### W7/W10 deltas — admin grouping by ongoing Offer (uiux Appendix F.5)
 

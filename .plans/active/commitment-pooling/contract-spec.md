@@ -47,6 +47,16 @@
 >
 > **Review hardening 2026-08-03 (terminal capacity and late member-history facts).** Cancelling or expiring an unaccepted Offer releases the class and provider slot reserved at creation exactly once; an unaccepted Request still has no registry effect. Indexer terminal state projection no longer assumes acceptance and frozen-roster facts have already arrived: `CommitmentAccepted`, contributor mutations, and `ContributorRosterFrozen` all invoke an idempotent terminal-member-history reconciler. It applies the lead's current terminal outcome only after acceptance facts exist and applies Fulfilled contributor/receiver history only after the frozen active roster is fully materialized, so a reverse-delivered Fulfilled event cannot permanently omit history counters.
 >
+> **Architecture closure 2026-08-03 (replay, retry, persistence, and wind-down).** The normative
+> closure inventory is `architecture-closure-matrices.md`. It assigns all 54 indexed events,
+> every indexed entity/relationship, all six offline job kinds, every executable retry family,
+> the saved-Offer persistence states, and all pool/cycle/series/commitment/claim/capacity/contributor
+> closure rules. In particular: ordinary Commitment creation gains sender-safe request-key
+> idempotency; claim, contributor, Work-link, pool-charter/cap, reward, and register projections
+> converge under reverse delivery; Saved is never rendered before authenticated remote
+> persistence; and `closePool` requires both zero live commitments and zero non-terminal cycles.
+> The machine gate is `bun .plans/active/commitment-pooling/architecture-closure.validate.ts`.
+>
 > **Frozen-text conflict surfaced, not rewritten.** Canonical decision 17 says “afterwards the module never reads it” and “Atomic swap acceptance remains out of scope with the transferable-voucher layer.” This amendment preserves that historical text while making `acceptExchange` the sole additive acceptance-time read of B's reference and the sole bilateral exception. Decision 17's post-acceptance no-coupling rule remains verbatim.
 >
 > **Naming alignment recorded with this amendment.** `CommitmentRegister` → `CommitmentRegistry`, `ICommitmentRegister` → `ICommitmentRegistry`, `CreditRegister` → `CreditRegistry`, and `CommunityTestimonyResolver` → `TestimonyResolver` in all living and normative text, for consistency with `registries/Action.sol` and `resolvers/Assessment.sol`. Planned file targets remain `registries/Commitment.sol`, `registries/Credit.sol`, and `resolvers/Testimony.sol`; the GE “register” grammar remains prose vocabulary, and `communityTestimony` schema config and schema names do not change. Older dated amendments and decision/register history retain the names originally recorded.
@@ -84,7 +94,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
   register through the standalone badge-schemas path (register #14, register #26, register #53
   as amended by register #54).
 - Deployment plumbing: `DeployHelper.sol` result fields, `DeploymentBase.sol` helpers, artifact keys, storage-layout baselines.
-- Envio indexer plan: two new contract blocks, fifteen core pooling entities (including the bilateral marker, `CommitmentSeries`, and `CommitmentSeriesCycleSummary`), one handler module; count stats and exact-label unit summaries derive from module and registry events alone. Eight auxiliary contributor/provenance/replay-coordination entities remain in the same schema but are not part of the core-phase count used by D15 and the indexer handoff.
+- Envio indexer plan: two new contract blocks, sixteen core pooling entities (including immutable `CommitmentClass`, the bilateral marker, `CommitmentSeries`, and `CommitmentSeriesCycleSummary`), one handler module; count stats and exact-label unit summaries derive from module and registry events alone. Ten auxiliary contributor/provenance/replay-coordination entities remain in the same schema but are not part of the core-phase count used by D15 and the indexer handoff.
 - Hypercert cut-over: `bundleKind` discriminator, fulfilled-commitment bundling, on-chain allocation-class bps at cycle open with app-computed allowlists.
 
 ### Out of scope
@@ -160,7 +170,7 @@ On-chain enum: `PoolState { None, NotReady, Ready, Open, Paused, Closed, Compost
 | NotReady -> Ready | on-chain | `markPoolReady(poolId)`, requires non-empty charter CID and a non-zero register provider-open-commitment cap. Event `PoolReady`. App additionally requires one current non-revoked Baseline assessment for the pool garden before offering the action. |
 | Ready -> Open | on-chain | `openPool(poolId)`. Event `PoolOpened`. |
 | Open <-> Paused | on-chain | `pausePool(poolId, reasonCID)` / `resumePool(poolId)`. `reasonCID` is mandatory and emitted in `PoolPaused`; the indexer keeps it as the current pause reason until resume. |
-| Open or Paused -> Closed | on-chain | `closePool(poolId)`. Event `PoolClosed`. |
+| Open or Paused -> Closed | on-chain | `closePool(poolId)` requires `Pool.liveCommitmentCount == 0` and `Pool.nonTerminalCycleCount == 0`; otherwise it reverts `PoolHasLiveCommitments` or `PoolHasNonTerminalCycles`. A pool-level pause preserves the wind-down path: cancel/expire/resolve every live commitment, then cancel or compost every cycle. A module-wide pause preserves commitment cancel/expire/resolve only and must be lifted by its owner before cycle/pool lifecycle writes resume. Event `PoolClosed`. |
 | Closed -> Composted | on-chain | `compostPool(poolId)`. Event `PoolComposted`. |
 | Composted -> Ready or Open | on-chain | `reopenPool(poolId, toOpen)`. Event `PoolReopened`. |
 
@@ -183,6 +193,14 @@ On-chain enum: `CycleState { None, Seeded, Open, Reconciled, Composted, Cancelle
 | Composted -> Draft/Seeded/Open (next cycle) | on-chain | A fresh `seedCycle` on the same pool. Succession is derived by pool ordering; no on-chain predecessor pointer. |
 
 Concurrency invariant: a pool may have **one open Season** and any number of open Campaigns. `Pool.openSeasonCycleId` is the bounded O(1) Season guard: opening a Season requires it to be zero and stores the cycle ID; closing or cancelling that open Season clears it. Campaign open/close never reads or writes that field and no contract function enumerates cycles. Multiple Seeded Seasons may exist, but only one can become Open.
+
+Pool closure is also O(1). Every successful `createCommitment` increments
+`Pool.liveCommitmentCount`, including Requests and cycle-less Offers. The same reversible
+commitment transition helper decrements it exactly once on Fulfilled, Cancelled, or Expired;
+Expired -> Disputed re-increments it and the next terminal resolution decrements it again.
+`seedCycle` increments `Pool.nonTerminalCycleCount`. A cycle decrements that count exactly once
+when it first becomes Cancelled or Composted; Reconciled remains non-terminal for pool closure
+until it is composted. Replays and invalid transitions never change either counter.
 
 ### 5.3 Commitment
 
@@ -279,8 +297,10 @@ Named storage entries, in declaration order. Comment style follows `packages/con
 | 34 | `commitmentWorkUIDs` | `mapping(uint256 commitmentId => bytes32[] activeWorkUIDs)` (bounded enumerable active-link set used by every readiness/freeze preflight) |
 | 35 | `protocolPoolId` | `uint256` (set once by the first and only `PoolType.Protocol` registration; 0 = not registered) |
 | 36 | `rootGarden` | `address` (non-zero canonical root GardenAccount fixed by `initialize`; the Protocol pool must use this exact garden) |
+| 37 | `commitmentIdByCreationRequest` | `mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId))` (0 = unseen; exact replay returns the existing commitment) |
+| 38 | `workLinkPayloadHashByOperation` | `mapping(address caller => mapping(bytes32 operationKey => bytes32 payloadHash))` (exact Work-link replay is a no-op; conflicting reuse reverts) |
 
-Gap: `uint256[14] private __gap;` (36 named + 14 reserved = 50 total). This declaration-order
+Gap: `uint256[12] private __gap;` (38 named + 12 reserved = 50 total). This declaration-order
 table is the implementation target; the compiler-generated storage baseline and concrete
 slot/offset assertions remain authoritative at implementation time.
 
@@ -366,6 +386,8 @@ interface ICommitmentPoolingModule {
         string charterCID;         // policy/charter metadata (IPFS)
         uint256 openSeasonCycleId; // 0 = none; Campaigns may overlap and are indexed from events
         address settlementAdapter; // RESERVED: always zero in MVP (transferable-voucher layer)
+        uint32 liveCommitmentCount; // every non-terminal pool commitment, including cycle-less
+        uint32 nonTerminalCycleCount; // Seeded/Open/Reconciled cycles; must be zero before close
     }
 
     struct Cycle {
@@ -421,6 +443,8 @@ interface ICommitmentPoolingModule {
         uint256 cycleId;                 // 0 = not cycle-scoped
         uint256 commitmentSeriesId;      // 0 = one-shot; otherwise validated module-owned series
         address creator;                 // social source (StewardCaptured: the gardener, not the recorder)
+        bytes32 creationRequestKey;      // sender-safe offline/restart identity
+        bytes32 creationPayloadHash;     // immutable full creation payload hash for replay conflict detection
         address counterparty;            // provider (Request) or engager (Offer); zero until Accepted
         address leadProvider;            // Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
         ClaimType counterpartyKind;
@@ -471,6 +495,7 @@ interface ICommitmentPoolingModule {
     struct CreateCommitmentParams {
         uint256 poolId;
         uint256 cycleId;
+        bytes32 creationRequestKey;       // non-zero, creator-scoped, persisted before first send
         uint256 commitmentSeriesId;       // 0 = one-shot; non-zero is Active, same-pool, direct-holder Offer only
         CommitmentDirection direction;
         CommitmentType commitmentType;
@@ -562,6 +587,7 @@ interface ICommitmentPoolingModule {
         uint256 indexed poolId,
         uint256 indexed cycleId,
         uint256 commitmentSeriesId,  // 0 = one-shot; non-indexed (3-indexed budget spent)
+        bytes32 creationRequestKey,   // creator-scoped sender-safe replay identity
         address creator,
         address recordedBy,          // msg.sender; differs from creator for StewardCaptured
         CommitmentDirection direction,
@@ -645,7 +671,8 @@ interface ICommitmentPoolingModule {
         bytes32 indexed workUID,
         address indexed contributor,
         uint16 requirementIndex,
-        address linker
+        address linker,
+        bytes32 operationKey
     );
     event WorkUnlinked(uint256 indexed commitmentId, bytes32 indexed workUID, address unlinker);
     /// @notice Unit-count change event. requirementIndex is the matched
@@ -741,6 +768,8 @@ interface ICommitmentPoolingModule {
     error UnknownPool(uint256 poolId);
     error PoolNotInState(uint256 poolId, PoolState actual);
     error CharterRequired(uint256 poolId);
+    error PoolHasLiveCommitments(uint256 poolId, uint32 liveCommitmentCount);
+    error PoolHasNonTerminalCycles(uint256 poolId, uint32 nonTerminalCycleCount);
     error UnknownCycle(uint256 cycleId);
     error CycleNotInState(uint256 cycleId, CycleState actual);
     error CyclePoolMismatch(uint256 cycleId, uint256 expectedPoolId, uint256 actualPoolId);
@@ -758,6 +787,10 @@ interface ICommitmentPoolingModule {
     error InvalidCommitmentSeriesState(uint256 seriesId, CommitmentSeriesState state);
     error InvalidSeriesCreationRequestKey();
     error SeriesCreationRequestConflict(bytes32 creationRequestKey, uint256 existingSeriesId);
+    error InvalidCommitmentCreationRequestKey();
+    error CommitmentCreationRequestConflict(bytes32 creationRequestKey, uint256 existingCommitmentId);
+    error InvalidWorkLinkOperationKey();
+    error WorkLinkOperationConflict(bytes32 operationKey);
     error UnknownCommitment(uint256 commitmentId);
     error CommitmentNotInState(uint256 commitmentId, CommitmentState actual);
     error NotEligibleClaimant(address claimant);
@@ -853,6 +886,11 @@ interface ICommitmentPoolingModule {
     function openPool(uint256 poolId) external;
     function pausePool(uint256 poolId, string calldata reasonCID) external;
     function resumePool(uint256 poolId) external;
+    /// @notice Closes only after every pool commitment is terminal and every
+    ///         seeded cycle is Cancelled or Composted. A paused pool must be
+    ///         safely wound down through the same zero-live boundary.
+    /// @dev Reverts PoolHasLiveCommitments or PoolHasNonTerminalCycles before
+    ///      changing state.
     function closePool(uint256 poolId) external;
     function compostPool(uint256 poolId) external;
     function reopenPool(uint256 poolId, bool toOpen) external;
@@ -913,7 +951,18 @@ interface ICommitmentPoolingModule {
     ///         or storing B or registering its class, revalidates A as a
     ///         same-pool Offered Individual Offer with a distinct creator and an
     ///         exact full reservation still Committed to A's creator.
+    ///         creationRequestKey is non-zero and scoped to the direct creator.
+    ///         First use stores the full normalized payload hash. Exact replay
+    ///         returns the original commitmentId without a second event,
+    ///         capacity reservation, class commit, or pool-live increment;
+    ///         reuse with a different payload reverts.
     function createCommitment(CreateCommitmentParams calldata params) external returns (uint256 commitmentId);
+
+    /// @notice Sender-safe read-through for an interrupted commitment send.
+    function getCommitmentIdByCreationRequest(
+        address creator,
+        bytes32 creationRequestKey
+    ) external view returns (uint256 commitmentId);
 
     /// @notice Forwards to the module-only register setter. Gating: pool
     ///         steward; cap is a non-zero concurrent commitment count and is
@@ -1008,7 +1057,20 @@ interface ICommitmentPoolingModule {
     ///         commitment; one commitment maps to many works.
     ///         Gating: active contributor, lead provider, or pool steward;
     ///         on-chain state Accepted and contributorsFrozen == false.
-    function linkWork(uint256 commitmentId, bytes32 workUID, uint16 requirementIndex) external;
+    ///         operationKey is non-zero and caller-scoped. Exact payload replay
+    ///         is a no-op even after a later unlink; conflicting reuse reverts.
+    function linkWork(
+        uint256 commitmentId,
+        bytes32 workUID,
+        uint16 requirementIndex,
+        bytes32 operationKey
+    ) external;
+
+    /// @notice Read-through for an interrupted offline Work-link send.
+    function getWorkLinkOperationPayloadHash(
+        address caller,
+        bytes32 operationKey
+    ) external view returns (bytes32 payloadHash);
 
     /// @notice Gating: pool steward; on-chain state Accepted, roster/credit
     ///         ledger unfrozen, and the Work's current effective credit inactive.
@@ -1245,7 +1307,7 @@ retry.
 | Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
-| Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume |
+| Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume. `closePool` additionally requires `liveCommitmentCount == 0` and `nonTerminalCycleCount == 0`; paused state does not remove the cancel/expire/resolve and cancel/compost wind-down path. |
 | Cycle | `seedCycle` | steward | pool Ready or Open; valid time window; allocation is not accepted or stored |
 | Cycle | `openCycle` | steward | pool Open; cycle Seeded; supplied allocation-class bps sum == 10_000; recognition-policy bps sum == 10_000 (protocol default 2_000 equal / 8_000 verified); both become immutable; Season requires `openSeasonCycleId == 0`, Campaigns may overlap |
 | Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
@@ -1253,7 +1315,7 @@ retry.
 | Commitment series | `createCommitmentSeries` | current member of the pool garden, direct holder only | pool Ready or Open; non-zero holder-scoped `creationRequestKey`; non-empty metadata; caller becomes immutable `createdBy` and initial `currentHolder`. First use stores `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))`; exact replay returns the existing `seriesId` without mutation/event, while the same holder/key with a different payload reverts `SeriesCreationRequestConflict`. |
 | Commitment series | `updateCommitmentSeriesMetadata` | current holder | Active or Resting; non-empty metadata; prior and open Commitment instances remain unchanged |
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation; Offer creation commits its class and reserves one provider slot, while Request creation only registers its class |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the full normalized payload hash and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
 | Commitment | `setDeclaredReward` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
@@ -1263,7 +1325,7 @@ retry.
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
 | Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
 | Contributors | `setContributorRequirement` | lead provider or steward | Accepted only; active contributor; valid requirement index; roster not frozen; assignment is planning metadata, never contribution credit |
-| Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; one work maps to at most one commitment; append to the bounded enumerable active-link set and reject max-plus-one before mutation |
+| Linkage | `linkWork` | active contributor, lead provider, or steward | Accepted only; non-zero caller-scoped `operationKey`; verifies schema, providerGarden recipient, explicit DomainImpact requirement index/action match, and that the Work attester is an active contributor; first use stores the exact commitment/work/requirement payload hash; exact replay is a no-op even after a later unlink and conflicting reuse reverts `WorkLinkOperationConflict`; one work maps to at most one commitment; append to the bounded enumerable active-link set and reject max-plus-one before mutation |
 | Linkage | `unlinkWork` | steward | Accepted and roster/credit ledger unfrozen; only while `workCreditActive[workUID] == false`; a historical approval followed by an effective rejection may be unlinked |
 | Linkage | `onWorkDecision` | WorkApprovalResolver only | never reverts; applies only the newer effective pre-freeze decision |
 | Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision, then enumerates the complete active-link set and requires every local sequence to equal the resolver before evaluating Ready; omission of any stale linked Work reverts the batch |
@@ -1641,7 +1703,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   tests cover the current non-revoked Baseline preflight and deterministic Hypercert recognition
   expansion.
 - The compiler-generated baseline and concrete slot/offset assertions prove the expected
-  36-feature-slot declaration order plus the 14-slot `__gap` (50 total slots); arithmetic alone
+  38-feature-slot declaration order plus the 12-slot `__gap` (50 total slots); arithmetic alone
   is not proof. The Bun-wrapped
   storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
 - Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
@@ -2179,7 +2241,7 @@ if (address(commitmentModule) != address(0)) {
 }
 ```
 
-Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex)` before or after a decision while the commitment is Accepted and unfrozen. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. Every active link is also appended to the commitment's bounded enumerable Work array, and unlink removes it, so readiness never relies on a caller-declared subset. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS, reads its non-zero `decisionSequenceByUID`, and preflights the greatest supplied sequence per Work against the resolver's public `latestDecisionSequence(workUID)` getter before any mutation. Only current supplied decisions are applied; before Ready, the module additionally enumerates every active linked Work and proves its stored sequence equals the resolver maximum. `approvalCounted` de-duplicates one decision attestation; `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals, and the now-inactive Work may be unlinked even though its old approval UID remains counted for delivery idempotency. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
+Linkage mechanism, stated plainly (register #5): Work attestations carry no commitment reference and never will (the Work schema is immutable, `reports/corrections-log.md` H2). The mapping lives on the module: an active contributor, the accountable lead, or the resolved pool steward calls `linkWork(commitmentId, workUID, requirementIndex, operationKey)` before or after a decision while the commitment is Accepted and unfrozen. The non-zero caller-scoped operation key is persisted before first send; first use stores the hash of the exact commitment/work/requirement payload, exact replay is a no-op even if the Work was later unlinked, and conflicting reuse reverts. For DomainImpact the module verifies the decoded action against that exact requirement row and stores `requirementIndex + 1` beside `workCommitment`; this makes repeated action UIDs unambiguous. Every active link is also appended to the commitment's bounded enumerable Work array, and unlink removes it, so readiness never relies on a caller-declared subset. The resolver hook matches by workUID and forwards both approvals and rejections with a resolver-assigned monotonic sequence. Missed hooks or sequenced decisions that predate linkage are recovered by steward-called `syncWorkDecisions(commitmentId, decisionUIDs)`, which verifies each decision on EAS, reads its non-zero `decisionSequenceByUID`, and preflights the greatest supplied sequence per Work against the resolver's public `latestDecisionSequence(workUID)` getter before any mutation. Only current supplied decisions are applied; before Ready, the module additionally enumerates every active linked Work and proves its stored sequence equals the resolver maximum. `approvalCounted` de-duplicates one decision attestation; `latestWorkDecisionUID` preserves audit identity only, and `workCreditActive` records whether that effective decision currently contributes before the ledger freezes. A later effective rejection reverses a prior approval rather than leaving rejected Work in readiness, recognition, certificate, or payout totals, and the now-inactive Work may be unlinked even though its old approval UID remains counted for delivery idempotency. A pre-upgrade decision with no sequence fails catch-up explicitly and must be re-attested.
 
 Trust model: linkage is roster-aware: the active Work attester may link their Work, while the accountable lead or resolved pool steward may curate links for the team. Every path verifies the Work attester is active, the provider-garden scope matches, and the commitment remains Accepted and unfrozen. The resolver hook only counts approvals for pre-linked workUIDs, the module re-verifies garden and schema on every sync, and dedupe makes double-count impossible. The bridge couples resolver to module exactly as loosely as the existing KarmaGAP coupling: optional address, try/catch, disable by setting zero (`WorkApproval.sol:69-78`).
 
@@ -2425,7 +2487,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CommitmentSeriesRested(uint256 indexed seriesId)
       - event: CommitmentSeriesResumed(uint256 indexed seriesId)
       - event: CommitmentSeriesRetired(uint256 indexed seriesId)
-      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis)
+      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, bytes32 creationRequestKey, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis)
       - event: RewardDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
       - event: ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis)
       - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled)
@@ -2437,7 +2499,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: ContributorRemoved(uint256 indexed commitmentId, address indexed contributor, address indexed removedBy)
       - event: ContributorRequirementAssigned(uint256 indexed commitmentId, address indexed contributor, uint16 indexed requirementIndex, bool assigned)
       - event: ContributorRosterFrozen(uint256 indexed commitmentId, uint32 contributorCount)
-      - event: WorkLinked(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, uint16 requirementIndex, address linker)
+      - event: WorkLinked(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, uint16 requirementIndex, address linker, bytes32 operationKey)
       - event: WorkUnlinked(uint256 indexed commitmentId, bytes32 indexed workUID, address unlinker)
       - event: ApprovedWorkCounted(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 approvalUID, uint64 decisionSequence, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 newlyApprovedUnits)
       - event: ApprovedWorkReversed(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 decisionUID, uint64 decisionSequence, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 removedApprovedUnits)
@@ -2527,8 +2589,14 @@ type CommitmentPool {
   openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
   openCampaignEntityIds: [String!]! # relationship IDs in matching order
   providerOpenCommitmentCap: BigInt!
+  liveCommitmentCount: BigInt! # every non-terminal pool commitment, including cycle-less
+  nonTerminalCycleCount: BigInt! # Seeded/Open/Reconciled cycles; zero before pool close
   lifecycleBlockNumber: BigInt # nullable latest PoolReady/Open/Pause/Resume/Close/Compost/Reopen cursor
   lifecycleLogIndex: Int # nullable cursor partner; older pool state events never regress state/reason
+  charterUpdateBlockNumber: BigInt # nullable latest PoolCharterUpdated cursor
+  charterUpdateLogIndex: Int
+  providerCapUpdateBlockNumber: BigInt # nullable latest ProviderOpenCommitmentCapUpdated cursor
+  providerCapUpdateLogIndex: Int
   # Lifetime counts (event-driven counters, greenWill dedup pattern)
   commitmentsOffered: BigInt!
   commitmentsRequested: BigInt!
@@ -2582,6 +2650,22 @@ type CommitmentCycle {
   commitmentsDisputed: BigInt!
   commitmentsDue: BigInt!
   openCommitmentCount: BigInt!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# Immutable class declaration emitted before provider identity is known.
+type CommitmentClass {
+  id: ID! # chainId-classId
+  chainId: Int!
+  classId: BigInt!
+  poolId: BigInt!
+  poolEntityId: String!
+  cycleId: BigInt
+  cycleEntityId: String
+  unitLabel: String!
+  unitLabelHash: String!
+  quota: BigInt!
   createdAt: Int!
   updatedAt: Int!
 }
@@ -2672,6 +2756,8 @@ type Commitment {
   commitmentId: BigInt!
   creationSeen: Boolean! # false only for an update-before-create placeholder
   acceptanceSeen: Boolean! # true once the unique CommitmentAccepted payload is stored, even if its lifecycle cursor is older
+  creationRequestKey: String # creator-scoped sender-safe key emitted by CommitmentCreated
+  creationPayloadHash: String # full normalized immutable creation payload
   poolId: BigInt!
   poolEntityId: String! # relationship: chainId-poolId
   cycleId: BigInt # null when not cycle-scoped
@@ -2732,12 +2818,16 @@ type Commitment {
   rewardPaid: Boolean!
   rewardPayoutRef: String
   rewardRecordedBy: String
+  rewardUpdateBlockNumber: BigInt # nullable latest DeclaredRewardUpdated/RewardPaid cursor
+  rewardUpdateLogIndex: Int
   readyOverridden: Boolean!
   fulfilledBy: String # explicit CommitmentFulfilled.confirmer; null for non-confirmation terminal resolution
   confirmationPath: CommitmentConfirmationPath # null until confirmed or when fulfillment came from dispute resolution
   fallbackReason: String # non-empty only for POOL_FALLBACK / PROTOCOL_FALLBACK
   fulfilledByFallback: Boolean! # convenience derivation: confirmationPath is a fallback value
   preDisputeState: CommitmentOnchainState
+  acceptanceBlockNumber: BigInt # immutable CommitmentAccepted event position
+  acceptanceLogIndex: Int
   lifecycleBlockNumber: BigInt # latest state-derived projection cursor
   lifecycleLogIndex: Int # nullable partner; compare the pair lexicographically
   disputeReasonCID: String
@@ -2775,10 +2865,26 @@ type CommitmentContributor {
   uncountedLinkedWorkCount: Int!
   requirementIndexes: [Int!]!
   recognitionWeightBps: Int
+  membershipBlockNumber: BigInt # nullable latest ContributorAdded/ContributorRemoved cursor
+  membershipLogIndex: Int
   addedBy: String!
   addedAt: Int!
   removedBy: String
   removedAt: Int
+  updatedAt: Int!
+}
+
+type CommitmentContributorRequirementAssignment {
+  id: ID! # chainId-commitmentId-lowercaseContributor-requirementIndex
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  contributorEntityId: String!
+  requirementIndex: Int!
+  assigned: Boolean!
+  lifecycleBlockNumber: BigInt!
+  lifecycleLogIndex: Int!
   updatedAt: Int!
 }
 
@@ -2807,8 +2913,11 @@ type CommitmentWorkAttribution {
   contributor: String!
   contributorEntityId: String!
   requirementIndex: Int!
+  operationKey: String!
   linked: Boolean!
   creditActive: Boolean!
+  linkLifecycleBlockNumber: BigInt!
+  linkLifecycleLogIndex: Int!
   latestDecisionSequence: BigInt
   latestDecisionUID: String
   linkedBy: String!
@@ -2823,7 +2932,16 @@ type CommitmentContributorIndex {
   chainId: Int!
   commitmentId: BigInt!
   commitmentEntityId: String!
-  contributorEntityIds: [String!]! # stable event order
+  contributorEntityIds: [String!]! # unique IDs sorted by normalized contributor address
+  updatedAt: Int!
+}
+
+type CommitmentContributorRequirementIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  assignmentEntityIds: [String!]! # unique IDs sorted by contributor then requirement index
   updatedAt: Int!
 }
 
@@ -2865,6 +2983,8 @@ type CommitmentClaimRequest {
   state: CommitmentClaimRequestState!
   reasonCID: String
   resolutionCode: String # CLAIM_DECLINED / CLAIM_ACCEPTED / COMMITMENT_ACCEPTED / COMMITMENT_CANCELLED / COMMITMENT_EXPIRED
+  lifecycleBlockNumber: BigInt!
+  lifecycleLogIndex: Int!
   requestedAt: Int!
   resolvedAt: Int
   updatedAt: Int!
@@ -2878,7 +2998,7 @@ type CommitmentClaimRequestIndex {
   chainId: Int!
   commitmentId: BigInt!
   commitmentEntityId: String! # relationship: chainId-commitmentId
-  requestIds: [String!]! # stable insertion order; each ID is loaded directly
+  requestIds: [String!]! # unique claimant-key IDs sorted lexicographically
   updatedAt: Int!
 }
 
@@ -3052,6 +3172,13 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   plan does not authorize an install. Exact strings use no trim, case fold, Unicode normalization,
   locale transform, or ABI encoding. Raw numeric IDs and addresses remain display/filter
   attributes only; every cross-entity pointer uses its composite relationship field.
+- **Independent pool-field projection**: `PoolCharterUpdated` compares its event position with
+  `(charterUpdateBlockNumber, charterUpdateLogIndex)` before changing `charterCID`.
+  `ProviderOpenCommitmentCapUpdated` independently compares
+  `(providerCapUpdateBlockNumber, providerCapUpdateLogIndex)` before changing the cap. Neither
+  event is blocked by, nor advances, the pool lifecycle cursor; an older event delivered last
+  cannot overwrite the newer value. Fixtures reverse two charter updates, two cap updates, and
+  each update against a newer pool lifecycle event.
 - **Pool and cycle lifecycle projection**: `CommitmentPool` and `CommitmentCycle` each own an
   independent nullable `(lifecycleBlockNumber, lifecycleLogIndex)` cursor. Every pool state event
   (`PoolReady`, `PoolOpened`, `PoolPaused`, `PoolResumed`, `PoolClosed`, `PoolComposted`,
@@ -3066,6 +3193,16 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   cycle Open/Close/Compost/Cancel sequences in both orders, including lifecycle-before-creation
   and duplicates, and assert identical state, pause reason, open-cycle relationships, snapshots,
   and `updatedAt`.
+- **Pool closure counters**: `CommitmentCreated` increments
+  `CommitmentPool.liveCommitmentCount` exactly once after immutable creation facts exist.
+  The reversible lifecycle-delta helper decrements that pool count on the first live-to-terminal
+  Fulfilled, Cancelled, or Expired transition, re-increments Expired -> Disputed, and decrements
+  the next terminal resolution. `CycleSeeded` increments
+  `CommitmentPool.nonTerminalCycleCount`; `CycleCancelled` and `CycleComposted` decrement it
+  exactly once, while `CycleClosed` leaves it unchanged because Reconciled is still awaiting
+  compost. Event replay and older lifecycle positions cannot move either count. Reverse-delivery
+  fixtures prove a pool cannot project Closed while either counter is non-zero and that every
+  supported wind-down order converges to zero.
 - **Series and Story projection**: series state and series metadata are independently mutable and
   therefore use separate lexicographic cursor pairs. `CommitmentSeriesRested`,
   `CommitmentSeriesResumed`, and `CommitmentSeriesRetired` compare only
@@ -3087,10 +3224,16 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   Fulfilled instance in a cycle appends its composite cycle ID once. No handler computes a rate,
   score, rank, participant count, cross-pool grouping, or unit total across labels.
 - **Creation payload completeness**: `CommitmentCreated` initializes `commitmentSeriesId`,
-  its nullable composite relationship, contributor policy, derived
+  its nullable composite relationship, emitted `creationRequestKey`, stored
+  `creationPayloadHash`, contributor policy, derived
   domain tags, requirement action/domain/count arrays, `requiresAssessment`, `metadataCID`, and
   `needUID` directly, and seeds one `CommitmentRequirement` row per requirement. Handlers must
   not backfill these immutable facts from RPC reads or assume defaults that differ from the event.
+  The contract mapping is creator-scoped: a non-zero first-use key stores the hash of the complete
+  normalized `CreateCommitmentParams` payload and resulting commitment ID. Exact replay returns
+  that ID without a second event or state delta. Different payload reuse reverts
+  `CommitmentCreationRequestConflict`; the UI read-through getter must compare every immutable
+  field before binding the local record.
 - **CPP-alignment term and reverse-index handlers**: `CommitmentCreated` assigns
   `counterCommitmentId`, its nullable composite `counterCommitmentEntityId`,
   `declaredUnitValue`, and `declaredValueBasis` directly from the event only when the row has no
@@ -3107,6 +3250,12 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   It changes no lifecycle, unit, reward, settlement, or counter-index field. Replay fixtures cover
   creation→update, update→creation, duplicate delivery, and two updates delivered in either order.
   No later event reads `counterCommitmentId` to transition either side.
+- **Reward projection**: `RewardDeclared` and `RewardPaid` compare their event position with the
+  independent nullable `(rewardUpdateBlockNumber, rewardUpdateLogIndex)` pair before assigning
+  reward terms or receipt fields. Creation fills its declared reward snapshot only when no newer
+  reward cursor exists. An older declaration or receipt delivered last cannot regress the current
+  reward view; reverse declaration/receipt and duplicate fixtures assert convergence without
+  changing the commitment lifecycle cursor.
 - **Atomic exchange marker**: the two ordinary `CommitmentAccepted` events remain the canonical
   per-commitment lifecycle inputs. `ExchangeAccepted` additionally creates exactly one
   `CommitmentExchange` row with ID
@@ -3138,7 +3287,11 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   requires an empty reason. `PoolFallback` renders as local-garden fallback and
   `ProtocolFallback` renders as “confirmed by Green Goods team — fallback”; handlers never infer
   either authority from `transaction.from`. A `DisputeResolved` transition to Fulfilled leaves
-  these confirmation-only fields null.
+  these confirmation-only fields null. Each unique `ConfirmationRecorded` still increments the
+  emitted confirmer's history once, while the commitment projection assigns
+  `confirmationCount = max(currentCount, emittedCount)` and retains the emitted threshold. A
+  lower cumulative count delivered later can never regress readiness or hide an already recorded
+  confirmation.
 - **Lifecycle and terminal projection helper**: after the unique
   `CommitmentEvent(chainId, txHash, logIndex)` guard proves an event is new, every commitment event
   whose state/member/series/cycle/Need projection requires immutable creation facts first checks
@@ -3167,8 +3320,8 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   paired live-count decrement, never both Expired and Cancelled history for the same commitment.
 - **Pool-member-history deltas and late-fact reconciliation**: every touched row is
   create-if-not-exists with zero counters. `CommitmentAccepted` stores its immutable acceptance
-  payload and sets `acceptanceSeen = true` even when its lifecycle cursor is older than an already
-  applied terminal event; its unique audit event increments `leadAccepted` once for the emitted
+  payload, `(acceptanceBlockNumber, acceptanceLogIndex)`, and `acceptanceSeen = true` even when its
+  lifecycle cursor is older than an already applied terminal event; its unique audit event increments `leadAccepted` once for the emitted
   non-zero `leadProvider`. `ConfirmationRecorded` increments `confirmationsGiven` for its emitted
   `confirmer`; `CommitmentDisputed` increments `disputesRaised` for its emitted `raiser` even when
   its lifecycle projection is older than the stored cursor. `ContributorRosterFrozen` stores its
@@ -3227,24 +3380,42 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
     pool/cycle/commitment relationships. Address and bytes32 values use lowercase canonical hex;
     booleans use `false`/`true`. These events mutate no pool, cycle, commitment, unit-summary, or
     provider-exposure row, and never use a synthetic pool `0` or `transaction.from`.
-- **Claim request and contributor lifecycle**: `ClaimRequested` upserts
-  `${chainId}-${commitmentId}-${claimant}` as `PENDING` from emitted canonical claimant,
-  `requestedBy`, kind, context, and requestedAt, then appends that ID once to the request index.
-  `ClaimDeclined` marks that key `DECLINED`. `CommitmentAccepted` carries
-  claimant/counterparty/leadProvider/providerGarden, marks the matching request `ACCEPTED` when
-  that row exists, then independently loads `CommitmentClaimRequestIndex` and marks every other
-  still-`PENDING` row `SUPERSEDED` with `COMMITMENT_ACCEPTED`. The bounded sweep never depends on
-  finding a matching row: the two ordinary events emitted by `acceptExchange` therefore clear
-  stale requests for both A and B even when neither counterpart creator requested first. Open
-  acceptance normally has no request row and stores the emitted authenticated caller as the
-  Garden Request lead. It relies
-  on the same-transaction `ContributorAdded` event to create the
-  lead's roster row. Contributor add/remove/assignment events update the composite contributor
-  row and stable contributor index. `WorkLinked` creates or activates the workUID-keyed
-  `CommitmentWorkAttribution`, preserves its contributor and requirement index, and increments
-  that contributor's `uncountedLinkedWorkCount` only on an unlinked-to-linked transition.
-  `WorkUnlinked` loads that attribution before mutation, decrements the contributor's uncounted
-  count only when the linked row has no active credit, then records the unlink actor/time.
+- **Claim request and contributor lifecycle**: every `CommitmentClaimRequest` owns a nullable
+  `(lifecycleBlockNumber, lifecycleLogIndex)` cursor. `ClaimRequested` upserts
+  `${chainId}-${commitmentId}-${claimant}` from the emitted canonical claimant, `requestedBy`,
+  kind, context, and requestedAt, then appends that ID once to the lexicographically sorted
+  request index. A **late `ClaimRequested`** first compares its position with the commitment's
+  stored acceptance and terminal positions: when a newer acceptance already won, the matching
+  accepted claimant materializes directly as `ACCEPTED` and every other claimant as
+  `SUPERSEDED`; when a newer Cancelled or Expired marker already won, it materializes directly as
+  `SUPERSEDED`. It can become `PENDING` only when no newer commitment result exists.
+  `ClaimDeclined` updates the row only when its position wins. `CommitmentAccepted` carries
+  claimant/counterparty/leadProvider/providerGarden, stores its immutable acceptance position,
+  marks the matching request `ACCEPTED` when that row exists, then independently loads
+  `CommitmentClaimRequestIndex` and marks every other still-`PENDING` row `SUPERSEDED` with
+  `COMMITMENT_ACCEPTED`. The bounded sweep never depends on finding a matching row: the two
+  ordinary events emitted by `acceptExchange` therefore clear stale requests for both A and B
+  even when neither counterpart creator requested first. Cancellation and expiry use the same
+  index and terminal-position comparison. Reverse-delivery fixtures run Request/Decline/Accept/
+  Cancel/Expire in every relevant order and assert the same non-actionable result.
+
+  Open acceptance normally has no request row and stores the emitted authenticated caller as the
+  Garden Request lead. It relies on the same-transaction `ContributorAdded` event to create the
+  lead's roster row. Each `CommitmentContributor` owns an independent
+  `(membershipBlockNumber, membershipLogIndex)` cursor; an older Add delivered after a newer
+  Remove cannot reactivate the row, and an older Remove cannot deactivate a newer Add.
+  `CommitmentContributorIndex.contributorEntityIds` is unique and sorted by normalized address,
+  never insertion order. Each `ContributorRequirementAssigned` writes one
+  `CommitmentContributorRequirementAssignment` row with its own lifecycle cursor and appends its
+  ID once to `CommitmentContributorRequirementIndex`, sorted by contributor and numeric
+  requirement index. Assignment delivery never rewrites the contributor membership cursor.
+
+  `WorkLinked` creates or activates the workUID-keyed `CommitmentWorkAttribution`, stores its
+  caller-scoped `operationKey`, and compares `(linkLifecycleBlockNumber,
+  linkLifecycleLogIndex)` independently from the Work decision sequence. A later Unlink followed
+  by an earlier Link stays unlinked; an older Unlink cannot hide a newer Link.
+  `uncountedLinkedWorkCount` changes only on the winning linked-state transition. Exact replay of
+  the same contract operation key produces no second event; conflicting key reuse is rejected.
   `ContributorRosterFrozen` locks the read model. Every
   `EvidenceAttached` increments the commitment's `evidenceCount` exactly once, then walks
   `creditedContributors` in emitted order. For each address it upserts the
@@ -3257,6 +3428,12 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   marks each referenced attribution confirmed, whether fulfillment arrived through
   `CommitmentFulfilled` or `DisputeResolved`, never using a database-wide scan. The indexer never
   increments on-chain-style contributor credits again at fulfillment.
+- **Relationship-array convergence**: every set-like relationship array is de-duplicated and
+  deterministically sorted before write: normalized addresses for contributor rows, lexical
+  composite IDs for claims/evidence/Need/counter references, and contributor plus numeric
+  requirement index for assignments. Semantically ordered pending lifecycle projections are the
+  sole exception and are sorted by `(blockNumber, logIndex, eventId)` before drain. No final
+  relationship order depends on event delivery order.
 - **Address normalization**: `normalizeAddress` for every address field (`helpers.ts:68-70`). Generic `CommitmentEvent.actor` is nullable and is populated only from an explicit actor parameter; never infer account-abstraction identity from `transaction.from`.
 - **Effective Work-credit delta**: `ApprovedWorkCounted` loads the durable Work attribution,
   transitions `creditActive` false → true, stores the emitted non-zero sequence and decision UID,
@@ -3285,15 +3462,19 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   registered at creation and never accepted therefore reads as a known label with zero units
   rather than as phantom expected supply, and a `ClassRegistered` that arrives before
   `CommitmentCreated` needs no reconciliation when the commitment row later appears.
-  `UnitsCommitted` increments `CommitmentPool.openCommitmentCount` and
-  `CommitmentProviderExposure.openCommitmentCount` by exactly one regardless of `units`;
-  `UnitsReleased` and `UnitsFulfilled` decrement them once. When `cycleId != 0`, the same delta
-  applies to that cycle; `cycleId == 0` creates no cycle-scoped row. The events update only the
-  matching exact-label `CommitmentUnitSummary`: commit increments expected/open units, release
-  decrements open units, and fulfill decrements open plus increments fulfilled. `hours` and
-  `Hours` never share an ID. Tests process each unit event before `CommitmentCreated` and prove
-  the self-describing keys still converge, alongside same-label, case-distinct, replay,
-  cancellation/expiry, fulfillment, and dispute fixtures.
+  After the immutable audit-event guard, handlers apply **signed commutative deltas** keyed by the
+  event itself rather than assigning aggregates from delivery order. `UnitsCommitted` contributes
+  `+1` to pool/provider/cycle open counts, `+units` expected, and `+units` open.
+  `UnitsReleased` contributes `-1` open slot and `-units` open; `UnitsFulfilled` contributes
+  `-1` open slot, `-units` open, and `+units` fulfilled. When `cycleId != 0`, the same slot delta
+  applies to that cycle; `cycleId == 0` creates no cycle-scoped row. The current total is the sum
+  of the unique event deltas, so Commit/Release/Fulfill delivered in any order has the same final
+  result; `updatedAt` is the maximum event timestamp/position, never “last delivered.” Synthetic
+  reverse replay may expose an internal negative intermediate, but a completed checkpoint is
+  published only after its transaction/batch converges. The events update only the matching
+  exact-label `CommitmentUnitSummary`; `hours` and `Hours` never share an ID. Tests permute every
+  unit event order, include event-before-creation, case-distinct labels, duplicate delivery,
+  cancellation/expiry, and fulfillment.
 - **Need lineage**: non-zero `CommitmentCreated.needUID` appends the composite commitment/cycle IDs once to `NeedCommitmentIndex`; the terminal projection helper's Fulfilled branch appends the commitment to `fulfilledCommitmentEntityIds` once for both ordinary and dispute-resolved fulfillment, including when that terminal event was buffered until creation supplied the UID; commitment-bundled Hypercert handling appends its composite Hypercert ID. UID zero creates no index row. This is reference indexing from Green Goods events/metadata, not EAS indexing.
 
 **Existing Garden identity compatibility (required).** `Garden.id` remains the normalized bare

@@ -1,0 +1,261 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const read = (path: string) => readFileSync(join(here, path), "utf8");
+
+const matrix = read("architecture-closure-matrices.md");
+const contract = read("contract-spec.md");
+const standing = read("standing-commitments-spec.md");
+const uiux = read("uiux-spec.md");
+const client = read("hifi/screens/client.ts");
+const admin = read("hifi/screens/admin.ts");
+const settlement = read("hifi/screens/settlement.ts");
+const journeys = read("hifi/journeys.ts");
+const types = read("hifi/types.ts");
+const validate = read("hifi/validate.ts");
+const acceptance = read("acceptance-matrix.md");
+const diagrams = read("diagrams.md");
+const prototypes = read("prototypes.md");
+const coverage = read("prototypes-coverage.md");
+const wireframes = read("wireframes.md");
+const plan = read("plan.todo.md");
+const status = read("status.json");
+const contractHandoff = read("handoffs/codex-contracts.md");
+const indexerHandoff = read("handoffs/codex-indexer.md");
+const stateHandoff = read("handoffs/codex-state-api.md");
+const clientHandoff = read("handoffs/claude-ui-client.md");
+const adminHandoff = read("handoffs/claude-ui-admin.md");
+
+const failures: string[] = [];
+const require = (condition: boolean, message: string) => {
+  if (!condition) failures.push(message);
+};
+
+const section = (source: string, start: string, end: string) => {
+  const from = source.indexOf(start);
+  const to = source.indexOf(end, from + start.length);
+  require(from >= 0, `missing section start: ${start}`);
+  require(to > from, `missing section end: ${end}`);
+  return from >= 0 && to > from ? source.slice(from, to) : "";
+};
+
+const namesInBackticks = (value: string) =>
+  [...value.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map((match) => match[1]);
+
+const canonicalEvents = [
+  ...contract.matchAll(/^\s+- event:\s+([A-Za-z][A-Za-z0-9_]*)\(/gm),
+].map((match) => match[1]);
+require(canonicalEvents.length === 54, `expected 54 canonical ABI events, found ${canonicalEvents.length}`);
+require(
+  new Set(canonicalEvents).size === canonicalEvents.length,
+  "canonical ABI inventory contains duplicate event names",
+);
+
+const eventMatrix = section(matrix, "### A1. Complete event inventory", "### A2.");
+const matrixEventNames: string[] = [];
+for (const line of eventMatrix.split("\n")) {
+  if (!line.startsWith("| EO-")) continue;
+  const cells = line.split("|");
+  matrixEventNames.push(...namesInBackticks(cells[2] ?? ""));
+}
+for (const eventName of canonicalEvents) {
+  require(
+    matrixEventNames.filter((candidate) => candidate === eventName).length === 1,
+    `${eventName} must appear exactly once in Matrix A1`,
+  );
+}
+for (const eventName of new Set(matrixEventNames)) {
+  require(canonicalEvents.includes(eventName), `Matrix A1 names unknown event ${eventName}`);
+}
+
+const requiredEntities = [
+  "CommitmentPool",
+  "CommitmentCycle",
+  "CommitmentClass",
+  "CommitmentUnitSummary",
+  "CommitmentProviderExposure",
+  "CommitmentSeries",
+  "CommitmentSeriesCycleSummary",
+  "Commitment",
+  "CommitmentRequirement",
+  "CommitmentContributor",
+  "CommitmentContributorRequirementAssignment",
+  "HypercertCommitmentContributorAllocation",
+  "CommitmentWorkAttribution",
+  "CommitmentContributorIndex",
+  "CommitmentContributorRequirementIndex",
+  "CommitmentEvidenceAttribution",
+  "CommitmentEvidenceAttributionIndex",
+  "CommitmentClaimRequest",
+  "CommitmentClaimRequestIndex",
+  "CommitmentEvent",
+  "CommitmentPendingLifecycleProjection",
+  "CommitmentPendingLifecycleProjectionIndex",
+  "NeedCommitmentIndex",
+  "CommitmentCounterIndex",
+  "CommitmentExchange",
+  "PoolMemberHistory",
+] as const;
+const entityMatrix = section(matrix, "### A2. Complete indexed entity", "---\n\n## Matrix B");
+for (const entity of requiredEntities) {
+  require(entityMatrix.includes(`\`${entity}\``), `${entity} is missing from Matrix A2`);
+  require(new RegExp(`^type ${entity} \\{`, "m").test(contract), `${entity} is missing from the canonical indexer schema`);
+}
+for (let index = 1; index <= 28; index += 1) {
+  require(entityMatrix.includes(`ER-${String(index).padStart(2, "0")}`), `missing ER-${String(index).padStart(2, "0")}`);
+}
+
+const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n\/\/ Metadata/)?.[1] ?? "";
+const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
+require(contractCalls.length === 52, `expected 52 executable hi-fi call names, found ${contractCalls.length}`);
+const callCoverage = section(matrix, "### B2. Executable-call coverage", "---\n\n## Matrix C");
+for (const call of contractCalls) {
+  require(callCoverage.includes(`\`${call}\``), `${call} is missing from Matrix B2`);
+}
+
+const offlineKinds = [
+  "commitmentSeries",
+  "commitment",
+  "claim",
+  "evidence",
+  "workLink",
+  "confirmation",
+] as const;
+for (const kind of offlineKinds) {
+  require(matrix.includes(`\`${kind}\``), `${kind} is missing from Matrix B`);
+  require(uiux.includes(`\`${kind}\``), `${kind} is missing from the canonical UI/offline contract`);
+}
+require(matrix.includes("`transfer`"), "online-only transfer is missing from Matrix B");
+
+for (const state of [
+  "LOCAL_DRAFT",
+  "SAVING_REMOTE",
+  "SAVED_REMOTE",
+  "SAVE_FAILED",
+  "OFFLINE_LOCAL",
+  "VERSION_CONFLICT",
+]) {
+  require(matrix.includes(`\`${state}\``), `${state} is missing from Matrix C`);
+}
+for (const id of ["LC-01", "LC-02", "LC-03", "LC-04", "LC-05", "LC-06", "LC-07"]) {
+  require(matrix.includes(id), `${id} is missing from Matrix D`);
+}
+
+const sourceChecks: Array<[boolean, string]> = [
+  [contract.includes("mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId))"), "commitment creation-key mapping is missing"],
+  [contract.includes("CommitmentCreationRequestConflict"), "commitment creation-key conflict error is missing"],
+  [contract.includes("PoolHasLiveCommitments"), "pool zero-live close error is missing"],
+  [contract.includes("PoolHasNonTerminalCycles"), "pool zero-cycle close error is missing"],
+  [/struct Pool \{[\s\S]*liveCommitmentCount/.test(contract), "Pool.liveCommitmentCount is missing from the contract struct"],
+  [/struct Pool \{[\s\S]*nonTerminalCycleCount/.test(contract), "Pool.nonTerminalCycleCount is missing from the contract struct"],
+  [/type CommitmentPool \{[\s\S]*liveCommitmentCount: BigInt!/.test(contract), "CommitmentPool.liveCommitmentCount is missing from the indexer schema"],
+  [/type CommitmentPool \{[\s\S]*nonTerminalCycleCount: BigInt!/.test(contract), "CommitmentPool.nonTerminalCycleCount is missing from the indexer schema"],
+  [/type CommitmentPool \{[\s\S]*charterUpdateBlockNumber/.test(contract), "pool charter replay cursor is missing"],
+  [/type CommitmentPool \{[\s\S]*providerCapUpdateBlockNumber/.test(contract), "pool provider-cap replay cursor is missing"],
+  [/type Commitment \{[\s\S]*rewardUpdateBlockNumber/.test(contract), "commitment reward replay cursor is missing"],
+  [/type Commitment \{[\s\S]*acceptanceBlockNumber/.test(contract), "commitment acceptance position is missing"],
+  [/type CommitmentContributor \{[\s\S]*membershipBlockNumber/.test(contract), "contributor membership cursor is missing"],
+  [/type CommitmentWorkAttribution \{[\s\S]*linkLifecycleBlockNumber/.test(contract), "Work link lifecycle cursor is missing"],
+  [/type CommitmentClaimRequest \{[\s\S]*lifecycleBlockNumber/.test(contract), "claim request lifecycle cursor is missing"],
+  [contract.includes("CommitmentContributorRequirementAssignment"), "contributor requirement assignment entity is missing"],
+  [contract.includes("CommitmentContributorRequirementIndex"), "contributor requirement assignment index is missing"],
+  [contract.includes("late `ClaimRequested`"), "late ClaimRequested reconciliation rule is missing"],
+  [contract.includes("signed commutative deltas"), "register reverse-delivery policy is missing"],
+  [contract.includes("confirmationCount = max(currentCount, emittedCount)"), "confirmation cumulative-count convergence is missing"],
+  [contract.includes("deterministically sorted"), "relationship-array convergence is missing"],
+  [contract.includes("getWorkLinkOperationPayloadHash"), "Work-link read-through getter is missing"],
+  [contract.includes("bytes32 operationKey") && contract.includes("WorkLinkOperationConflict"), "Work-link operation-key contract is missing"],
+  [contract.includes("38-feature-slot declaration order plus the 12-slot"), "storage acceptance is not 38+12"],
+  [standing.includes("clientCommitmentId"), "stable clientCommitmentId is missing from standing commitment recovery"],
+  [standing.includes("getCommitmentIdByCreationRequest"), "commitment creation read-through getter is missing"],
+  [uiux.includes("clientCommitmentId"), "commitment offline payload lacks clientCommitmentId"],
+  [uiux.includes("operationKey") && uiux.includes("later unlink"), "Work-link offline recovery is missing from UI contract"],
+  [client.includes('["saving", "Saving privately"]'), "W32 saving state is missing"],
+  [client.includes('["save-failed", "Save failed"]'), "W32 save-failed state is missing"],
+  [client.includes('"w32.save": { l: "Save privately", to: "screen:W32@saving"'), "W32 save does not enter saving"],
+  [client.includes('"w35.retry-failed"') && client.includes("same creationRequestKey"), "W35 retry lacks same-key recovery copy"],
+  [types.includes("poolLiveCommitments?: PoolLiveCommitments"), "hi-fi StateFacts lacks pool live-count facts"],
+  [types.includes("poolNonTerminalCycles?: PoolNonTerminalCycles"), "hi-fi StateFacts lacks pool cycle-count facts"],
+  [validate.includes('closePool:') && validate.includes('poolLiveCommitments: ["Zero"]'), "hi-fi closePool rule lacks zero-live guard"],
+  [validate.includes('poolNonTerminalCycles: ["Zero"]'), "hi-fi closePool rule lacks zero-cycle guard"],
+  [admin.includes("live promises must be wound down"), "admin close flow lacks a live-commitment blocker"],
+  [admin.includes('"close-blocked-live"') && admin.includes('poolLiveCommitments: "NonZero"'), "admin close blocker lacks non-zero facts"],
+  [settlement.includes('poolNonTerminalCycles: "One"'), "last-cycle compost flow lacks pre-compost count facts"],
+  [journeys.includes('W32@saving') && journeys.includes('W32@offline-local'), "saved-Offer journeys omit saving/offline truth"],
+  [!section(journeys, '{ id: "sb38"', '{ id: "sb39"').includes('W32@saved'), "SB-38 still claims a no-signal save succeeded"],
+  [acceptance.includes("Pool.nonTerminalCycleCount == 0"), "acceptance matrix lacks the pool close guard"],
+  [
+    acceptance.includes("late `ClaimRequested`") ||
+      /acceptance\/terminal before older `?ClaimRequested`?/i.test(acceptance),
+    "acceptance matrix lacks late-claim convergence",
+  ],
+  [diagrams.includes("linkWork(commitmentId, workUID, requirementIndex, operationKey)"), "diagrams use the old Work-link signature"],
+  [diagrams.includes("pool.nonTerminalCycleCount = 0"), "diagrams omit the pool cycle-close guard"],
+  [
+    diagrams.includes("Sixteen core NET-NEW pooling entities plus ten auxiliary") &&
+      diagrams.includes("the 26 pooling/contributor/replay records"),
+    "D15 entity counts are stale",
+  ],
+  [
+    diagrams.includes("COMMITMENT ||--o| COMMITMENT_CLASS") &&
+      diagrams.includes("COMMITMENT_CONTRIBUTOR_REQUIREMENT_INDEX ||--o{ COMMITMENT_CONTRIBUTOR_REQUIREMENT_ASSIGNMENT"),
+    "D15 omits closure entity relationships",
+  ],
+  [
+    diagrams.includes('BigInt membershipBlockNumber "latest add/remove event position"') &&
+      diagrams.includes('BigInt lifecycleBlockNumber "latest assignment event position"') &&
+      diagrams.includes('BigInt linkLifecycleBlockNumber "latest link/unlink event position"'),
+    "D15 omits relationship replay cursors",
+  ],
+  [prototypes.includes("clientCommitmentId") && prototypes.includes("creationRequestKey"), "prototype spec lacks place idempotency"],
+  [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
+  [wireframes.includes("#screens/W7@open") && wireframes.includes("(28 states)"), "wireframe W7 state count is stale"],
+  [coverage.includes("375 rendered states") && coverage.includes("515 registered hotspots"), "prototype coverage snapshot is stale"],
+  [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],
+  [status.includes("38 named plus __gap[12]"), "status still declares the old storage layout"],
+  [contractHandoff.includes("38-feature-slot") && contractHandoff.includes("operationKey"), "contract handoff omits closure contract"],
+  [indexerHandoff.includes("sixteen pooling entities") && indexerHandoff.includes("late `ClaimRequested`"), "indexer handoff omits closure entities or late claims"],
+  [stateHandoff.includes("clientCommitmentId") && stateHandoff.includes("OFFLINE_LOCAL"), "state/API handoff omits retry or persistence truth"],
+  [clientHandoff.includes("clientCommitmentId") && clientHandoff.includes("SAVING_REMOTE"), "client handoff omits retry or persistence truth"],
+  [adminHandoff.includes("Pool.nonTerminalCycleCount"), "admin handoff omits pool close guard"],
+];
+for (const [condition, message] of sourceChecks) require(condition, message);
+
+const staleCanonicalSources = [
+  contract,
+  acceptance,
+  diagrams,
+  prototypes,
+  wireframes,
+  status,
+  contractHandoff,
+  indexerHandoff,
+  stateHandoff,
+  clientHandoff,
+  adminHandoff,
+];
+for (const [index, source] of staleCanonicalSources.entries()) {
+  require(!source.includes("__gap[14]"), `canonical source ${index + 1} still names __gap[14]`);
+  require(
+    !source.includes("linkWork(commitmentId, workUID, requirementIndex)"),
+    `canonical source ${index + 1} still uses the old Work-link signature`,
+  );
+  require(
+    !/fifteen core|15 core|eight auxiliary|8 auxiliary|23 pooling/i.test(source),
+    `canonical source ${index + 1} still uses the old 15+8 entity count`,
+  );
+}
+
+if (failures.length > 0) {
+  console.error(`Architecture closure validation failed (${failures.length}):`);
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+console.log(
+  `Architecture closure validation passed: ${canonicalEvents.length} events, ` +
+  `${requiredEntities.length} indexed entities, ${contractCalls.length} executable calls, ` +
+  `${offlineKinds.length} offline kinds, 6 persistence states, and 7 lifecycle subjects.`,
+);

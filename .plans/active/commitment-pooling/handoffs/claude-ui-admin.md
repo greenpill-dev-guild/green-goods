@@ -54,6 +54,10 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
   `approvedCount / requiredCount` plus canonical per-commitment `approvedUnits`. The UI starts
   with four rows and adds more; it never presents four as the product maximum.
 - Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
+- Pool close reads indexed `Pool.liveCommitmentCount` and `Pool.nonTerminalCycleCount`. The action
+  is enabled only when both are zero; otherwise W7 names that live promises must be wound down and
+  links to commitment/cycle recovery. Open and Paused pools retain cancel/expire/resolve plus
+  cycle cancel/compost controls until the guard passes.
 - Cycle seeding carries no allocation or recognition policy. The open-cycle step accepts the six
   allocation percentages plus equal/verified recognition percentages, converts both groups to
   basis points, requires each group to total exactly 10,000, and submits both snapshots atomically
@@ -74,6 +78,8 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - `/community/pools` follows CanvasRouteFrame/CanvasRouteHeader and restrained command-surface grammar, and never exposes another garden's pool.
 - Request rows expose indexed canonical claimant, authenticated `requestedBy`, `claimType`, `gardenContext`, requestedAt/state/reason/resolution fields and the accepted result exposes derived `providerGarden`. Decline changes only that row; acceptance consumes the matching contract-stored terms and supersedes every other pending indexed row; claimant re-request and direction-aware confirmation are visible.
 - Pool pause requires a reason and disables only new commitments, claims, Ready submissions, and confirmations; evidence/linkage and safe recovery remain available. Provider open-commitment caps are steward-gated and class quotas are not editable.
+- `closePool` can never be submitted from a state with live commitments or a Seeded/Open/
+  Reconciled cycle. The confirmation carries zero-count facts; non-zero states expose no call.
 - In `W10@accepted`, steward cancellation and the authorized Ready override both require a captured reason; confirmation remains unavailable until the normal evidence gate or the explicit override has produced Ready. The three actions retain separate permissions, labels, and audit outcomes.
 - `W10@attach-assessment` accepts only the eligible Assessment v3 set scoped to the accepted `providerGarden`; no assessment from another provider or garden can be selected, and a required-but-empty set blocks normal Ready submission with a recovery explanation.
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.

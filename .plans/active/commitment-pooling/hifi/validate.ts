@@ -33,11 +33,13 @@ const warn: string[] = [];
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
-  | "pool" | "cycle" | "series" | "cycleLiveCommitments" | "commitment"
+  | "pool" | "cycle" | "series" | "cycleLiveCommitments" | "poolLiveCommitments"
+  | "poolNonTerminalCycles" | "commitment"
   | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
   | "disbursementKind" | "disbursementRoute" | "queueFundingAuthority" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "series", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
+  "pool", "cycle", "series", "cycleLiveCommitments", "poolLiveCommitments", "poolNonTerminalCycles",
+  "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
   "disbursement", "disbursementKind", "disbursementRoute", "queueFundingAuthority", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type ConditionalRequirement = {
@@ -98,13 +100,27 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   openPool: { key: "pool", allowed: ["Ready"], next: "Open" },
   pausePool: { key: "pool", allowed: ["Open"], next: "Paused" },
   resumePool: { key: "pool", allowed: ["Paused"], next: "Open" },
-  closePool: { key: "pool", allowed: ["Open", "Paused"], next: "Closed" },
+  closePool: {
+    key: "pool",
+    allowed: ["Open", "Paused"],
+    next: "Closed",
+    requires: {
+      poolLiveCommitments: ["Zero"],
+      poolNonTerminalCycles: ["Zero"],
+    },
+  },
   compostPool: { key: "pool", allowed: ["Closed"], next: "Composted" },
   reopenPool: { key: "pool", allowed: ["Composted"], next: "Ready" },
   seedCycle: { key: "pool", allowed: ["Ready", "Open"], effects: { cycle: "Seeded" } },
   openCycle: { key: "cycle", allowed: ["Seeded"], next: "Open", requires: { pool: ["Open"] } },
   closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled", requires: { cycleLiveCommitments: ["Zero"] } },
-  compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
+  compostCycle: {
+    key: "cycle",
+    allowed: ["Reconciled"],
+    next: "Composted",
+    requires: { poolNonTerminalCycles: ["One"] },
+    effects: { poolNonTerminalCycles: "Zero" },
+  },
   cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled", requires: { cycleLiveCommitments: ["Zero"] } },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
   createCommitmentPayoutPlan: {
