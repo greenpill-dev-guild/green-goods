@@ -497,3 +497,22 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   ascending lowercase address; then finish the verified remainder pass by descending fractional
   remainder and ascending lowercase address. Add the two row results only after both passes;
   remainders are never pooled, and one contributor may receive one remainder unit from each pass.
+
+## Binding CommitmentSeries amendment — 2026-08-02
+
+- Read `standing-commitments-spec.md` first. It supersedes this handoff wherever older text says
+  Offer capacity begins at acceptance or `acceptExchange` performs two registry commits.
+- Add module-owned `CommitmentSeries`, storage entries 15 and 20 in the amended layout, exact
+  errors/events/functions, direct-holder Active/Resting/Retired lifecycle, and validated
+  `commitmentSeriesId` on Commitment/Create params/creation event.
+- A non-zero series reference is Active, same-pool, current-holder-authored, Individual Offer,
+  with zero `onBehalfOf`. `0` preserves one-shot behavior. No holder mutation or other succession
+  verb ships initially.
+- Offer creation registers and commits its exact class against the creator, reserving the provider
+  slot through Offered and Accepted. Offer acceptance and `acceptExchange` do not recommit.
+  Requests remain Registered until provider acceptance. Cancel/expiry/fulfillment release only
+  when the direction/state currently owns a committed class.
+- RED proof must cover unknown/wrong-pool/non-holder/resting/retired/request/garden/on-behalf-of
+  references, prospective metadata, no instance mutation on series lifecycle, cap exhaustion at
+  Offer creation, unaccepted Offer release, unaccepted Request no-op, no double count at claim or
+  exchange, and exact storage/ABI/event layout.

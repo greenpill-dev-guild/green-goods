@@ -1069,6 +1069,12 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 | uiux Appendix D.3 standing (counts only) | W5 + W7/W10 claims-queue deltas (§8) |
 | uiux Appendix D.4 rotation Campaign template | W27 + W1 read-only strip (§8) |
 | uiux Appendix D.5 reserve/redemption framing | W21/W23 copy deltas (§8) |
+| uiux Appendix F.2 Things I can offer (saved details, Offer once vs over time) | W32 (§9) |
+| uiux Appendix F.2 Offer over time — choose a garden | W33 (§9) |
+| uiux Appendix F.2/F.3 ongoing Offer detail + Story | W34 (§9) |
+| uiux Appendix F.2 Add places | W35 (§9) |
+| uiux Appendix F.4 rest / resume / retire + succession preview | W34 states (§9) |
+| uiux Appendix F.5 admin grouping by ongoing Offer | W7/W10 deltas (§9) |
 
 ## 8. CPP-alignment deltas (2026-08-01, uiux-spec Appendix D)
 
@@ -1262,13 +1268,13 @@ This is the existing confirmation-sheet / `DialogShell` pattern. The action is v
 A's creator. It calls `acceptExchange(B)` once, shows no optimistic partial success, and returns
 focus to the trigger on dismissal. Each error state names the actor and next action from D25.
 
-### W31 — Practice-template picker (uiux-spec Appendix E.2) NET-NEW
+### W31 — Offer-template picker (uiux-spec Appendix E.2) NET-NEW
 
 ```text
 ┌─────────────────────────────────────────────────────┐
 │ ← Create a promise                                  │
 ├─────────────────────────────────────────────────────┤
-│ Start from a practice                               │
+│ Start from an Offer template                        │
 │ Choose a familiar way this pool works together.     │
 │                                                     │
 │ Rotation                                            │
@@ -1304,3 +1310,201 @@ Where the settlement frames name the paying account, copy reads "the pool's rese
 Safe) and a paid declared reward reads "redeemed from the pool's reserve" — framing only. Every
 settlement-state rule stands unchanged; "redeemed" never renders before the authenticated
 success acknowledgment for the current execution key and attempt.
+
+## 9. Offering over time (2026-08-02, standing-commitments-spec + uiux Appendix F)
+
+Frames for the durable, repeatable Offer. **There is one product noun — the Offer — used two
+ways.** No drawing in this section may introduce a second product noun beside it:
+
+| Path | What it creates | Gardener copy |
+|---|---|---|
+| **Offer once** | one ordinary Offer with `commitmentSeriesId == 0` | "Offer it once" — the existing creation flow, unchanged |
+| **Offer over time** | one pool-scoped `CommitmentSeries` in one garden | "Offer it over time", then "ongoing Offer" |
+
+Three supporting facts, none of which is a product object:
+
+| Fact | Where it lives | The mistake these frames exist to prevent |
+|---|---|---|
+| **Saved offer details** | signed offchain, private by default; reusable input to **either** path | drawing them as on-chain, public, a credential, or a second object beside the Offer |
+| **Available place** | one already-created Offered instance with its provider slot reserved at creation | drawing availability that a claim would have to create |
+| **Story** | exact linked-instance history and absolute counts | drawing a rate, rank, score, or inferred participant count |
+
+A claim **accepts** a pre-created place. Nothing here may show a claim spawning an instance.
+`CommitmentSeries` is the internal name and may appear in technical diagnostics; it is never
+rendered as gardener copy. Hi-fi realizations are W32–W35 in the prototype registry.
+
+### W32 — Things I can offer (uiux Appendix F.2) NET-NEW
+
+Personal surface, profile-adjacent. Saved details are private until they are used to make an offer.
+
+```text
+┌──────────────────────────────────────────────┐
+│ ←  Things I can offer                        │
+│ Details you can reuse. Nothing here is a     │
+│ promise until you offer it in a garden.      │
+├──────────────────────────────────────────────┤
+│ Saved details                            (1) │
+│ ≡ Hosting climate workshops                  │
+│   A two-hour session on local climate work   │
+│                            (Ready to offer)  │
+│                                              │
+│ [ Save offer details ]                       │
+│ Saved privately. No garden, pool, ongoing    │
+│ Offer, or available place exists yet.        │
+├──────────────────────────────────────────────┤
+│    Home         Garden        ◉Profile       │
+└──────────────────────────────────────────────┘
+
+choose-path sheet (after picking saved details):
+│ Hosting climate workshops                    │
+│ How would you like to offer this?            │
+│ ┌──────────────────────────────────────────┐ │
+│ │ Offer it once                            │ │
+│ │ One promise, this time only.             │ │
+│ └──────────────────────────────────────────┘ │
+│ ┌──────────────────────────────────────────┐ │
+│ │ Offer it over time                       │ │
+│ │ Keep offering it in one garden, cycle    │ │
+│ │ after cycle.                             │ │
+│ └──────────────────────────────────────────┘ │
+```
+
+States: `saved` · `saved-with-ongoing` · `series-queued` ·
+`series-queued-place-waiting` · `empty` · `compose` · `choose-path` · `draft-unsaved` ·
+`persistence` · `loading` · `read-error`.
+
+**The two paths are named once, in one place.** `choose-path` is the only frame that offers the
+choice; **Offer it once** enters the ordinary W3 creation flow through
+`saved-offer-edit` → `saved-offer-review` → `saved-offer-queued`, preserving every prefilled
+workshop field and creating one Offer with `commitmentSeriesId == 0`. **Offer it over time**
+enters W33. Neither is a different kind of thing — both produce Offers.
+
+**Saved and queued states do not borrow future truth.** `saved` contains private metadata only.
+`saved-with-ongoing` is the later mixed library state. `series-queued` keeps the unsynced ongoing
+Offer visible with zero availability, and `series-queued-place-waiting` keeps both the queued
+series and its dependent place visible without calling either one Active or available.
+
+**Persistence is drawn honestly.** `draft-unsaved` says the draft is on this device only;
+`persistence` names the three states side by side — *saved privately* (signed offchain, survives a
+device change), *draft on this device*, and *offered in a garden*. Saved details are never
+described as local-only, and a local draft never claims durability. Learning or aspiration states
+are out of scope for the initial Offer flow and are not drawn.
+
+### W33 — Offer over time: choose a garden (uiux Appendix F.2) NET-NEW
+
+Creates the pool-scoped ongoing Offer. It opens no places.
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ ×  Offer over time                     ● ○ ○        │
+├─────────────────────────────────────────────────────┤
+│ Choose where you will keep offering this.           │
+│ ◉ Rocinha Community Garden — gardener · pool open   │
+│ ○ Muizenberg Deep South    — gardener · pool open   │
+│ ⚠ An ongoing Offer lives in one garden. Offering    │
+│   the same thing elsewhere is a separate ongoing    │
+│   Offer there.                                      │
+│                              [ Continue ]           │
+└─────────────────────────────────────────────────────┘
+review step:
+│ Offer          Hosting climate workshops            │
+│ Places open now None — you add them next            │
+│ Next cycle      Ask me again next cycle             │
+│                 [ Start offering over time ]        │
+```
+
+States: `garden` · `terms` · `review` · `queued` · `place-waiting` · `failed`.
+
+`place-waiting` is the dependent-draft state: a place drafted before its series exists waits on
+explicit queue state, consumes no retry budget, and says what it is waiting for. Discarding the
+series keeps the place drafts recoverable.
+
+### W34 — Ongoing Offer detail and Story (uiux Appendix F.2/F.3/F.4) NET-NEW
+
+Route `/home/:id/pool/standing/:seriesId`. The grouping surface — never a replacement for the
+instance lifecycle.
+
+```text
+┌──────────────────────────────────────────────┐
+│ ←  Hosting climate workshops                 │
+│    Rocinha Community Garden · Active         │
+├──────────────────────────────────────────────┤
+│ 2 places available now                       │
+│ Each one is a real promise waiting to be     │
+│ taken up.                                    │
+│ ≡ Workshop session 1 · Season of First Rains │
+│   (Offered)                                  │
+│ ≡ Workshop session 2 · Season of First Rains │
+│   (Offered)                                  │
+│ [ Add places ]                               │
+│                                              │
+│ Kept      12 times across 5 cycles           │
+│ Unit      workshop sessions                  │
+│ Next cycle  Ask me again next cycle          │
+│ [ See the whole story ]                      │
+│                                              │
+│ Looking after this offer                     │
+│ [ Rest it for now ]   [ Retire it ]          │
+│ [ Sharing and handing on — later ]           │
+└──────────────────────────────────────────────┘
+Story state:
+│ Kept 12 times across 5 cycles                │
+│ ● Kept — market-day session      Jul 12      │
+│ ● Kept — school visit            Jun 28      │
+│ ● Under review by stewards, then kept  Jun 02│
+│ ● Withdrawn before anyone took it up  May 20 │
+│ ● Ran out of time — nobody took it up Apr 30 │
+```
+
+States: `active-two` · `active-none` · `active-one` · `places-queued` · `story` ·
+`participation` · `ask-again` · `claimant-view` · `resting` · `retire-confirm` · `retired` ·
+`succession` · `loading` · `read-error`.
+
+Rules the frame encodes:
+
+- **Availability is reserved, not advertised.** `active-none` says "No places available right
+  now" rather than hiding the offer; each drawn place is a real Offered instance.
+- **`claimant-view`** is what another member sees: available places, Offer terms, and approved
+  pool context plus **Take up one place**, which accepts one existing instance and routes to its
+  ordinary commitment detail. The holder's Story and exact kept count remain visible only to the
+  holder and current stewards.
+- **`places-queued`** keeps both queued rows visible while reporting **0 places available**.
+  Nobody can take them up until each creation syncs and reserves provider capacity.
+- **`participation`** draws the series Story and the member's pool participation history as two
+  separately titled blocks with an explicit line saying they are different views and neither is a
+  score. A participant total appears only as **Reported participants · from evidence notes**.
+- **`resting`** keeps the taken-up promise and the whole Story visible and removes only
+  **Add places**. **`retire-confirm`** names the terminal effect and takes **no reason field**,
+  because `retireCommitmentSeries` has no reason parameter.
+- **`succession`** is a labelled, non-interactive horizon: co-holding, teaching alongside, handing
+  on, starting a linked offer, and garden-held stewardship, each noted as needing both people to
+  agree, above a line stating what is possible today (add places, rest, retire).
+
+### W35 — Add places (uiux Appendix F.2) NET-NEW
+
+```text
+┌─────────────────────────────────────────────────────┐
+│ ×  Add places                                       │
+├─────────────────────────────────────────────────────┤
+│ Offer          Hosting climate workshops            │
+│ How many places [ 2 ]                               │
+│ Each place becomes its own promise with these terms.│
+│ When  ◉ Season of First Rains  ○ No season          │
+│ How long each session runs [ 2 hours ]              │
+│ ⚠ Adding places holds your capacity for them        │
+│   straight away, so nobody sees a place that is not │
+│   really open.                                      │
+│                        [ Add 2 places ]             │
+└─────────────────────────────────────────────────────┘
+```
+
+States: `compose` · `queued`. Queued places are explicitly **not** shown as available until each
+creation has synced and reserved its provider slot. Returning from `queued` lands on
+`W34@places-queued`, not an empty state that hides the pending work.
+
+### W7/W10 deltas — admin grouping by ongoing Offer (uiux Appendix F.5)
+
+The garden pool console may group instances under their ongoing Offer and show holder,
+lifecycle state, exact outcome counts, available places, and pool participation history. Stewards
+get no control to edit holder metadata, rest/resume/retire another person's ongoing Offer,
+or create one on someone's behalf; those are absent from the initial ABI, so no control is drawn.

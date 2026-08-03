@@ -326,6 +326,12 @@ const layersSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-three-layers.
 const timelineSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-timeline-band.svg`, "utf8");
 const ownershipSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-ownership-map.svg`, "utf8");
 const useCasesSvg = readFileSync(`${DIR}/artifacts/visuals/use-cases-journey-strip.svg`, "utf8");
+// Offering over time (2026-08-02) — the durable, repeatable Offer.
+const offerContinuesSvg = readFileSync(`${DIR}/artifacts/visuals/offer-that-continues.svg`, "utf8");
+const standingCapacitySvg = readFileSync(`${DIR}/artifacts/visuals/standing-capacity-reserved.svg`, "utf8");
+const standingCompoundsSvg = readFileSync(`${DIR}/artifacts/visuals/standing-compounds.svg`, "utf8");
+const standingRestSvg = readFileSync(`${DIR}/artifacts/visuals/standing-rest-without-erasure.svg`, "utf8");
+const standingSuccessionSvg = readFileSync(`${DIR}/artifacts/visuals/standing-succession-horizon.svg`, "utf8");
 
 const respSvg = (s: string, label: string) =>
   `<div class="svgcard" role="group" data-label="${attrEsc(label)}" aria-label="${attrEsc(label)}">${s.replace(/<svg /, '<svg class="asset" ')}</div>`;
@@ -396,6 +402,8 @@ const ARCHITECTURE_READING_ORDER = [
   "D15.", "D16.", "D17.", "D18.", "D19.", "D20.", "D21.", "D22.", "D23.", "D24.",
   // 5. Operate and deploy
   "D25.", "D26.",
+  // 6. Offering over time — the durable Offer layer above one-shot promises
+  "D27.",
 ] as const;
 const architectureCandidates = dia.secs.filter((s) => !REFERENCE_TITLES.includes(s.title));
 const architectureSecs = ARCHITECTURE_READING_ORDER.map((prefix) => {
@@ -552,6 +560,7 @@ const requiredArchitectureSections = [
   ["D24.", "d24-solidity-surface-contracts-ownership-and-upgrade-authority"],
   ["D25.", "d25-error-taxonomy-surface-and-recovery-map"],
   ["D26.", "d26-deployment-and-upgrade-topology"],
+  ["D27.", "d27-offer-layers-and-honest-capacity"],
 ];
 
 // Every diagram-bearing section carries a reading guide. The list used to skip
@@ -560,7 +569,7 @@ const requiredArchitectureSections = [
 const diagramHowToPrefixes = [
   "D1.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D8.", "D9.", "D10.",
   "D11.", "D12.", "D13.", "D14.", "D15.", "D16.", "D17.", "D18.", "D19.",
-  "D20.", "D21.", "D22.", "D23.", "D24.", "D25.", "D26.",
+  "D20.", "D21.", "D22.", "D23.", "D24.", "D25.", "D26.", "D27.",
 ];
 
 const storyBodyRaw = `
@@ -625,6 +634,42 @@ const storyBodyRaw = `
   <p>Borrow-and-repay needs the deepest trust of all, which is why its gates are the strictest. Three of them stand in front of it: the interfaces it attaches to freeze in code, its design is revalidated against them, and a human-owned legal and operations review clears before it dispatches. What arrives at the end of that is a recorded loop of advance and repayment riding rails that already exist, with <strong>no interest, no per-person score, and no leverage</strong>.</p>
   ${respSvg(tiersSvg, "Three tiers of commitment pooling")}
 </section>
+<section id="story-offer-continues">
+  <h2>The Offer that continues</h2>
+  <p class="lede">A promise is one episode. Some offers are made once; others a person keeps making, season after season. Until now only the first had anywhere to live.</p>
+  <p>There is one product noun — the <strong>Offer</strong> — used two ways. <strong>Offer once</strong> makes a single ordinary promise, exactly as the app already works. <strong>Offer over time</strong> keeps that offer going in one garden: a durable, pool-scoped identity that can be Active, Resting, or Retired, which the app calls an <strong>ongoing Offer</strong> and the contracts call a <code>CommitmentSeries</code>.</p>
+  <p>An ongoing Offer opens a finite number of <strong>available places</strong>, each an ordinary immutable commitment with its own evidence, confirmation, and terminal state, and the <strong>Story</strong> groups those records with exact counts. <strong>Saved offer details</strong> — signed offchain, private by default, never on any chain — are reusable input to either path, not another thing to keep track of.</p>
+  <p>The boundary that keeps this honest: a claim <strong>accepts</strong> a place that already exists. It never creates one. And offering the same thing in a second garden is a second ongoing Offer — the protocol never merges them, and no cross-pool identity or reputation exists.</p>
+  ${respSvg(offerContinuesSvg, "The Offer that continues")}
+</section>
+<section id="story-capacity">
+  <h2>Availability is a promise already reserved</h2>
+  <p class="lede">Two displayed places should never compete for one remaining slot. Whether capacity is held at creation or at acceptance depends on one thing: whether we already know who is providing.</p>
+  <p>An <strong>Offer</strong>'s creator is already the accountable lead, so the moment a place exists its class is registered and its full quota committed. Every place a person can see is genuinely held open for them, and acceptance performs no second reservation. Withdrawing an unclaimed place returns the slot.</p>
+  <p>A <strong>Request</strong> has no provider at creation — there is nobody to reserve against — so its class stays registered and acquires units and a provider slot only when someone accepts. Closing an unaccepted request changes no balance. The asymmetry is not an inconsistency; it is the only truthful reading of who has promised what.</p>
+  ${respSvg(standingCapacitySvg, "Availability is a promise already reserved")}
+</section>
+<section id="story-compounds">
+  <h2>Compounding, not replacing</h2>
+  <p class="lede">Repetition only builds something dependable when the thing repeating has a name.</p>
+  <p>One ongoing Offer runs across many cycles. Each cycle holds its own independent promises, and the ongoing Offer accumulates an exact, event-derived count over all of them — <strong>kept 12 times across 5 cycles</strong>, with every entry still openable as its own record. A cycle groups promises and then closes; it never owns the offer.</p>
+  <p>The alternative is what the architecture rejected: recreating an unlinked commitment every cycle. The offer would have no identity, so nothing could accumulate, and any claim of a history would be a guess reconstructed from a title and a creator — one that breaks the first time the wording changes or a cycle is skipped. Copying terms forward stays available for genuinely one-off promises.</p>
+  ${respSvg(standingCompoundsSvg, "A commitment compounds through repetition, not replacement")}
+</section>
+<section id="story-rest">
+  <h2>Rest without erasure</h2>
+  <p class="lede">A pool that never lets anyone stop will quietly consume the people holding it up. Resting is how the system lets someone say enough.</p>
+  <p>Resting stops exactly two things: adding new places, and appearing in the pool as something to take up. That is the whole list. Promises already offered or taken up carry on unchanged, evidence and confirmation proceed normally, and nobody who was relying on a promise loses it. The Story stays fully readable, including the records that did not go to plan.</p>
+  <p>Resuming returns the offer to Active and deliberately creates no availability by itself — the person chooses when to open places again. Retiring is terminal and still changes no existing promise; the history remains and the saved details stay privately stored, ready whenever they are.</p>
+  ${respSvg(standingRestSvg, "Rest without erasure")}
+</section>
+<section id="story-succession">
+  <h2>Succession later, with consent</h2>
+  <p class="lede">Passing something on is several different acts, and collapsing them into one generic transfer is how a labour obligation quietly becomes an asset.</p>
+  <p>The first implementation provides three verbs, drawn solid because they exist: <strong>rest</strong>, <strong>resume</strong>, and <strong>retire</strong>. Everything else on this drawing sits below a dashed horizon line and has no control anywhere in the product.</p>
+  <p>Later work may add five distinct acts — co-holding, teaching alongside, handing on, starting a linked offer that says where it grew from, and garden-held stewardship — each with its own explicit agreement from the person it binds. One line does not move: a promise already made keeps its original lead. Only the right to open <em>future</em> places can ever pass, and only with a yes on both sides. Nothing here is a token, saleable, or usable as collateral.</p>
+  ${respSvg(standingSuccessionSvg, "Succession later, with consent")}
+</section>
 <section id="story-circular">
   <h2>A circular G$ economy</h2>
   <p class="lede">The selected return leg is explicit: support streams in, flows to gardens and gardeners, and gardens spend earned G$ on Green Goods team services. Local merchant and store routes remain unmodeled.</p>
@@ -683,6 +728,14 @@ const STORY_READING_ORDER = [
   ["story-loop", "The commitment loop"],
   ["story-roles", "Who does what"],
   ["story-use-cases", "Three grounded journeys"],
+  // Offering over time reads straight after the grounded journeys: the durable
+  // the ongoing Offer is what those journeys repeat, so it belongs before the
+  // system-level framing rather than after the money story.
+  ["story-offer-continues", "The Offer that continues"],
+  ["story-capacity", "Availability already reserved"],
+  ["story-compounds", "Compounding, not replacing"],
+  ["story-rest", "Rest without erasure"],
+  ["story-succession", "Succession later, with consent"],
   ["story-layers", "Three layers, named honestly"],
   ["story-ge-functions", "Six protocol functions"],
   ["story-money", "Where value lives"],
@@ -2240,7 +2293,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 27, "Architecture output must contain 27 sections (26 D-sections + the hand-written intro; the permission table renders on Reference)");
+assertBuild(architectureSectionCount === 28, "Architecture output must contain 28 sections (27 D-sections + the hand-written intro; the permission table renders on Reference)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -2248,8 +2301,8 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 38, "Architecture output must contain 38 Mermaid blocks (D25 is split into two recovery maps and D13 adds the bilateral exchange sequence)");
-assertBuild(mermaidCount === 39, "Gallery output must contain 39 Mermaid blocks including the Screens flow");
+assertBuild(architectureMermaidCount === 40, "Architecture output must contain 40 Mermaid blocks (D25 splits into two recovery maps, D13 adds the bilateral exchange sequence, and D27 splits into layers + capacity)");
+assertBuild(mermaidCount === 41, "Gallery output must contain 41 Mermaid blocks including the Screens flow");
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");
@@ -2284,7 +2337,7 @@ assertBuild(
 // (W8/W3/W2/W5 deltas, W7/W10 claims-queue delta, W27 rotation template, W21/W23
 // reserve-framing copy delta). They carry no hi-fi deep links yet — hi-fi additions
 // are an explicit follow-up pass per §8's preamble.
-assertBuild(wfScreenCount === 37, `the Screens pane must present all 37 wireframe frames (found ${wfScreenCount})`);
+assertBuild(wfScreenCount === 42, `the Screens pane must present all 42 wireframe frames (found ${wfScreenCount})`);
 for (const id of WF_ONLY_FRAMES) {
   assertBuild(wf.secs.some((s) => s.id === id), `WF_ONLY_FRAMES names #${id}, which is not a Screens section`);
 }
@@ -2314,6 +2367,20 @@ assertBuild(
   "Artifact output must carry host-rendered Mermaid theme, status, and accessibility support",
 );
 assertBuild((artifactBody.match(/class="mermaid"/g) || []).length === mermaidCount, "Artifact output lost Mermaid source blocks");
+for (const [pattern, label] of [
+  [/\bpractice-template\b/i, "practice-template"],
+  [/\bpractice templates?\b/i, "practice template"],
+  [/\bpractice-first\b/i, "practice-first"],
+  [/\bpractice library\b/i, "practice library"],
+  [/\bstanding-practice-remains\b/i, "standing-practice-remains"],
+  [/\bstart from a practice\b/i, "start from a practice"],
+] as const) {
+  assertBuild(!pattern.test(artifactBody), `Offer vocabulary regression: generated gallery still contains "${label}"`);
+}
+assertBuild(
+  artifactBody.includes("Ask me again next cycle"),
+  'the Screens pane must preserve the exact renewal phrase "Ask me again next cycle"',
+);
 
 // The sentinel is prepended at write time only — every assertion above runs against
 // the pristine body, including the one requiring it to start with <meta charset>.

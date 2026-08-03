@@ -1,7 +1,7 @@
 # Commitment Pooling: Flow Prototypes (Storyboards, Missing Frames, Action Inventory)
 
 - **Feature**: `commitment-pooling` · **Stage**: `active` · **Created**: 2026-07-11
-- **Updated**: 2026-08-01 — bilateral exchange acceptance, exchange-pair UX, practice templates, and the plain-language pass recorded in §19; group commitments, contributor recognition, and garden-funded child payouts remain from the 2026-07-28 pass (see Changelog).
+- **Updated**: 2026-08-02 — offering over time (W32–W35, SB-37–SB-41) realized in the hi-fi registry and recorded in §20, then corrected to the one-noun Offer vocabulary per `handoffs/claude-offer-vocabulary-correction.md`; bilateral exchange acceptance, exchange-pair UX, Offer templates, and the plain-language pass remain in §19 (see Changelog).
 - **Artifact**: [Commitment Pooling — Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — rebuild with `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` (same URL each time; machinery in `hifi/`).
 - **Companions**: `wireframes.md` (frames, referenced by W-id, never re-drawn) · `uiux-spec.md` (canonical flows + §4 state tables) · `contract-spec.md` (§5 state machines, §6.1 permissions) · `settlement-spec.md` (§3.2 disbursement machine, §5 receipt, §7 surface deltas) · `diagrams.md` (D1–D26) · `acceptance-matrix.md` · `../community-interface/wireframes.md` + `spec.md` (September) · **`prototypes-coverage.md`** (screen×state build audit).
 
@@ -21,6 +21,8 @@
 | 2026-07-26 | Ontology alignment: RestorePrevious replays the fixture's exact ReadyForConfirmation state; W26 closes a fully terminal cycle before certificate composition and composts after mint; screen facts distinguish derived/on-chain cycle moments; MF-6 points to its evidence-only request state; settlement-account readiness no longer masquerades as `DisbursementState`. |
 | 2026-07-28 | Architecture amendment: W2/W2b exposes one accountable lead plus a contribution-bearing team; W3 requirements are repeatable instead of a four-item product rule; W10/W11 distinguish Hypercert recognition from payment; W21 models a frozen garden-retained parent plan with child contributor payouts; W23 shows the contributor receipt. SB-33 walks the complete cross-surface path. |
 | 2026-08-01 | CPP-alignment amendment (plan Decision Logs #39–#40, registers #71–#74): declared value (`declaredUnitValue`/`declaredValueBasis`), the counter-commitment exchange reference, counts-only standing, the rotation Campaign template, and reserve/redemption framing enter the spec set (contract-spec decisions 16–17; uiux Appendix D; wireframes §8). **Hi-fi screens for these are an explicit follow-up pass** — §18 records them as August app-roadmap additions and distinguishes later garden-to-garden routing, transferable exchange execution, and relative pricing so the artifact stays honest about what the current 25 screens do not yet draw. |
+| 2026-08-02 | Offering over time (`standing-commitments-spec.md`, uiux Appendix F, acceptance §2.2): the durable Offer identity is **built, not planned** — W32–W35 join the hi-fi registry and SB-37–SB-41 walk saved details → offer over time → finite reserved places → claim-accepts-a-place → Story → rest/resume/retire, plus the labelled later-succession preview. §20 records the set. |
+| 2026-08-02 | Offer vocabulary correction (`handoffs/claude-offer-vocabulary-correction.md`, PRD-789): the prior extra product noun is removed. One noun — the Offer — is presented two ways: **Offer once** (`commitmentSeriesId == 0`) and **Offer over time** (a pool-scoped `CommitmentSeries` that gardener copy calls an *ongoing Offer*). Reusable saved Offer details are signed offchain input to either path, never a second object; learning states leave the initial flow. W32 becomes *Things I can offer* and gains `choose-path`; the gallery visual becomes `offer-that-continues` (*The Offer that continues*). Internal `CommitmentSeries` architecture, capacity accounting, Story derivation, and lifecycle semantics are unchanged. |
 | 2026-08-01 | Bilateral exchange wave (Decision Logs #41–#43, registers #75–#77): August contract scope gains atomic Offer×Offer `acceptExchange`; uiux Appendix E adds pair, template-first, and plain-language behavior; W28–W31 and planned SB-35/SB-36 make the two journeys reviewable without claiming the current hi-fi registry already renders them. Multilateral and transferable exchange stay design-only in `exchange-architecture-brief.md`. |
 
 **Fidelity** — the storyboards add **no design authority**: they are fidelity-neutral walks of flows the specs already lock, and `wireframes.md` stays the lo-fi structural truth.
@@ -88,7 +90,7 @@
 | SB-33 | Recognize and pay a commitment team | Lead + contributors + steward | S1 group commitment | Client PWA + Admin |
 | SB-34 | Seed or top up a garden outside a commitment | Protocol steward / module owner | S9 discretionary treasury support | Admin |
 | SB-35 | Create and accept a bilateral exchange pair | Two offer creators | Exchange wave | Client PWA |
-| SB-36 | Start from a practice template | Gardener or steward | Exchange wave | Client PWA + Admin |
+| SB-36 | Start from an Offer template | Gardener or steward | Exchange wave | Client PWA + Admin |
 
 Grouping: gardener journeys SB-1–7, SB-15–18, SB-26–30, and planned SB-35–36 · stewardship SB-8–10, SB-20–22, SB-32, and SB-33 · treasury SB-34 · settlement SB-11–12, SB-19, SB-23–25, and SB-31 · protocol + September SB-13–14. The pool lifecycle and cycle cardinality live in SB-9; SB-32 proves that cycle wind-down never resumes a Paused pool; SB-33 proves recognition and payment stay linked but distinct.
 
@@ -675,7 +677,7 @@ scenario chapters.
 | 33 | fulfilled group commitment → recognition snapshot → edited payout plan → contributor receipts | recognition and payment remain linked but distinct |
 | 34 | protocol funding form → typed Funding/ProtocolToGarden queued row | separately authorized treasury support with no commitment identity |
 | 35 (planned) | create B in exchange for A → A creator starts both → each proceeds independently → one lapses | `counterCommitmentId`, `acceptExchange`, two ordinary acceptance streams, no post-acceptance coupling |
-| 36 (planned) | choose a practice template → inspect plain defaults → edit ordinary fields → submit or start blank | content/config prefills only; no new contract type or module call |
+| 36 (planned) | choose an Offer template → inspect plain defaults → edit ordinary fields → submit or start blank | content/config prefills only; no new contract type or module call |
 
 ---
 
@@ -908,7 +910,7 @@ enforcement remain later roadmap seams in the same commitment-pooling architectu
 | Rotation Campaign template + turns strip | W27 · W1 read-only strip | template chosen; turns derived (fulfilled/open/next) | new short storyboard candidate (rotation seeding → first turn) — decided at the hi-fi pass |
 | Reserve/redemption framing | W21/W23 copy delta | copy-only; no new states | SB-11/SB-12 copy refresh only |
 | Atomic bilateral acceptance | W28 picker · W29 pair detail/feed · W30 confirmation sheet | eligible, submitting, matched, contract-error recovery, counterpart-lapsed | SB-35 is the planned full journey; two ordinary commitment lifecycles remain the source after acceptance |
-| Practice-first creation and first-exposure copy | W31 · W28/W3 editable form | template selected, blank, locale content, validation, editable defaults | SB-36 is the planned template-first journey |
+| Offer-template creation and first-exposure copy | W31 · W28/W3 editable form | template selected, blank, locale content, validation, editable defaults | SB-36 is the planned template-first journey |
 
 Action-inventory delta (§16 totals annotated, not rewritten): **+1 net-new user-facing action** —
 steward `Set declared value` (pre-acceptance, mirrors the reward edit). The exchange picker and
@@ -932,7 +934,7 @@ Multilateral exchange, transferable vouchers, quoter, limiter, venue, and
 
 ```mermaid
 flowchart LR
-  T["W31 practice or blank entry"] -->|"choose exchange flow"| P["W28 choose existing Offer A"]
+  T["W31 Offer template or blank entry"] -->|"choose exchange flow"| P["W28 choose existing Offer A"]
   P -->|"select A"| R["W3 review, You give B · You receive A"]
   R -->|"create B"| B["W29 proposed pair"]
   B -->|"A creator opens"| C["W30 A creator confirms"]
@@ -954,14 +956,14 @@ flowchart LR
 The sequence makes the no-coupling boundary visible: “both start together” ends at acceptance.
 Everything after that is two ordinary promise lanes.
 
-### SB-36 — Start from a practice template
+### SB-36 — Start from an Offer template
 
-**Persona**: a gardener creates an offer; a steward may use the same practice library when
+**Persona**: a gardener creates an offer; a steward may use the same Offer-template library when
 seeding. **Surfaces**: Client PWA + Admin. **Frames**: W31 → existing W3 or W8 steps → review.
 
 ```mermaid
 flowchart LR
-  A["W31 practice-template picker"] -->|"choose Work party"| B["W3 ordinary editable form"]
+  A["W31 Offer-template picker"] -->|"choose Work party"| B["W3 ordinary editable form"]
   A -->|"Start blank"| C["W3 empty ordinary form"]
   B -->|"edit defaults"| D["Review visible defaults"]
   C -->|"enter terms"| D
@@ -976,5 +978,99 @@ flowchart LR
 | 4 | submit | existing `createCommitment` path, plus `counterCommitmentId` only for an Exchange circle pair | ordinary queued/indexed result | existing offline and membership-wait recovery |
 
 Templates create no new on-chain identity. The submitted record is indistinguishable from the same
-fields entered by hand, and every locale can choose a locally meaningful practice name while the
-underlying primitives remain stable.
+fields entered by hand, and every locale can choose a locally meaningful Offer-template name while
+the underlying primitives remain stable.
+
+## 20. Offering over time (2026-08-02 — realized in the hi-fi registry)
+
+Owning architecture: `standing-commitments-spec.md`; surface authority: `uiux-spec.md`
+Appendix F; acceptance: `acceptance-matrix.md` §2.2; frames: `wireframes.md` §9 (W32–W35).
+
+Unlike §18/§19, this set is **built, not planned**: W32–W35 render in the prototype registry and
+SB-37…SB-41 are review-visible guided flows. SB-35/SB-36 stay reserved for the exchange and
+template source journeys above, so this set starts at 37.
+
+**One product noun, two paths, and the drawing rule for each.** There is only the Offer.
+**Offer once** creates one ordinary Offer with `commitmentSeriesId == 0` through the existing
+creation flow. **Offer over time** creates one pool-scoped `CommitmentSeries` — Offer-only in v1,
+never global across gardens — which gardener copy calls an **ongoing Offer**; the type name
+appears only in technical diagnostics. **Saved offer details** are signed offchain, private by
+default, and reusable input to *either* path, never a second product object; only an unsaved
+draft is device-local. An **available place** is one already-created Offered instance whose
+provider capacity was reserved at creation — so a claim **accepts** a place and never spawns one.
+A **Story** is exact linked-instance history with absolute counts, never a rate, rank, score, or
+inferred participant count.
+
+### SB-37 — Save offer details, then offer it over time
+
+**Persona**: Maria. **Surface**: Client PWA. **Frames**: W32 → W33 → W34 → W35 → W34.
+
+```mermaid
+flowchart LR
+  P["W32 details saved privately"] -->|"Offer it over time"| G["W33 choose garden"]
+  G -->|"describe"| R["W33 review"]
+  R -->|"start offering over time"| Q["W33 queued"]
+  Q -->|"sync"| A["W34 Active · 0 places"]
+  A -->|"Add places"| C["W35 how many places"]
+  C -->|"queue 2 places"| QQ["W35 queued"]
+  QQ -->|"sync + reserve capacity"| T["W34 Active · 2 places"]
+```
+
+| Step | Person action | System response | Review state | Recovery |
+|---|---|---|---|---|
+| 1 | save the details of something you can offer | signed offchain write; no pool, series, or commitment state | W32 saved | edit or remove freely; nothing is promised |
+| 2 | choose one garden | binds the series to one pool | W33 garden | a second garden means a second series, never a merge |
+| 3 | start offering it over time | queues `createCommitmentSeries`; caller becomes immutable creator and initial current holder | W33 queued | offline retry; the saved details survive either way |
+| 4 | sync lands | series is Active with **zero** places | W34 active-none | an Active series with nothing open is a real state, not an error |
+| 5 | add a finite batch of places | one ordinary `createCommitment` per place, each reserving its class and one provider slot at creation | W35 queued | places are not shown as available until each has synced |
+| 6 | both sync | two genuinely reserved, independently claimable promises | W34 active-two | each place has its own terms, route, and terminal lifecycle |
+
+### SB-38 — Save the details, then offer over time offline
+
+**Persona**: Maria with no signal. **Frames**: W32 → W33 → W34.
+
+The persistence lane. `draft-unsaved` states plainly that the draft lives on this device only;
+the explainer names *saved privately*, *draft on this device*, and *offered in a garden* without
+claiming the saved details are on-chain. Then the offline series creation queues, and a place drafted
+before its series exists enters `W33@place-waiting` — an explicit dependent-queue state that
+consumes no retry budget and never guesses transaction order. Discarding the series keeps the
+place drafts recoverable and explains what they were waiting for.
+
+### SB-39 — Take up one place that is already open
+
+**Persona**: João. **Frames**: W34@claimant-view → W2@accepted → W34@active-one.
+
+| Step | Person action | System response | Review state | Recovery |
+|---|---|---|---|---|
+| 1 | open someone's ongoing Offer | available places, Offer terms, and approved pool context; the holder's Story and exact kept count stay private | W34 claimant-view | personal history is visible only to the holder and current stewards |
+| 2 | take up one place | `claimCommitment` **accepts one existing Offered instance**; no new place, no second provider slot | W2 accepted | ordinary claim recovery; the other place stays available |
+| 3 | holder reopens the detail | availability falls 2 → 1 because one real instance left the Offered set | W34 active-one | the series itself never transitioned |
+
+### SB-40 — See what an ongoing Offer has become
+
+**Persona**: Maria. **Frames**: W34@story → W2@fulfilled → W34@participation → W34@ask-again.
+
+“Kept 12 times across 5 cycles” is exact and event-derived. Withdrawn, ran-out, and
+reviewed-then-kept rows stay visible as records rather than penalty styling, and every row opens
+its own immutable commitment. `participation` draws the series Story and the member's pool
+participation history as two separately titled views with an explicit line that neither is a
+score; a participant total appears only as **Reported participants · from evidence notes**. The
+next-cycle posture is **Ask me again next cycle** — declining creates nothing.
+
+### SB-41 — Rest it, resume it, retire it
+
+**Persona**: Maria. **Frames**: W34@succession → W34@resting → W34@active-none → W34@retired.
+
+| Step | Person action | System response | Review state | Recovery |
+|---|---|---|---|---|
+| 1 | open the later-succession preview | labelled horizon; co-holding, teaching alongside, handing on, linked offers, garden-held stewardship | W34 succession | nothing is interactive; the initial ABI has rest, resume, retire only |
+| 2 | rest the offer | `restCommitmentSeries` blocks new places | W34 resting | the taken-up promise and the whole Story are untouched |
+| 3 | resume | `resumeCommitmentSeries` returns it to Active and creates no availability | W34 active-none | add places again when ready |
+| 4 | retire | terminal `retireCommitmentSeries`; the confirmation takes **no reason field** because the call has no reason parameter | W34 retired | existing promises keep their state; the saved details stay privately stored |
+
+### What this set deliberately does not draw
+
+No claim-spawned instance, no second product noun beside the Offer, no device-only saved details,
+no unreserved availability, no indexed participant count, no automatic renewal, no cross-pool
+identity or reputation, no personal score, and no active succession control. Learning or
+aspiration states are outside the initial Offer flow. Requests are not offered over time in v1.

@@ -175,3 +175,12 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   an unselected promise that remains structurally blocked, contributor exclusion on all paths,
   local-path precedence, stale/lost protocol authority, and a Green Goods protocol-steward
   confirmation visible in both queue and history.
+
+## Binding ongoing-Offer amendment — 2026-08-02
+
+- Consume the completed canonical ongoing-Offer artifacts and `uiux-spec.md` Appendix F.
+- Group linked instances by series and expose holder, state, exact outcome counts, capacity-backed
+  available places, and viewer-authorized Story context.
+- A steward does not gain authority to edit another holder's metadata or rest/resume/retire their
+  series. Saved Offer metadata and person-level Story never enter cross-garden Operations or
+  public surfaces.

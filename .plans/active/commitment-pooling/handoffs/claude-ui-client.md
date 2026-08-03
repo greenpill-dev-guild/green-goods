@@ -137,3 +137,18 @@ Both named client test files do not exist yet; they are intentional to-be-create
   through offline restart, successful Green Goods protocol fallback, local fallback precedence
   when one wallet holds both roles, missing-protocol-pool recovery, and explicit actor/path/reason
   rendering.
+
+## Binding ongoing-Offer amendment — 2026-08-02
+
+- Runtime implementation follows `standing-commitments-spec.md`, `uiux-spec.md` Appendix F, and
+  the completed `claude-standing-artifacts.md` output. Artifact work may continue now; product
+  code remains behind the backend and artifact gates.
+- Add Things I can offer, signed private saved-Offer metadata, the Offer once / Offer over time
+  choice, garden selection for the ongoing path, finite Add places,
+  claim-one-pre-created-instance, series Story, Ask me again next cycle, and holder-only
+  rest/resume/retire. “I’m learning this” is outside the Commitment Pooling Offer flow.
+- Supersede every “five job kinds” line in this handoff with six, including
+  `commitmentSeries`. Availability appears only after Offer creation sync reserved the slot.
+- Keep Pool participation history separate from one ongoing Offer’s Story. No device-only saved
+  Offer metadata, claim-spawned instance, auto-renewal, active succession control, inferred
+  participant count, reliability score, or cross-pool identity.

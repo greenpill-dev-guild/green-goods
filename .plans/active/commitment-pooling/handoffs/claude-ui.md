@@ -19,7 +19,7 @@ paths, preserves unrelated working-tree changes, and does not switch the primary
 - Completed scoped existing-admin fixes and polish, including PRD-737
 - Corrected uiux-spec.md, wireframes.md, diagrams.md, and settlement status vocabulary — including
   Appendix D and the bilateral-wave Appendix E. Appendix E.1 owns exchange-pair UX, E.2 owns the
-  practice-template library, and E.3 owns the noun-reduction/plain-language rules; W28–W31 and
+  Offer-template library, and E.3 owns the noun-reduction/plain-language rules; W28–W31 and
   planned SB-35/SB-36 are the review sources.
 - acceptance-matrix.md for the final state/copy/public-claim/role proof
 - Admin/client package guides and authenticated Brave access

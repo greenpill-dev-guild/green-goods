@@ -40,7 +40,7 @@ status. They are a manual step and are not blocked by anything in this list.
 - [x] Add the design-only exchange-architecture brief pointer:
   `.plans/active/commitment-pooling/exchange-architecture-brief.md`. State that it authorizes no
   implementation and that PRD-651 stays gated.
-- [x] Add the approved August app-roadmap additions: exchange-pair UX, practice-template library,
+- [x] Add the approved August app-roadmap additions: exchange-pair UX, Offer-template library,
   and the noun-reduction/plain-language pass. Keep shipped, roadmap, and later-scope labels visible.
 
 ## Held-over narrative fixes from Will Ruddick's review

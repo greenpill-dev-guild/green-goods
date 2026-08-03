@@ -450,4 +450,65 @@ export const SBS: SB[] = [
   { f: "C5", hot: null, surface: "community", marks: ["✓ Promise: 16 market rides this season"], ev: "the thread: neighbor's words → promise → work → proof · funding supports the garden, never escrow", cite: "CI-WF:165" },
   { f: "C5", hot: { m: "[Add testimony]", l: "author confirm + testimony" }, who: "Kwame", surface: "community", ev: "consumes the shared confirmation/testimony primitives — September-realized (register #34g)", cite: "CI-SPEC:259", note: "membership queue slice stays gated on RESR-64" },
 ]},
+
+// ---------------------------------------------------------------------------
+// Offering over time (SB-37…SB-41) — standing-commitments-spec + uiux App. F.
+// One product noun, used two ways: Offer once produces an ordinary Offer with
+// commitmentSeriesId == 0, and Offer over time produces one pool-scoped
+// CommitmentSeries that gardener copy calls an ongoing Offer. Saved details are
+// reusable signed offchain metadata and input to either path, never a second
+// product object. An available place is an already-created Offered instance
+// whose provider slot was reserved at creation, and the Story is exact
+// linked-instance history. SB-35/SB-36 stay reserved for the exchange and
+// template source journeys documented in prototypes.md, so this set starts at 37.
+// ---------------------------------------------------------------------------
+{ id: "sb37", n: 37, title: "Save offer details, then offer it over time", persona: "Gardener (Maria)", scen: "S15 · ongoing Offer creation", reviewVisible: true, reviewGroup: "client", steps: [
+  { f: "W32@empty", hot: { h: "w32.add-first" }, who: "Maria", st: "Nothing saved yet", ev: "the personal surface starts empty and asks for nothing; saved details carry no obligation and no pool state" },
+  { f: "W32@compose", hot: { h: "w32.save", l: "Save privately" }, who: "Maria", st: "Details draft", ev: "captures what she is offering, one line about it, and the unit; saving is signed offchain, never a contract call" },
+  { f: "W32@saved", hot: { h: "w32.use-saved", l: "Use these details" }, who: "Maria", st: "Details saved (private)", ev: "the newly saved list contains only private reusable metadata: no garden, pool state, ongoing Offer, or availability has been fabricated", br: [{ l: "Saving and drafts", to: "sb38:0" }] },
+  { f: "W32@choose-path", hot: { h: "w32.offer-over-time", l: "Offer it over time" }, who: "Maria", st: "Details saved (private)", ev: "the two paths are named once, in one place: offer it once as an ordinary promise, or offer it over time in one garden", br: [{ l: "Offer once — prefilled ordinary Offer", to: "screen:W3@saved-offer-edit" }] },
+  { f: "W33@garden", hot: { h: "w33.continue-garden", l: "Continue" }, who: "Maria", st: "Pool Ready or Open", ev: "the ongoing Offer binds to exactly one garden; offering the same thing elsewhere becomes a separate series with its own history" },
+  { f: "W33@terms", hot: { h: "w33.continue-terms", l: "Continue" }, who: "Maria", st: "Series draft (local)", ev: "series metadata only — what people receive and the unit label; places, counts, and cycle scope belong to the instances created later" },
+  { f: "W33@review", hot: { h: "w33.create", l: "Start offering over time" }, who: "Maria", st: "Series draft (local)", ev: "queues createCommitmentSeries; the caller becomes immutable creator and initial current holder" },
+  { f: "W33@queued", hot: null, who: "Maria", st: "Queued", ev: "no availability exists yet — a series that has not synced is not Active, and nothing is claimable" },
+  { f: "W34@active-none", hot: { h: "w34.add-places", l: "Add places" }, who: "Maria", st: "Series Active · 0 places", ev: "sync → CommitmentSeriesCreated · the ongoing Offer exists with nothing open, which is a real and honest state" },
+  { f: "W35@compose", hot: { h: "w35.submit", l: "Add 2 places" }, who: "Maria", st: "Series Active", ev: "a finite batch: each place becomes one ordinary Offer instance repeating the current terms" },
+  { f: "W35@queued", hot: null, who: "Maria", st: "Queued", ev: "places are not shown as available until each creation has synced and reserved its provider slot" },
+  { f: "W34@active-two", hot: null, who: "Maria", st: "Series Active · 2 places", ev: "each place registers its class and commits the full quota at creation, so two displayed places are two genuinely reserved promises" },
+]},
+
+{ id: "sb38", n: 38, title: "Save the details, then offer over time offline", persona: "Gardener (Maria) with no signal", scen: "S15 · persistence and dependent drafts", reviewVisible: true, reviewGroup: "client", steps: [
+  { f: "W32@draft-unsaved", hot: { h: "w32.persistence", l: "How saving works" }, who: "Maria", st: "Draft on this device", ev: "an unsaved draft is honest about its limit: it lives in this browser only" },
+  { f: "W32@persistence", hot: { h: "w32.persistence-done", l: "Got it" }, who: "Maria", ev: "names the three states plainly — saved privately, draft on this device, offered in a garden — without claiming the saved details are on-chain" },
+  { f: "W32@draft-unsaved", hot: { h: "w32.save-draft", l: "Save privately" }, who: "Maria", st: "Draft on this device", ev: "promotes the local draft to signed offchain storage so it survives a change of phone" },
+  { f: "W32@saved", hot: null, who: "Maria", st: "Details saved (private)", ev: "the saved details are now portable across devices and still private; no ongoing Offer or available place appears merely because she saved them" },
+  { f: "W33@queued", hot: null, who: "Maria", st: "Series queued", ev: "the ongoing Offer is queued while offline; it is not Active and shows no availability" },
+  { f: "W33@place-waiting", hot: null, who: "Maria", st: "Place draft waiting", ev: "a place drafted before its series exists waits on explicit queue state — it consumes no retry budget and never guesses transaction order" },
+  { f: "W34@active-two", hot: null, who: "Maria", st: "Series Active · 2 places", ev: "after the series receipt is indexed the dependent places submit as ordinary commitments; discarding the series instead would keep the place drafts recoverable" },
+]},
+
+{ id: "sb39", n: 39, title: "Take up one place that is already open", persona: "Recipient (João)", scen: "S15 · claim accepts a pre-created place", reviewVisible: true, reviewGroup: "client", steps: [
+  { f: "W34@claimant-view", hot: { h: "w34.claim", l: "Take up one place" }, who: "João", st: "2 places Offered", ev: "another member sees the ongoing Offer, its approved pool context, and two available places; Maria's personal Story and kept count remain private to her and current stewards" },
+  { f: "W2@accepted", hot: null, who: "João", st: "Accepted", ev: "the claim ACCEPTS one existing Offered instance: no new place is created, and the provider slot reserved at creation is not consumed a second time" },
+  { f: "W34@active-one", hot: null, who: "Maria", st: "Series Active · 1 place", ev: "availability drops from two to one because one real instance left the Offered set; the series itself did not transition" },
+]},
+
+{ id: "sb40", n: 40, title: "See what an ongoing Offer has become", persona: "Gardener (Maria)", scen: "S15 · Story and pool participation history", reviewVisible: true, reviewGroup: "client", steps: [
+  { f: "W34@active-two", hot: { h: "w34.open-story", l: "See the whole story" }, who: "Maria", st: "Series Active", ev: "the detail groups records without rewriting them" },
+  { f: "W34@story", hot: { h: "w34.story-row", l: "Open one kept promise" }, who: "Maria", ev: "kept 12 times across 5 cycles is exact and event-derived; withdrawn, ran-out, and reviewed-then-kept records stay visible as records rather than penalties" },
+  { f: "W2@fulfilled", hot: null, who: "Maria", st: "Fulfilled", ev: "every story row is an ordinary immutable commitment with its own evidence and confirmation" },
+  { f: "W34@participation", hot: null, who: "Maria", ev: "the series Story and the member's pool participation history are drawn as two clearly separate views; a reported participant count is labelled as coming from evidence, never presented as protocol data" },
+  { f: "W34@ask-again", hot: { h: "w34.ask-again-not-now", l: "Not this season" }, who: "Maria", st: "New cycle open", ev: "the default posture is ask me again next cycle — the protocol creates no obligation on a schedule" },
+  { f: "W34@active-none", hot: null, who: "Maria", st: "Series Active · 0 places", ev: "declining creates nothing and changes neither this offer nor its story" },
+]},
+
+{ id: "sb41", n: 41, title: "Rest it, resume it, retire it", persona: "Gardener (Maria)", scen: "S15 · lifecycle without erasure", reviewVisible: true, reviewGroup: "client", steps: [
+  { f: "W34@active-two", hot: { h: "w34.succession", l: "Sharing and handing on — later" }, who: "Maria", st: "Series Active", ev: "the labelled horizon opens a read-only later preview; none of the future actions is presented as an available control" },
+  { f: "W34@succession", hot: null, who: "Maria", ev: "co-holding, teaching alongside, handing on, starting a linked offer, and garden-held stewardship are drawn as clearly labelled later work; the initial contract exposes rest, resume, and retire only" },
+  { f: "W34@active-two", hot: { h: "w34.rest", l: "Rest it for now" }, who: "Maria", st: "Series Active", ev: "restCommitmentSeries blocks new places" },
+  { f: "W34@resting", hot: { h: "w34.resume", l: "Start offering again" }, who: "Maria", st: "Series Resting", ev: "the promise João already took up carries on unchanged and the story stays whole — resting removes availability, never history" },
+  { f: "W34@active-none", hot: null, who: "Maria", st: "Series Active · 0 places", ev: "resuming returns the series to Active and deliberately creates no availability by itself" },
+  { f: "W34@retire-confirm", hot: { h: "w34.retire-confirm", l: "Retire it" }, who: "Maria", st: "Series Active", ev: "the confirmation names the terminal effect and takes no reason, because retireCommitmentSeries has no reason parameter" },
+  { f: "W34@retired", hot: null, who: "Maria", st: "Series Retired", ev: "terminal: promises already made keep their state and history, the story remains readable, and Maria's saved details stay privately stored" },
+]},
 ];

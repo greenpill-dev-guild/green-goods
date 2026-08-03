@@ -287,8 +287,10 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-assertBuild(visibleScreens.length === 25, `expected 25 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 10 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 10 client / 13 admin / 2 editorial`);
+// 29 = the 25-screen August set plus the four standing-commitment screens
+// (W32 saved offer details, W33 offer over time, W34 ongoing Offer detail, W35 add places).
+assertBuild(visibleScreens.length === 29, `expected 29 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 14 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 14 client / 13 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
@@ -689,6 +691,45 @@ ${sections}
 var DATA = ${PLAYER_DATA};
 ${PLAYER_JS}
 </script></body></html>`;
+
+// Vocabulary and state-truth regressions here are product-model defects, not
+// presentation warnings. Keep them as hard build failures so an old artifact
+// cannot be republished after the one-noun Offer correction.
+const staleOfferNounPatterns: [RegExp, string][] = [
+  [/\bpractice-template\b/i, "practice-template"],
+  [/\bpractice templates?\b/i, "practice template"],
+  [/\bpractice-first\b/i, "practice-first"],
+  [/\bpractice library\b/i, "practice library"],
+  [/\bstanding-practice-remains\b/i, "standing-practice-remains"],
+  [/\bstart from a practice\b/i, "start from a practice"],
+];
+for (const [pattern, label] of staleOfferNounPatterns) {
+  if (pattern.test(html)) throw new Error(`Offer vocabulary regression: generated artifact still contains "${label}".`);
+}
+
+const stateHtml = (screenId: string, stateId: string) =>
+  SCREENS.find((screen) => screen.id === screenId)?.states.find((state) => state.id === stateId)?.html ?? "";
+const claimantView = stateHtml("W34", "claimant-view");
+if (!claimantView || claimantView.includes("12 times across 5 cycles") || claimantView.includes("Kept here")) {
+  throw new Error("Privacy regression: W34@claimant-view exposes the holder's personal Story or exact kept count.");
+}
+for (const stateId of ["review", "active-two"]) {
+  const screenId = stateId === "review" ? "W33" : "W34";
+  if (!stateHtml(screenId, stateId).includes("Ask me again next cycle")) {
+    throw new Error(`Renewal-copy regression: ${screenId}@${stateId} lost the exact phrase "Ask me again next cycle".`);
+  }
+}
+const requiredTargets: [string, string][] = [
+  ["w32.offer-once", "screen:W3@saved-offer-edit"],
+  ["w33.queued-done", "screen:W32@series-queued"],
+  ["w33.waiting-done", "screen:W32@series-queued-place-waiting"],
+  ["w35.queued-done", "screen:W34@places-queued"],
+];
+for (const [hotId, target] of requiredTargets) {
+  if (HOTS[hotId]?.to !== target) {
+    throw new Error(`State-coherence regression: ${hotId} must target ${target}.`);
+  }
+}
 
 writeFileSync(OUT, html);
 const byteSize = new TextEncoder().encode(html).byteLength;

@@ -5,7 +5,7 @@
 - **Accountable owner**: Afolabi Aiyeloja
 - **Linear mirror**: COM-11 (formerly PRD-735) under PRD-650
 - **Operational checkpoint**: 2026-09-30
-- **Last updated**: 2026-07-23
+- **Last updated**: 2026-08-02
 
 ## 1. Authority and boundary
 
@@ -24,6 +24,9 @@ Those remain operational decisions in the blocked `settlement_evidence` lane.
 
 Companion authorities remain separate:
 
+- `standing-commitments-spec.md` owns Offer once/over time, internal series, availability, Story,
+  trust, and succession
+  boundaries.
 - `contract-spec.md` owns commitment state and permissions.
 - `settlement-spec.md` owns transport, execution, acknowledgment, and the mechanical circulation
   definitions in §11.
@@ -134,7 +137,12 @@ not a numeric composite:
 | Were failures repaired fairly? | Repair receipts, time to resolution, outcome, appeal/re-entry state | Closing a ticket is not evidence that trust or participation was restored |
 | Did G$ circulate meaningfully? | Cohort-based, non-duplicative measures from `settlement-spec.md` §11 | Raw transfer count or volume is not healthy circulation |
 | Were benefits and burdens distributed without public ranking? | Garden/cycle aggregates, concentration review, qualitative context | No participant score, leaderboard, or public comparative ranking |
-| After a commitment was fulfilled, what reciprocal relation remained among the contributor, recipient, group, and pool? | Qualitative evidence (§6.2) per garden; counter-commitment pair records; standing read-model consultation during claim acceptance; rotation-template turns where a garden opted in | Added 2026-08-01 (Grassroots Economics review; plan register #73). Distinguishes evidence-backed project contribution (only a certificate or gated reward remains) from ROLA-like reciprocity (fulfillment changes later access, obligation, rotation, or collective capacity). Observational only — it never scores or ranks anyone, and a low-reciprocity answer is a valid design finding, not a garden failure |
+| After a commitment was fulfilled, what reciprocal relation remained among the contributor, recipient, group, and pool? | Qualitative evidence (§6.2) per garden; counter-commitment pair records; series Story and pool participation history consulted as separate records; rotation-template turns where a garden opted in | Added 2026-08-01 and clarified 2026-08-02. Distinguishes evidence-backed project contribution from ROLA-like reciprocity. Observational only — it never scores or ranks anyone, and a low-reciprocity answer is a valid design finding, not a garden failure |
+| Did an Offer used over time become genuinely dependable through repeated fulfillment? | Exact linked-instance outcomes and fulfilled-cycle IDs plus recipient/member qualitative evidence | Repetition is necessary evidence, not sufficient proof of trust or impact; do not substitute “kept N times” for how others actually planned around the Offer |
+| Did repeating the Offer create hidden burden or pressure to continue? | Rest/ask-again/retire use, confidential provider pulse, cap saturation, unresolved work, safe-refusal evidence | More instances or fewer rests is not automatically better; Resting is not a negative outcome |
+| Did people understand Offer once, Offer over time, saved Offer metadata, and available place? | Observed task comprehension, correction/error notes, device-change persistence check, claim walkthrough | Product comprehension is not inferred from clicks; saved Offer metadata may not be described as onchain or as an obligation |
+| Could people depend on the displayed availability? | Offered-instance count matched reserved provider slots; claims succeeded without capacity races; qualitative recipient evidence | Drafts, desired quantity, failed sync, or series metadata never count as availability |
+| Did Story visibility support trust without creating reputation pressure? | Viewer-role audit, small-pool privacy review, qualitative member/steward evidence, absence of scores/ranks/comparisons | Public or cross-pool personal history is not a pilot success condition |
 | Can findings be shared without exposing participants? | Publication tier, consent, suppression, linkability, retention, and access review | A UI display threshold alone is not a research privacy decision |
 
 ## 4. Units of analysis

@@ -1415,6 +1415,11 @@
           "CLAIM_DECLINED",
           "ACCEPTED",
           "EXCHANGE_ACCEPTED",
+          "COMMITMENT_SERIES_CREATED",
+          "COMMITMENT_SERIES_METADATA_UPDATED",
+          "COMMITMENT_SERIES_RESTED",
+          "COMMITMENT_SERIES_RESUMED",
+          "COMMITMENT_SERIES_RETIRED",
           "CONTRIBUTOR_ADDED",
           "CONTRIBUTOR_REMOVED",
           "CONTRIBUTOR_REQUIREMENT_ASSIGNED",
@@ -1458,6 +1463,23 @@
       "planned_anchor": {
         "file": "packages/indexer/schema.graphql",
         "symbol": "CommitmentUnitScope"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-series-state",
+      "status": "spec",
+      "definition": "Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.",
+      "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["NONE", "ACTIVE", "RESTING", "RETIRED"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CommitmentSeriesState"
       },
       "representations": [],
       "mappings": []
@@ -2167,6 +2189,20 @@
       "pattern": "\\bpromiseKeptRate\\s*:",
       "expect": "absent",
       "note": "When promiseKeptRate lands, add the commitmentsFulfilled/commitmentsDue metric definition to the ontology in the same change."
+    },
+    {
+      "id": "commitment-series-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "type\\s+CommitmentSeries\\b",
+      "expect": "absent",
+      "note": "When CommitmentSeries lands, convert its spec vocabulary and entity relationships to live ontology representations in the same change."
+    },
+    {
+      "id": "commitment-series-cycle-summary-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "type\\s+CommitmentSeriesCycleSummary\\b",
+      "expect": "absent",
+      "note": "When the per-cycle series Story summary lands, add its canonical entity mapping and exact count definitions in the same change."
     }
   ],
   "known_issues": [

@@ -270,3 +270,16 @@ lane and must be created before their commands can pass.
   mismatched snapshot rejection, reasoned payment correction, all-retained zero-child finalization,
   idempotent preparation, stable pointer after child/batch cancellation, duplicate-recipient batch
   rejection, partial payout, retry, and complete payout.
+
+## Binding CommitmentSeries amendment — 2026-08-02
+
+- Add `CommitmentSeries`, `CommitmentSeriesCycleSummary`, the nullable Commitment series
+  relationship, series event handlers, and composite ID helpers exactly as specified in
+  `standing-commitments-spec.md`.
+- Reuse the cursor-ordered reversible lifecycle projection to maintain exact current state counts
+  for the series and its non-zero-cycle summary, including dispute reopen/restore paths. Append a
+  fulfilled cycle ID once. Cycle zero never creates a series-cycle row.
+- Available count derives from current capacity-backed Offered instances. Do not add participant
+  counts, rates, rankings, reliability fields, cross-pool groupings, or mixed-label unit sums.
+- RED/GREEN includes inverted creation/lifecycle order, duplicate delivery, prospective metadata,
+  mixed outcomes across cycles, and exact replay convergence.

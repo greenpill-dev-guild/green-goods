@@ -38,6 +38,10 @@ export type CommitmentLifecycle =
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
   | "Expired" | "Disputed" | "Reconciled";
 export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "StewardCaptured";
+// Ongoing Offer (`CommitmentSeries`) on-chain lifecycle. `None` is the
+// storage sentinel and never renders. Pending/queued creation is not a series
+// state — it is the ordinary pre-sync overlay carried by HotMeta.pendingSync.
+export type CommitmentSeriesLifecycle = "Active" | "Resting" | "Retired";
 export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
 export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
 // Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
@@ -56,6 +60,7 @@ export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" |
 export type StateFacts = {
   pool?: PoolLifecycle;
   cycle?: CycleLifecycle;
+  series?: CommitmentSeriesLifecycle;
   cycleLiveCommitments?: CycleLiveCommitments;
   commitment?: CommitmentLifecycle;
   kind?: CommitmentKind;
@@ -69,6 +74,12 @@ export type StateFacts = {
 };
 
 export type ContractCall =
+  // Ongoing Offer (CommitmentSeries) — initial ABI is create/metadata/rest/resume/
+  // retire only. Co-holder, apprenticeship, handover, fork, and community-held
+  // stewardship are follow-on consent events and deliberately absent here, so a
+  // drawn succession control cannot compile into a call that does not exist.
+  | "createCommitmentSeries" | "updateCommitmentSeriesMetadata"
+  | "restCommitmentSeries" | "resumeCommitmentSeries" | "retireCommitmentSeries"
   | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
   | "joinCommitment" | "leaveCommitment" | "addContributor" | "removeContributor"
   | "setContributorRequirement" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"

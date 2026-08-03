@@ -53,12 +53,12 @@ Sub-blocks moved with their parent: old `D2.0–D2.3` → `D5.0–D5.3`, `D6.0/D
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 33 assets, not a table of contents for this file: 26 named D-diagram sections (**D1–D26**, one number per section since the 2026-08-02 renumbering) render as **38 Architecture Mermaid blocks** below (D23's mapping and D25's family/recovery ledger also use tables), plus the un-numbered permission table, which renders on the Reference tab. D3 makes the accountability/recognition/payment separation explicit; D14 traces the numbers, D24 maps the Solidity surface, and D13 shows bilateral paired acceptance with the permanent no-coupling boundary. **Every D-section has exactly one row.**
+This is the cross-hub inventory of 34 assets, not a table of contents for this file: 27 named D-diagram sections (**D1–D27**, one number per section since the 2026-08-02 renumbering) render as **40 Architecture Mermaid blocks** below (D23's mapping and D25's family/recovery ledger also use tables), plus the un-numbered permission table, which renders on the Reference tab. D3 makes the accountability/recognition/payment separation explicit; D14 traces the numbers, D24 maps the Solidity surface, and D13 shows bilateral paired acceptance with the permanent no-coupling boundary. **Every D-section has exactly one row.**
 
 **Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling:
 
 - `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one — that is what gives D5/D10/D15/D21 their overview-plus-zoom shape and makes D25's views peers. Promoting sub-blocks to `###` would convert them into sections and dismantle the anchor and nav design.
-- The gallery routes this preamble, the coverage matrix, the permission table, and the appendix to its Reference tab, so the Architecture pane asserts 27 sections (including its hand-written intro) and the 38-block Mermaid count above.
+- The gallery routes this preamble, the coverage matrix, the permission table, and the appendix to its Reference tab, so the Architecture pane asserts 28 sections (including its hand-written intro) and the 40-block Mermaid count above.
 - markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives.
 - The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 16–17 resolve to the two `wireframes.md` files.
 - "Ready" means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
@@ -98,6 +98,7 @@ This is the cross-hub inventory of 33 assets, not a table of contents for this f
 | 31 | Value and recognition flow, worked Model 1 | contributors, stewards, funders, QA | How much goes where — the six-role split, the 20/80 passes, retention, and child payouts, traced with concrete numbers? | CP `contract-spec.md` §9.3–9.4; `settlement-spec.md` §3 | Ready: D14.0 + D14.1 | Added 2026-07-31 (round-2 feedback: the quantitative view was missing) | Mermaid parse + §9.3/§9.4 arithmetic cross-check |
 | 32 | Solidity surface — contracts, ownership, upgrade authority | contracts, security, release ops | Which contracts exist, who owns and upgrades each, and which authority edges connect them? | CP `contract-spec.md` §4/§7; `settlement-spec.md` §3; community-interface `spec.md` | Ready: D24 | Added 2026-07-31 (round-2 feedback: missing diagram type) | Mermaid parse + interface/ownership cross-read |
 | 33 | Bilateral exchange sequence | creators, contracts, indexer, client, QA | How does a one-way reference become one atomic paired start while all later promise lifecycles remain independent? | CP `contract-spec.md` decision 18 and §6.1; `uiux-spec.md` Appendix E.1 | Ready: D13 | Added 2026-08-01; multilateral and transferable execution remain reserved | Mermaid parse + exchange acceptance matrix |
+| 34 | Offer layers and honest capacity | client, contracts, indexer, QA | Which of saved offer details, the ongoing Offer (CommitmentSeries), an available place, and the Story owns each fact, and when is provider capacity actually reserved? | `standing-commitments-spec.md` §2–§5; `uiux-spec.md` Appendix F; `acceptance-matrix.md` §2.2 | Ready: D27 | Added 2026-08-02 with the series amendment; succession verbs beyond rest/resume/retire remain follow-on | Mermaid parse + acceptance §2.2 cross-read |
 
 **Keep subgraph titles short.** Mermaid wraps a cluster title at a fixed width (~200 px) but reserves height for a single line, so a longer title's second line renders *on top of* the nodes inside its own cluster. D1, D2, D23, and D25.0 each shipped that way once. Keep every `subgraph … ["…"]` label to roughly **22 characters** and let the reading guide carry the qualifier — that is why the boundary clusters in D2 read "Application boundary" rather than "Application boundary — queues intent, authorizes nothing". The gallery's render audit checks every cluster label against every node box and is the gate for this.
 
@@ -2144,6 +2145,97 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Celo command receive | Immutable implementation CCIP router only | Exact active/unexpired Arbitrum selector/sender peer, versioned tuple with `isBatch`, no token amounts, one-recipient unbatched or enabled/bounded batch shape, caps; stored result includes originating module/version and prevents duplicate G$ execution |
 | `retryAcknowledgment` / sponsored variant | Anyone with exact quoted CELO fee / executor owner | Stored result exists; resends use the stored originating module/version even after peer rotation; caller-funded path never consumes reserve, sponsored path preserves the onchain minimum, and neither calls the Safe route |
 | Arbitrum acknowledgment receive | Immutable implementation CCIP router only | Selector/executor/version equal the command's stored destination snapshot and remain active/unexpired globally; known originating command message, empty token amounts, consistent success/bounded failure code; terminal duplicates are emitted and ignored |
+
+## D27. Offer layers and honest capacity
+
+**How to read this**: two questions no other diagram answers — **which layer owns each fact**, and
+**when provider capacity is actually reserved**. Both are places the model gets misread: the first
+into "the saved details are on-chain", the second into "a claim creates the place". D27.0 reads top to
+bottom through four layers, with the signed-offchain saved details drawn as a planned dashed boundary
+because it is profile data rather than protocol state; D27.1 reads left to right and contrasts the
+two directions, marking the single moment on each side where capacity is committed. Node outlines
+follow the same built/planned encoding as the rest of this file. Everything drawn here is planned
+August scope: the series amendment is specified, not deployed. Owning architecture:
+`standing-commitments-spec.md` §2–§5.
+
+#### D27.0 Four layers, and what each one owns
+
+```mermaid
+flowchart TB
+  subgraph offchain ["Signed offchain"]
+    PR["Saved offer details<br/>reusable, private<br/>input to either path"]
+  end
+  subgraph module ["Pooling module"]
+    SE["Ongoing Offer<br/>internally CommitmentSeries<br/>Active · Resting · Retired"]
+    C1["Commitment instance<br/>own terms, own lifecycle"]
+    C2["Commitment instance<br/>own terms, own lifecycle"]
+  end
+  subgraph reg ["Registry"]
+    RC["Class per instance<br/>full quota committed<br/>one provider slot each"]
+  end
+  subgraph read ["Indexed read model"]
+    ST["Story<br/>exact counts<br/>fulfilled cycle IDs"]
+    PH["Pool participation<br/>history per member"]
+  end
+  PR -->|"explicit act: offer in a garden"| SE
+  SE -->|"commitmentSeriesId, validated"| C1
+  SE -->|"commitmentSeriesId, validated"| C2
+  C1 --> RC
+  C2 --> RC
+  C1 -->|"terminal outcomes"| ST
+  C2 -->|"terminal outcomes"| ST
+  SE --> ST
+  PH -.->|"different view, same member"| ST
+  classDef built fill:#edf3e8,stroke:#50784a,stroke-width:2px,color:#2a2722
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  class PR,SE,C1,C2,RC,ST planned
+  class PH built
+```
+
+Reading guide:
+
+- Saved details never become a contract type, and never a second product noun beside the Offer. The same details offered into two gardens produce two
+  independent series, and the protocol never merges them.
+- `commitmentSeriesId` is validated at creation: same pool, Active series, Offer direction,
+  `ClaimType.Individual`, and creator equal to `currentHolder`. Zero preserves the one-shot path.
+- The Story and the member's pool participation history are **different views**. Neither is a
+  score, and neither is compared across people.
+- Resting and retiring act only on the series. No instance is cancelled, transferred, or rewritten.
+
+#### D27.1 When capacity is reserved — Offer versus Request
+
+```mermaid
+flowchart LR
+  subgraph offer ["Offer direction"]
+    O1["createCommitment<br/>creator is the lead"] -->|"registerClass + commitUnits"| O2["Offered<br/>capacity reserved"]
+    O2 -->|"claim accepts it"| O3["Accepted<br/>no second commit"]
+    O2 -->|"cancel or expire"| O4["releaseUnits<br/>slot returned"]
+    O3 -->|"fulfil"| O5["fulfillUnits"]
+  end
+  subgraph request ["Request direction"]
+    R1["createCommitment<br/>provider unknown"] --> R2["Requested<br/>class Registered only"]
+    R2 -->|"a provider accepts"| R3["commitUnits<br/>capacity reserved now"]
+    R2 -->|"cancel or expire"| R4["no registry effect"]
+  end
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  class O1,O2,O3,O4,O5,R1,R2,R3,R4 planned
+```
+
+Why the asymmetry is the honest choice: an Offer's creator is already the accountable lead, so the
+capacity behind a displayed place can be held the moment the place exists. Without that, two
+displayed places could compete for one remaining provider slot and fail only at claim time — the
+person would see availability that was never real. A Request has no provider at creation, so
+nothing can be reserved until one accepts.
+
+Consequences carried by the rest of the system:
+
+- `providerOpenCommitmentCount` counts every non-terminal provider obligation — Offered Offers as
+  well as Accepted Offers and Requests. It still never counts contributors.
+- Atomic bilateral `acceptExchange` revalidates both sides but performs **no** second registry
+  commit and consumes **no** second provider slot, because both Offered classes are already
+  Committed.
+- Availability shown anywhere in the product is a count of currently Offered, capacity-backed
+  instances. A queued place is not available until its creation has synced.
 
 ## Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)
 

@@ -327,7 +327,7 @@ Applied-history touch-up to perform in the same pass: the previously applied nar
 `CommitmentRegistry` in the live Linear document/description the next time that body is written.
 Apply the one-word update in Linear only; the applied section text in this file stays as recorded.
 
-### PRD-650 — Exchange, practice templates, and plain language join the app lane
+### PRD-650 — Exchange, Offer templates, and plain language join the app lane
 
 The August app roadmap gains three scope-locked additions with no new Solidity: exchange-pair UX
 on the shipped commitment primitives, a practice-first template library, and the noun-reduction

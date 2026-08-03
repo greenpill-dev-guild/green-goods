@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
 **Created**: 2026-07-03
-**Scope**: PR-openable UI/UX specification for the August release (client PWA, admin, editorial website) plus the September community interface at wireframe depth. Builds on `reports/corrections-log.md` (verified IA facts) and the 27 locked decisions from the 2026-07-03 alignment session. Contract-facing names (events, fields, module functions) defer to `contract-spec.md` in this folder; where this spec names a module concept it is a reference, not a definition.
+**Scope**: PR-openable UI/UX specification for the August release (client PWA, admin, editorial website) plus the September community interface at wireframe depth. Builds on `reports/corrections-log.md` (verified IA facts), `standing-commitments-spec.md` (Offer once/over-time, internal-series, and instance architecture), and the locked decisions from the 2026-07-03 alignment session and later amendments. Contract-facing names (events, fields, module functions) defer to `contract-spec.md` in this folder; where this spec names a module concept it is a reference, not a definition.
 **Grounding rule**: every claim about existing UI carries a repo file path. Everything else is marked NET-NEW.
 
 ---
@@ -33,7 +33,7 @@ Contributor self-confirmation is blocked everywhere, including both fallback pat
 
 ## 2. The one-pool UX invariant
 
-One pool UX across capability levels (UX Brief, locked). The base surface every gardener sees: offer support, request help, **offer something in exchange**, submit evidence, confirm promise kept, see open and fulfilled commitments, see readiness plus season/campaign progress. Creation is practice-first: a template picker precedes the blank offer/request form while always preserving a plain blank-form path. August G$ settlement status and operator queue surfaces are additive through `SettlementModule` and `settlementAccounts[garden].active`; app lanes must not flip the pooling module's reserved `settlementEnabled` flag. Transferable-voucher controls are progressively disclosed later behind `settlementEnabled`; they are never a separate product, tab, or app. Every screen in this spec is designed so a settlement row can be added without moving anything.
+One pool UX across capability levels (UX Brief, locked). The base surface every gardener sees: name **Things I can offer**, choose **Offer once** or **Offer over time**, create finite available Offer instances for the ongoing path, offer or request one-shot support, **offer something in exchange**, submit evidence, confirm promise kept, see open and fulfilled commitments, and see readiness plus season/campaign progress. The template picker remains a fast path into editable Offer metadata; it never substitutes for the one-time/ongoing choice or the internal pool-scoped `CommitmentSeries`. A plain blank path always remains. August G$ settlement status and operator queue surfaces are additive through `SettlementModule` and `settlementAccounts[garden].active`; app lanes must not flip the pooling module's reserved `settlementEnabled` flag. Transferable-voucher controls are progressively disclosed later behind `settlementEnabled`; they are never a separate product, tab, or app. Every screen in this spec is designed so a settlement row can be added without moving anything.
 
 ## 3. Copy system
 
@@ -149,7 +149,7 @@ Empty pool (Open but zero commitments): planted-seed illustration slot + two pri
 
 ### 5.4 Offer/request creation flow NET-NEW (`/home/:id/pool/new`)
 
-Full-screen flow reusing the work-flow chrome pattern (`TopNav` + `FormProgress`, verified in `packages/client/src/views/Garden/index.tsx:41-44`). Appendix E.2 adds a practice-template picker before this form; choosing **Start blank** enters the same flow with no hidden defaults. Direction (offer vs request) comes from the entry CTA or selected template and stays editable in step 1. Steps:
+Full-screen flow reusing the work-flow chrome pattern (`TopNav` + `FormProgress`, verified in `packages/client/src/views/Garden/index.tsx:41-44`). Appendix E.2 adds an offer-template picker before this form; choosing **Start blank** enters the same flow with no hidden defaults. Direction (offer vs request) comes from the entry CTA or selected template and stays editable in step 1. Steps:
 
 1. **What, team, and cycle scope**: direction, commitment type (DomainImpact or SupportService for gardener creation; SeasonCampaign and StewardCaptured are console-seeded only), immutable contributor policy (`Open` or `LeadManaged`) with its join-rule explanation, claim type (Individual for gardener creation), claim mode from the context default, title, note, and one explicit binding: an Open Season, one Open Campaign, or cycle-less where allowed. Seeded cycles are operator-only. Entry from a scoped pool filter prefills that cycle but keeps it visible and editable; the form never guesses from “current cycle.”
 2. **How much and proof**: unit label, target quantity, `requiresAssessment`, due date or cycle deadline default. DomainImpact requires a positive approved-work count per bound action (set beside each action in step 3); SupportService may explicitly carry no work requirement and then requires evidence before Ready.
@@ -210,15 +210,16 @@ Full Warm Earth amplification per the scaffold's grammar; `prefers-reduced-motio
 
 ### 5.11 Per-action offline behavior (core deliverable)
 
-Queue substrate (verified): IndexedDB + XState, exactly two kinds today (`work`, `approval`; `packages/shared/src/types/job-queue.ts:89-92`), `MAX_RETRIES = 5` (`packages/shared/src/modules/job-queue/index.ts:88,247-248`), kind dispatch is a branch in `processJob` (`index.ts:277-288`), executors in `modules/job-queue/job-executors.ts`. New offline kinds (`commitment`, `claim`, `evidence`, `workLink`, `confirmation`) extend `JobKindMap` and the dispatch branch; `transfer` is a shared online wallet action kind that bypasses the offline field queue. Naming follows the existing single-noun convention.
+Queue substrate (verified): IndexedDB + XState, exactly two kinds today (`work`, `approval`; `packages/shared/src/types/job-queue.ts:89-92`), `MAX_RETRIES = 5` (`packages/shared/src/modules/job-queue/index.ts:88,247-248`), kind dispatch is a branch in `processJob` (`index.ts:277-288`), executors in `modules/job-queue/job-executors.ts`. New offline kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) extend `JobKindMap` and the dispatch branch; `transfer` is a shared online wallet action kind that bypasses the offline field queue. Naming follows the existing single-noun convention.
 
-Membership wait (register #34c): all five pool job kinds run a pre-flight membership check before their first send attempt; a job whose account holds no garden hat enters `waiting_for_hat` — consuming no retries — and resumes automatically when the membership event lands (the join-request approval of register #35 is the canonical trigger). The ≥99% offline-sync metric excludes time in this state (`acceptance-matrix.md` §6).
+Membership wait (register #34c): all six pool job kinds run a pre-flight membership check before their first send attempt; a job whose account holds no garden hat enters `waiting_for_hat` — consuming no retries — and resumes automatically when the membership event lands (the join-request approval of register #35 is the canonical trigger). The ≥99% offline-sync metric excludes time in this state (`acceptance-matrix.md` §6).
 
 NET-NEW job kinds and per-action behavior:
 
 | Action | Kind | Payload sketch (all addresses `Address`) | Optimistic UI | Queued chrome | Retry/failure (MAX_RETRIES 5) | Sync-complete invalidation |
 |---|---|---|---|---|---|---|
-| Create offer / request | `commitment` | Common fields are `{ poolId, cycleId, gardenAddress, direction, claimType, claimMode, contributorPolicy, onBehalfOf, title, note, unitLabel, targetUnits, requiresAssessment, dueDate, metadataCID, needUID, confirmers: Address[], confirmationThreshold, protocolFallbackEnabled, reward }`. The authoritative shape is a discriminated union: DomainImpact adds `{ commitmentType: "DomainImpact", requirements: Array<{ actionUID: bigint, requiredCount: number }> }` and accepts no caller-authored `domainTags`; the builder omits them and the executor rejects/ignores any stale value because the contract derives domains from ActionRegistry. Evidence-only kinds add `{ commitmentType: "SupportService"\|"SeasonCampaign"\|"StewardCaptured", requirements: [], domainTags: number[] }`, preserving their optional validated tags. The queue builder and executor preserve every requirement row in order, including valid action UID `0`, and preserve the explicit false/true fallback selection without inferring it from pool or user role. `cycleId=0`, zero address, empty arrays, zero UID, false fallback, and zero reward are explicit sentinels, never omitted defaults. Builder/executor tests assert exact round-trip equality, DomainImpact rejection of caller tags, evidence-only tag preservation, and fallback opt-in preservation. | Card appears in selected cycle scope + mine with Offered/Requested chip | Queued badge; SyncStatusBar count | Failed chip + retry/discard after 5 attempts; `parseContractError` | pool commitments/mine/stats |
+| Create ongoing Offer series | `commitmentSeries` | `{ clientSeriesId, poolId, gardenAddress, metadataCID }`; stable `clientSeriesId` is the dependency key for drafts created before the receipt-derived onchain series ID exists | Ongoing Offer card appears in pending state; no available places exist until their own Offer jobs are queued | Queued badge; dependent Commitment drafts explain “waiting for your ongoing offer to sync” | Failed series remains retryable/discardable; dependent drafts wait without consuming retry budget and remain recoverable | series, series list, saved Offer links |
+| Create offer / request | `commitment` | Common fields are `{ poolId, cycleId, commitmentSeriesId: bigint | 0, clientSeriesId?: string, gardenAddress, direction, claimType, claimMode, contributorPolicy, onBehalfOf, title, note, unitLabel, targetUnits, requiresAssessment, dueDate, metadataCID, needUID, confirmers: Address[], confirmationThreshold, protocolFallbackEnabled, reward }`. `clientSeriesId` is local dependency state only; the executor submits the materialized onchain ID. The authoritative shape is a discriminated union: DomainImpact adds `{ commitmentType: "DomainImpact", requirements: Array<{ actionUID: bigint, requiredCount: number }> }` and accepts no caller-authored `domainTags`; the builder omits them and the executor rejects/ignores any stale value because the contract derives domains from ActionRegistry. Evidence-only kinds add `{ commitmentType: "SupportService"\|"SeasonCampaign"\|"StewardCaptured", requirements: [], domainTags: number[] }`, preserving their optional validated tags. The queue builder and executor preserve every requirement row in order, including valid action UID `0`, and preserve the explicit false/true fallback selection without inferring it from pool or user role. `cycleId=0`, `commitmentSeriesId=0`, zero address, empty arrays, zero UID, false fallback, and zero reward are explicit sentinels, never omitted defaults. Builder/executor tests assert exact round-trip equality, series dependency materialization, DomainImpact rejection of caller tags, evidence-only tag preservation, and fallback opt-in preservation. | Card appears in selected cycle scope + mine with Offered/Requested chip; an Offer counts as available only after its own creation sync reserves capacity | Queued badge; SyncStatusBar count | Failed chip + retry/discard after 5 attempts; `parseContractError` | pool commitments/mine/stats/series |
 | Claim commitment | `claim` | `{ commitmentId, poolId, kind: "garden"\|"individual", gardenContext }`. Executor rejects `kind != stored claimType`. Individual derives `claimant=requestedBy=userAddress`; Garden derives `claimant=gardenContext`, `requestedBy=userAddress` after operator authorization. Neither identity may equal the commitment creator; the builder disables/rejects creator-operated Garden requests, and ApprovalGated acceptance rechecks the stored requester. Accept/decline are separate online admin mutations keyed by canonical claimant. | OPEN: Accepted locally. APPROVAL_GATED: Pending row with canonical claimant + requestedBy | Queued badge; indexed outcome replaces optimistic state | Pre-event failure reverts row; Declined/Superseded are event outcomes, not queue failures | commitment, requests, requestsByClaimant |
 | Attach lightweight evidence | `evidence` | `{ commitmentId, gardenAddress, creditedContributors: Address[], note?, link?, media?: File[] }` (files serialized per `SerializedFileData`). Builder validates 1–`MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` unique active roster addresses and persists their exact order. After upload, the executor calls `attachEvidence(commitmentId, cid, creditedContributors)`; retries reuse the serialized vector and never infer recipients from the current roster. | Evidence row appears with uploading state and named credited contributors | Row-level spinner + queued badge; media and attribution held in IndexedDB | Row failed state, retry per row; media/attribution never silently dropped | `queryKeys.pools.commitment(commitmentId)` |
 | Link work to commitment | `workLink` | `{ commitmentId, workUID, requirementIndex, gardenAddress }` (or deferred: `meta.{ commitmentId, requirementIndex }` on a `work` job spawns this after work syncs). The builder resolves the selected requirement row and the executor forwards that exact index; repeated action UIDs never use first-match behavior. | Linked-work row appears with pending chip | Chip "linking" | Row failed state + retry; work itself is unaffected | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.works.*` (existing family) |
@@ -453,7 +454,7 @@ Every key ships en + es + pt (`packages/shared/src/i18n/en.json` + sibling local
 | `public.pool.*` | GardenDialog pool story + `/impact` promises section |
 | `community.*` | `packages/community` (new package, same shared i18n pipeline) |
 | `app.pool.exchange.*` / `cockpit.garden.pool.exchange.*` | pair picker, pair status, pool exchange feed, and acceptance summary |
-| `app.pool.templates.*` / `cockpit.garden.pool.templates.*` | practice-template names, one-line explanations, defaults, and locale naming notes |
+| `app.pool.templates.*` / `cockpit.garden.pool.templates.*` | offer-template names, one-line explanations, defaults, and locale naming notes |
 | `app.pool.terms.*` / `cockpit.garden.pool.terms.*` / `public.pool.terms.*` | first-exposure plain meanings and recognition/settlement explanations |
 
 All copy in these families passes `bun run lint:vocab` (§3).
@@ -471,7 +472,7 @@ PostHog project routing per repo rule: client PWA + editorial + community events
 - `cycle_opened` / `cycle_closed` / `cycle_composted` {cycle_type, allocation_preset}
 - `reward_paid_recorded` {rail: "cookie_jar"|"treasury"}
 - Community-interface events are owned by `.plans/active/community-interface/spec.md` §12 (`need_created`, `need_signal_created`, `need_status_set`, `seeded_from_need`, and related events); this spec does not define a second signal vocabulary.
-- Offline queue health rides the existing job analytics (`packages/shared/src/modules/job-queue/job-analytics.ts`): the five offline queue kinds inherit job_added/completed/failed tracking automatically. Those events exclude raw wallet and garden addresses, local job/session IDs, transaction hashes, raw errors, and address-bearing breadcrumbs; only non-identifying queue kind/state, bounded counts, timing, chain, action UID, and local health metadata may leave the device. Online wallet `transfer` uses transaction lifecycle analytics, not job replay analytics.
+- Offline queue health rides the existing job analytics (`packages/shared/src/modules/job-queue/job-analytics.ts`): the six offline queue kinds inherit job_added/completed/failed tracking automatically. Those events exclude raw wallet and garden addresses, local job/session IDs, transaction hashes, raw errors, and address-bearing breadcrumbs; only non-identifying queue kind/state, bounded counts, timing, chain, action UID, and local health metadata may leave the device. Online wallet `transfer` uses transaction lifecycle analytics, not job replay analytics.
 
 Privacy boundary: no counterparty addresses, commitment titles, or reason texts in event properties; counts, enums, and booleans only (matches the Linear/PostHog privacy rule in CLAUDE.md).
 
@@ -720,7 +721,7 @@ own terms." — with no automatic action, matching decision 17's no-coupling rul
 never implies an atomic swap; vocabulary is "exchanged promises", never "swap", "trade", or
 "traded".
 
-### D.3 Standing read model (relational memory, never a score)
+### D.3 Pool participation history (relational memory, never a score)
 
 Consumes `PoolMemberHistory` through the viewer-aware shared selector (contract-spec §8.2), never through a raw entity query. The underlying row is derived from public onchain events, so steward + self visibility is a product-disclosure rule rather than a confidentiality claim: the selector requires the signed-in viewer plus current steward capability, participant rows render only for that steward or the member themself, and editorial surfaces receive aggregate selectors only. Two placements:
 
@@ -734,7 +735,7 @@ Consumes `PoolMemberHistory` through the viewer-aware shared selector (contract-
 
 Visibility follows the credit-console precedent (decision #21 privacy rules): per-member rows
 render only for pool stewards and the member themself; editorial/public surfaces consume
-pool-level aggregates only. No cross-pool merge of standing rows. `promiseKeptRate` remains a
+pool-level aggregates only. No cross-pool merge of member-history rows. `promiseKeptRate` remains a
 pool-level figure and is never displayed per person.
 
 ### D.4 Rotation Campaign template (ROLA pattern)
@@ -763,7 +764,7 @@ contract state. i18n: extend `app.pool.*` / `cockpit.*` with `value.*`, `exchang
 `standing.*`, `rotation.*`, `reserve.*` key families (en/es/pt, same coverage gate);
 banned-vocabulary rules apply throughout — no "price", "trade", "score", "rank", "leaderboard".
 
-## Appendix E: bilateral exchange, practice templates, and plain language (2026-08-01)
+## Appendix E: bilateral exchange, offer templates, and plain language (2026-08-01)
 
 This appendix implements plan Decision Log #43 / register #77. It extends the existing Tier 1
 text/voice and Tier 2 screen surfaces; it does not define a new app, component system, or market
@@ -824,9 +825,9 @@ not enter gardener copy: the literal tokens “swap”, “trade”, and “trad
 gardener-facing strings (the same ban as Appendix D §D.1), and “in exchange for” is the only
 exchange phrasing.
 
-### E.2 Practice-template library
+### E.2 Offer-template library
 
-Creation becomes practice-first. Before the blank offer/request form, the existing full-screen
+Creation becomes offer-first. Before the blank offer/request form, the existing full-screen
 flow renders a template picker built from `Surface`, `ListPrimitives`, existing direction/type
 chips, and a **Start blank** action. Templates are content/config only: they prefill existing
 fields, requirements, contributor policy, cycles, and exchange references. They add no chain
@@ -842,7 +843,7 @@ state, contract type, module call, or custom lifecycle.
 | Exchange circle | Two people prepare mirrored offers that can start together | Offer direction, Individual claim type, same-pool Offer picker, mirrored review, `counterCommitmentId`, `acceptExchange` path | translate the ordinary phrase “in exchange for”; do not import financial-venue vocabulary |
 
 Every template row carries its one-line explanation as visible text and accessible description;
-the title alone is not expected to explain the practice. Template defaults remain editable before
+the title alone is not expected to explain the Offer. Template defaults remain editable before
 submission, and validation names the exact field the person must complete.
 
 ### E.3 Plain-language pass: fewer nouns, meaning on first exposure
@@ -879,3 +880,104 @@ when action is needed. A failed state never renders a success phrase. Steward an
 surfaces keep the full seven-state operational set and its named recovery paths. Gardener copy
 never exposes router, acknowledgment, execution-key, or queue-state nouns before a person asks
 for technical detail.
+
+## Appendix F: Offer once and Offer over time (2026-08-02)
+
+This appendix consumes `standing-commitments-spec.md`. It removes `Practice` as a defined product
+or domain noun. The interface presents one familiar noun, Offer, with a choice to use it once or
+over time. `CommitmentSeries` remains the internal durable identity for an Offer used over time in
+one pool.
+
+### F.1 One Offer, two ways to use it
+
+| Choice or layer | Gardener-facing treatment | Never imply |
+|---|---|---|
+| Offer once | One ordinary Offer created from blank or saved metadata | a durable series or automatic recurrence |
+| Offer over time | A pool-scoped Offer detail headed by the Offer name and garden, with Active/Resting/Retired treatment | that the internal series is global across gardens |
+| Saved Offer metadata | Private reusable input that survives device change when signed and saved | a separate product object, onchain obligation, credential, score, or public portfolio |
+| Available place | One already-created Offered instance with reserved provider capacity | that claiming will create the place or that more capacity exists |
+| Story | Linked instance timeline and exact absolute counts | reliability percentage, ranking, participant count, or impact claim |
+
+The first exposure says: **“Offer once makes one promise. Offer over time lets you make the same
+offer available again in this garden.”** Product copy does not need to expose
+`CommitmentSeries`; technical diagnostics and data contracts may use it.
+
+### F.2 Client journey and routes
+
+The canonical artifact and implementation cover these placements:
+
+1. **Things I can offer** inside the existing wallet/profile-adjacent personal surface: private
+   saved Offer metadata and any Offers currently used over time. Saving survives device changes;
+   unsaved edits may remain local. “I’m learning this” is outside this Commitment Pooling flow.
+2. **Offer once / Offer over time** follows description or saved-metadata selection. The ongoing
+   choice opens a garden picker and creates the pool-scoped series before any available instances.
+3. **Ongoing Offer detail** at
+   `/home/:id/pool/standing/:seriesId`: title, garden, lifecycle state, current terms summary,
+   available-place count, **Add places**, **Rest**, **Resume**, **Retire**, and Story.
+4. **Add places** creates a finite batch of ordinary Offer instances. Each place repeats the
+   exact current terms and may choose a current Open cycle or cycle-less scope where allowed.
+   The UI does not display a place as available until its creation has synced and reserved the
+   provider slot.
+5. **Claim** accepts one existing Offered instance and routes to its ordinary Commitment detail.
+   The series detail remains the grouping surface; it never replaces the instance lifecycle.
+6. **Next cycle** defaults to **Ask me again next cycle**. The reminder proposes a new finite
+   batch; the protocol never auto-creates obligations. An explicit carry-forward preference may
+   prepare a draft, but current consent is required before queue submission.
+
+On a terminal one-time instance, **Offer again** copies terms to a new one-time draft. On a
+series-linked instance, it returns to the ongoing Offer detail and opens **Add places**.
+
+### F.3 Story and truthful evidence
+
+The Story leads with exact phrases such as:
+
+- “Kept 12 times across 5 cycles”
+- “2 places available now”
+- “Resting since August 2”
+
+“Kept” means Fulfilled Commitment instances, not verified impact. The timeline retains cancelled,
+expired, disputed, and repaired records without penalty styling. Participant counts appear only
+when labelled **Reported participants** and backed by evidence/assessment data; protocol history
+does not derive them. Story rows remain instance-level for the holder and current pool stewards,
+while other members see available Offers and approved pool-level context only. No cross-pool merge
+or public personal history is introduced.
+
+### F.4 Rest, resume, retire, and future succession
+
+- **Rest** stops new place creation and pool discovery for the ongoing Offer; it does not cancel
+  Offered or Accepted instances and does not hide the Story.
+- **Resume** returns the series to Active; it does not create availability.
+- **Retire** is terminal and requires a confirmation dialog that explicitly says existing
+  instances keep their state and history.
+- Co-holding, apprenticeship, handover, fork/adoption, and community-held stewardship appear only
+  as a labelled future-succession preview in the artifact. No interactive control or implied
+  initial ABI exists.
+
+### F.5 Admin and editorial boundaries
+
+Admin pool detail may group instances by internal series and show the ongoing Offer, holder, state,
+exact outcome
+counts, available places, and pool participation history. Stewards cannot edit holder metadata,
+rest/resume/retire another person's series, or manufacture a series on their behalf in v1.
+Editorial surfaces receive separately approved pool-level aggregates only; they do not expose a
+person's series Story, saved Offer metadata, or cross-pool identity.
+
+### F.6 Canonical artifact states
+
+Claude Code's prototype and visual-gallery pass must render, at minimum:
+
+- empty and signed private saved-Offer states;
+- Offer once and Offer over time choice states;
+- pending/offline, Active, Resting, and Retired series states;
+- zero, one, and multiple available places;
+- a claim against one pre-created place;
+- mixed Story outcomes across multiple cycles;
+- next-cycle ask-again;
+- signed saved-Offer persistence explanation;
+- later-succession preview clearly outside initial implementation;
+- light, dark, mobile, loading, empty, error, and reduced-motion treatments.
+
+The artifact must not invent a separate `Practice` object, claim-spawned instances, device-only
+saved Offer metadata, unreserved
+availability, indexed participant counts, automatic renewal, cross-pool reputation, or a personal
+score.

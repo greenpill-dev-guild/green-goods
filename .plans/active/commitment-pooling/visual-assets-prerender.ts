@@ -150,7 +150,10 @@ function patchPreviewInteractions(html: string): string {
 }
 
 console.log("1/4 building fresh outputs (read-only run of visual-assets-artifact.build.ts)…");
-const built = spawnSync("bun", [BUILD], { env: { ...process.env, LOCAL_OUT, ARTIFACT_OUT }, stdio: "inherit" });
+// Reuse the running Bun binary instead of resolving `bun` through PATH. Agent
+// runtimes may intentionally omit PATH from process.env even though this script
+// itself was launched by Bun; the deploy pipeline must still be self-contained.
+const built = spawnSync(process.execPath, [BUILD], { env: { ...process.env, LOCAL_OUT, ARTIFACT_OUT }, stdio: "inherit" });
 if (built.status !== 0) fail("gallery build failed");
 
 const artifactBody = readFileSync(ARTIFACT_OUT, "utf8");

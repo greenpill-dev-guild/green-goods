@@ -33,11 +33,11 @@ const warn: string[] = [];
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
-  | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
+  | "pool" | "cycle" | "series" | "cycleLiveCommitments" | "commitment"
   | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
   | "disbursementKind" | "disbursementRoute" | "queueFundingAuthority" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
+  "pool", "cycle", "series", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
   "disbursement", "disbursementKind", "disbursementRoute", "queueFundingAuthority", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type ConditionalRequirement = {
@@ -59,6 +59,17 @@ type CallRule = {
 // hotspot that names a call. Calls run in order, so compound controls cannot
 // hide an illegal second act behind legal first-act copy.
 const CALL_RULES: Record<ContractCall, CallRule> = {
+  // Ongoing Offers — CommitmentSeries (standing-commitments-spec §3.2). Creation is
+  // direct-holder only into a Ready or Open pool; Retired is terminal.
+  // A series-linked place is still an ordinary `createCommitment`, so no rule
+  // here may require a series fact — screens that add places declare
+  // `series: "Active"` themselves, and Resting/Retired states simply draw no
+  // Add-places control, which is the product rule the spec states.
+  createCommitmentSeries: { key: "pool", allowed: ["Ready", "Open"], effects: { series: "Active" } },
+  updateCommitmentSeriesMetadata: { key: "series", allowed: ["Active", "Resting"] },
+  restCommitmentSeries: { key: "series", allowed: ["Active"], next: "Resting" },
+  resumeCommitmentSeries: { key: "series", allowed: ["Resting"], next: "Active" },
+  retireCommitmentSeries: { key: "series", allowed: ["Active", "Resting"], next: "Retired" },
   createCommitment: { key: "pool", allowed: ["Open"] },
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },

@@ -178,3 +178,16 @@ The four named shared test files do not exist yet; they are intentional to-be-cr
   preparation, and child dispatch/recovery through the existing job queue. There is no
   metadata-only recognition-repair mutation. Hooks remain in `@green-goods/shared`.
 - Keep recognition and payment as separate read models. Payment weights derive from amounts and may default from recognition, but a receipt is shown only from authenticated settlement confirmation. An all-retained finalized plan completes without creating a child receipt.
+
+## Binding ongoing-Offer amendment — 2026-08-02
+
+- Add the sixth pooling job kind, `commitmentSeries`, plus stable `clientSeriesId` dependency
+  resolution. A dependent Commitment waits without consuming retry budget until the series receipt
+  supplies its onchain ID; failure/discard leaves the dependent draft recoverable.
+- Add canonical series types, query keys, hooks, lifecycle mutations, Story selectors, and
+  capacity-backed availability. Hooks remain in `@green-goods/shared`.
+- Reusable Offer metadata is signed offchain and private by default. Only an unsaved Offer draft
+  may be local-only. Choosing Offer over time and linking it to a pool series is explicit and
+  never merges series across pools. Offer once keeps `commitmentSeriesId == 0`.
+- No selector computes a personal/series score, rate, rank, inferred participant count, automatic
+  renewal, or protocol permission from Story history.
