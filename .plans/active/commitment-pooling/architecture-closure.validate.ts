@@ -111,8 +111,15 @@ const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n
 const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
 require(contractCalls.length === 52, `expected 52 executable hi-fi call names, found ${contractCalls.length}`);
 const callCoverage = section(matrix, "### B2. Executable-call coverage", "---\n\n## Matrix C");
+const matrixCallNames = namesInBackticks(callCoverage);
 for (const call of contractCalls) {
-  require(callCoverage.includes(`\`${call}\``), `${call} is missing from Matrix B2`);
+  require(
+    matrixCallNames.filter((candidate) => candidate === call).length === 1,
+    `${call} must appear exactly once in Matrix B2`,
+  );
+}
+for (const call of new Set(matrixCallNames)) {
+  require(contractCalls.includes(call), `Matrix B2 names unknown executable call ${call}`);
 }
 
 const offlineKinds = [

@@ -133,7 +133,7 @@ that row's recovery rule; this table prevents a new visible mutation from bypass
 |---|---|
 | RI-01 | `createCommitmentSeries` |
 | RI-02 | `createCommitment` |
-| RI-03, RI-12 | `claimCommitment`, `acceptClaim`, `declineClaim` |
+| RI-03 | `claimCommitment` |
 | RI-04 | `attachEvidence` |
 | RI-05 | `linkWork` |
 | RI-06, RI-07 | `submitForConfirmation`, `confirmFulfillment` |
