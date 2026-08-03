@@ -122,8 +122,9 @@ kind, recipients, and amounts from frozen CommitmentPoolingModule state, derive 
 the settlement registry, and derive canonical G$ only from SettlementModule's write-once
 `gDollarToken`.
 
-**App orchestration boundary.** The offline queue remains exactly the five field-write kinds
-(`commitment`, `claim`, `evidence`, `workLink`, `confirmation`). A fulfilled protocol-pool
+**App orchestration boundary.** The offline queue contains exactly the six Commitment Pooling
+field-write kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`,
+`confirmation`). `transfer` remains an online-only wallet action and never enters this queue. A fulfilled protocol-pool
 commitment follows the same indexed payout-plan UI and authority checks as a fulfilled garden-pool
 commitment: a provider-garden steward creates and, when needed, edits the Draft, explicitly
 finalizes it, then idempotently prepares each frozen non-zero contributor row. Fulfillment is the

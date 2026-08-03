@@ -2496,7 +2496,7 @@ type CommitmentPool {
   workApprovedCount: BigInt!
   # Count-safe cross-commitment stats. Unit totals live only in exact-label
   # CommitmentUnitSummary rows.
-  openCommitmentCount: BigInt! # accepted commitments not released or fulfilled
+  openCommitmentCount: BigInt! # committed Offers plus accepted Requests not released or fulfilled
   commitmentsDue: BigInt!     # accepted minus cancelled (mutually released promises are not broken promises)
   createdAt: Int!
   updatedAt: Int!
@@ -3039,13 +3039,14 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   event-owned by `UnitsFulfilled`/`UnitsReleased`, so the lifecycle helper never duplicates those
   accounting deltas.
 - **Cycle live-count read model**: `CommitmentCreated` with non-zero `cycleId` increments
-  `CommitmentCycle.liveCommitmentCount`, including Offered/Requested records that do not affect
-  `openCommitmentCount`. `applyLifecycleTransition` decrements on every live-to-terminal
+  `CommitmentCycle.liveCommitmentCount`, including Requested records that do not yet affect
+  `openCommitmentCount`; Offered records affect both counts because creation reserves provider
+  capacity. `applyLifecycleTransition` decrements on every live-to-terminal
   Fulfilled/Cancelled/Expired transition, including terminal `DisputeResolved`; Expired-to-Disputed
   re-increments, and its later terminal resolution decrements once. Ready and disputes raised from
   live states do not change the count. Replay and reverse-delivery fixtures preserve the exact
-  on-chain count, and W26 reads this field rather than accepted-only exposure when deciding whether
-  close can run.
+  on-chain count, and W26 reads this field rather than provider-capacity exposure when deciding
+  whether close can run.
   - **Pool-less authority/configuration audit**: `ModuleUpdated`,
     `ModuleDependencyUpdated`, `ModuleSchemaUIDUpdated`, and `ModulePauseStatusChanged` each create
     exactly one replay-idempotent `CommitmentEvent` with the matching event type, nullable
@@ -3146,7 +3147,7 @@ Cross-commitment arithmetic is count-based. `promiseKeptRate` is the only cross-
 | Aggregate | Numerator | Denominator | Notes |
 |---|---|---|---|
 | promiseKeptRate | `commitmentsFulfilled` | `commitmentsDue` (accepted minus cancelled) | per pool/cycle; expiries count against; mutual releases do not |
-| openCommitmentCount | event-driven current count | none | accepted commitments not released or fulfilled; count-safe across unit labels |
+| openCommitmentCount | event-driven current count | none | committed Offers plus accepted Requests not released or fulfilled; count-safe across unit labels |
 
 Active-cycle surfaces show state counts and exact-label `CommitmentUnitSummary` groups instead of a synthetic overall progress percentage. Per-commitment `approvedUnits / targetUnits` remains meaningful within that commitment only. No selector may sum unit totals across different `unitLabelHash` values.
 
@@ -3367,7 +3368,7 @@ Acceptance: local Docker stack replays a scripted Sepolia fixture and produces c
 
 Deliverables: domain types (`CommitmentPool`, `CommitmentCycle`, `Commitment`, allocation preset constants; `Address` type per repo rules); ABI + address exports from the deployment artifact (import pattern per root CLAUDE.md Contract Integration); query hooks + `queryKeys.*` entries; derived-state selectors implementing the section 5 overlays (Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, Reconciled) and the 8.4 rate math; **six August offline job kinds**: `commitmentSeries` (create one pool-scoped ongoing Offer identity), `commitment` (create offer/request), `claim` (claim/accept), `evidence` (attach evidence CID), `workLink` (link approved work), and `confirmation` (confirm fulfillment), plus the separate online-only wallet action `transfer` (settlement-chain G$ send), extending the exactly-two-kinds baseline where applicable (`packages/shared/src/types/job-queue.ts` + `packages/shared/src/modules/job-queue/`, `reports/corrections-log.md` §6); mutation hooks with `createMutationErrorHandler`.
 
-Acceptance: hooks exported from the barrel only; the six offline pool job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) run through the existing IndexedDB + XState machine with MAX_RETRIES parity, including explicit `clientSeriesId` dependency waiting that consumes no retry; `transfer` is an online-only settlement wallet action with no offline queue entry and no MAX_RETRIES replay (per `uiux-spec.md` §5.11 and `settlement-spec.md` §5); locale keys mirrored es/pt (repo i18n gate); `bun run --filter @green-goods/shared test` green.
+Acceptance: hooks exported from the barrel only; the six offline pool job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) run through the existing IndexedDB + XState machine with MAX_RETRIES parity, including explicit `clientSeriesId` dependency waiting that consumes no retry and the durable pre-broadcast submission-hash recovery contract in `standing-commitments-spec.md` §6; `transfer` is an online-only settlement wallet action with no offline queue entry and no MAX_RETRIES replay (per `uiux-spec.md` §5.11 and `settlement-spec.md` §5); locale keys mirrored es/pt (repo i18n gate); `bun run --filter @green-goods/shared test` green.
 
 ### `packages/admin`
 

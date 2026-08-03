@@ -88,7 +88,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   resolution-to-Cancelled applies exactly one final bucket and decrements once. Unit summaries and
   provider exposure remain owned only by their self-describing unit events.
 - `CommitmentCycle.liveCommitmentCount` mirrors the on-chain close/cancel guard independently of
-  accepted-only exposure: non-zero-cycle `CommitmentCreated` increments it, every live-to-terminal
+  provider-capacity exposure: non-zero-cycle `CommitmentCreated` increments it, every live-to-terminal
   Fulfilled/Cancelled/Expired transition decrements it, and the Expired dispute reopen/resolve pair
   re-increments/decrements it exactly once. Offered/Requested rows therefore block close in the
   indexed read model exactly as they do on-chain.

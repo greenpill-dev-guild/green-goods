@@ -2071,6 +2071,8 @@ const W34_STATES = [
   ["places-partial-failed", "Active · 1 available + 1 failed"],
   ["story", "Story"], ["participation", "Story vs pool history"], ["ask-again", "Next cycle"],
   ["claimant-view", "Seen by another member"],
+  ["pool-paused", "Active · pool paused"], ["pool-closed", "Active · pool closed"],
+  ["pool-composted", "Active · pool composted"],
   ["resting", "Resting"], ["retire-confirm", "Retire — confirm"], ["retired", "Retired"],
   ["succession", "Later: sharing and handing on"],
   ["loading", "Loading"], ["read-error", "Read error"],
@@ -2246,6 +2248,38 @@ function w34(state: W34State): string {
           `</div>`,
       )}`;
       break;
+    case "pool-paused":
+      body = `${w34Head({ state: "Active · pool paused", tone: "plain" })}${pagepad(
+        banner("This pool is paused. Existing promises and the offer's story are unchanged.", "amber", "pause-line"),
+        card(
+          `<div class="t-title">2 existing places are held, but cannot be taken up while paused</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }),
+        ),
+        card(`${kv("Add places", "Unavailable while paused")}${kv("Existing history", "Preserved")}`),
+        hot("w34.open-paused-pool", btn("View the paused pool", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "pool-closed":
+      body = `${w34Head({ state: "Active · pool closed", tone: "plain" })}${pagepad(
+        banner("This pool is closed. No place can be added or taken up.", "stone", "information-line"),
+        card(
+          `<div class="t-title">Places preserved as history</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Held when the pool closed · unavailable", chipHtml: chip("Closed", "plain") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Held when the pool closed · unavailable", chipHtml: chip("Closed", "plain") }),
+        ),
+        card(`${kv("This offer's Story", "Still available")}${kv("New or claimed places", "Unavailable until stewards reopen the pool")}`),
+        hot("w34.open-closed-pool", btn("View the closed pool", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "pool-composted":
+      body = `${w34Head({ state: "Active · pool composted", tone: "ink" })}${pagepad(
+        banner("This pool has been composted. Its history remains readable, but it cannot reopen.", "stone", "leaf-line"),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past promises and evidence remain exactly as recorded. No place can be added or taken up.</div>`),
+        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
+        hot("w34.open-composted-pool", btn("View the archived pool", { kind: "ghost", full: true })),
+      )}`;
+      break;
     case "resting":
       body = `${w34Head({ state: "Resting", tone: "plain" })}${pagepad(
         banner("Resting since Aug 2. No new places can be added while it rests.", "stone", "pause-line"),
@@ -2327,6 +2361,9 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.claim": { l: "Take up one place", to: "screen:W2@support-active", info: "Accepts one already-created Offered service instance. No new place is created and no second provider slot is consumed.", calls: ["claimCommitment"] },
   "w34.claim-partial": { l: "Take up the available place", to: "screen:W2@support-active", info: "Accepts only the already-synced Offered service instance. The queued or failed sibling remains independent.", calls: ["claimCommitment"] },
   "w34.claim-resting": { l: "Take up one resting-series place", to: "screen:W2@support-active", info: "Resting blocks new instance creation only. This accepts an existing capacity-backed Offered service instance without resuming the series.", calls: ["claimCommitment"] },
+  "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
+  "w34.open-closed-pool": { l: "View the closed pool", to: "screen:W1@closed", info: "Shows the closed pool state. Reopening is a steward action; the ongoing Offer detail does not fabricate a gardener write." },
+  "w34.open-composted-pool": { l: "View the archived pool", to: "screen:W1@closed", info: "Returns to the terminal pool archive. Composted pools cannot reopen, while existing series history remains readable." },
   "w34.view-partial": { l: "View send details", to: "screen:W35@mixed-queued", info: "Shows the independently synced and queued place rows rather than treating the two jobs as an atomic batch." },
   "w34.retry-failed-place": { l: "Try failed place again", to: "screen:W34@places-partial", info: "Retries the same failed createCommitment job. The already-synced sibling stays available and is never re-submitted.", calls: ["createCommitment"], pendingSync: true },
   "w34.discard-failed-place": { l: "Discard failed place", to: "screen:W34@active-one", info: "Discards only the failed local job. The synced Offered sibling remains available with its reserved capacity." },
@@ -2427,6 +2464,9 @@ const w34Facts = (state: W34State): StateFacts | undefined => {
   if (state === "resting")
     return { pool: "Open", cycle: "Open", series: "Resting", commitment: "Offered", kind: "SupportService" };
   if (state === "retired") return { pool: "Open", series: "Retired" };
+  if (state === "pool-paused") return { pool: "Paused", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "pool-closed") return { pool: "Closed", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "pool-composted") return { pool: "Composted", series: "Active" };
   if (["active-two", "active-one", "places-partial", "places-partial-failed", "claimant-view"].includes(state))
     return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
   return { pool: "Open", series: "Active" };

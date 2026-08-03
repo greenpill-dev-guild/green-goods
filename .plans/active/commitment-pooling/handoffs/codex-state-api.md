@@ -38,6 +38,12 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   same queued series record, while a dependent `commitment` job waits without consuming retries
   until the indexed receipt supplies the onchain series ID. Discarding a failed series job leaves
   dependent drafts recoverable and visibly waiting.
+- Before broadcasting a series job, the runner persists the exact signed submission payload and
+  its locally derived transaction or UserOperation hash in IndexedDB and moves the job to
+  `submitted`. Recovery polls that hash before any send. If the network never observed it, the
+  runner may rebroadcast only the identical signed payload, preserving the same nonce and hash;
+  it must never construct a fresh series-creation transaction. Receipt materialization then binds
+  `clientSeriesId` to the emitted onchain `seriesId`.
 - Ordinary Commitment job payloads mirror the full ABI: creation includes cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
   rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
@@ -69,7 +75,8 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - Per-action progress exposes `approvedCount / requiredCount`, the registry-derived domain tag,
   credited contributors, and canonical per-commitment `approvedUnits`; one `requirementIndex` can
   credit only its matching registered action requirement.
-- Pool/cycle selectors expose state counts, accepted-only `openCommitmentCount`, exact on-chain
+- Pool/cycle selectors expose state counts, provider-capacity `openCommitmentCount` (every
+  committed Offer plus accepted Request until release or fulfillment), exact on-chain
   `liveCommitmentCount`, and exact-label `CommitmentUnitSummary` groups. W26 uses
   `liveCommitmentCount` for close/cancel preflight because it includes Offered/Requested rows.
   Terminal `DisputeResolved` outcomes arrive already projected through the indexer's canonical
@@ -146,8 +153,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 ## RED / GREEN
 
 - RED: add focused shared selector, hook, mutation, query-key, and job tests, including
-  `commitmentSeries` payload round-trip, stable deduplication, dependency waiting, receipt
-  materialization, and failure/discard recovery; capture expected failures before implementation.
+  `commitmentSeries` payload round-trip, stable deduplication, pre-broadcast submitted-hash
+  persistence, restart-time receipt polling, identical-payload rebroadcast without a fresh nonce,
+  dependency waiting, receipt materialization, and failure/discard recovery; capture expected
+  failures before implementation.
 - GREEN: run the same files after implementation with all six offline kinds and the online-only
   transfer exclusion passing, then shared typecheck and story checks for any changed shared
   component.

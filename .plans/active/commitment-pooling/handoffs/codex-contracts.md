@@ -124,7 +124,8 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   `cancelCycle`. Raising a dispute from Expired re-increments the count because Disputed is live;
   restoring Expired or resolving Cancelled decrements it exactly once, and Expired can never
   resolve Fulfilled. Tests include Offered/Requested commitments, which count as live before
-  acceptance even while accepted-only `openCommitmentCount` is zero, plus
+  acceptance; Requested rows can keep `liveCommitmentCount` above provider-capacity
+  `openCommitmentCount` before any provider is resolved, plus
   `Expired -> Disputed -> RestorePrevious/Cancelled`.
 - Creating a commitment with a cycle requires that cycle to belong to the same pool and still accept commitments. Cycle-less commitments remain explicit.
 - DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable registered action/count requirements. Actions

@@ -112,6 +112,12 @@ event CommitmentSeriesRetired(uint256 indexed seriesId);
 
 Series IDs start at 1. `0` is the one-shot sentinel everywhere.
 
+`clientSeriesId` remains a private local dependency key and is intentionally absent from this
+public ABI. Replay safety is instead part of the offline submission contract in §6: the runner
+must durably persist the exact signed transaction or UserOperation and its locally derived hash
+before broadcast, recover that submission by hash after restart, and never construct a second
+series-creation transaction for the same queued job.
+
 ### 3.2 Creation and lifecycle rules
 
 - Series creation is direct-holder only in the initial version. The caller becomes immutable
@@ -252,9 +258,17 @@ stable `clientSeriesId`. A queued Commitment may refer to either an onchain seri
 the Commitment job waits without consuming retry budget. After the series receipt is indexed, the
 runner materializes the onchain ID and submits the ordinary Commitment payload.
 
-This dependency is explicit queue state, not a guessed transaction ordering or an indexer-side
-join. Discarding a failed local series job keeps its dependent Commitment drafts recoverable and
-explains why they are waiting.
+Series submission has one additional durable boundary. Before the first broadcast, the runner
+stores the exact signed transaction or UserOperation, its locally derived hash, and a `submitted`
+state in IndexedDB. Restart recovery polls that hash before any submission attempt. If the
+submission was not observed, the runner may rebroadcast only the identical signed bytes with the
+same nonce and hash; it may not prepare a fresh call. A mined receipt binds `clientSeriesId` to
+the emitted `seriesId` before dependent Commitment jobs resume. Tests cover a process stop after
+broadcast but before receipt persistence and prove that recovery produces one onchain series.
+
+This dependency and submitted-transaction recovery are explicit queue states, not guessed
+transaction ordering or an indexer-side join. Discarding a failed local series job keeps its
+dependent Commitment drafts recoverable and explains why they are waiting.
 
 The signed offchain model stores reusable Offer metadata and explicit references to any
 pool-scoped series created from it. Unsaved edits may remain in IndexedDB. Saved Offer metadata
