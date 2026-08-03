@@ -2,6 +2,7 @@ import {
   type CapitalType,
   cn,
   DatePicker,
+  type EASGardenAssessment,
   FormInput,
   FormTextarea,
   type GardenAssessment,
@@ -42,7 +43,7 @@ interface MetadataEditorProps {
   suggestedStart: number | null;
   suggestedEnd: number | null;
   /** Assessment used to prefill metadata fields (if any) */
-  selectedAssessment?: GardenAssessment | null;
+  selectedAssessment?: GardenAssessment | EASGardenAssessment | null;
 }
 
 const CAPITALS: CapitalType[] = [

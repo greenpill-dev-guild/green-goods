@@ -1,4 +1,5 @@
 import type { GardenAssessment } from "../../types/domain";
+import type { EASGardenAssessment } from "../../types/eas-responses";
 import {
   ACTION_DOMAINS,
   type ActionDomain,
@@ -167,10 +168,16 @@ export interface AssessmentMetadataPrefill {
  * @param getSDGLabel - Optional SDG label lookup function (for tree-shaking in non-UI contexts)
  */
 export function prefillMetadataFromAssessment(
-  assessment: GardenAssessment,
+  assessment: GardenAssessment | EASGardenAssessment,
   getSDGLabel?: (id: number) => string | undefined
 ): AssessmentMetadataPrefill {
   const actionDomain = domainToActionDomain(assessment.domain);
+  const smartOutcomes = "smartOutcomes" in assessment ? assessment.smartOutcomes : [];
+  const sdgTargets = "sdgTargets" in assessment ? assessment.sdgTargets : [];
+  const reportingPeriod =
+    "reportingPeriod" in assessment
+      ? assessment.reportingPeriod
+      : { start: assessment.startDate ?? 0, end: assessment.endDate ?? 0 };
 
   // WHAT -- work scopes from domain + SDG labels
   const workScopes: string[] = [];
@@ -178,18 +185,18 @@ export function prefillMetadataFromAssessment(
     workScopes.push(actionDomain);
   }
   if (getSDGLabel) {
-    for (const sdgId of assessment.sdgTargets) {
+    for (const sdgId of sdgTargets) {
       const label = getSDGLabel(sdgId);
       if (label) workScopes.push(label);
     }
   }
 
   // WHAT -- impact scopes from SMART outcome descriptions
-  const impactScopes: string[] = assessment.smartOutcomes.map((o) => o.description).filter(Boolean);
+  const impactScopes: string[] = smartOutcomes.map((o) => o.description).filter(Boolean);
 
   // HOW MUCH -- outcome metrics from SMART outcomes (predefined with aggregation)
   const predefined: Record<string, import("../../types/hypercerts").PredefinedMetric> = {};
-  for (const outcome of assessment.smartOutcomes) {
+  for (const outcome of smartOutcomes) {
     if (outcome.metric) {
       predefined[outcome.metric] = {
         value: outcome.target,
@@ -202,12 +209,12 @@ export function prefillMetadataFromAssessment(
 
   return {
     title: assessment.title,
-    description: assessment.diagnosis,
+    description: "diagnosis" in assessment ? assessment.diagnosis : assessment.description,
     workScopes,
     impactScopes,
-    workTimeframeStart: assessment.reportingPeriod.start,
-    workTimeframeEnd: assessment.reportingPeriod.end,
-    sdgs: [...assessment.sdgTargets],
+    workTimeframeStart: reportingPeriod.start,
+    workTimeframeEnd: reportingPeriod.end,
+    sdgs: [...sdgTargets],
     outcomes: {
       predefined,
       custom: {},
