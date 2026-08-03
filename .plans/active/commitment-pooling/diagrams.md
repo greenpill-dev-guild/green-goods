@@ -230,7 +230,11 @@ Notes:
 - The GoodDollar House of Alignment pool streams G$ directly into the Green Goods protocol Safe; Green Goods models only the ProtocolToGarden route onward (corrections-log §9). The protocol Safe is drawn **planned**, not built: its mechanism, address confirmation, and live receipt evidence are still pending partner evidence (`settlement-spec.md` §2), which is the same status D18 and D19 give it.
 - The client PWA, editorial website, Admin, and the Envio read model carry the **existing surface, planned delta** treatment — they are live today, and this work adds planned pooling capability to each. That is why the story assets can label the same rails BUILT at the action level without contradicting this diagram.
 - EAS and raw Celo transfers are outside Envio. The joined Community read is owned in shared/query composition, not fabricated in an Envio handler.
-- The indexer records only SettlementModule and CeloSettlementExecutor protocol events. A Celo execution is visible before its acknowledgment, but only an authenticated success acknowledgment marks the Arbitrum attempt `Confirmed`.
+- Core pooling projections come from `CommitmentPoolingModule` and `CommitmentRegistry` events.
+  Within the settlement rail, the indexer additionally records only `SettlementModule` and
+  `CeloSettlementExecutor` protocol events; raw Celo transfers remain outside Envio. A Celo
+  execution is visible before its acknowledgment, but only an authenticated success
+  acknowledgment marks the Arbitrum attempt `Confirmed`.
 
 ## D2. Contract/module topology and trust boundaries
 
@@ -1023,7 +1027,9 @@ sequenceDiagram
   Note over BC,R: validate B→A · same pool · Offer×Offer<br/>both Offered · different creators<br/>Individual claim types · open cycles<br/>creator identity · both full reservations
   Note over M,R: both classes are already Committed<br/>no registry write · no second slot · no cap-headroom check
   M-->>I: CommitmentAccepted(A, claimant B creator, lead A creator)
+  M-->>I: ContributorAdded(A, contributor A creator)
   M-->>I: CommitmentAccepted(B, claimant A creator, lead B creator)
+  M-->>I: ContributorAdded(B, contributor B creator)
   M-->>I: ExchangeAccepted(A, B, poolId, B creator, A creator)
   Note over M,I: Any failed predicate reverts the entire transaction
 
@@ -1236,7 +1242,7 @@ erDiagram
 
 #### D15.2 Claims, counts, and lineage
 
-**How to read this**: handler-owned lookup and accounting relationships, including contributor and evidence attribution indexes so no handler scans the database. Only keys and discriminators render here. `COMMITMENT`, `COMMITMENT_POOL`, and `COMMITMENT_CYCLE` appear as bare boxes; the complete fields remain in `contract-spec.md` §8.2.
+**How to read this**: handler-owned lookup and accounting relationships, including contributor and evidence attribution indexes so no handler scans the database. Only keys and discriminators render here. `COMMITMENT`, `COMMITMENT_POOL`, and `COMMITMENT_CYCLE` appear as bare boxes; the complete fields remain in `contract-spec.md` §8.2. Contributor rows are event-sourced only from `ContributorAdded`: ordinary acceptance emits the resolved lead once, while bilateral acceptance emits one lead event for A's creator on A and one for B's creator on B. `ExchangeAccepted` is the pair marker and never substitutes for either roster event.
 
 ```mermaid
 erDiagram

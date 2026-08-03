@@ -33,8 +33,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `chainId-EXCHANGE-poolId-idA-idB`, using the event's non-indexed `poolId` without an RPC read or
   prior commitment row. Entity existence proves atomic acceptance. The two ordinary
   `CommitmentAccepted` events remain the only lifecycle, unit, provider-slot, and member-history
-  inputs; the marker never applies those deltas a third time. Pair status joins the two ordinary
-  commitments and never mutates either after cancellation, expiry, dispute, or fulfillment.
+  inputs. The same transaction emits `ContributorAdded(A, A.creator)` and
+  `ContributorAdded(B, B.creator)` to seed the two lead roster rows; `ExchangeAccepted` substitutes
+  for neither contributor event and never applies any delta a third time. Pair status joins the
+  two ordinary commitments and never mutates either after cancellation, expiry, dispute, or
+  fulfillment.
 - `PoolMemberHistory` is public event-derived index data. The indexer does not claim row-level confidentiality; it exposes no public ranking or comparison query. Shared viewer-aware selectors own steward/self product disclosure, and editorial consumers receive aggregates only.
 - Pool-less `ModuleUpdated`, pooling dependency/schema/pause events use the generic
   `CommitmentEvent.configurationKey/previousValue/newValue` audit fields, never a synthetic pool

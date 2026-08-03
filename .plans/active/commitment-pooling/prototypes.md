@@ -378,9 +378,7 @@ flowchart LR
 | 5 | W1 | (failure lane) 5 attempts exhaust `MAX_RETRIES` (UX:206) | Failed chip + **retry / discard**; error text via `parseContractError` + `USER_FRIENDLY_ERRORS` (UX:240) | Failed (local) | Retry re-enters step 4 |
 | 6 | — | (membership-wait lane) a brand-new member's job needs a garden hat that hasn't landed | S6: the job waits in `waiting_for_hat` **without consuming retries**, resumes after membership, "never fabricates a successful write" (LAP:191); the ≥99% sync metric explicitly excludes time in this state (`acceptance-matrix.md` §6) | waiting (local) | — |
 
-**Spec gap (finding input)** — `waiting_for_hat` is required by scenario S6 and the acceptance metric, and CI-W4 draws it for September community jobs (CI-WF:124-159):
-- but for the six pool job kinds, uiux-spec's queue treatments (§5.11 UX:204-224; §5.12 UX:226-243) define only queued/failed/retry chrome — no pool-surface treatment exists;
-- S6 also names **Edit/Retry/Cancel/Delete** for queued jobs (LAP:191), where §5.12 offers only retry/discard (UX:240).
+**Resolved gap (historical finding input)** — `waiting_for_hat` is required by scenario S6 and the acceptance metric, and CI-W4 draws it for September community jobs (CI-WF:124-159). `uiux-spec.md` §5.11 and §5.12 now define the six pool-job treatments, membership waiting without retry use, and the waiting-row recovery behavior. The original S6 wording also named **Edit/Retry/Cancel/Delete** for queued jobs; the locked recovery contract is retry/discard after a real failure, while membership waiting resumes automatically and offers neither action.
 
 **Decided 2026-07-11 (register #34c)**: in scope for August — the pre-flight membership check consumes no retries, the join-request approval (register #35) is the canonical resume trigger, and uiux-spec §5.11/§5.12 are updated. Realized source sketch:
 
@@ -969,7 +967,7 @@ flowchart LR
 | 1 | Maria chooses A from existing same-pool Offers | creation draft stores A as B's `counterCommitmentId` | W28 selected | clear the selection or choose another Offer |
 | 2 | Maria submits B | `CommitmentCreated(B, counterCommitmentId=A)` | W29 Proposed | named creation validation identifies the field to correct |
 | 3 | Ana opens the pair and chooses **Start both promises** | one `acceptExchange(B)` call runs every A/B predicate | W30 submitting | no partial optimistic state; contract family names Ana, Maria, or the steward action needed |
-| 4 | transaction succeeds | two `CommitmentAccepted` events plus `ExchangeAccepted` and two registry commits | W29 Matched | indexed read retry only; never submit a second pair from a stale optimistic result |
+| 4 | transaction succeeds | two `CommitmentAccepted` events, one creator-lead `ContributorAdded` event per side, and `ExchangeAccepted`; the already-reserved classes are verified with no registry recommit or provider-cap headroom check | W29 Matched | indexed read retry only; never submit a second pair from a stale optimistic result |
 | 5 | A and B gather their own evidence and confirmations | ordinary per-commitment events | two W2 lifecycle details | each side uses its ordinary recovery path |
 | 6 | B expires while A remains active | only B changes; pair join derives context | W29 Counterpart lapsed | A stays unchanged; no automatic cancellation or pressure copy |
 

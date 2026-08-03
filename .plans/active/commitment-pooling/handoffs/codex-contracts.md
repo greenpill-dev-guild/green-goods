@@ -39,7 +39,8 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   remain Committed to their creators. Claimant identities cross while provider identities do not:
   A's creator remains A's lead/registry account and B's creator remains B's. Acceptance does not
   recommit either class or reapply provider-cap headroom; cap checks run only when `commitUnits`
-  reserves a new slot. `ExchangeAccepted` carries non-indexed
+  reserves a new slot. Emit one `ContributorAdded` lead event for A's creator on A and one for B's
+  creator on B in the same atomic transaction. `ExchangeAccepted` carries non-indexed
   `poolId` so its marker is self-describing without an RPC read, and the ordinary lifecycles never
   couple after acceptance. The architecture brief does not authorize the
   transferable/multilateral layer.
