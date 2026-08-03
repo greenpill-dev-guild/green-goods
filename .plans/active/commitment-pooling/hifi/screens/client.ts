@@ -1710,7 +1710,6 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
     state === "offered" || state === "support-offered" || state === "withdraw-confirm" ? "Offered"
     : state === "requested" ? "Requested"
     : state === "active" || state === "evidence-queued" || state === "request-active" || state === "campaign-request-active" ||
-      state === "support-evidence-queued" ||
       state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
       state === "captured" || state === "captured-evidence-queued" ? "Active"
     : state === "evidence-submitted" || state === "request-evidence-submitted" ||
@@ -1761,7 +1760,7 @@ const w2aFacts = (state: W2aState): StateFacts | undefined => {
   return {
     pool: "Open",
     cycle: "Open",
-    commitment: "Active",
+    commitment: state === "compose-support" ? "Accepted" : "Active",
     kind: state === "compose" ? "DomainImpact" : state === "compose-captured" ? "StewardCaptured" : "SupportService",
   };
 };
