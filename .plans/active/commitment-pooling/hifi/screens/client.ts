@@ -971,12 +971,12 @@ function w2(state: W2State): string {
       break;
     case "garden-provider":
       band = card(
-        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The protocol stewards confirm it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The named confirmer, Sofia, confirms it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
       break;
     case "garden-support-arrived":
       band = card(
-        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by the protocol stewards on Jul 12. The support went to the garden's own account.</div>`,
+        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by Sofia through ordinary named confirmation on Jul 12. The support went to the garden's own account.</div>`,
       );
       break;
     case "withdrawn":
