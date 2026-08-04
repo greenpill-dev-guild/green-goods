@@ -245,11 +245,11 @@ export function useWorkApproval() {
         queryKeys.works.online(work.gardenAddress, chainId)
       );
 
-      const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
-
-      // Wallet preflight and signature can fail before a transaction exists. Keep
-      // the indexed status until confirmation so a failed simulation cannot remove
-      // the active work from Hub. Queued flows retain their optimistic outcome.
+      // Wallet preflight and signature can fail before a transaction exists. The
+      // admin persists work queries, so even a pending-only cache write here could
+      // survive a refresh that interrupts the mutation rollback. Wallet mode must
+      // leave the indexed work untouched until submission completes. Queued flows
+      // retain their optimistic outcome while they wait to sync.
       const optimisticStatus =
         authMode === "wallet"
           ? work.status
@@ -257,58 +257,62 @@ export function useWorkApproval() {
             ? ("approved" as const)
             : ("rejected" as const);
 
-      queryClient.setQueryData(
-        queryKeys.works.merged(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? {
-                  ...w,
-                  status: optimisticStatus,
-                  _isPending: true,
-                  _pendingUntilMs: pendingUntilMs,
-                }
-              : w
-          )
-      );
+      if (authMode !== "wallet") {
+        const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
 
-      queryClient.setQueryData(
-        queryKeys.works.online(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? {
-                  ...w,
-                  status: optimisticStatus,
-                  _isPending: true,
-                  _pendingUntilMs: pendingUntilMs,
-                }
-              : w
-          )
-      );
-
-      // Auto-clear stale pending flags if no completion signal is observed.
-      // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
-      scheduleAutoClear(() => {
         queryClient.setQueryData(
           queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: PendingWork[] = []) =>
+          (old: Work[] = []) =>
             old.map((w) =>
-              w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
-                ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+              w.id === draft.workUID
+                ? {
+                    ...w,
+                    status: optimisticStatus,
+                    _isPending: true,
+                    _pendingUntilMs: pendingUntilMs,
+                  }
                 : w
             )
         );
+
         queryClient.setQueryData(
           queryKeys.works.online(work.gardenAddress, chainId),
-          (old: PendingWork[] = []) =>
+          (old: Work[] = []) =>
             old.map((w) =>
-              w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
-                ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+              w.id === draft.workUID
+                ? {
+                    ...w,
+                    status: optimisticStatus,
+                    _isPending: true,
+                    _pendingUntilMs: pendingUntilMs,
+                  }
                 : w
             )
         );
-      }, PENDING_AUTO_CLEAR_MS + 1000);
+
+        // Auto-clear stale pending flags if no completion signal is observed.
+        // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
+        scheduleAutoClear(() => {
+          queryClient.setQueryData(
+            queryKeys.works.merged(work.gardenAddress, chainId),
+            (old: PendingWork[] = []) =>
+              old.map((w) =>
+                w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
+                  ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+                  : w
+              )
+          );
+          queryClient.setQueryData(
+            queryKeys.works.online(work.gardenAddress, chainId),
+            (old: PendingWork[] = []) =>
+              old.map((w) =>
+                w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
+                  ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+                  : w
+              )
+          );
+        }, PENDING_AUTO_CLEAR_MS + 1000);
+      }
 
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Applied optimistic update", {
