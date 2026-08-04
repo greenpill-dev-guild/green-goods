@@ -975,6 +975,8 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
         pool: id.startsWith("paused-") ? "Paused" : "Open",
         cycle: id === "review" || id === "paused-review" || id === "recognition-blocked" ? "Open" : "Reconciled",
         cycleLiveCommitments: "Zero",
+        poolLiveCommitments: "Zero",
+        poolNonTerminalCycles: "One",
       } satisfies StateFacts,
       html: w26(id),
     })) }, hots: { ...adminChromeHots("w26", "garden"), ...W26_HOTS } },

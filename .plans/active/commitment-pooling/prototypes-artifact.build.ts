@@ -184,7 +184,7 @@ const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc
 const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
 <p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
 <p><strong>Exchange-wave source additions</strong>: W28–W31 and SB-35/SB-36 are approved planned source journeys for bilateral exchange and template-first creation. They render in the Reference document only until the separate Claude review pass adds them to the executable hi-fi registry; this artifact does not claim they are already drawn or validated.</p>
-<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the five pool job kinds in August (MF-5) · admin expiry queue + member "offer again" ship in August, keeper cron is a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
+<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the six pool job kinds in August (MF-5) · the admin due-live expiry action, post-expiry queue, and member "offer again" ship in August, while a keeper cron remains only a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
 <p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
 
 const sections = secs.map(s => {
@@ -287,8 +287,10 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-assertBuild(visibleScreens.length === 25, `expected 25 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 10 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 10 client / 13 admin / 2 editorial`);
+// 29 = the 25-screen August set plus the four standing-commitment screens
+// (W32 saved offer details, W33 offer over time, W34 ongoing Offer detail, W35 add places).
+assertBuild(visibleScreens.length === 29, `expected 29 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 14 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 14 client / 13 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
@@ -689,6 +691,62 @@ ${sections}
 var DATA = ${PLAYER_DATA};
 ${PLAYER_JS}
 </script></body></html>`;
+
+// Vocabulary and state-truth regressions here are product-model defects, not
+// presentation warnings. Keep them as hard build failures so an old artifact
+// cannot be republished after the one-noun Offer correction.
+const staleOfferNounPatterns: [RegExp, string][] = [
+  [/\bpractice-template\b/i, "practice-template"],
+  [/\bpractice templates?\b/i, "practice template"],
+  [/\bpractice-first\b/i, "practice-first"],
+  [/\bpractice library\b/i, "practice library"],
+  [/\bstanding-practice-remains\b/i, "standing-practice-remains"],
+  [/\bstart from a practice\b/i, "start from a practice"],
+];
+for (const [pattern, label] of staleOfferNounPatterns) {
+  if (pattern.test(html)) throw new Error(`Offer vocabulary regression: generated artifact still contains "${label}".`);
+}
+
+const stateHtml = (screenId: string, stateId: string) =>
+  SCREENS.find((screen) => screen.id === screenId)?.states.find((state) => state.id === stateId)?.html ?? "";
+const claimantView = stateHtml("W34", "claimant-view");
+const claimantAllowedFields = [
+  "provider",
+  "terms",
+  "garden",
+  "availablePlaces",
+  "placeTerms",
+  "claimExplanation",
+];
+const claimantRenderedFields = [...claimantView.matchAll(/data-claimant-field="([^"]+)"/g)].map(
+  (match) => match[1],
+);
+if (
+  !claimantView ||
+  !claimantView.includes('data-privacy-contract="ongoing-offer-claimant-v1"') ||
+  JSON.stringify(claimantRenderedFields) !== JSON.stringify(claimantAllowedFields)
+) {
+  throw new Error(
+    "Privacy regression: W34@claimant-view must render only the approved structural claimant fields; holder Story and kept-count fields are not permitted.",
+  );
+}
+for (const stateId of ["review", "active-two"]) {
+  const screenId = stateId === "review" ? "W33" : "W34";
+  if (!stateHtml(screenId, stateId).includes("Ask me again next cycle")) {
+    throw new Error(`Renewal-copy regression: ${screenId}@${stateId} lost the exact phrase "Ask me again next cycle".`);
+  }
+}
+const requiredTargets: [string, string][] = [
+  ["w32.offer-once", "screen:W3@saved-offer-edit"],
+  ["w33.queued-done", "screen:W32@series-queued"],
+  ["w33.waiting-done", "screen:W32@series-queued-place-waiting"],
+  ["w35.queued-done", "screen:W34@places-queued"],
+];
+for (const [hotId, target] of requiredTargets) {
+  if (HOTS[hotId]?.to !== target) {
+    throw new Error(`State-coherence regression: ${hotId} must target ${target}.`);
+  }
+}
 
 writeFileSync(OUT, html);
 const byteSize = new TextEncoder().encode(html).byteLength;

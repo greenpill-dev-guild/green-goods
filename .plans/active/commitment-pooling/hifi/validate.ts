@@ -33,11 +33,13 @@ const warn: string[] = [];
 const stripTags = (html: string) => html.replace(/<[^>]*>/g, " ");
 
 type FactKey =
-  | "pool" | "cycle" | "cycleLiveCommitments" | "commitment"
+  | "pool" | "cycle" | "series" | "cycleLiveCommitments" | "poolLiveCommitments"
+  | "poolNonTerminalCycles" | "commitment"
   | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
   | "disbursementKind" | "disbursementRoute" | "queueFundingAuthority" | "payoutPlan";
 const FACT_KEYS = [
-  "pool", "cycle", "cycleLiveCommitments", "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
+  "pool", "cycle", "series", "cycleLiveCommitments", "poolLiveCommitments", "poolNonTerminalCycles",
+  "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
   "disbursement", "disbursementKind", "disbursementRoute", "queueFundingAuthority", "payoutPlan",
 ] as const satisfies readonly (keyof StateFacts)[];
 type ConditionalRequirement = {
@@ -59,7 +61,19 @@ type CallRule = {
 // hotspot that names a call. Calls run in order, so compound controls cannot
 // hide an illegal second act behind legal first-act copy.
 const CALL_RULES: Record<ContractCall, CallRule> = {
+  // Ongoing Offers — CommitmentSeries (standing-commitments-spec §3.2). Creation is
+  // direct-holder only into a Ready or Open pool; Retired is terminal.
+  // A series-linked place is still an ordinary `createCommitment`, so no rule
+  // here may require a series fact — screens that add places declare
+  // `series: "Active"` themselves, and Resting/Retired states simply draw no
+  // Add-places control, which is the product rule the spec states.
+  createCommitmentSeries: { key: "pool", allowed: ["Ready", "Open"], effects: { series: "Active" } },
+  updateCommitmentSeriesMetadata: { key: "series", allowed: ["Active", "Resting"] },
+  restCommitmentSeries: { key: "series", allowed: ["Active"], next: "Resting" },
+  resumeCommitmentSeries: { key: "series", allowed: ["Resting"], next: "Active" },
+  retireCommitmentSeries: { key: "series", allowed: ["Active", "Resting"], next: "Retired" },
   createCommitment: { key: "pool", allowed: ["Open"] },
+  setDeclaredValue: { key: "commitment", allowed: ["Offered", "Requested"] },
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
@@ -76,6 +90,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   confirmFulfillment: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
   confirmFulfillmentAsFallback: { key: "commitment", allowed: ["ReadyForConfirmation"], next: "Fulfilled" },
   cancelCommitment: { key: "commitment", allowed: ["Offered", "Requested", "Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"], next: "Cancelled" },
+  expireCommitment: {
+    key: "commitment",
+    allowed: ["Offered", "Requested", "Accepted", "ReadyForConfirmation"],
+    next: "Expired",
+  },
   raiseDispute: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved", "ReadyForConfirmation", "Expired"], next: "Disputed" },
   resolveDispute: {
     key: "commitment",
@@ -83,17 +102,39 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     resultAllowed: ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
   },
   recordRewardPaid: { key: "commitment", allowed: ["Fulfilled"] },
+  setPoolCharter: {
+    key: "pool",
+    allowed: ["NotReady", "Ready", "Open", "Paused", "Closed", "Composted"],
+  },
+  setProviderOpenCommitmentCap: {
+    key: "pool",
+    allowed: ["NotReady", "Ready", "Open", "Paused", "Closed", "Composted"],
+  },
   markPoolReady: { key: "pool", allowed: ["NotReady"], next: "Ready" },
   openPool: { key: "pool", allowed: ["Ready"], next: "Open" },
   pausePool: { key: "pool", allowed: ["Open"], next: "Paused" },
   resumePool: { key: "pool", allowed: ["Paused"], next: "Open" },
-  closePool: { key: "pool", allowed: ["Open", "Paused"], next: "Closed" },
+  closePool: {
+    key: "pool",
+    allowed: ["Open", "Paused"],
+    next: "Closed",
+    requires: {
+      poolLiveCommitments: ["Zero"],
+      poolNonTerminalCycles: ["Zero"],
+    },
+  },
   compostPool: { key: "pool", allowed: ["Closed"], next: "Composted" },
   reopenPool: { key: "pool", allowed: ["Composted"], next: "Ready" },
   seedCycle: { key: "pool", allowed: ["Ready", "Open"], effects: { cycle: "Seeded" } },
   openCycle: { key: "cycle", allowed: ["Seeded"], next: "Open", requires: { pool: ["Open"] } },
   closeCycle: { key: "cycle", allowed: ["Open"], next: "Reconciled", requires: { cycleLiveCommitments: ["Zero"] } },
-  compostCycle: { key: "cycle", allowed: ["Reconciled"], next: "Composted" },
+  compostCycle: {
+    key: "cycle",
+    allowed: ["Reconciled"],
+    next: "Composted",
+    requires: { poolNonTerminalCycles: ["One"] },
+    effects: { poolNonTerminalCycles: "Zero" },
+  },
   cancelCycle: { key: "cycle", allowed: ["Seeded", "Open"], next: "Cancelled", requires: { cycleLiveCommitments: ["Zero"] } },
   registerSettlementAccount: { key: "settlementAccount", allowed: ["Unregistered"], next: "Registered" },
   createCommitmentPayoutPlan: {
@@ -342,7 +383,7 @@ const ADMIN_HERO: [RegExp, string][] = [
 // new reason-taking confirmation is drawn.
 const REASON_CONFIRMS = new Set([
   "pause-confirm", "cancel-cycle-confirm", "paused-cancel-cycle-confirm", "decline-claim-confirm",
-  "fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
+  "fallback-confirm", "protocol-fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
   "cancel-queued-confirm",
   "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
 ]);

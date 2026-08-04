@@ -6,7 +6,7 @@
 - Execution sub-lane: contracts
 - Owner: Codex
 - Branch signal: codex/contracts/commitment-pooling
-- Current state: blocked; this handoff does not self-dispatch
+- Current state: specification-ready, dispatch-blocked; this handoff does not self-dispatch
 - Linear context: PRD-721 (contracts lane) under parent PRD-650; PRD-671/672 are historical labels
 
 Concurrent agents share this repository. Stay inside this lane's named paths, preserve unrelated
@@ -14,18 +14,18 @@ working-tree changes, and do not switch branches from another session's primary 
 
 ## Inputs
 
-Every item below is a required prerequisite, and each stays outstanding until its own verified
-completion evidence exists. None may be treated as satisfied ahead of that evidence.
+`status.json` is authoritative for lane readiness. PRD-557, PRD-747/748, PRD-757/759, PRD-762,
+and the PRD-649 architecture fine-comb are recorded there as cleared; they are historical inputs,
+not current blockers. The remaining dispatch gates are the corrected-source merge to `develop`,
+the authorized live Linear convergence write plus re-read, and explicit user dispatch. Before
+those process gates clear, this handoff may be reviewed but must not self-dispatch.
 
-- Corrected and merged GitHub PR #649 with Envio `3.2.1` generation/build/test/migration proof.
-- PRD-747/748 Steward contract/live-hat work, still pending branch review and merge hygiene.
-- PRD-762's signed app-avatar API path, with its PRD-721 blocker still to be closed. This
-  prerequisite is agent/shared/client work and requires no Commitment Pooling contract change,
-  indexer work, or deployment broadcast.
-- The PRD-757 contributor-share and PRD-759 protocol-pool funding decisions, both of which must
-  close before PRD-649.
-- Afo's PRD-649 architecture fine-comb, with every resulting correction reconciled into the
-  contract/event/indexer/state/API boundaries.
+- Corrected-and-merged PR #649 with Envio `3.2.1` generation/build/test/migration proof remains a
+  prerequisite for the **indexer** lane. It does not block the first contracts PR's isolated
+  bounds harness and RED interface tests once this contracts lane is explicitly dispatched.
+- Decision #44's selected protocol fallback is part of the initial ABI: one write-once
+  `protocolPoolId`, per-commitment `protocolFallbackEnabled`, local-first
+  `ConfirmationPath`, and explicit `CommitmentFulfilled` confirmer/path/reason provenance.
 - contract-spec.md, especially sections 5-8 — including the 2026-08-01 CPP-alignment amendment
   (decisions 16-17): the `declaredUnitValue`/`declaredValueBasis` pair with `setDeclaredValue` +
   `ValueDeclared`, and the `counterCommitmentId` creation-time reference with its
@@ -34,10 +34,20 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - The second 2026-08-01 amendment and canonical decision 18: implement only
   `acceptExchange(uint256 exchangeCommitmentId)` plus `ExchangeAccepted` and the named exchange
   errors. Section 6.1 is the exact semantics source: B references A, only A's creator calls,
-  creator consent bypasses both claim-mode operator paths, Offer×Offer and Individual×Individual
-  are mandatory, both ordinary per-side predicates run, both registry commits and slots are
-  atomic, and the ordinary lifecycles never couple after acceptance. The architecture brief does
-  not authorize the transferable/multilateral layer.
+  and B must have been created directly rather than by a steward through
+  `StewardCaptured` / `onBehalfOf`. `createCommitment` atomically validates A's Offered,
+  Individual, distinct-creator, and exact-reservation predicates before allocating/storing B or
+  registering B's class; the UI preflight is not the safety boundary. Those two direct creator
+  actions bypass both claim-mode operator paths. Offer×Offer and Individual×Individual are
+  mandatory, cycle and identity predicates run, and both full immutable-quota classes must remain
+  Committed to their creators. Claimant identities cross while provider identities do not:
+  A's creator remains A's lead/registry account and B's creator remains B's. Acceptance does not
+  recommit either class or reapply provider-cap headroom; cap checks run only when `commitUnits`
+  reserves a new slot. Emit one `ContributorAdded` lead event for A's creator on A and one for B's
+  creator on B in the same atomic transaction. `ExchangeAccepted` carries non-indexed
+  `poolId` so its marker is self-describing without an RPC read, and the ordinary lifecycles never
+  couple after acceptance. The architecture brief does not authorize the
+  transferable/multilateral layer.
 - settlement-spec.md, which holds the canonical `validateRecognitionSnapshot` hash preimage this
   lane must implement: `recognitionSnapshotHash = keccak256(abi.encode(block.chainid,
   commitmentId, recognitionEntries))` (`settlement-spec.md` §3.1.3, mirrored into contract-spec
@@ -55,6 +65,18 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - An in-place upgrade of the existing AssessmentResolver for the AssessmentV3 schema, plus the
   NET-NEW TestimonyResolver and approved additive schema-registration targets.
 - CommitmentPoolingModule and non-transferable CommitmentRegistry with exact structs, enums, errors, events, indexes, storage gaps, pause rules, and bounded loops.
+- The module's 35th named storage entry is write-once `protocolPoolId`; the 36th is the non-zero
+  initializer-fixed `rootGarden`; slot 37 is the creator-scoped commitment creation-key mapping
+  and slot 38 is the caller-scoped Work-link operation mapping (`__gap[12]`).
+  `registerPool(..., Protocol)` requires the exact
+  root before any pool/protocol ID write. The series
+  amendment adds `nextCommitmentSeriesId`, `commitmentSeries`, and the holder-scoped
+  `seriesIdByCreationRequest` idempotency mapping before it. The first
+  module-owner exact-root `PoolType.Protocol` registration sets `protocolPoolId`; a wrong root
+  reverts `ProtocolGardenMismatch`, and a second Protocol registration reuses
+  `PoolExists(existingProtocolGarden)`. The deployment wrapper supplies the artifact-verified
+  root GardenAccount to `initialize(owner, rootGarden)`; no chain address is hardcoded in the
+  implementation.
 - GardenToken and WorkApprovalResolver wiring, isolated deploy targets, append-only artifact persistence, and post-deploy/indexer update hooks.
 - Contract tests and deployment-script tests that become the frozen ABI/event source for indexer and shared lanes.
 - The `421614` toolchain that every `--network arbitrum-sepolia` command below depends on and
@@ -72,6 +94,12 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   The grouped `commitment-pooling` upgrade target is likewise NET-NEW and ships with its own
   check that GardenToken and WorkApprovalResolver report the same live owner before one plan
   persists.
+- Mainnet transaction planning fails closed unless the verified target owner is the protocol
+  3-of-5 Safe. A human-authorized ownership-transfer plan may start from the observed deployer EOA,
+  but it must be isolated, name every touched proxy, and verify Safe ownership before any upgrade,
+  schema/module activation, or unpause plan can persist. Release evidence additionally binds the
+  repository's external-audit, 48-hour timelock, two-week testnet-operation, and tested-rollback
+  gates; this lane adds no tier waiver.
 - `packages/contracts/test/CommitmentPoolingBounds.t.sol`, the NET-NEW Foundry gas/payload
   benchmark harness that selects every `MAX_*` constant.
 
@@ -80,15 +108,24 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - Empty confirmer rules resolve to Offer recipient or Request creator; when that party is a
   GardenAccount the module resolves it to the claiming garden's operator/owner Hat wearers and
   accepts those addresses as direct callers, never an ERC-6551 `execute` and never the
-  GardenAccount address itself. Named inputs are bounded by
-  `MAX_CONFIRMERS = 32` before mutation; `threshold == 0` with a non-empty named list rejects
+  GardenAccount address itself. Named inputs are bounded by the measured `MAX_CONFIRMERS`
+  (planning target 32) before mutation; `threshold == 0` with a non-empty named list rejects
   `InvalidConfirmerRule` before any mutation; duplicates never change the stored threshold, which
   stays the caller-supplied value and is validated at acceptance against the de-duplicated
-  eligible count; every active contributor is excluded from ordinary,
-  named-group, and fallback confirmation, including a garden steward who is also on the roster.
-  RED covers 32, 33, zero-threshold, duplicate-heavy,
-  contributor-filtered, threshold-after-filtering, Garden-claimed wearer confirmation, and
-  GardenAccount-caller rejection cases.
+  eligible count. `protocolFallbackEnabled` is false unless explicitly selected at creation or
+  through the pre-acceptance `setConfirmerRule`; enabling before `protocolPoolId` exists reverts
+  `ModuleNotReady`. An unreachable ordinary rule rejects when the flag is false and satisfies the
+  structural Ready predicate when it is true. Every active contributor is excluded from ordinary,
+  named-group, local fallback, and protocol fallback confirmation. Local current-pool Hats are
+  checked before current protocol-pool Hats, so a dual-role caller records `PoolFallback`; an
+  opted-in protocol-only caller records `ProtocolFallback`; module ownership alone records
+  neither. `ConfirmerRuleSet` emits the opt-in and `CommitmentFulfilled` emits the confirmer,
+  `ConfirmationPath`, and reason.
+  RED covers 8/16/24/32 benchmark sizes plus max-plus-one at the selected bound, zero-threshold,
+  duplicate-heavy, contributor-filtered, threshold-after-filtering, Garden-claimed wearer
+  confirmation, GardenAccount-caller rejection, missing protocol-pool registration, flag-off
+  structural rejection, flag-on structural success, local/protocol/dual-role provenance, mandatory
+  fallback reason, contributor exclusion on both fallback paths, and module-owner-only rejection.
 - `submitForConfirmation` accepts the counterparty, creator, accountable lead provider, or
   steward. The lead is explicitly included so a Garden-claimed Request — whose counterparty is an
   uncallable GardenAccount — is still submittable by the human who did the work; submitting is
@@ -99,9 +136,13 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   because the same `SelfConfirmation` invariant applies.
 - A pool permits one open Season and concurrent Campaigns through bounded O(1) checks.
   `Cycle.liveCommitmentCount` increments after successful cycle-scoped creation, decrements once
-  on the first Fulfilled/Cancelled/Expired transition, and must be zero before `closeCycle` or
-  `cancelCycle`. Tests include Offered/Requested commitments, which count as live before
-  acceptance even while accepted-only `openCommitmentCount` is zero.
+  on every live-to-Fulfilled/Cancelled/Expired transition, and must be zero before `closeCycle` or
+  `cancelCycle`. Raising a dispute from Expired re-increments the count because Disputed is live;
+  restoring Expired or resolving Cancelled decrements it exactly once, and Expired can never
+  resolve Fulfilled. Tests include Offered/Requested commitments, which count as live before
+  acceptance; Requested rows can keep `liveCommitmentCount` above provider-capacity
+  `openCommitmentCount` before any provider is resolved, plus
+  `Expired -> Disputed -> RestorePrevious/Cancelled`.
 - Creating a commitment with a cycle requires that cycle to belong to the same pool and still accept commitments. Cycle-less commitments remain explicit.
 - DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable registered action/count requirements. Actions
   may share a domain, every non-zero quota must be met by contributor/provider-garden-valid Work
@@ -117,6 +158,10 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   requires the complete six-address/four-UID configuration. `CommitmentRegistry.setModule`
   permits the initial zero → non-zero wiring only; later replacement requires the current module
   paused and emits exact old/new without touching accounting state. The frozen
+  mainnet release plan additionally proves the external audit has no unresolved critical/high
+  finding, every touched UUPS/admin owner is the protocol 3-of-5 Safe, the 48-hour timelock and
+  two-week testnet-operation requirements passed, and rollback was tested before any broadcast or
+  activation step is authorized.
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
   the register's replacement guard calls that selector; interface/implementation ABI proof must
   fail before deployment if it is absent.
@@ -160,12 +205,16 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
 - Commitment creation rejects an empty exact unit label and zero target. The register's per-class
   accounting state enforces only `Registered -> Committed -> Released|Fulfilled`; commit accepts
   exactly the full non-zero quota, and release/fulfillment accept exactly the full live committed
-  balance. Acceptance therefore increments `providerOpenCommitmentCount` exactly once, while
-  fulfillment, accepted cancellation, and accepted expiry release exactly one slot once.
+  balance. Offer creation commits the creator's class and increments
+  `providerOpenCommitmentCount` exactly once; Offer acceptance performs no second register
+  mutation. Request creation remains Registered, and Request acceptance commits the resolved
+  provider class and increments the count exactly once. Fulfillment, accepted cancellation, and
+  accepted expiry release exactly one slot once.
   Partial, zero, repeated, wrong-account, and terminal-state register calls revert before any
-  balance or count mutation. Pre-acceptance cancel/expiry changes no balance or slot; dispute
-  entry/restoration makes no register call and preserves the slot.
-- Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by the lead provider/counterparty or steward, never by an unrelated creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
+  balance or count mutation. Pre-acceptance Offer cancel/expiry releases its committed class and
+  slot; pre-acceptance Request cancel/expiry changes no balance or slot. Dispute entry/restoration
+  makes no register call and preserves any committed slot.
+- Pre-acceptance cancellation is available to the creator or steward; after acceptance only the steward may cancel. Work links are added by an active contributor, the lead provider, or the steward, never by an unrelated counterparty or inactive creator. Register class quota is immutable and `setProviderOpenCommitmentCap` changes go through the module's steward-gated forwarder.
 - The count-cap API is the initial interface: `ProviderOpenCommitmentCapUpdated`,
   `OpenCommitmentCapRequired`, `OpenCommitmentCapExceeded`,
   `providerOpenCommitmentCapOf`, and `openCommitmentCountOf`. After pool/steward resolution the
@@ -181,11 +230,12 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   `ClassRegistered` carries no account, so it writes only the class row and the placeholder pool
   and exact-label rows its keys imply plus the recorded `quota`. It never writes a
   `CommitmentProviderExposure` row — that entity is keyed `chainId-poolId-lowercaseProvider`, and
-  no provider exists in the event or in the commitment at registration time, since the lead is
-  resolved at acceptance; the first `UnitsCommitted` for an account creates it. `ClassRegistered`
+  `ClassRegistered` itself carries no provider. For an Offer the immediately following
+  `UnitsCommitted` names the creator and creates the exposure row; for a Request the first
+  `UnitsCommitted` arrives only when acceptance resolves the provider. `ClassRegistered`
   mutates no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class
-  registered at creation but never accepted reads as a known label with zero units. Expected/open
-  units move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
+  registered for an unaccepted Request reads as a known label with zero units. Expected/open units
+  move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
 - `recordRewardPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-reward facts.
 - AssessmentResolver dual-schema config ABI, setter, event, errors, no-new-initializer UUPS
   upgrade, v2 state-preservation proof, and 3+47 storage layout match contract-spec §6.4.3
@@ -235,6 +285,11 @@ completion evidence exists. None may be treated as satisfied ahead of that evide
   attachment (replacement and post-freeze rejection), contributor-steward direct-dispute
   Fulfilled rejection, Garden-Request `requestedBy` lead accounting, creator-operated Garden
   rejection in both Open and ApprovalGated modes (including acceptance-time revalidation),
+  non-zero initializer root, wrong-root Protocol registration reverting before pool/protocol ID
+  mutation, direct Offer-B exchange creation, steward-captured/on-behalf B rejection, stale A
+  changing before B mining with zero B/class/event residue, acceptance-time direct-B
+  defense-in-depth, and two exchange acceptances sweeping pending request indexes even when
+  neither counterpart creator has a matching request row,
   evidence-only `requirements.length == 0`, one evidence-derived recognition credit per
   contributor across multiple distinct CIDs, stale catch-up omission before mutation, unlink
   after effective rejection, current provider-garden eligibility for Offer/StewardCaptured
@@ -275,7 +330,9 @@ separate pure-simulation process changed chain state. The AssessmentResolver tar
 `commitment-pooling` deploys and finalizes the module/register while leaving the module paused.
 The grouped `commitment-pooling` upgrade target upgrades GardenToken and WorkApprovalResolver,
 wires and verifies both reverse links, and unpauses only after the complete chain-2/chain-3
-readiness plan passes. `backfill-pools.ts` runs only after that verified unpause.
+readiness plan passes. `backfill-pools.ts` runs only after that verified unpause. It registers the
+root as Protocol exactly once, enumerates the verified 13-garden set, records the normalized root
+as `SKIPPED_PROTOCOL_ROOT`, and submits Garden registrations only for the 12 non-root addresses.
 
 Every `--network arbitrum-sepolia` line below is unrunnable against the current tree and stays
 unrunnable until this lane ships the `421614` toolchain named in Outputs: the networks.json
@@ -304,7 +361,8 @@ authorized receipt, post-action verifier, and persisted artifact between stages:
 AssessmentResolver upgrade → schema preparation → module/register deployment → Community
 Testimony finalization with pooling still paused → grouped GardenToken/WorkApprovalResolver
 upgrade and reverse wiring while paused → complete readiness verification → pooling unpause →
-pool backfill and operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
+root Protocol registration → 13-garden enumeration with root skipped → 12 non-root Garden
+registrations → operational smoke. The full sequence is rehearsed on local and Arbitrum Sepolia
 first. Every tx-plan sender
 must equal the relevant live proxy `owner()` before plan persistence; the grouped upgrade fails
 unless both proxies share that verified owner. That is the contract this lane builds, not current
@@ -326,6 +384,14 @@ above may stop being called provisional, until every row carries measured number
 Record worst-case gas and event-payload size per bound per size, then name the selected value and
 say why the next size up was rejected.
 
+This is the ordered first-PR boundary, not a reason to postpone implementation:
+
+1. Add the RED ABI/storage/event tests plus `CommitmentPoolingBounds.t.sol`.
+2. Run and record the 8/16/24/32 matrix below.
+3. Freeze all five values in this table and in the explicit `pure` ABI getters.
+4. Only then implement the bounded module loops and indexer validators that consume them, in the
+   same PR or a dependent PR. No downstream lane may copy the provisional planning targets.
+
 | Bound | 8 | 16 | 24 | 32 | Selected | Rejection reason for the next size |
 |---|---|---|---|---|---|---|
 | `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | | | | | provisional 16 | |
@@ -341,19 +407,26 @@ say why the next size up was rejected.
 
 ## Unblock evidence
 
-Each line below is a condition to be met, not a statement of current state. None is satisfied yet.
+Current architecture/specification evidence is complete: the corrected handoff and exact
+interface/event/storage tables are present, contributor-share and protocol-funding decisions are
+closed, and the architecture fine-comb is reconciled. Do not re-open those historical items.
 
-- GitHub PR #649 is corrected, merged, and proven on Envio `3.2.1`.
-- PRD-747 and PRD-748 have complete live upgrade/broadcast verification and branch merge hygiene.
-- PRD-762's signed app-avatar API path is complete and its PRD-721 blocker is closed.
-- PRD-757 and PRD-759 have closed the contributor-share and protocol-pool funding decisions.
-- Afo explicitly closes the PRD-649 final architecture fine-comb.
-- status.json then marks the contracts lane ready and the user explicitly dispatches it.
-- Corrected handoff and exact count-cap contract interface/event tables are present.
-- Standalone schema-registration and isolated deployment targets have dry-run acceptance defined.
-- The two Arbitrum Sepolia post-deploy verifier targets are created by this lane before any
-  broadcast, alongside the `421614` network record.
-- RED proof is recorded before implementation; GREEN cannot be claimed without the same test passing plus storage/deploy evidence.
+Before **starting the first contracts PR**:
+
+- The corrected sources merge to `develop`.
+- The authorized live Linear convergence write and re-read completes.
+- `status.json` is updated from that live evidence and the user explicitly dispatches PRD-721.
+
+During the **first contracts PR**, before bounded module behavior is called GREEN:
+
+- RED ABI/storage/event tests and the bounds harness land first.
+- The 8/16/24/32 table above is measured and all five values are frozen.
+- Standalone schema-registration and isolated deployment targets gain their specified dry-run
+  acceptance.
+- The two Arbitrum Sepolia post-deploy verifier targets and the `421614` network record land before
+  any broadcast.
+- GREEN includes the same tests plus storage/deploy evidence. PR #649 remains the indexer cut-in
+  prerequisite, not a reason to leave the contract ABI unspecified.
 
 ## Binding architecture amendment — 2026-07-28
 
@@ -387,9 +460,14 @@ Each line below is a condition to be met, not a statement of current state. None
 
 ## Binding review closure — 2026-07-29
 
-- Implement the 31-feature-slot Commitment Pooling declaration order and `__gap[19]`, including
+- Implement the 38-feature-slot Commitment Pooling declaration order and `__gap[12]`, including
+  `nextCommitmentSeriesId`, `commitmentSeries`, the holder-scoped
+  `seriesIdByCreationRequest` idempotency mapping,
   `workRequirementIndexPlusOne`, `workCreditActive`, and the latest resolver-owned Work decision
-  sequence plus audit UID and the bounded enumerable active Work set, but treat the generated compiler baseline plus concrete
+  sequence plus audit UID, the bounded enumerable active Work set, and the write-once
+  `protocolPoolId` followed by initializer-fixed `rootGarden`,
+  `commitmentIdByCreationRequest`, and `workLinkPayloadHashByOperation`, but treat the generated compiler
+  baseline plus concrete
   slot/offset assertions as authoritative.
 - `attachEvidence` rejects an empty or repeated exact CID, requires a non-empty unique
   measured-bounded credited list, and may mutate recognition credit only while the commitment is
@@ -405,8 +483,15 @@ Each line below is a condition to be met, not a statement of current state. None
   contributor with uncounted linked Work may leave/be removed. `ContributorRecord` carries the
   O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
   the first countable approval decrements exactly once.
-- `linkWork(commitmentId, workUID, requirementIndex)` binds a repeated action to one exact row and
+- Every `createCommitment` requires a non-zero creator-scoped `creationRequestKey`, stores the
+  full normalized payload hash and resulting ID, returns the original ID without mutation/event
+  on exact replay, and rejects conflicting key reuse. Pool `liveCommitmentCount` increments once
+  per successful creation and follows the same reversible live/terminal transition helper.
+  `closePool` requires that count and `nonTerminalCycleCount` to both be zero.
+- `linkWork(commitmentId, workUID, requirementIndex, operationKey)` binds a repeated action to one exact row and
   stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
+  The non-zero caller-scoped operation key stores the exact link payload hash; replay is a no-op
+  even after a later unlink, and conflicting reuse reverts.
   `approvalCounted` makes each decision-attestation delivery idempotent; WorkApprovalResolver
   assigns and persists a monotonic per-Work sequence in EVM execution order, including same-block
   transactions, and the greatest non-zero sequence is the deterministic effective decision.
@@ -431,8 +516,10 @@ Each line below is a condition to be met, not a statement of current state. None
   before emitting the Fulfilled resolution, and rejects the resolving steward when that address
   is a current or frozen contributor.
 - Each non-zero-cycle commitment increments `Cycle.liveCommitmentCount` after successful
-  creation; the first Fulfilled/Cancelled/Expired transition decrements exactly once. Ready and
-  Disputed remain live, and `closeCycle` plus `cancelCycle` require the O(1) count to be zero.
+  creation; each live-to-Fulfilled/Cancelled/Expired transition decrements exactly once. Ready and
+  disputes raised from live states preserve the count; Expired-to-Disputed re-increments it, and
+  that dispute's RestorePrevious(Expired) or Cancelled resolution decrements once.
+  `closeCycle` plus `cancelCycle` require the O(1) count to be zero.
 - Garden-claimed Requests use the authenticated Open `claimCommitment` caller or the consumed
   ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
   GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
@@ -451,3 +538,28 @@ Each line below is a condition to be met, not a statement of current state. None
   ascending lowercase address; then finish the verified remainder pass by descending fractional
   remainder and ascending lowercase address. Add the two row results only after both passes;
   remainders are never pooled, and one contributor may receive one remainder unit from each pass.
+
+## Binding CommitmentSeries amendment — 2026-08-02
+
+- Read `standing-commitments-spec.md` first. It supersedes this handoff wherever older text says
+  Offer capacity begins at acceptance or `acceptExchange` performs two registry commits.
+- Add module-owned `CommitmentSeries`, storage entries 15, 20, and 21 in the amended layout, exact
+  errors/events/functions, holder-scoped creation-request replay, direct-holder
+  Active/Resting/Retired lifecycle, and validated `commitmentSeriesId` on
+  Commitment/Create params/creation event.
+- A non-zero series reference is Active, same-pool, current-holder-authored, Individual Offer,
+  with zero `onBehalfOf`. `0` preserves one-shot behavior. No holder mutation or other succession
+  verb ships initially.
+- Offer creation registers and commits its exact class against the creator, reserving the provider
+  slot through Offered and Accepted. Offer acceptance and `acceptExchange` do not recommit.
+  They verify the existing full reservation without reapplying provider-cap headroom; a later cap
+  reduction constrains only a new reservation and cannot strand an existing Offer.
+  Requests remain Registered until provider acceptance. Cancel/expiry/fulfillment release only
+  when the direction/state currently owns a committed class.
+- RED proof must cover zero creation key, exact replay returning one ID with one increment/event,
+  a still-pending first submission followed by the same-key call, same-holder key reuse with a
+  different pool/initial metadata reverting, and independent holders safely reusing the same
+  key. It must also cover unknown/wrong-pool/non-holder/resting/retired/request/garden/on-behalf-of
+  references, prospective metadata, no instance mutation on series lifecycle, cap exhaustion at
+  Offer creation, unaccepted Offer release, unaccepted Request no-op, no double count at claim or
+  exchange, and exact storage/ABI/event layout.

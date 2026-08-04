@@ -299,8 +299,15 @@ A pre-build technical review verified the applied state live and closed the trai
 
 ## Exchange-wave apply pack — 2026-08-01
 
-This section is ready for a separate human/Claude Linear pass. It has not been applied. Re-read
-each issue immediately before writing, preserve newer human edits, and re-read the returned state.
+This section is an applied historical pack, not a pending instruction. The authenticated
+2026-08-01 pass and its re-read are recorded under “Applied result” below. Do not re-apply it.
+If a future correction is needed, re-read the live issue first, preserve newer human edits, and
+author a new dated addendum rather than replaying these payloads.
+
+> **Archival payload boundary:** every subsection and imperative phrase below, including “Add,”
+> “Handle,” “Point,” and “Apply,” quotes the already-applied 2026-08-01 payload. None is executable
+> or pending. Only a new dated addendum written after a live Linear re-read may authorize another
+> change.
 
 ### PRD-649 — Bilateral exchange amendment re-closes the architecture freeze
 
@@ -325,7 +332,7 @@ Applied-history touch-up to perform in the same pass: the previously applied nar
 `CommitmentRegistry` in the live Linear document/description the next time that body is written.
 Apply the one-word update in Linear only; the applied section text in this file stays as recorded.
 
-### PRD-650 — Exchange, practice templates, and plain language join the app lane
+### PRD-650 — Exchange, Offer templates, and plain language join the app lane
 
 The August app roadmap gains three scope-locked additions with no new Solidity: exchange-pair UX
 on the shipped commitment primitives, a practice-first template library, and the noun-reduction

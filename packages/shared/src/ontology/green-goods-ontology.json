@@ -2,7 +2,7 @@
   "version": 1,
   "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates every section against the code and docs anchors declared inline; bun run ontology:generate renders docs/docs/reference/ontology.generated.mdx and docs/docs/builders/integrations/entity-matrix.mdx from it. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
   "meta": {
-    "last_verified": "2026-07-25",
+    "last_verified": "2026-08-02",
     "excluded_from_v1": [
       "Impact-axes taxonomy — canon is maintained outside the repo; this public file carries only the four production action domains.",
       "ModuleDependency and ModuleSchemaKind from the commitment-pooling spec — module wiring plumbing, not domain vocabulary."
@@ -210,6 +210,21 @@
       "relationships": [{ "to": "commitment-pool", "kind": "run-of" }]
     },
     {
+      "id": "commitment-series",
+      "display": "Commitment Series",
+      "status": "spec",
+      "definition": "The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun.",
+      "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "relationships": [
+        { "to": "commitment-pool", "kind": "scoped-to" },
+        {
+          "to": "commitment",
+          "kind": "groups-offer-instances",
+          "note": "only explicit non-zero commitmentSeriesId links; Offer once uses zero"
+        }
+      ]
+    },
+    {
       "id": "commitment",
       "display": "Commitment",
       "status": "spec",
@@ -222,6 +237,11 @@
           "to": "work",
           "kind": "fulfilled-by",
           "note": "operator-curated workUID linkage with contributor attribution"
+        },
+        {
+          "to": "commitment-series",
+          "kind": "optionally-instance-of",
+          "note": "Offer instances only; zero means Offer once and Requests never link"
         },
         { "to": "commitment-contributor", "kind": "performed-by" },
         { "to": "commitment-payout-plan", "kind": "optionally-paid-through" }
@@ -1211,6 +1231,278 @@
       },
       "representations": [],
       "mappings": []
+    },
+    {
+      "id": "confirmation-path",
+      "status": "spec",
+      "definition": "The authority path that produced fulfillment provenance. PoolFallback is local-garden authority; ProtocolFallback is an explicitly selected Green Goods protocol-garden authority.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["Ordinary", "PoolFallback", "ProtocolFallback"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "ConfirmationPath"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "disbursement-state",
+      "status": "spec",
+      "definition": "Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and otherwise preserves the Solidity states.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "Queued", "Dispatched", "Confirmed", "Failed", "Cancelled"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+        "symbol": "DisbursementState"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "disbursement-kind",
+      "status": "spec",
+      "definition": "Purpose of an outbound settlement entry. LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["ContributorReward", "Funding", "LoanPrincipal"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+        "symbol": "DisbursementKind"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "funding-route",
+      "status": "spec",
+      "definition": "Typed funding route for non-commitment settlement entries; ProtocolToGarden is the only initial route.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "ProtocolToGarden"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+        "symbol": "FundingRoute"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "failure-code",
+      "status": "spec",
+      "definition": "Stored settlement failure taxonomy used for deterministic recovery and operator rendering.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": [
+          "None",
+          "GardenRouteUnavailable",
+          "InvalidRecipient",
+          "BatchSizeExceeded",
+          "TransferAmountExceeded",
+          "BatchAmountExceeded",
+          "PeriodCapExceeded",
+          "RouteRejected",
+          "RouteReverted",
+          "UnsupportedReceiverPaysFee",
+          "FeeQuoteExceeded",
+          "BalanceDeltaMismatch"
+        ]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+        "symbol": "FailureCode"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "result-status",
+      "status": "spec",
+      "definition": "Celo executor result stored in Solidity; GraphQL exposes the same outcomes as SettlementExecutionStatus with an UNKNOWN sentinel.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "Success", "Failed"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
+        "symbol": "ResultStatus"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "acknowledgment-deferral-code",
+      "status": "spec",
+      "definition": "Why an executor acknowledgment could not be sent immediately without changing the stored execution result.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
+        "symbol": "AcknowledgmentDeferralCode"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "settlement-execution-status",
+      "status": "spec",
+      "definition": "GraphQL execution-result mirror with an explicit UNKNOWN sentinel.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "none",
+        "members": ["UNKNOWN", "SUCCESS", "FAILED"]
+      },
+      "planned_anchor": {
+        "file": "packages/indexer/schema.graphql",
+        "symbol": "SettlementExecutionStatus"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-claim-request-state",
+      "status": "spec",
+      "definition": "Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "none",
+        "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
+      },
+      "planned_anchor": {
+        "file": "packages/indexer/schema.graphql",
+        "symbol": "CommitmentClaimRequestState"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-event-type",
+      "status": "spec",
+      "definition": "Normalized event vocabulary for commitment-pooling history and read-model aggregation.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": [
+          "MODULE_UPDATED",
+          "MODULE_DEPENDENCY_UPDATED",
+          "MODULE_SCHEMA_UID_UPDATED",
+          "MODULE_PAUSE_STATUS_CHANGED",
+          "POOL_REGISTERED",
+          "POOL_CHARTER_UPDATED",
+          "POOL_READY",
+          "POOL_OPENED",
+          "POOL_PAUSED",
+          "POOL_RESUMED",
+          "POOL_CLOSED",
+          "POOL_COMPOSTED",
+          "POOL_REOPENED",
+          "CLASS_REGISTERED",
+          "PROVIDER_OPEN_COMMITMENT_CAP_UPDATED",
+          "CYCLE_SEEDED",
+          "CYCLE_OPENED",
+          "CYCLE_CLOSED",
+          "CYCLE_COMPOSTED",
+          "CYCLE_CANCELLED",
+          "CREATED",
+          "REWARD_DECLARED",
+          "VALUE_DECLARED",
+          "CONFIRMER_RULE_SET",
+          "CLAIM_REQUESTED",
+          "CLAIM_DECLINED",
+          "ACCEPTED",
+          "EXCHANGE_ACCEPTED",
+          "COMMITMENT_SERIES_CREATED",
+          "COMMITMENT_SERIES_METADATA_UPDATED",
+          "COMMITMENT_SERIES_RESTED",
+          "COMMITMENT_SERIES_RESUMED",
+          "COMMITMENT_SERIES_RETIRED",
+          "CONTRIBUTOR_ADDED",
+          "CONTRIBUTOR_REMOVED",
+          "CONTRIBUTOR_REQUIREMENT_ASSIGNED",
+          "CONTRIBUTOR_ROSTER_FROZEN",
+          "WORK_LINKED",
+          "WORK_UNLINKED",
+          "APPROVED_WORK_COUNTED",
+          "APPROVED_WORK_REVERSED",
+          "EVIDENCE_ATTACHED",
+          "ASSESSMENT_ATTACHED",
+          "READY_FOR_CONFIRMATION",
+          "CONFIRMATION_RECORDED",
+          "FULFILLED",
+          "CANCELLED",
+          "EXPIRED",
+          "DISPUTED",
+          "DISPUTE_RESOLVED",
+          "REWARD_PAID",
+          "UNITS_COMMITTED",
+          "UNITS_RELEASED",
+          "UNITS_FULFILLED"
+        ]
+      },
+      "planned_anchor": {
+        "file": "packages/indexer/schema.graphql",
+        "symbol": "CommitmentEventType"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-unit-scope",
+      "status": "spec",
+      "definition": "Read-model grouping boundary for exact-label commitment-unit summaries.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "none",
+        "members": ["POOL", "CYCLE"]
+      },
+      "planned_anchor": {
+        "file": "packages/indexer/schema.graphql",
+        "symbol": "CommitmentUnitScope"
+      },
+      "representations": [],
+      "mappings": []
+    },
+    {
+      "id": "commitment-series-state",
+      "status": "spec",
+      "definition": "Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.",
+      "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "Active", "Resting", "Retired"]
+      },
+      "planned_anchor": {
+        "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+        "symbol": "CommitmentSeriesState"
+      },
+      "representations": [],
+      "mappings": []
     }
   ],
   "schemas": {
@@ -1673,7 +1965,7 @@
       "status": "spec",
       "vocabulary": "commitment-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
-      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → recipient, Request → creator); every lead/contributor self-confirmation path is blocked; evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits > 0, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.",
+      "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → receiver, Request → creator), or a named group may be set before acceptance. A current local-garden steward/owner may use PoolFallback. When explicitly selected before acceptance and no ordinary/local confirmer is reachable, a current steward/owner of the registered Green Goods protocol garden may use ProtocolFallback. The authority paths are not time-based; module ownership alone grants neither fallback; every lead/contributor is excluded. Evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits > 0 and a structurally reachable confirmer, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.",
       "states": [
         { "name": "Draft", "storage": "off-chain" },
         { "name": "Offered", "storage": "on-chain" },
@@ -1724,13 +2016,13 @@
           "from": "…",
           "to": "ReadyForConfirmation",
           "layer": "on-chain",
-          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy plus pre-freeze totalVerifiedCredits > 0; contributor roster and credit ledger freeze atomically before the ready event"
+          "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event"
         },
         {
           "from": "ReadyForConfirmation",
           "to": "Fulfilled",
           "layer": "on-chain",
-          "mechanism": "confirmFulfillment by named confirmer or direction-aware default; threshold N → CommitmentFulfilled; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path"
+          "mechanism": "confirmFulfillment by named confirmer or direction-aware default, or confirmFulfillmentAsFallback with reason by current local-garden authority (PoolFallback) or explicitly selected registered protocol-garden authority (ProtocolFallback); local authority wins for dual-role callers; threshold N → CommitmentFulfilled with actor/path/reason; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path"
         },
         {
           "from": "Fulfilled",
@@ -1896,6 +2188,41 @@
       "pattern": "\\?\\?\\s*Domain\\.SOLAR",
       "expect": "absent",
       "note": "parseDomain silently coerces UNKNOWN/unrecognized indexer domains into Domain.SOLAR; unknown values must surface instead of masquerading as SOLAR."
+    },
+    {
+      "id": "commitment-provider-exposure-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "type\\s+CommitmentProviderExposure\\b",
+      "expect": "absent",
+      "note": "When the CommitmentProviderExposure read model lands, add its canonical ontology entity/mapping in the same change."
+    },
+    {
+      "id": "commitment-unit-summary-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "type\\s+CommitmentUnitSummary\\b",
+      "expect": "absent",
+      "note": "When the exact-label CommitmentUnitSummary read model lands, add its canonical ontology entity/mapping in the same change."
+    },
+    {
+      "id": "promise-kept-rate-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "\\bpromiseKeptRate\\s*:",
+      "expect": "absent",
+      "note": "When promiseKeptRate lands, add the commitmentsFulfilled/commitmentsDue metric definition to the ontology in the same change."
+    },
+    {
+      "id": "commitment-series-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "type\\s+CommitmentSeries\\b",
+      "expect": "absent",
+      "note": "The spec entity and Solidity-spelled lifecycle are canonical now. When CommitmentSeries lands, add its live indexer/shared representations and the explicit GraphQL uppercase mapping in the same change."
+    },
+    {
+      "id": "commitment-series-cycle-summary-arrival",
+      "file": "packages/indexer/schema.graphql",
+      "pattern": "type\\s+CommitmentSeriesCycleSummary\\b",
+      "expect": "absent",
+      "note": "When the per-cycle series Story summary lands, add its canonical entity mapping and exact count definitions in the same change."
     }
   ],
   "known_issues": [

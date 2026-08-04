@@ -368,13 +368,13 @@ W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ──
 │   [ Mint impact certificate ]                            │
 │ Step 4 — Rest the cycle    [ Reconcile + compost ]       │
 │   aggregates roll into pool history; the next season     │
-│   seeds fresh on this pool (D5)                          │
+│   seeds fresh on this pool (D9)                          │
 └──────────────────────────────────────────────────────────┘`,
 MF1: `┌─ Pool ─────────────────────────────────────────────────────────────┐
 │ (Ready) charter ✓ baseline ✓ cap 24                                │
 │ [ Open pool ]                    [ Edit charter ] [ Pause… ]       │
 │  — once Open —                                                     │
-│ [ Close pool… ]  after the last cycle composts                     │
+│ [ Close pool… ]  after all cycles end and pool live count = 0      │
 └────────────────────────────────────────────────────────────────────┘`,
 MF3: `┌──────────────────────────────────────────────┐
 │ (Expired)  This promise ran through Aug 12.  │
@@ -706,7 +706,7 @@ W26: [
 ],
 MF1: [
   { m: "[ Open pool ]", l: "Open pool", info: "openPool → PoolOpened. Adopted per register #34a — closes the Ready→Open deadlock (CS:100, CS:727)." },
-  { m: "[ Close pool… ]", l: "Close pool", info: "After the last cycle composts (CS:102); then Compost/Reopen per §4.1." },
+  { m: "[ Close pool… ]", l: "Close pool", info: "Only after every cycle is Cancelled/Composted and pool live commitments are zero (CS:102); then Compost/Reopen per §4.1." },
 ],
 MF3: [{ m: "[ Offer again ]", l: "Offer again", to: "frame:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94)." }],
 MF4: [{ m: "[ Re-seed… ]", l: "Re-seed", to: "frame:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94)." }],

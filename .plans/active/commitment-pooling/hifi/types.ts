@@ -33,11 +33,17 @@ export type PoolLifecycle = "NotReady" | "Ready" | "Open" | "Paused" | "Closed" 
 // Draft/InProgress/Reviewing remain UI overlays, matching the ontology sidecar.
 export type CycleLifecycle = "Seeded" | "Open" | "Reconciled" | "Composted" | "Cancelled";
 export type CycleLiveCommitments = "Zero" | "NonZero";
+export type PoolLiveCommitments = "Zero" | "NonZero";
+export type PoolNonTerminalCycles = "Zero" | "One" | "Many";
 export type CommitmentLifecycle =
   | "Offered" | "Requested" | "Accepted" | "Active" | "EvidenceSubmitted"
   | "PartiallyApproved" | "ReadyForConfirmation" | "Fulfilled" | "Cancelled"
   | "Expired" | "Disputed" | "Reconciled";
 export type CommitmentKind = "DomainImpact" | "SupportService" | "SeasonCampaign" | "StewardCaptured";
+// Ongoing Offer (`CommitmentSeries`) on-chain lifecycle. `None` is the
+// storage sentinel and never renders. Pending/queued creation is not a series
+// state — it is the ordinary pre-sync overlay carried by HotMeta.pendingSync.
+export type CommitmentSeriesLifecycle = "Active" | "Resting" | "Retired";
 export type SettlementAccountState = "Unregistered" | "Registered" | "Active";
 export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" | "Registered" | "Active";
 // Exact settlement-spec DisbursementState spelling. `None` is a sentinel and
@@ -56,7 +62,10 @@ export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" |
 export type StateFacts = {
   pool?: PoolLifecycle;
   cycle?: CycleLifecycle;
+  series?: CommitmentSeriesLifecycle;
   cycleLiveCommitments?: CycleLiveCommitments;
+  poolLiveCommitments?: PoolLiveCommitments;
+  poolNonTerminalCycles?: PoolNonTerminalCycles;
   commitment?: CommitmentLifecycle;
   kind?: CommitmentKind;
   settlementAccount?: SettlementAccountState;
@@ -69,11 +78,18 @@ export type StateFacts = {
 };
 
 export type ContractCall =
-  | "createCommitment" | "claimCommitment" | "acceptClaim" | "declineClaim"
+  // Ongoing Offer (CommitmentSeries) — initial ABI is create/metadata/rest/resume/
+  // retire only. Co-holder, apprenticeship, handover, fork, and community-held
+  // stewardship are follow-on consent events and deliberately absent here, so a
+  // drawn succession control cannot compile into a call that does not exist.
+  | "createCommitmentSeries" | "updateCommitmentSeriesMetadata"
+  | "restCommitmentSeries" | "resumeCommitmentSeries" | "retireCommitmentSeries"
+  | "createCommitment" | "setDeclaredValue" | "claimCommitment" | "acceptClaim" | "declineClaim"
   | "joinCommitment" | "leaveCommitment" | "addContributor" | "removeContributor"
   | "setContributorRequirement" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
-  | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment"
+  | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment" | "expireCommitment"
   | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
+  | "setPoolCharter" | "setProviderOpenCommitmentCap"
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"

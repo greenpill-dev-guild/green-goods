@@ -1,55 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 800 800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="layers-title layers-desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="layers-title layers-desc">
   <title id="layers-title">Three layers of commitment pooling built in stages</title>
-  <desc id="layers-desc">Three stacked layers within one commitment-pooling system: the August coordination foundation, outcome-linked support on built rails plus gated G dollar settlement, and later reciprocal routing and exchange capabilities. A records-only borrow-and-repay companion is part of the August wave behind three dispatch gates.</desc>
-  <rect x="0" y="0" width="800" height="800" fill="#FBF8F2"/>
+  <desc id="layers-desc">Three stacked layers within one commitment-pooling system: the August coordination foundation, outcome-linked support on built rails plus gated G dollar settlement, and later reciprocal routing and exchange capabilities. A records-only borrow-and-repay companion is part of the August wave behind three dispatch gates. Solid outlines mark built layers; dashed outlines mark gated and later work.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
 
-  <text x="400" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">Three layers, named honestly</text>
-  <text x="400" y="70" text-anchor="middle" font-size="16" fill="#6E6857">one commitment-pooling system: August foundation, support rails, later roadmap</text>
+  <text x="450" y="52" text-anchor="middle" font-size="33" font-weight="700" fill="#2A2722">Three layers, named honestly</text>
+  <text x="450" y="82" text-anchor="middle" font-size="17" fill="#6E6857">one commitment-pooling system: August foundation, support rails, later roadmap</text>
 
-  <!-- Layer 1: coordination -->
+  <!-- Layer 1: coordination foundation -->
   <g>
-    <rect x="70" y="104" width="660" height="150" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="400" y="138" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">1 · Commitment-pooling foundation</text>
-    <text x="400" y="160" text-anchor="middle" font-size="13" font-weight="600" fill="#3E5C41">August build — coordination capabilities within the pool</text>
-    <text x="400" y="188" text-anchor="middle" font-size="15" fill="#6E6857">Needs → offers and requests → evidence → independent confirmation</text>
-    <text x="400" y="208" text-anchor="middle" font-size="15" fill="#6E6857">→ cancellation, expiry, dispute, and repair — with declared value</text>
-    <text x="400" y="228" text-anchor="middle" font-size="15" fill="#6E6857">and exchange references; standing and rotations remain August app-roadmap</text>
+    <rect x="78" y="118" width="744" height="168" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="450" y="156" text-anchor="middle" font-size="22" font-weight="600" fill="#2A2722">1 · Commitment-pooling foundation</text>
+    <text x="450" y="180" text-anchor="middle" font-size="15" font-weight="600" fill="#3E5C41">August build — coordination capabilities within the pool</text>
+    <text x="450" y="212" text-anchor="middle" font-size="16" fill="#6E6857">Needs → offers and requests → evidence → independent confirmation</text>
+    <text x="450" y="234" text-anchor="middle" font-size="16" fill="#6E6857">→ cancellation, expiry, dispute, and repair — with declared value</text>
+    <text x="450" y="256" text-anchor="middle" font-size="16" fill="#6E6857">and exchange references; standing and rotations remain August app-roadmap</text>
   </g>
-  <path d="M400 254 L400 286" stroke="#2A2722" stroke-width="2" fill="none"/>
-  <path d="M393 279 L400 289 L407 279" stroke="#2A2722" stroke-width="2" fill="none"/>
-  <text x="414" y="276" font-size="14" fill="#6E6857">verified outcomes unlock support</text>
+  <path d="M450 288 L450 320" stroke="#988D77" stroke-width="2" fill="none"/>
+  <path d="M442 313 L450 323 L458 313" stroke="#988D77" stroke-width="2" fill="none"/>
+  <text x="466" y="310" font-size="15" fill="#6E6857">verified outcomes unlock support</text>
 
   <!-- Layer 2: outcome-linked support -->
   <g>
-    <rect x="70" y="292" width="660" height="140" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="400" y="326" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">2 · Outcome-linked support</text>
-    <text x="400" y="348" text-anchor="middle" font-size="13" font-weight="600" fill="#8A6D3B">built rails + separately gated G$ settlement</text>
-    <text x="400" y="376" text-anchor="middle" font-size="16" fill="#6E6857">direct support · supporter-vault yield · impact certificates ·</text>
-    <text x="400" y="396" text-anchor="middle" font-size="16" fill="#6E6857">gated G$ settlement — value moves on its own rails; the pooling</text>
-    <text x="400" y="416" text-anchor="middle" font-size="16" fill="#6E6857">module never holds it</text>
+    <rect x="78" y="328" width="744" height="158" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <text x="450" y="366" text-anchor="middle" font-size="22" font-weight="600" fill="#2A2722">2 · Outcome-linked support</text>
+    <text x="450" y="390" text-anchor="middle" font-size="15" font-weight="600" fill="#8A6D3B">built rails + separately gated G$ settlement</text>
+    <text x="450" y="422" text-anchor="middle" font-size="16" fill="#6E6857">direct support · supporter-vault yield · impact certificates ·</text>
+    <text x="450" y="444" text-anchor="middle" font-size="16" fill="#6E6857">gated G$ settlement — value moves on its own rails; the pooling</text>
+    <text x="450" y="466" text-anchor="middle" font-size="16" fill="#6E6857">module never holds it</text>
   </g>
 
-  <!-- borrow-and-repay strip -->
+  <!-- August companion: borrow and repay (gated) -->
   <g>
-    <rect x="120" y="452" width="560" height="84" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="7 5"/>
-    <text x="400" y="484" text-anchor="middle" font-size="17" font-weight="600" fill="#2A2722">August companion: borrow and repay</text>
-    <text x="400" y="506" text-anchor="middle" font-size="14" fill="#6E6857">records-only, interest-free mutual credit behind interface-freeze, revalidation,</text>
-    <text x="400" y="524" text-anchor="middle" font-size="14" fill="#6E6857">and human legal/operations gates — never a per-person score</text>
+    <rect x="125" y="510" width="650" height="94" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="450" y="546" text-anchor="middle" font-size="19" font-weight="600" fill="#2A2722">August companion: borrow and repay</text>
+    <text x="450" y="570" text-anchor="middle" font-size="15" fill="#6E6857">records-only, interest-free mutual credit behind interface-freeze, revalidation,</text>
+    <text x="450" y="590" text-anchor="middle" font-size="15" fill="#6E6857">and human legal/operations gates — never a per-person score</text>
   </g>
-  <path d="M400 540 L400 572" stroke="#6E6857" stroke-width="2" stroke-dasharray="6 6" fill="none"/>
-  <path d="M393 565 L400 575 L407 565" stroke="#6E6857" stroke-width="2" fill="none"/>
-  <text x="414" y="562" font-size="14" fill="#6E6857">later roadmap extends the same system</text>
+  <path d="M450 608 L450 640" stroke="#988D77" stroke-width="2" stroke-dasharray="6 6" fill="none"/>
+  <path d="M442 633 L450 643 L458 633" stroke="#988D77" stroke-width="2" fill="none"/>
+  <text x="466" y="630" font-size="15" fill="#6E6857">later roadmap extends the same system</text>
 
-  <!-- Layer 3: reciprocal pooling -->
+  <!-- Layer 3: later reciprocal routing and exchange -->
   <g>
-    <rect x="70" y="578" width="660" height="126" rx="12" fill="#FBF8F2" stroke="#6E6857" stroke-width="2" stroke-dasharray="7 5"/>
-    <text x="400" y="608" text-anchor="middle" font-size="20" font-weight="600" fill="#2A2722">3 · Later reciprocal routing &amp; exchange</text>
-    <text x="400" y="630" text-anchor="middle" font-size="13" font-weight="600" fill="#6E6857">roadmap seams — engineered, not shipped</text>
-    <text x="400" y="655" text-anchor="middle" font-size="15" fill="#6E6857">transferable vouchers wrapping fulfilled classes · exchange execution</text>
-    <text x="400" y="674" text-anchor="middle" font-size="15" fill="#6E6857">· relative pricing · garden-to-garden routing — each extends</text>
-    <text x="400" y="693" text-anchor="middle" font-size="15" fill="#6E6857">the same commitment-pooling system without a rewrite</text>
+    <rect x="78" y="648" width="744" height="150" rx="12" fill="#FBF8F2" stroke="#6E6857" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="450" y="682" text-anchor="middle" font-size="22" font-weight="600" fill="#2A2722">3 · Later reciprocal routing &amp; exchange</text>
+    <text x="450" y="706" text-anchor="middle" font-size="15" font-weight="600" fill="#6E6857">roadmap seams — engineered, not shipped</text>
+    <text x="450" y="736" text-anchor="middle" font-size="16" fill="#6E6857">transferable vouchers wrapping fulfilled classes · exchange execution</text>
+    <text x="450" y="758" text-anchor="middle" font-size="16" fill="#6E6857">· relative pricing · garden-to-garden routing — each extends</text>
+    <text x="450" y="780" text-anchor="middle" font-size="16" fill="#6E6857">the same commitment-pooling system without a rewrite</text>
   </g>
 
-  <text x="400" y="738" text-anchor="middle" font-size="14" fill="#6E6857">Layering after the Grassroots Economics review (2026-08); framing adapted clean-room.</text>
-  <text x="400" y="772" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+  <text x="450" y="828" text-anchor="middle" font-size="15" fill="#6E6857">Layering after the Grassroots Economics review (2026-08); framing adapted clean-room.</text>
+  <text x="450" y="860" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
 </svg>

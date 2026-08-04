@@ -1,84 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600" viewBox="0 0 800 800" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="ge-title ge-desc">
-  <title id="ge-title">Six functions of commitment pooling, built in stages</title>
-  <desc id="ge-desc">A two-row grid presents curation, valuation, limitation, exchange, route, and repair. Exchange combines a reference record with bilateral atomic acceptance while multilateral and transferable execution remains later roadmap work.</desc>
-  <rect x="0" y="0" width="800" height="800" fill="#FBF8F2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="ge-title ge-desc">
+  <title id="ge-title">Six commitment-pooling functions, built in stages</title>
+  <desc id="ge-desc">A two-row grid presents curation, valuation, limitation, exchange, route, and repair. A solid green rule marks the three functions the August release carries in full — curation, limitation, and repair. A dashed brown rule marks the three that carry an August foundation extended by a roadmap seam — valuation, exchange, and route. Multilateral and transferable exchange, relative pricing, and garden-to-garden routing remain roadmap work in the same system.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
 
-  <text x="400" y="43" text-anchor="middle" font-size="27" font-weight="700" fill="#2A2722">Six functions of commitment pooling, built in stages</text>
-  <text x="400" y="68" text-anchor="middle" font-size="15" fill="#6E6857">
-    <tspan x="400">August delivers the foundation now;</tspan>
-    <tspan x="400" dy="19">roadmap seams extend the same commitment-pooling system</tspan>
+  <text x="450" y="54" text-anchor="middle" font-size="30" font-weight="700" fill="#2A2722">Six commitment-pooling functions, built in stages</text>
+  <text x="450" y="86" text-anchor="middle" font-size="17" fill="#6E6857">
+    <tspan x="450">Curation, valuation, limitation, exchange, route, and repair —</tspan>
+    <tspan x="450" dy="23">colour marks what the August release carries today.</tspan>
   </text>
 
-  <!-- Curation -->
+  <!-- Curation · August release, full mechanics -->
   <g>
-    <rect x="40" y="112" width="216" height="220" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="148" y="158" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Curation</text>
-    <text x="148" y="185" text-anchor="middle" font-size="13" font-weight="600" fill="#3E5C41">August · full mechanics</text>
-    <text x="148" y="232" text-anchor="middle" font-size="15" fill="#6E6857">the community decides</text>
-    <text x="148" y="253" text-anchor="middle" font-size="15" fill="#6E6857">which commitments belong</text>
-    <text x="148" y="274" text-anchor="middle" font-size="15" fill="#6E6857">in the pool</text>
+    <rect x="48" y="152" width="250" height="196" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <path d="M137 180 H209" stroke="#3E5C41" stroke-width="4" fill="none"/>
+    <text x="173" y="216" text-anchor="middle" font-size="22" font-weight="600" fill="#3E5C41">Curation</text>
+    <text x="173" y="262" text-anchor="middle" font-size="15" fill="#6E6857">the community decides</text>
+    <text x="173" y="284" text-anchor="middle" font-size="15" fill="#6E6857">which commitments belong</text>
+    <text x="173" y="306" text-anchor="middle" font-size="15" fill="#6E6857">in the pool</text>
   </g>
 
-  <!-- Valuation -->
+  <!-- Valuation · August foundation + roadmap seam -->
   <g>
-    <rect x="292" y="112" width="216" height="220" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="400" y="158" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Valuation</text>
-    <text x="400" y="183" text-anchor="middle" font-size="12" font-weight="600" fill="#8A6D3B">August · declared value record</text>
-    <text x="400" y="201" text-anchor="middle" font-size="12" font-weight="600" fill="#8A6D3B">relative pricing · roadmap</text>
-    <text x="400" y="235" text-anchor="middle" font-size="15" fill="#6E6857">one unit against a named</text>
-    <text x="400" y="256" text-anchor="middle" font-size="15" fill="#6E6857">basis — a shared reference,</text>
-    <text x="400" y="277" text-anchor="middle" font-size="15" fill="#6E6857">never protocol arithmetic</text>
+    <rect x="325" y="152" width="250" height="196" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <path d="M414 180 H486" stroke="#8A6D3B" stroke-width="4" stroke-dasharray="10 7" fill="none"/>
+    <text x="450" y="216" text-anchor="middle" font-size="22" font-weight="600" fill="#8A6D3B">Valuation</text>
+    <text x="450" y="251" text-anchor="middle" font-size="15" fill="#6E6857">a declared value per unit</text>
+    <text x="450" y="273" text-anchor="middle" font-size="15" fill="#6E6857">against a named basis —</text>
+    <text x="450" y="295" text-anchor="middle" font-size="15" fill="#6E6857">a shared reference, never</text>
+    <text x="450" y="317" text-anchor="middle" font-size="15" fill="#6E6857">protocol arithmetic</text>
   </g>
 
-  <!-- Limitation -->
+  <!-- Limitation · August release, full mechanics -->
   <g>
-    <rect x="544" y="112" width="216" height="220" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="652" y="158" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Limitation</text>
-    <text x="652" y="185" text-anchor="middle" font-size="13" font-weight="600" fill="#3E5C41">August · full mechanics</text>
-    <text x="652" y="232" text-anchor="middle" font-size="15" fill="#6E6857">caps keep one member</text>
-    <text x="652" y="253" text-anchor="middle" font-size="15" fill="#6E6857">or asset from dominating</text>
-    <text x="652" y="274" text-anchor="middle" font-size="15" fill="#6E6857">the pool</text>
+    <rect x="602" y="152" width="250" height="196" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <path d="M691 180 H763" stroke="#3E5C41" stroke-width="4" fill="none"/>
+    <text x="727" y="216" text-anchor="middle" font-size="22" font-weight="600" fill="#3E5C41">Limitation</text>
+    <text x="727" y="262" text-anchor="middle" font-size="15" fill="#6E6857">caps keep one member</text>
+    <text x="727" y="284" text-anchor="middle" font-size="15" fill="#6E6857">or asset from dominating</text>
+    <text x="727" y="306" text-anchor="middle" font-size="15" fill="#6E6857">the pool</text>
   </g>
 
-  <!-- Exchange -->
+  <!-- Exchange · August foundation + roadmap seam -->
   <g>
-    <rect x="40" y="360" width="216" height="220" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="148" y="406" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Exchange</text>
-    <text x="148" y="431" text-anchor="middle" font-size="12" font-weight="600" fill="#8A6D3B">August · reference + paired start</text>
-    <text x="148" y="449" text-anchor="middle" font-size="12" font-weight="600" fill="#8A6D3B">transferable · roadmap</text>
-    <text x="148" y="483" text-anchor="middle" font-size="15" fill="#6E6857">linked offers can start</text>
-    <text x="148" y="504" text-anchor="middle" font-size="15" fill="#6E6857">together, then each promise</text>
-    <text x="148" y="525" text-anchor="middle" font-size="15" fill="#6E6857">stands on its own</text>
+    <rect x="48" y="378" width="250" height="196" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <path d="M137 406 H209" stroke="#8A6D3B" stroke-width="4" stroke-dasharray="10 7" fill="none"/>
+    <text x="173" y="442" text-anchor="middle" font-size="22" font-weight="600" fill="#8A6D3B">Exchange</text>
+    <text x="173" y="488" text-anchor="middle" font-size="15" fill="#6E6857">linked offers are accepted</text>
+    <text x="173" y="510" text-anchor="middle" font-size="15" fill="#6E6857">in one step, then each</text>
+    <text x="173" y="532" text-anchor="middle" font-size="15" fill="#6E6857">promise stands on its own</text>
   </g>
 
-  <!-- Route -->
+  <!-- Route · August foundation + roadmap seam -->
   <g>
-    <rect x="292" y="360" width="216" height="220" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="400" y="406" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Route</text>
-    <text x="400" y="431" text-anchor="middle" font-size="12" font-weight="600" fill="#8A6D3B">August · partial pathways</text>
-    <text x="400" y="449" text-anchor="middle" font-size="12" font-weight="600" fill="#8A6D3B">garden-to-garden · roadmap</text>
-    <text x="400" y="483" text-anchor="middle" font-size="15" fill="#6E6857">cross-garden claims and</text>
-    <text x="400" y="504" text-anchor="middle" font-size="15" fill="#6E6857">protocol-to-garden support</text>
-    <text x="400" y="525" text-anchor="middle" font-size="15" fill="#6E6857">follow bounded pathways</text>
+    <rect x="325" y="378" width="250" height="196" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <path d="M414 406 H486" stroke="#8A6D3B" stroke-width="4" stroke-dasharray="10 7" fill="none"/>
+    <text x="450" y="442" text-anchor="middle" font-size="22" font-weight="600" fill="#8A6D3B">Route</text>
+    <text x="450" y="488" text-anchor="middle" font-size="15" fill="#6E6857">cross-garden claims and</text>
+    <text x="450" y="510" text-anchor="middle" font-size="15" fill="#6E6857">protocol-to-garden support</text>
+    <text x="450" y="532" text-anchor="middle" font-size="15" fill="#6E6857">follow bounded pathways</text>
   </g>
 
-  <!-- Repair -->
+  <!-- Repair · August release, full mechanics -->
   <g>
-    <rect x="544" y="360" width="216" height="220" rx="12" fill="#FFFFFF" stroke="#2A2722" stroke-width="2"/>
-    <text x="652" y="406" text-anchor="middle" font-size="21" font-weight="600" fill="#2A2722">Repair</text>
-    <text x="652" y="433" text-anchor="middle" font-size="13" font-weight="600" fill="#3E5C41">August · full mechanics</text>
-    <text x="652" y="480" text-anchor="middle" font-size="15" fill="#6E6857">disputes, defaults, and</text>
-    <text x="652" y="501" text-anchor="middle" font-size="15" fill="#6E6857">recovery restore</text>
-    <text x="652" y="522" text-anchor="middle" font-size="15" fill="#6E6857">bounded participation</text>
+    <rect x="602" y="378" width="250" height="196" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
+    <path d="M691 406 H763" stroke="#3E5C41" stroke-width="4" fill="none"/>
+    <text x="727" y="442" text-anchor="middle" font-size="22" font-weight="600" fill="#3E5C41">Repair</text>
+    <text x="727" y="488" text-anchor="middle" font-size="15" fill="#6E6857">disputes, defaults, and</text>
+    <text x="727" y="510" text-anchor="middle" font-size="15" fill="#6E6857">recovery restore bounded</text>
+    <text x="727" y="532" text-anchor="middle" font-size="15" fill="#6E6857">participation</text>
   </g>
 
-  <text x="400" y="625" text-anchor="middle" font-size="15" font-weight="600" fill="#3E5C41">August mechanics and records — the current commitment-pooling release</text>
-  <text x="400" y="648" text-anchor="middle" font-size="15" font-weight="600" fill="#8A6D3B">Roadmap seams — later capabilities in the same commitment-pooling system</text>
+  <!-- Legend: the colour contract -->
+  <path d="M185 629 H225" stroke="#3E5C41" stroke-width="4" fill="none"/>
+  <text x="239" y="634" font-size="16" font-weight="600" fill="#3E5C41">August release — full mechanics for this function</text>
+  <path d="M185 659 H225" stroke="#8A6D3B" stroke-width="4" stroke-dasharray="10 7" fill="none"/>
+  <text x="239" y="664" font-size="16" font-weight="600" fill="#8A6D3B">August foundation — roadmap seams extend the same system</text>
 
-  <text x="400" y="695" text-anchor="middle" font-size="15" fill="#6E6857">
-    <tspan x="400">Multilateral and transferable exchange, relative pricing, and</tspan>
-    <tspan x="400" dy="21">garden-to-garden routing remain roadmap work.</tspan>
+  <text x="450" y="718" text-anchor="middle" font-size="15" fill="#6E6857">
+    <tspan x="450">Multilateral and transferable exchange, relative pricing, and garden-to-garden</tspan>
+    <tspan x="450" dy="23">routing remain roadmap work — no transfer and no custody ship in August.</tspan>
   </text>
 
-  <text x="400" y="772" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+  <text x="450" y="838" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
 </svg>

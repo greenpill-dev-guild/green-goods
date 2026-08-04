@@ -8,8 +8,10 @@
 - Current state: blocked
 - Linear context: PRD-731
 
-This handoff never authorizes an agent broadcast. The non-value core-upgrade/deployment tier and
-value-bearing CCIP settlement tier have separate evidence and authorization.
+This handoff never authorizes an agent broadcast. The core-upgrade/deployment tier and
+value-bearing CCIP settlement tier have separate operational evidence and authorization, but both
+share the repository's blocking external-audit, protocol 3-of-5 Safe ownership, 48-hour mainnet
+timelock, two-week testnet-operation, and tested-rollback requirements.
 
 The approved product sequence treats the verified non-value broadcast plus indexer
 deployment/reindex/live read-back as the handoff into scoped existing-admin fixes and polish.
@@ -18,7 +20,7 @@ not weaken either broadcast gate or make the value tier a prerequisite for the n
 
 ## Outputs
 
-- A signed non-value-tier readiness checklist covering the ordered
+- A signed core-tier readiness checklist covering the shared blocking security requirements and the ordered
   `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
   and `GardenToken`/`WorkApprovalResolver` upgrades, reverse wiring, pooling unpause, and pool
   backfill.
@@ -47,7 +49,7 @@ not weaken either broadcast gate or make the value tier a prerequisite for the n
 | Protocol multisig/timelock | Afolabi Aiyeloja | protocol signers |
 | Garden Safe recovery/Zodiac Roles/caps | Afolabi Aiyeloja | settlement operator + named garden delegate |
 | Direct CCIP lane + dual-chain testnet evidence gate | Afolabi Aiyeloja | QA/release operator + auditor |
-| Garden-ID replay/cutover/rollback | Afolabi Aiyeloja | indexer implementer |
+| Commitment Pooling replay/cutover/rollback with bare-address Garden compatibility | Afolabi Aiyeloja | indexer implementer |
 | Message-only ping/ack and capped G$ canary | Afolabi Aiyeloja | settlement operator + QA witness |
 | EntryPoint v0.7; Kernel `0.2.4` dual-testnet mechanics; Kernel `0.3.1` Arbitrum One/Celo Mainnet production derivation; bounded `42220` policy; passkey account; and included sponsored Celo Mainnet user-op evidence | Afolabi Aiyeloja | shared/wallet implementer + QA witness |
 
@@ -55,8 +57,8 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
 
 ## Phases
 
-1. **Non-value tier**: execute the following dependency-ordered stages only after the full
-   non-value evidence gate passes. Each stage needs its own explicit human authorization,
+1. **Core tier**: execute the following dependency-ordered stages only after the full repository
+   security and core evidence gate passes. Each stage needs its own explicit human authorization,
    signer/owner verification, transaction receipt, persisted artifact, post-action verifier, and
    rollback checkpoint before the next stage:
    1. **Resolver/schema preparation**: upgrade the existing `AssessmentResolver` proxy in place;
@@ -68,16 +70,20 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       `CommitmentRegistry` and `CommitmentPoolingModule` proxies paused; wire and verify their
       dependencies; reconcile the exact Community Testimony registry record; activate its
       verified module only after its UID and record are exact; set the final non-zero,
-      pairwise-distinct schema UIDs; verify dependency/schema/ownership/proxy state; and keep the
-      pooling module paused through the integration upgrades.
+      pairwise-distinct schema UIDs; verify dependency/schema/proxy state; transfer and verify every
+      touched UUPS/admin owner on the protocol 3-of-5 Safe; and keep the pooling module paused
+      through the integration upgrades.
    3. **Integration upgrades and backfill**: upgrade the existing `GardenToken` and
       `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
       `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
       both-direction wiring, and rollback state while pooling remains paused; unpause only after
       every stage-2 and stage-3 readiness fact passes; then register the protocol pool on the root
-      garden and backfill `registerPool` for the verified live-garden set.
-   Rehearse the exact sequence on local and Arbitrum Sepolia before separately authorizing
-   Arbitrum One. Ethereum Sepolia remains a legacy regression lane and is not target-chain proof.
+      garden, enumerate the verified 13-garden set, record the normalized root as
+      `SKIPPED_PROTOCOL_ROOT`, and backfill `registerPool(garden, Garden)` only for the 12 non-root
+      gardens.
+   Rehearse the exact sequence locally and operate it on Arbitrum Sepolia for at least two weeks
+   before separately authorizing Arbitrum One. Ethereum Sepolia remains a legacy regression lane
+   and is not target-chain proof.
 2. **Value candidate preparation**: deploy both CCIP peers paused and with no Safe role/value authority; verify bytecode, proxy/admin, live official-directory router/selector/lane, peer, version, measured gas, code hashes, source/executor pause state, zero-or-matching batch limits, and fee monitoring.
 3. **Message-only canary**: authorize ping/ack only after audit/timelock review. No G$ authority exists yet.
 4. **Safe authority**: verify the deterministic Safe factory/singleton/initializer/salt
@@ -122,13 +128,19 @@ Current package checks:
 
 Lane-produced settlement deploy/dry-run targets must be added through the existing Bun deploy wrapper, documented by `--help`, and copied here before use. No command in this handoff authorizes a broadcast.
 
-## Non-value-tier unblock evidence
+## Core-tier unblock evidence
 
+- External audit has no unresolved critical/high findings.
+- Every touched protocol UUPS/admin owner is verified on the 3-of-5 Gnosis Safe, and the 48-hour
+  mainnet timelock is configured before any mainnet transaction plan is authorized.
+- At least two weeks of target-chain testnet operation are recorded, and rollback procedures are
+  documented and tested.
 - Full relevant tests; resolver/schema, module/register/finalization, integration-upgrade/wiring,
   post-wiring unpause, and pool-backfill dry runs; post-action verifiers;
   storage/upgrade/rollback proof; and named rollback owners pass for all three ordered stages.
-- Every tx-plan sender equals the relevant live proxy `owner()`; grouped upgrades prove their
-  ownership preconditions before plan persistence. The stage record contains the exact
+- An isolated, human-authorized ownership-transfer plan may start from the observed live EOA, but
+  every later tx-plan sender equals the verified protocol Safe and grouped upgrades prove their
+  Safe-ownership preconditions before plan persistence. The stage record contains the exact
   implementation/proxy/admin addresses, schema UIDs, dependency wiring, transaction receipts,
   persisted artifact changes, and post-action verification needed to begin the next stage.
 - Reviewed artifacts remain non-custodial and non-transferable.

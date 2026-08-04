@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="flywheel-title flywheel-desc">
   <title id="flywheel-title">The Commitment Pooling flywheel</title>
-  <desc id="flywheel-desc">The commitment loop sits at the center. Donations, supporter-vault yield, impact-certificate sales, and planned G dollar settlement connect to it. Borrow-and-repay remains an evidence-gated outer ring.</desc>
+  <desc id="flywheel-desc">The commitment loop sits at the center. Donations, supporter-vault yield, impact-certificate sales, and planned G dollar settlement connect to it. Borrow-and-repay is the outer ring; it joined the August wave on 2026-08-01 and stays drawn dashed because three dispatch gates remain real.</desc>
   <defs>
     <marker id="flywheel-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -12,8 +12,8 @@
   <text x="500" y="46" text-anchor="middle" font-size="34" font-weight="700" fill="#2A2722">One flywheel, not a bag of features</text>
 
   <!-- outer gated orbit, open at top for its label -->
-  <path d="M 345 141.2 A 430 390 0 1 0 655 141.2" fill="none" stroke="#988D77" stroke-width="2" stroke-dasharray="6 5"/>
-  <text x="500" y="145" text-anchor="middle" font-size="18" fill="#6E6857">borrow-and-repay — designed · evidence-gated</text>
+  <path d="M 310 155.1 A 430 390 0 1 0 690 155.1" fill="none" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="7 5"/>
+  <text x="500" y="145" text-anchor="middle" font-size="18" fill="#8A6D3B">borrow-and-repay — August wave · 3 gates</text>
 
   <!-- center ring: the commitment loop -->
   <circle cx="500" cy="505" r="120" fill="none" stroke="#4C7A57" stroke-width="2.5"/>
@@ -79,5 +79,5 @@
     <text x="509" y="931" font-size="17" fill="#2A2722">Planned — August / evidence-gated</text>
   </g>
 
-  <text x="500" y="972" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+  <text x="500" y="972" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
 </svg>

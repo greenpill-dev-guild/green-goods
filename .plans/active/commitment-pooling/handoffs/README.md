@@ -5,7 +5,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 ## Source order
 
 1. status.json is machine truth for owner, lane state, dependencies, and dispatchability. Read `execution_sub_lanes` before trusting a machine-lane status: a ready machine lane can contain a blocked sub-lane (`contracts` ready does not make `settlement` dispatchable), and the blocked aggregate `ui` lane does not imply any sub-lane is dispatchable. Docs remains explicitly blocked through source convergence.
-2. `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `diagrams.md`, `wireframes.md`, and `acceptance-matrix.md` define active behavior and final copy/state/public-claim proof. The additive CreditRegistry companion is active in the August wave at `.plans/active/commitment-credit-follow-on/`; its contracts dispatch remains blocked by its three recorded gates.
+2. `standing-commitments-spec.md`, `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `diagrams.md`, `wireframes.md`, and `acceptance-matrix.md` define active behavior and final copy/state/public-claim proof. The additive CreditRegistry companion is active in the August wave at `.plans/active/commitment-credit-follow-on/`; its contracts dispatch remains blocked by its three recorded gates.
 3. plan.todo.md defines sequencing.
 4. A handoff narrows one lane; it never overrides a blocked status or expands scope.
 5. human-release-ops.md owns separately authorized broadcast, Garden-ID cutover, and live settlement exit evidence; human-settlement-evidence.md owns the September measurement-definition gate; implementation handoffs own only code, tests, artifacts, and dry runs.
@@ -25,7 +25,11 @@ Every handoff records:
 
 Detailed proof is written here first and then recorded in status.json with the plan-hub record-tdd command. A handoff is not a branch-creation instruction.
 
-There are thirteen agent handoffs plus two human handoffs. Human handoffs are authorization/evidence boundaries, not machine lanes.
+`claude-standing-artifacts.md` is a bounded artifact-convergence work unit, not a product
+implementation lane or branch instruction. Its binding vocabulary amendment is
+`claude-offer-vocabulary-correction.md`; artifact review stays blocked until that correction is
+rebuilt, fully verified, republished, and re-fetched. Human handoffs are authorization/evidence
+boundaries, not machine lanes.
 
 ## Linear boundary
 
@@ -43,6 +47,12 @@ linear.laneSyncMode is lane_issues (register #37, amended by registers #39 and #
 - Visible UI requires authenticated Brave proof; member PWA flows also require a real-device pass.
 - Settlement confirmation is acknowledgment-only. Dispatched or Celo-executed/acknowledgment-pending is not arrived; only an authenticated success acknowledgment for the subject's current execution key and attempt produces Confirmed.
 - No bridged G$, garden-held member-claim path, transferable voucher activation, credit scoring, or leaderboard behavior.
+- Registers #81–#85 are binding: one-time and ongoing behavior are two ways of using an Offer;
+  reusable Offer metadata is signed offchain and private by default; `CommitmentSeries` is the
+  internal durable identity for an Offer used over time in one pool; each available place is one
+  pre-created capacity-backed Offer instance; Story is exact linked history without score, rate,
+  rank, inferred participants, or cross-pool identity; Ask me again is the next-cycle default;
+  initial succession scope is rest/resume/retire only.
 - The 2026-07-28 amendment plus 2026-07-29/30 review closures are binding across every lane:
   group commitments use one accountable lead plus contributors; requirements accept only
   action/count inputs; exact evidence CIDs are de-duplicated and evidence/Work credit records only

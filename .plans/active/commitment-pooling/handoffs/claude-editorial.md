@@ -62,3 +62,12 @@
 - Public team attribution may name contributors only where privacy/publication rules allow and must reflect approved contribution, not an equal-by-presence split.
 - Hypercert recognition can be described as contribution credit; contributor payment, garden retention, and delivery status remain separate claims with their own proof.
 - A public story must never imply that a Hypercert share itself paid a member or that one failed child payout invalidated the fulfilled commitment.
+
+## Binding ongoing-Offer amendment — 2026-08-02
+
+- Public ongoing-Offer copy uses separately approved pool-level aggregates only.
+- Do not expose a person's saved Offer metadata, series Story, inferred participant count,
+  reliability
+  language, cross-pool identity, rate, rank, or score.
+- “Kept N times across M cycles” is permitted only when exact linked Fulfilled instances and
+  unique cycle IDs support it; “verified impact” requires its own evidence authority.

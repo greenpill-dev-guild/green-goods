@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="capacity-title capacity-desc">
+  <title id="capacity-title">Availability is a promise already reserved</title>
+  <desc id="capacity-desc">Two columns compare when provider capacity is reserved. An Offer reserves its class and one provider slot the moment it is created, so every displayed place is genuinely open. A Request has no provider at creation, so it reserves capacity only when someone accepts it. Cancelling an unaccepted Offer returns the slot; cancelling an unaccepted Request has no registry effect.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Availability is a promise already reserved</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">A place you can see is a place that is genuinely held open for you.</text>
+
+  <!-- OFFER column -->
+  <g>
+    <rect x="52" y="106" width="380" height="596" rx="14" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2.5"/>
+    <text x="242" y="142" text-anchor="middle" font-size="22" font-weight="700" fill="#24422E">Offer</text>
+    <text x="242" y="166" text-anchor="middle" font-size="16" fill="#6E6857">the creator is already the lead</text>
+
+    <circle cx="104" cy="212" r="9" fill="#4C7A57"/>
+    <text x="128" y="207" font-size="18" font-weight="600" fill="#3B372E">Created</text>
+    <text x="128" y="230" font-size="16" fill="#6E6857">class registered</text>
+    <rect x="128" y="242" width="276" height="46" rx="9" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+    <text x="266" y="271" text-anchor="middle" font-size="16" font-weight="600" fill="#24422E">capacity reserved here</text>
+
+    <path d="M104 300 L104 352" stroke="#4C7A57" stroke-width="2.5" fill="none"/>
+    <circle cx="104" cy="368" r="9" fill="#4C7A57"/>
+    <text x="128" y="363" font-size="18" font-weight="600" fill="#3B372E">Offered</text>
+    <text x="128" y="386" font-size="16" fill="#6E6857">shown as available — really open</text>
+
+    <path d="M104 402 L104 454" stroke="#4C7A57" stroke-width="2.5" fill="none"/>
+    <circle cx="104" cy="470" r="9" fill="#4C7A57"/>
+    <text x="128" y="465" font-size="18" font-weight="600" fill="#3B372E">Someone takes it up</text>
+    <rect x="128" y="480" width="276" height="46" rx="9" fill="#F1ECE2" stroke="#988D77" stroke-width="2"/>
+    <text x="266" y="509" text-anchor="middle" font-size="16" fill="#3B372E">no second reservation</text>
+
+    <path d="M104 538 L104 590" stroke="#4C7A57" stroke-width="2.5" fill="none"/>
+    <circle cx="104" cy="606" r="9" fill="#4C7A57"/>
+    <text x="128" y="601" font-size="18" font-weight="600" fill="#3B372E">Kept, or withdrawn</text>
+    <text x="128" y="624" font-size="16" fill="#6E6857">withdrawing before it is</text>
+    <text x="128" y="646" font-size="16" fill="#6E6857">taken up returns the slot</text>
+    <text x="128" y="676" font-size="16" fill="#4C6B54">fulfillment converts it</text>
+  </g>
+
+  <!-- REQUEST column -->
+  <g>
+    <rect x="468" y="106" width="380" height="596" rx="14" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5"/>
+    <text x="658" y="142" text-anchor="middle" font-size="22" font-weight="700" fill="#3B372E">Request</text>
+    <text x="658" y="166" text-anchor="middle" font-size="16" fill="#6E6857">the provider is not known yet</text>
+
+    <circle cx="520" cy="212" r="9" fill="#988D77"/>
+    <text x="544" y="207" font-size="18" font-weight="600" fill="#3B372E">Created</text>
+    <text x="544" y="230" font-size="16" fill="#6E6857">class registered</text>
+    <rect x="544" y="242" width="276" height="46" rx="9" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="682" y="271" text-anchor="middle" font-size="16" fill="#3B372E">nothing reserved yet</text>
+
+    <path d="M520 300 L520 352" stroke="#988D77" stroke-width="2.5" fill="none"/>
+    <circle cx="520" cy="368" r="9" fill="#988D77"/>
+    <text x="544" y="363" font-size="18" font-weight="600" fill="#3B372E">Requested</text>
+    <text x="544" y="386" font-size="16" fill="#6E6857">asking, not holding</text>
+
+    <path d="M520 402 L520 454" stroke="#988D77" stroke-width="2.5" fill="none"/>
+    <circle cx="520" cy="470" r="9" fill="#4C7A57"/>
+    <text x="544" y="465" font-size="18" font-weight="600" fill="#3B372E">A provider accepts</text>
+    <rect x="544" y="480" width="276" height="46" rx="9" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+    <text x="682" y="509" text-anchor="middle" font-size="16" font-weight="600" fill="#24422E">capacity reserved here</text>
+
+    <path d="M520 538 L520 590" stroke="#4C7A57" stroke-width="2.5" fill="none"/>
+    <circle cx="520" cy="606" r="9" fill="#4C7A57"/>
+    <text x="544" y="601" font-size="18" font-weight="600" fill="#3B372E">Kept, or closed</text>
+    <text x="544" y="624" font-size="16" fill="#6E6857">closing it before anyone</text>
+    <text x="544" y="646" font-size="16" fill="#6E6857">accepts changes no balance</text>
+  </g>
+
+  <!-- why panel -->
+  <rect x="52" y="722" width="796" height="106" rx="12" fill="#F1ECE2" stroke="#988D77" stroke-width="2"/>
+  <text x="80" y="752" font-size="14" font-weight="700" fill="#8A6D3B" letter-spacing="1.2">WHY THE TWO SIDES DIFFER</text>
+  <text x="80" y="781" font-size="17" fill="#3B372E">Without reservation at creation, two shown places could compete for one slot,</text>
+  <text x="80" y="805" font-size="17" fill="#3B372E">failing only when someone tried. Nobody should see a place that is not really there.</text>
+
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+</svg>

@@ -54,6 +54,17 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
   `approvedCount / requiredCount` plus canonical per-commitment `approvedUnits`. The UI starts
   with four rows and adds more; it never presents four as the product maximum.
 - Pool/cycle overview rows use state counts and `openCommitmentCount`; exact-label unit groups remain separate and case-sensitive, and `promiseKeptRate` is the only cross-commitment percentage.
+- Pool close reads indexed `Pool.liveCommitmentCount` and `Pool.nonTerminalCycleCount`. The action
+  is enabled only when both are zero; otherwise W7 names that live promises must be wound down and
+  links to commitment/cycle recovery. Open and Paused pools retain cancel/expire/resolve plus
+  cycle cancel/compost controls until the guard passes.
+- `W7@due-live` renders every past-due commitment that is still live with **Expire now** and calls
+  permissionless `expireCommitment`. It routes to `W7@expiry-queue` only after indexed Expired
+  success; failure keeps the due-live row and never claims capacity or live-count release. The
+  later keeper is only a backstop.
+- Offered/Requested W7 rows may open `W10@edit-declared-value`; the complete value/basis pair uses
+  the shared `setDeclaredValue` mutation. Accepted/terminal rows have no edit and historical
+  instance snapshots are unchanged.
 - Cycle seeding carries no allocation or recognition policy. The open-cycle step accepts the six
   allocation percentages plus equal/verified recognition percentages, converts both groups to
   basis points, requires each group to total exactly 10,000, and submits both snapshots atomically
@@ -61,6 +72,12 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
 - `W10@accepted` uses one locked action row: “Send for confirmation” is available only when required evidence is complete; “Cancel promise” opens the reason-required `W10@cancel` steward dialog; “Mark ready” opens the authorized reason-required `W10@mark-ready-override` flow and is visually distinct from ordinary evidence completion. The row never implies that acceptance alone made the commitment Ready.
 - `W10@attach-assessment` is the only assessment-attachment placement. It filters to eligible Assessment v3 records for the commitment’s accepted `providerGarden`, records the selected assessment before Ready submission, and exposes an empty/ineligible state instead of attaching an unrelated garden’s assessment.
+- Core seeding exposes an off-by-default protocol-fallback choice before acceptance. W10 and W13
+  render indexed `Ordinary`, `PoolFallback`, and `ProtocolFallback` paths with the confirming actor
+  and reason; cross-garden protocol-fallback rows are visually and textually distinct from local
+  garden confirmations. A fallback action or queue row appears only when indexed eligibility proves
+  the ordinary named/default path cannot reach threshold; ordinary-reachable W10 detail never
+  offers a transaction that would revert `OrdinaryConfirmationStillReachable`.
 
 ## Acceptance
 
@@ -68,6 +85,12 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - `/community/pools` follows CanvasRouteFrame/CanvasRouteHeader and restrained command-surface grammar, and never exposes another garden's pool.
 - Request rows expose indexed canonical claimant, authenticated `requestedBy`, `claimType`, `gardenContext`, requestedAt/state/reason/resolution fields and the accepted result exposes derived `providerGarden`. Decline changes only that row; acceptance consumes the matching contract-stored terms and supersedes every other pending indexed row; claimant re-request and direction-aware confirmation are visible.
 - Pool pause requires a reason and disables only new commitments, claims, Ready submissions, and confirmations; evidence/linkage and safe recovery remain available. Provider open-commitment caps are steward-gated and class quotas are not editable.
+- `closePool` can never be submitted from a state with live commitments or a Seeded/Open/
+  Reconciled cycle. The confirmation carries zero-count facts; non-zero states expose no call.
+- Past due alone never renders Expired. `W7@due-live` submits `expireCommitment`, preserves the
+  live row on failure, and exposes re-seed/history only from the indexed post-success queue.
+- The pre-acceptance declared-value editor is reachable only from Offered/Requested facts and
+  emits `setDeclaredValue`; it never rewrites an Accepted or historical instance.
 - In `W10@accepted`, steward cancellation and the authorized Ready override both require a captured reason; confirmation remains unavailable until the normal evidence gate or the explicit override has produced Ready. The three actions retain separate permissions, labels, and audit outcomes.
 - `W10@attach-assessment` accepts only the eligible Assessment v3 set scoped to the accepted `providerGarden`; no assessment from another provider or garden can be selected, and a required-but-empty set blocks normal Ready submission with a recovery explanation.
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
@@ -87,7 +110,7 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 
 ## RED / GREEN
 
-- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-entry control, CCIP command/ack states, fee health, and Safe role separation.
+- RED: route, workspace-model, component, and mutation tests fail for /community placement, full seeding payload/cycle checks, readiness/cap/pause behavior, due-live expiry success/failure truth, pre-acceptance declared-value editing, assessment/Ready/override flow, canonical request identity, Hypercert allocation, Season uniqueness plus concurrent Campaigns, batch bounds/recovery, atomic Queued-batch cancellation with no partial-entry control, CCIP command/ack states, fee health, and Safe role separation.
 - GREEN: the same tests pass; admin build passes; authenticated Brave proves the live operator flow.
 
 ## Exact Bun commands
@@ -149,8 +172,37 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   an eligible non-contributor steward may submit the separately policy/credit-gated outcome.
 - W26 requires every commitment terminal and `liveCommitmentCount == 0`, calls `closeCycle` first,
   and only then exposes share review and certificate minting from the locked Reconciled bundle.
-  The count comes from `CommitmentCycle.liveCommitmentCount`, not accepted-only exposure.
+  The count comes from `CommitmentCycle.liveCommitmentCount`, not provider-capacity exposure.
   The shared composer independently requires exact on-chain Reconciled state for both W26 and
   `/hub/certify/create`; route entry cannot bypass close. `compostCycle` is the final post-mint
   action; mint-before-close is never offered.
 - Use the W10/W11/W21/W22/W26 states and SB-33 in the hi-fi artifact as the accepted surface contract.
+
+## Binding confirmation amendment — 2026-08-02
+
+- W8 persists the off-by-default `protocolFallbackEnabled` choice in the full creation payload and
+  repeats it at review. Missing registered protocol-pool identity disables the choice with an
+  operator-facing repair path.
+- W10 local fallback requires current steward/owner authority in the commitment's own garden.
+  W10 protocol fallback requires explicit opt-in plus current steward/owner authority in the
+  registered Green Goods protocol garden. A wallet holding both authorities uses and renders
+  `PoolFallback`; module ownership alone provides no confirmation action.
+- W10 and W13 consume the indexed ordinary-reachability result before rendering either fallback
+  entry. The ordinary-reachable detail keeps only its valid ordinary/dispute actions; the separate
+  fallback-eligible state names why the ordinary threshold is unreachable and requires a reason.
+- Every reasoned confirmation review names the garden whose authority is being used. Confirmation
+  history and W13 queue rows render indexed actor, `confirmationPath`, and `fallbackReason`, with
+  explicit “your garden steward — fallback” versus “Green Goods team — fallback” labels.
+- RED fixtures include an opted-in promise from a garden with no eligible local confirmer,
+  an unselected promise that remains structurally blocked, contributor exclusion on all paths,
+  local-path precedence, stale/lost protocol authority, and a Green Goods protocol-steward
+  confirmation visible in both queue and history.
+
+## Binding ongoing-Offer amendment — 2026-08-02
+
+- Consume the completed canonical ongoing-Offer artifacts and `uiux-spec.md` Appendix F.
+- Group linked instances by series and expose holder, state, exact outcome counts, capacity-backed
+  available places, and viewer-authorized Story context.
+- A steward does not gain authority to edit another holder's metadata or rest/resume/retire their
+  series. Saved Offer metadata and person-level Story never enter cross-garden Operations or
+  public surfaces.

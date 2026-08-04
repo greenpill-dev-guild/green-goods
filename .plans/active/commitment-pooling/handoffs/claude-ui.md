@@ -19,7 +19,7 @@ paths, preserves unrelated working-tree changes, and does not switch the primary
 - Completed scoped existing-admin fixes and polish, including PRD-737
 - Corrected uiux-spec.md, wireframes.md, diagrams.md, and settlement status vocabulary — including
   Appendix D and the bilateral-wave Appendix E. Appendix E.1 owns exchange-pair UX, E.2 owns the
-  practice-template library, and E.3 owns the noun-reduction/plain-language rules; W28–W31 and
+  Offer-template library, and E.3 owns the noun-reduction/plain-language rules; W28–W31 and
   planned SB-35/SB-36 are the review sources.
 - acceptance-matrix.md for the final state/copy/public-claim/role proof
 - Admin/client package guides and authenticated Brave access
@@ -28,7 +28,9 @@ paths, preserves unrelated working-tree changes, and does not switch the primary
 
 - Coordinated runtime client, admin, and editorial sub-lane evidence. Post-QA docs, final videos,
   and September Community record their own later evidence.
-- Cross-surface state/copy consistency for claims, confirmation, disputes, settlement, and recovery.
+- Cross-surface state/copy consistency for claims, confirmation, disputes, settlement, and recovery,
+  including explicit `Ordinary`, local `PoolFallback`, and Green Goods `ProtocolFallback`
+  provenance.
 - Cross-surface exchange proposal, atomic match, counterpart-lapsed, template-first creation, and
   first-exposure copy remain consistent with Appendix E and never imply coupled lifecycles.
 - Register #51 placement consistency: `W10@cancel`, `W10@mark-ready-override`, and `W10@attach-assessment` own their admin actions; `WFLOW@review` owns the read-only fulfills row; `W25@context-chooser` owns the pre-claim personal/garden provider chooser. These are locked August states, not optional follow-ups.
@@ -38,7 +40,9 @@ paths, preserves unrelated working-tree changes, and does not switch the primary
 ## Acceptance
 
 - Every product write flows through shared mutation hooks.
-- Offer recipient and Request creator confirmation, provider exclusion, pending/declined/superseded claims, and recovery states agree across surfaces.
+- Offer receiver, Request creator, named group, local fallback, and opted-in Green Goods protocol
+  fallback eligibility agree across surfaces. Every frozen contributor is excluded; actor, path
+  and reason remain visible after fulfillment.
 - Acceptance requires the four register #51 placements to be implemented and proved at their named parent states with their role, reason, identity, and provider-garden constraints; no substitute placement or visually silent action satisfies this gate.
 - Dispatched and Celo-executed/acknowledgment-pending are never presented as arrived; Confirmed
   requires an authenticated success acknowledgment for the subject's current execution key and

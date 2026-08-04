@@ -11,7 +11,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  banner, btn, card, chip, disclosure, emptyState, field, gardenHeader, gardenTabs, hdr, hero,
+  appBar, banner, btn, card, chip, disclosure, emptyState, field, gardenHeader, gardenTabs, hdr, hero,
   input, kv, listRow, meter, pagepad, phoneFrame, radio, sectionTitle, seg,
   sheetOver, skeleton, stateChip, stepDots, syncBar, timeline,
 } from "../kit";
@@ -25,7 +25,7 @@ import type { StateFacts } from "../types";
 const W1_STATES = [
   ["open", "Open"], ["not-ready", "Not ready"], ["ready", "Ready"], ["seeded", "Seeded"],
   ["request-open", "Open request"], ["request-queued", "Request queued"],
-  ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"],
+  ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"], ["composted", "Composted"],
   ["cancelled-cycle", "Cycle cancelled"], ["paused-cancelled-cycle", "Cycle cancelled · pool paused"],
   ["empty-open", "Empty pool"], ["no-season", "No season"],
   ["campaign-market", "Campaign · Market rides"], ["campaign-tools", "Campaign · Tool library"],
@@ -163,6 +163,13 @@ function w1(state: W1State): string {
       content = pagepad(
         banner("This pool has closed. Its history stays with the garden.", "stone"),
         card(`<div class="t-title">What this pool grew</div><div class="t-meta num">23 promises made · 19 kept</div>`),
+      );
+      break;
+    case "composted":
+      content = pagepad(
+        banner("This pool is composted for now. Its history stays readable, and the garden's stewards may reopen it for another season.", "stone", "leaf-line"),
+        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">23 promises made · 19 kept</div>`),
+        card(`<div class="t-title">Participation is unavailable right now</div><div class="t-meta">Members cannot add or take up places while the pool is composted. Reopening is a steward action and preserves this history.</div>`),
       );
       break;
     case "no-season":
@@ -371,7 +378,9 @@ const W2_STATES = [
   ["active", "Active"], ["evidence-queued", "Evidence queued"],
   ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
-  ["fulfilled", "Fulfilled"], ["reward-released", "Reward released"],
+  ["fulfilled", "Fulfilled"], ["fulfilled-pool-fallback", "Fulfilled — garden fallback"],
+  ["fulfilled-protocol-fallback", "Fulfilled — Green Goods team fallback"],
+  ["reward-released", "Reward released"],
   ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
   ["support-executed", "Celo executed"], ["support-confirming", "Confirming arrival"],
   ["support-arrived", "Support arrived"], ["support-failed", "Support failed"],
@@ -397,7 +406,7 @@ const W2_STATES = [
   ["request-ready-pending", "Request — readiness queued"], ["request-ready-confirmer", "Request — ready"],
   ["request-confirmation-pending", "Request — confirmation queued"],
   ["request-fulfilled", "Request — help arrived"], ["request-disputed", "Request — steward review"],
-  ["support-offered", "Service offer — open"], ["support-active", "Service offer — active"],
+  ["support-offered", "Service offer — open"], ["support-accepted", "Service offer — accepted"],
   ["support-evidence-queued", "Service offer — evidence queued"],
   ["support-evidence-submitted", "Service offer — evidence in"], ["support-ready-pending", "Service offer — readiness queued"],
   ["support-ready-confirmer", "Service offer — ready"],
@@ -413,7 +422,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
   "evidence-queued": "Active", "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
-  fulfilled: "Fulfilled", "reward-released": "Fulfilled",
+  fulfilled: "Fulfilled", "fulfilled-pool-fallback": "Fulfilled",
+  "fulfilled-protocol-fallback": "Fulfilled", "reward-released": "Fulfilled",
   "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
   "support-executed": "Fulfilled", "support-confirming": "Fulfilled", "support-arrived": "Fulfilled",
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
@@ -434,7 +444,7 @@ const w2StateChip: Record<W2ChipState, string> = {
   "request-evidence-submitted": "Evidence in", "request-ready-pending": "Evidence in",
   "request-ready-confirmer": "Ready to confirm", "request-confirmation-pending": "Ready to confirm",
   "request-fulfilled": "Fulfilled", "request-disputed": "Under review",
-  "support-offered": "Offered", "support-active": "Active", "support-evidence-queued": "Active",
+  "support-offered": "Offered", "support-accepted": "Accepted", "support-evidence-queued": "Accepted",
   "support-evidence-submitted": "Evidence in", "support-ready-pending": "Evidence in",
   "support-ready-confirmer": "Ready to confirm", "support-confirmation-pending": "Ready to confirm",
   "support-fulfilled": "Fulfilled", "support-cancelled": "Cancelled",
@@ -453,7 +463,7 @@ const W2_CAMPAIGN_REQUEST = new Set<string>([
   "campaign-request-fulfilled", "campaign-request-disputed",
 ]);
 const W2_SUPPORT = new Set<string>([
-  "support-offered", "support-active", "support-evidence-queued",
+  "support-offered", "support-accepted", "support-evidence-queued",
   "support-evidence-submitted", "support-ready-pending", "support-ready-confirmer", "support-fulfilled",
   "support-confirmation-pending",
   "support-cancelled", "support-disputed",
@@ -530,19 +540,19 @@ function w2RewardRow(state: W2State): string {
     case "reward-released":
       return line("Recorded by your steward — reference only, value moves outside the app.", "Reward released", "ok");
     case "support-queued":
-      return line("Support is queued (G$).", "Queued");
+      return line("Support on its way (G$).", "On its way");
     case "support-en-route":
       return line("Support on its way (G$).", "On its way");
     case "support-delayed":
       return line("Support on its way — delivery delayed. Your promise remains recorded.", "Delayed", "warn");
     case "support-executed":
-      return line("Celo execution recorded — confirming arrival.", "Executed");
+      return line("Support on its way (G$).", "On its way");
     case "support-confirming":
-      return line("Execution stored — authenticated acknowledgment pending.", "Confirming");
+      return line("Support on its way (G$).", "On its way");
     case "support-arrived":
       return line("Support arrived ↗ — reference in Details.", "Arrived", "ok");
     case "support-failed":
-      return line("Still arranging support — your promise is recorded and stays kept.", "Arranging", "warn");
+      return line("Support is being rearranged — your promise is recorded and stays kept.", "Being rearranged", "warn");
     case "support-cancelled-queued":
       return line("This support was withdrawn before it was sent — your promise and its record stay intact.", "Withdrawn", "warn");
     case "support-cancelled-failed":
@@ -619,7 +629,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       { label: "Offered", meta: "Maria · Jul 2" },
       { label: "Accepted", meta: "João took this up · Jul 3" },
     ];
-    if (state === "support-active") return [...offered, { label: "Getting it done", meta: "waiting on the repair", open: true }];
+    if (state === "support-accepted") return offered;
     if (state === "support-evidence-queued")
       return [...offered, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "support-evidence-submitted")
@@ -667,7 +677,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       { label: "Requested", meta: "protocol pool · Jul 2" },
       { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
       { label: "Evidence in", meta: "survey sheet · Jul 10" },
-      { label: "Promise kept", meta: "confirmed by the protocol stewards · Jul 12", open: true },
+      { label: "Promise kept", meta: "confirmed by Sofia · ordinary named confirmation · Jul 12", open: true },
     ];
   const opened: Moment[] = [
     { label: "Offered", meta: "Maria · Jul 2" },
@@ -694,6 +704,10 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
   const ready: Moment = overrideNote
     ? { label: "Ready", meta: "steward note", note: "“confirmed on site visit” (steward record)", warn: true }
     : { label: "Ready to confirm", meta: "waiting on João", open: true };
+  if (state === "fulfilled-pool-fallback")
+    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by garden steward — fallback · David · Jul 12", note: "“confirmed at the field gathering”", open: true }];
+  if (state === "fulfilled-protocol-fallback")
+    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by Green Goods team — fallback · Sofia · Jul 12", note: "“no eligible local confirmer”", open: true }];
   if (state === "fulfilled" || state === "reconciled" || W2_SETTLED.has(state))
     return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by João · Jul 12", open: true }];
   return [...worked, ready];
@@ -891,9 +905,9 @@ function w2(state: W2State): string {
         `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching evidence.</div><div class="brow">${hot("w2.take-up-support", btn("Take this up", { kind: "pri" }))}</div>`,
       );
       break;
-    case "support-active":
+    case "support-accepted":
       band = card(
-        `<div class="t-title">Repair underway</div><div class="t-meta">Add evidence as the tool handles are repaired. This service offer does not require linked garden work.</div><div class="brow">${hot("w2.add-evidence-support", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or evidence reaches the promise.</div><div class="brow">${hot("w2.add-evidence-support", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
       break;
     case "support-evidence-queued":
@@ -964,12 +978,12 @@ function w2(state: W2State): string {
       break;
     case "garden-provider":
       band = card(
-        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The protocol stewards confirm it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The named confirmer, Sofia, confirms it when it is done.</div><div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
       break;
     case "garden-support-arrived":
       band = card(
-        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by the protocol stewards on Jul 12. The support went to the garden's own account.</div>`,
+        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by Sofia through ordinary named confirmation on Jul 12. The support went to the garden's own account.</div>`,
       );
       break;
     case "withdrawn":
@@ -1005,6 +1019,12 @@ function w2(state: W2State): string {
       break;
     case "fulfilled":
       band = card(hero("Promise kept", "Confirmed by João · the season's count just grew", "checkbox-circle-fill"));
+      break;
+    case "fulfilled-pool-fallback":
+      band = card(hero("Promise kept", "Confirmed by garden steward — fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      break;
+    case "fulfilled-protocol-fallback":
+      band = card(hero("Promise kept", "Confirmed by Green Goods team — fallback · the reason is in the timeline", "checkbox-circle-fill"));
       break;
     case "expired":
       band = card(
@@ -1043,7 +1063,7 @@ function w2(state: W2State): string {
     "request-evidence-queued",
     "request-evidence-submitted", "request-ready-pending", "request-ready-confirmer",
     "request-confirmation-pending", "request-fulfilled",
-    "support-offered", "support-active", "support-evidence-queued", "support-evidence-submitted",
+    "support-offered", "support-accepted", "support-evidence-queued", "support-evidence-submitted",
     "support-ready-pending", "support-ready-confirmer", "support-confirmation-pending",
     "captured", "captured-evidence-queued", "captured-evidence-submitted",
     "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
@@ -1101,7 +1121,7 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
 }
 
 const W2_HOTS: HifiDef["hots"] = {
-  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-active", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
+  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-accepted", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider. The commitment stays Accepted until WorkLinked or EvidenceAttached lands.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
   "w2.open-team-forming": { l: "See editable team and contributions", to: "screen:W2b@forming", info: "Before readiness, the accountable lead can add, remove, and assign contributors through online contract actions." },
   "w2.open-team-frozen": { l: "See frozen team and contributions", to: "screen:W2b@frozen", info: "After readiness, opens the frozen contributor roster and contribution record without implying that every participant receives an equal share." },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
@@ -1122,7 +1142,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.confirm-captured-detail": { l: "Review captured-promise confirmation", to: "screen:W4@confirm-captured", info: "Opens the named counterparty's confirmation without changing the captured member source." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
   "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
-  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on the creator path — Offered/Requested only; no units were committed, so nothing is released (CS:145).", calls: ["cancelCommitment"] },
+  "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on this Offered-Offer creator path releases its already-committed units and provider slot exactly once. An unaccepted Request has no registry release (CS §5.3).", calls: ["cancelCommitment"] },
   "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
   "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
@@ -1276,16 +1296,21 @@ const W2A_HOTS: HifiDef["hots"] = {
 
 const W3_STATES = [
   ["step-what", "1 · What"], ["step-howmuch", "2 · How much"], ["step-anchors", "3 · Anchors"],
-  ["step-review", "4 · Review"], ["support-howmuch", "Support · amount"], ["support-review", "Support · review"],
+  ["step-confirmers", "4 · Who confirms"], ["step-confirmers-opted-in", "4 · Who confirms · fallback selected"],
+  ["step-review", "5 · Review"],
+  ["support-howmuch", "Support · amount"], ["support-confirmers", "Support · who confirms"],
+  ["support-review", "Support · review"],
+  ["saved-offer-edit", "Saved offer · edit"], ["saved-offer-review", "Saved offer · review"],
+  ["saved-offer-queued", "Saved offer · queued"],
   ["request-variant", "Request · review"], ["draft-resume", "Draft resume"],
   ["validation", "Validation error"],
 ] as const;
 type W3State = (typeof W3_STATES)[number][0];
 
 // `total` is a parameter because the request path skips action anchors: a
-// support/service ask is three steps, and showing four dots promises a step
+// support/service ask is four steps, and showing five dots promises a step
 // that never arrives (UX:153 · WF:199).
-const w3Head = (title: string, step: number, total = 4) =>
+const w3Head = (title: string, step: number, total = 5) =>
   `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(total, step)}</span></div>`;
 
 function w3(state: W3State): string {
@@ -1315,22 +1340,45 @@ function w3(state: W3State): string {
         hot("w3.continue-anchors", btn("Continue", { kind: "pri", full: true })),
       )}`;
       break;
-    case "step-review":
+    case "step-confirmers":
       body = `${w3Head("Make an offer", 3)}${pagepad(
-        card(`${kv("Direction", "Offer support")}${kv("Kind", "Garden work")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("Requirements", "Prune × 2 · Plant × 12")}`),
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Reachability", "No eligible local confirmer after contributor exclusion")}`),
+        hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Off by default. Contributors can never confirm their own work.</span></span></label>`),
+        banner("Choose this option or change the team or confirmer rule before continuing.", "amber", "information-line"),
+        btn("Continue", { kind: "pri", full: true, disabled: true }),
+      )}`;
+      break;
+    case "step-confirmers-opted-in":
+      body = `${w3Head("Make an offer", 3)}${pagepad(
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Reachability", "No eligible local confirmer after contributor exclusion")}`),
+        `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Selected for this Offer only. Contributors remain excluded.</span></span></label>`,
+        banner("Fallback can be used only while the ordinary recipient path remains unreachable.", "stone", "information-line"),
+        hot("w3.continue-confirmers", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "step-review":
+      body = `${w3Head("Make an offer", 4)}${pagepad(
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Garden work")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("Requirements", "Prune × 2 · Plant × 12")}${kv("Who confirms", "Offer recipient · Green Goods team fallback selected")}`),
         `<div class="t-meta">Submitting queues the promise on this device and returns you to the pool — it sends when connected.</div>`,
         hot("w3.submit", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
       break;
     case "support-review":
-      body = `${w3Head("Make an offer", 2, 3)}${pagepad(
-        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}`),
+      body = `${w3Head("Make an offer", 3, 4)}${pagepad(
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}${kv("Who confirms", "Recipient · Green Goods team fallback off")}`),
         `<div class="t-meta">Service offers skip action anchors. Evidence and the named recipient carry the proof.</div>`,
         hot("w3.submit-support", btn("Make this offer", { kind: "pri", full: true })),
       )}`;
       break;
+    case "support-confirmers":
+      body = `${w3Head("Make an offer", 2, 4)}${pagepad(
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Reachability", "Recipient remains eligible")}`),
+        hot("w3.protocol-fallback-support", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Off by default · every contributor stays excluded.</span></span></label>`),
+        hot("w3.continue-confirmers-support", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
     case "support-howmuch":
-      body = `${w3Head("Make an offer", 1, 3)}${pagepad(
+      body = `${w3Head("Make an offer", 1, 4)}${pagepad(
         field("Unit", input("repair sessions", { select: true })),
         field("How many", input("1")),
         field("Campaign", input("Tool library", { select: true })),
@@ -1339,11 +1387,43 @@ function w3(state: W3State): string {
       )}`;
       break;
     case "request-variant":
-      body = `${w3Head("Ask for help", 2, 3)}${pagepad(
-        card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}`),
+      body = `${w3Head("Ask for help", 3, 4)}${pagepad(
+        card(`${kv("Direction", "Request help")}${kv("Kind", "Support / service")}${kv("Contributor policy", "Open team · eligible garden members may join")}${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}${kv("Who confirms", "Request creator · Green Goods team fallback off")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
         hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true })),
       )}`;
+      break;
+    case "saved-offer-edit":
+      body = `${w3Head("Offer it once", 0, 2)}${pagepad(
+        banner("Prefilled from your saved details. You can change every field before you make this offer.", "stone", "information-line"),
+        field("Direction", radio([{ label: "Offer support", meta: "something you can give", on: true }], { interactive: true, name: "saved-offer-direction" })),
+        field("Kind", radio([{ label: "Support / service", meta: "workshops, rides, meals, repairs", on: true }], { interactive: true, name: "saved-offer-kind" })),
+        field("Garden", input("Rocinha Community Garden", { select: true })),
+        field("Cycle", input("Season of First Rains", { select: true })),
+        field("Title", input("Hosting climate workshops")),
+        field("What people receive", input("A two-hour session on local climate work")),
+        field("Unit", input("workshop sessions", { select: true })),
+        field("How many", input("1")),
+        field("Who confirms", input("Recipient", { select: true })),
+        hot("w3.review-saved-offer", btn("Review this offer", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "saved-offer-review":
+      body = `${w3Head("Offer it once", 1, 2)}${pagepad(
+        card(`${kv("Direction", "Offer support")}${kv("Kind", "Support / service")}${kv("Garden", "Rocinha Community Garden")}${kv("Cycle", "Season of First Rains")}${kv("Title", "Hosting climate workshops")}${kv("What people receive", "A two-hour session on local climate work")}${kv("How much", "1 workshop session")}${kv("Who confirms", "Recipient")}`),
+        banner("This makes one ordinary Offer. It will not repeat, create an ongoing Offer, or make another place later.", "stone", "information-line"),
+        `<div class="brow">${hot("w3.edit-saved-offer", btn("Edit", { kind: "ghost" }))}${hot("w3.submit-saved-offer", btn("Make this offer", { kind: "pri" }))}</div>`,
+      )}`;
+      break;
+    case "saved-offer-queued":
+      body = `${w3Head("Offer it once", 2, 2)}${pagepad(
+        card(
+          listRow({ icon: "hand-heart-line", primary: "Hosting climate workshops", meta: "Rocinha Community Garden · 1 workshop session", chipHtml: chip("Queued", "queued") }),
+        ),
+        banner("Saved on this phone. It sends when you are connected.", "amber", "time-line"),
+        `<div class="t-meta">This is one ordinary Offer. Your saved details remain reusable, but this offer will not repeat or become ongoing.</div>`,
+        hot("w3.saved-offer-done", btn("Back to my offers", { kind: "ghost", full: true })),
+      )}${syncBar("1 waiting to send")}`;
       break;
     case "draft-resume":
       body = sheetOver(
@@ -1379,21 +1459,29 @@ function w3(state: W3State): string {
   }
   // `/pool/new` is a full-screen flow — the shipping AppBar hides here exactly
   // as it does for the Garden work flow (uiux-spec:120 · AppBar.tsx:33).
-  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "draft-resume", appBar: false });
+  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "draft-resume" || state === "saved-offer-queued", appBar: false });
 }
 
 const W3_HOTS: HifiDef["hots"] = {
   "w3.direction": { l: "Direction", info: "Offer vs request — season/campaign seeding and on-behalf capture are console-seeded only, never here (UX:150)." },
   "w3.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy before creation; the final review repeats the selected join rule." },
   "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:153)." },
-  "w3.continue-support-howmuch": { l: "Continue with service amount", to: "screen:W3@support-review", info: "Carries the entered service unit and quantity into review without introducing action anchors." },
+  "w3.continue-support-howmuch": { l: "Continue with service amount", to: "screen:W3@support-confirmers", info: "Carries the entered service unit and quantity into Who confirms without introducing action anchors." },
   "w3.cycle": { l: "Cycle scope", info: "Every promise names its cycle; Season and Campaigns never blur (UX:127)." },
   "w3.continue-what": { l: "Continue to amount", to: "screen:W3@step-howmuch", info: "What + cycle scope → amount (UX:150-153)." },
   "w3.continue-howmuch": { l: "Continue to anchors", to: "screen:W3@step-anchors", info: "Amount → action anchors for garden work (UX:150-153)." },
-  "w3.continue-anchors": { l: "Continue to review", to: "screen:W3@step-review", info: "Action anchors → review (UX:150-153)." },
+  "w3.continue-anchors": { l: "Continue to who confirms", to: "screen:W3@step-confirmers", info: "Action anchors → ordinary reachability and explicit protocol fallback selection (UX §5.4)." },
+  "w3.protocol-fallback": { l: "Green Goods team fallback", to: "screen:W3@step-confirmers-opted-in", info: "An explicit user action selects protocolFallbackEnabled for this Offer. It is off by default, remains usable only while the ordinary path is unreachable, and never permits a contributor to confirm." },
+  "w3.continue-confirmers": { l: "Continue to review", to: "screen:W3@step-review", info: "Carries the ordinary rule and explicit fallback selection into review." },
+  "w3.protocol-fallback-support": { l: "Green Goods team fallback", info: "Explicit optional protocol fallback for this SupportService commitment; the ordinary recipient remains the default." },
+  "w3.continue-confirmers-support": { l: "Continue to service review", to: "screen:W3@support-review", info: "Carries the service's receiver default and explicit fallback selection into review." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-request": { l: "Ask for this help", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
+  "w3.review-saved-offer": { l: "Review this offer", to: "screen:W3@saved-offer-review", info: "Carries the saved workshop details into the ordinary one-time Offer review without replacing them with the generic Garden work example." },
+  "w3.edit-saved-offer": { l: "Edit this offer", to: "screen:W3@saved-offer-edit", info: "Returns to the fully editable prefilled fields. The private saved details remain unchanged unless the member separately saves them again." },
+  "w3.submit-saved-offer": { l: "Make this offer", to: "screen:W3@saved-offer-queued", info: "Queues exactly one ordinary SupportService Offer with commitmentSeriesId == 0. No durable series or future place is created.", calls: ["createCommitment"], pendingSync: true },
+  "w3.saved-offer-done": { l: "Back to my offers", to: "screen:W32@saved", info: "Returns to the private saved-details list without changing the separate queued one-time Offer job." },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:155)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
   "w3.add-action": { l: "Add an action", info: "Repeatable DomainImpact requirements: each row binds a registered action to a count ≥ 1, and domains are derived tags that may repeat. Four rows are visible initially; Add action continues to the measured MAX_REQUIREMENTS. Failed submits keep entered data and focus a concise error summary (UX:153 · WF:200 · UX:439)." },
@@ -1604,6 +1692,7 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
   if (state === "ready" || state === "seeded") return { pool: "Ready", cycle: state === "seeded" ? "Seeded" : undefined };
   if (state === "paused") return { pool: "Paused", cycle: "Open" };
   if (state === "closed") return { pool: "Closed", cycle: "Composted" };
+  if (state === "composted") return { pool: "Composted", cycle: "Composted" };
   if (state === "cycle-summary") return { pool: "Open", cycle: "Composted" };
   if (state === "cancelled-cycle") return { pool: "Open", cycle: "Cancelled" };
   if (state === "paused-cancelled-cycle") return { pool: "Paused", cycle: "Cancelled" };
@@ -1629,7 +1718,6 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
     state === "offered" || state === "support-offered" || state === "withdraw-confirm" ? "Offered"
     : state === "requested" ? "Requested"
     : state === "active" || state === "evidence-queued" || state === "request-active" || state === "campaign-request-active" ||
-      state === "support-active" || state === "support-evidence-queued" ||
       state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
       state === "captured" || state === "captured-evidence-queued" ? "Active"
     : state === "evidence-submitted" || state === "request-evidence-submitted" ||
@@ -1645,7 +1733,8 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
       state === "support-confirmation-pending" ||
       state === "captured-ready-confirmer" || state === "captured-confirmation-pending"
       ? "ReadyForConfirmation"
-    : state === "fulfilled" || state === "request-fulfilled" || state === "campaign-request-fulfilled" ||
+    : state === "fulfilled" || state === "fulfilled-pool-fallback" ||
+      state === "fulfilled-protocol-fallback" || state === "request-fulfilled" || state === "campaign-request-fulfilled" ||
       state === "support-fulfilled" || state === "captured-fulfilled" ||
       state === "garden-support-arrived" || W2_SETTLED.has(state) ? "Fulfilled"
     : state === "cancelled" || state === "withdrawn" || state === "support-cancelled" ? "Cancelled"
@@ -1679,10 +1768,1051 @@ const w2aFacts = (state: W2aState): StateFacts | undefined => {
   return {
     pool: "Open",
     cycle: "Open",
-    commitment: "Active",
+    commitment: state === "compose-support" ? "Accepted" : "Active",
     kind: state === "compose" ? "DomainImpact" : state === "compose-captured" ? "StewardCaptured" : "SupportService",
   };
 };
+
+// ---------------------------------------------------------------------------
+// W32–W35 — offering over time (standing-commitments-spec · uiux Appendix F)
+//
+// ONE product noun: the Offer. It is used two ways, and the product copy never
+// introduces a second noun beside it:
+//   Offer once      one ordinary Offer, commitmentSeriesId == 0 (W32 → W3)
+//   Offer over time one pool-scoped CommitmentSeries in one garden (W33/W34).
+//                   Gardener copy says "ongoing Offer"; CommitmentSeries is a
+//                   technical/diagnostic name only, never rendered as product copy.
+// Supporting facts, none of which is a product object:
+//   Saved details   reusable signed offchain Offer metadata, private by default,
+//                   input to EITHER path; only an unsaved draft is device-local (W32)
+//   Available place an already-created Offered instance whose provider capacity
+//                   is reserved at creation, not at claim (W34/W35)
+//   Story           exact linked-instance history and absolute counts (W34)
+// A claim ACCEPTS a pre-created place; it never spawns one. Availability is
+// therefore always a count of real, already-reserved instances.
+// ---------------------------------------------------------------------------
+
+const W32_STATES = [
+  ["saved", "Saved details"], ["saved-with-ongoing", "Saved details and ongoing Offer"],
+  ["saved-with-ongoing-ready", "Ongoing Offer · pool Ready"],
+  ["series-queued", "Ongoing Offer queued"], ["series-queued-place-waiting", "Ongoing Offer and place queued"],
+  ["empty", "Nothing yet"], ["compose", "Save offer details"],
+  ["choose-path", "Once or over time"], ["draft-unsaved", "Unsaved draft"],
+  ["saving", "Saving privately"], ["save-failed", "Save failed"],
+  ["offline-local", "No signal — local only"], ["version-conflict", "Newer saved version"],
+  ["persistence", "How saving works"], ["loading", "Loading"], ["read-error", "Read error"],
+] as const;
+type W32State = (typeof W32_STATES)[number][0];
+
+// Rows here are saved Offer details — reusable input to either path, never a
+// second product object beside the Offer. "Offered over time" is the only tag
+// that implies a pool-scoped series exists.
+const offerRow = (opts: { title: string; meta: string; tag: string; tone: ChipToneLocal; hotId?: string }) => {
+  const row = listRow({
+    icon: "seedling-line",
+    primary: opts.title,
+    meta: opts.meta,
+    chipHtml: chip(opts.tag, opts.tone),
+    chevron: true,
+  });
+  return opts.hotId ? hot(opts.hotId, row) : row;
+};
+type ChipToneLocal = "plain" | "offer" | "ok" | "ink";
+
+function w32(state: W32State): string {
+  const head = hdr("Things I can offer", { back: true });
+  const intro = `<div class="t-meta">Details you can reuse. Nothing here is a promise until you offer it in a garden.</div>`;
+  let body: string;
+  switch (state) {
+    case "empty":
+      body = `${head}${pagepad(
+        emptyState(
+          "seedling-line",
+          "Nothing here yet",
+          "Save the details of something you can offer, so you do not have to write them again. Only you can see this until you offer it in a garden.",
+          hot("w32.add-first", btn("Save offer details", { kind: "pri", icon: "add-line" })),
+        ),
+      )}`;
+      break;
+    case "compose":
+      body = sheetOver(
+        head + pagepad(intro),
+        "Save offer details",
+        `${field("What are you offering?", input("Hosting climate workshops"))}` +
+          `${field("One line about it", input("A two-hour session on local climate work"))}` +
+          `<div class="t-meta">This stays a draft on this device until the private save is confirmed.</div>` +
+          hot("w32.save", btn("Save privately", { kind: "pri", full: true })),
+      );
+      break;
+    case "choose-path":
+      body = sheetOver(
+        head + pagepad(intro),
+        "Hosting climate workshops",
+        `<div class="t-meta">How would you like to offer this?</div>` +
+          hot("w32.offer-once", card(
+            `<div class="t-title">Offer it once</div><div class="t-meta">One promise, this time only — the ordinary offer, prefilled.</div>`,
+            { cls: "flat" },
+          )) +
+          hot("w32.offer-over-time", card(
+            `<div class="t-title">Offer it over time</div><div class="t-meta">Keep offering it in one garden, cycle after cycle. Its history stays together.</div>`,
+            { cls: "flat" },
+          )) +
+          `<div class="t-meta">Neither choice commits you to anything yet.</div>`,
+      );
+      break;
+    case "draft-unsaved":
+      body = `${head}${pagepad(
+        intro,
+        banner("This draft is on this phone only. Save it to keep it if you change devices.", "amber", "sticky-note-line"),
+        card(
+          listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft on this device · edited 5 minutes ago", chipHtml: chip("Not saved yet", "warn") }) +
+            hot("w32.save-draft", btn("Save privately", { kind: "pri", sm: true })),
+          { cls: "flat" },
+        ),
+        hot("w32.persistence", btn("How saving works", { kind: "ghost", sm: true, icon: "information-line" })),
+      )}`;
+      break;
+    case "saving":
+      body = `${head}${pagepad(
+        intro,
+        banner("Saving privately… Keep this app open while your account confirms the remote copy.", "stone", "loader4-line"),
+        card(
+          `${kv("Hosting climate workshops", "Draft retained on this device")}${kv("Remote status", "Waiting for confirmation")}`,
+          { cls: "flat" },
+        ),
+        `<div class="t-meta">This is not called Saved until the owner-authenticated service confirms it.</div>`,
+      )}`;
+      break;
+    case "save-failed":
+      body = `${head}${pagepad(
+        intro,
+        banner("Save failed. This is still a draft on this device.", "error", "error-warning-line"),
+        card(
+          listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft retained · nothing lost", chipHtml: chip("Not saved", "err") }),
+          { cls: "flat" },
+        ),
+        `<div class="brow">${hot("w32.retry-save", btn("Try saving again", { kind: "pri", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep editing", { kind: "ghost" }))}</div>`,
+      )}`;
+      break;
+    case "offline-local":
+      body = `${head}${pagepad(
+        intro,
+        banner("No signal; this stays on this device. Nothing is queued as a private remote save.", "amber", "wifi-off-line"),
+        card(
+          listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft on this device", chipHtml: chip("Offline · not saved", "warn") }),
+          { cls: "flat" },
+        ),
+        hot("w32.use-local-offline", btn("Use this draft", { kind: "pri", full: true })),
+        `<div class="brow">${hot("w32.retry-save-online", btn("Try when connected", { kind: "sec", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep editing", { kind: "ghost" }))}</div>`,
+      )}`;
+      break;
+    case "version-conflict":
+      body = `${head}${pagepad(
+        intro,
+        banner("A newer saved version exists. Your local edits are still on this device.", "amber", "refresh-line"),
+        card(`${kv("Saved account copy", "newer")}${kv("This device", "local edits retained")}`, { cls: "flat" }),
+        `<div class="brow">${hot("w32.reload-remote", btn("Use saved version", { kind: "pri" }))}${hot("w32.keep-local-copy", btn("Keep a local copy", { kind: "ghost" }))}</div>`,
+        hot("w32.overwrite-current", btn("Replace the saved version…", { kind: "danger", full: true })),
+      )}`;
+      break;
+    case "persistence":
+      body = sheetOver(
+        head + pagepad(intro),
+        "How saving works",
+        card(
+          `${kv("Saved privately", "Kept with your account. It follows you to a new phone.")}` +
+            `${kv("Draft on this device", "Stays in this browser only. Clearing the app loses it.")}` +
+            `${kv("Offered in a garden", "The garden's pool holds the promise. Your saved details stay private.")}`,
+        ) +
+          `<div class="t-meta">Saved details are private until you choose a garden. Offering one never publishes the rest of your list.</div>` +
+          hot("w32.persistence-done", btn("Got it", { kind: "pri", full: true })),
+      );
+      break;
+    case "loading":
+      body = `${head}${pagepad(skeleton({ title: true, lines: 2 }), skeleton({ lines: 2 }), skeleton({ lines: 2 }))}`;
+      break;
+    case "read-error":
+      body = `${head}${pagepad(
+        emptyState(
+          "wifi-off-line",
+          "Cannot load your saved offers",
+          "Everything you saved is safe. This device could not reach it just now.",
+          hot("w32.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })),
+        ),
+      )}`;
+      break;
+    case "saved-with-ongoing":
+      body = `${head}${pagepad(
+        intro,
+        sectionTitle("Offered over time", chip("1", "plain")),
+        card(offerRow({
+          title: "Hosting climate workshops",
+          meta: "Rocinha Community Garden · 2 places available",
+          tag: "Ongoing",
+          tone: "offer",
+          hotId: "w32.open-series",
+        }), { cls: "flat" }),
+        sectionTitle("Saved details", chip("2", "plain")),
+        card(
+          offerRow({ title: "Visual and communication design", meta: "Posters, guides, and story materials", tag: "Ready to offer", tone: "plain", hotId: "w32.use-saved" }) +
+            offerRow({ title: "Environmental action days", meta: "Clean-ups, planting days, shared repairs", tag: "Ready to offer", tone: "plain" }),
+          { cls: "flat" },
+        ),
+        hot("w32.add", btn("Save offer details", { kind: "ghost", full: true, icon: "add-line" })),
+        `<div class="t-meta">Saved privately to your account. Offering one in a garden is a separate, explicit step.</div>`,
+      )}`;
+      break;
+    case "saved-with-ongoing-ready":
+      body = `${head}${pagepad(
+        intro,
+        sectionTitle("Offered over time", chip("1", "plain")),
+        card(offerRow({
+          title: "Hosting climate workshops",
+          meta: "Muizenberg Deep South · pool ready · no places available",
+          tag: "Ongoing",
+          tone: "offer",
+          hotId: "w32.open-series-ready",
+        }), { cls: "flat" }),
+        banner("The ongoing Offer is active, but this pool has not opened. You can revise, rest, or retire it; places stay unavailable until stewards open the pool.", "stone", "information-line"),
+        sectionTitle("Saved details", chip("1", "plain")),
+        card(offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Saved privately", tone: "plain", hotId: "w32.use-saved" }), { cls: "flat" }),
+      )}`;
+      break;
+    case "series-queued":
+      body = `${head}${pagepad(
+        intro,
+        sectionTitle("Waiting to send", chip("1", "plain")),
+        card(
+          offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · no places available", tag: "Queued", tone: "plain" }),
+          { cls: "flat" },
+        ),
+        banner("This ongoing Offer is queued. It is not Active and nobody can take up a place yet.", "amber", "time-line"),
+        sectionTitle("Saved details", chip("1", "plain")),
+        card(offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Saved privately", tone: "plain", hotId: "w32.use-saved" }), { cls: "flat" }),
+      )}${syncBar("1 waiting to send")}`;
+      break;
+    case "series-queued-place-waiting":
+      body = `${head}${pagepad(
+        intro,
+        sectionTitle("Waiting to send", chip("2", "plain")),
+        card(
+          offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · ongoing Offer", tag: "Queued", tone: "plain" }) +
+            offerRow({ title: "1 workshop session", meta: "Waiting for the ongoing Offer to send first", tag: "Waiting", tone: "plain" }),
+          { cls: "flat" },
+        ),
+        banner("No availability is shown until the ongoing Offer and its dependent place have both sent in order.", "amber", "time-line"),
+        sectionTitle("Saved details", chip("1", "plain")),
+        card(offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Saved privately", tone: "plain", hotId: "w32.use-saved" }), { cls: "flat" }),
+      )}${syncBar("2 waiting to send")}`;
+      break;
+    default:
+      body = `${head}${pagepad(
+        intro,
+        sectionTitle("Saved details", chip("1", "plain")),
+        card(
+          offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Ready to offer", tone: "plain", hotId: "w32.use-saved" }),
+          { cls: "flat" },
+        ),
+        hot("w32.add", btn("Save offer details", { kind: "ghost", full: true, icon: "add-line" })),
+        `<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or available place exists yet.</div>`,
+      )}`;
+  }
+  return phoneFrame(`${body}<div style="flex:1"></div>`, {
+    offline: state === "draft-unsaved" || state === "offline-local" || state === "series-queued" || state === "series-queued-place-waiting",
+    appBar: appBar("profile"),
+  });
+}
+
+const W32_HOTS: HifiDef["hots"] = {
+  "w32.add": { l: "Save offer details", to: "screen:W32@compose", info: "Saved Offer details are signed offchain profile data and reusable input to either path. Saving writes no pool, series, or commitment state." },
+  "w32.add-first": { l: "Save offer details", to: "screen:W32@compose", info: "Empty-state entry into the same compose sheet." },
+  "w32.save": { l: "Save privately", to: "screen:W32@saving", info: "Begins the authenticated remote write while retaining the local draft. Only the confirmed service response may enter Saved." },
+  "w32.save-draft": { l: "Save privately", to: "screen:W32@saving", info: "Begins remote persistence. Until a confirmed response arrives, the draft cannot survive a device change." },
+  "w32.retry-save": { l: "Try saving again", to: "screen:W32@saving", info: "Retries the owner-authenticated write from the retained local draft; it does not claim success optimistically." },
+  "w32.retry-save-online": { l: "Try when connected", to: "screen:W32@saving", info: "Connectivity is rechecked before entering the remote-saving state." },
+  "w32.use-local-offline": { l: "Use this draft", to: "screen:W32@choose-path", info: "Uses the local metadata without relabeling it Saved. A later series/commitment queue is separate from remote saved-Offer persistence." },
+  "w32.keep-editing": { l: "Keep editing", to: "screen:W32@draft-unsaved", info: "Returns to the retained local draft without claiming it is saved." },
+  "w32.reload-remote": { l: "Use saved version", to: "screen:W32@saved", info: "Loads the newer confirmed remote version and preserves no false merge claim." },
+  "w32.keep-local-copy": { l: "Keep a local copy", to: "screen:W32@draft-unsaved", info: "Keeps these edits as a visibly unsaved device draft." },
+  "w32.overwrite-current": { l: "Replace saved version", to: "screen:W32@saving", info: "Starts an explicit compare-and-swap write against the current remote version; success is still not assumed." },
+  "w32.persistence": { l: "How saving works", to: "screen:W32@persistence", info: "Explains the honest difference between signed saved details and an unsaved local draft." },
+  "w32.persistence-done": { l: "Got it", to: "screen:W32@draft-unsaved", info: "Dismisses the explanation and returns to the unsaved draft." },
+  "w32.use-saved": { l: "Use these details", to: "screen:W32@choose-path", info: "Opens the once-or-over-time choice. Saved details are input to either path, never a separate product object." },
+  "w32.offer-once": { l: "Offer it once", to: "screen:W3@saved-offer-edit", info: "Enters a prefilled ordinary creation flow that preserves the saved workshop details and produces one Offer with commitmentSeriesId == 0. Nothing durable is created." },
+  "w32.offer-over-time": { l: "Offer it over time", to: "screen:W33@garden", info: "Opens the garden picker, then creates the pool-scoped CommitmentSeries before any available place exists." },
+  "w32.open-series": { l: "Open the ongoing offer", to: "screen:W34@active-two", info: "Opens the ongoing Offer — internally the pool-scoped CommitmentSeries — for an offer already made over time." },
+  "w32.open-series-ready": { l: "Open the ongoing offer in a Ready pool", to: "screen:W34@pool-ready", info: "Preserves the selected Ready pool state after series sync. The detail exposes holder metadata/lifecycle controls but no Add-places path until the pool opens." },
+  "w32.retry": { l: "Try again", to: "screen:W32@saved", info: "Re-reads signed offchain storage; nothing was lost by the failed read." },
+};
+
+const W33_STATES = [
+  ["garden", "Choose an Open garden"], ["garden-ready", "Choose a Ready garden"],
+  ["terms", "Describe the offer"], ["terms-ready", "Describe the offer · Ready pool"],
+  ["review", "Review"], ["review-ready", "Review · Ready pool"],
+  ["queued", "Creating — queued"], ["queued-ready", "Creating in Ready pool — queued"],
+  ["place-waiting", "Place waiting for the offer"],
+  ["waiting-membership", "Waiting for membership"], ["failed", "Send failed"],
+  ["discarded-dependency", "Discarded series · draft retained"],
+] as const;
+type W33State = (typeof W33_STATES)[number][0];
+
+const w33Head = (title: string, step: number) =>
+  `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>${title}</h1><span class="hx">${stepDots(3, step)}</span></div>`;
+
+function w33(state: W33State): string {
+  let body: string;
+  switch (state) {
+    case "garden-ready":
+      body = `${w33Head("Offer over time", 0)}${pagepad(
+        `<div class="t-meta">Choose where you will keep offering this. Each garden keeps its own ongoing Offer and its own history.</div>`,
+        field("Garden", hot("w33.select-open", radio([
+          { label: "Rocinha Community Garden", meta: "you are a gardener here · pool open" },
+          { label: "Muizenberg Deep South", meta: "you are a gardener here · pool ready", on: true },
+        ], { interactive: true, name: "series-garden-ready" }))),
+        banner("This pool is Ready, so you may create the ongoing Offer but cannot add places until its stewards open participation.", "stone", "information-line"),
+        `<div class="t-meta">The selected pool state stays attached through creation and into the ongoing Offer detail.</div>`,
+        hot("w33.continue-garden-ready", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "terms":
+      body = `${w33Head("Offer over time", 1)}${pagepad(
+        card(`${kv("Offer", "Hosting climate workshops")}${kv("Garden", "Rocinha Community Garden")}`),
+        field("What people receive", input("A two-hour session on local climate work")),
+        field("Unit", input("workshop sessions", { select: true })),
+        `<div class="t-meta">You choose how many places to open after the ongoing Offer exists. Creating it opens nothing on its own.</div>`,
+        hot("w33.continue-terms", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "terms-ready":
+      body = `${w33Head("Offer over time", 1)}${pagepad(
+        card(`${kv("Offer", "Hosting climate workshops")}${kv("Garden", "Muizenberg Deep South")}${kv("Pool", "Ready · not open yet")}`),
+        field("What people receive", input("A two-hour session on local climate work")),
+        field("Unit", input("workshop sessions", { select: true })),
+        `<div class="t-meta">Creating the ongoing Offer opens nothing. In this Ready pool, places remain unavailable until stewards open participation.</div>`,
+        hot("w33.continue-terms-ready", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "review":
+      body = `${w33Head("Offer over time", 2)}${pagepad(
+        card(`${kv("Offer", "Hosting climate workshops")}${kv("Garden", "Rocinha Community Garden")}${kv("Unit", "workshop sessions")}${kv("Places open now", "None — you add them next")}${kv("Next cycle", "Ask me again next cycle")}`),
+        banner("An ongoing Offer keeps this offer's history together in one garden. It never renews itself and never asks anything of you on its own.", "stone", "information-line"),
+        hot("w33.create", btn("Start offering over time", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "review-ready":
+      body = `${w33Head("Offer over time", 2)}${pagepad(
+        card(`${kv("Offer", "Hosting climate workshops")}${kv("Garden", "Muizenberg Deep South")}${kv("Pool", "Ready · not open yet")}${kv("Unit", "workshop sessions")}${kv("Places open now", "None")}${kv("Next cycle", "Ask me again next cycle")}`),
+        banner("You can keep and revise this ongoing Offer now. Adding places stays unavailable until the pool opens.", "stone", "information-line"),
+        hot("w33.create-ready", btn("Start offering over time", { kind: "pri", full: true })),
+      )}`;
+      break;
+    case "queued":
+      body = `${w33Head("Offer over time", 3)}${pagepad(
+        card(
+          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Rocinha Community Garden", chipHtml: chip("Queued", "queued") }),
+        ),
+        banner("Saved on this phone. It sends when you are connected.", "amber", "time-line"),
+        `<div class="t-meta">No places are available yet. It becomes active once this sends, and you choose places after that.</div>`,
+        hot("w33.queued-done", btn("Back to my offers", { kind: "ghost", full: true })),
+      )}${syncBar("1 waiting to send")}`;
+      break;
+    case "queued-ready":
+      body = `${w33Head("Offer over time", 3)}${pagepad(
+        card(
+          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Muizenberg Deep South · pool ready", chipHtml: chip("Queued", "queued") }),
+        ),
+        banner("Saved on this phone. It sends when you are connected.", "amber", "time-line"),
+        `<div class="t-meta">After sync, the ongoing Offer is Active but place creation stays disabled until stewards open the pool.</div>`,
+        hot("w33.queued-ready-done", btn("Back to my offers", { kind: "ghost", full: true })),
+      )}${syncBar("1 waiting to send")}`;
+      break;
+    case "place-waiting":
+      body = `${w33Head("Offer over time", 3)}${pagepad(
+        card(
+          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Ongoing Offer · sending", chipHtml: chip("Queued", "queued") }) +
+            listRow({ icon: "calendar-line", primary: "1 place · Season of First Rains", meta: "Waiting for the ongoing Offer to send first", chipHtml: chip("Waiting", "plain") }),
+          { cls: "flat" },
+        ),
+        banner("The place waits for the offer it belongs to. No retries are used while it waits.", "stone", "time-line"),
+        `<div class="t-meta">If you discard it, this place stays as a draft and explains what it is waiting for.</div>`,
+        hot("w33.waiting-done", btn("Back to my offers", { kind: "ghost", full: true })),
+      )}${syncBar("2 waiting to send")}`;
+      break;
+    case "waiting-membership":
+      body = `${w33Head("Offer over time", 3)}${pagepad(
+        card(
+          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Rocinha Community Garden", chipHtml: chip("Waiting for membership", "plain") }) +
+            listRow({ icon: "calendar-line", primary: "1 workshop place · Season of First Rains", meta: "Waiting for this ongoing Offer", chipHtml: chip("Waiting", "queued") }),
+          { cls: "flat" },
+        ),
+        banner("This send is waiting for your garden membership. No retry is used while it waits.", "stone", "time-line"),
+        `<div class="t-meta">It resumes automatically when membership is visible. If you cancel the series send, the waiting place stays as a local draft until you recreate, retarget, or remove it.</div>`,
+        `<div class="brow">${hot("w33.membership-resume", btn("Check again", { kind: "pri", icon: "refresh-line" }))}${hot("w33.membership-cancel", btn("Cancel this send", { kind: "ghost" }))}</div>`,
+      )}${syncBar("2 waiting · membership required")}`;
+      break;
+    case "failed":
+      body = `${w33Head("Offer over time", 3)}${pagepad(
+        banner("The ongoing Offer could not be sent.", "error", "error-warning-line"),
+        card(
+          listRow({ icon: "seedling-line", primary: "Hosting climate workshops", meta: "Rocinha Community Garden", chipHtml: chip("Send failed", "err") }),
+        ),
+        `<div class="t-meta">Your description is kept. Retry when you have signal, or discard the send and keep the details saved privately.</div>`,
+        `<div class="brow">${hot("w33.retry", btn("Try again", { kind: "pri", icon: "refresh-line" }))}${hot("w33.discard", btn("Discard the send", { kind: "ghost" }))}</div>`,
+      )}`;
+      break;
+    case "discarded-dependency":
+      body = `${w33Head("Place draft kept", 3)}${pagepad(
+        banner("The ongoing Offer send was discarded. Your waiting place is still a draft on this device.", "amber", "information-line"),
+        card(
+          listRow({ icon: "calendar-line", primary: "1 workshop place · Season of First Rains", meta: "Waiting for an ongoing Offer", chipHtml: chip("Needs attention", "queued") }) +
+            `<div class="t-meta">Nothing was sent or made available. Choose how this retained draft should continue.</div>`,
+          { cls: "flat" },
+        ),
+        `<div class="brow">${hot("w33.dependency-recreate", btn("Recreate the ongoing Offer", { kind: "pri" }))}${hot("w33.dependency-retarget", btn("Choose another ongoing Offer", { kind: "ghost" }))}</div>`,
+        hot("w33.dependency-remove", btn("Remove this draft", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    default:
+      body = `${w33Head("Offer over time", 0)}${pagepad(
+        `<div class="t-meta">Choose where you will keep offering this. Each garden keeps its own ongoing Offer and its own history.</div>`,
+        field("Garden", hot("w33.select-ready", radio([
+          { label: "Rocinha Community Garden", meta: "you are a gardener here · pool open", on: true },
+          { label: "Muizenberg Deep South", meta: "you are a gardener here · pool ready" },
+        ], { interactive: true, name: "series-garden" }))),
+        banner("Ready and open pools are available. Paused, closed, and composted pools stay out of this list.", "stone", "information-line"),
+        `<div class="t-meta">An ongoing Offer lives in one garden. Offering the same thing elsewhere is a separate ongoing Offer there.</div>`,
+        hot("w33.continue-garden", btn("Continue", { kind: "pri", full: true })),
+      )}`;
+  }
+  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "queued" || state === "queued-ready" || state === "place-waiting" || state === "waiting-membership" || state === "failed" || state === "discarded-dependency", appBar: false });
+}
+
+const W33_HOTS: HifiDef["hots"] = {
+  "w33.select-ready": { l: "Select the Ready pool", to: "screen:W33@garden-ready", info: "Preserves Muizenberg's Ready state through the series creation path. Ready permits series creation but not place creation." },
+  "w33.select-open": { l: "Select the Open pool", to: "screen:W33@garden", info: "Returns to Rocinha's Open pool path, where place creation becomes available after the series syncs." },
+  "w33.continue-garden": { l: "Continue to the offer", to: "screen:W33@terms", info: "Binds the series to one eligible Ready or Open pool. Paused, Closed, and Composted pools are excluded; cross-garden merge does not exist." },
+  "w33.continue-garden-ready": { l: "Continue with the Ready pool", to: "screen:W33@terms-ready", info: "Keeps the selected Ready pool explicit rather than coercing every picker result to Open." },
+  "w33.continue-terms": { l: "Continue to review", to: "screen:W33@review", info: "Series metadata only. Places, counts, and cycle scope belong to the ordinary commitments created later." },
+  "w33.continue-terms-ready": { l: "Continue to Ready-pool review", to: "screen:W33@review-ready", info: "Carries the Ready state into review; no place or capacity reservation is implied." },
+  "w33.create": { l: "Start offering over time", to: "screen:W33@queued", info: "Queues createCommitmentSeries. The caller becomes immutable creator and initial current holder; no place and no availability exist yet.", calls: ["createCommitmentSeries"], pendingSync: true },
+  "w33.create-ready": { l: "Start offering over time in the Ready pool", to: "screen:W33@queued-ready", info: "Queues createCommitmentSeries in a Ready pool. Sync creates only the Active series; createCommitment remains unavailable until the pool opens.", calls: ["createCommitmentSeries"], pendingSync: true },
+  "w33.queued-done": { l: "Back to my offers", to: "screen:W32@series-queued", info: "The ongoing Offer remains visibly queued and unavailable; it appears as Active only after its creation syncs." },
+  "w33.queued-ready-done": { l: "Back to my offers", to: "screen:W32@series-queued", info: "The queued item retains its Ready pool identity. After indexed sync it appears in W32@saved-with-ongoing-ready and opens W34@pool-ready; no place job is created." },
+  "w33.waiting-done": { l: "Back to my offers", to: "screen:W32@series-queued-place-waiting", info: "Both the queued ongoing Offer and its dependent waiting place remain visible without fabricating availability or transaction order." },
+  "w33.membership-resume": { l: "Check membership again", to: "screen:W33@queued", info: "Rechecks the required pool-garden Hat. The same series job resumes without spending a retry only after membership is observed." },
+  "w33.membership-cancel": { l: "Cancel this send", to: "screen:W33@discarded-dependency", info: "Cancels only the waiting series job. The signed private Offer details and dependent place draft remain visible for explicit recreation, retargeting, or removal; no onchain series or place exists." },
+  "w33.retry": { l: "Try again", to: "screen:W33@queued", info: "Re-queues the same series creation; the entered description is preserved." },
+  "w33.discard": { l: "Discard the send", to: "screen:W33@discarded-dependency", info: "Discards only the queued series job. The saved details and any dependent place draft remain visible for explicit repair, retarget, or removal." },
+  "w33.dependency-recreate": { l: "Recreate the ongoing Offer", to: "screen:W33@garden", info: "Repairs the retained dependency by starting a new series job. The place draft remains local until the replacement series syncs." },
+  "w33.dependency-retarget": { l: "Choose another ongoing Offer", to: "screen:W32@saved-with-ongoing", info: "Returns to the member's ongoing Offers so the retained place draft can be linked explicitly to another eligible Active series." },
+  "w33.dependency-remove": { l: "Remove this draft", to: "screen:W32@saved", info: "Deletes only the retained local place draft. Saved Offer details remain private and no onchain state changes." },
+};
+
+const W34_STATES = [
+  ["active-two", "Active · 2 places"], ["active-none", "Active · no places"], ["active-one", "Active · 1 place"],
+  ["places-queued", "Active · 2 places queued"], ["places-partial", "Active · 1 available + 1 queued"],
+  ["places-partial-failed", "Active · 1 available + 1 failed"],
+  ["story", "Story"], ["participation", "Story vs pool history"], ["ask-again", "Next cycle"],
+  ["claimant-view", "Seen by another member"],
+  ["pool-ready", "Active · pool ready"], ["pool-paused", "Active · pool paused"], ["pool-closed", "Active · pool closed"],
+  ["pool-composted", "Active · pool composted"],
+  ["edit-active", "Edit · Active"], ["edit-active-none", "Edit · Active with no places"],
+  ["edit-active-ready", "Edit · Active in Ready pool"],
+  ["edit-resting", "Edit · Resting"], ["edit-resting-none", "Edit · Resting with no places"],
+  ["edit-resting-ready", "Edit · Resting in Ready pool"],
+  ["resting", "Resting"], ["resting-none", "Resting · no places"], ["resting-ready", "Resting · pool ready"],
+  ["retire-confirm", "Retire — confirm"], ["retire-confirm-none", "Retire no-place Offer — confirm"],
+  ["retire-confirm-resting", "Retire Resting — confirm"], ["retire-confirm-resting-none", "Retire Resting no-place Offer — confirm"],
+  ["retire-confirm-ready", "Retire — confirm · pool ready"], ["retire-confirm-resting-ready", "Retire Resting — confirm · pool ready"],
+  ["retired", "Retired"], ["retired-none", "Retired · no places"], ["retired-ready", "Retired · pool ready"],
+  ["succession", "Later: sharing and handing on"],
+  ["loading", "Loading"], ["read-error", "Read error"],
+] as const;
+type W34State = (typeof W34_STATES)[number][0];
+
+const W34_CLAIMANT_ALLOWED_FIELDS = [
+  "provider",
+  "terms",
+  "garden",
+  "availablePlaces",
+  "placeTerms",
+  "claimExplanation",
+] as const;
+type W34ClaimantField = (typeof W34_CLAIMANT_ALLOWED_FIELDS)[number];
+const W34_CLAIMANT_PUBLIC_DATA: Record<W34ClaimantField, string> = {
+  provider: "Maria",
+  terms: "A two-hour session on local climate work",
+  garden: "Rocinha Community Garden",
+  availablePlaces: "2",
+  placeTerms: "Season of First Rains · 2 hours",
+  claimExplanation:
+    "Taking up a place opens that promise. The other place stays available for someone else.",
+};
+const claimantField = (fieldName: W34ClaimantField, html: string) =>
+  `<div data-claimant-field="${fieldName}">${html}</div>`;
+
+const w34Head = (opts: { state: string; tone: "offer" | "plain" | "ink" }) =>
+  `${hdr("Hosting climate workshops", { back: true })}<div class="hsub">Rocinha Community Garden · ${opts.state}</div>`;
+
+// Availability is never decorative: every place is an existing Offered
+// instance whose provider slot was reserved when it was created.
+const w34Places = (n: number) => {
+  if (n === 0) {
+    return card(
+      `<div class="t-title">No places available right now</div><div class="t-meta">Nothing is open for anyone to take up. Adding a place creates a real promise that reserves your capacity straight away.</div>` +
+        hot("w34.add-places", btn("Add places", { kind: "pri", full: true, icon: "add-line" })),
+    );
+  }
+  const rows = Array.from({ length: n }, (_, i) =>
+    listRow({
+      icon: "calendar-line",
+      primary: `Workshop session ${i + 1}`,
+      meta: "Season of First Rains · 2 hours",
+      chipHtml: stateChip("Offered"),
+      chevron: true,
+    }),
+  ).join("");
+  return card(
+    `<div class="cardrow"><div class="grow"><div class="t-title num">${n} ${n === 1 ? "place" : "places"} available now</div><div class="t-meta">Each one is a real promise waiting to be taken up.</div></div></div>${rows}` +
+      hot("w34.add-places", btn("Add places", { kind: "ghost", full: true, icon: "add-line" })),
+  );
+};
+
+const w34ActiveManagement = (pool: "Open" | "Ready", availability: "existing" | "none" = "existing") => {
+  const ready = pool === "Ready";
+  const noPlaces = availability === "none";
+  return `${sectionTitle("Looking after this offer")}
+${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" }))}
+<div class="brow">${hot(ready ? "w34.rest-ready" : noPlaces ? "w34.rest-none" : "w34.rest", btn("Rest it for now", { kind: "ghost", icon: "pause-line" }))}${hot(ready ? "w34.retire-ready" : noPlaces ? "w34.retire-none" : "w34.retire", btn("Retire it", { kind: "ghost" }))}</div>
+${hot("w34.succession", btn("Sharing and handing on — later", { kind: "ghost", full: true, icon: "eye-line" }))}`;
+};
+
+const w34MetadataEditor = (state: "Active" | "Resting", pool: "Open" | "Ready", availability: "existing" | "none" = "existing") =>
+  sheetOver(
+    w34Head({ state: `${state}${pool === "Ready" ? " · pool ready" : ""}`, tone: state === "Active" ? "offer" : "plain" }) +
+      pagepad(card(`${kv("Current description", "A two-hour session on local climate work")}${kv("Existing places", pool === "Ready" || availability === "none" ? "None" : "Keep their original snapshots")}`)),
+    "Edit offer details",
+    `${field("What people receive", input("A two-hour climate learning workshop"))}` +
+      `${field("Unit", input("workshop sessions", { select: true }))}` +
+      banner("This updates the ongoing Offer from now on. Every existing place keeps the exact title, terms, and metadata snapshot it was created with.", "stone", "information-line") +
+      hot(
+        state === "Active"
+          ? pool === "Ready" ? "w34.save-edit-active-ready" : availability === "none" ? "w34.save-edit-active-none" : "w34.save-edit-active"
+          : pool === "Ready" ? "w34.save-edit-resting-ready" : availability === "none" ? "w34.save-edit-resting-none" : "w34.save-edit-resting",
+        btn("Save changes", { kind: "pri", full: true }),
+      ),
+  );
+
+const w34StoryTimeline = () =>
+  timeline([
+    { label: "Kept — market-day session", meta: "Jul 12 · Season of First Rains" },
+    { label: "Kept — school visit", meta: "Jun 28 · Season of First Rains" },
+    { label: "Under review by stewards, then kept", meta: "Jun 02 · Season of First Rains", warn: true, note: "Rescheduled after rain, reviewed, and confirmed. The record stays exactly as it happened." },
+    { label: "Withdrawn before anyone took it up", meta: "May 20 · Season of Seedlings" },
+    { label: "Ran out of time — nobody took it up", meta: "Apr 30 · Season of Seedlings" },
+    { label: "Kept — solar co-op introduction", meta: "Apr 06 · Season of Seedlings" },
+  ]);
+
+function w34(state: W34State): string {
+  let body: string;
+  switch (state) {
+    case "active-none":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        w34Places(0),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Unit", "workshop sessions")}`),
+        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
+        w34ActiveManagement("Open", "none"),
+      )}`;
+      break;
+    case "active-one":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        banner("One place is available now. It is already an ordinary Offer with reserved capacity.", "green", "hand-heart-line"),
+        w34Places(1),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Available now", "1 place")}`),
+        w34ActiveManagement("Open"),
+      )}`;
+      break;
+    case "pool-ready":
+      body = `${w34Head({ state: "Active · pool ready", tone: "plain" })}${pagepad(
+        banner("This pool is ready but not open. Your ongoing Offer is active, while adding or taking up places stays unavailable until stewards open participation.", "stone", "information-line"),
+        card(`<div class="t-title">No places available right now</div><div class="t-meta">No createCommitment job can be queued from this state. Opening the pool is a steward action.</div>`),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Unit", "workshop sessions")}${kv("Pool", "Ready")}`),
+        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
+        w34ActiveManagement("Ready"),
+      )}`;
+      break;
+    case "edit-active":
+      body = w34MetadataEditor("Active", "Open");
+      break;
+    case "edit-active-none":
+      body = w34MetadataEditor("Active", "Open", "none");
+      break;
+    case "edit-active-ready":
+      body = w34MetadataEditor("Active", "Ready");
+      break;
+    case "edit-resting":
+      body = w34MetadataEditor("Resting", "Open");
+      break;
+    case "edit-resting-none":
+      body = w34MetadataEditor("Resting", "Open", "none");
+      break;
+    case "edit-resting-ready":
+      body = w34MetadataEditor("Resting", "Ready");
+      break;
+    case "places-queued":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        banner("Two places are waiting to send. They are not available yet.", "amber", "time-line"),
+        card(
+          `<div class="t-title">No places available right now</div><div class="t-meta">Nobody can take up either place until each creation has sent and reserved your capacity.</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }),
+        ),
+        card(`${kv("Available now", "0 places")}${kv("Waiting to send", "2 places")}${kv("Unit", "workshop sessions")}`),
+      )}${syncBar("2 waiting to send")}`;
+      break;
+    case "places-partial":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        banner("One place is available. The other is still waiting to send.", "amber", "time-line"),
+        card(
+          listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }),
+          { cls: "flat" },
+        ),
+        card(`${kv("Available now", "1 place")}${kv("Waiting to send", "1 place")}`),
+        hot("w34.view-partial", btn("View send details", { kind: "ghost", full: true })),
+      )}${syncBar("1 waiting to send")}`;
+      break;
+    case "places-partial-failed":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        banner("One place is available. The other could not be sent.", "error", "error-warning-line"),
+        card(
+          listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · send failed", chipHtml: chip("Send failed", "err") }),
+          { cls: "flat" },
+        ),
+        card(`${kv("Available now", "1 place")}${kv("Needs attention", "1 place")}`),
+        `<div class="brow">${hot("w34.retry-failed-place", btn("Try failed place again", { kind: "pri", icon: "refresh-line" }))}${hot("w34.discard-failed-place", btn("Discard failed place", { kind: "ghost" }))}</div>`,
+      )}`;
+      break;
+    case "story":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own promise, with its own evidence and confirmation. Nothing here is a rating.</div>`),
+        sectionTitle("This offer's story"),
+        card(w34StoryTimeline(), { cls: "flat" }),
+        hot("w34.story-row", btn("Open the July session", { kind: "ghost", full: true })),
+        `<div class="t-meta">Reported participants come from what people wrote in their evidence, not from the record itself.</div>`,
+      )}`;
+      break;
+    case "participation":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        sectionTitle("This offer's story"),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Withdrawn or ran out", "2")}${kv("Reported participants", "31 · from evidence notes")}`),
+        `<div class="t-meta">One offer, in this garden, over time.</div>`,
+        sectionTitle("Your part in this pool"),
+        card(`${kv("Kept", "18 promises")}${kv("Taken up from others", "7")}${kv("Confirmations you gave", "23")}`),
+        `<div class="t-meta">Everything you have offered or received here, across every promise — not only this one offer. Visible to you and this garden's stewards.</div>`,
+        banner("These are two different views. Neither is a score, and neither is compared with anyone else.", "stone", "information-line"),
+      )}`;
+      break;
+    case "ask-again":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        card(
+          `<div class="t-title">A new season is open</div><div class="t-meta">Season of Long Rains started on Sep 1. Would you like to offer workshop sessions again?</div>` +
+            `<div class="brow">${hot("w34.ask-again-yes", btn("Add places", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not this season", { kind: "ghost" }))}</div>`,
+        ),
+        `<div class="t-meta">Nothing is created until you choose. Saying no changes nothing about this offer or its story.</div>`,
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Places available", "None")}`),
+      )}`;
+      break;
+    case "claimant-view":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        `<div data-privacy-contract="ongoing-offer-claimant-v1">` +
+          card(
+            claimantField("provider", kv("Offered by", W34_CLAIMANT_PUBLIC_DATA.provider)) +
+              claimantField("terms", kv("What you receive", W34_CLAIMANT_PUBLIC_DATA.terms)) +
+              claimantField("garden", kv("Garden", W34_CLAIMANT_PUBLIC_DATA.garden)),
+          ) +
+          card(
+            claimantField(
+              "availablePlaces",
+              `<div class="t-title num">${W34_CLAIMANT_PUBLIC_DATA.availablePlaces} places available now</div><div class="t-meta">Each place is already held open for whoever takes it up.</div>`,
+            ) +
+              claimantField(
+                "placeTerms",
+                listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: W34_CLAIMANT_PUBLIC_DATA.placeTerms, chipHtml: stateChip("Offered") }) +
+                  listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: W34_CLAIMANT_PUBLIC_DATA.placeTerms, chipHtml: stateChip("Offered") }) +
+                  hot("w34.claim", btn("Take up one place", { kind: "pri", full: true })),
+              ),
+          ) +
+          claimantField(
+            "claimExplanation",
+            `<div class="t-meta">${W34_CLAIMANT_PUBLIC_DATA.claimExplanation}</div>`,
+          ) +
+          `</div>`,
+      )}`;
+      break;
+    case "pool-paused":
+      body = `${w34Head({ state: "Active · pool paused", tone: "plain" })}${pagepad(
+        banner("This pool is paused. Existing promises and the offer's story are unchanged.", "amber", "pause-line"),
+        card(
+          `<div class="t-title">2 existing places are held, but cannot be taken up while paused</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }),
+        ),
+        card(`${kv("Add places", "Unavailable while paused")}${kv("Existing history", "Preserved")}`),
+        hot("w34.open-paused-pool", btn("View the paused pool", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "pool-closed":
+      body = `${w34Head({ state: "Active · pool closed", tone: "plain" })}${pagepad(
+        banner("This pool is closed. No place can be added or taken up.", "stone", "information-line"),
+        card(
+          `<div class="t-title">Places preserved as history</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Held when the pool closed · unavailable", chipHtml: chip("Closed", "plain") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Held when the pool closed · unavailable", chipHtml: chip("Closed", "plain") }),
+        ),
+        card(`${kv("This offer's Story", "Still available")}${kv("New or claimed places", "Unavailable until stewards reopen the pool")}`),
+        hot("w34.open-closed-pool", btn("View the closed pool", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "pool-composted":
+      body = `${w34Head({ state: "Active · pool composted", tone: "ink" })}${pagepad(
+        banner("This pool is composted for now. Its history remains readable, and its stewards may reopen it for another season.", "stone", "leaf-line"),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past promises and evidence remain exactly as recorded. No place can be added or taken up.</div>`),
+        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
+        hot("w34.open-composted-pool", btn("View the composted pool", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "resting":
+      body = `${w34Head({ state: "Resting", tone: "plain" })}${pagepad(
+        banner("Resting since Aug 2. No new places can be added while it rests.", "stone", "pause-line"),
+        card(
+          `<div class="t-title">2 existing places remain available</div><div class="t-meta">Resting blocks only new places. These already-reserved Offers can still be taken up.</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }),
+        ),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Available now", "2 places")}${kv("Add places", "Paused while resting")}`),
+        `<div class="brow">${hot("w34.resume", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
+        hot("w34.edit-resting", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" })),
+        hot("w34.retire-resting", btn("Retire it", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "resting-none":
+      body = `${w34Head({ state: "Resting · no places", tone: "plain" })}${pagepad(
+        banner("This ongoing Offer is resting. No place existed before it rested, and none was created to make this lifecycle change.", "stone", "pause-line"),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Available now", "None")}${kv("Add places", "Paused while resting")}`),
+        `<div class="brow">${hot("w34.resume-none", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
+        hot("w34.edit-resting-none", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" })),
+        hot("w34.retire-resting-none", btn("Retire it", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "resting-ready":
+      body = `${w34Head({ state: "Resting · pool ready", tone: "plain" })}${pagepad(
+        banner("This ongoing Offer is resting in a pool that is Ready but not Open. No places exist, and none can be added until both the series resumes and the pool opens.", "stone", "pause-line"),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Available now", "None")}${kv("Pool", "Ready")}`),
+        `<div class="brow">${hot("w34.resume-ready", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
+        hot("w34.edit-resting-ready", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" })),
+        hot("w34.retire-resting-ready", btn("Retire it", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    case "retire-confirm":
+      body = sheetOver(
+        w34Head({ state: "Active", tone: "offer" }) + pagepad(card(`${kv("Kept", "12 times across 5 cycles")}`)),
+        "Retire this ongoing Offer?",
+        `<div class="t-meta">Retiring is final. You will not be able to add places or start it again.</div>` +
+          card(
+            `${kv("Promises already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.retire-confirm", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel", btn("Keep it", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "retire-confirm-none":
+      body = sheetOver(
+        w34Head({ state: "Active · no places", tone: "offer" }) + pagepad(card(`${kv("Kept", "12 times across 5 cycles")}${kv("Places", "None")}`)),
+        "Retire this ongoing Offer?",
+        `<div class="t-meta">Retiring is final. You do not need to create a place first.</div>` +
+          card(
+            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.retire-confirm-none", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-none", btn("Keep it", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "retire-confirm-resting":
+      body = sheetOver(
+        w34Head({ state: "Resting", tone: "plain" }) + pagepad(card(`${kv("Kept", "12 times across 5 cycles")}${kv("Series", "Resting")}`)),
+        "Retire this ongoing Offer?",
+        `<div class="t-meta">Retiring is final. You do not need to resume or add a place first.</div>` +
+          card(
+            `${kv("Promises already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.retire-confirm-resting", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting", btn("Keep it resting", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "retire-confirm-resting-none":
+      body = sheetOver(
+        w34Head({ state: "Resting · no places", tone: "plain" }) + pagepad(card(`${kv("Kept", "12 times across 5 cycles")}${kv("Places", "None")}${kv("Series", "Resting")}`)),
+        "Retire this ongoing Offer?",
+        `<div class="t-meta">Retiring is final. You do not need to resume or create a place first.</div>` +
+          card(
+            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.retire-confirm-resting-none", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting-none", btn("Keep it resting", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "retire-confirm-ready":
+      body = sheetOver(
+        w34Head({ state: "Active · pool ready", tone: "plain" }) + pagepad(card(`${kv("Kept", "12 times across 5 cycles")}${kv("Pool", "Ready")}`)),
+        "Retire this ongoing Offer?",
+        `<div class="t-meta">Retiring is final. Opening the pool later will not restart this ongoing Offer.</div>` +
+          card(
+            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.retire-confirm-ready", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-ready", btn("Keep it", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "retire-confirm-resting-ready":
+      body = sheetOver(
+        w34Head({ state: "Resting · pool ready", tone: "plain" }) + pagepad(card(`${kv("Kept", "12 times across 5 cycles")}${kv("Pool", "Ready")}${kv("Series", "Resting")}`)),
+        "Retire this ongoing Offer?",
+        `<div class="t-meta">Retiring is final. You do not need to resume it or wait for the pool to open.</div>` +
+          card(
+            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.retire-confirm-resting-ready", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting-ready", btn("Keep it resting", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "retired":
+      body = `${w34Head({ state: "Retired", tone: "ink" })}${pagepad(
+        banner("Retired on Aug 2. You cannot add places or start this ongoing Offer again.", "stone", "information-line"),
+        card(
+          `<div class="t-title">2 existing places remain available</div><div class="t-meta">Retirement changes only the ongoing Offer. These already-reserved Offers stay discoverable and claimable until each one is accepted, cancelled, or expires.</div>` +
+            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+            hot("w34.open-retired-place", btn("View an open place", { kind: "ghost", full: true })),
+          { cls: "flat" },
+        ),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story stays here. Nothing that was already promised or kept has changed.</div>`),
+        card(w34StoryTimeline(), { cls: "flat" }),
+        `<div class="t-meta">Your saved details are still there. You can offer it in a garden again whenever you want to.</div>`,
+      )}`;
+      break;
+    case "retired-none":
+      body = `${w34Head({ state: "Retired · no places", tone: "ink" })}${pagepad(
+        banner("Retired without opening a place. No capacity-reserving promise was required to end this ongoing Offer.", "stone", "information-line"),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story and privately saved details remain available. No new place can be added to this retired ongoing Offer.</div>`),
+      )}`;
+      break;
+    case "retired-ready":
+      body = `${w34Head({ state: "Retired · pool ready", tone: "ink" })}${pagepad(
+        banner("This ongoing Offer is retired. It will not add places if the pool opens later.", "stone", "information-line"),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Its story remains readable, and your privately saved details can still seed a separate Offer in the future.</div>`),
+      )}`;
+      break;
+    case "succession":
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        banner("Not built yet — this is what we are working towards.", "amber", "eye-line"),
+        sectionTitle("Later: sharing and handing on"),
+        card(
+          `${kv("Share it with someone", "Two people hold the same ongoing Offer, with both saying yes")}` +
+            `${kv("Teach someone alongside you", "They are credited for the sessions they help with")}` +
+            `${kv("Hand it on", "You offer, they accept, and the story keeps its history")}` +
+            `${kv("Let someone start their own", "A new ongoing Offer that says where it grew from")}` +
+            `${kv("Let the garden hold it", "The garden stewards it and each session names its own lead")}`,
+        ),
+        `<div class="t-meta">None of these can be done yet. Every one of them will need both people to agree, and none of them moves a promise you have already made.</div>`,
+        `<div class="t-meta">What you can do today: add places, rest, or retire.</div>`,
+      )}`;
+      break;
+    case "loading":
+      body = `${w34Head({ state: "Loading", tone: "plain" })}${pagepad(skeleton({ title: true, lines: 2 }), skeleton({ lines: 3 }), skeleton({ lines: 2 }))}`;
+      break;
+    case "read-error":
+      body = `${w34Head({ state: "Cannot load", tone: "plain" })}${pagepad(
+        emptyState(
+          "wifi-off-line",
+          "Cannot load this ongoing Offer",
+          "Its places and story are safe. This device could not reach them just now.",
+          hot("w34.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })),
+        ),
+      )}`;
+      break;
+    default:
+      body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
+        w34Places(2),
+        card(`${kv("Kept", "12 times across 5 cycles")}${kv("Unit", "workshop sessions")}${kv("Next cycle", "Ask me again next cycle")}`),
+        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
+        w34ActiveManagement("Open"),
+      )}`;
+  }
+  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "places-queued", appBar: appBar("home") });
+}
+
+const W34_HOTS: HifiDef["hots"] = {
+  "w34.add-places": { l: "Add places", to: "screen:W35@compose", info: "Opens the finite-batch place flow. Each place becomes one ordinary Offer instance that reserves provider capacity at creation." },
+  "w34.open-story": { l: "See the whole story", to: "screen:W34@story", info: "Exact linked-instance history and absolute counts. Never a rate, rank, or comparison." },
+  "w34.open-story-resting": { l: "See the story", to: "screen:W34@story", info: "Resting hides nothing: the story stays fully readable." },
+  "w34.story-row": { l: "Open one kept promise", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
+  "w34.claim": { l: "Take up one place", to: "screen:W2@support-accepted", info: "Accepts one already-created Offered service instance. No new place is created, no second provider slot is consumed, and the instance stays Accepted until Work or evidence lands.", calls: ["claimCommitment"] },
+  "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
+  "w34.open-closed-pool": { l: "View the closed pool", to: "screen:W1@closed", info: "Shows the closed pool state. Reopening is a steward action; the ongoing Offer detail does not fabricate a gardener write." },
+  "w34.open-composted-pool": { l: "View the composted pool", to: "screen:W1@composted", info: "Shows the distinct Composted pool state. Participation is unavailable now, but current stewards may reopen the pool to Ready or Open without erasing history." },
+  "w34.view-partial": { l: "View send details", to: "screen:W35@mixed-queued", info: "Shows the independently synced and queued place rows rather than treating the two jobs as an atomic batch." },
+  "w34.retry-failed-place": { l: "Try failed place again", to: "screen:W34@places-partial", info: "Retries the same failed createCommitment job. The already-synced sibling stays available and is never re-submitted.", calls: ["createCommitment"], pendingSync: true },
+  "w34.discard-failed-place": { l: "Discard failed place", to: "screen:W34@active-one", info: "Discards only the failed local job. The synced Offered sibling remains available with its reserved capacity." },
+  "w34.edit-active": { l: "Edit active offer details", to: "screen:W34@edit-active", info: "Holder-only prospective metadata revision. Existing Offered and Accepted instance snapshots remain unchanged." },
+  "w34.edit-active-none": { l: "Edit active offer details with no places", to: "screen:W34@edit-active-none", info: "Holder-only prospective metadata revision stays available even when the series has zero instances." },
+  "w34.edit-active-ready": { l: "Edit active offer details in a Ready pool", to: "screen:W34@edit-active-ready", info: "Preserves the Ready pool state while allowing the holder to revise prospective series metadata." },
+  "w34.save-edit-active": { l: "Save active offer details", to: "screen:W34@active-two", info: "Calls updateCommitmentSeriesMetadata. Only the current series description changes; every existing place retains its creation snapshot.", calls: ["updateCommitmentSeriesMetadata"] },
+  "w34.save-edit-active-none": { l: "Save active offer details with no places", to: "screen:W34@active-none", info: "Calls updateCommitmentSeriesMetadata without creating a place or changing availability.", calls: ["updateCommitmentSeriesMetadata"] },
+  "w34.save-edit-active-ready": { l: "Save active offer details in a Ready pool", to: "screen:W34@pool-ready", info: "Calls updateCommitmentSeriesMetadata without opening the pool or creating a place. The Ready state and historical snapshots remain unchanged.", calls: ["updateCommitmentSeriesMetadata"] },
+  "w34.edit-resting": { l: "Edit resting offer details", to: "screen:W34@edit-resting", info: "A current holder may revise prospective metadata while Resting; existing instances keep their snapshots." },
+  "w34.edit-resting-none": { l: "Edit resting offer details with no places", to: "screen:W34@edit-resting-none", info: "Prospective metadata remains editable while Resting even when the series has no instances." },
+  "w34.edit-resting-ready": { l: "Edit resting offer details in a Ready pool", to: "screen:W34@edit-resting-ready", info: "Preserves both Resting series state and Ready pool state during the holder-only edit." },
+  "w34.save-edit-resting": { l: "Save resting offer details", to: "screen:W34@resting", info: "Calls updateCommitmentSeriesMetadata while Resting. It does not resume the series or rewrite an instance.", calls: ["updateCommitmentSeriesMetadata"] },
+  "w34.save-edit-resting-none": { l: "Save resting offer details with no places", to: "screen:W34@resting-none", info: "Calls updateCommitmentSeriesMetadata while preserving Resting and zero availability.", calls: ["updateCommitmentSeriesMetadata"] },
+  "w34.save-edit-resting-ready": { l: "Save resting offer details in a Ready pool", to: "screen:W34@resting-ready", info: "Calls updateCommitmentSeriesMetadata while preserving Resting + Ready and every existing snapshot.", calls: ["updateCommitmentSeriesMetadata"] },
+  "w34.rest": { l: "Rest it for now", to: "screen:W34@resting", info: "Blocks new places. Existing Offered and Accepted promises and the whole story are untouched.", calls: ["restCommitmentSeries"] },
+  "w34.rest-none": { l: "Rest the no-place offer", to: "screen:W34@resting-none", info: "Active may become Resting independently of instance count; no createCommitment or capacity reservation occurs.", calls: ["restCommitmentSeries"] },
+  "w34.rest-ready": { l: "Rest it for now in a Ready pool", to: "screen:W34@resting-ready", info: "Resting is independent of place count and pool opening. No capacity-reserving commitment is required first.", calls: ["restCommitmentSeries"] },
+  "w34.resume": { l: "Start offering again", to: "screen:W34@active-two", info: "Returns the ongoing Offer to Active without changing its two existing Offered places or creating another one.", calls: ["resumeCommitmentSeries"] },
+  "w34.resume-none": { l: "Resume the no-place offer", to: "screen:W34@active-none", info: "Returns the series to Active with zero places; resume creates no availability.", calls: ["resumeCommitmentSeries"] },
+  "w34.resume-ready": { l: "Start offering again in a Ready pool", to: "screen:W34@pool-ready", info: "Returns the series to Active while the pool remains Ready. Add places stays unavailable until the pool opens.", calls: ["resumeCommitmentSeries"] },
+  "w34.retire": { l: "Retire it", to: "screen:W34@retire-confirm", info: "Opens the terminal confirmation. Retiring takes no reason in the initial contract, so no reason field is drawn." },
+  "w34.retire-none": { l: "Retire the no-place offer", to: "screen:W34@retire-confirm-none", info: "Opens the terminal confirmation without requiring a capacity-reserving place first." },
+  "w34.retire-resting": { l: "Retire the resting offer", to: "screen:W34@retire-confirm-resting", info: "Resting may transition directly to Retired; no resume or new place is required." },
+  "w34.retire-resting-none": { l: "Retire the resting no-place offer", to: "screen:W34@retire-confirm-resting-none", info: "Resting with zero instances may transition directly to Retired; no place is required." },
+  "w34.retire-ready": { l: "Retire it in a Ready pool", to: "screen:W34@retire-confirm-ready", info: "Opens the Ready-preserving terminal confirmation without creating capacity." },
+  "w34.retire-resting-ready": { l: "Retire the resting offer in a Ready pool", to: "screen:W34@retire-confirm-resting-ready", info: "Resting may transition directly to Retired while the pool remains Ready." },
+  "w34.retire-confirm": { l: "Retire it", to: "screen:W34@retired", info: "Terminal. Existing instances keep their state and history; the saved details stay privately stored.", calls: ["retireCommitmentSeries"] },
+  "w34.retire-confirm-none": { l: "Retire the no-place offer", to: "screen:W34@retired-none", info: "Terminal series transition with zero instances and no capacity reservation.", calls: ["retireCommitmentSeries"] },
+  "w34.retire-confirm-resting": { l: "Retire the resting offer", to: "screen:W34@retired", info: "Calls retireCommitmentSeries from Resting. No resume or capacity-reserving commitment occurs.", calls: ["retireCommitmentSeries"] },
+  "w34.retire-confirm-resting-none": { l: "Retire the resting no-place offer", to: "screen:W34@retired-none", info: "Calls retireCommitmentSeries from Resting with zero instances and no capacity reservation.", calls: ["retireCommitmentSeries"] },
+  "w34.retire-confirm-ready": { l: "Retire it in a Ready pool", to: "screen:W34@retired-ready", info: "Terminal series transition with no place creation and no pool-state change.", calls: ["retireCommitmentSeries"] },
+  "w34.retire-confirm-resting-ready": { l: "Retire the resting offer in a Ready pool", to: "screen:W34@retired-ready", info: "Calls retireCommitmentSeries from Resting while preserving the Ready pool state.", calls: ["retireCommitmentSeries"] },
+  "w34.retire-cancel": { l: "Keep it", to: "screen:W34@active-two", info: "Dismisses the confirmation with no state change." },
+  "w34.retire-cancel-none": { l: "Keep the no-place offer", to: "screen:W34@active-none", info: "Dismisses the confirmation and preserves Active with zero places." },
+  "w34.retire-cancel-resting": { l: "Keep it resting", to: "screen:W34@resting", info: "Dismisses the confirmation and preserves Resting." },
+  "w34.retire-cancel-resting-none": { l: "Keep the no-place offer resting", to: "screen:W34@resting-none", info: "Dismisses the confirmation and preserves Resting with zero places." },
+  "w34.retire-cancel-ready": { l: "Keep it in the Ready pool", to: "screen:W34@pool-ready", info: "Dismisses the confirmation while preserving Active + Ready." },
+  "w34.retire-cancel-resting-ready": { l: "Keep it resting in the Ready pool", to: "screen:W34@resting-ready", info: "Dismisses the confirmation and preserves Resting + Ready." },
+  "w34.open-retired-place": { l: "View an open place", to: "screen:W2@support-offered", info: "Opens one surviving Offered instance. Retirement blocks only new series instances; ordinary claimant discovery and claim remain available while the pool is Open." },
+  "w34.ask-again-yes": { l: "Add places", to: "screen:W35@compose", info: "Current consent before any new promise. The protocol never creates a place on a schedule." },
+  "w34.ask-again-not-now": { l: "Not this season", to: "screen:W34@active-none", info: "Declining creates nothing and changes neither this offer nor its story." },
+  "w34.succession": { l: "Sharing and handing on — later", to: "screen:W34@succession", info: "Labelled horizon only. The initial contract exposes rest, resume, and retire and nothing else." },
+  "w34.retry": { l: "Try again", to: "screen:W34@active-two", info: "Re-reads the indexed ongoing Offer after a failed read." },
+};
+
+const W35_STATES = [
+  ["compose", "How many places"], ["queued", "Places queued"],
+  ["mixed-queued", "1 synced + 1 queued"], ["mixed-failed", "1 synced + 1 failed"],
+] as const;
+type W35State = (typeof W35_STATES)[number][0];
+
+function w35(state: W35State): string {
+  const head = `<div class="hdr"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>Add places</h1></div>`;
+  let body: string;
+  switch (state) {
+    case "queued":
+      body = `${head}${pagepad(
+        card(
+          listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains", chipHtml: chip("Queued", "queued") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains", chipHtml: chip("Queued", "queued") }),
+          { cls: "flat" },
+        ),
+        banner("Saved on this phone. They send when you are connected.", "amber", "time-line"),
+        `<div class="t-meta">They show as available only once they have sent and your capacity is held for them. Until then nobody can take them up.</div>`,
+        hot("w35.queued-done", btn("Back to this offer", { kind: "ghost", full: true })),
+      )}${syncBar("2 waiting to send")}`;
+      break;
+    case "mixed-queued":
+      body = `${head}${pagepad(
+        banner("One place sent. The other is still waiting.", "amber", "time-line"),
+        card(
+          listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · capacity reserved", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · waiting to send", chipHtml: chip("Queued", "queued") }),
+          { cls: "flat" },
+        ),
+        card(`${kv("Available now", "1 place")}${kv("Waiting to send", "1 place")}`),
+        hot("w35.mixed-queued-done", btn("Back to this offer", { kind: "ghost", full: true })),
+      )}${syncBar("1 waiting to send")}`;
+      break;
+    case "mixed-failed":
+      body = `${head}${pagepad(
+        banner("One place sent. The other could not be sent. Retrying uses the same creationRequestKey, so it cannot reserve a second place.", "error", "error-warning-line"),
+        card(
+          listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · capacity reserved", chipHtml: stateChip("Offered") }) +
+            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · send failed", chipHtml: chip("Send failed", "err") }),
+          { cls: "flat" },
+        ),
+        card(`${kv("Available now", "1 place")}${kv("Needs attention", "1 place")}`),
+        `<div class="brow">${hot("w35.retry-failed", btn("Try failed place again", { kind: "pri", icon: "refresh-line" }))}${hot("w35.discard-failed", btn("Discard failed place", { kind: "ghost" }))}</div>`,
+        hot("w35.mixed-failed-done", btn("Back to this offer", { kind: "ghost", full: true })),
+      )}`;
+      break;
+    default:
+      body = `${head}${pagepad(
+        card(`${kv("Offer", "Hosting climate workshops")}${kv("Garden", "Rocinha Community Garden")}`),
+        field("How many places", input("2")),
+        `<div class="t-meta">Each place becomes its own promise with these terms. Someone takes up one place at a time.</div>`,
+        field("When", radio([
+          { label: "Season of First Rains", meta: "runs through Aug 30", on: true },
+          { label: "No season", meta: "stands on its own" },
+        ], { interactive: true, name: "places-cycle" })),
+        field("How long each session runs", input("2 hours")),
+        banner("Adding places holds your capacity for them straight away, so nobody sees a place that is not really open.", "stone", "information-line"),
+        hot("w35.submit", btn("Add 2 places", { kind: "pri", full: true })),
+      )}`;
+  }
+  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state !== "compose", appBar: false });
+}
+
+const W35_HOTS: HifiDef["hots"] = {
+  "w35.submit": { l: "Add places", to: "screen:W35@queued", info: "Queues one ordinary createCommitment per place against the Active series. Each gets its own persisted clientCommitmentId and creationRequestKey before send; exact replay cannot create or reserve it twice.", calls: ["createCommitment"], pendingSync: true },
+  "w35.queued-done": { l: "Back to this offer", to: "screen:W34@places-queued", info: "The two queued places remain visible but unavailable. Availability appears only after the place creations sync and their capacity is reserved." },
+  "w35.mixed-queued-done": { l: "Back to this offer", to: "screen:W34@places-partial", info: "The ongoing Offer shows one real available place and one queued sibling." },
+  "w35.retry-failed": { l: "Try failed place again", to: "screen:W35@mixed-queued", info: "Reads creator + creationRequestKey first, then retries only with the same creationRequestKey. A matching commitment completes; zero permits the same-key call; any payload mismatch stops. The synced Offered sibling is untouched.", calls: ["createCommitment"], pendingSync: true },
+  "w35.discard-failed": { l: "Discard failed place", to: "screen:W34@active-one", info: "Discards only the failed local job. The synced place remains available." },
+  "w35.mixed-failed-done": { l: "Back to this offer", to: "screen:W34@places-partial-failed", info: "The ongoing Offer preserves the synced place's availability and the failed sibling's recovery controls." },
+};
+
+const w32Facts = (state: W32State): StateFacts | undefined =>
+  state === "saved-with-ongoing-ready" ? { pool: "Ready", series: "Active" } : undefined;
+
+const w33Facts = (state: W33State): StateFacts | undefined =>
+  ["garden-ready", "terms-ready", "review-ready", "queued-ready"].includes(state)
+    ? { pool: "Ready" }
+    : { pool: "Open" };
+
+const w34Facts = (state: W34State): StateFacts | undefined => {
+  if (state === "loading" || state === "read-error") return undefined;
+  if (state === "resting-none" || state === "edit-resting-none" || state === "retire-confirm-resting-none")
+    return { pool: "Open", series: "Resting" };
+  if (state === "resting" || state === "edit-resting" || state === "retire-confirm-resting")
+    return { pool: "Open", cycle: "Open", series: "Resting", commitment: "Offered", kind: "SupportService" };
+  if (state === "resting-ready" || state === "edit-resting-ready" || state === "retire-confirm-resting-ready")
+    return { pool: "Ready", series: "Resting" };
+  if (state === "retired") return { pool: "Open", cycle: "Open", series: "Retired", commitment: "Offered", kind: "SupportService" };
+  if (state === "retired-none") return { pool: "Open", series: "Retired" };
+  if (state === "retired-ready") return { pool: "Ready", series: "Retired" };
+  if (state === "retire-confirm") return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "edit-active-none" || state === "retire-confirm-none")
+    return { pool: "Open", series: "Active" };
+  if (state === "pool-ready" || state === "edit-active-ready" || state === "retire-confirm-ready")
+    return { pool: "Ready", series: "Active" };
+  if (state === "edit-active")
+    return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "pool-paused") return { pool: "Paused", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "pool-closed") return { pool: "Closed", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "pool-composted") return { pool: "Composted", series: "Active" };
+  if (["active-two", "active-one", "places-partial", "places-partial-failed", "claimant-view"].includes(state))
+    return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
+  return { pool: "Open", series: "Active" };
+};
+
+const w35Facts = (state: W35State): StateFacts =>
+  state === "mixed-queued" || state === "mixed-failed"
+    ? { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" }
+    : { pool: "Open", series: "Active" };
 
 const mk = <T extends readonly (readonly [string, string])[]>(
   id: string,
@@ -1710,4 +2840,8 @@ export const CLIENT_DEFS: HifiDef[] = [
   ] as const, w2a, w2aFacts), hots: W2A_HOTS },
   { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3, w3Facts), hots: W3_HOTS },
   { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4, w4Facts), hots: W4_HOTS },
+  { ...mk("W32", "W32 · Things I can offer", W32_STATES, w32, w32Facts), hots: W32_HOTS },
+  { ...mk("W33", "W33 · Offer over time", W33_STATES, w33, w33Facts), hots: W33_HOTS },
+  { ...mk("W34", "W34 · Ongoing Offer detail", W34_STATES, w34, w34Facts), hots: W34_HOTS },
+  { ...mk("W35", "W35 · Add places", W35_STATES, w35, w35Facts), hots: W35_HOTS },
 ];
