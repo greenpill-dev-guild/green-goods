@@ -1090,6 +1090,8 @@
   "app.error.unknown": "Erro desconhecido",
   "app.errors.auth": "Autenticação necessária.",
   "app.errors.blockchain": "Transação falhou. Por favor, tente novamente.",
+  "app.errors.contract.selfAttestation.action": "Peça a outro operador do jardim para aprovar ou rejeitar este trabalho",
+  "app.errors.contract.selfAttestation.message": "Você não pode revisar seu próprio trabalho enviado",
   "app.errors.blockchain.gasEstimation.message": "Simulação de transação falhou. Por favor, verifique seus dados e tente novamente.",
   "app.errors.blockchain.insufficientFunds.message": "Fundos insuficientes. Por favor, adicione fundos à sua carteira.",
   "app.errors.blockchain.network.message": "Problema de conexão. Por favor, verifique sua conexão e tente novamente.",
