@@ -10,9 +10,11 @@ import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
 const mockApprovalMutation = {
   mutateAsync: vi.fn(),
 };
+const mockPrimaryAddress = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   AudioRecorder: () => <div data-testid="audio-recorder" />,
+  compareAddresses: (a?: string, b?: string) => a?.toLowerCase() === b?.toLowerCase(),
   Confidence: {
     NONE: 0,
     LOW: 1,
@@ -47,6 +49,7 @@ vi.mock("@green-goods/shared", () => ({
   uploadFileToIPFS: vi.fn(),
   uploadJSONToIPFS: vi.fn(),
   useEnsName: () => ({ data: undefined }),
+  usePrimaryAddress: () => mockPrimaryAddress(),
   useWorkApproval: () => mockApprovalMutation,
 }));
 
@@ -72,6 +75,9 @@ const messages = {
   "app.work.detail.reviewBlocked.operatorMessage":
     "Only garden owners or operators can approve or reject work for this garden.",
   "app.work.detail.reviewBlocked.operatorTitle": "Owner or operator access required",
+  "app.work.detail.reviewBlocked.selfReviewMessage":
+    "You submitted this work. Another garden operator must approve or reject it.",
+  "app.work.detail.reviewBlocked.selfReviewTitle": "Independent review required",
   "app.work.detail.reviewSummary": "Review Summary",
   "app.work.detail.verificationMethods": "Verification methods",
 };
@@ -89,11 +95,11 @@ const TEST_WORK = {
   status: "pending",
 } as const;
 
-function renderReviewForm() {
+function renderReviewForm(work = TEST_WORK) {
   return render(
     <IntlProvider locale="en" messages={messages}>
       <ReviewForm
-        work={TEST_WORK}
+        work={work}
         gardenName="Demo Garden"
         canReview
         canApproveOrReject
@@ -107,6 +113,7 @@ describe("ReviewForm", () => {
   beforeEach(() => {
     mockApprovalMutation.mutateAsync.mockReset();
     mockApprovalMutation.mutateAsync.mockResolvedValue(undefined);
+    mockPrimaryAddress.mockReturnValue("0x9999999999999999999999999999999999999999");
   });
 
   it("keeps verification method implicit for human operator reviews", async () => {
@@ -130,5 +137,16 @@ describe("ReviewForm", () => {
         })
       );
     });
+  });
+
+  it("blocks an operator from reviewing their own submission", () => {
+    mockPrimaryAddress.mockReturnValue(TEST_WORK.gardenerAddress);
+
+    renderReviewForm();
+
+    expect(screen.getByText("Independent review required")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reject" })).not.toBeInTheDocument();
+    expect(mockApprovalMutation.mutateAsync).not.toHaveBeenCalled();
   });
 });

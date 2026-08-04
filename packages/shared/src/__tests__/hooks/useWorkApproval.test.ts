@@ -155,6 +155,51 @@ describe("hooks/work/useWorkApproval", () => {
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
     });
 
+    it("keeps wallet work in its indexed state until the transaction confirms", async () => {
+      let releaseSubmission: (() => void) | undefined;
+      (submitApprovalDirectly as any).mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+          releaseSubmission = resolve;
+        });
+        return MOCK_TX_HASH;
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      const workQueryKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(workQueryKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
+      act(() => {
+        approvalPromise = result.current.mutateAsync({ draft, work });
+      });
+
+      await waitFor(() => {
+        expect(submitApprovalDirectly).toHaveBeenCalled();
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(workQueryKey)?.[0]?.status).toBe(
+        "pending"
+      );
+
+      await act(async () => {
+        releaseSubmission?.();
+        await approvalPromise;
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(workQueryKey)?.[0]?.status).toBe(
+        "rejected"
+      );
+    });
+
     it("invalidates recipient-scoped approval reads after wallet approval succeeds", async () => {
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");

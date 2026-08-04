@@ -253,6 +253,13 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
   },
 
+  "0x9bce3284": {
+    name: "SelfAttestation",
+    message: "You cannot review your own work submission",
+    action: "Ask another garden operator to approve or reject this work",
+    recoverable: false,
+  },
+
   // ============================================================================
   // AssessmentResolver.sol errors
   // ============================================================================
