@@ -96,6 +96,11 @@ import {
   MOCK_TX_HASH,
 } from "../test-utils";
 
+const MOCK_CONFIRMED_APPROVAL_RESULT = {
+  hash: MOCK_TX_HASH,
+  confirmed: true,
+};
+
 describe("hooks/work/useWorkApproval", () => {
   let queryClient: QueryClient;
 
@@ -133,7 +138,7 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Wallet mode", () => {
     it("calls submitApprovalDirectly for wallet users", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -161,7 +166,7 @@ describe("hooks/work/useWorkApproval", () => {
         await new Promise<void>((resolve) => {
           releaseSubmission = resolve;
         });
-        return MOCK_TX_HASH;
+        return MOCK_CONFIRMED_APPROVAL_RESULT;
       });
 
       const work = createMockWork({ status: "pending" });
@@ -198,6 +203,39 @@ describe("hooks/work/useWorkApproval", () => {
       );
     });
 
+    it("keeps indexed wallet status unchanged when receipt confirmation times out", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue({
+        hash: MOCK_TX_HASH,
+        confirmed: false,
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      const onlineKey = queryKeys.works.online(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+      queryClient.setQueryData(onlineKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(mergedKey)?.[0]?.status).toBe(
+        "pending"
+      );
+      expect(queryClient.getQueryData<Array<{ status: string }>>(onlineKey)?.[0]?.status).toBe(
+        "pending"
+      );
+    });
+
     it("leaves persisted work state unchanged when the wallet rejects the request", async () => {
       const walletError = new Error("User rejected the request");
       (submitApprovalDirectly as any).mockRejectedValue(walletError);
@@ -228,7 +266,7 @@ describe("hooks/work/useWorkApproval", () => {
     });
 
     it("invalidates recipient-scoped approval reads after wallet approval succeeds", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
       const { result } = renderHook(() => useWorkApproval(), {
@@ -320,7 +358,7 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Feedback handling", () => {
     it("handles empty feedback correctly", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -345,7 +383,7 @@ describe("hooks/work/useWorkApproval", () => {
     });
 
     it("includes feedback for rejection", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -375,7 +413,7 @@ describe("hooks/work/useWorkApproval", () => {
 
   describe("Toast notifications", () => {
     it("shows success toast on approval", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
@@ -517,7 +555,7 @@ describe("hooks/work/useWorkApproval", () => {
     });
 
     it("passes confidence through wallet direct submission", async () => {
-      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
       const { result } = renderHook(() => useWorkApproval(), {
         wrapper: createWrapper(),
