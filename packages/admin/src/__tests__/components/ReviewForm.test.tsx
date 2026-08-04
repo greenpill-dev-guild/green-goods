@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import type { Address } from "@green-goods/shared";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +15,7 @@ const mockPrimaryAddress = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   AudioRecorder: () => <div data-testid="audio-recorder" />,
-  compareAddresses: (a?: string, b?: string) => a?.toLowerCase() === b?.toLowerCase(),
+  compareAddresses: (a?: Address, b?: Address) => a?.toLowerCase() === b?.toLowerCase(),
   Confidence: {
     NONE: 0,
     LOW: 1,
