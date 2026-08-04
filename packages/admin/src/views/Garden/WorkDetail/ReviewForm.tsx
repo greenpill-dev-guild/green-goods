@@ -147,17 +147,30 @@ export function ReviewForm({
 
       onSuccess?.();
     } catch (error) {
-      const { message, parsed } = parseAndFormatError(error);
+      const { message: formattedMessage, parsed } = parseAndFormatError(error);
 
       logger.error("Work approval submission failed", {
         error,
         source: "WorkDetail",
       });
 
+      const localizedKnownMessage = parsed.messageKey
+        ? [
+            formatMessage({ id: parsed.messageKey, defaultMessage: parsed.message }),
+            parsed.actionKey
+              ? formatMessage({
+                  id: parsed.actionKey,
+                  defaultMessage: parsed.action ?? "",
+                })
+              : parsed.action,
+          ]
+            .filter(Boolean)
+            .join(". ")
+        : formattedMessage;
       toastService.error({
         title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
         message: parsed.isKnown
-          ? message
+          ? localizedKnownMessage
           : formatMessage({ id: "app.toast.approval.errorWallet.message" }),
       });
     } finally {

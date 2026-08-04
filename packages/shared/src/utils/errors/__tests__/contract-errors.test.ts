@@ -50,6 +50,8 @@ describe("parseContractError", () => {
       name: "SelfAttestation",
       message: "You cannot review your own work submission",
       action: "Ask another garden operator to approve or reject this work",
+      messageKey: "app.errors.contract.selfAttestation.message",
+      actionKey: "app.errors.contract.selfAttestation.action",
       isKnown: true,
       recoverable: false,
       suggestedAction: undefined,

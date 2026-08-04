@@ -1090,6 +1090,8 @@
   "app.error.unknown": "Unknown error",
   "app.errors.auth": "Authentication required.",
   "app.errors.blockchain": "Transaction failed. Please try again.",
+  "app.errors.contract.selfAttestation.action": "Ask another garden operator to approve or reject this work",
+  "app.errors.contract.selfAttestation.message": "You cannot review your own work submission",
   "app.errors.blockchain.gasEstimation.message": "Transaction simulation failed. Please check your input and try again.",
   "app.errors.blockchain.insufficientFunds.message": "Insufficient funds to complete transaction. Please add funds to your wallet.",
   "app.errors.blockchain.network.message": "Network connection issue. Please check your connection and try again.",
