@@ -381,7 +381,7 @@ describe("wallet-submission", () => {
       );
 
       // Verify
-      expect(result).toBe("0xApprovalTxHash");
+      expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: true });
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
@@ -396,6 +396,28 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xApprovalTxHash", chainId: mockChainId }
       );
+    });
+
+    it("reports an unconfirmed submission when receipt waiting times out", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockRejectedValue(
+        new Error("Transaction confirmation timeout")
+      );
+
+      const result = await submitApprovalDirectly(
+        mockApprovalDraft,
+        "0xGardenAddress",
+        "0xGardenerAddress",
+        mockChainId
+      );
+
+      expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: false });
     });
 
     it("should throw error when wallet is not connected", async () => {

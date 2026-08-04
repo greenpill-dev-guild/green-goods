@@ -27,7 +27,7 @@ export async function submitApprovalDirectly(
   gardenerAddress: Address,
   chainId: number,
   options: WalletSubmissionOptions = {}
-): Promise<`0x${string}`> {
+): Promise<{ hash: `0x${string}`; confirmed: boolean }> {
   const { onProgress, txTimeout = 60_000 } = options;
   const startTime = Date.now();
 
@@ -88,8 +88,10 @@ export async function submitApprovalDirectly(
 
     debugLog("[WalletSubmission] Approval transaction sent", { hash });
 
+    let confirmed = false;
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
+      confirmed = true;
       debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
     } catch {
       debugLog("[WalletSubmission] Approval timeout, continuing...", { hash });
@@ -143,7 +145,7 @@ export async function submitApprovalDirectly(
       hash,
       totalTimeMs: totalTime,
     });
-    return hash;
+    return { hash, confirmed };
   } catch (err: unknown) {
     const logMessage = "[WalletSubmission] Approval submission failed";
     if (DEBUG_ENABLED) {

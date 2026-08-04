@@ -43,6 +43,7 @@ interface UseWorkApprovalParams {
 /** Mutation result including wallet submission details */
 interface ApprovalMutationResult {
   hash: `0x${string}`;
+  confirmed?: boolean;
 }
 
 const PENDING_AUTO_CLEAR_MS = 60_000;
@@ -135,13 +136,13 @@ export function useWorkApproval() {
             workUID: draft.workUID,
           });
         }
-        const hash = await submitApprovalDirectly(
+        const { hash, confirmed } = await submitApprovalDirectly(
           draft,
           work.gardenAddress,
           work.gardenerAddress,
           chainId
         );
-        return { hash };
+        return { hash, confirmed };
       }
 
       // Non-wallet path: queue + inline processing via TransactionSender
@@ -245,19 +246,13 @@ export function useWorkApproval() {
         queryKeys.works.online(work.gardenAddress, chainId)
       );
 
-      // Wallet preflight and signature can fail before a transaction exists. The
-      // admin persists work queries, so even a pending-only cache write here could
-      // survive a refresh that interrupts the mutation rollback. Wallet mode must
-      // leave the indexed work untouched until submission completes. Queued flows
-      // retain their optimistic outcome while they wait to sync.
-      const optimisticStatus =
-        authMode === "wallet"
-          ? work.status
-          : draft.approved
-            ? ("approved" as const)
-            : ("rejected" as const);
+      // Wallet mode leaves indexed work untouched until the direct submission
+      // reports receipt confirmation. Queued flows retain their optimistic outcome
+      // while they wait to sync.
 
       if (authMode !== "wallet") {
+        const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
+
         const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
 
         queryClient.setQueryData(
@@ -312,13 +307,13 @@ export function useWorkApproval() {
               )
           );
         }, PENDING_AUTO_CLEAR_MS + 1000);
-      }
 
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Applied optimistic update", {
-          workUID: draft.workUID,
-          newStatus: optimisticStatus,
-        });
+        if (DEBUG_ENABLED) {
+          debugLog("[useWorkApproval] Applied optimistic update", {
+            workUID: draft.workUID,
+            newStatus: optimisticStatus,
+          });
+        }
       }
 
       // Show loading toast
@@ -355,6 +350,7 @@ export function useWorkApproval() {
       const isApproval = variables?.draft.approved ?? false;
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
 
+      const shouldApplyStatus = authMode !== "wallet" || result.confirmed === true;
       // Provide haptic feedback for successful approval
       hapticSuccess();
 
@@ -377,7 +373,7 @@ export function useWorkApproval() {
 
       // Clear _isPending flag and confirm status after transaction is confirmed
       // For offline hashes, keep _isPending until job is processed
-      if (variables) {
+      if (variables && shouldApplyStatus) {
         const { draft, work } = variables;
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
@@ -430,7 +426,9 @@ export function useWorkApproval() {
         toastService.success({
           id: "approval-submit",
           title: isApproval ? "Approval submitted" : "Decision submitted",
-          message: "Transaction confirmed.",
+          message: shouldApplyStatus
+            ? "Transaction confirmed."
+            : "Waiting for wallet confirmation...",
           context: "wallet confirmation",
           suppressLogging: true,
         });
