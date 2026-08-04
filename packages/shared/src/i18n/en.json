@@ -2599,6 +2599,8 @@
   "app.work.detail.reviewBlocked.expiredTitle": "Action expired",
   "app.work.detail.reviewBlocked.operatorMessage": "Only garden owners or operators can approve or reject work for this garden.",
   "app.work.detail.reviewBlocked.operatorTitle": "Owner or operator access required",
+  "app.work.detail.reviewBlocked.selfReviewMessage": "You submitted this work. Another garden operator must approve or reject it.",
+  "app.work.detail.reviewBlocked.selfReviewTitle": "Independent review required",
   "app.work.detail.reviewSummary": "Review Summary",
   "app.work.detail.reviewTitle": "Review Work",
   "app.work.detail.selectAllThatApply": "select all that apply",

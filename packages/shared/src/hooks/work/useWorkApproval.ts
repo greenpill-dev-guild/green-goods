@@ -247,8 +247,15 @@ export function useWorkApproval() {
 
       const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
 
-      // Optimistically update the work status with a pending indicator
-      const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
+      // Wallet preflight and signature can fail before a transaction exists. Keep
+      // the indexed status until confirmation so a failed simulation cannot remove
+      // the active work from Hub. Queued flows retain their optimistic outcome.
+      const optimisticStatus =
+        authMode === "wallet"
+          ? work.status
+          : draft.approved
+            ? ("approved" as const)
+            : ("rejected" as const);
 
       queryClient.setQueryData(
         queryKeys.works.merged(work.gardenAddress, chainId),

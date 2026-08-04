@@ -2599,6 +2599,8 @@
   "app.work.detail.reviewBlocked.expiredTitle": "Ação expirada",
   "app.work.detail.reviewBlocked.operatorMessage": "Somente proprietários ou operadores do jardim podem aprovar ou rejeitar trabalho neste jardim.",
   "app.work.detail.reviewBlocked.operatorTitle": "Acesso de dono ou operador necessário",
+  "app.work.detail.reviewBlocked.selfReviewMessage": "Você enviou este trabalho. Outro operador do jardim deve aprová-lo ou rejeitá-lo.",
+  "app.work.detail.reviewBlocked.selfReviewTitle": "Revisão independente necessária",
   "app.work.detail.reviewSummary": "Resumo da revisão",
   "app.work.detail.reviewTitle": "Revisar trabalho",
   "app.work.detail.selectAllThatApply": "selecione o que se aplica",
