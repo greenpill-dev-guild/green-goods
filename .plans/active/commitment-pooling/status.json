@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-05T22:09:54Z"
+    "updated_at": "2026-08-05T23:23:35Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -166,18 +166,17 @@
   "lanes": {
     "contracts": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "Independent review confirmed that the synthetic bounds harness does not measure the production CommitmentPoolingModule entry points, exact shared internal implementation, or canonical event payloads required to freeze the five MAX values. The handoff orders freeze before those production loops exist, while valid evidence requires those paths first. No new interpretation is authorized; see reports/contracts-blocker-2026-08-05.md.",
+      "manual_blocked": false,
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "PRD-721 was explicitly dispatched on 2026-08-05. Baselines, RED tests, raw synthetic 8/16/24/32 measurements, canonical interfaces, storage foundations, the non-transferable register, AssessmentResolver dual-schema upgrade and malformed-word fix, TestimonyResolver, WorkApproval decision bridge, and GardenToken callback are committed and package-green. Independent review invalidated the claim that the synthetic measurements freeze production-safe bounds. The lane is blocked pending a human-approved correction to the benchmark/implementation order; downstream lanes must not consume the current value 32 as frozen. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
+      "handoff_note": "PRD-721 was explicitly dispatched on 2026-08-05. Baselines, RED tests, raw synthetic 8/16/24/32 measurements, canonical interfaces, storage foundations, the non-transferable register, AssessmentResolver dual-schema upgrade and malformed-word fix, TestimonyResolver, WorkApproval decision bridge, and GardenToken callback are committed and package-green. On 2026-08-05 Afo approved production-path-first implementation followed by canonical-event benchmarks at 8/16/24/32/40. The current value 32 remains provisional and downstream lanes must not consume it as frozen until the measured table and ABI getters reconcile. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
       "linear_issues": ["PRD-721", "PRD-650"],
       "tdd": {
         "mode": "required",
-        "status": "green_recorded",
+        "status": "pending",
         "red": {
           "command": "The exact CommitmentPooling, CommitmentRegistry, TestimonyResolver, and AssessmentResolver test:match commands in handoffs/codex-contracts.md, run before their implementations.",
           "evidence": "CommitmentPooling, CommitmentRegistry, and TestimonyResolver failed because their artifacts did not exist. AssessmentResolver compiled its 38-test surface with 26 legacy passes and 12 expected v3/dual-schema behavioral failures. WorkApproval decision-bridge and GardenToken callback tests landed with their implementations and are GREEN-only provenance."
@@ -186,7 +185,7 @@
           "command": "All twelve exact Bun commands in handoffs/codex-contracts.md.",
           "evidence": "At 3172341aa, seven focused surfaces passed 132 tests; storage baselines matched all 12 protected contracts; test:script passed 53 tests; build:full and lint:check exited 0; the full contracts package passed 1,579 tests across 67 suites. These checks prove the checkpoint code but do not validate the synthetic bounds as production-path measurements."
         },
-        "note": "Assessment security fix and package checks are green, but the production-bound freeze is blocked after review. See reports/contracts-blocker-2026-08-05.md and reports/contracts-impl-2026-08-05.md."
+        "note": "The earlier foundation increment remains green. New RED/GREEN proof is required for the production pooling paths and the authorized 8/16/24/32/40 canonical-event benchmark before this lane can return to green_recorded."
       },
       "skill_tags": ["contracts"]
     },
@@ -271,12 +270,12 @@
     "contracts": {
       "machine_lane": "contracts",
       "owner": "codex",
-      "status": "blocked",
-      "manual_blocked": true,
-      "blocked_reason": "The current five MAX getters return 32 from synthetic-harness evidence that does not execute the required production paths or canonical events. The binding handoff freezes before production loops, while the review requires those paths before a defensible freeze. Human direction is required; see reports/contracts-blocker-2026-08-05.md.",
+      "status": "in_progress",
+      "manual_blocked": false,
       "dispatch_authorized_2026_08_05": "Afo explicitly dispatched PRD-721 and authorized Codex to update this contracts-lane state and proceed on feature/build-commitment-pooling-contracts. The frozen first-PR boundary and all out-of-scope exclusions remain unchanged.",
       "branch": "feature/build-commitment-pooling-contracts",
-      "checkpoint_2026_08_05": "Commits a2e591063..3172341aa complete the baseline, RED subset, synthetic matrix, tested foundations, and Assessment malformed-word correction. At 3172341aa all exact focused/package gates pass with 132 focused and 1,579 full-package tests. Independent review invalidated the production-freeze claim for the synthetic matrix, so PRD-721 is blocked pending the resolution in reports/contracts-blocker-2026-08-05.md.",
+      "checkpoint_2026_08_05": "Commits a2e591063..3172341aa complete the baseline, RED subset, synthetic matrix, tested foundations, and Assessment malformed-word correction. At 3172341aa all exact focused/package gates pass with 132 focused and 1,579 full-package tests. Independent review invalidated the production-freeze claim for the synthetic matrix. Afo then approved production-path-first implementation and canonical-event measurement at 8/16/24/32/40; the lane is active while 32 remains provisional.",
+      "benchmark_order_authorized_2026_08_05": "Afo approved implementing the specification-frozen production paths before the final bounds freeze, benchmarking those exact paths at 8/16/24/32/40 with canonical events, and treating 32 as provisional until the handoff table and pure ABI getters reconcile. This grants no broadcast or live chain-state mutation authority.",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "linear": {
@@ -1021,6 +1020,14 @@
       "status": "benchmark_review_blocked",
       "branch": "feature/build-commitment-pooling-contracts",
       "note": "Fresh review at 3172341aa approved the Assessment malformed-word fix and confirmed 132 focused plus 1,579 full-package tests. It also confirmed that the synthetic bounds harness does not establish production-safe frozen values. Because the handoff orders freeze before the missing production paths while valid measurement requires those paths first, no new bound or freeze rule was chosen. PRD-721 is blocked and downstream lanes must not copy 32 pending reports/contracts-blocker-2026-08-05.md."
+    },
+    {
+      "timestamp": "2026-08-05T23:23:35Z",
+      "actor": "afo",
+      "lane": "contracts",
+      "status": "benchmark_order_authorized",
+      "branch": "feature/build-commitment-pooling-contracts",
+      "note": "Afo resolved the production-benchmark sequencing blocker: implement the specification-frozen production paths first, benchmark those exact paths and canonical events at 8/16/24/32/40, and treat 32 as provisional until the table and pure ABI getters reconcile. PRD-721 returns to in_progress. No broadcast or live chain-state mutation is authorized."
     }
   ]
 }

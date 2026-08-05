@@ -400,15 +400,13 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Bounded-constant benchmark results
 
-> **BLOCKED after independent implementation review — 2026-08-05:** the measurements below are
-> retained as raw synthetic-harness evidence, but they do not freeze production-safe bounds. The
-> harness does not execute the production CommitmentPoolingModule entry points or their exact
-> shared internal implementation, and it does not encode the canonical production events for all
-> five vectors. The current `pure` getters still return 32 in the checkpoint code, but downstream
-> lanes must not consume those values as frozen until the production paths exist, the required
-> 8/16/24/32 matrix plus at least the next candidate are measured against those paths, and this
-> table is replaced with reconciled production numbers. See
-> `reports/contracts-blocker-2026-08-05.md`.
+> **PRODUCTION-PATH-FIRST ORDER AUTHORIZED — 2026-08-05:** Afo resolved the independent-review
+> blocker by authorizing the specification-frozen production paths before the final bounds freeze.
+> Benchmark those exact paths and canonical events at 8/16/24/32/40. The measurements below remain
+> raw synthetic-harness history only; the current `pure` getters still return the provisional value
+> 32, and downstream lanes must not consume it as frozen until this table is replaced with the
+> production measurements and all five getters are reconciled. This authorization permits no
+> broadcast or live chain-state mutation. See `reports/contracts-blocker-2026-08-05.md`.
 
 The table below is the recording surface for
 `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It is
@@ -417,13 +415,14 @@ above may stop being called provisional, until every row carries measured number
 Record worst-case gas and event-payload size per bound per size, then name the selected value and
 say why the next size up was rejected.
 
-This is the ordered first-PR boundary, not a reason to postpone implementation:
+The 2026-08-05 authorization supersedes the ordering below only for the production benchmark:
 
 1. Add the RED ABI/storage/event tests plus `CommitmentPoolingBounds.t.sol`.
-2. Run and record the 8/16/24/32 matrix below.
-3. Freeze all five values in this table and in the explicit `pure` ABI getters.
-4. Only then implement the bounded module loops and indexer validators that consume them, in the
-   same PR or a dependent PR. No downstream lane may copy the provisional planning targets.
+2. Implement the specification-frozen bounded module paths without treating the provisional value
+   as a final ABI bound.
+3. Run and record the 8/16/24/32/40 production-path matrix with canonical events.
+4. Freeze all five measured values in this table and in the explicit `pure` ABI getters. No
+   downstream lane may copy the provisional planning targets.
 
 | Bound | 8 | 16 | 24 | 32 | Selected | Rejection reason for the next size |
 |---|---|---|---|---|---|---|

@@ -2,7 +2,12 @@
 
 ## Status
 
-**BLOCKED** on `feature/build-commitment-pooling-contracts` at `3172341aa`.
+**RESOLVED BY HUMAN DIRECTION** on `feature/build-commitment-pooling-contracts` after `076c8937d`.
+
+On 2026-08-05 Afo authorized production-path-first implementation, followed by exact-path and
+canonical-event benchmarking at 8/16/24/32/40. The current value 32 remains provisional until the
+measured table and pure ABI getters reconcile. The authorization explicitly excludes broadcast and
+live chain-state mutation.
 
 The Assessment v3 malformed-word security finding is fixed and independently re-reviewed. The
 remaining P1 finding cannot be resolved faithfully without changing the current frozen-bound basis
@@ -81,12 +86,11 @@ to provisional status.
 This prevents downstream consumption but changes the already-declared getter semantics and does not
 itself provide the missing production measurements.
 
-## Recommendation
+## Resolution
 
-Approve the first option: correct the order for this implementation, complete the exact production
-bounded paths, and then remeasure 8/16/24/32 plus the next candidate before declaring any value
-frozen. Until that approval and implementation land, keep PRD-721 blocked and prohibit downstream
-lanes from copying the current value 32.
+The first option is approved. Complete the exact production bounded paths, then remeasure
+8/16/24/32/40 before declaring any value frozen. PRD-721 is active again, while downstream lanes
+remain prohibited from copying the current value 32 until the table and getters reconcile.
 
 Do not silently preserve the synthetic freeze, select a different constant, change a canonical
 event, or treat “not measured” as evidence that the next size is unsafe.

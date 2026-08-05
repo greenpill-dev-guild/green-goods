@@ -2,14 +2,16 @@
 
 ## Status
 
-PRD-721 is **blocked after review** on `feature/build-commitment-pooling-contracts` at
-`3172341aa`.
+PRD-721 is **in progress after human authorization** on
+`feature/build-commitment-pooling-contracts` after `076c8937d`.
 
 This run reached a clean, committed, package-green implementation checkpoint after the required
 baseline → RED → benchmark/freeze order, but independent review found that the synthetic benchmark
 does not support the claimed production freeze. The raw measurements remain reproducible evidence;
-the five values must not be consumed downstream as frozen production bounds. It is not the full
-first-PR acceptance surface. The complete
+the five values must not be consumed downstream as frozen production bounds. Afo resolved the
+sequencing blocker on 2026-08-05 by authorizing production-path-first implementation and exact-path
+canonical-event measurement at 8/16/24/32/40. The current value 32 remains provisional. This is
+not the full first-PR acceptance surface. The complete
 `CommitmentPoolingModule` lifecycle, CommitmentSeries/exchange behavior, frozen creation and
 recognition hash implementations, and the isolated schema/deployment/421614/upgrade toolchain still
 remain. No PR was opened or pushed.
@@ -24,6 +26,7 @@ remain. No PR was opened or pushed.
 | `fdecac739` | `feat(contracts): add commitment accounting foundations` — registry, resolver/token wiring, concrete storage assertions, generated baselines, and focused GREEN coverage. |
 | `2c44ecefa` | `docs(contracts): record PRD-721 checkpoint` — initial implementation report and lane state. |
 | `3172341aa` | `fix(contracts): reject malformed assessment words` — canonical uint8 ABI decoding for Assessment v3, two reproduced RED regression cases, and corrected TDD provenance. |
+| `076c8937d` | `docs(contracts): block unsupported bounds freeze` — independent-review evidence, provisional-bound warning, and the now-resolved sequencing blocker. |
 
 ## Completed implementation
 
