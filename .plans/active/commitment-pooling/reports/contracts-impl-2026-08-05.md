@@ -2,202 +2,194 @@
 
 ## Status
 
-PRD-721 is **in progress after human authorization** on
-`feature/build-commitment-pooling-contracts` after `076c8937d`.
+PRD-721 remains **in progress** on `feature/build-commitment-pooling-contracts` at
+`042a8e851`. This is the handoff-authorized clean checkpoint after the production-path bounds
+freeze, not the full first-PR acceptance surface.
 
-This run reached a clean, committed, package-green implementation checkpoint after the required
-baseline → RED → benchmark/freeze order, but independent review found that the synthetic benchmark
-does not support the claimed production freeze. The raw measurements remain reproducible evidence;
-the five values must not be consumed downstream as frozen production bounds. Afo resolved the
-sequencing blocker on 2026-08-05 by authorizing production-path-first implementation and exact-path
-canonical-event measurement at 8/16/24/32/40. The current value 32 remains provisional. This is
-not the full first-PR acceptance surface. The complete
-`CommitmentPoolingModule` lifecycle, CommitmentSeries/exchange behavior, frozen creation and
-recognition hash implementations, and the isolated schema/deployment/421614/upgrade toolchain still
-remain. No PR was opened or pushed.
+Afo's 2026-08-05 direction resolved the benchmark-order blocker. The real module paths and
+canonical events were implemented before measurement, the 8/16/24/32/40 matrix passed, and all
+five explicit `pure` ABI getters now reconcile to the frozen value **40**. The former synthetic
+32 values are superseded and must not be consumed.
+
+No deployment, dry broadcast, broadcast, transaction plan, or live chain mutation was needed or
+performed. The remaining blockers are ordinary implementation and dry-run toolchain completeness,
+not a need to validate this checkpoint through deployment.
 
 ## Commits
 
 | Commit | Purpose |
 |---|---|
-| `a2e591063` | `test(contracts): verify storage layout baselines` — pre-source-edit checkpoint. Regeneration matched the existing AssessmentResolver, WorkApprovalResolver, and GardenToken baselines byte-for-byte, so the commit is intentionally empty. |
-| `a11de79cb` | `test(contracts): add commitment pooling red coverage` — initial RED files and the NET-NEW bounds harness. |
-| `9a515e3fe` | `feat(contracts): freeze commitment pooling bounds` — measured table, all five constants frozen at 32, explicit `pure` ABI getters, canonical interfaces, and the 38-slot module declaration scaffold with `__gap[12]`. |
-| `fdecac739` | `feat(contracts): add commitment accounting foundations` — registry, resolver/token wiring, concrete storage assertions, generated baselines, and focused GREEN coverage. |
-| `2c44ecefa` | `docs(contracts): record PRD-721 checkpoint` — initial implementation report and lane state. |
-| `3172341aa` | `fix(contracts): reject malformed assessment words` — canonical uint8 ABI decoding for Assessment v3, two reproduced RED regression cases, and corrected TDD provenance. |
-| `076c8937d` | `docs(contracts): block unsupported bounds freeze` — independent-review evidence, provisional-bound warning, and the now-resolved sequencing blocker. |
+| `a2e591063` | `test(contracts): verify storage layout baselines` — pre-source-edit baseline checkpoint. |
+| `a11de79cb` | `test(contracts): add commitment pooling red coverage` — original RED files and synthetic harness history. |
+| `9a515e3fe` | `feat(contracts): freeze commitment pooling bounds` — superseded provisional 32 scaffold. |
+| `fdecac739` | `feat(contracts): add commitment accounting foundations` — registry, resolvers, wiring, and storage proof. |
+| `3172341aa` | `fix(contracts): reject malformed assessment words` — canonical Assessment v3 ABI decoding. |
+| `076c8937d` | `docs(contracts): block unsupported bounds freeze` — independent-review blocker evidence. |
+| `7f6194e42` | `docs(contracts): authorize production bounds benchmark` — records Afo's order correction. |
+| `96d7efd2b` | `test(contracts): exercise pooling production paths` — real dependency fixture, production RED cases, and 8/16/24/32/40 harness. |
+| `4b08bc437` | `feat(contracts): implement pooling benchmark paths` — real bounded entrypoints and canonical events. |
+| `042a8e851` | `perf(contracts): freeze pooling bounds at 40` — measured table and ABI getter reconciliation. |
 
-## Completed implementation
+## Completed in this checkpoint
 
-- Preserved and verified the pre-change AssessmentResolver, WorkApprovalResolver, and GardenToken
-  compiler baselines before any source edit.
-- Added the canonical Commitment Pooling and Commitment Registry ABI declarations.
-- Added `CommitmentPoolingModule` with the frozen 38-entry storage declaration order,
-  `__gap[12]`, paused initialization, root-garden pinning, all five explicit `pure` bound getters,
-  cycle-less 20/80 recognition policy, and creation/work-operation read-through getters.
-- Added the non-transferable `CommitmentRegistry` with module-only accounting, one-shot
-  Registered → Committed → Released/Fulfilled transitions, provider open-commitment caps, and a
-  pause-gated module replacement path.
-- Upgraded AssessmentResolver in place to 3+47 storage with one-way AssessmentV3 schema pinning,
-  v2/v3 collision protection, preserved v2 behavior, and the Baseline/Delta/Technical v3 rules.
-- Added the NET-NEW TestimonyResolver with one-way schema pinning, schema-before-module ordering,
-  unconditional zero-module fail-closed behavior, community membership checks, CID validation,
-  and optional commitment garden validation.
-- Extended WorkApprovalResolver to 5+45 storage with monotonic per-Work decision sequence/audit
-  state and a non-blocking approval/rejection bridge.
-- Appended GardenToken's Commitment Pooling module at slot 213 offset 2, retained its 37-slot gap,
-  and made the mint callback graceful.
-- Added concrete storage assertions and fail-closed baselines for CommitmentPoolingModule,
-  CommitmentRegistry, TestimonyResolver, AssessmentResolver, WorkApprovalResolver, and GardenToken.
+- Preserved the exact 38 named CommitmentPoolingModule storage declarations plus `__gap[12]` and
+  passed both generated-baseline and concrete-slot proof.
+- Added pause-only dependency/schema configuration, complete-configuration unpause gating, and
+  exact old/new configuration events.
+- Implemented pool registration and lifecycle entrypoints used by the production paths, including
+  wrong-root Protocol rejection before pool/protocol ID mutation, charter/cap readiness, and
+  owner/Hats stewardship checks.
+- Implemented Offer and Request creation for the measured paths, including full-quota Offer
+  reservation, Request reservation at acceptance, provider-garden lead validation, Garden-request
+  `requestedBy` lead accounting, class registration, and pool/cycle live-count creation effects.
+- Implemented the frozen `creationPayloadHash` preimage byte-for-byte, stored/emitted hash parity,
+  exact replay as a no-op, and conflicting-key rejection.
+- Implemented bounded DomainImpact requirement derivation, repeated actions/domains, valid action
+  UID zero handling, linked Work validation, caller-scoped link replay, decision-sequence credit and
+  reversal accounting, approved-unit floor math, complete-set freshness scans, and automatic Ready
+  evaluation.
+- Implemented bounded lead-managed contributors, evidence attachment with exact-CID deduplication,
+  one evidence credit per contributor across distinct CIDs, write-once Accepted-and-unfrozen
+  assessment attachment, roster freeze, and ordinary confirmation/fulfillment.
+- Implemented named confirmer acceptance de-duplication and contributor filtering plus
+  roster-mutation reachability revalidation for the measured path.
+- Preserved the previously completed CommitmentRegistry, AssessmentResolver dual-schema upgrade,
+  TestimonyResolver, WorkApprovalResolver bridge, GardenToken callback, schema/deploy foundations,
+  and storage baselines.
 
-The focused tests cover the completed foundation. They do not yet constitute every behavioral case
-in the handoff's full RED list; the unimplemented module lifecycle cases remain RED work for the
-continuation.
+This completed slice is internally GREEN and supplies the exact five bounded production paths. It
+does not yet implement every one of the interface's 86 functions or every full handoff state
+machine.
 
 ## Recorded RED evidence
 
-The four RED targets listed below were run through their exact Bun-wrapped commands before their
-implementations. The WorkApproval decision-bridge and GardenToken callback tests landed in the same
-commit as their implementations, so they are GREEN regression evidence but do not have historical
-RED-before-GREEN provenance. The remaining handoff RED list also remains incomplete.
+Before the first production source edit, commit `96d7efd2b` added the real proxy/dependency fixture
+and real-module benchmark harness.
 
-- `test/unit/CommitmentPooling.t.sol`: failed in setup because no matching
-  `CommitmentPoolingModule` artifact existed.
-- `test/unit/CommitmentRegistry.t.sol`: failed in setup because no matching
-  `CommitmentRegistry` artifact existed.
-- `test/unit/TestimonyResolver.t.sol`: failed in setup because no matching
-  `TestimonyResolver` artifact existed.
-- `test/unit/AssessmentResolver.t.sol`: compiled all 38 tests; 26 legacy tests passed and 12 new
-  v3/dual-schema tests failed through missing logs, missing revert data, or `EvmError: Revert`.
+- `bun run --filter @green-goods/contracts test:match -- test/unit/CommitmentPooling.t.sol`
+  compiled successfully; the six scaffold tests passed and the production suite failed in `setUp`
+  because the scaffold had none of the required dependency setters/lifecycle selectors.
+- `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`
+  compiled successfully and `testBoundedConstantMatrix` failed before any measurement because the
+  production module paths did not exist.
 
-These were the expected behavioral failures for the implemented slice. The initial compile-only
-attempt was replaced with runtime artifact lookup so the RED commands could execute and record
-behavioral failures before source implementation.
+Earlier RED provenance remains as recorded: the initial CommitmentPooling, CommitmentRegistry, and
+TestimonyResolver suites failed before their artifacts existed; the AssessmentResolver extension
+ran 26 legacy passes with 12 expected v3/dual-schema failures. WorkApproval bridge and GardenToken
+callback coverage remain GREEN-only historical provenance.
 
-## Bounded-constant measurements
+## Frozen production bounds
 
-**Review disposition:** these are synthetic-harness measurements, not production-path freeze
-evidence. The harness does not call the production module paths or encode every canonical event, and
-it does not measure a next candidate above 32. The code still returns 32 from the five `pure`
-getters, but the lane is blocked and downstream consumers must treat those values as provisional
-until the resolution in `reports/contracts-blocker-2026-08-05.md` is approved and completed.
+Measured on the `4b08bc437` tree with Solc 0.8.28 using exactly:
 
-Measured on `a11de79cb` with Solc 0.8.28 using the exact
-`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol` command.
-Each value is gas / ABI-encoded event-data payload bytes.
+`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`
 
-| Bound | 8 | 16 | 24 | 32 | Selected | Why the next size is rejected |
-|---|---:|---:|---:|---:|---:|---|
-| `MAX_REQUIREMENTS` | 435,885 / 960 B | 823,052 / 1,728 B | 1,210,262 / 2,496 B | 1,597,514 / 3,264 B | **32** | Above 32 was not measured, so it has no transaction/indexer safety proof. |
-| `MAX_LINKED_WORKS_PER_COMMITMENT` | 212,262 / 320 B | 400,065 / 576 B | 587,883 / 832 B | 775,718 / 1,088 B | **32** | Above 32 was not measured, so it has no transaction/indexer safety proof. |
-| `MAX_CONTRIBUTORS_PER_COMMITMENT` | 399,076 / 640 B | 772,653 / 1,152 B | 1,146,238 / 1,664 B | 1,519,832 / 2,176 B | **32** | Above 32 was not measured, so it has no transaction/indexer safety proof. |
-| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` | 189,705 / 448 B | 375,359 / 704 B | 561,014 / 960 B | 746,672 / 1,216 B | **32** | Above 32 was not measured, so it has no transaction/indexer safety proof. |
-| `MAX_CONFIRMERS` | 394,513 / 384 B | 763,806 / 640 B | 1,133,101 / 896 B | 1,502,398 / 1,152 B | **32** | Above 32 was not measured, so it has no transaction/indexer safety proof. |
+Each cell deploys a fresh real proxy/module dependency graph, executes the named production
+entrypoints/scans, and records the largest transaction plus largest ABI-encoded canonical event
+data in that path.
 
-Every measured cell stayed below the harness ceilings of 10,000,000 gas and 16,384 payload bytes.
-The complete harness test consumed 33,157,286 gas across the full matrix. The same results and
-selection reasons are frozen in `handoffs/codex-contracts.md`.
+| Bound | 8 | 16 | 24 | 32 | 40 | Selected | Why 48 is rejected |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `MAX_REQUIREMENTS` | 1,043,475 / 1,920 B | 1,534,758 / 2,688 B | 2,028,433 / 3,456 B | 2,524,982 / 4,224 B | 3,024,608 / 4,992 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` | 108,320 / 128 B | 108,326 / 128 B | 137,757 / 128 B | 181,126 / 128 B | 224,496 / 128 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` | 85,465 / 416 B | 97,269 / 672 B | 152,394 / 928 B | 221,664 / 1,184 B | 305,080 / 1,440 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` | 56,653 / 448 B | 97,635 / 704 B | 152,761 / 960 B | 222,032 / 1,216 B | 305,446 / 1,472 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
+| `MAX_CONFIRMERS` | 258,926 / 384 B | 447,431 / 640 B | 646,176 / 896 B | 855,161 / 1,152 B | 1,074,387 / 1,408 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
 
-## GREEN command evidence
+All measurements remain below the frozen harness ceilings of 10,000,000 gas and 16,384 event-data
+bytes. The same values and rejection reasons are recorded in `handoffs/codex-contracts.md`.
 
-All commands were run from the repository root exactly as specified in the handoff.
+## Command evidence
+
+All commands were run from the repository root through the exact Bun wrappers.
 
 | Command surface | Result |
 |---|---|
-| Seven named `test:match` commands | PASS at `3172341aa` — 132 tests: Pooling 6, Registry 6, bounds 1, Assessment 40, Testimony 8, WorkApproval 43, storage 28. |
-| `bun run --filter @green-goods/contracts check:storage-layout` | PASS — all 12 protected contracts matched their baselines. |
+| `CommitmentPooling.t.sol` | PASS — 12 tests. |
+| `CommitmentRegistry.t.sol` | PASS — 6 tests. |
+| `CommitmentPoolingBounds.t.sol` | PASS — 1 production matrix test. |
+| `AssessmentResolver.t.sol` | PASS — 40 tests. |
+| `TestimonyResolver.t.sol` | PASS — 8 tests. |
+| `WorkApprovalResolver.t.sol` | PASS — 43 tests. |
+| `StorageLayout.t.sol` | PASS — 28 tests. |
+| Seven named files combined | PASS — 138 tests. |
+| `bun run --filter @green-goods/contracts check:storage-layout` | PASS — all 12 protected layouts matched. |
 | `bun run --filter @green-goods/contracts test:script` | PASS — 53 tests in 5 files. |
 | `bun run --filter @green-goods/contracts build:full` | PASS. |
-| `bun run --filter @green-goods/contracts lint:check` | PASS — 0 errors, 195 warning-level findings. The update check could not resolve `registry.npmjs.org`, but lint completed successfully and no dependency was installed. |
-| `bun run --filter @green-goods/contracts test` | PASS at `3172341aa` — 1,579 tests across 67 suites, 0 failed, 0 skipped. |
+| `bun run --filter @green-goods/contracts lint:check` | PASS — 0 errors, 195 existing warning-level findings. |
+| `bun run --filter @green-goods/contracts test` | PASS — 1,585 tests across 68 suites, 0 failed, 0 skipped. |
+| `node scripts/harness/plan-hub.mjs validate` | PASS — 41 feature hubs. |
 
-The Bun-wrapped Foundry commands were executed outside the filesystem sandbox after the sandboxed
-macOS runtime crashed in Dynamic Store initialization. This changed no command, dependency, chain
-state, or repository artifact.
-
-## Storage evidence
-
-- CommitmentPoolingModule custom entries occupy slots 151–188; `__gap[12]` starts at 189.
-- CommitmentRegistry begins at slot 101, uses six named entries through 106, and starts
-  `__gap[44]` at 107.
-- AssessmentResolver appends `assessmentV3SchemaUID` at slot 103 and starts `__gap[47]` at 104.
-- WorkApprovalResolver appends its bridge/decision fields at slots 103–105 and starts
-  `__gap[45]` at 106.
-- TestimonyResolver uses slots 101–102 and starts `__gap[48]` at 103.
-- GardenToken packs `commitmentPoolingModule` into slot 213 offset 2 and keeps
-  `__gap[37]` at slot 214.
-
-No slot mismatch, collision, or baseline divergence was observed.
+The first sandboxed Foundry invocation crashed while initializing macOS Dynamic Store. The same
+exact Bun commands then ran outside the filesystem sandbox; that changed no dependency, command,
+repository artifact, environment file, or chain state.
 
 ## Deviations and observations
 
-- Review-confirmed deviation: the bounds harness is synthetic and does not establish the five
-  production-safe frozen values claimed by the table/getters. The affected lane is blocked; no new
-  bound or alternative freeze rule was chosen.
-- The checkout was clean at dispatch. No pre-existing or concurrent working-tree changes were
-  encountered.
-- No dependency was installed, no package `.env` was created or read, and no file outside
+- No frozen ABI, storage, event, error, hash preimage, or state-machine deviation is known in the
+  completed slice. No contradictory specification source was encountered.
+- The module intentionally does not claim interface completeness yet. Missing selectors are listed
+  below and must be implemented and RED-tested before this PR can be called PRD-721 complete.
+- The checkout was clean at dispatch and no unrelated concurrent change was encountered.
+- No dependency was installed; no package `.env` was created or read; no file outside
   `packages/contracts/**` and `.plans/active/commitment-pooling/**` was edited.
-- No deployment, broadcast, transaction plan against Arbitrum One, live owner/authority change,
-  schema registration, or other live chain-state mutation was performed.
-- SettlementModule, Celo execution, vouchers/adapters, CreditRegistry, UI, bulk schema updates, and
-  existing schema-definition edits remained out of scope.
+- SettlementModule, Celo execution, vouchers/adapters, CreditRegistry, UI, existing schema edits,
+  bulk schema updates, all broadcasts, and all live chain-state mutation remained out of scope.
 
 ## Remaining PRD-721 work
 
-1. Resolve `reports/contracts-blocker-2026-08-05.md`: implement the exact production bounded paths
-   under a human-approved order correction, measure 8/16/24/32 plus the next candidate, and only
-   then replace the five provisional getter values and handoff table with defensible frozen bounds.
-2. Expand `CommitmentPooling.t.sol` and adjacent regression files to the complete handoff RED list,
-   then implement the complete pool, cycle, commitment, claim, contributor, Work/evidence,
-   assessment, confirmation, dispute, recognition, and Hypercert-composer state machines.
-3. Implement CommitmentSeries and the standing-commitments/exchange semantics from the
-   superseding specification.
-4. Implement the frozen `creationPayloadHash` preimage byte-for-byte, including replay/no-event
-   behavior and conflict proof.
-5. Implement canonical `recognitionSnapshotHash` exactly as
-   `keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))`.
-6. Add isolated Commitment Pooling and Community Testimony deployment/finalization targets,
-   deterministic schema reconciliation, and the grouped upgrade target.
-7. Add the Arbitrum Sepolia `421614` network/toolchain records and required dry-run verifier paths.
-8. Add `upgrade.ts` mandatory `--sender` handling and live `owner()` preflight.
-9. Run the remaining dry-run/pure-simulation acceptance commands only after those toolchain targets
-   exist. The two Arbitrum One future-only `--tx-plan` commands remain unrun.
+1. Finish the cycle lifecycle and live-count edge cases, including Season/Campaign constraints,
+   reconciliation/compost/cancel, and Expired → Disputed count restoration.
+2. Implement CommitmentSeries Active/Resting/Retired behavior and atomic `acceptExchange`, including
+   the complete direct-B consent and reservation revalidation surface.
+3. Complete Open contributor join/leave, managed removal, requirement assignment, unlink,
+   two-pass `syncWorkDecisions`, stale/late decision cases, and all max-plus-one cases.
+4. Complete `setDeclaredReward`, `setDeclaredValue`, `setConfirmerRule`, default Garden confirmer,
+   local/protocol fallback provenance, cancellation, expiry, disputes, and payout recording.
+5. Implement `validateRecognitionSnapshot` with the canonical settlement-spec §3.1.3 preimage
+   `keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))` and complete recognition
+   weight/remainder tests.
+6. Expand `CommitmentPooling.t.sol` to every remaining handoff RED case and make ABI/interface
+   completeness an executable proof.
+7. Add the isolated Commitment Pooling and testimony deployment/finalization targets, grouped
+   GardenToken/WorkApproval upgrade target, deterministic reconciliation, and dry-run tests.
+8. Add the Arbitrum Sepolia `421614` toolchain and mandatory `upgrade.ts --sender` plus live
+   `owner()` preflight, then run only the authorized dry-run/pure-simulation commands.
+9. Re-run the exact full GREEN gate after those increments. The two Arbitrum One future-only
+   `--tx-plan` commands remain prohibited and unrun.
 
 ## Draft PR description
 
-**Title:** `feat(contracts): establish commitment pooling foundations`
+**Title:** `feat(contracts): implement commitment pooling production core`
 
 ```markdown
 Linear: PRD-721
 
 ## Summary
 
-- Preserve and protect the upgrade storage baselines before implementation.
-- Add the canonical Commitment Pooling/Register interfaces, 38+12 module storage scaffold,
-  non-transferable register, AssessmentV3 dual-schema upgrade, TestimonyResolver, WorkApproval
-  decision bridge, and GardenToken callback.
-- Record the required synthetic 8/16/24/32 matrix and preserve the explicit ABI getter surface.
+- Add the canonical Commitment Pooling storage/interface foundations, non-transferable registry,
+  dual-schema AssessmentResolver, TestimonyResolver, WorkApproval bridge, and GardenToken wiring.
+- Implement the production pool, creation/replay, acceptance, contributor, evidence, Work-decision,
+  assessment, readiness, and ordinary-confirmation paths used by the frozen bounded vectors.
+- Replace the synthetic planning values with the real 8/16/24/32/40 production matrix and freeze
+  all five explicit ABI bounds at 40.
 
-This checkpoint is blocked after independent review: the synthetic matrix does not freeze
-production-safe bounds, and downstream lanes must not consume the current value 32. The complete
-pooling lifecycle/series/hash behavior and deployment/toolchain targets also remain.
+This remains a checkpoint PR description until the remaining cycle/series/exchange/recognition,
+terminal/fallback, and deployment-toolchain acceptance listed in the implementation report lands.
 
 ## Validation
 
-- [x] All seven named Foundry test files pass (132 tests at `3172341aa`)
+- [x] Seven named Foundry files pass (138 tests)
 - [x] `bun run --filter @green-goods/contracts check:storage-layout`
 - [x] `bun run --filter @green-goods/contracts test:script` (53 tests)
 - [x] `bun run --filter @green-goods/contracts build:full`
 - [x] `bun run --filter @green-goods/contracts lint:check`
-- [x] `bun run --filter @green-goods/contracts test` (1,579 tests)
-- [ ] Production-path bounds measurement and defensible freeze
-- [ ] Full PRD-721 behavioral and dry-run deployment acceptance
+- [x] `bun run --filter @green-goods/contracts test` (1,585 tests, 0 failed)
+- [ ] Complete remaining PRD-721 lifecycle/ABI and dry-run deployment acceptance
 
 ## Safety
 
-- No broadcast or live chain-state mutation
+- No broadcast, dry broadcast, tx-plan, or live chain-state mutation
 - No dependency or environment-file changes
-- No SettlementModule, Celo, voucher, CreditRegistry, UI, or bulk schema work
+- No SettlementModule, Celo execution, voucher, CreditRegistry, UI, or bulk schema work
 ```

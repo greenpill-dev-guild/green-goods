@@ -172,7 +172,7 @@
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "PRD-721 was explicitly dispatched on 2026-08-05. Baselines, RED tests, raw synthetic 8/16/24/32 measurements, canonical interfaces, storage foundations, the non-transferable register, AssessmentResolver dual-schema upgrade and malformed-word fix, TestimonyResolver, WorkApproval decision bridge, and GardenToken callback are committed and package-green. On 2026-08-05 Afo approved production-path-first implementation followed by canonical-event benchmarks at 8/16/24/32/40. The current value 32 remains provisional and downstream lanes must not consume it as frozen until the measured table and ABI getters reconcile. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
+      "handoff_note": "PRD-721 was explicitly dispatched on 2026-08-05. Commits through 042a8e851 preserve the baselines and implemented foundations, add real pool/creation/acceptance/contributor/evidence/Work-decision/assessment/readiness/ordinary-confirmation production paths, and replace the synthetic planning values with canonical-event measurements at 8/16/24/32/40. All five pure ABI getters and the handoff table now freeze at 40. The lane remains in progress for cycle/series/exchange/recognition/terminal/fallback behavior and the isolated deploy/421614/upgrade toolchain. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
       "linear_issues": ["PRD-721", "PRD-650"],
       "tdd": {
         "mode": "required",
@@ -183,9 +183,9 @@
         },
         "green": {
           "command": "All twelve exact Bun commands in handoffs/codex-contracts.md.",
-          "evidence": "At 3172341aa, seven focused surfaces passed 132 tests; storage baselines matched all 12 protected contracts; test:script passed 53 tests; build:full and lint:check exited 0; the full contracts package passed 1,579 tests across 67 suites. These checks prove the checkpoint code but do not validate the synthetic bounds as production-path measurements."
+          "evidence": "At 042a8e851, seven focused surfaces passed 138 tests; the real 8/16/24/32/40 production matrix passed and froze every bound at 40; storage baselines matched all 12 protected contracts; test:script passed 53 tests; build:full and lint:check exited 0; the full contracts package passed 1,585 tests across 68 suites."
         },
-        "note": "The earlier foundation increment remains green. New RED/GREEN proof is required for the production pooling paths and the authorized 8/16/24/32/40 canonical-event benchmark before this lane can return to green_recorded."
+        "note": "The foundation and bounded production-path increment are GREEN, but the lane stays pending until the remaining cycle/series/exchange/recognition/terminal/fallback and dry-run deployment acceptance has RED/GREEN proof."
       },
       "skill_tags": ["contracts"]
     },
@@ -274,8 +274,9 @@
       "manual_blocked": false,
       "dispatch_authorized_2026_08_05": "Afo explicitly dispatched PRD-721 and authorized Codex to update this contracts-lane state and proceed on feature/build-commitment-pooling-contracts. The frozen first-PR boundary and all out-of-scope exclusions remain unchanged.",
       "branch": "feature/build-commitment-pooling-contracts",
-      "checkpoint_2026_08_05": "Commits a2e591063..3172341aa complete the baseline, RED subset, synthetic matrix, tested foundations, and Assessment malformed-word correction. At 3172341aa all exact focused/package gates pass with 132 focused and 1,579 full-package tests. Independent review invalidated the production-freeze claim for the synthetic matrix. Afo then approved production-path-first implementation and canonical-event measurement at 8/16/24/32/40; the lane is active while 32 remains provisional.",
+      "checkpoint_2026_08_05": "Commits a2e591063..042a8e851 complete the baseline, RED/foundation work, real bounded production paths, canonical-event 8/16/24/32/40 matrix, and final bound/getter reconciliation at 40. Exact checkpoint gates pass with 138 focused and 1,585 full-package tests. The lane remains active for the unimplemented cycle/series/exchange/recognition/terminal/fallback selectors and isolated deploy/421614/upgrade toolchain.",
       "benchmark_order_authorized_2026_08_05": "Afo approved implementing the specification-frozen production paths before the final bounds freeze, benchmarking those exact paths at 8/16/24/32/40 with canonical events, and treating 32 as provisional until the handoff table and pure ABI getters reconcile. This grants no broadcast or live chain-state mutation authority.",
+      "bounds_freeze_2026_08_05": "The real module paths and canonical events were measured at 8/16/24/32/40 on the 4b08bc437 tree. Every size stayed below 10,000,000 gas and 16,384 event-data bytes; all five handoff selections and pure ABI getters freeze at 40 in 042a8e851. Size 48 remains rejected because it is outside the authorized measured matrix. No deployment or chain mutation was used.",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "linear": {
@@ -1028,6 +1029,14 @@
       "status": "benchmark_order_authorized",
       "branch": "feature/build-commitment-pooling-contracts",
       "note": "Afo resolved the production-benchmark sequencing blocker: implement the specification-frozen production paths first, benchmark those exact paths and canonical events at 8/16/24/32/40, and treat 32 as provisional until the table and pure ABI getters reconcile. PRD-721 returns to in_progress. No broadcast or live chain-state mutation is authorized."
+    },
+    {
+      "timestamp": "2026-08-05T23:52:30Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "production_bounds_frozen",
+      "branch": "feature/build-commitment-pooling-contracts",
+      "note": "PRD-721 commits 96d7efd2b..042a8e851 add RED production fixtures, implement the exact bounded pool/creation/acceptance/contributor/evidence/Work-decision/assessment/readiness/ordinary-confirmation paths, measure canonical events at 8/16/24/32/40, and freeze all five bounds/getters at 40. Seven named files pass 138 tests; storage, script, full build, lint, and the 1,585-test package suite pass. This is the authorized clean post-bounds checkpoint, not full lane completion: cycle/series/exchange/recognition/terminal/fallback and deploy/421614/upgrade work remains. No deployment, tx-plan, broadcast, or live chain mutation occurred."
     }
   ]
 }
