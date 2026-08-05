@@ -95,8 +95,8 @@ label too loosely.
 **What would settle the corridor**:
 
 1. Match each candidate's Nigerian legal entity and permission to the current SEC registry.
-2. Produce live $5, $15, $20, $50, and $100 quotes for Arbitrum USDC to a same-name Nigerian bank
-   account.
+2. Produce live quotes for inputs of 5, 15, 20, 50, and 100 USDC on Arbitrum to a same-name
+   Nigerian bank account.
 3. Confirm provider support for a user-KYC embedded flow or document exactly which local garden
    entity can pass KYB and pay which recipient classes.
 4. Test failed bank payout, refund destination, account-name mismatch, and support escalation.
@@ -249,7 +249,8 @@ Known public minimum evidence:
 No candidate has been verified as both percentage-only with no minimum and available for the
 required Nigeria or Brazil flow.
 
-The decision artifact must be an all-in quote table at $5, $15, $20, $50, and $100. For each quote,
+The decision artifact must be an all-in quote table for inputs of 5, 15, 20, 50, and 100 USDC on
+Arbitrum — the payout a gardener holds, not a desired fiat output. For each quote,
 record provider fee, FX spread against an independent timestamped reference, network fee, receiving
 fee, amount delivered, minimum/maximum, quote expiry, expected arrival, and refund amount.
 
@@ -321,7 +322,7 @@ created.
 - [ ] Current licence/approval and permitted activity verified with the regulator
 - [ ] User-KYC or eligible local garden-entity model confirmed
 - [ ] Inbound Arbitrum USDC direction and contract confirmed
-- [ ] Successful $5/$15/$20/$50/$100 quotes recorded
+- [ ] Successful quotes recorded for inputs of 5/15/20/50/100 USDC on Arbitrum
 - [ ] Payout rail, same-name requirement, minimum, maximum, and timing recorded
 - [ ] Provider fee, FX spread, network fee, and recipient amount measured
 - [ ] Quote/address expiry and duplicate-send behavior tested

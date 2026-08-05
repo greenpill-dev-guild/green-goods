@@ -35,7 +35,7 @@
 Requires an explicit new research dispatch. Provider contact and real transfers are not authorized.
 
 - [ ] Refresh regulator records for each candidate's exact operating entity.
-- [ ] Use public eligibility/quote surfaces to test $5, $15, $20, $50, and $100 without submitting
+- [ ] Use public eligibility/quote surfaces to test inputs of 5, 15, 20, 50, and 100 USDC on Arbitrum without submitting
   a transfer.
 - [ ] Record asset contract, network direction, fiat rail, minimum, maximum, fees, spread, expiry,
   and recipient amount.

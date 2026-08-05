@@ -11,7 +11,7 @@ remains in `ideas`.
 |---|---|---|---|
 | RG-1 | Exact entity | Contracting entity, regulator, status, permission, and route are current | Regulator record and provider terms |
 | RG-2 | Exact asset path | Inbound Arbitrum USDC contract and direction are confirmed | Provider asset/network response |
-| RG-3 | Small-payout economics | Successful all-in quotes exist at $5/$15/$20/$50/$100 | Dated quote matrix |
+| RG-3 | Small-payout economics | Successful all-in quotes exist for inputs of 5/15/20/50/100 USDC on Arbitrum (an explicit below-minimum rejection is a valid result) | Dated quote matrix |
 | RG-4 | Account eligibility | User-KYC or eligible garden entity is confirmed | Provider eligibility evidence |
 | RG-5 | Legal roles | Payer, owner, control, recipient, refund, and loss roles are accepted | Corridor legal role map |
 | RG-6 | Offline recovery | Expiry, interruption, duplicate, failure, and refund states recover safely | State walkthrough |
