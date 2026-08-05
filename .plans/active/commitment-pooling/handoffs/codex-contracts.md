@@ -400,20 +400,15 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Bounded-constant benchmark results
 
-> **PRODUCTION-PATH-FIRST ORDER AUTHORIZED — 2026-08-05:** Afo resolved the independent-review
-> blocker by authorizing the specification-frozen production paths before the final bounds freeze.
-> Benchmark those exact paths and canonical events at 8/16/24/32/40. The measurements below remain
-> raw synthetic-harness history only; the current `pure` getters still return the provisional value
-> 32, and downstream lanes must not consume it as frozen until this table is replaced with the
-> production measurements and all five getters are reconciled. This authorization permits no
-> broadcast or live chain-state mutation. See `reports/contracts-blocker-2026-08-05.md`.
+> **PRODUCTION BOUNDS FROZEN — 2026-08-05:** Afo authorized the specification-frozen production
+> paths before the final bounds freeze. The exact paths and canonical events were measured at
+> 8/16/24/32/40, and all five explicit `pure` getters now reconcile to the selected value 40.
+> The superseded synthetic values remain only in git history and must not be consumed. This work
+> performed no broadcast or live chain-state mutation. See `reports/contracts-blocker-2026-08-05.md`.
 
-The table below is the recording surface for
-`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It is
-empty because the harness does not exist yet; no `MAX_*` constant may be frozen, and no value
-above may stop being called provisional, until every row carries measured numbers from that run.
-Record worst-case gas and event-payload size per bound per size, then name the selected value and
-say why the next size up was rejected.
+The table below records the largest transaction gas and largest canonical event-data payload in
+each named real-module path from
+`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`.
 
 The 2026-08-05 authorization supersedes the ordering below only for the production benchmark:
 
@@ -424,19 +419,20 @@ The 2026-08-05 authorization supersedes the ordering below only for the producti
 4. Freeze all five measured values in this table and in the explicit `pure` ABI getters. No
    downstream lane may copy the provisional planning targets.
 
-| Bound | 8 | 16 | 24 | 32 | Selected | Rejection reason for the next size |
-|---|---|---|---|---|---|---|
-| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | 435,885 gas / 960 B | 823,052 gas / 1,728 B | 1,210,262 gas / 2,496 B | 1,597,514 gas / 3,264 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
-| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | 212,262 gas / 320 B | 400,065 gas / 576 B | 587,883 gas / 832 B | 775,718 gas / 1,088 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
-| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | 399,076 gas / 640 B | 772,653 gas / 1,152 B | 1,146,238 gas / 1,664 B | 1,519,832 gas / 2,176 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
-| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | 189,705 gas / 448 B | 375,359 gas / 704 B | 561,014 gas / 960 B | 746,672 gas / 1,216 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
-| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | 394,513 gas / 384 B | 763,806 gas / 640 B | 1,133,101 gas / 896 B | 1,502,398 gas / 1,152 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
+| Bound | 8 | 16 | 24 | 32 | 40 | Selected | Rejection reason for the next size |
+|---|---|---|---|---|---|---|---|
+| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | 1,043,475 gas / 1,920 B | 1,534,758 gas / 2,688 B | 2,028,433 gas / 3,456 B | 2,524,982 gas / 4,224 B | 3,024,608 gas / 4,992 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | 108,320 gas / 128 B | 108,326 gas / 128 B | 137,757 gas / 128 B | 181,126 gas / 128 B | 224,496 gas / 128 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | 85,465 gas / 416 B | 97,269 gas / 672 B | 152,394 gas / 928 B | 221,664 gas / 1,184 B | 305,080 gas / 1,440 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | 56,653 gas / 448 B | 97,635 gas / 704 B | 152,761 gas / 960 B | 222,032 gas / 1,216 B | 305,446 gas / 1,472 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
+| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | 258,926 gas / 384 B | 447,431 gas / 640 B | 646,176 gas / 896 B | 855,161 gas / 1,152 B | 1,074,387 gas / 1,408 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
 
-Measured 2026-08-05 on commit `a11de79cb` with Solc 0.8.28 through the exact Bun-wrapped
-`test/CommitmentPoolingBounds.t.sol` command. Each cell deploys a fresh target, executes the full
-named storage/scan/event path, and records the ABI-encoded event-data payload. All measured cells
-remain below the harness ceilings of 10,000,000 gas and 16,384 event-data bytes. The largest
-required measured size is therefore selected for each ABI bound; unmeasured sizes remain rejected.
+Measured 2026-08-05 on commit `4b08bc437` with Solc 0.8.28 through the exact Bun-wrapped
+`test/CommitmentPoolingBounds.t.sol` command. Each cell deploys a fresh proxy/module dependency
+graph, executes the named production entrypoints and scans, and records the largest canonical
+event-data payload in that path. All measured cells remain below the harness ceilings of
+10,000,000 gas and 16,384 event-data bytes. The largest authorized measured size is therefore
+selected for each ABI bound; unmeasured size 48 remains rejected.
 
 ## Out of scope
 

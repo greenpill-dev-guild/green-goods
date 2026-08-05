@@ -19,8 +19,7 @@ interface IWorkDecisionSequenceResolver {
 /// @title CommitmentPoolingModule
 /// @notice Commitment Pooling control plane for pool, commitment, contributor, and proof lifecycles.
 contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
-    // The authorized production benchmark exercises through 40. These values remain provisional
-    // until the measured table and the five pure ABI getters are reconciled in the freeze commit.
+    // Frozen by the PRD-721 8/16/24/32/40 production-path benchmark on 2026-08-05.
     uint256 private constant MAX_CONFIRMERS_VALUE = 40;
     uint256 private constant MAX_REQUIREMENTS_VALUE = 40;
     uint256 private constant MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT_VALUE = 40;
