@@ -4,43 +4,12 @@ pragma solidity ^0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-interface ICommitmentRegistryRedTarget {
-    enum AccountingState {
-        Registered,
-        Committed,
-        Released,
-        Fulfilled
-    }
+import { ICommitmentRegistry } from "../../src/interfaces/ICommitmentRegistry.sol";
 
-    struct CommitmentClass {
-        uint256 poolId;
-        uint256 cycleId;
-        string unitLabel;
-        uint256 quota;
-        uint256 totalCommitted;
-        uint256 totalFulfilled;
-        AccountingState accountingState;
-        bool exists;
-    }
-
+interface ICommitmentRegistryRedTarget is ICommitmentRegistry {
     function initialize(address owner_, address module_) external;
-    function setProviderOpenCommitmentCap(uint256 poolId, uint256 cap) external;
-    function registerClass(uint256 classId, uint256 poolId, uint256 cycleId, string calldata unitLabel, uint256 quota) external;
-    function commitUnits(uint256 classId, address account, uint256 units) external;
-    function fulfillUnits(uint256 classId, address account, uint256 units) external;
-    function committedOf(address account, uint256 classId) external view returns (uint256);
-    function fulfilledOf(address account, uint256 classId) external view returns (uint256);
-    function openCommitmentCountOf(uint256 poolId, address account) external view returns (uint256);
-    function providerOpenCommitmentCapOf(uint256 poolId) external view returns (uint256);
-    function getClass(uint256 classId) external view returns (CommitmentClass memory);
-    function setModule(address module_) external;
     function module() external view returns (address);
 }
-
-error OpenCommitmentCapRequired(uint256 poolId);
-error InvalidUnitAmount(uint256 classId, uint256 requested, uint256 expected);
-error OpenCommitmentCapExceeded(uint256 poolId, address account, uint256 requestedCount, uint256 availableCount);
-error ModuleMustBePaused(address currentModule);
 
 contract PausedModuleProbe {
     bool public paused;
@@ -84,15 +53,15 @@ contract CommitmentRegistryTest is Test {
 
         registry.fulfillUnits(CLASS_ID, PROVIDER, QUOTA);
 
-        ICommitmentRegistryRedTarget.CommitmentClass memory class_ = registry.getClass(CLASS_ID);
+        ICommitmentRegistry.CommitmentClass memory class_ = registry.getClass(CLASS_ID);
         assertEq(registry.committedOf(PROVIDER, CLASS_ID), 0);
         assertEq(registry.fulfilledOf(PROVIDER, CLASS_ID), QUOTA);
         assertEq(registry.openCommitmentCountOf(POOL_ID, PROVIDER), 0);
-        assertEq(uint256(class_.accountingState), uint256(ICommitmentRegistryRedTarget.AccountingState.Fulfilled));
+        assertEq(uint256(class_.accountingState), uint256(ICommitmentRegistry.AccountingState.Fulfilled));
     }
 
     function testRejectsZeroCapBeforeMutation() public {
-        vm.expectRevert(abi.encodeWithSelector(OpenCommitmentCapRequired.selector, POOL_ID));
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentRegistry.OpenCommitmentCapRequired.selector, POOL_ID));
         registry.setProviderOpenCommitmentCap(POOL_ID, 0);
         assertEq(registry.providerOpenCommitmentCapOf(POOL_ID), 0);
     }
@@ -102,7 +71,7 @@ contract CommitmentRegistryTest is Test {
         registry.registerClass(CLASS_ID, POOL_ID, CYCLE_ID, "hours", QUOTA);
 
         vm.expectRevert(
-            abi.encodeWithSelector(InvalidUnitAmount.selector, CLASS_ID, QUOTA - 1, QUOTA)
+            abi.encodeWithSelector(ICommitmentRegistry.InvalidUnitAmount.selector, CLASS_ID, QUOTA - 1, QUOTA)
         );
         registry.commitUnits(CLASS_ID, PROVIDER, QUOTA - 1);
     }
@@ -115,7 +84,7 @@ contract CommitmentRegistryTest is Test {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                OpenCommitmentCapExceeded.selector, POOL_ID, PROVIDER, 1, 0
+                ICommitmentRegistry.OpenCommitmentCapExceeded.selector, POOL_ID, PROVIDER, 1, 0
             )
         );
         registry.commitUnits(CLASS_ID + 1, PROVIDER, QUOTA);
@@ -144,7 +113,7 @@ contract CommitmentRegistryTest is Test {
         registry.setModule(address(first));
 
         vm.prank(OWNER);
-        vm.expectRevert(abi.encodeWithSelector(ModuleMustBePaused.selector, address(first)));
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentRegistry.ModuleMustBePaused.selector, address(first)));
         registry.setModule(address(second));
 
         first.setPaused(true);

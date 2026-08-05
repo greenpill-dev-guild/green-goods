@@ -417,11 +417,17 @@ This is the ordered first-PR boundary, not a reason to postpone implementation:
 
 | Bound | 8 | 16 | 24 | 32 | Selected | Rejection reason for the next size |
 |---|---|---|---|---|---|---|
-| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | | | | | provisional 16 | |
-| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | | | | | provisional 32 | |
-| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | | | | | provisional 32 | |
-| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | | | | | provisional 32 | |
-| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | | | | | provisional 32 | |
+| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | 435,885 gas / 960 B | 823,052 gas / 1,728 B | 1,210,262 gas / 2,496 B | 1,597,514 gas / 3,264 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | 212,262 gas / 320 B | 400,065 gas / 576 B | 587,883 gas / 832 B | 775,718 gas / 1,088 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | 399,076 gas / 640 B | 772,653 gas / 1,152 B | 1,146,238 gas / 1,664 B | 1,519,832 gas / 2,176 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | 189,705 gas / 448 B | 375,359 gas / 704 B | 561,014 gas / 960 B | 746,672 gas / 1,216 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
+| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | 394,513 gas / 384 B | 763,806 gas / 640 B | 1,133,101 gas / 896 B | 1,502,398 gas / 1,152 B | **32** | Values above 32 are outside the required measured matrix, so no transaction/indexer safety proof exists for the next size. |
+
+Measured 2026-08-05 on commit `a11de79cb` with Solc 0.8.28 through the exact Bun-wrapped
+`test/CommitmentPoolingBounds.t.sol` command. Each cell deploys a fresh target, executes the full
+named storage/scan/event path, and records the ABI-encoded event-data payload. All measured cells
+remain below the harness ceilings of 10,000,000 gas and 16,384 event-data bytes. The largest
+required measured size is therefore selected for each ABI bound; unmeasured sizes remain rejected.
 
 ## Out of scope
 
