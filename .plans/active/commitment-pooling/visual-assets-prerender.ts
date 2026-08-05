@@ -380,10 +380,18 @@ try {
         `class="mermaid mermaid-rendered dia-frozen dia-frozen-${theme}"`,
       );
       if (withClass === svg) fail(`rendered diagram ${idx}/${theme} is missing the expected Mermaid class`);
-      return withClass.replace(
-        /<svg\b/i,
-        `<svg data-gg-diagram-index="${idx}" data-gg-theme="${theme}"`,
-      );
+      const tagged = /<svg\b[^>]*\bclass="/i.test(withClass)
+        ? withClass.replace(
+            /<svg\b([^>]*?)\bclass="([^"]*)"/i,
+            `<svg data-gg-diagram-index="${idx}" data-gg-theme="${theme}"$1class="$2 dia-frozen dia-frozen-${theme}"`,
+          )
+        : withClass.replace(
+            /<svg\b/i,
+            `<svg data-gg-diagram-index="${idx}" data-gg-theme="${theme}" class="dia-frozen dia-frozen-${theme}"`,
+          );
+      if (tagged === withClass)
+        fail(`rendered diagram ${idx}/${theme} is missing the nested SVG needed by the publish verifier`);
+      return tagged;
     };
     const l = annotate(light[idx], "light");
     const d = annotate(dark[idx], "dark");

@@ -505,7 +505,7 @@ sequenceDiagram
     M->>R: commitUnits(class, creator, units)
     R-->>IDX: UnitsCommitted (creator slot acquired)
   else Request
-    Note over M,R: provider unknown; no units committed yet
+    Note over M,R: provider unknown — no units committed yet
   end
   M-->>IDX: CommitmentCreated (Offered or Requested)
   B->>M: claimCommitment(commitmentId, kind, gardenContext)
@@ -980,9 +980,9 @@ sequenceDiagram
   end
   opt indexer receives decline before its older request event
     M-->>IDX: ClaimDeclined delivered first
-    IDX->>RI: upsert DECLINED placeholder<br/>requestSeen=false; request payload null
+    IDX->>RI: upsert DECLINED placeholder<br/>requestSeen=false · request payload null
     M-->>IDX: older ClaimRequested delivered later
-    IDX->>RI: fill payload; requestSeen=true;<br/>retain DECLINED and decline cursor
+    IDX->>RI: fill payload · requestSeen=true<br/>retain DECLINED and decline cursor
   end
 ```
 

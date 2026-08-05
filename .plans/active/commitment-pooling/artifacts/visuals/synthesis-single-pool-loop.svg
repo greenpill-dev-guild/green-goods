@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="single-pool-loop-title single-pool-loop-desc">
+  <title id="single-pool-loop-title">One bounded pool: the future exchange loop</title>
+  <desc id="single-pool-loop-desc">A seven step exchange loop that one bounded pool would have to prove: authorized class, bounded fulfilled backed issuance, seed inventory, quote and limit, exchange in and out, redemption, and settled or visibly repaired. The loop is drawn open on the left because no return leg is specified. The promise record and the G$ support rail sit outside the loop; only explicit class terms connect G$ to redemption, and it is never redemption by implication. Every element is a later capability, not built and not authorized, and federation is not shown.</desc>
+  <defs>
+    <marker id="spl-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#8A6D3B"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="29" font-weight="700" fill="#2A2722">One bounded pool: the future exchange loop</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">A later capability, drawn to show the mechanics it would have to prove.</text>
+
+  <!-- ============ loop connectors ============ -->
+  <g fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#spl-arrow)">
+    <path d="M 215 184 L 239 184"/>
+    <path d="M 435 184 L 459 184"/>
+    <path d="M 655 190 L 678 190 L 678 374 L 694 374"/>
+    <path d="M 787 418 L 787 470 L 560 470 L 560 514"/>
+    <path d="M 459 564 L 435 564"/>
+    <path d="M 239 564 L 215 564"/>
+  </g>
+
+  <!-- ============ loop nodes ============ -->
+
+  <!-- 1 · authorized class -->
+  <g>
+    <rect x="25" y="140" width="190" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="38" y="160" font-size="13" fill="#8A6D3B">1</text>
+    <text x="120" y="182" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Authorized class</text>
+    <text x="120" y="201" text-anchor="middle" font-size="13" fill="#6E6857">curation and capacity</text>
+    <text x="120" y="216" text-anchor="middle" font-size="13" fill="#6E6857">accounting</text>
+  </g>
+
+  <!-- 2 · bounded issuance -->
+  <g>
+    <rect x="245" y="140" width="190" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="258" y="160" font-size="13" fill="#8A6D3B">2</text>
+    <text x="340" y="182" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Bounded issuance</text>
+    <text x="340" y="201" text-anchor="middle" font-size="13" fill="#6E6857">fulfilled backing only</text>
+    <text x="340" y="216" text-anchor="middle" font-size="13" fill="#6E6857">mint against proof</text>
+  </g>
+
+  <!-- 3 · seed inventory -->
+  <g>
+    <rect x="465" y="140" width="190" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="478" y="160" font-size="13" fill="#8A6D3B">3</text>
+    <text x="560" y="182" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Seed inventory</text>
+    <text x="560" y="201" text-anchor="middle" font-size="13" fill="#6E6857">bounded initial supply</text>
+  </g>
+
+  <!-- 4 · quote and limit -->
+  <g>
+    <rect x="700" y="330" width="175" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="713" y="350" font-size="13" fill="#8A6D3B">4</text>
+    <text x="787" y="372" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Quote and limit</text>
+    <text x="787" y="391" text-anchor="middle" font-size="13" fill="#6E6857">explicit price and cap</text>
+  </g>
+
+  <!-- 5 · exchange in and out -->
+  <g>
+    <rect x="465" y="520" width="190" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="478" y="540" font-size="13" fill="#8A6D3B">5</text>
+    <text x="560" y="562" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Exchange in and out</text>
+    <text x="560" y="581" text-anchor="middle" font-size="13" fill="#6E6857">within stated limits</text>
+  </g>
+
+  <!-- 6 · redemption -->
+  <g>
+    <rect x="245" y="520" width="190" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="258" y="540" font-size="13" fill="#8A6D3B">6</text>
+    <text x="340" y="562" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Redemption</text>
+    <text x="340" y="581" text-anchor="middle" font-size="13" fill="#6E6857">burn or lock first</text>
+  </g>
+
+  <!-- 7 · settled or repaired -->
+  <g>
+    <rect x="25" y="520" width="190" height="88" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="38" y="540" font-size="13" fill="#8A6D3B">7</text>
+    <text x="120" y="562" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Settled or repaired</text>
+    <text x="120" y="581" text-anchor="middle" font-size="13" fill="#6E6857">failed redemption</text>
+    <text x="120" y="596" text-anchor="middle" font-size="13" fill="#6E6857">stays visible</text>
+  </g>
+
+  <!-- ============ centre framing ============ -->
+  <text x="450" y="302" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">One bounded pool proves this loop</text>
+  <text x="450" y="328" text-anchor="middle" font-size="15.5" fill="#6E6857">issuance, seed, exchange in and out,</text>
+  <text x="450" y="347" text-anchor="middle" font-size="15.5" fill="#6E6857">redemption, liquidity, and repair.</text>
+  <text x="450" y="380" text-anchor="middle" font-size="14" fill="#8A6D3B">Class registration is curation and capacity</text>
+  <text x="450" y="397" text-anchor="middle" font-size="14" fill="#8A6D3B">accounting, not seed inventory.</text>
+  <text x="450" y="424" text-anchor="middle" font-size="14" fill="#8A6D3B">The return leg is not specified, so the loop is drawn open.</text>
+  <text x="450" y="446" text-anchor="middle" font-size="14" fill="#8A6D3B">Federation is not shown and does not follow.</text>
+
+  <!-- ============ outside the loop ============ -->
+  <path d="M 120 640 L 780 640" stroke="#988D77" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="450" y="658" text-anchor="middle" font-size="14" fill="#6E6857">outside this loop</text>
+
+  <g>
+    <rect x="30" y="670" width="390" height="96" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="6 5"/>
+    <text x="225" y="698" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">Promise record</text>
+    <text x="225" y="719" text-anchor="middle" font-size="13.5" fill="#6E6857">commitmentId, immutable and non-transferable</text>
+    <text x="225" y="736" text-anchor="middle" font-size="13.5" fill="#6E6857">A voucher never moves the promise, confirmation,</text>
+    <text x="225" y="753" text-anchor="middle" font-size="13.5" fill="#6E6857">contributors, recognition, or Story.</text>
+  </g>
+
+  <g>
+    <rect x="480" y="670" width="390" height="96" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="6 5"/>
+    <text x="675" y="698" text-anchor="middle" font-size="16" font-weight="600" fill="#3B372E">G$ support rail</text>
+    <text x="675" y="719" text-anchor="middle" font-size="13.5" fill="#6E6857">a command plus an authenticated acknowledgment</text>
+    <text x="675" y="736" text-anchor="middle" font-size="13.5" fill="#6E6857">Only explicit class terms connect it to redemption.</text>
+    <text x="675" y="753" text-anchor="middle" font-size="13.5" fill="#6E6857">It is never redemption by implication.</text>
+  </g>
+
+  <text x="450" y="806" text-anchor="middle" font-size="16" font-weight="600" fill="#8A6D3B">Every element here is a later capability. Nothing in this loop is built or authorized.</text>
+
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+</svg>
