@@ -208,7 +208,11 @@ function diagramKey(source: string): string {
   if (head === "erDiagram") {
     const items = ERD_GLYPHS.map(([glyph, label]) => `<span>${glyph}${label}</span>`).join("");
     const flat = colourKey([
-      `<span><i class="sw sw-onchain"></i>one flat status — every box here is indexed read-model state; this diagram uses no planned or derived colour</span>`,
+      // Two swatches, because an ERD actually paints two: attribute rows alternate
+      // between the on-chain and app-only fills purely as zebra striping. Showing one
+      // swatch left a reader matching the grey band against the global legend, where
+      // that token means "app-only" — a status this diagram never expresses.
+      `<span><i class="sw sw-onchain"></i><i class="sw sw-app"></i>one flat status — every box is indexed read-model state. Rows alternate tint for readability only: neither shade is a status, and this diagram uses no planned or derived colour.</span>`,
     ]);
     return `${flat}<div class="erd-key" role="note" aria-label="Entity-relationship cardinality key">${items}<span class="erd-note">Read each line-end at the box it touches; the quoted label is the relationship reading.</span></div>`;
   }

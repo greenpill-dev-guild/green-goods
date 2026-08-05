@@ -461,10 +461,20 @@ const sourceChecks: Array<[boolean, string]> = [
     "PoolMemberHistory disclosure is not bound to state/API outputs, acceptance, and RED tests",
   ],
   [
-    stateHandoff.includes("usePoolParticipationSummary") &&
-      /former.{0,40}steward/i.test(stateHandoff) &&
-      stateHandoff.includes("unauthenticated"),
-    "state/API handoff omits the aggregate-only selector or the stale-steward disclosure case",
+    stateHandoff.includes("usePoolParticipationSummary"),
+    "state/API handoff omits the aggregate-only editorial selector",
+  ],
+  // Bounded to a single sentence, and asserting the OUTCOME rather than the topic.
+  // The first draft only required "former ... steward" and "unauthenticated" to appear
+  // somewhere, so flipping a former steward to `visible` would still have passed — the
+  // same vacuous-span trap the CommitmentCreated check hit earlier in this file.
+  [
+    /former steward[^.]{0,80}`hidden`/i.test(stateHandoff),
+    "state/API handoff no longer states that a former steward reads `hidden`",
+  ],
+  [
+    ['"visible"', '"hidden"', '"unauthenticated"'].every((result) => stateHandoff.includes(result)),
+    "state/API handoff omits one of the three usePoolMemberHistory disclosure results",
   ],
   [clientHandoff.includes("clientCommitmentId") && clientHandoff.includes("SAVING_REMOTE"), "client handoff omits retry or persistence truth"],
   [
