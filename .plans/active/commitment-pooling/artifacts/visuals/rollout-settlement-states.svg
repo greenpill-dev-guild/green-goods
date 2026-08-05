@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="settlement-states-title settlement-states-desc">
   <title id="settlement-states-title">Settlement states where command delivery is not confirmation</title>
-  <desc id="settlement-states-desc">A settlement moves from Queued to Dispatched. A queued unbatched item or whole queued batch may be cancelled before sending. Command delivery retry keeps the same execution key and creates a new command message ID. Celo stores an idempotent execution result, acknowledgment retry resends only that stored outcome, and CCIP returns an authenticated acknowledgment that branches to Confirmed or Failed. Only an authenticated failure permits a new attempt or terminal cancellation. No retry executes G dollars twice and no human verification path exists.</desc>
+  <desc id="settlement-states-desc">A settlement moves from Queued to Dispatched. A queued unbatched item or whole queued batch may be cancelled before sending. Command delivery retry keeps the same execution key and creates a new command message ID. Celo stores an idempotent execution result, acknowledgment retry resends only that stored outcome, and the Celo settlement rail returns an authenticated acknowledgment that branches to Confirmed or Failed. Confirmed means an authenticated success acknowledgment arrived for the current execution key and attempt; execution on Celo alone is never confirmation. Only an authenticated failure permits a new attempt or terminal cancellation. No retry executes G dollars twice and no human verification path exists.</desc>
   <defs>
     <marker id="settlement-states-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -13,12 +13,13 @@
   <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
 
   <!-- title -->
-  <text x="500" y="100" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Settlement states — delivery is not confirmation</text>
+  <text x="500" y="100" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Settlement states: delivery is not confirmation</text>
 
   <!-- checking label + leader -->
-  <text x="500" y="300" text-anchor="middle" font-size="16" fill="#6E6857">CCIP command and acknowledgment</text>
-  <text x="500" y="315" text-anchor="middle" font-size="16" fill="#6E6857">execution stored · acknowledgment pending</text>
-  <path d="M 500 322 L 500 378" fill="none" stroke="#988D77" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text x="500" y="290" text-anchor="middle" font-size="16" fill="#6E6857">Celo settlement command and</text>
+  <text x="500" y="308" text-anchor="middle" font-size="16" fill="#6E6857">authenticated acknowledgment</text>
+  <text x="500" y="326" text-anchor="middle" font-size="16" fill="#6E6857">execution stored · acknowledgment pending</text>
+  <path d="M 500 334 L 500 378" fill="none" stroke="#988D77" stroke-width="1.5" stroke-dasharray="3 3"/>
 
   <!-- Queued -->
   <rect x="40" y="390" width="120" height="44" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
@@ -85,5 +86,5 @@
     <text x="579" y="781" font-size="17" fill="#2A2722">Authenticated success marker</text>
   </g>
 
-  <text x="500" y="956" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+  <text x="500" y="956" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling · v1 (2026-08)</text>
 </svg>

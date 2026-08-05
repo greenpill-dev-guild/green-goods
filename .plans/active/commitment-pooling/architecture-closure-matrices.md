@@ -248,6 +248,29 @@ unreachable.
 
 ---
 
+## Future full-pool compatibility gate
+
+This gate freezes adaptability without adding future voucher behavior to Matrices A–D or their
+current counts:
+
+| Boundary | Initial implementation invariant | Future layer obligation |
+|---|---|---|
+| Promise instance | registry `classId == commitmentId`; immutable, non-transferable authority | consume eligible facts without transferring or rewriting the promise |
+| Ongoing Offer | `commitmentSeriesId` groups pool-scoped instances and Story | reference as issuer context only; never turn the series into a token |
+| Voucher instrument | absent from the initial ABI/storage | own a separate `voucherClassId`, version, issuer, backing mode, supply cap, and redemption terms |
+| Adapter seam | Pool reserves one zero `settlementAdapter` address and disabled flag | resolve a versioned adapter/router; never silently bind one forever-fixed token |
+| First backing mode | fulfilled balances are authoritative; committed balances are not mint authority | prevent double consumption of fulfilled backing |
+| Capacity backing | unavailable | remain disabled until consent, issuance, exposure, default, repair, legal, audit, and liquidity rules close |
+| G$ | separate support/settlement command and acknowledgment rail | never call support payout “voucher redemption” without explicit voucher terms |
+| Expansion order | no venue or federation | prove one bounded pool's seed, exchange in/out, redemption, and repair before federation |
+
+Any future voucher implementation must create its own complete event, entity, retry, persistence,
+lifecycle, custody, redemption, and wind-down matrices. It may not alter the current **54 events**,
+**86 module functions**, **56 executable calls**, or other Matrix A–D counts until a separately
+reviewed implementation amendment deliberately promotes the new surface.
+
+---
+
 ## Closure gate
 
 The architecture is closed only when:
@@ -264,4 +287,7 @@ The architecture is closed only when:
 6. `bun .plans/active/commitment-pooling/architecture-closure.validate.ts` passes;
 7. the normal prototype, visual, ontology, format, and repo verification gates pass; and
 8. one final adversarial PR review reports no unresolved blocker or major finding against these
-   matrices.
+   matrices; and
+9. the future full-pool compatibility gate above remains explicit in the contract, series,
+   exchange, evidence, diagram, Plan Hub, and Linear sources without adding voucher code to the
+   initial implementation lane.

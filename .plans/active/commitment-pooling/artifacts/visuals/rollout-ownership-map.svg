@@ -49,16 +49,16 @@
     <text x="488" y="397" font-size="15" fill="#6E6857">Shareable project overview</text>
 
     <rect x="76" y="456" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="96" y="489" font-size="17" font-weight="700" fill="#2A2722">02 GE Learnings &amp; Full Flywheel</text>
+    <text x="96" y="489" font-size="18" font-weight="700" fill="#2A2722">02 Deeper Reference</text>
     <text x="96" y="517" font-size="15" fill="#6E6857">Background, learnings, and design choices</text>
 
     <rect x="468" y="456" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="488" y="489" font-size="18" font-weight="700" fill="#2A2722">03 Use Cases &amp; Scenarios</text>
+    <text x="488" y="489" font-size="18" font-weight="700" fill="#2A2722">03 Applied Reference</text>
     <text x="488" y="517" font-size="15" fill="#6E6857">Garden journeys and mechanism examples</text>
 
     <rect x="76" y="576" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
-    <text x="96" y="609" font-size="17" font-weight="700" fill="#2A2722">04 External Doc &amp; Rollout Plan</text>
-    <text x="96" y="637" font-size="15" fill="#6E6857">Audiences, sequence, and claim rules</text>
+    <text x="96" y="609" font-size="17" font-weight="700" fill="#2A2722">04 Rollout, Measurement &amp; Claims</text>
+    <text x="96" y="637" font-size="14" fill="#6E6857">Audiences, sequence, measurement, and claims</text>
 
     <rect x="468" y="576" width="356" height="94" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2"/>
     <text x="488" y="609" font-size="18" font-weight="700" fill="#2A2722">05 Sources &amp; Citations</text>
@@ -68,5 +68,5 @@
   <text x="450" y="777" text-anchor="middle" font-size="17" font-weight="600" fill="#2A2722">Reconcile facts; do not duplicate prose</text>
   <text x="450" y="804" text-anchor="middle" font-size="15" fill="#6E6857">Specs and evidence stay in the repo · status stays in Linear · external language stays in the Doc.</text>
 
-  <text x="450" y="868" text-anchor="middle" font-size="15" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+  <text x="450" y="868" text-anchor="middle" font-size="15" fill="#6E6857">Green Goods · Commitment Pooling · v1 (2026-08)</text>
 </svg>

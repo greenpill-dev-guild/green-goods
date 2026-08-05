@@ -8,6 +8,7 @@
 // Dissolved lo-fi variants: W1P/W1S → W1@claim-*, MF3 → W2@expired, MF5 →
 // W1@waiting-membership, MF6 → W2@request-evidence-submitted, MF10 → W1@cycle-summary.
 
+import { CYCLE, POOL_LIFETIME, SEASON_CLOSED, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
@@ -162,13 +163,13 @@ function w1(state: W1State): string {
     case "closed":
       content = pagepad(
         banner("This pool has closed. Its history stays with the garden.", "stone"),
-        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">23 promises made · 19 kept</div>`),
+        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">${POOL_LIFETIME.made} promises made · ${POOL_LIFETIME.kept} kept</div>`),
       );
       break;
     case "composted":
       content = pagepad(
         banner("This pool is composted for now. Its history stays readable, and the garden's stewards may reopen it for another season.", "stone", "leaf-line"),
-        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">23 promises made · 19 kept</div>`),
+        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">${POOL_LIFETIME.made} promises made · ${POOL_LIFETIME.kept} kept</div>`),
         card(`<div class="t-title">Participation is unavailable right now</div><div class="t-meta">Members cannot add or take up places while the pool is composted. Reopening is a steward action and preserves this history.</div>`),
       );
       break;
@@ -206,7 +207,7 @@ function w1(state: W1State): string {
     case "cycle-summary":
       content = pagepad(
         card(
-          `${hero("Season of First Rains — closed", "11 of 14 promises kept", "seedling-line")}${kv("Promises kept", "11 of 14")}${kv("Hours", "40 of 52")}${kv("Rides", "14 of 16")}<div class="t-meta" style="text-align:center">Ready for the next season.</div>`,
+          `${hero(`${CYCLE} — closed`, `${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} promises kept`, "seedling-line")}${kv("Promises kept", `${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made}`)}${kv("Hours", `${SEASON_CLOSED.hours.done} of ${SEASON_CLOSED.hours.of}`)}${kv("Rides", `${SEASON_CLOSED.rides.done} of ${SEASON_CLOSED.rides.of}`)}<div class="t-meta" style="text-align:center">Ready for the next season.</div>`,
         ),
         campaignsBlock(),
       );
@@ -280,13 +281,13 @@ function w1(state: W1State): string {
     case "cancelled-cycle":
       content = pagepad(
         banner("This season was cancelled — “funding fell through for the rains”. Its history stays with the garden.", "stone", "information-line"),
-        card(`<div class="t-title">Season of First Rains</div><div class="t-meta num">8 promises made · 5 kept</div>`),
+        card(`<div class="t-title">${CYCLE}</div><div class="t-meta num">${SEASON_LIVE.made} promises made · ${SEASON_LIVE.kept} kept</div>`),
       );
       break;
     case "paused-cancelled-cycle":
       content = pagepad(
         banner("The pool remains paused — “seasonal flooding, back after the rains”. This season was cancelled, and its history stays with the garden.", "amber", "error-warning-line"),
-        card(`<div class="cardrow"><div class="grow"><div class="t-title">Season of First Rains</div><div class="t-meta num">8 promises made · 5 kept</div></div>${chip("Cancelled", "plain", { dot: true })}</div>`),
+        card(`<div class="cardrow"><div class="grow"><div class="t-title">${CYCLE}</div><div class="t-meta num">${SEASON_LIVE.made} promises made · ${SEASON_LIVE.kept} kept</div></div>${chip("Cancelled", "plain", { dot: true })}</div>`),
       );
       break;
     case "support-queued":
@@ -804,7 +805,11 @@ function w2(state: W2State): string {
   const ident = W2_IDENTITY[w2Cast(state)];
   const head = hdr(ident.title, { back: true });
   // Read-surface recovery states short-circuit before the state chip is computed.
-  const readWrap = (inner: string) => phoneFrame(`${head}${inner}<div style="flex:1"></div>`);
+  // appBar:false matches the loaded return below (and withdraw-confirm): promise
+  // detail is a pushed read surface, so loading/not-found/read-error must not
+  // grow a bottom nav the loaded screen doesn't have (PRD-760).
+  const readWrap = (inner: string) =>
+    phoneFrame(`${head}${inner}<div style="flex:1"></div>`, { appBar: false });
   if (state === "loading")
     return readWrap(pagepad(skeleton({ title: true, lines: 1 }), skeleton({ avatar: true, lines: 3 }), skeleton({ lines: 2 })));
   if (state === "not-found")

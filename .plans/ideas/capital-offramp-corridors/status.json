@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "capital-offramp-corridors",
+    "title": "Capital Off-Ramp Corridors (Nigeria, Brazil, South Africa, United States)",
+    "kind": "research",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-08-03",
+    "updated_at": "2026-08-04T04:07:25Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "independentReview": "reports/codex-review-2026-08-04.md",
+    "reviewHandoff": "handoffs/codex-review.md"
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-08-04T04:07:25Z",
+    "parentIssue": "RESR-71",
+    "project": "Capital Off-Ramp Corridors",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["client-pwa", "shared", "docs"],
+    "work_types": ["research", "review"],
+    "surfaces": [],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Research-only hub created 2026-08-03 and independently reviewed 2026-08-04. No implementation authority, provider contact, commercial confirmation, account, dependency, or partner commitment.",
+    "The independent review corrected 17 of 20 high-impact factual claims. The brief was consolidated on 2026-08-04 so it no longer preserves the superseded rankings as current guidance.",
+    "Three distinct flows (treasury off-ramp, participant payout, funder on-ramp) must stay separated; a single mechanism for all three is the main failure mode.",
+    "Green Goods is non-custodial (Reown AppKit + wagmi + permissionless + passkey embedded sender). Preserving that posture is the primary evaluation criterion for every option.",
+    "No provider or provider pair is selected. Breet plus Transak is not a validated four-country route, and the garden-entity account-holder mitigation remains a legal and provider-underwriting hypothesis.",
+    "Arbitrum remains technically viable because multiple candidates publish inbound Arbitrum USDC support; exact country activation, entity eligibility, minimums, and all-in quotes remain blocking evidence.",
+    "Nigeria recommendations are limited to exact entities whose current regulator status and permitted activity can be verified. Breet and Yellow Card were not substantiated as licensed Nigerian venues by the current SEC registry reviewed.",
+    "Brazil, Nigeria, and South Africa remain mid-change. Refresh regulator records and successful quotes within seven days of any decision.",
+    "Cash-out is an online multi-system transaction. Never silently queue or retry a value transfer after connectivity returns; model quote expiry, provider status, settlement, failure, and refund explicitly.",
+    "G$ on Celo is a circulation instrument, not a payout currency — thin Uniswap liquidity at sub-cent prices. The G$/Celo settlement rail and the fiat off-ramp rail are separate and must not be conflated.",
+    "Repo is public: this hub contains public provider/regulator evidence only and no private partner, gardener, or individual details."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/capital-offramp-corridors",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Research-only idea; no UI behavior is authorized until one corridor and route pass the evaluation gates."
+      },
+      "skill_tags": ["ui", "research", "client-pwa"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/capital-offramp-corridors",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Research-only idea; no shared state, provider API, or offline job behavior is authorized."
+      },
+      "skill_tags": ["research", "data-layer", "offline"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/capital-offramp-corridors",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract change is justified or authorized by the current corridor research."
+      },
+      "skill_tags": ["research"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/capital-offramp-corridors",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "No QA lane is active while this remains research-only.",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/capital-offramp-corridors",
+      "branch_trigger": "claude/qa-pass-1/capital-offramp-corridors",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "No second QA lane is active while this remains research-only.",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-03T00:00:00Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "research_created",
+      "branch": null,
+      "note": "Created the public-source corridor research hub in ideas."
+    },
+    {
+      "timestamp": "2026-08-04T04:00:00Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "independent_review_applied",
+      "branch": null,
+      "note": "Applied RESR-71 corrections to the canonical brief, linked the evidence report, and preserved research-only status."
+    },
+    {
+      "timestamp": "2026-08-04T04:05:00Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "research_hub_formalized",
+      "branch": null,
+      "note": "Added the research spec, checklist, evaluation gates, taxonomy, parent-only Linear mirror, and explicitly inactive implementation lanes."
+    }
+  ]
+}

@@ -10,6 +10,7 @@
 //   hi-fi  (migrated):       f: "W2@disputed", hot: { h: "w2.confirm", l? } — ids + state pin
 // normalize() in validate.ts resolves both to ids and fails the build when a
 // screen has gone hi-fi but its steps still carry match-strings.
+import { SEASON_LIVE } from "./fixtures";
 import type { ReviewGroup } from "./types";
 
 export type Scene = {
@@ -212,7 +213,7 @@ export const SBS: SB[] = [
   { f: "W7@reopen-confirm", hot: { h: "w7.reopen-confirm", l: "Reopen to Ready" }, who: "David", st: "Reopen — confirm", ev: "reopenPool(poolId, false) preserves history and returns the pool to Ready", cite: "CS:104" },
   { f: "W7@ready", hot: null, who: "David", st: "Ready", ev: "the reopened pool is prepared but member participation stays closed until openPool", cite: "UX:58" },
   { f: "W7@manage", hot: { h: "w7.cancel-cycle", l: "variant: Cancel a cycle (reason)" }, ev: "cancelCycle → quiet member banner with reason · pool coda: close → compost → reopen (register #34a)", cite: "UX:77 · CS:104", note: "The variant rewinds to the open season — cancelCycle is legal only from Seeded or Open (CS:117), never after compost or close." },
-  { f: "W7@cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-confirm", l: "Cancel season" }, st: "Cancel — confirm", ev: "the season's own counts (8 promises, 5 kept) are named before the cancel, alongside the reason members will read", cite: "UX:77" },
+  { f: "W7@cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-confirm", l: "Cancel season" }, st: "Cancel — confirm", ev: `the season's own counts (${SEASON_LIVE.made} promises, ${SEASON_LIVE.kept} kept) are named before the cancel, alongside the reason members will read`, cite: "UX:77" },
   { f: "W1@cancelled-cycle", hot: null, surface: "pwa", echo: true, st: "Cycle cancelled", ev: "members read the reason without it implying the whole pool failed", cite: "UX:77" },
 ]},
 { id: "sb10", n: 10, title: "Declare a reward and record its payout", persona: "Steward (David) + gardener", scen: "S13 · July's only rail", reviewVisible: true, reviewGroup: "admin", steps: [

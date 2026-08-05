@@ -3,6 +3,13 @@
 // September C-frames stay ASCII permanently; W-frames retire from here as
 // they go hi-fi in hifi/screens/*. W6 is RETIRED (Decision Log #28f) — kept in
 // data for reference, excluded from the screen registry by screens/index.ts.
+//
+// Season totals interpolate from ../fixtures so these ASCII frames cannot drift
+// away from the hi-fi screens describing the same moment (PRD-760). Substituted
+// values are the same width as the literals they replaced, so the box rules and
+// column alignment below are unchanged.
+import { SEASON_CLOSED, SEASON_LIVE } from "./fixtures";
+
 export const F: Record<string, string> = {
 W1: `┌──────────────────────────────────────────────┐
 │ ←  Rocinha Community Garden                  │
@@ -262,7 +269,7 @@ W15: `│ … field notes (existing, untouched) …        │
 │ This garden is midway through its Season     │
 │ of First Rains.                              │
 │ ▓▓▓▓▓▓▓▓▓░░░░  runs through Aug 30           │
-│ 9 promises made, 7 kept so far               │
+│ ${SEASON_LIVE.made} promises made, ${SEASON_LIVE.kept} kept so far               │
 │ Fulfilled promises from this cycle are       │
 │ anchored in the certificates below.          │
 ├──────────────────────────────────────────────┤
@@ -356,7 +363,7 @@ W25: `┌───────────────────────�
 │ → confirm via W4 when ready                  │
 └──────────────────────────────────────────────┘`,
 W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ─────────┐
-│ Step 1 — Review        9 promises · 7 kept · 62% units   │
+│ Step 1 — Review        ${SEASON_LIVE.made} promises · ${SEASON_LIVE.kept} kept · 62% units   │
 │   unresolved first: 1 expired [ Re-seed… ]               │
 │                     1 disputed [ Resolve… ]              │
 │ Step 2 — Shares (read-only; locked at open, W11)         │
@@ -403,13 +410,13 @@ MF8: `┌───────────────────────�
 │ [ Continue ]                      [ Cancel ] │
 └──────────────────────────────────────────────┘`,
 MF9: `┌── Season of First Rains — report ────────────────────────────────┐
-│ 14 promises · 11 kept · 2 expired · 1 cancelled                  │
+│ ${SEASON_CLOSED.made} promises · ${SEASON_CLOSED.kept} kept · ${SEASON_CLOSED.expired} expired · ${SEASON_CLOSED.cancelled} cancelled                  │
 │ units: 61 of 74 promised                                         │
 │ [ Compost this season ]                    [ Export… flagged ]   │
 └──────────────────────────────────────────────────────────────────┘`,
 MF10: `┌──────────────────────────────────────────────┐
 │ Season of First Rains — season closed        │
-│ 11 of 14 promises kept · 61 units            │
+│ ${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} promises kept · ${SEASON_CLOSED.units} units            │
 │ ready for the next season                    │
 └──────────────────────────────────────────────┘`,
 MF13: `┌── Attach assessment ─────────────────────────┐
@@ -657,7 +664,7 @@ W14: [
   { m: "◉ Baseline   ○ Re-assessment (delta)", l: "Assessment kind", info: "Baseline: evaluator or steward. Delta: Evaluator Hat only (CS:760-761)." },
 ],
 W15: [
-  { m: "9 promises made, 7 kept so far", l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers (UX:350)." },
+  { m: `${SEASON_LIVE.made} promises made, ${SEASON_LIVE.kept} kept so far`, l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers (UX:350)." },
 ],
 W16: [
   { m: "[ See the gardens ▸ ]", l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },

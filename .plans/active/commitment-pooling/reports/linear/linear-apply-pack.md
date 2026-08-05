@@ -16,6 +16,14 @@
 > `#46` and `settlement-spec.md` replace that transport with message-only CCIP command +
 > authenticated acknowledgment. Do not apply the old settlement payloads to Linear.
 >
+> **Funding supersession (2026-08-04):** §2's payload states the July 2026 understanding —
+> "roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation
+> 2026-09-30". The confirmed arrangement is **$800 per month, paid in G$, for July through
+> September 2026 — $2,400 total**, with no Flow State mechanism claimed. That payload text is
+> preserved verbatim as the record of what was written on 2026-07-11; the current fact lives in
+> `reports/corrections-log.md`, `reports/external-verification-2026-07-20.md`, and
+> `settlement-spec.md` §2. Do not apply the historical wording to Linear.
+>
 > **Readiness supersession (2026-07-24/25):** registers `#54`–`#60` amend `#53`; `#60` is the current
 > correction set.
 > AssessmentV3 is only a schema name on the upgraded existing `AssessmentResolver`; current

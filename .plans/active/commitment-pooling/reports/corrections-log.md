@@ -1119,3 +1119,108 @@ claims do depend on the answer.
 season-to-season G$ attribution inside the garden Safe. The selected Green Goods service-spend
 return leg does not change that dependency. Celo-side observation and season attribution remain
 outside the current indexer boundary, so reseed rate still cannot be evaluated pass/fail.
+
+---
+
+## 2026-08-04 — Pilot funding amount and receipt-attribution correction
+
+The external document and D19 had incorrectly elevated a transaction-level **6.9M G$** count into
+the House of Alignment pilot funding claim. That is not the funding agreement.
+
+The confirmed operating terms are **$800 per month, paid in G$, for July through September 2026 —
+$2,400 total**, directly into the designated Green Goods protocol Safe on Celo. This upstream
+funding arrangement remains separate from every onward garden or gardener settlement. Individual
+token transfers may be retained for treasury reconciliation, but their token count must never
+replace the dollar-denominated agreement or be treated as evidence of onward distribution.
+
+Applied consequence: current plan/spec/diagram/gallery prose uses the bounded three-month schedule.
+The canonical Google Doc now contains accepted replacement text, not suggestions: `6.9M` returns
+zero across all six tabs after reload, the duplicated Start Here funding passage is removed, and
+G14 appears once with the $800-per-month / $2,400-total terms. Hand-drawn images remain a separate,
+user-managed update.
+
+---
+
+## 2026-08-04 — Accepted full-pool Google Doc reconciliation
+
+The canonical Google Doc was edited directly in authenticated Editing mode without changing any
+image. The accepted prose now:
+
+- orients Start Here around the useful non-transferable base and separately authorized later
+  capabilities;
+- adds `What works first, what can grow later` to the External Brief;
+- adds the two real Deeper Reference sections `How Commitment Pooling can grow in stages` and
+  `What one bounded pool would still need to prove`;
+- keeps Tech and Sun's next-cycle ongoing education Offer separate from any field-evidence-gated
+  voucher possibility, with no claim that the garden agreed to a voucher pilot;
+- gives later voucher/exchange stages no promised date and makes `Not supported` and `Unavailable`
+  valid stopping outcomes; and
+- updates G12 while preserving one current G14 entry.
+
+Google Docs reported `Saved to Drive`. All six tabs were reloaded and re-read in Editing mode.
+The two new Tab 02 image insertion points are blank paragraphs immediately above their captions.
+Image insertion, replacement, upload, and repositioning remain manual user steps.
+
+---
+
+## 2026-08-05 — Pre-code readiness audit dispositions
+
+A read-only contract-implementation readiness audit ran against the closure branch. The
+specification corpus passed: interfaces, storage, lifecycles, events, errors, permissions,
+idempotency, replay, deployment order, and test plans are frozen, and every "today" claim the
+specs make about existing code was re-verified true (`networks.json` has no `421614` record,
+`DeployBadgeSchema.s.sol` reverts `UnsupportedChain(421614)`, `release-gate.ts` pins only
+`11155111`, `upgrade.ts:424` persists `sender: … ?? null` and never reads `owner()`). Three
+repo-side corrections were applied:
+
+- `acceptance-matrix.md` cited `settlement-spec.md` §3.3, which does not exist. The settlement
+  state vocabulary lives in §3.0 and its enum in §3.1.2; the row now cites both.
+- `handoffs/codex-contracts.md` listed the deployer EOA as the `--sender` for both Arbitrum One
+  transaction plans, which `contract-spec.md` §6.1's ownership gate must reject for every plan
+  except the isolated ownership transfer. Both lines are now placeholders with the reason stated.
+- `visual-assets.md`'s settlement-states row read as a global "never as CCIP" rule. It is an
+  asset-scoped drawing constraint; the canonical Google Doc's evidence-label table defines
+  `Dispatched` and `CCIP-confirmed` for readers and is unaffected. The row now says so.
+
+**Outstanding and not fixed by this pass.** The published gallery artifact
+(`007ef090-9e26-4b1d-898c-615155304d9d`) was fetched live and is still the 2026-08-02 build: it
+lacks D28/D29 and the three new Story assets, still draws the retired orbit `synthesis-circular-gd`
+and the retired Google Doc tab titles, and its D19 reading guide still asserts "the on-chain 6.9M
+G$ receipt evidence" — the exact claim the 2026-08-04 funding correction above retires. Repo
+sources are correct; the live URL is not. Republication is the manual step recorded in
+`visual-assets.md`, and until it runs, that URL should not be treated as current or reshared. The
+Google Doc's embedded images lag for the same reason.
+
+---
+
+## 2026-08-05 — PR #692 review dispositions
+
+Automated review of PR #692 raised thirteen findings. Nine were valid and are fixed; four were not.
+
+One was a genuine process violation worth naming: the 2026-08-04 funding correction had been
+applied **inside** `reports/linear/linear-apply-pack.md` §2 and `linear-update-pack.md`, which are
+archives of what was written to Linear on 2026-07-11 and 2026-07-10. Editing an applied payload
+makes a later audit attribute current terms to an old write. Both payloads are restored byte-exact
+and each file now carries a dated `Funding supersession` banner in the pattern it already used for
+the settlement and readiness supersessions. Correction records belong in dated banners and in this
+log — never in the historical payload.
+
+Also fixed: D28's legend claimed its arrows meant only reference or evidence consumption when the
+diagram also draws grouping, creation/versioning, and mint authorization; the Arbitrum One
+`--tx-plan` lines in `handoffs/codex-contracts.md` are now marked future-only, because a
+placeholder sender does not fail closed while `upgrade.ts` still falls back to `SENDER_ADDRESS`;
+the W5 wallet summary presented one garden's open-cycle counts as a total "across your gardens";
+`visual-assets.md`'s regeneration note still said 18 Story assets; the full-pooling handoff pointed
+at the gallery URL without marking it stale; and in `.plans/ideas/capital-offramp-corridors/`, the
+RG-7 accessibility gate dropped conditions its own spec and plan require, the R-2 quote matrix did
+not say whether its test sizes were input USDC or delivered fiat, and the review handoff still
+described the superseded 2026-08-03 section map.
+
+Declined, with reasons: D19's "the ProtocolToGarden route architecture ships in this release's
+build scope" is the plan's own three-tier framing (Decision Log #14) and the next clause gates
+value movement, so weakening it would contradict the plan; the exchange brief's `register #86–#88`
+is deliberate because #89 is delivery-ownership rather than architecture, matching
+`handoffs/codex-contracts.md`; "How can an individual gardener … turn a payout" is correct English
+after the modal `can`; and `reports/codex-review-2026-08-04.md` §4.4 is a dated adversarial-review
+finding about the 2026-08-03 source, scoped by its own header — rewriting it would repeat the
+archive-immutability error described above.

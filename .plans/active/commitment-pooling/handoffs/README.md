@@ -25,11 +25,12 @@ Every handoff records:
 
 Detailed proof is written here first and then recorded in status.json with the plan-hub record-tdd command. A handoff is not a branch-creation instruction.
 
-`claude-standing-artifacts.md` is a bounded artifact-convergence work unit, not a product
-implementation lane or branch instruction. Its binding vocabulary amendment is
-`claude-offer-vocabulary-correction.md`; artifact review stays blocked until that correction is
-rebuilt, fully verified, republished, and re-fetched. Human handoffs are authorization/evidence
-boundaries, not machine lanes.
+`claude-standing-artifacts.md` is the completed 2026-08-02 Offer-once/Offer-over-time artifact
+convergence record. `claude-full-pooling-visual-docs.md` is the current bounded, additive work unit
+for hand-drawn Story assets and the canonical Google Doc. It is not a product implementation lane
+or branch instruction and may not redefine Decision Log #51–#54/register #86–#89 or the
+[PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) compatibility gate. Human
+handoffs are authorization/evidence boundaries, not machine lanes.
 
 ## Linear boundary
 
@@ -53,6 +54,11 @@ linear.laneSyncMode is lane_issues (register #37, amended by registers #39 and #
   pre-created capacity-backed Offer instance; Story is exact linked history without score, rate,
   rank, inferred participants, or cross-pool identity; Ask me again is the next-cycle default;
   initial succession scope is rest/resume/retire only.
+- Registers #86–#89 are binding: promise instance, ongoing Offer series, and future voucher class
+  stay distinct; the reserved adapter address resolves a future versioned router; fulfilled
+  backing precedes any separately gated capacity backing; one bounded pool precedes federation;
+  G$ support is not voucher redemption; Codex owns repo/Linear/Mermaid closure while Claude owns
+  hand-drawn Story and canonical Google Doc changes.
 - The 2026-07-28 amendment plus 2026-07-29/30 review closures are binding across every lane:
   group commitments use one accountable lead plus contributors; requirements accept only
   action/count inputs; exact evidence CIDs are de-duplicated and evidence/Work credit records only

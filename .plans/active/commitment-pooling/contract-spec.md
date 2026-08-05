@@ -115,7 +115,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 1. **Commitments are NOT EAS attestations** (register #14). Commitment records are module-native storage plus events, shaped by the Grassroots Economics commitment-pooling register grammar. This supersedes Document A and the original PRD-649/650 "commitment schema + FulfillmentConfirmation resolver" language. EAS registrations shrink to exactly two: assessment v3 and community testimony.
 2. **Module-event-driven lifecycle because EAS is not indexed.** Envio indexes only Green Goods core contracts; EAS attestations are queried from easscan directly (`packages/indexer/schema.graphql:282-288`, `reports/corrections-log.md` §2 Envio boundary row). Every commitment state, count stat, provider exposure row, and exact-label unit summary must be derivable from `CommitmentPoolingModule` and `CommitmentRegistry` events alone.
 3. **Hybrid state weight** (register #6). Hard transitions on-chain: pool register/ready/open/pause/close/compost, cycle seed/open/close/compost/cancel, commitment create (offer/request), accept, approved-work count, ReadyForConfirmation, confirm to Fulfilled, cancel, expire, dispute raise/resolve, reward record. Draft states live in app IndexedDB; Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, and Reconciled are derived app/indexer-side from events. Full locked vocabulary is preserved across layers (section 5 table).
-4. **Two-contract shape** (register #15, register #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegistry` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so transferable settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
+4. **Two-contract shape** (register #15, register #16; compatibility-amended by register #86). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegistry` is voucher-shaped, non-transferable, ERC-1155-style promise accounting. A later adapter may consume eligible fulfillment facts on the same `poolId` while issuing a separate `voucherClassId`; it never wraps the registry class as the same identity. Supersedes PRD-649's single-artifact V1 stance (user-approved). `poolId` semantics are unchanged.
 5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkDecision(...)` for both approved and rejected decisions in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Steward-callable `syncWorkDecisions` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: an active contributor, accountable lead, or resolved pool steward links workUID to commitmentId before a roster freeze. The module applies the deterministic latest valid decision and freezes that effective credit at ReadyForConfirmation.
 6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
 7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). Neither identity may equal the commitment creator; ApprovalGated acceptance rechecks the stored requester. The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
@@ -1712,7 +1712,13 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 
 #### Objective
 
-A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment classes, committed/fulfilled balances per account, class quotas, and concurrent provider-commitment caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface of any kind; balances move only through module calls. This is the voucher-shaped substrate (register #15, register #16) that transferable settlement vouchers later wrap 1:1 on the same poolId.
+A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment-instance
+classes, committed/fulfilled balances per account, class quotas, and concurrent
+provider-commitment caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface
+of any kind; balances move only through module calls. This is the authoritative promise-accounting
+substrate (register #15, register #16). A later transferable settlement instrument may consume its
+eligible fulfillment facts, but it does not wrap the registry class as the same identity or move
+promise ownership.
 
 #### Grassroots Economics grounding (clean-room, register #17)
 
@@ -1720,15 +1726,44 @@ Design vocabulary comes from Ruddick's "Commitment Pooling: an Economic Protocol
 
 - **Curation**: which commitments enter the pool's register. Implemented as steward-gated `createCommitment`/`acceptClaim` on the module plus module-only `registerClass` here; nothing enters the register except through curated module paths.
 - **Limiting**: hard caps per asset in the pool. Implemented as the per-class `quota` (defaults to the commitment's `targetUnits`) plus a per-pool `providerOpenCommitmentCap` on concurrent non-terminal provider obligations per lead provider. Offered Offers reserve that capacity from creation; Requests reserve it at acceptance. The first remains unit-denominated within one exact label/class; the second is count-denominated and never adds unlike units.
-- **Valuing**: relative value against a reference asset. MVP records it as a commitment term — `declaredUnitValue` against an exact-label `declaredValueBasis` on the module record (decision 16, amendment 2026-08-01) — with no swaps, no cross-label conversion, and no protocol arithmetic consuming it; units remain per-commitment labels. Relative-pricing *execution* stays reserved for the transferable-voucher layer, which activates on the same classes.
+- **Valuing**: relative value against a reference asset. MVP records it as a commitment term — `declaredUnitValue` against an exact-label `declaredValueBasis` on the module record (decision 16, amendment 2026-08-01) — with no swaps, no cross-label conversion, and no protocol arithmetic consuming it; units remain per-commitment labels. Relative-pricing *execution* stays reserved for the transferable-voucher layer, which owns separate voucher classes and may reference the exact declared label/basis without collapsing the identities.
 
-The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) maps to MVP as: seed = class registration at curated creation, with Offer capacity also reserved then; exchange = the `counterCommitmentId` reference record plus atomic bilateral paired acceptance through `acceptExchange` (decision 18); redemption = the declared-reward payout of a fulfilled commitment from the pool's settlement account (`settlement-spec.md` — redemption-shaped economically while value execution stays on separate rails). `acceptExchange` changes no registry interface: both Offer classes already became `Committed` at creation, so the module performs no second registry mutation during paired acceptance. Transferable and multilateral exchange execution remains reserved for the voucher layer.
+The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) is a
+**future-capability reference**, not a list of synonyms for the initial module:
+
+- module-only class registration is **curation and capacity accounting**, not a seed round;
+- `counterCommitmentId` plus `acceptExchange` is an atomic bilateral paired start, not pooled
+  inventory exchange;
+- declared-reward payout is a separate support/settlement rail, not voucher redemption; and
+- seed inventory, exchange in/out, redemption, and cross-pool exchange require the separately
+  gated voucher/venue layer in `exchange-architecture-brief.md`.
+
+`acceptExchange` changes no registry interface: both Offer classes already became `Committed` at
+creation, so the module performs no second registry mutation during paired acceptance.
 
 #### Transferable-voucher attachment path (spec-now, build-later)
 
-- `classId == commitmentId` in MVP (1:1). The classId space is `uint256` and module-controlled, so later class kinds (per lead provider + unit label groupings) can join without migration.
-- A future settlement adapter (address reserved on the Pool struct) reads `fulfilledOf`/`committedOf` and issues transferable vouchers per class on the same poolId. The register itself never gains transfer functions; wrapping happens in the adapter's own token contract.
-- The full design-only wrap, quoter, limiter, venue, and Sarafu-hybrid fork is canonical at `exchange-architecture-brief.md` (PRD-651). It authorizes no implementation or `settlementAdapter` activation.
+- `classId == commitmentId` in the initial deploy. This identity is one immutable promise instance
+  and its non-transferable accounting row; it remains stable.
+- A non-zero `commitmentSeriesId` is a separate, pool-scoped identity for one Offer used over time.
+  It groups ordinary instances but owns no transferable balance.
+- A future `voucherClassId` is a third identity owned by a versioned adapter/router. It may
+  reference one pool, issuer context, `commitmentSeriesId`, value basis, backing mode, supply cap,
+  and redemption terms. It MUST NOT be equated with `commitmentId`, registry `classId`, or
+  `commitmentSeriesId`.
+- The Pool's reserved `settlementAdapter` remains one address in the initial storage shape. If a
+  later scope activates it, that address resolves a versioned adapter/router rather than silently
+  naming one forever-fixed token implementation.
+- The first eligible backing mode is fulfilled-only: the adapter consumes exact
+  `fulfilledOf` facts and prevents the same fulfillment from backing more than the authorized
+  amount. `committedOf` remains an eligibility/audit read and cannot mint a voucher.
+- Reserved-capacity issuance is a distinct future mode, disabled until its own consent, issuance,
+  exposure, default, repair, legal, and audit scope lock. It never transfers the underlying
+  promise, confirmer authority, contributor record, recognition, or Story.
+- These compatibility rules require **no new initial ABI member, event, storage slot, or registry
+  transfer surface**. The full design-only class, backing, issuance, seed, exchange, redemption,
+  and federation architecture is canonical at `exchange-architecture-brief.md` (PRD-651). It
+  authorizes no implementation or `settlementAdapter` activation.
 
 #### Storage layout (slot accounting)
 
