@@ -48,6 +48,13 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   `poolId` so its marker is self-describing without an RPC read, and the ordinary lifecycles never
   couple after acceptance. The architecture brief does not authorize the
   transferable/multilateral layer.
+- [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796), Decision Log
+  #51–#53/register #86–#88, and `exchange-architecture-brief.md` freeze the later
+  compatibility boundary without expanding this lane. Keep initial registry
+  `classId == commitmentId`; keep `commitmentSeriesId` as the pool-scoped Offer-over-time
+  identity; add no `voucherClassId`, voucher event, adapter router, backing receipt, issuance,
+  redemption, venue, custody, capacity-backed, or federation surface. The existing reserved
+  Pool fields remain disabled. G$ support remains separate from voucher redemption.
 - settlement-spec.md, which holds the canonical `validateRecognitionSnapshot` hash preimage this
   lane must implement: `recognitionSnapshotHash = keccak256(abi.encode(block.chainid,
   commitmentId, recognitionEntries))` (`settlement-spec.md` §3.1.3, mirrored into contract-spec
@@ -402,14 +409,19 @@ This is the ordered first-PR boundary, not a reason to postpone implementation:
 
 ## Out of scope
 
-- SettlementModule implementation, Celo execution, bridged G$, transferable vouchers, CreditRegistry, raw Celo indexing, Sarafu integration, UI, and any broadcast.
+- SettlementModule implementation, Celo execution, bridged G$, transferable-voucher implementation
+  or adapter activation, backing receipts, issuance, seed inventory, redemption, venue custody,
+  capacity-backed issuance, federation, CreditRegistry, raw Celo indexing, Sarafu integration, UI,
+  and any broadcast.
 - Editing existing production schema definitions or using bulk --update-schemas.
 
 ## Unblock evidence
 
-Current architecture/specification evidence is complete: the corrected handoff and exact
-interface/event/storage tables are present, contributor-share and protocol-funding decisions are
-closed, and the architecture fine-comb is reconciled. Do not re-open those historical items.
+Current initial-deploy architecture/specification evidence is complete: the corrected handoff and
+exact interface/event/storage tables are present, contributor-share and protocol-funding decisions
+are closed, and the architecture fine-comb is reconciled. The full-pool compatibility freeze adds
+no initial ABI/storage. PRD-796 must be accepted before this lane is deliberately dispatched. Do
+not turn its future stages into PRD-721 deliverables.
 
 Before **starting the first contracts PR**:
 

@@ -23,6 +23,10 @@ reading order, moving from the whole system down to the code that deploys it:
 4. **Data and value rails** — D15–D24: the read model and indexer pipeline, then funding
    topology, settlement, and the Solidity surface underneath.
 5. **Operate and deploy** — D25–D26: error recovery, then deployment last.
+6. **Offer over time** — D27: durable Offer identity, ordinary instances, Story, and honest
+   capacity reservation.
+7. **Future full pool** — D28–D29: the three-identity compatibility boundary, then the gated path
+   from fulfilled backing through one bounded pool to possible later federation.
 
 The un-numbered permission table after D26 is the exact authorization reference rather
 than a narrative diagram.
@@ -53,12 +57,12 @@ Sub-blocks moved with their parent: old `D2.0–D2.3` → `D5.0–D5.3`, `D6.0/D
 
 ## Visual coverage matrix
 
-This is the cross-hub inventory of 34 assets, not a table of contents for this file: 27 named D-diagram sections (**D1–D27**, one number per section since the 2026-08-02 renumbering) render as **40 Architecture Mermaid blocks** below (D23's mapping and D25's family/recovery ledger also use tables), plus the un-numbered permission table, which renders on the Reference tab. D3 makes the accountability/recognition/payment separation explicit; D14 traces the numbers, D24 maps the Solidity surface, and D13 shows bilateral paired acceptance with the permanent no-coupling boundary. **Every D-section has exactly one row.**
+This is the cross-hub inventory of 36 assets, not a table of contents for this file: 29 named D-diagram sections (**D1–D29**, one number per section since the 2026-08-02 renumbering) render as **42 Architecture Mermaid blocks** below (D23's mapping and D25's family/recovery ledger also use tables), plus the un-numbered permission table, which renders on the Reference tab. D3 makes the accountability/recognition/payment separation explicit; D14 traces the numbers, D24 maps the Solidity surface, D13 shows bilateral paired acceptance with the permanent no-coupling boundary, and D28–D29 keep the current implementation adaptable without presenting future voucher behavior as built. **Every D-section has exactly one row.**
 
 **Why sub-blocks are `####` and not `###`.** The heading level is load-bearing, not styling:
 
 - `renderMd` turns every heading at level ≤ 3 into a gallery *section* and every `####` into a *sub-block* inside one — that is what gives D5/D10/D15/D21 their overview-plus-zoom shape and makes D25's views peers. Promoting sub-blocks to `###` would convert them into sections and dismantle the anchor and nav design.
-- The gallery routes this preamble, the coverage matrix, the permission table, and the appendix to its Reference tab, so the Architecture pane asserts 28 sections (including its hand-written intro) and the 40-block Mermaid count above.
+- The gallery routes this preamble, the coverage matrix, the permission table, and the appendix to its Reference tab, so the Architecture pane asserts 30 sections (including its hand-written intro) and the 42-block Mermaid count above.
 - markdownlint's MD001 flags the `##` → `####` jump in this source file, but the *rendered* gallery emits `<h3>` for a `##` section and `<h4>` for its sub-blocks — a correct single-step increment — so there is no heading-order defect in the artifact a reader or screen reader actually receives.
 - The rows naming Community assets resolve to `.plans/active/community-interface/` (`diagrams.md`, `wireframes.md`, `journeys.md`), and rows 16–17 resolve to the two `wireframes.md` files.
 - "Ready" means the implementation question is answered in the named repo-native artifact; it does **not** mean the feature is live. Every Mermaid block is parsed in the final validation pass, while text frames and permission tables are checked against their owning spec and route contract.
@@ -99,6 +103,8 @@ This is the cross-hub inventory of 34 assets, not a table of contents for this f
 | 32 | Solidity surface — contracts, ownership, upgrade authority | contracts, security, release ops | Which contracts exist, who owns and upgrades each, and which authority edges connect them? | CP `contract-spec.md` §4/§7; `settlement-spec.md` §3; community-interface `spec.md` | Ready: D24 | Added 2026-07-31 (round-2 feedback: missing diagram type) | Mermaid parse + interface/ownership cross-read |
 | 33 | Bilateral exchange sequence | creators, contracts, indexer, client, QA | How does a one-way reference become one atomic paired start while all later promise lifecycles remain independent? | CP `contract-spec.md` decision 18 and §6.1; `uiux-spec.md` Appendix E.1 | Ready: D13 | Added 2026-08-01; multilateral and transferable execution remain reserved | Mermaid parse + exchange acceptance matrix |
 | 34 | Offer layers and honest capacity | client, contracts, indexer, QA | Which of saved offer details, the ongoing Offer (CommitmentSeries), an available place, and the Story owns each fact, and when is provider capacity actually reserved? | `standing-commitments-spec.md` §2–§5; `uiux-spec.md` Appendix F; `acceptance-matrix.md` §2.2 | Ready: D27 | Added 2026-08-02 with the series amendment; succession verbs beyond rest/resume/retire remain follow-on | Mermaid parse + acceptance §2.2 cross-read |
+| 35 | Full-pool identity compatibility | contracts, indexer, product, security | How do promise instance, ongoing Offer, and future voucher class relate without collapsing or moving promise authority? | `contract-spec.md` §6.2; `standing-commitments-spec.md` §8.1; `exchange-architecture-brief.md` §0–2 | Ready: D28 | Added 2026-08-03; no initial ABI/storage or registry transfer surface | Mermaid parse + identity-boundary cross-read |
+| 36 | Staged full-pool path | product, research, contracts, settlement, ops | What must be proven before fulfilled backing, one-pool exchange/redemption, capacity backing, or federation may advance? | `exchange-architecture-brief.md` §11–12; `pilot-evidence-spec.md` §3/§10.3; `architecture-closure-matrices.md` compatibility gate | Ready: D29 | Added 2026-08-03; G$ support stays separate from voucher redemption and no stage authorizes the next | Mermaid parse + stage/evidence cross-read |
 
 **Keep subgraph titles short.** Mermaid wraps a cluster title at a fixed width (~200 px) but reserves height for a single line, so a longer title's second line renders *on top of* the nodes inside its own cluster. D1, D2, D23, and D25.0 each shipped that way once. Keep every `subgraph … ["…"]` label to roughly **22 characters** and let the reading guide carry the qualifier — that is why the boundary clusters in D2 read "Application boundary" rather than "Application boundary — queues intent, authorizes nothing". The gallery's render audit checks every cluster label against every node box and is the gate for this.
 
@@ -2409,6 +2415,86 @@ Consequences carried by the rest of the system:
   because both Offered classes are already Committed. Cap changes affect only later reservations.
 - Availability shown anywhere in the product is a count of currently Offered, capacity-backed
   instances. A queued place is not available until its creation has synced.
+
+## D28. Three identities and the future adapter boundary
+
+**How to read this**: left to right. The first two identities belong to the initial,
+non-transferable implementation; the third belongs only to a later adapter layer. The arrows mean
+reference or evidence consumption, never ownership transfer. The reserved Pool address points to a
+versioned router so future voucher contracts can evolve without changing the initial Pool or
+registry storage. Everything is planned because the base Commitment Pooling contracts are
+specified but not deployed; the diagram separates **scope**, not live status.
+
+```mermaid
+flowchart LR
+  subgraph base ["Initial build"]
+    CI["Promise instance<br/>commitmentId = registry classId<br/>immutable and non-transferable"]
+    CS["Ongoing Offer<br/>commitmentSeriesId<br/>pool-scoped Story identity"]
+    POOL["Pool<br/>settlementAdapter reserved<br/>settlementEnabled false"]
+  end
+  subgraph future ["Later adapter"]
+    ROUTER["Versioned router<br/>adapter version visible"]
+    VC["Voucher class<br/>separate voucherClassId<br/>issuer · basis · cap · terms"]
+    BR["Backing receipt<br/>fulfilled instance consumed once"]
+  end
+  CS -->|"groups many"| CI
+  POOL -.->|"future address"| ROUTER
+  ROUTER -->|"creates and versions"| VC
+  CI -.->|"eligible fulfillment fact"| BR
+  BR -->|"authorizes bounded mint"| VC
+  VC -.->|"never moves promise, confirmation, contributors, recognition, or Story"| CI
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  class CI,CS,POOL,ROUTER,VC,BR planned
+```
+
+The implementation contract is deliberately small:
+
+- keep `classId == commitmentId` for the base registry;
+- keep `commitmentSeriesId` for Offer-over-time continuity only;
+- introduce `voucherClassId` only inside a separately scoped future layer;
+- use fulfilled backing first and prevent double consumption; and
+- leave reserved-capacity backing disabled until it owns explicit consent, exposure, default,
+  expiry, repair, liquidity, legal, audit, and authorization rules.
+
+## D29. Full Commitment Pooling grows through gates
+
+**How to read this**: top row is capability order; the middle row expands the first transferable
+pilot into one bounded pool; the bottom branch is deliberately separate. Field evidence decides
+whether the path advances. Fulfilled backing must prove issuance and redemption before capacity
+backing is considered, and one pool must prove seed, exchange, liquidity, and repair before
+federation. G$ support can remain useful at every stage, but it is not voucher redemption.
+
+```mermaid
+flowchart TB
+  S0["0 · Commitment coordination<br/>Needs · Offers/Requests · series · evidence · confirmation · Story"]
+  S1["1 · Compatibility freeze<br/>three IDs · versioned router · G$ separate"]
+  S2["2 · Field evidence<br/>is a redeemable or exchangeable claim actually needed?"]
+  S3["3 · Fulfilled backing<br/>class · bounded mint/burn · redemption terms"]
+  S4["4 · One bounded pool<br/>seed · exchange in/out · redeem · repair"]
+  S5["5 · Separate decisions<br/>capacity backing and/or federation"]
+
+  subgraph pool ["One-pool proof"]
+    I["Authorized issue"] --> SEED["Bounded seed"]
+    SEED --> EX["Quote + limit<br/>exchange in/out"]
+    EX --> RED["Redeem<br/>burn or lock first"]
+    RED --> REP["Settle or repair<br/>failed redemption visible"]
+  end
+
+  GD["Separate G$ support rail<br/>command + authenticated acknowledgment"]
+
+  S0 --> S1 --> S2
+  S2 -->|"supported + new scope lock"| S3 --> S4 --> S5
+  S2 -.->|"not supported or unavailable"| S0
+  S4 -.-> I
+  GD -.->|"may support outcomes<br/>not redemption by implication"| S0
+  GD -.->|"only explicit class terms connect"| RED
+  classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
+  class S0,S1,S2,S3,S4,S5,I,SEED,EX,RED,REP,GD planned
+```
+
+No date or completed stage waives the next gate. A useful non-transferable coordination system is
+a valid stopping point. The future layer is justified only if communities need it and can operate
+its custody, liquidity, pricing, failure, and repair responsibilities without weakening consent.
 
 ## Appendix: Edits to EXISTING docs diagrams at ship (PRD-727 scope; historical PRD-680)
 

@@ -1138,3 +1138,25 @@ The canonical Google Doc now contains accepted replacement text, not suggestions
 zero across all six tabs after reload, the duplicated Start Here funding passage is removed, and
 G14 appears once with the $800-per-month / $2,400-total terms. Hand-drawn images remain a separate,
 user-managed update.
+
+---
+
+## 2026-08-04 — Accepted full-pool Google Doc reconciliation
+
+The canonical Google Doc was edited directly in authenticated Editing mode without changing any
+image. The accepted prose now:
+
+- orients Start Here around the useful non-transferable base and separately authorized later
+  capabilities;
+- adds `What works first, what can grow later` to the External Brief;
+- adds the two real Deeper Reference sections `How Commitment Pooling can grow in stages` and
+  `What one bounded pool would still need to prove`;
+- keeps Tech and Sun's next-cycle ongoing education Offer separate from any field-evidence-gated
+  voucher possibility, with no claim that the garden agreed to a voucher pilot;
+- gives later voucher/exchange stages no promised date and makes `Not supported` and `Unavailable`
+  valid stopping outcomes; and
+- updates G12 while preserving one current G14 entry.
+
+Google Docs reported `Saved to Drive`. All six tabs were reloaded and re-read in Editing mode.
+The two new Tab 02 image insertion points are blank paragraphs immediately above their captions.
+Image insertion, replacement, upload, and repositioning remain manual user steps.
