@@ -468,6 +468,26 @@ contract AssessmentResolverTest is Test {
         assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
     }
 
+    function testV3RejectsNonCanonicalDomainWord() public {
+        _activateDualSchemas();
+        Attestation memory attestation = _buildAssessmentV3Attestation(evaluator, _validAssessmentV3());
+        _setEncodedWord(attestation.data, 96, 0x100);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert();
+        assessmentResolver.attest(attestation);
+    }
+
+    function testV3RejectsNonCanonicalAssessmentKindWord() public {
+        _activateDualSchemas();
+        Attestation memory attestation = _buildAssessmentV3Attestation(evaluator, _validAssessmentV3());
+        _setEncodedWord(attestation.data, 224, 0x100);
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert();
+        assessmentResolver.attest(attestation);
+    }
+
     function testV3DeltaRequiresBaseline() public {
         _activateDualSchemas();
         AssessmentV3Input memory schema = _validAssessmentV3();
@@ -562,6 +582,12 @@ contract AssessmentResolverTest is Test {
         assessmentResolver.setSchemaUID(ASSESSMENT_V2_UID);
         IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(ASSESSMENT_V3_UID);
         vm.stopPrank();
+    }
+
+    function _setEncodedWord(bytes memory data, uint256 offset, uint256 value) internal pure {
+        assembly ("memory-safe") {
+            mstore(add(add(data, 32), offset), value)
+        }
     }
 
     function _storeBaselineAttestation(address recipient, bytes32 schema) internal returns (bytes32 uid) {

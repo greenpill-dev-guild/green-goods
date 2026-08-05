@@ -217,11 +217,11 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         schema.title = _decodeString(data, 0);
         schema.description = _decodeString(data, 32);
         schema.assessmentConfigCID = _decodeString(data, 64);
-        schema.domain = uint8(_decodeWord(data, 96));
+        schema.domain = _decodeUint8(data, 96);
         schema.startDate = _decodeWord(data, 128);
         schema.endDate = _decodeWord(data, 160);
         schema.location = _decodeString(data, 192);
-        schema.assessmentKind = uint8(_decodeWord(data, 224));
+        schema.assessmentKind = _decodeUint8(data, 224);
         schema.cycleId = _decodeWord(data, 256);
         schema.baselineUID = bytes32(_decodeWord(data, 288));
     }
@@ -236,6 +236,12 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
         assembly ("memory-safe") {
             value := calldataload(add(data.offset, offset))
         }
+    }
+
+    /// @dev ABI decoding a single 32-byte word rejects non-zero upper bits instead of truncating
+    ///      malformed uint8 values during a direct cast.
+    function _decodeUint8(bytes calldata data, uint256 offset) private pure returns (uint8 value) {
+        return abi.decode(data[offset:offset + 32], (uint8));
     }
 
     function _validateBaseline(bytes32 baselineUID, address expectedGarden) private view {

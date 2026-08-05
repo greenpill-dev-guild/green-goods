@@ -178,8 +178,8 @@
         "mode": "required",
         "status": "checkpoint_green",
         "red": {
-          "command": "The seven exact test:match commands in handoffs/codex-contracts.md, run before implementation.",
-          "evidence": "CommitmentPooling, CommitmentRegistry, and TestimonyResolver failed because their artifacts did not exist. AssessmentResolver compiled its 38-test surface with 26 legacy passes and 12 expected v3/dual-schema behavioral failures."
+          "command": "The exact CommitmentPooling, CommitmentRegistry, TestimonyResolver, and AssessmentResolver test:match commands in handoffs/codex-contracts.md, run before their implementations.",
+          "evidence": "CommitmentPooling, CommitmentRegistry, and TestimonyResolver failed because their artifacts did not exist. AssessmentResolver compiled its 38-test surface with 26 legacy passes and 12 expected v3/dual-schema behavioral failures. WorkApproval decision-bridge and GardenToken callback tests landed with their implementations and are GREEN-only provenance."
         },
         "green": {
           "command": "All twelve exact Bun commands in handoffs/codex-contracts.md.",

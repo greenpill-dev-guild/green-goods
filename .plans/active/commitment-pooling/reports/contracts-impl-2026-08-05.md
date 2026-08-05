@@ -48,7 +48,10 @@ continuation.
 
 ## Recorded RED evidence
 
-The exact Bun-wrapped test commands were run before implementation.
+The four RED targets listed below were run through their exact Bun-wrapped commands before their
+implementations. The WorkApproval decision-bridge and GardenToken callback tests landed in the same
+commit as their implementations, so they are GREEN regression evidence but do not have historical
+RED-before-GREEN provenance. The remaining handoff RED list also remains incomplete.
 
 - `test/unit/CommitmentPooling.t.sol`: failed in setup because no matching
   `CommitmentPoolingModule` artifact existed.
