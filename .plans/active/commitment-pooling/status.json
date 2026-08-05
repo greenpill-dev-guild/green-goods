@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-04T20:54:05Z"
+    "updated_at": "2026-08-05T20:43:13Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -166,27 +166,26 @@
   "lanes": {
     "contracts": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "All architecture, source-convergence, and PRD-789 artifact-publication gates are cleared. PRD-721 is specification-ready in Todo but remains manually undispatched until the corrected sources merge to develop and Afo explicitly dispatches contract implementation.",
-      "branch": "codex/contracts/commitment-pooling",
+      "manual_blocked": false,
+      "branch": "feature/build-commitment-pooling-contracts",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "The handoff is specification-complete and the artifact gate is cleared, but it remains intentionally non-dispatchable until the corrected sources merge to develop and Afo explicitly dispatches PRD-721. The Envio foundation, architecture fine-comb, source convergence, and canonical artifact publication are cleared inputs, not remaining contract blockers. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
-      "linear_issues": ["PRD-650"],
+      "handoff_note": "PRD-721 was explicitly dispatched on 2026-08-05. Baselines, RED tests, the 8/16/24/32 benchmark and five frozen bounds, canonical interfaces, storage foundations, the non-transferable register, AssessmentResolver dual-schema upgrade, TestimonyResolver, WorkApproval decision bridge, and GardenToken callback are committed and package-green. The pooling lifecycle/state machines, CommitmentSeries, both frozen hash paths, and the isolated deployment/schema/421614/upgrade preflight targets remain; this lane stays in progress. SettlementModule remains separately gated in execution_sub_lanes.settlement.",
+      "linear_issues": ["PRD-721", "PRD-650"],
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "checkpoint_green",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "The seven exact test:match commands in handoffs/codex-contracts.md, run before implementation.",
+          "evidence": "CommitmentPooling, CommitmentRegistry, and TestimonyResolver failed because their artifacts did not exist. AssessmentResolver compiled its 38-test surface with 26 legacy passes and 12 expected v3/dual-schema behavioral failures."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "All twelve exact Bun commands in handoffs/codex-contracts.md.",
+          "evidence": "Seven focused surfaces passed 130 tests; storage baselines matched all 12 protected contracts; test:script passed 53 tests; build:full and lint:check exited 0; the full contracts package passed 1,577 tests across 67 suites."
         },
-        "note": ""
+        "note": "Clean first-PR checkpoint, not full lane acceptance. See reports/contracts-impl-2026-08-05.md for measured bounds, commit evidence, and remaining work."
       },
       "skill_tags": ["contracts"]
     },
@@ -271,10 +270,11 @@
     "contracts": {
       "machine_lane": "contracts",
       "owner": "codex",
-      "status": "blocked",
-      "manual_blocked": true,
-      "blocked_reason": "The initial contracts remain specification-ready with no ABI/storage expansion from the full-pool compatibility closure. PRD-721 is Todo and manually undispatched until Decision Log #51-#54/register #86-#89 are reviewed, mirrored to Linear, merged to develop, and Afo explicitly starts contract implementation. Future voucher, adapter activation, custody, redemption, capacity backing, and federation are not part of PRD-721.",
-      "branch": "codex/contracts/commitment-pooling",
+      "status": "in_progress",
+      "manual_blocked": false,
+      "dispatch_authorized_2026_08_05": "Afo explicitly dispatched PRD-721 and authorized Codex to update this contracts-lane state and proceed on feature/build-commitment-pooling-contracts. The frozen first-PR boundary and all out-of-scope exclusions remain unchanged.",
+      "branch": "feature/build-commitment-pooling-contracts",
+      "checkpoint_2026_08_05": "Commits a2e591063..fdecac739 complete the ordered baseline -> RED -> benchmark/freeze -> tested foundation sequence. All exact focused/package gates pass. Full CommitmentPoolingModule behavior and the deployment/toolchain targets remain, so PRD-721 and this execution lane stay in progress.",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "linear": {
@@ -995,6 +995,22 @@
       "status": "readiness_review_findings_closed",
       "branch": "polish/finalize-commitment-pooling-architecture",
       "note": "Closed every finding in reports/codex-readiness-review-2026-08-05.md. P1-1: froze the exact CommitmentCreated creation-payload preimage in contract-spec section 6.1 and added bytes32 creationPayloadHash to both the Solidity event and the config.yaml signature, so the indexed field has a legal event-only materialization path; contracts, indexer, and state/API handoffs plus Matrix A EO-10 and the creation-key reading rule now agree. P1-2: bound the PoolMemberHistory disclosure rule to named outputs (usePoolMemberHistory, usePoolParticipationSummary), acceptance bullets, five RED disclosure cases, a client/admin raw-entity boundary test, and a new RED-first test file. P2-1: synchronized the gallery sensitive-action table with the canonical matrices, adding twelve missing mutations plus the initializer and restoring the accountable lead provider to submitForConfirmation. P2-2: diagramKey now emits a colour/status key for sequence, entity-relationship, and class diagrams, taking Architecture coverage from 26/42 to 42/42, with a build invariant tying key count to block count. P2-3: the evidence attribution index comment now states unique lexical order, matching ER-17 and the handler plan. P2-4: LC-04 describes Expired as closed for accounting but dispute-reopenable instead of unconditionally terminal. P2-5: the document map and handoffs README are now genuine indexes covering all 131 hub files, and the validator enumerates both directories so an index cannot again promise more than it delivers. P3-1: the indexer lane checklist names Envio 3.2.1 proven by merged PR #649. The validator gained twelve assertions, each negative-tested to prove it fires; one first-draft assertion was vacuous because an unbounded [\\s\\S] span matched across the file and was rewritten to scope to the event declaration. Documentation and planning-harness sources only: no runtime package, contract, deployment, Linear record, or artifact publication changed, and the intentional manual dispatch gates on all three lanes are untouched."
+    },
+    {
+      "timestamp": "2026-08-05T00:00:01Z",
+      "actor": "afo",
+      "lane": "contracts",
+      "status": "implementation_dispatched",
+      "branch": "feature/build-commitment-pooling-contracts",
+      "note": "Afo explicitly dispatched PRD-721 and authorized Codex to update the contracts lane status and proceed. Implementation follows the frozen baseline -> RED -> benchmark/freeze -> GREEN order in handoffs/codex-contracts.md; future vouchers, adapter activation, custody, redemption, capacity backing, federation, SettlementModule, Celo execution, CreditRegistry, UI, bulk schema updates, broadcasts, and live chain-state mutation remain out of scope."
+    },
+    {
+      "timestamp": "2026-08-05T20:43:13Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "checkpoint_green",
+      "branch": "feature/build-commitment-pooling-contracts",
+      "note": "PRD-721 checkpoint a2e591063..fdecac739 completed storage baselines, RED proof, the measured bounds matrix with all five constants frozen at 32, canonical interfaces/storage, CommitmentRegistry, AssessmentResolver v3 dual-schema support, TestimonyResolver, WorkApprovalResolver decision bridging, and GardenToken pooling callbacks. All exact focused, storage, script, build, lint, and 1,577-test package gates passed. The lane remains in progress because full pooling lifecycle/state-machine/hash behavior and deployment/toolchain acceptance remain."
     }
   ]
 }
