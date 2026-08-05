@@ -1119,3 +1119,22 @@ claims do depend on the answer.
 season-to-season G$ attribution inside the garden Safe. The selected Green Goods service-spend
 return leg does not change that dependency. Celo-side observation and season attribution remain
 outside the current indexer boundary, so reseed rate still cannot be evaluated pass/fail.
+
+---
+
+## 2026-08-04 — Pilot funding amount and receipt-attribution correction
+
+The external document and D19 had incorrectly elevated a transaction-level **6.9M G$** count into
+the House of Alignment pilot funding claim. That is not the funding agreement.
+
+The confirmed operating terms are **$800 per month, paid in G$, for July through September 2026 —
+$2,400 total**, directly into the designated Green Goods protocol Safe on Celo. This upstream
+funding arrangement remains separate from every onward garden or gardener settlement. Individual
+token transfers may be retained for treasury reconciliation, but their token count must never
+replace the dollar-denominated agreement or be treated as evidence of onward distribution.
+
+Applied consequence: current plan/spec/diagram/gallery prose uses the bounded three-month schedule.
+The canonical Google Doc now contains accepted replacement text, not suggestions: `6.9M` returns
+zero across all six tabs after reload, the duplicated Start Here funding passage is removed, and
+G14 appears once with the $800-per-month / $2,400-total terms. Hand-drawn images remain a separate,
+user-managed update.

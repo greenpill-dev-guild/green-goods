@@ -182,7 +182,7 @@ flowchart TB
   ENV["Envio read model<br/>Green Goods protocol events only"]
   subgraph celo["Celo — value execution"]
     HOA["GoodDollar pool<br/>(House of Alignment)"]
-    PS["Green Goods protocol Safe<br/>receipt evidence pending"]
+    PS["Green Goods protocol Safe<br/>$800/month in G$ · Jul–Sep<br/>$2,400 pilot total"]
     GS["Per-garden 2-of-3 Safes"]
     GD["Canonical G$"]
   end
@@ -227,7 +227,7 @@ flowchart TB
 Notes:
 
 - The installed PWA and the editorial website are the same client app in two presentation modes (`getClientPresentationMode`); the docs site is separate. Every surface carries built / planned / queued / dispatched / confirming / confirmed status labels so a reader never mistakes a plan for a live feature.
-- The GoodDollar House of Alignment pool streams G$ directly into the Green Goods protocol Safe; Green Goods models only the ProtocolToGarden route onward (corrections-log §9). The protocol Safe is drawn **planned**, not built: its mechanism, address confirmation, and live receipt evidence are still pending partner evidence (`settlement-spec.md` §2), which is the same status D18 and D19 give it.
+- The Good Labs Foundation-funded House of Alignment pilot provides Green Goods with **$800 per month, paid in G$, for July through September 2026 — $2,400 total**. It lands upstream in the designated Green Goods protocol Safe; Green Goods models only the ProtocolToGarden route onward (corrections-log §9). This funding schedule is distinct from both transaction-level token counts and any onward garden or gardener settlement evidence.
 - The client PWA, editorial website, Admin, and the Envio read model carry the **existing surface, planned delta** treatment — they are live today, and this work adds planned pooling capability to each. That is why the story assets can label the same rails BUILT at the action level without contradicting this diagram.
 - EAS and raw Celo transfers are outside Envio. The joined Community read is owned in shared/query composition, not fabricated in an Envio handler.
 - Core pooling projections come from `CommitmentPoolingModule` and `CommitmentRegistry` events.
@@ -1634,8 +1634,8 @@ The pipeline itself is the existing Envio runtime, which is live; every box abov
 
 ```mermaid
 flowchart TD
-  HOA["GoodDollar pool — House of Alignment<br/>G$ stream (Celo)"]
-  PS["Green Goods protocol Safe (Celo, designated account)<br/>mechanism, address confirmation, and live receipt evidence pending<br/>settlement account of the PROTOCOL pool"]
+  HOA["Good Labs Foundation — House of Alignment pilot<br/>$800/month paid in G$ · July–September 2026"]
+  PS["Green Goods protocol Safe (Celo, designated account)<br/>$2,400 total pilot schedule<br/>settlement account of the PROTOCOL pool"]
   GS["Garden Celo Safes NET-NEW<br/>one per garden<br/>exactly 2-of-3 recovery"]
   MEM["Commitment contributors<br/>derived same-address accounts (Celo)"]
 
@@ -1653,7 +1653,7 @@ flowchart TD
   end
   CCIP["Chainlink CCIP<br/>data-only both directions<br/>no token amounts"]
 
-  HOA ==>|"G$ stream — upstream fact,<br/>not a queued action"| PS
+  HOA ==>|"three monthly pilot allocations<br/>upstream fact, not a queued action"| PS
   PS ==>|"ProtocolToGarden<br/>source + recipient derived"| GS
   GS ==>|"contributor child disbursements<br/>provider garden is payer"| MEM
   CE -->|"instructs the exact-net G$ transfer<br/>bounded Zodiac Roles allowance + fee/gross caps<br/>never custodies, never funds the Safe"| PS
@@ -1680,7 +1680,7 @@ The Safe owner set remains exactly protocol recovery multisig, Dev Guild recover
 
 ## D19. Protocol-to-garden funding route
 
-**How to read this**: three tiers must not be collapsed. **First, the ProtocolToGarden route architecture ships in this release's build scope**: `SettlementModule`, `FundingRoute.ProtocolToGarden`, the bounded executor, and the verified lane. **Second, value movement is separately evidence-gated and human-authorized** by audit, canary, Safe/Zodiac, and authenticated-acknowledgment proof. **Third, the upstream House of Alignment → protocol-Safe stream is a partner-side fact Green Goods reports**, including the on-chain 6.9M G$ receipt evidence; Green Goods never builds or queues that upstream route. The downstream protocol → garden path transfers the exact net amount, checks both balance deltas in the same transaction, and stores the outcome before acknowledgment.
+**How to read this**: three tiers must not be collapsed. **First, the ProtocolToGarden route architecture ships in this release's build scope**: `SettlementModule`, `FundingRoute.ProtocolToGarden`, the bounded executor, and the verified lane. **Second, value movement is separately evidence-gated and human-authorized** by audit, canary, Safe/Zodiac, and authenticated-acknowledgment proof. **Third, the upstream funding arrangement is a partner-side fact Green Goods reports: $800 per month, paid in G$, for July through September 2026 — $2,400 total.** Green Goods never builds or queues that upstream route, and a transaction-level token count must never be presented as the funding agreement. The downstream protocol → garden path transfers the exact net amount, checks both balance deltas in the same transaction, and stores the outcome before acknowledgment.
 
 ```mermaid
 sequenceDiagram
@@ -1694,7 +1694,7 @@ sequenceDiagram
   participant PS as GG protocol Safe (Celo)
   participant GS as Garden Safe (Celo)
 
-  HOA->>PS: G$ stream lands in the protocol Safe (upstream fact)
+  HOA->>PS: $800/month in G$, Jul–Sep ($2,400 total, upstream fact)
   Note over SM,GS: SettlementModule derives the only allowed ProtocolToGarden route
   OP->>APP: review garden + amount and queue seed/top-up
   APP->>SM: queueFunding(garden, amount)

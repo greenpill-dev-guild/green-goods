@@ -62,7 +62,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 * The `CommitmentRegister` is non-transferable in v1 — no swaps, exchange rates, or tradeable vouchers; transferable settlement vouchers are the evidence-gated follow-on (PRD-651).
 * No custody anywhere: the module never holds rewards; August settlement is operator-executed from garden Safes (automation is a stretch goal, else September).
 * Borrow-and-repay is an active August-wave companion (`../../../commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and still undispatchable until its in-code interface freeze, spec revalidation, and human legal/operations review gates clear.
-* External evidence claims come only from the canonical synthesis Sources section (re-verified 2026-07-05). Funding provenance is stated precisely: GIP-26 failed its DAO vote (June 2026); the Good Labs Foundation funds the pilot directly, roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30.
+* External evidence claims come only from the canonical synthesis Sources section. Funding provenance is stated precisely: GIP-26 failed its DAO vote; Good Labs Foundation separately funds Green Goods with $800 per month paid in G$, July through September 2026, for $2,400 total. No Flow State mechanism is claimed, and transaction-level token counts do not replace the funding agreement.
 
 ## Deliverables and acceptance
 

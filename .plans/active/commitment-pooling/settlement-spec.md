@@ -97,13 +97,13 @@ never leaves Celo.
 ## 2. Fund-flow topology (diagrams.md D18)
 
 ```text
-GoodDollar House of Alignment pilot funding (Celo, G$; mechanism pending partner evidence)
-  → Green Goods protocol Safe (Celo, designated receiving account; live receipt evidence pending)   ← settlement account of the PROTOCOL pool (root garden)
+Good Labs Foundation-funded House of Alignment pilot ($800/month paid in G$, July–September 2026; $2,400 total)
+  → Green Goods protocol Safe (Celo, designated receiving account)   ← settlement account of the PROTOCOL pool (root garden)
     → Garden Celo Safes (NET-NEW, ONE per garden, 1:1)       ← settlement accounts of garden pools, deployed on demand
       → Commitment contributors (same-address smart accounts on Celo)
 ```
 
-- Each hop below the protocol Safe is a Celo G$ transfer executed by the bounded `CeloSettlementExecutor` as a scoped Zodiac Roles member. HoA → protocol Safe is an upstream funding fact, not a Green Goods queued action. The module models exactly one downstream route—protocol → garden—with derived garden, recipients, amounts, and canonical G$ token. Every queued hop becomes complete only after the authenticated Celo executor sends a success acknowledgment for the current execution key and attempt through CCIP.
+- Each hop below the protocol Safe is a Celo G$ transfer executed by the bounded `CeloSettlementExecutor` as a scoped Zodiac Roles member. The Foundation pilot's three $800 monthly allocations are an upstream funding fact, not a Green Goods queued action; the $2,400 agreement must remain distinct from transaction-level G$ token counts and from onward settlement evidence. The module models exactly one downstream route—protocol → garden—with derived garden, recipients, amounts, and canonical G$ token. Every queued hop becomes complete only after the authenticated Celo executor sends a success acknowledgment for the current execution key and attempt through CCIP.
 - Commitment rewards are paid by the fulfilled commitment's provider garden Safe. For an ordinary
   garden-pool commitment this is that garden's Safe. For a protocol-pool commitment claimed by a
   garden, the claiming/provider garden Safe pays its contributor team; the protocol Safe may first

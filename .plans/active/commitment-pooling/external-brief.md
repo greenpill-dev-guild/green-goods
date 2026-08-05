@@ -14,6 +14,12 @@ Use the repo only for the implementation, evidence, and visual sources that subs
 | Which audience graphics are current? | [`visual-assets.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.plans/active/commitment-pooling/visual-assets.md) |
 | Which external claims were verified or corrected? | [`reports/corrections-log.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.plans/active/commitment-pooling/reports/corrections-log.md) and [`reports/external-verification-2026-07-20.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.plans/active/commitment-pooling/reports/external-verification-2026-07-20.md) |
 
+**Current pilot-funding fact (corrected 2026-08-04):** Good Labs Foundation provides Green
+Goods with **$800 per month, paid in G$, for July through September 2026 — $2,400 total**.
+This is the upstream House of Alignment funding arrangement. Do not substitute a
+transaction-level G$ token count for this agreement, and do not treat the upstream funding as
+proof of any onward distribution to gardens or gardeners.
+
 ## Editing rule
 
 - Edit the Google Doc for narrative, audience framing, use cases, rollout copy, and citations.
