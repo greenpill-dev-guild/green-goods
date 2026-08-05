@@ -4,6 +4,7 @@
 // Dissolved lo-fi variants: W23G → W23@delivery-blocked, MF8 → W25@context-chooser.
 // W6's retired home summary card lives on as the W5 header line (Decision Log #28f).
 
+import { SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
@@ -42,7 +43,7 @@ function w5(state: W5State): string {
   let inner: string;
   switch (state) {
     case "queued":
-      inner = `${hot("w5.summary", `<div class="t-meta num">7 of 9 promises kept this cycle across your gardens</div>`)}
+      inner = `${hot("w5.summary", `<div class="t-meta num">${SEASON_LIVE.kept} of ${SEASON_LIVE.made} promises kept this cycle across your gardens</div>`)}
 ${sectionTitle("My commitments")}
 ${card(
         listRow({ icon: "seedling-line", primary: "Compost workshop", meta: "Rocinha · Offered", chipHtml: chip("Queued", "queued") }) +
@@ -72,7 +73,7 @@ ${banner("Waiting for your garden membership — it will send once you're welcom
       inner = emptyState("wifi-off-line", "Couldn't load your promises", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })));
       break;
     default:
-      inner = `${hot("w5.summary", `<div class="t-meta num">7 of 9 promises kept this cycle across your gardens</div>`)}
+      inner = `${hot("w5.summary", `<div class="t-meta num">${SEASON_LIVE.kept} of ${SEASON_LIVE.made} promises kept this cycle across your gardens</div>`)}
 ${sectionTitle("Waiting on you")}
 ${card(
         hot("w5.inbox-row", listRow({ icon: "hand-heart-line", primary: "Maria — Prune the north beds", meta: "Rocinha · confirm when kept", chevron: true })) +

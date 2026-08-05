@@ -5,6 +5,7 @@
 // states are never member-visible arrival proof; only an authenticated CCIP
 // success acknowledgment produces “Confirmed”. G$ stays on Celo — no bridge language, ever.
 
+import { CYCLE, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import { banner, btn, chip, disclosure, field, input, kv, radio, stepDots } from "../kit";
@@ -56,7 +57,7 @@ ${acard(
     description: "The protocol pool and this garden — all-garden oversight lives in Operations.",
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/community/pools",
+    "admin.greengoods.app/community/pools",
     adminCanvas("community", "community", { screenId: "W12", garden: "Rocinha", header, tabRail: rail, body: inner }),
   );
 }
@@ -133,7 +134,7 @@ const w21Behind = (state: "failed" | "queued" | "unregistered" = "failed") =>
 function w21(state: W21State): string {
   if (state === "register-account")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("unregistered"), "garden", {
         title: "Register settlement account",
         body: `${banner("Register an existing, governance-deployed Celo Safe only after its route and recovery policy have been verified.", "stone")}${field("Celo Safe address", input("0x8a…2d"))}${kv("Policy", "2-of-3 recovery · scoped executor role")}`,
@@ -143,7 +144,7 @@ function w21(state: W21State): string {
     );
   if (state === "requeue-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("failed"), "garden", {
         title: "Requeue failed delivery",
         body: `${banner("Settlement 103 has an authenticated route rejection. Requeueing preserves attempt 1, clears its old batch, and creates queued attempt 2. Its execution key is created only when attempt 2 dispatches.", "stone")}${kv("Recipient", "Kwame")}${kv("Amount", "100 G$")}${kv("Next state", "Queued · attempt 2")}`,
@@ -153,7 +154,7 @@ function w21(state: W21State): string {
     );
   if (state === "batch-create")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("queued"), "garden", {
         title: "Create a delivery batch",
         body: `${banner("Only queued deliveries with the same source, route, version, and gas limit can be grouped. Membership becomes immutable when you create the batch.", "stone")}
@@ -164,7 +165,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
     );
   if (state === "cancel-queued-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind("queued"), "garden", {
         title: "Cancel queued delivery",
         body: `${banner("This cancels only unbatched settlement 104 before dispatch. No batch members or other queued deliveries change.", "amber", "error-warning-line")}${field("Reason (required)", input("recipient asked to use another route"))}`,
@@ -174,7 +175,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
     );
   if (state === "close-delivery-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement",
+      "admin.greengoods.app/garden/settlement",
       adminDialogM3(w21Behind(), "garden", {
         title: "Close this delivery",
         body:
@@ -205,7 +206,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
       description: "The protocol pool's Celo settlement account — garden funding and contributor payouts remain distinct rails.",
     });
     return deskWin(
-      "admin.greengoods.app/dashboard/community/pools/settlement",
+      "admin.greengoods.app/community/pools/settlement",
       adminCanvas("community", "community", {
         screenId: "W21",
         garden: "Rocinha",
@@ -236,7 +237,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
       description: "A discretionary treasury transfer, separate from commitment fulfillment and contributor payout plans.",
     });
     return deskWin(
-      "admin.greengoods.app/dashboard/community/pools/settlement",
+      "admin.greengoods.app/community/pools/settlement",
       adminCanvas("community", "community", {
         screenId: "W21",
         garden: "Rocinha",
@@ -460,7 +461,7 @@ ${disclosure(
     description: "The garden's Celo settlement account — disbursement queue, batches, and delivery gate.",
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/settlement",
+    "admin.greengoods.app/garden/settlement",
     adminCanvas("garden", "garden", { screenId: "W21", garden: "Rocinha", header, body: inner }),
   );
 }
@@ -542,7 +543,7 @@ const w22Behind = () =>
 function w22(state: W22State): string {
   if (state === "cancel-batch-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement/batch",
+      "admin.greengoods.app/garden/settlement/batch",
       adminDialogM3(w22Behind(), "garden", {
         title: "Cancel this batch",
         body:
@@ -563,7 +564,7 @@ function w22(state: W22State): string {
       description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment.",
     });
     return deskWin(
-      "admin.greengoods.app/dashboard/community/pools/settlement/command",
+      "admin.greengoods.app/community/pools/settlement/command",
       adminCanvas("community", "community", {
         screenId: "W22",
         garden: "Rocinha",
@@ -586,7 +587,7 @@ ${kv("Disbursement kind", "Funding")}${kv("Funding route", "ProtocolToGarden")}$
       description: "One finalized contributor child is dispatched independently from every batch.",
     });
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/settlement/104",
+      "admin.greengoods.app/garden/settlement/104",
       adminCanvas("garden", "garden", {
         screenId: "W22",
         garden: "Rocinha",
@@ -670,7 +671,7 @@ ${w22Members}${routeDetails}`;
     description: "The source sends a data-only command and waits for the bounded Celo executor acknowledgment.",
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/settlement/batch",
+    "admin.greengoods.app/garden/settlement/batch",
     adminCanvas("garden", "garden", { screenId: "W22", garden: "Rocinha", header, body: acard("Batch", inner) }),
   );
 }
@@ -780,7 +781,7 @@ ${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("
     description: "Every garden's command queue, CCIP health, and cross-chain funds — one execution home.",
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/operations",
+    "admin.greengoods.app/operations",
     adminCanvas("actions", "operations", { screenId: "W24", garden: "Rocinha", header, tabRail: rail, body: inner }),
   );
 }
@@ -832,7 +833,7 @@ ${banner("New commitments cannot reach Ready or resolve as Fulfilled without an 
 <div class="actrow">${hot("w26.recognition-blocked-back", btn("Back to review", { kind: "pri" }))}</div>
 </div>`;
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool/close",
+      "admin.greengoods.app/garden/pool/close",
       adminCanvas("garden", "garden", { screenId: "W26", garden: "Rocinha", header, body }),
     );
   }
@@ -859,7 +860,7 @@ ${hot(h("compost"), btn("Compost closed cycle", { kind: "pri" }))}
 <div class="quietok">${icon("check-line")}Certificate minted · 7 promises bundled.</div>`;
       break;
     default:
-      inner = `${kv("Season of First Rains", "9 promises · 7 kept")}
+      inner = `${kv(CYCLE, `${SEASON_LIVE.made} promises · ${SEASON_LIVE.kept} kept`)}
 ${kv("Terminal set", "7 fulfilled · 1 expired · 1 cancelled after steward review")}
 ${banner("Every commitment is terminal and liveCommitmentCount is zero. Close the cycle now to lock this exact bundle before shares are reviewed or the certificate is minted.", "stone")}
 ${hot(h("continue-shares"), btn("Close cycle and continue", { kind: "pri" }))}`;
@@ -873,7 +874,7 @@ ${hot(h("continue-shares"), btn("Close cycle and continue", { kind: "pri" }))}`;
     actions: stepDots(4, stepIx),
   });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool/close",
+    "admin.greengoods.app/garden/pool/close",
     adminCanvas("garden", "garden", { screenId: "W26", garden: "Rocinha", header, body: `<div class="flowform">${inner}</div>` }),
   );
 }
