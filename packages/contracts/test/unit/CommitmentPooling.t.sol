@@ -147,7 +147,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
     function testGardenRequestStoresAuthenticatedRequesterAsLead() public {
         uint256 protocolId = _openProtocolPool();
         hats.setOperator(POOL_GARDEN, CLAIMANT, true);
-        hats.setGardener(ROOT_GARDEN, CREATOR, true);
+        hats.setOperator(ROOT_GARDEN, CREATOR, true);
 
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("garden-request"));
         params.poolId = protocolId;

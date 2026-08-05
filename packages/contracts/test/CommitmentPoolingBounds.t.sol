@@ -46,6 +46,31 @@ contract CommitmentPoolingBoundsTest is CommitmentPoolingFixture {
         uint256 gasBefore = gasleft();
         module.createCommitment(params);
         uint256 gasUsed = gasBefore - gasleft();
+        uint256 commitmentId = module.nextCommitmentId() - 1;
+
+        vm.prank(CREATOR);
+        uint256 replayGasBefore = gasleft();
+        module.createCommitment(params);
+        gasUsed = _max(gasUsed, replayGasBefore - gasleft());
+
+        _acceptOffer(commitmentId);
+        for (uint256 i = 0; i < size; i++) {
+            bytes32 workUID = keccak256(abi.encode("requirement-work", size, i));
+            _setWorkAttestation(workUID, CREATOR, i);
+            vm.prank(CREATOR);
+            module.linkWork(commitmentId, workUID, uint16(i), keccak256(abi.encode("requirement-link", size, i)));
+        }
+        for (uint256 i = 0; i < size; i++) {
+            bytes32 workUID = keccak256(abi.encode("requirement-work", size, i));
+            bytes32 approvalUID = keccak256(abi.encode("requirement-approval", size, i));
+            decisionResolver.setLatestDecisionSequence(workUID, 1);
+            decisionResolver.setDecisionSequence(approvalUID, 1);
+            _setApprovalAttestation(approvalUID, workUID, i, true);
+            vm.prank(address(decisionResolver));
+            uint256 approvalGasBefore = gasleft();
+            module.onWorkDecision(workUID, approvalUID, 1, POOL_GARDEN, true);
+            gasUsed = _max(gasUsed, approvalGasBefore - gasleft());
+        }
         _record("MAX_REQUIREMENTS", size, gasUsed, _commitmentCreatedDataBytes(params));
     }
 
@@ -102,10 +127,7 @@ contract CommitmentPoolingBoundsTest is CommitmentPoolingFixture {
         module.confirmFulfillment(commitmentId);
         gasUsed = _max(gasUsed, confirmGasBefore - gasleft());
         _record(
-            "MAX_CONTRIBUTORS_PER_COMMITMENT",
-            size,
-            gasUsed,
-            _fulfilledEventDataBytes(ICommitmentPoolingModule.ConfirmationPath.Ordinary, "")
+            "MAX_CONTRIBUTORS_PER_COMMITMENT", size, gasUsed, abi.encode("bafy-contributor-finalization", credited).length
         );
     }
 
@@ -150,7 +172,14 @@ contract CommitmentPoolingBoundsTest is CommitmentPoolingFixture {
         uint256 gasBefore = gasleft();
         module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
         uint256 gasUsed = gasBefore - gasleft();
-        _record("MAX_CONFIRMERS", size, gasUsed, _commitmentAcceptedDataBytes(POOL_GARDEN, CREATOR));
+
+        address rosterCandidate = address(uint160(0x4000 + size));
+        _setMember(rosterCandidate);
+        vm.prank(CREATOR);
+        uint256 rosterGasBefore = gasleft();
+        module.addContributor(commitmentId, rosterCandidate);
+        gasUsed = _max(gasUsed, rosterGasBefore - gasleft());
+        _record("MAX_CONFIRMERS", size, gasUsed, abi.encode(params.confirmers, params.confirmationThreshold, false).length);
     }
 
     function _record(string memory bound, uint256 size, uint256 gasUsed, uint256 payloadBytes) private {
@@ -171,7 +200,7 @@ contract CommitmentPoolingBoundsTest is CommitmentPoolingFixture {
         pure
         returns (uint256)
     {
-        uint8[] memory domains = new uint8[](params.requirements.length);
+        uint8[] memory domains = new uint8[](params.requirements.length < 4 ? params.requirements.length : 4);
         uint256[] memory actionUIDs = new uint256[](params.requirements.length);
         uint8[] memory requirementDomains = new uint8[](params.requirements.length);
         uint32[] memory requiredCounts = new uint32[](params.requirements.length);
@@ -204,21 +233,6 @@ contract CommitmentPoolingBoundsTest is CommitmentPoolingFixture {
 
     function _readyEventDataBytes(string memory reason) private pure returns (uint256) {
         return abi.encode(false, reason).length;
-    }
-
-    function _fulfilledEventDataBytes(
-        ICommitmentPoolingModule.ConfirmationPath path,
-        string memory reason
-    )
-        private
-        pure
-        returns (uint256)
-    {
-        return abi.encode(path, reason).length;
-    }
-
-    function _commitmentAcceptedDataBytes(address gardenContext, address leadProvider) private pure returns (uint256) {
-        return abi.encode(ICommitmentPoolingModule.ClaimType.Individual, gardenContext, leadProvider, gardenContext).length;
     }
 
     function _max(uint256 a, uint256 b) private pure returns (uint256) {

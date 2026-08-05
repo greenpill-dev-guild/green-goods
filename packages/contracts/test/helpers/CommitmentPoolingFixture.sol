@@ -184,4 +184,22 @@ abstract contract CommitmentPoolingFixture is Test {
             })
         );
     }
+
+    function _setApprovalAttestation(bytes32 approvalUID, bytes32 workUID, uint256 actionUID, bool approved) internal {
+        mockEAS.setAttestationByUID(
+            approvalUID,
+            Attestation({
+                uid: approvalUID,
+                schema: WORK_APPROVAL_SCHEMA_UID,
+                time: uint64(block.timestamp),
+                expirationTime: 0,
+                revocationTime: 0,
+                refUID: workUID,
+                recipient: POOL_GARDEN,
+                attester: address(0xDEC1DE),
+                revocable: false,
+                data: abi.encode(actionUID, workUID, approved, "approved", uint8(2), uint8(1), "")
+            })
+        );
+    }
 }
