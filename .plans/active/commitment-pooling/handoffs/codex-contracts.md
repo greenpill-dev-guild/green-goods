@@ -355,13 +355,20 @@ existing infrastructure.
 - bun script/upgrade.ts commitment-pooling --network arbitrum-sepolia --dry-run --pure-simulation
 - bun script/upgrade.ts commitment-pooling --network arbitrum-sepolia --tx-plan --sender <verified-421614-pooling-upgrade-owner>
 - bun script/upgrade.ts assessment-resolver --network arbitrum --dry-run --pure-simulation
-- bun script/upgrade.ts assessment-resolver --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+- bun script/upgrade.ts assessment-resolver --network arbitrum --tx-plan --sender <verified-arbitrum-assessment-owner>
 - bun script/deploy.ts commitment-schemas --network arbitrum --dry-run
 - bun script/deploy.ts commitment-pooling --network arbitrum --dry-run
 - bun script/deploy.ts commitment-schemas --network arbitrum --finalize-community-testimony --dry-run
 - bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-simulation
-- bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+- bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender <verified-arbitrum-pooling-upgrade-owner>
 - bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
+
+Both Arbitrum One senders are placeholders on purpose. The live proxies currently report deployer
+EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`, but `contract-spec.md` §6.1's
+ownership gate makes that address valid **only** for the isolated, human-authorized
+ownership-transfer plan. Every other mainnet plan resolves its sender from the verified protocol
+3-of-5 Safe and fails closed otherwise, so pasting the EOA into the lines above would produce a
+plan this lane's own gate must reject.
 
 For a live chain, the commands execute in the listed dependency order, with a separately
 authorized receipt, post-action verifier, and persisted artifact between stages:

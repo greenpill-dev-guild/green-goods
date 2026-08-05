@@ -1160,3 +1160,33 @@ image. The accepted prose now:
 Google Docs reported `Saved to Drive`. All six tabs were reloaded and re-read in Editing mode.
 The two new Tab 02 image insertion points are blank paragraphs immediately above their captions.
 Image insertion, replacement, upload, and repositioning remain manual user steps.
+
+---
+
+## 2026-08-05 — Pre-code readiness audit dispositions
+
+A read-only contract-implementation readiness audit ran against the closure branch. The
+specification corpus passed: interfaces, storage, lifecycles, events, errors, permissions,
+idempotency, replay, deployment order, and test plans are frozen, and every "today" claim the
+specs make about existing code was re-verified true (`networks.json` has no `421614` record,
+`DeployBadgeSchema.s.sol` reverts `UnsupportedChain(421614)`, `release-gate.ts` pins only
+`11155111`, `upgrade.ts:424` persists `sender: … ?? null` and never reads `owner()`). Three
+repo-side corrections were applied:
+
+- `acceptance-matrix.md` cited `settlement-spec.md` §3.3, which does not exist. The settlement
+  state vocabulary lives in §3.0 and its enum in §3.1.2; the row now cites both.
+- `handoffs/codex-contracts.md` listed the deployer EOA as the `--sender` for both Arbitrum One
+  transaction plans, which `contract-spec.md` §6.1's ownership gate must reject for every plan
+  except the isolated ownership transfer. Both lines are now placeholders with the reason stated.
+- `visual-assets.md`'s settlement-states row read as a global "never as CCIP" rule. It is an
+  asset-scoped drawing constraint; the canonical Google Doc's evidence-label table defines
+  `Dispatched` and `CCIP-confirmed` for readers and is unaffected. The row now says so.
+
+**Outstanding and not fixed by this pass.** The published gallery artifact
+(`007ef090-9e26-4b1d-898c-615155304d9d`) was fetched live and is still the 2026-08-02 build: it
+lacks D28/D29 and the three new Story assets, still draws the retired orbit `synthesis-circular-gd`
+and the retired Google Doc tab titles, and its D19 reading guide still asserts "the on-chain 6.9M
+G$ receipt evidence" — the exact claim the 2026-08-04 funding correction above retires. Repo
+sources are correct; the live URL is not. Republication is the manual step recorded in
+`visual-assets.md`, and until it runs, that URL should not be treated as current or reshared. The
+Google Doc's embedded images lag for the same reason.
