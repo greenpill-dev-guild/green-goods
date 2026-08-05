@@ -2,10 +2,14 @@
 
 ## Status
 
-PRD-721 is **in progress** on `feature/build-commitment-pooling-contracts`.
+PRD-721 is **blocked after review** on `feature/build-commitment-pooling-contracts` at
+`3172341aa`.
 
-This run reached a clean, committed, package-green foundation after the required baseline → RED →
-benchmark/freeze order. It is not the full first-PR acceptance surface. The complete
+This run reached a clean, committed, package-green implementation checkpoint after the required
+baseline → RED → benchmark/freeze order, but independent review found that the synthetic benchmark
+does not support the claimed production freeze. The raw measurements remain reproducible evidence;
+the five values must not be consumed downstream as frozen production bounds. It is not the full
+first-PR acceptance surface. The complete
 `CommitmentPoolingModule` lifecycle, CommitmentSeries/exchange behavior, frozen creation and
 recognition hash implementations, and the isolated schema/deployment/421614/upgrade toolchain still
 remain. No PR was opened or pushed.
@@ -18,6 +22,8 @@ remain. No PR was opened or pushed.
 | `a11de79cb` | `test(contracts): add commitment pooling red coverage` — initial RED files and the NET-NEW bounds harness. |
 | `9a515e3fe` | `feat(contracts): freeze commitment pooling bounds` — measured table, all five constants frozen at 32, explicit `pure` ABI getters, canonical interfaces, and the 38-slot module declaration scaffold with `__gap[12]`. |
 | `fdecac739` | `feat(contracts): add commitment accounting foundations` — registry, resolver/token wiring, concrete storage assertions, generated baselines, and focused GREEN coverage. |
+| `2c44ecefa` | `docs(contracts): record PRD-721 checkpoint` — initial implementation report and lane state. |
+| `3172341aa` | `fix(contracts): reject malformed assessment words` — canonical uint8 ABI decoding for Assessment v3, two reproduced RED regression cases, and corrected TDD provenance. |
 
 ## Completed implementation
 
@@ -68,6 +74,12 @@ behavioral failures before source implementation.
 
 ## Bounded-constant measurements
 
+**Review disposition:** these are synthetic-harness measurements, not production-path freeze
+evidence. The harness does not call the production module paths or encode every canonical event, and
+it does not measure a next candidate above 32. The code still returns 32 from the five `pure`
+getters, but the lane is blocked and downstream consumers must treat those values as provisional
+until the resolution in `reports/contracts-blocker-2026-08-05.md` is approved and completed.
+
 Measured on `a11de79cb` with Solc 0.8.28 using the exact
 `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol` command.
 Each value is gas / ABI-encoded event-data payload bytes.
@@ -90,12 +102,12 @@ All commands were run from the repository root exactly as specified in the hando
 
 | Command surface | Result |
 |---|---|
-| Seven named `test:match` commands | PASS — 130 tests: Pooling 6, Registry 6, bounds 1, Assessment 38, Testimony 8, WorkApproval 43, storage 28. |
+| Seven named `test:match` commands | PASS at `3172341aa` — 132 tests: Pooling 6, Registry 6, bounds 1, Assessment 40, Testimony 8, WorkApproval 43, storage 28. |
 | `bun run --filter @green-goods/contracts check:storage-layout` | PASS — all 12 protected contracts matched their baselines. |
 | `bun run --filter @green-goods/contracts test:script` | PASS — 53 tests in 5 files. |
 | `bun run --filter @green-goods/contracts build:full` | PASS. |
 | `bun run --filter @green-goods/contracts lint:check` | PASS — 0 errors, 195 warning-level findings. The update check could not resolve `registry.npmjs.org`, but lint completed successfully and no dependency was installed. |
-| `bun run --filter @green-goods/contracts test` | PASS — 1,577 tests across 67 suites, 0 failed, 0 skipped. |
+| `bun run --filter @green-goods/contracts test` | PASS at `3172341aa` — 1,579 tests across 67 suites, 0 failed, 0 skipped. |
 
 The Bun-wrapped Foundry commands were executed outside the filesystem sandbox after the sandboxed
 macOS runtime crashed in Dynamic Store initialization. This changed no command, dependency, chain
@@ -117,7 +129,9 @@ No slot mismatch, collision, or baseline divergence was observed.
 
 ## Deviations and observations
 
-- Deviations from the frozen specification in the completed slice: **none observed**.
+- Review-confirmed deviation: the bounds harness is synthetic and does not establish the five
+  production-safe frozen values claimed by the table/getters. The affected lane is blocked; no new
+  bound or alternative freeze rule was chosen.
 - The checkout was clean at dispatch. No pre-existing or concurrent working-tree changes were
   encountered.
 - No dependency was installed, no package `.env` was created or read, and no file outside
@@ -129,20 +143,23 @@ No slot mismatch, collision, or baseline divergence was observed.
 
 ## Remaining PRD-721 work
 
-1. Expand `CommitmentPooling.t.sol` and adjacent regression files to the complete handoff RED list,
+1. Resolve `reports/contracts-blocker-2026-08-05.md`: implement the exact production bounded paths
+   under a human-approved order correction, measure 8/16/24/32 plus the next candidate, and only
+   then replace the five provisional getter values and handoff table with defensible frozen bounds.
+2. Expand `CommitmentPooling.t.sol` and adjacent regression files to the complete handoff RED list,
    then implement the complete pool, cycle, commitment, claim, contributor, Work/evidence,
    assessment, confirmation, dispute, recognition, and Hypercert-composer state machines.
-2. Implement CommitmentSeries and the standing-commitments/exchange semantics from the
+3. Implement CommitmentSeries and the standing-commitments/exchange semantics from the
    superseding specification.
-3. Implement the frozen `creationPayloadHash` preimage byte-for-byte, including replay/no-event
+4. Implement the frozen `creationPayloadHash` preimage byte-for-byte, including replay/no-event
    behavior and conflict proof.
-4. Implement canonical `recognitionSnapshotHash` exactly as
+5. Implement canonical `recognitionSnapshotHash` exactly as
    `keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))`.
-5. Add isolated Commitment Pooling and Community Testimony deployment/finalization targets,
+6. Add isolated Commitment Pooling and Community Testimony deployment/finalization targets,
    deterministic schema reconciliation, and the grouped upgrade target.
-6. Add the Arbitrum Sepolia `421614` network/toolchain records and required dry-run verifier paths.
-7. Add `upgrade.ts` mandatory `--sender` handling and live `owner()` preflight.
-8. Run the remaining dry-run/pure-simulation acceptance commands only after those toolchain targets
+7. Add the Arbitrum Sepolia `421614` network/toolchain records and required dry-run verifier paths.
+8. Add `upgrade.ts` mandatory `--sender` handling and live `owner()` preflight.
+9. Run the remaining dry-run/pure-simulation acceptance commands only after those toolchain targets
    exist. The two Arbitrum One future-only `--tx-plan` commands remain unrun.
 
 ## Draft PR description
@@ -158,19 +175,21 @@ Linear: PRD-721
 - Add the canonical Commitment Pooling/Register interfaces, 38+12 module storage scaffold,
   non-transferable register, AssessmentV3 dual-schema upgrade, TestimonyResolver, WorkApproval
   decision bridge, and GardenToken callback.
-- Measure the required 8/16/24/32 matrix and freeze all five explicit ABI bounds at 32.
+- Record the required synthetic 8/16/24/32 matrix and preserve the explicit ABI getter surface.
 
-This is a clean first implementation checkpoint, not full PRD-721 acceptance. The complete pooling
-lifecycle/series/hash behavior and deployment/toolchain targets remain for the continuation.
+This checkpoint is blocked after independent review: the synthetic matrix does not freeze
+production-safe bounds, and downstream lanes must not consume the current value 32. The complete
+pooling lifecycle/series/hash behavior and deployment/toolchain targets also remain.
 
 ## Validation
 
-- [x] All seven named Foundry test files pass (130 tests)
+- [x] All seven named Foundry test files pass (132 tests at `3172341aa`)
 - [x] `bun run --filter @green-goods/contracts check:storage-layout`
 - [x] `bun run --filter @green-goods/contracts test:script` (53 tests)
 - [x] `bun run --filter @green-goods/contracts build:full`
 - [x] `bun run --filter @green-goods/contracts lint:check`
-- [x] `bun run --filter @green-goods/contracts test` (1,577 tests)
+- [x] `bun run --filter @green-goods/contracts test` (1,579 tests)
+- [ ] Production-path bounds measurement and defensible freeze
 - [ ] Full PRD-721 behavioral and dry-run deployment acceptance
 
 ## Safety

@@ -400,6 +400,16 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Bounded-constant benchmark results
 
+> **BLOCKED after independent implementation review — 2026-08-05:** the measurements below are
+> retained as raw synthetic-harness evidence, but they do not freeze production-safe bounds. The
+> harness does not execute the production CommitmentPoolingModule entry points or their exact
+> shared internal implementation, and it does not encode the canonical production events for all
+> five vectors. The current `pure` getters still return 32 in the checkpoint code, but downstream
+> lanes must not consume those values as frozen until the production paths exist, the required
+> 8/16/24/32 matrix plus at least the next candidate are measured against those paths, and this
+> table is replaced with reconciled production numbers. See
+> `reports/contracts-blocker-2026-08-05.md`.
+
 The table below is the recording surface for
 `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It is
 empty because the harness does not exist yet; no `MAX_*` constant may be frozen, and no value
