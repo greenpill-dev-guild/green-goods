@@ -396,23 +396,25 @@ export interface ParsedContractError {
   recoverable: boolean;
   /** Suggested next action for user */
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
+}
 
 function parseKnownError(raw: string, errorInfo: ErrorInfo): ParsedContractError {
-  const fallback = LOCALIZED_ERROR_FALLBACKS[errorInfo.name as "SelfAttestation"]
+  const fallback =
+    errorInfo.name in LOCALIZED_ERROR_FALLBACKS
+      ? LOCALIZED_ERROR_FALLBACKS[errorInfo.name as keyof typeof LOCALIZED_ERROR_FALLBACKS]
+      : undefined;
 
-return {
+  return {
     raw,
     name: errorInfo.name,
-    message: errorInfo.message ?? fallback?.message ?? "Transaction failed. Please try again."
-,
+    message: errorInfo.message ?? fallback?.message ?? "Transaction failed. Please try again.",
     action: errorInfo.action ?? fallback?.action,
     messageKey: errorInfo.messageKey,
     actionKey: errorInfo.actionKey,
     isKnown: true,
     recoverable: errorInfo.recoverable,
     suggestedAction: errorInfo.suggestedAction,
-  }
-}
+  };
 }
 
 /**
