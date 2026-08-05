@@ -206,27 +206,13 @@ contract CommitmentPoolingBoundsTest is Test {
         _record("MAX_CONFIRMERS", size, gasUsed, payloadBytes, checksum);
     }
 
-    function _record(
-        string memory bound,
-        uint256 size,
-        uint256 gasUsed,
-        uint256 payloadBytes,
-        uint256 checksum
-    ) private {
+    function _record(string memory bound, uint256 size, uint256 gasUsed, uint256 payloadBytes, uint256 checksum) private {
         string memory prefix = string.concat(bound, "/", vm.toString(size));
         emit log_named_uint(string.concat(prefix, "/gas"), gasUsed);
         emit log_named_uint(string.concat(prefix, "/payload-bytes"), payloadBytes);
         vm.writeLine(
             RESULTS_PATH,
-            string.concat(
-                bound,
-                ",",
-                vm.toString(size),
-                ",",
-                vm.toString(gasUsed),
-                ",",
-                vm.toString(payloadBytes)
-            )
+            string.concat(bound, ",", vm.toString(size), ",", vm.toString(gasUsed), ",", vm.toString(payloadBytes))
         );
         assertGt(checksum, 0, string.concat(prefix, "/empty-checksum"));
         assertLt(gasUsed, TRANSACTION_GAS_CEILING, string.concat(prefix, "/transaction-unsafe"));

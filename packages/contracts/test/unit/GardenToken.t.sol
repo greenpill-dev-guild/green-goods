@@ -59,6 +59,23 @@ contract AcceptingENSModule is IGreenGoodsENS {
     }
 }
 
+contract MockCommitmentPoolingMintModule {
+    bool public shouldRevert;
+    uint256 public callCount;
+    address public lastGarden;
+
+    function setShouldRevert(bool value) external {
+        shouldRevert = value;
+    }
+
+    function onGardenMinted(address garden) external returns (uint256 poolId) {
+        if (shouldRevert) revert("pooling unavailable");
+        callCount += 1;
+        lastGarden = garden;
+        return callCount;
+    }
+}
+
 contract GardenTokenTest is Test, ERC6551Helper {
     GardenToken private gardenToken;
     address private multisig = address(0x123);
@@ -82,6 +99,7 @@ contract GardenTokenTest is Test, ERC6551Helper {
     event OctantModuleUpdated(address indexed oldModule, address indexed newModule);
     event ENSRegistrationRefundQueued(address indexed minter, uint256 amount);
     event ENSRegistrationRefundClaimed(address indexed minter, uint256 amount);
+    event CommitmentPoolingModuleUpdated(address indexed oldModule, address indexed newModule);
     event GardenMinted(
         uint256 indexed tokenId,
         address indexed account,
@@ -133,6 +151,35 @@ contract GardenTokenTest is Test, ERC6551Helper {
 
     function testInitialize() public {
         assertEq(gardenToken.owner(), multisig, "Owner should be the multisig address");
+    }
+
+    function testSetCommitmentPoolingModuleEmitsEvent() public {
+        address module = address(0x721);
+        vm.expectEmit(true, true, false, false);
+        emit CommitmentPoolingModuleUpdated(address(0), module);
+
+        vm.prank(multisig);
+        gardenToken.setCommitmentPoolingModule(module);
+        assertEq(address(gardenToken.commitmentPoolingModule()), module);
+    }
+
+    function testMintGardenCallsCommitmentPoolingWithoutBlockingMint() public {
+        _setHatsModule();
+        _setCommunityToken();
+        MockCommitmentPoolingMintModule module = new MockCommitmentPoolingMintModule();
+        vm.prank(multisig);
+        gardenToken.setCommitmentPoolingModule(address(module));
+
+        vm.prank(multisig);
+        address gardenAccount = gardenToken.mintGarden(_defaultConfig());
+        assertEq(module.callCount(), 1);
+        assertEq(module.lastGarden(), gardenAccount);
+
+        module.setShouldRevert(true);
+        vm.prank(multisig);
+        address secondGarden = gardenToken.mintGarden(_defaultConfig());
+        assertTrue(secondGarden != address(0));
+        assertEq(module.callCount(), 1);
     }
 
     function testSetCommunityToken_RevertsWithZeroAddress() public {

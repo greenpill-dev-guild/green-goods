@@ -423,10 +423,7 @@ contract AssessmentResolverTest is Test {
         vm.prank(multisig);
         IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(ASSESSMENT_V3_UID);
 
-        assertEq(
-            IAssessmentV3ConfigRedTarget(address(assessmentResolver)).assessmentV3SchemaUID(),
-            ASSESSMENT_V3_UID
-        );
+        assertEq(IAssessmentV3ConfigRedTarget(address(assessmentResolver)).assessmentV3SchemaUID(), ASSESSMENT_V3_UID);
     }
 
     function testV2AttestationStillResolvesAfterV3Activation() public {
@@ -512,9 +509,7 @@ contract AssessmentResolverTest is Test {
 
         vm.prank(address(mockEAS));
         vm.expectRevert(
-            abi.encodeWithSelector(
-                BaselineGardenMismatch.selector, baselineUID, address(mockGarden), otherGarden
-            )
+            abi.encodeWithSelector(BaselineGardenMismatch.selector, baselineUID, address(mockGarden), otherGarden)
         );
         assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
     }
@@ -581,7 +576,11 @@ contract AssessmentResolverTest is Test {
     function _buildAssessmentV3Attestation(
         address attester,
         AssessmentV3Input memory schema
-    ) internal view returns (Attestation memory) {
+    )
+        internal
+        view
+        returns (Attestation memory)
+    {
         return Attestation({
             uid: bytes32(uint256(2)),
             schema: ASSESSMENT_V3_UID,

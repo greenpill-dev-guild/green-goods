@@ -56,9 +56,7 @@ contract TestimonyResolverTest is Test {
 
         bytes32 conflictingUID = bytes32(uint256(0x722));
         vm.prank(OWNER);
-        vm.expectRevert(
-            abi.encodeWithSelector(SchemaUIDConflict.selector, TESTIMONY_SCHEMA_UID, conflictingUID)
-        );
+        vm.expectRevert(abi.encodeWithSelector(SchemaUIDConflict.selector, TESTIMONY_SCHEMA_UID, conflictingUID));
         resolver.setSchemaUID(conflictingUID);
     }
 
@@ -129,7 +127,11 @@ contract TestimonyResolverTest is Test {
         address attester,
         bytes32 schema,
         string memory testimonyCID
-    ) private view returns (Attestation memory) {
+    )
+        private
+        view
+        returns (Attestation memory)
+    {
         return Attestation({
             uid: bytes32(uint256(1)),
             schema: schema,

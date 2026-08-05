@@ -49,11 +49,10 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     mapping(uint256 commitmentId => mapping(address confirmer => bool confirmed)) internal hasConfirmed;
     mapping(bytes32 workUID => uint256 commitmentId) internal workCommitment;
     mapping(bytes32 approvalUID => bool counted) internal approvalCounted;
-    mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim))
-        internal pendingClaim;
+    mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)) internal
+        pendingClaim;
     mapping(
-        uint256 commitmentId
-            => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord contributorRecord)
+        uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord contributorRecord)
     ) internal contributors;
     mapping(uint256 commitmentId => mapping(uint16 requirementIndex => mapping(address contributor => bool assigned)))
         internal requirementAssignments;
@@ -65,10 +64,9 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) internal commitmentWorkUIDs;
     uint256 public protocolPoolId;
     address public rootGarden;
-    mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId))
-        internal commitmentIdByCreationRequest;
-    mapping(address caller => mapping(bytes32 operationKey => bytes32 payloadHash))
-        internal workLinkPayloadHashByOperation;
+    mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId)) internal
+        commitmentIdByCreationRequest;
+    mapping(address caller => mapping(bytes32 operationKey => bytes32 payloadHash)) internal workLinkPayloadHashByOperation;
 
     /// @dev Declares 38 named storage entries above and reserves 12 more here (50 total).
     ///      Inherited upgradeable contracts maintain their own layouts independently.
@@ -120,23 +118,28 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
         pure
         returns (ICommitmentPoolingModule.RecognitionPolicy memory policy)
     {
-        policy = ICommitmentPoolingModule.RecognitionPolicy({
-            equalParticipationBps: 2_000,
-            verifiedContributionBps: 8_000
-        });
+        policy = ICommitmentPoolingModule.RecognitionPolicy({ equalParticipationBps: 2000, verifiedContributionBps: 8000 });
     }
 
     function getCommitmentIdByCreationRequest(
         address creator,
         bytes32 creationRequestKey
-    ) external view returns (uint256 commitmentId) {
+    )
+        external
+        view
+        returns (uint256 commitmentId)
+    {
         return commitmentIdByCreationRequest[creator][creationRequestKey];
     }
 
     function getWorkLinkOperationPayloadHash(
         address caller,
         bytes32 operationKey
-    ) external view returns (bytes32 payloadHash) {
+    )
+        external
+        view
+        returns (bytes32 payloadHash)
+    {
         return workLinkPayloadHashByOperation[caller][operationKey];
     }
 

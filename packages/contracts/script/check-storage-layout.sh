@@ -27,9 +27,12 @@ CONTRACTS=(
   "HatsModule:src/modules/Hats.sol"
   "KarmaGAPModule:src/modules/Karma.sol"
   "ActionRegistry:src/registries/Action.sol"
+  "CommitmentRegistry:src/registries/Commitment.sol"
+  "CommitmentPoolingModule:src/modules/CommitmentPooling.sol"
   "WorkResolver:src/resolvers/Work.sol"
   "WorkApprovalResolver:src/resolvers/WorkApproval.sol"
   "AssessmentResolver:src/resolvers/Assessment.sol"
+  "TestimonyResolver:src/resolvers/Testimony.sol"
   "Deployment:src/registries/Deployment.sol"
 )
 

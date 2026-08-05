@@ -70,9 +70,7 @@ contract CommitmentRegistryTest is Test {
         registry.setProviderOpenCommitmentCap(POOL_ID, 1);
         registry.registerClass(CLASS_ID, POOL_ID, CYCLE_ID, "hours", QUOTA);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(ICommitmentRegistry.InvalidUnitAmount.selector, CLASS_ID, QUOTA - 1, QUOTA)
-        );
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentRegistry.InvalidUnitAmount.selector, CLASS_ID, QUOTA - 1, QUOTA));
         registry.commitUnits(CLASS_ID, PROVIDER, QUOTA - 1);
     }
 
@@ -83,9 +81,7 @@ contract CommitmentRegistryTest is Test {
         registry.commitUnits(CLASS_ID, PROVIDER, QUOTA);
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                ICommitmentRegistry.OpenCommitmentCapExceeded.selector, POOL_ID, PROVIDER, 1, 0
-            )
+            abi.encodeWithSelector(ICommitmentRegistry.OpenCommitmentCapExceeded.selector, POOL_ID, PROVIDER, 1, 0)
         );
         registry.commitUnits(CLASS_ID + 1, PROVIDER, QUOTA);
 
@@ -95,11 +91,12 @@ contract CommitmentRegistryTest is Test {
 
     function testHasNoTransferOrApprovalSurface() public {
         (bool transferSuccess,) = address(registry).call(
-            abi.encodeWithSignature("safeTransferFrom(address,address,uint256,uint256,bytes)", PROVIDER, OWNER, CLASS_ID, 1, "")
+            abi.encodeWithSignature(
+                "safeTransferFrom(address,address,uint256,uint256,bytes)", PROVIDER, OWNER, CLASS_ID, 1, ""
+            )
         );
-        (bool approvalSuccess,) = address(registry).call(
-            abi.encodeWithSignature("setApprovalForAll(address,bool)", OWNER, true)
-        );
+        (bool approvalSuccess,) =
+            address(registry).call(abi.encodeWithSignature("setApprovalForAll(address,bool)", OWNER, true));
 
         assertFalse(transferSuccess);
         assertFalse(approvalSuccess);
@@ -109,16 +106,21 @@ contract CommitmentRegistryTest is Test {
         PausedModuleProbe first = new PausedModuleProbe(false);
         PausedModuleProbe second = new PausedModuleProbe(true);
 
+        address implementation = deployCode("Commitment.sol:CommitmentRegistry");
+        bytes memory initData = abi.encodeWithSelector(ICommitmentRegistryRedTarget.initialize.selector, OWNER, address(0));
+        ICommitmentRegistryRedTarget replacementRegistry =
+            ICommitmentRegistryRedTarget(address(new ERC1967Proxy(implementation, initData)));
+
         vm.prank(OWNER);
-        registry.setModule(address(first));
+        replacementRegistry.setModule(address(first));
 
         vm.prank(OWNER);
         vm.expectRevert(abi.encodeWithSelector(ICommitmentRegistry.ModuleMustBePaused.selector, address(first)));
-        registry.setModule(address(second));
+        replacementRegistry.setModule(address(second));
 
         first.setPaused(true);
         vm.prank(OWNER);
-        registry.setModule(address(second));
-        assertEq(registry.module(), address(second));
+        replacementRegistry.setModule(address(second));
+        assertEq(replacementRegistry.module(), address(second));
     }
 }

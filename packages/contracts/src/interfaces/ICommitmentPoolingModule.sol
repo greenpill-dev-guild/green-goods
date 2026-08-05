@@ -4,48 +4,114 @@ pragma solidity ^0.8.25;
 interface ICommitmentPoolingModule {
     // ═════════════════════════════ Types ═════════════════════════════
 
-    enum PoolType { Garden, Protocol }
+    enum PoolType {
+        Garden,
+        Protocol
+    }
 
-    enum PoolState { None, NotReady, Ready, Open, Paused, Closed, Composted }
+    enum PoolState {
+        None,
+        NotReady,
+        Ready,
+        Open,
+        Paused,
+        Closed,
+        Composted
+    }
 
-    enum CycleType { Season, Campaign }
+    enum CycleType {
+        Season,
+        Campaign
+    }
 
     /// @notice On-chain subset. Draft is an app-side IndexedDB state;
     ///         InProgress and Reviewing are derived (spec section 5.2).
-    enum CycleState { None, Seeded, Open, Reconciled, Composted, Cancelled }
+    enum CycleState {
+        None,
+        Seeded,
+        Open,
+        Reconciled,
+        Composted,
+        Cancelled
+    }
 
-    enum CommitmentDirection { Offer, Request }
+    enum CommitmentDirection {
+        Offer,
+        Request
+    }
 
-    enum CommitmentType { DomainImpact, SupportService, SeasonCampaign, StewardCaptured }
+    enum CommitmentType {
+        DomainImpact,
+        SupportService,
+        SeasonCampaign,
+        StewardCaptured
+    }
 
     /// @notice On-chain subset. Draft is app-side; Active, EvidenceSubmitted,
     ///         PartiallyApproved, Reconciled are derived (spec section 5.3).
-    enum CommitmentState { None, Offered, Requested, Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired, Disputed }
+    enum CommitmentState {
+        None,
+        Offered,
+        Requested,
+        Accepted,
+        ReadyForConfirmation,
+        Fulfilled,
+        Cancelled,
+        Expired,
+        Disputed
+    }
 
     /// @notice Claimant class. Garden = a GardenAccount claims (protocol pool
     ///         cross-garden reach); Individual = a hat-wearing person claims.
-    enum ClaimType { Garden, Individual }
+    enum ClaimType {
+        Garden,
+        Individual
+    }
 
-    enum ClaimMode { Open, ApprovalGated }
+    enum ClaimMode {
+        Open,
+        ApprovalGated
+    }
 
-      enum ContributorPolicy { Open, LeadManaged }
+    enum ContributorPolicy {
+        Open,
+        LeadManaged
+    }
 
-      enum ConfirmationPath { Ordinary, PoolFallback, ProtocolFallback }
+    enum ConfirmationPath {
+        Ordinary,
+        PoolFallback,
+        ProtocolFallback
+    }
 
-      enum DisputeResolution { RestorePrevious, Fulfilled, Cancelled, Expired }
+    enum DisputeResolution {
+        RestorePrevious,
+        Fulfilled,
+        Cancelled,
+        Expired
+    }
 
-      enum RewardRail { None, ArbitrumExternal, CeloSettlement }
+    enum RewardRail {
+        None,
+        ArbitrumExternal,
+        CeloSettlement
+    }
 
-      enum ModuleDependency {
-          GardenToken,
-          HatsModule,
-          ActionRegistry,
-          CommitmentRegistry,
-          WorkApprovalResolver,
-          EAS
-      }
+    enum ModuleDependency {
+        GardenToken,
+        HatsModule,
+        ActionRegistry,
+        CommitmentRegistry,
+        WorkApprovalResolver,
+        EAS
+    }
 
-      enum ModuleSchemaKind { Work, WorkApproval, LegacyAssessment, AssessmentV3 }
+    enum ModuleSchemaKind {
+        Work,
+        WorkApproval,
+        LegacyAssessment,
+        AssessmentV3
+    }
 
     /// @notice Allocation-class snapshot for Hypercert cut-over. Must sum to
     ///         exactly 10_000 bps (Yield.sol InvalidSplitRatio precedent).
@@ -66,12 +132,12 @@ interface ICommitmentPoolingModule {
     }
 
     struct Pool {
-        address garden;            // ERC-6551 garden account
+        address garden; // ERC-6551 garden account
         PoolType poolType;
         PoolState state;
-        bool proofEnabled;         // capability flag; true for MVP pools
-        bool settlementEnabled;    // RESERVED: always false in MVP
-        string charterCID;         // policy/charter metadata (IPFS)
+        bool proofEnabled; // capability flag; true for MVP pools
+        bool settlementEnabled; // RESERVED: always false in MVP
+        string charterCID; // policy/charter metadata (IPFS)
         uint256 openSeasonCycleId; // 0 = none; Campaigns may overlap and are indexed from events
         address settlementAdapter; // RESERVED: always zero in MVP (transferable-voucher layer)
         uint32 liveCommitmentCount; // every non-terminal pool commitment, including cycle-less
@@ -85,7 +151,7 @@ interface ICommitmentPoolingModule {
         uint64 startTime;
         uint64 endTime;
         string metadataCID;
-        AllocationBps allocation;  // snapshot emitted in CycleOpened
+        AllocationBps allocation; // snapshot emitted in CycleOpened
         RecognitionPolicy recognitionPolicy;
         uint32 liveCommitmentCount; // non-terminal cycle commitments; must be zero before close
     }
@@ -94,13 +160,13 @@ interface ICommitmentPoolingModule {
     struct DeclaredReward {
         RewardRail rail;
         address source; // ArbitrumExternal payer; zero sentinel for CeloSettlement
-        address token;  // ArbitrumExternal token; zero sentinel for CeloSettlement
+        address token; // ArbitrumExternal token; zero sentinel for CeloSettlement
         uint256 amount; // 0 = no declared reward
     }
 
     struct CommitmentRequirement {
         uint256 actionUID;
-        uint8 domain;          // derived from ActionRegistry, never caller-authored
+        uint8 domain; // derived from ActionRegistry, never caller-authored
         uint32 requiredCount;
         uint32 approvedCount;
     }
@@ -128,52 +194,55 @@ interface ICommitmentPoolingModule {
 
     struct Commitment {
         uint256 poolId;
-        uint256 cycleId;                 // 0 = not cycle-scoped
-        uint256 commitmentSeriesId;      // 0 = one-shot; otherwise validated module-owned series
-        address creator;                 // social source (StewardCaptured: the gardener, not the recorder)
-        bytes32 creationRequestKey;      // sender-safe offline/restart identity
-        bytes32 creationPayloadHash;     // immutable full creation payload hash for replay conflict detection
-        address counterparty;            // provider (Request) or engager (Offer); zero until Accepted
-        address leadProvider;            // Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
+        uint256 cycleId; // 0 = not cycle-scoped
+        uint256 commitmentSeriesId; // 0 = one-shot; otherwise validated module-owned series
+        address creator; // social source (StewardCaptured: the gardener, not the recorder)
+        bytes32 creationRequestKey; // sender-safe offline/restart identity
+        bytes32 creationPayloadHash; // immutable full creation payload hash for replay conflict detection
+        address counterparty; // provider (Request) or engager (Offer); zero until Accepted
+        address leadProvider; // Offer creator; Individual Request counterparty; Garden Request authenticated requester
+            // (Open caller or stored ApprovalGated requestedBy)
         ClaimType counterpartyKind;
         CommitmentDirection direction;
         CommitmentType commitmentType;
         CommitmentState state;
-        ClaimType claimType;             // eligibility class set at seeding
+        ClaimType claimType; // eligibility class set at seeding
         ClaimMode claimMode;
         ContributorPolicy contributorPolicy;
-        uint8[] domains;                 // derived unique tags; not a requirement-count bound
+        uint8[] domains; // derived unique tags; not a requirement-count bound
         CommitmentRequirement[] requirements; // DomainImpact: 1..MAX_REQUIREMENTS
-        uint64 dueDate;                  // 0 = cycle endTime governs
-        string unitLabel;                // hours, tasks, meals, rides, plants...
+        uint64 dueDate; // 0 = cycle endTime governs
+        string unitLabel; // hours, tasks, meals, rides, plants...
         uint256 targetUnits;
         uint32 contributorCount;
         uint32 eligibleContributorCount; // contributors with pre-freeze credit; recognition additionally requires Fulfilled
-        uint64 totalVerifiedCredits;      // approved Work + at most one evidence participation credit per contributor
+        uint64 totalVerifiedCredits; // approved Work + at most one evidence participation credit per contributor
         uint32 evidenceCount;
         bool contributorsFrozen;
-        uint32 confirmationThreshold;    // N of the named group; 1 under the counterparty default
+        uint32 confirmationThreshold; // N of the named group; 1 under the counterparty default
         uint32 confirmationCount;
-        bool protocolFallbackEnabled;    // explicit pre-acceptance Green Goods team fallback selection
+        bool protocolFallbackEnabled; // explicit pre-acceptance Green Goods team fallback selection
         bool requiresAssessment;
-        bytes32 assessmentUID;           // attached v2/v3 assessment; zero until attached
-        bytes32 needUID;                 // community Need this commitment addresses; 0 = none (amendment 2026-07-04)
-        uint256 counterCommitmentId;     // same-pool commitment this one is made in exchange for; 0 = none; one-way, immutable (amendment 2026-08-01)
-        string metadataCID;              // terms/description payload (IPFS)
+        bytes32 assessmentUID; // attached v2/v3 assessment; zero until attached
+        bytes32 needUID; // community Need this commitment addresses; 0 = none (amendment 2026-07-04)
+        uint256 counterCommitmentId; // same-pool commitment this one is made in exchange for; 0 = none; one-way, immutable
+            // (amendment 2026-08-01)
+        string metadataCID; // terms/description payload (IPFS)
         DeclaredReward reward;
-        uint256 declaredUnitValue;       // relative value of one unit against declaredValueBasis; 0 = undeclared (amendment 2026-08-01)
-        string declaredValueBasis;       // exact-label basis ("G$", "USD"); empty = undeclared; pair-bound with declaredUnitValue
+        uint256 declaredUnitValue; // relative value of one unit against declaredValueBasis; 0 = undeclared (amendment
+            // 2026-08-01)
+        string declaredValueBasis; // exact-label basis ("G$", "USD"); empty = undeclared; pair-bound with declaredUnitValue
         bool rewardPaid;
         CommitmentState preDisputeState; // exact state captured by raiseDispute
-        address providerGarden;          // EAS recipient and provider-role scope
+        address providerGarden; // EAS recipient and provider-role scope
         // RESERVED post-MVP garden-to-garden (L3); never written in MVP:
         uint256 counterpartyPoolId;
         address counterpartyGardenAccount;
     }
 
     struct PendingClaim {
-        address claimant;                // canonical key: individual caller or GardenAccount
-        address requestedBy;             // authenticated caller; differs for Garden claims
+        address claimant; // canonical key: individual caller or GardenAccount
+        address requestedBy; // authenticated caller; differs for Garden claims
         ClaimType kind;
         address gardenContext;
         uint64 requestedAt;
@@ -183,36 +252,37 @@ interface ICommitmentPoolingModule {
     struct CreateCommitmentParams {
         uint256 poolId;
         uint256 cycleId;
-        bytes32 creationRequestKey;       // non-zero, creator-scoped, persisted before first send
-        uint256 commitmentSeriesId;       // 0 = one-shot; non-zero is Active, same-pool, direct-holder Offer only
+        bytes32 creationRequestKey; // non-zero, creator-scoped, persisted before first send
+        uint256 commitmentSeriesId; // 0 = one-shot; non-zero is Active, same-pool, direct-holder Offer only
         CommitmentDirection direction;
         CommitmentType commitmentType;
         ClaimType claimType;
         ClaimMode claimMode;
         ContributorPolicy contributorPolicy;
-        address onBehalfOf;              // StewardCaptured only: the gardener who made the promise
-        uint8[] domainTags;               // non-DomainImpact optional tags; DomainImpact derives tags
+        address onBehalfOf; // StewardCaptured only: the gardener who made the promise
+        uint8[] domainTags; // non-DomainImpact optional tags; DomainImpact derives tags
         CommitmentRequirementInput[] requirements; // caller supplies only immutable requirement facts
         string unitLabel;
         uint256 targetUnits;
         bool requiresAssessment;
         uint64 dueDate;
         string metadataCID;
-        bytes32 needUID;                 // 0 = none; stored as-is, module never reads EAS (amendment 2026-07-04)
-        uint256 counterCommitmentId;     // 0 = none; must exist in the same pool; immutable one-way reference (amendment 2026-08-01)
-        address[] confirmers;            // empty = Offer recipient / Request creator default
-        uint32 confirmationThreshold;    // ignored (forced 1) when confirmers is empty
-        bool protocolFallbackEnabled;    // explicit structural fallback through registered protocol-pool Hats
+        bytes32 needUID; // 0 = none; stored as-is, module never reads EAS (amendment 2026-07-04)
+        uint256 counterCommitmentId; // 0 = none; must exist in the same pool; immutable one-way reference (amendment
+            // 2026-08-01)
+        address[] confirmers; // empty = Offer recipient / Request creator default
+        uint32 confirmationThreshold; // ignored (forced 1) when confirmers is empty
+        bool protocolFallbackEnabled; // explicit structural fallback through registered protocol-pool Hats
         DeclaredReward reward;
-        uint256 declaredUnitValue;       // 0 = undeclared; pair-bound with declaredValueBasis (amendment 2026-08-01)
-        string declaredValueBasis;       // empty = undeclared; exact-label identity like unitLabel
+        uint256 declaredUnitValue; // 0 = undeclared; pair-bound with declaredValueBasis (amendment 2026-08-01)
+        string declaredValueBasis; // empty = undeclared; exact-label identity like unitLabel
     }
 
     struct ContributorRecord {
         bool active;
         uint32 uncountedLinkedWorkCount;
         uint32 approvedWorkCredits;
-        uint32 evidenceCredits;           // canonical 0-or-1 recognition credit; evidence provenance remains repeatable
+        uint32 evidenceCredits; // canonical 0-or-1 recognition credit; evidence provenance remains repeatable
     }
 
     struct RecognitionEntry {
@@ -260,25 +330,29 @@ interface ICommitmentPoolingModule {
     event CycleCancelled(uint256 indexed cycleId, uint256 indexed poolId, string reasonCID);
 
     event CommitmentSeriesCreated(
-        uint256 indexed seriesId,
-        uint256 indexed poolId,
-        address indexed holder,
-        string metadataCID
+        uint256 indexed seriesId, uint256 indexed poolId, address indexed holder, string metadataCID
     );
     event CommitmentSeriesMetadataUpdated(uint256 indexed seriesId, string metadataCID);
     event CommitmentSeriesRested(uint256 indexed seriesId);
     event CommitmentSeriesResumed(uint256 indexed seriesId);
     event CommitmentSeriesRetired(uint256 indexed seriesId);
 
-    event CommitmentCreated(
+    // creator-scoped sender-safe replay identity
+    // the exact stored §6.1 creation preimage hash (amendment 2026-08-05)
+    // msg.sender; differs from creator for StewardCaptured
+    // 0 = none; non-indexed (3-indexed budget spent); Envio reads params regardless (amendment 2026-07-04)
+    // 0 = none; same-pool exchange reference (amendment 2026-08-01)
+    // 0 = undeclared (amendment 2026-08-01)
+    // empty = undeclared; exact-label basis
+    event CommitmentCreated( // 0 = one-shot; non-indexed (3-indexed budget spent)
         uint256 indexed commitmentId,
         uint256 indexed poolId,
         uint256 indexed cycleId,
-        uint256 commitmentSeriesId,  // 0 = one-shot; non-indexed (3-indexed budget spent)
-        bytes32 creationRequestKey,   // creator-scoped sender-safe replay identity
-        bytes32 creationPayloadHash,  // the exact stored §6.1 creation preimage hash (amendment 2026-08-05)
+        uint256 commitmentSeriesId,
+        bytes32 creationRequestKey,
+        bytes32 creationPayloadHash,
         address creator,
-        address recordedBy,          // msg.sender; differs from creator for StewardCaptured
+        address recordedBy,
         CommitmentDirection direction,
         CommitmentType commitmentType,
         ClaimType claimType,
@@ -293,25 +367,16 @@ interface ICommitmentPoolingModule {
         bool requiresAssessment,
         uint64 dueDate,
         string metadataCID,
-        bytes32 needUID,             // 0 = none; non-indexed (3-indexed budget spent); Envio reads params regardless (amendment 2026-07-04)
-        uint256 counterCommitmentId, // 0 = none; same-pool exchange reference (amendment 2026-08-01)
-        uint256 declaredUnitValue,   // 0 = undeclared (amendment 2026-08-01)
-        string declaredValueBasis    // empty = undeclared; exact-label basis
+        bytes32 needUID,
+        uint256 counterCommitmentId,
+        uint256 declaredUnitValue,
+        string declaredValueBasis
     );
-    event RewardDeclared(
-        uint256 indexed commitmentId,
-        RewardRail rail,
-        address source,
-        address token,
-        uint256 amount
-    );
+    event RewardDeclared(uint256 indexed commitmentId, RewardRail rail, address source, address token, uint256 amount);
     /// @notice Pre-acceptance valuation update (amendment 2026-08-01); mirrors RewardDeclared.
     event ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis);
     event ConfirmerRuleSet(
-        uint256 indexed commitmentId,
-        address[] confirmers,
-        uint32 threshold,
-        bool protocolFallbackEnabled
+        uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled
     );
     event ClaimRequested(
         uint256 indexed commitmentId,
@@ -338,21 +403,10 @@ interface ICommitmentPoolingModule {
         address indexed acceptorA,
         address acceptorB
     );
-    event ContributorAdded(
-        uint256 indexed commitmentId,
-        address indexed contributor,
-        address indexed addedBy
-    );
-    event ContributorRemoved(
-        uint256 indexed commitmentId,
-        address indexed contributor,
-        address indexed removedBy
-    );
+    event ContributorAdded(uint256 indexed commitmentId, address indexed contributor, address indexed addedBy);
+    event ContributorRemoved(uint256 indexed commitmentId, address indexed contributor, address indexed removedBy);
     event ContributorRequirementAssigned(
-        uint256 indexed commitmentId,
-        address indexed contributor,
-        uint16 indexed requirementIndex,
-        bool assigned
+        uint256 indexed commitmentId, address indexed contributor, uint16 indexed requirementIndex, bool assigned
     );
     event ContributorRosterFrozen(uint256 indexed commitmentId, uint32 contributorCount);
     event WorkLinked(
@@ -392,10 +446,7 @@ interface ICommitmentPoolingModule {
     );
     /// @notice Lightweight evidence (register #20); offline-queueable write.
     event EvidenceAttached(
-        uint256 indexed commitmentId,
-        string cid,
-        address indexed attacher,
-        address[] creditedContributors
+        uint256 indexed commitmentId, string cid, address indexed attacher, address[] creditedContributors
     );
     event AssessmentAttached(uint256 indexed commitmentId, bytes32 indexed assessmentUID, address attacher);
     event CommitmentReadyForConfirmation(uint256 indexed commitmentId, bool overridden, string reason);
@@ -403,10 +454,7 @@ interface ICommitmentPoolingModule {
         uint256 indexed commitmentId, address indexed confirmer, uint32 confirmationCount, uint32 threshold
     );
     event CommitmentFulfilled(
-        uint256 indexed commitmentId,
-        address indexed confirmer,
-        ConfirmationPath confirmationPath,
-        string reason
+        uint256 indexed commitmentId, address indexed confirmer, ConfirmationPath confirmationPath, string reason
     );
     event CommitmentCancelled(uint256 indexed commitmentId, address indexed canceller, string reasonCID);
     event CommitmentExpired(uint256 indexed commitmentId, address indexed caller);
@@ -414,45 +462,36 @@ interface ICommitmentPoolingModule {
         uint256 indexed commitmentId, address indexed raiser, CommitmentState previousState, string reasonCID
     );
     event DisputeResolved(
-        uint256 indexed commitmentId,
-        DisputeResolution resolution,
-        CommitmentState finalState,
-        string reasonCID
+        uint256 indexed commitmentId, DisputeResolution resolution, CommitmentState finalState, string reasonCID
     );
     /// @notice Payout executed on existing rails and recorded here (register #18).
-      event RewardPaid(
-          uint256 indexed commitmentId,
+    event RewardPaid(
+        uint256 indexed commitmentId,
         address indexed source,
         address indexed recipient,
         address token,
         uint256 amount,
         bytes32 payoutRef,
-          address recordedBy
-      );
-      event ModuleDependencyUpdated(
-          ModuleDependency indexed dependency,
-          address indexed previousAddress,
-          address indexed newAddress
-      );
-      event ModuleSchemaUIDUpdated(
-          ModuleSchemaKind indexed schemaKind,
-          bytes32 previousUID,
-          bytes32 newUID
-      );
-      event ModulePauseStatusChanged(bool previousPaused, bool paused);
+        address recordedBy
+    );
+    event ModuleDependencyUpdated(
+        ModuleDependency indexed dependency, address indexed previousAddress, address indexed newAddress
+    );
+    event ModuleSchemaUIDUpdated(ModuleSchemaKind indexed schemaKind, bytes32 previousUID, bytes32 newUID);
+    event ModulePauseStatusChanged(bool previousPaused, bool paused);
 
     // ═════════════════════════════ Errors ════════════════════════════
 
     error UnauthorizedCaller(address caller);
     error NotPoolSteward(address caller, uint256 poolId);
-      error ModulePaused();
-      error ModuleMustBePaused();
-      error ModuleNotReady();
-      error ZeroAddress();
-      error RootGardenRequired();
-      error ProtocolGardenMismatch(address expectedRootGarden, address suppliedGarden);
-      error SchemaUIDRequired(ModuleSchemaKind schemaKind);
-      error SchemaUIDCollision(bytes32 uid);
+    error ModulePaused();
+    error ModuleMustBePaused();
+    error ModuleNotReady();
+    error ZeroAddress();
+    error RootGardenRequired();
+    error ProtocolGardenMismatch(address expectedRootGarden, address suppliedGarden);
+    error SchemaUIDRequired(ModuleSchemaKind schemaKind);
+    error SchemaUIDCollision(bytes32 uid);
     error PoolExists(address garden);
     error UnknownPool(uint256 poolId);
     error PoolNotInState(uint256 poolId, PoolState actual);
@@ -488,9 +527,9 @@ interface ICommitmentPoolingModule {
     error SelfCounterparty(); // creator cannot be the canonical claimant or authenticated Garden requester
     error SelfConfirmation(); // provider cannot confirm own fulfillment (WorkApproval SelfAttestation precedent)
     error NotConfirmer(address caller);
-      error AlreadyConfirmed(address confirmer);
-      error InvalidConfirmerRule();
-      error TooManyConfirmers(uint256 supplied, uint256 maximum);
+    error AlreadyConfirmed(address confirmer);
+    error InvalidConfirmerRule();
+    error TooManyConfirmers(uint256 supplied, uint256 maximum);
     error InvalidWorkAttestation(bytes32 workUID);
     error InvalidApprovalAttestation(bytes32 approvalUID);
     error InvalidAssessmentAttestation(bytes32 assessmentUID);
@@ -520,25 +559,23 @@ interface ICommitmentPoolingModule {
     error SelfCounterCommitment();
     error ExchangeCounterpartMismatch(uint256 exchangeCommitmentId);
     error ExchangeDirectionInvalid(
-        uint256 commitmentIdA,
-        uint256 commitmentIdB,
-        CommitmentDirection directionA,
-        CommitmentDirection directionB
+        uint256 commitmentIdA, uint256 commitmentIdB, CommitmentDirection directionA, CommitmentDirection directionB
     );
     error ExchangeStateInvalid(uint256 commitmentId, CommitmentState actual);
     error SelfExchange(address creator);
     error ExchangeClaimTypeUnsupported(uint256 commitmentId, ClaimType actual);
     error ExchangeCreatorConsentRequired(uint256 exchangeCommitmentId);
-      error ReasonRequired();
-      error UnitLabelRequired();
-      error TargetUnitsRequired();
-      error InvalidDomains();
+    error ReasonRequired();
+    error UnitLabelRequired();
+    error TargetUnitsRequired();
+    error InvalidDomains();
     error InvalidRequirementCount(uint256 requirementIndex);
     error TooManyRequirements(uint256 supplied, uint256 maximum);
     error ContributorAlreadyActive(address contributor);
     error ContributorNotActive(address contributor);
     error NotEligibleContributor(address contributor);
-    error RosterAlreadyFrozen(uint256 commitmentId); // NOT ContributorRosterFrozen: Solidity gives events and errors one declaration namespace, so the event name above cannot be reused here
+    error RosterAlreadyFrozen(uint256 commitmentId); // NOT ContributorRosterFrozen: Solidity gives events and errors one
+        // declaration namespace, so the event name above cannot be reused here
     error ContributorPolicyMismatch(uint256 commitmentId);
     error LeadContributorCannotLeave(uint256 commitmentId);
     error ContributorHasCredit(address contributor);
@@ -595,12 +632,15 @@ interface ICommitmentPoolingModule {
         uint64 startTime,
         uint64 endTime,
         string calldata metadataCID
-    ) external returns (uint256 cycleId);
+    )
+        external
+        returns (uint256 cycleId);
     function openCycle(
         uint256 cycleId,
         AllocationBps calldata allocation,
         RecognitionPolicy calldata recognitionPolicy
-    ) external;
+    )
+        external;
     /// @notice Reconciliation is O(1): the cycle must be Open and its
     ///         liveCommitmentCount must be zero. Creation increments the count
     ///         for a non-zero cycle; Fulfilled, Cancelled, or Expired decrements
@@ -620,7 +660,9 @@ interface ICommitmentPoolingModule {
         uint256 poolId,
         bytes32 creationRequestKey,
         string calldata metadataCID
-    ) external returns (uint256 seriesId);
+    )
+        external
+        returns (uint256 seriesId);
     function updateCommitmentSeriesMetadata(uint256 seriesId, string calldata metadataCID) external;
     function restCommitmentSeries(uint256 seriesId) external;
     function resumeCommitmentSeries(uint256 seriesId) external;
@@ -653,7 +695,10 @@ interface ICommitmentPoolingModule {
     function getCommitmentIdByCreationRequest(
         address creator,
         bytes32 creationRequestKey
-    ) external view returns (uint256 commitmentId);
+    )
+        external
+        view
+        returns (uint256 commitmentId);
 
     /// @notice Forwards to the module-only register setter. Gating: pool
     ///         steward; cap is a non-zero concurrent commitment count and is
@@ -664,13 +709,19 @@ interface ICommitmentPoolingModule {
     function setDeclaredReward(uint256 commitmentId, DeclaredReward calldata reward) external;
     /// @notice Gating: pool steward, pre-acceptance only. Records-only valuation
     ///         term (decision 16); pair rule enforced, nothing derived on-chain.
-    function setDeclaredValue(uint256 commitmentId, uint256 declaredUnitValue, string calldata declaredValueBasis) external;
+    function setDeclaredValue(
+        uint256 commitmentId,
+        uint256 declaredUnitValue,
+        string calldata declaredValueBasis
+    )
+        external;
     function setConfirmerRule(
         uint256 commitmentId,
         address[] calldata confirmers,
         uint32 threshold,
         bool protocolFallbackEnabled
-    ) external;
+    )
+        external;
 
     /// @notice Claim eligibility (register #7, register #8):
     ///         Garden pools: caller must hold any role hat in the pool garden
@@ -735,7 +786,8 @@ interface ICommitmentPoolingModule {
         address contributor,
         uint16 requirementIndex,
         bool assigned
-    ) external;
+    )
+        external;
 
     // ─────────────── Work linkage + EAS bridge (register #5) ─────────
 
@@ -750,18 +802,16 @@ interface ICommitmentPoolingModule {
     ///         on-chain state Accepted and contributorsFrozen == false.
     ///         operationKey is non-zero and caller-scoped. Exact payload replay
     ///         is a no-op even after a later unlink; conflicting reuse reverts.
-    function linkWork(
-        uint256 commitmentId,
-        bytes32 workUID,
-        uint16 requirementIndex,
-        bytes32 operationKey
-    ) external;
+    function linkWork(uint256 commitmentId, bytes32 workUID, uint16 requirementIndex, bytes32 operationKey) external;
 
     /// @notice Read-through for an interrupted offline Work-link send.
     function getWorkLinkOperationPayloadHash(
         address caller,
         bytes32 operationKey
-    ) external view returns (bytes32 payloadHash);
+    )
+        external
+        view
+        returns (bytes32 payloadHash);
 
     /// @notice Gating: pool steward; on-chain state Accepted, roster/credit
     ///         ledger unfrozen, and the Work's current effective credit inactive.
@@ -784,7 +834,8 @@ interface ICommitmentPoolingModule {
         uint64 decisionSequence,
         address garden,
         bool approved
-    ) external;
+    )
+        external;
 
     /// @notice Steward-callable catch-up when resolver hooks were missed.
     ///         Verifies every decision UID through EAS and loads its non-zero,
@@ -816,7 +867,10 @@ interface ICommitmentPoolingModule {
         uint256 commitmentId,
         RecognitionEntry[] calldata entries,
         bytes32 suppliedHash
-    ) external view returns (bytes32 canonicalHash);
+    )
+        external
+        view
+        returns (bytes32 canonicalHash);
 
     // ─────────────── Evidence, assessment, confirmation ──────────────
 
@@ -830,11 +884,7 @@ interface ICommitmentPoolingModule {
     ///         The credit becomes recognition-eligible only after Fulfilled.
     ///         Offline-queueable; a job that lands after freeze fails visibly
     ///         and never changes credit.
-    function attachEvidence(
-        uint256 commitmentId,
-        string calldata cid,
-        address[] calldata creditedContributors
-    ) external;
+    function attachEvidence(uint256 commitmentId, string calldata cid, address[] calldata creditedContributors) external;
 
     /// @notice Verifies via eas.getAttestation: schema is legacyAssessmentSchemaUID
     ///         or assessmentV3SchemaUID, recipient == providerGarden.
@@ -911,21 +961,22 @@ interface ICommitmentPoolingModule {
     function getCommitmentSeriesIdByCreationRequest(
         address holder,
         bytes32 creationRequestKey
-    ) external view returns (uint256 seriesId);
+    )
+        external
+        view
+        returns (uint256 seriesId);
     function getCommitment(uint256 commitmentId) external view returns (Commitment memory);
     function getRequirement(
         uint256 commitmentId,
         uint16 requirementIndex
-    ) external view returns (CommitmentRequirement memory);
-    function getContributor(
-        uint256 commitmentId,
-        address contributor
-    ) external view returns (ContributorRecord memory);
+    )
+        external
+        view
+        returns (CommitmentRequirement memory);
+    function getContributor(uint256 commitmentId, address contributor) external view returns (ContributorRecord memory);
     function isContributor(uint256 commitmentId, address contributor) external view returns (bool);
-    function isEligibleContributor(
-        uint256 commitmentId,
-        address contributor
-    ) external view returns (bool); // Fulfilled + frozen active roster + Work/evidence credit
+    function isEligibleContributor(uint256 commitmentId, address contributor) external view returns (bool); // Fulfilled +
+        // frozen active roster + Work/evidence credit
     function getPendingClaim(uint256 commitmentId, address claimant) external view returns (PendingClaim memory);
     function getConfirmers(uint256 commitmentId) external view returns (address[] memory);
     function protocolPoolId() external view returns (uint256);
@@ -964,7 +1015,8 @@ interface ICommitmentPoolingModule {
         bytes32 workApprovalUID,
         bytes32 legacyAssessmentUID,
         bytes32 assessmentV3UID
-    ) external;
+    )
+        external;
     /// @notice Pausing is always available to the owner. Unpause requires all
     ///         six dependencies plus four non-zero, pairwise-distinct schema
     ///         UIDs and otherwise reverts ModuleNotReady.

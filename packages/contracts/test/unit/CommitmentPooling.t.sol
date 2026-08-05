@@ -20,8 +20,7 @@ contract CommitmentPoolingTest is Test {
 
     function setUp() public {
         address implementation = deployCode("CommitmentPooling.sol:CommitmentPoolingModule");
-        bytes memory initData =
-            abi.encodeWithSelector(ICommitmentPoolingModule.initialize.selector, OWNER, ROOT_GARDEN);
+        bytes memory initData = abi.encodeWithSelector(ICommitmentPoolingModule.initialize.selector, OWNER, ROOT_GARDEN);
         module = IOwnableCommitmentPoolingModule(address(new ERC1967Proxy(implementation, initData)));
     }
 
@@ -33,8 +32,7 @@ contract CommitmentPoolingTest is Test {
 
     function testInitializerRejectsZeroRoot() public {
         address implementation = deployCode("CommitmentPooling.sol:CommitmentPoolingModule");
-        bytes memory initData =
-            abi.encodeWithSelector(ICommitmentPoolingModule.initialize.selector, OWNER, address(0));
+        bytes memory initData = abi.encodeWithSelector(ICommitmentPoolingModule.initialize.selector, OWNER, address(0));
 
         vm.expectRevert(ICommitmentPoolingModule.RootGardenRequired.selector);
         new ERC1967Proxy(implementation, initData);
@@ -50,8 +48,8 @@ contract CommitmentPoolingTest is Test {
 
     function testCyclelessRecognitionPolicyIsFrozenTwentyEighty() public {
         ICommitmentPoolingModule.RecognitionPolicy memory policy = module.cyclelessRecognitionPolicy();
-        assertEq(policy.equalParticipationBps, 2_000);
-        assertEq(policy.verifiedContributionBps, 8_000);
+        assertEq(policy.equalParticipationBps, 2000);
+        assertEq(policy.verifiedContributionBps, 8000);
     }
 
     function testCreationRequestReadThroughStartsUnseen() public {

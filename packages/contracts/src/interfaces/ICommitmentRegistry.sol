@@ -19,10 +19,10 @@ interface ICommitmentRegistry {
 
     struct CommitmentClass {
         uint256 poolId;
-        uint256 cycleId;         // 0 = cycle-less; emitted so indexers never infer it
+        uint256 cycleId; // 0 = cycle-less; emitted so indexers never infer it
         string unitLabel;
-        uint256 quota;           // LIMITING: hard cap on committed units for this class
-        uint256 totalCommitted;  // live open exposure for this class
+        uint256 quota; // LIMITING: hard cap on committed units for this class
+        uint256 totalCommitted; // live open exposure for this class
         uint256 totalFulfilled;
         AccountingState accountingState; // exact single-shot slot lifecycle
         bool exists;
@@ -31,17 +31,43 @@ interface ICommitmentRegistry {
     // ═════════════════════════════ Events ════════════════════════════
 
     event ModuleUpdated(address indexed oldModule, address indexed newModule);
-    event ClassRegistered(uint256 indexed classId, uint256 indexed poolId, uint256 cycleId, string unitLabel, uint256 quota);
+    event ClassRegistered(
+        uint256 indexed classId, uint256 indexed poolId, uint256 cycleId, string unitLabel, uint256 quota
+    );
     event ProviderOpenCommitmentCapUpdated(uint256 indexed poolId, uint256 cap);
-    event UnitsCommitted(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted);
-    event UnitsReleased(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted);
-    event UnitsFulfilled(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalFulfilled);
+    event UnitsCommitted(
+        uint256 indexed classId,
+        uint256 indexed poolId,
+        address indexed account,
+        uint256 cycleId,
+        string unitLabel,
+        uint256 units,
+        uint256 totalCommitted
+    );
+    event UnitsReleased(
+        uint256 indexed classId,
+        uint256 indexed poolId,
+        address indexed account,
+        uint256 cycleId,
+        string unitLabel,
+        uint256 units,
+        uint256 totalCommitted
+    );
+    event UnitsFulfilled(
+        uint256 indexed classId,
+        uint256 indexed poolId,
+        address indexed account,
+        uint256 cycleId,
+        string unitLabel,
+        uint256 units,
+        uint256 totalFulfilled
+    );
 
     // ═════════════════════════════ Errors ════════════════════════════
 
-      error NotModule(address caller);
-      error ModuleMustBePaused(address currentModule);
-      error ZeroAddress();
+    error NotModule(address caller);
+    error ModuleMustBePaused(address currentModule);
+    error ZeroAddress();
     error UnitLabelRequired();
     error QuotaRequired();
     error OpenCommitmentCapRequired(uint256 poolId);
@@ -55,7 +81,14 @@ interface ICommitmentRegistry {
 
     // ══════════════════════ Mutations (onlyModule) ═══════════════════
 
-    function registerClass(uint256 classId, uint256 poolId, uint256 cycleId, string calldata unitLabel, uint256 quota) external;
+    function registerClass(
+        uint256 classId,
+        uint256 poolId,
+        uint256 cycleId,
+        string calldata unitLabel,
+        uint256 quota
+    )
+        external;
     /// @notice Sets the non-zero concurrent commitment-count cap for a pool.
     ///         An authorized zero value reverts OpenCommitmentCapRequired(poolId)
     ///         before event emission or storage mutation.
