@@ -588,6 +588,7 @@ interface ICommitmentPoolingModule {
         uint256 indexed cycleId,
         uint256 commitmentSeriesId,  // 0 = one-shot; non-indexed (3-indexed budget spent)
         bytes32 creationRequestKey,   // creator-scoped sender-safe replay identity
+        bytes32 creationPayloadHash,  // the exact stored §6.1 creation preimage hash (amendment 2026-08-05)
         address creator,
         address recordedBy,          // msg.sender; differs from creator for StewardCaptured
         CommitmentDirection direction,
@@ -952,7 +953,9 @@ interface ICommitmentPoolingModule {
     ///         same-pool Offered Individual Offer with a distinct creator and an
     ///         exact full reservation still Committed to A's creator.
     ///         creationRequestKey is non-zero and scoped to the direct creator.
-    ///         First use stores the full normalized payload hash. Exact replay
+    ///         First use stores the exact frozen creation preimage hash defined
+    ///         in §6.1 "Creation payload hash (frozen preimage)" and emits it in
+    ///         CommitmentCreated. Exact replay
     ///         returns the original commitmentId without a second event,
     ///         capacity reservation, class commit, or pool-live increment;
     ///         reuse with a different payload reverts.
@@ -1315,7 +1318,7 @@ retry.
 | Commitment series | `createCommitmentSeries` | current member of the pool garden, direct holder only | pool Ready or Open; non-zero holder-scoped `creationRequestKey`; non-empty metadata; caller becomes immutable `createdBy` and initial `currentHolder`. First use stores `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))`; exact replay returns the existing `seriesId` without mutation/event, while the same holder/key with a different payload reverts `SeriesCreationRequestConflict`. |
 | Commitment series | `updateCommitmentSeriesMetadata` | current holder | Active or Resting; non-empty metadata; prior and open Commitment instances remain unchanged |
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the full normalized payload hash and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the exact frozen preimage hash from §6.1 "Creation payload hash (frozen preimage)", emits it in `CommitmentCreated`, and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
 | Commitment | `setDeclaredReward` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
@@ -1373,6 +1376,71 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 | Assessment v3 — Delta / Technical | garden evaluator only |
 | Community testimony | Community Hat only (first real attestation gate for that hat) |
 | Work / WorkApproval (existing) | unchanged: gardener-or-operator / operator with no self-attestation |
+
+#### Creation payload hash (frozen preimage)
+
+**Amendment 2026-08-05.** Earlier drafts said only "full normalized payload hash", which left the
+contract implementer free to pick a preimage the client and indexer could not reproduce. The
+preimage below is now frozen, and `CommitmentCreated` **emits** `creationPayloadHash` so the
+indexer can materialize `Commitment.creationPayloadHash` from the event alone, with no RPC
+backfill. Changing either the preimage or the emission is a cross-lane ABI change: it must update
+this block, the event, the §8.1 `config.yaml` signature, Matrix A1 EO-10, and the contracts,
+indexer, and state/API handoffs together.
+
+```solidity
+// Stored by createCommitment on first use of (msg.sender-derived creator, creationRequestKey),
+// emitted in the same CommitmentCreated event, and returned inside getCommitment().
+creationPayloadHash = keccak256(
+    abi.encode(
+        params.poolId,
+        params.cycleId,
+        params.commitmentSeriesId,
+        params.direction,
+        params.commitmentType,
+        params.claimType,
+        params.claimMode,
+        params.contributorPolicy,
+        params.onBehalfOf,
+        keccak256(abi.encodePacked(params.domainTags)),      // as submitted, never as derived
+        keccak256(abi.encode(params.requirements)),
+        keccak256(bytes(params.unitLabel)),                  // exact bytes; never case-normalized
+        params.targetUnits,
+        params.requiresAssessment,
+        params.dueDate,
+        keccak256(bytes(params.metadataCID)),
+        params.needUID,
+        params.counterCommitmentId,
+        keccak256(abi.encodePacked(params.confirmers)),
+        effectiveConfirmationThreshold,                      // 1 when confirmers is empty
+        params.protocolFallbackEnabled,
+        keccak256(abi.encode(params.reward)),
+        params.declaredUnitValue,
+        keccak256(bytes(params.declaredValueBasis))
+    )
+);
+```
+
+Four rules make this reproducible by three independent implementations:
+
+1. **Every member of `CreateCommitmentParams` appears exactly once, in declaration order**, with
+   each dynamic member (`string`, array, struct) replaced by its own `keccak256`. This mirrors the
+   series rule `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))` at the permission
+   matrix's `createCommitmentSeries` row.
+2. **`creator` and `creationRequestKey` are deliberately outside the preimage.** They are the
+   mapping key (`commitmentIdByCreationRequest[creator][key]`), so including them would be
+   redundant — the same exclusion the series rule already makes for holder and key.
+3. **`domainTags` is hashed exactly as submitted, never as the ActionRegistry-derived `domains`.**
+   The hash is therefore a pure function of the caller's payload and can never drift with registry
+   state. Consequence for clients: a DomainImpact retry must resend the identical `domainTags`
+   array even though the module ignores it. The offline runner satisfies this for free because it
+   persists the exact payload before the first send and retries that same payload.
+4. **`confirmationThreshold` is hashed as the effective threshold** — forced to `1` when
+   `confirmers` is empty — so the two payloads the module treats as identical hash identically.
+
+`SeriesCreationRequestConflict` / `CommitmentCreationRequestConflict` compare this stored value
+against the recomputed one. The read-through recovery path is unchanged: clients call
+`getCommitmentIdByCreationRequest`, then `getCommitment` and compare the returned
+`creationPayloadHash` field before binding.
 
 #### Behavior notes an implementer must not miss
 
@@ -2522,7 +2590,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CommitmentSeriesRested(uint256 indexed seriesId)
       - event: CommitmentSeriesResumed(uint256 indexed seriesId)
       - event: CommitmentSeriesRetired(uint256 indexed seriesId)
-      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, bytes32 creationRequestKey, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis)
+      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, bytes32 creationRequestKey, bytes32 creationPayloadHash, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis)
       - event: RewardDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
       - event: ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis)
       - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled)
@@ -2795,7 +2863,7 @@ type Commitment {
   creationSeen: Boolean! # false only for an update-before-create placeholder
   acceptanceSeen: Boolean! # true once the unique CommitmentAccepted payload is stored, even if its lifecycle cursor is older
   creationRequestKey: String # creator-scoped sender-safe key emitted by CommitmentCreated
-  creationPayloadHash: String # full normalized immutable creation payload
+  creationPayloadHash: String # frozen §6.1 creation preimage hash, emitted by CommitmentCreated; never an RPC read
   poolId: BigInt # null until creationSeen
   poolEntityId: String # relationship: chainId-poolId; null until creationSeen
   cycleId: BigInt # null when not cycle-scoped
@@ -3006,7 +3074,7 @@ type CommitmentEvidenceAttributionIndex {
   chainId: Int!
   commitmentId: BigInt!
   commitmentEntityId: String!
-  attributionEntityIds: [String!]! # stable event order; each ID is loaded directly
+  attributionEntityIds: [String!]! # unique, lexically sorted (ER-17 + the §8.3 relationship-array rule); each ID is loaded directly. Evidence order carries no meaning, so nothing consumes insertion order — only the semantically ordered pending lifecycle projections are exempt from lexical sorting.
   updatedAt: Int!
 }
 
@@ -3285,16 +3353,19 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   Fulfilled instance in a cycle appends its composite cycle ID once. No handler computes a rate,
   score, rank, participant count, cross-pool grouping, or unit total across labels.
 - **Creation payload completeness**: `CommitmentCreated` initializes `commitmentSeriesId`,
-  its nullable composite relationship, emitted `creationRequestKey`, stored
+  its nullable composite relationship, emitted `creationRequestKey`, emitted
   `creationPayloadHash`, contributor policy, derived
   domain tags, requirement action/domain/count arrays, `requiresAssessment`, `metadataCID`, and
   `needUID` directly, and seeds one `CommitmentRequirement` row per requirement. Handlers must
   not backfill these immutable facts from RPC reads or assume defaults that differ from the event.
-  The contract mapping is creator-scoped: a non-zero first-use key stores the hash of the complete
-  normalized `CreateCommitmentParams` payload and resulting commitment ID. Exact replay returns
-  that ID without a second event or state delta. Different payload reuse reverts
+  Every one of them, `creationPayloadHash` included, is an emitted event parameter, so the
+  no-RPC rule and the required field are consistent: the handler assigns
+  `event.params.creationPayloadHash` verbatim and never recomputes, derives, or nulls it.
+  The contract mapping is creator-scoped: a non-zero first-use key stores the frozen §6.1
+  preimage hash of the `CreateCommitmentParams` payload and the resulting commitment ID. Exact
+  replay returns that ID without a second event or state delta. Different payload reuse reverts
   `CommitmentCreationRequestConflict`; the UI read-through getter must compare every immutable
-  field before binding the local record.
+  field, including the stored hash, before binding the local record.
 - **CPP-alignment term and reverse-index handlers**: `CommitmentCreated` assigns
   `counterCommitmentId`, its nullable composite `counterCommitmentEntityId`,
   `declaredUnitValue`, and `declaredValueBasis` directly from the event only when the row has no

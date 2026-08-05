@@ -45,6 +45,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `additionSeen`, and Work attribution has `linkSeen`. Base-event-only facts and unrelated cursor
   pairs are nullable until their owning event arrives; ordinary queries exclude unseen
   placeholders while handlers may load them by ID.
+  `Commitment.creationRequestKey` and `Commitment.creationPayloadHash` are both **emitted
+  parameters of `CommitmentCreated`** (amendment 2026-08-05, contract-spec §6.1 "Creation payload
+  hash (frozen preimage)"). Assign each verbatim from `event.params`. Never recompute the hash,
+  never derive it, never leave it null on a seen creation, and never satisfy it with an RPC read —
+  the no-RPC-backfill rule and this required field are consistent only because the event carries it.
   The commitment entity also carries creation key/hash, immutable acceptance position,
   `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable
   `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`,

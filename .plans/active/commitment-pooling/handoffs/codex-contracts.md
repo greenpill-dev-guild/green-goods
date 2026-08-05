@@ -512,10 +512,20 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
   the first countable approval decrements exactly once.
 - Every `createCommitment` requires a non-zero creator-scoped `creationRequestKey`, stores the
-  full normalized payload hash and resulting ID, returns the original ID without mutation/event
+  resulting ID and the **frozen** `creationPayloadHash` preimage defined in contract-spec §6.1
+  "Creation payload hash (frozen preimage)", returns the original ID without mutation/event
   on exact replay, and rejects conflicting key reuse. Pool `liveCommitmentCount` increments once
   per successful creation and follows the same reversible live/terminal transition helper.
   `closePool` requires that count and `nonTerminalCycleCount` to both be zero.
+- **`CommitmentCreated` emits `creationPayloadHash`** (amendment 2026-08-05). This is not optional
+  telemetry: the indexer's `Commitment.creationPayloadHash` has no other legal source, because
+  handler RPC backfill is prohibited. Implement the preimage byte-for-byte as specified —
+  every `CreateCommitmentParams` member once in declaration order, dynamic members pre-hashed,
+  `creator`/`creationRequestKey` excluded, `domainTags` hashed as submitted rather than derived,
+  and the effective (empty-list-forced-to-1) confirmation threshold. Add a unit test asserting the
+  emitted hash equals the value later returned by `getCommitment`, and a second asserting that a
+  same-key resend of a byte-identical payload reverts nothing and emits nothing while a
+  single-field change reverts `CommitmentCreationRequestConflict`.
 - `linkWork(commitmentId, workUID, requirementIndex, operationKey)` binds a repeated action to one exact row and
   stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
   The non-zero caller-scoped operation key stores the exact link payload hash; replay is a no-op

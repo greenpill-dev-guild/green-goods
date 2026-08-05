@@ -14,7 +14,13 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role. **This list is the index — if you add a document here, add its row.**
+Every file in this hub, by role — **131 files**: 21 at the hub root, 42 under `artifacts/`,
+19 under `handoffs/`, 17 under `hifi/`, 20 under `operations/`, and 12 under `reports/`.
+**This list is the index — if you add a document here, add its row.** Root files each get their own
+row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
+subtree is only honest if that index actually enumerates the tree (this failed review on
+2026-08-05: five root files had no row, three subtrees had no inventory at all, and the
+`handoffs/` row pointed at a README that described source order rather than listing the files).
 
 | Document | Role | Authority |
 |---|---|---|
@@ -29,7 +35,12 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `wireframes.md` | Existing CP frame headings across four surfaces; ongoing-Offer additions are pending the Claude Code artifact lane (W6 is a retirement tombstone) | **Lo-fi structural truth** |
 | `diagrams.md` | D1–D29 Mermaid execution reference (29 named sections rendering 42 Architecture Mermaid blocks; current architecture plus the future identity boundary and staged single-pool-to-federation path) | Flow truth |
 | `prototypes.md` | Numbered storyboards, guided-flow catalogue, missing-frame index, and action inventory; the ongoing-Offer journeys are realized and review-visible | Fidelity-neutral walks — **adds no design authority** |
+| `prototypes-coverage.md` | Rendered-state / hotspot / scene coverage snapshot for the prototypes artifact; the closure validator pins its three counts | Generated coverage snapshot |
+| `prototypes-artifact.build.ts` | Generator for the Flow Prototypes artifact; reads `prototypes.md` + `hifi/` | Generator — never hand-edit its output |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration; the ongoing-Offer story and architecture assets are published | Asset index |
+| `visual-assets-artifact.build.ts` | Generator for the Visual Asset Gallery: routes `diagrams.md` + `wireframes.md` into four tabs, derives every per-diagram colour/cardinality/arrow key, and enforces the section/block/key-count invariants | Generator — the gallery's build-time gate |
+| `visual-assets-prerender.ts` | Freezes each gallery Mermaid block to inline light+dark SVG and writes the one publishable file; `--verify <file>` re-checks a candidate | Deploy step — **only its output may be published** |
+| `session-state-admin-canvas.md` | Session-continuity handover for the admin-canvas work stream | Execution context — not canonical design or contract truth |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
 | `architecture-closure.validate.ts` | Machine gate for all 54 events, 26 entities, 86 module functions, eight sparse-event materialization cases, 56 executable calls, six jobs/persistence states, seven lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
@@ -45,8 +56,12 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `reports/confidential-fourth-garden-signoff-2026-07-20.md` | Name-free human absence-attestation form | **Pending human sign-off; distribution blocker** |
 | `reports/linear/linear-apply-pack.md` | Applied 2026-07-11 history plus the appended, unapplied 2026-08-01 exchange-wave section | Preserve applied history; only the dated exchange-wave section is a ready-to-apply pack after live reread |
 | `reports/linear/linear-update-pack.md` | Earlier reconciliation pack, superseded | **ARCHIVE — do not execute or re-apply** |
+| `reports/codex-readiness-review-2026-08-05.md` | Codex implementation-readiness and gallery-correctness review; its P1/P2/P3 findings are closed in this hub | **IMMUTABLE INPUT — never edit** |
 | `status.json` | Machine state for the plan harness | Machine lanes |
-| `handoffs/` | Per-lane dispatch files; `README.md` is the index, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
+| `handoffs/` (19 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 19**; `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
+| `artifacts/visuals/` (42 files) | The 21 hand-crafted SVG assets and their 2x PNG upload companions. **`visual-assets.md` is the per-asset index** — it names every file, its Google Doc placement, and what it must show. Nothing here is generated by a build script; each pair is authored | Published audience graphics |
+| `hifi/` (17 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
+| `operations/` (20 files) | Live-chain operational evidence, one directory per operation. `steward-hat-relabel/` holds the PRD-748 Steward relabel: `README.md` (its own index), the `prepare.ts` / `relabel.ts` / `refresh-direct-plan.ts` scripts, dated `preflight-*` / `steward-upgrade-baseline-*` / `direct-admin-plan-*` / `execution-partitions-*` JSON captures keyed by chain and block, plus `preflight-findings.md`, `upgrade-plan-review.md`, and `post-execution-evidence.md` | **Dated operational evidence — captures are immutable** |
 
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
 
@@ -237,6 +252,10 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     an executor-only target, never the historical full-core `deploy:celo --update-schemas`.
     Local specification corrections are complete only after validation; live Linear and source-
     document convergence remains a separate blocked, human-authorized step.
+    *(Dated entry, preserved verbatim. Superseded on one point: the `Envio v2.32.12` reference
+    above is the version that was current on 2026-07-24. The indexer now pins Envio `3.2.1`
+    via merged PR #649 (`8fd89e660` on `develop`); read the Indexer lane checklist, not this
+    line, for the version an implementer should target.)*
 55. Final documentation-review closure (2026-07-24, Afo authorization): the register-global
     `ModuleUpdated` event now has a complete, pool-less read model with explicit normalized
     old/new module fields and no accounting mutation. The indexer handoff covers pooling and
@@ -813,7 +832,8 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [x] Write `handoffs/codex-indexer.md`
 - [ ] Dispatch core indexing when pooling events freeze; hold only settlement handlers for settlement event freeze. Record snapshot, switch criterion, rollback package, and Afolabi Aiyeloja as accountable live-cutover owner
 - [ ] Planning readiness: self-describing unit events, `421614` placement, canonical settlement
-  ERD, Envio v2 multichain behavior, first-event seeds, and Celo RPC mode are frozen locally;
+  ERD, the Envio `3.2.1` multichain/replay behavior proven by merged PR #649 (`8fd89e660` on
+  `develop`), first-event seeds, and Celo RPC mode are frozen locally;
   mirror convergence and event freeze still gate dispatch.
 
 ### State / API (`codex/state-api/commitment-pooling`): PRD-723 (historical labels PRD-674/679 shared half)
