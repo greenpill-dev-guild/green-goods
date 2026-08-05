@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,6 +22,7 @@ const coverage = read("prototypes-coverage.md");
 const wireframes = read("wireframes.md");
 const plan = read("plan.todo.md");
 const status = read("status.json");
+const handoffsReadme = read("handoffs/README.md");
 const contractHandoff = read("handoffs/codex-contracts.md");
 const indexerHandoff = read("handoffs/codex-indexer.md");
 const stateHandoff = read("handoffs/codex-state-api.md");
@@ -225,9 +226,90 @@ for (const id of ["LC-01", "LC-02", "LC-03", "LC-04", "LC-05", "LC-06", "LC-07"]
   require(matrix.includes(id), `${id} is missing from Matrix D`);
 }
 
+// P2-5 (2026-08-05): both hub indexes claimed exhaustiveness and were not exhaustive — five root
+// files had no document-map row, and the handoffs README described source order instead of listing
+// its files. Enumerate the real directories and require a row for each, so an index can never
+// again promise more than it delivers.
+const documentMap = section(plan, "## Document map", "**Published artifacts**");
+for (const entry of readdirSync(join(here, "."), { withFileTypes: true })) {
+  if (!entry.isFile() || entry.name.startsWith(".")) continue;
+  require(
+    documentMap.includes(`\`${entry.name}\``),
+    `document map has no row for hub root file ${entry.name}`,
+  );
+}
+for (const subtree of ["artifacts", "handoffs", "hifi", "operations", "reports"]) {
+  require(documentMap.includes(`\`${subtree}/`), `document map has no index row for the ${subtree}/ subtree`);
+}
+const handoffIndex = section(handoffsReadme, "## File index", "## Source order");
+for (const entry of readdirSync(join(here, "handoffs"), { withFileTypes: true })) {
+  if (!entry.isFile() || entry.name.startsWith(".")) continue;
+  require(
+    handoffIndex.includes(`\`${entry.name}\``),
+    `handoffs/README.md file index has no row for ${entry.name}`,
+  );
+}
+
+// P2-1 (2026-08-05): the gallery's sensitive-action table calls itself the exact function-level
+// authorization source. It had drifted by twelve mutations. Assert set inclusion against the
+// canonical matrix's Function column so a new mutating entry point cannot land in one and not
+// the other.
+const canonicalPermissionMatrix = section(
+  contract,
+  "#### Permission matrix (the gating table)",
+  "#### Creation payload hash (frozen preimage)",
+);
+const canonicalGatedFunctions = new Set<string>();
+for (const line of canonicalPermissionMatrix.split("\n")) {
+  if (!line.startsWith("| ")) continue;
+  const cells = line.split("|");
+  if (cells.length < 4) continue;
+  for (const name of namesInBackticks(cells[2] ?? "")) canonicalGatedFunctions.add(name);
+}
+require(canonicalGatedFunctions.size > 0, "canonical permission matrix produced no function names");
+const galleryPermissionTable = section(diagrams, "## Sensitive-action permission table", "## D27.");
+for (const functionName of canonicalGatedFunctions) {
+  require(
+    galleryPermissionTable.includes(`\`${functionName}\``),
+    `gallery permission table omits canonical gated function ${functionName}`,
+  );
+}
+
+const commitmentCreatedDeclaration = (() => {
+  const from = contract.indexOf("event CommitmentCreated(");
+  require(from >= 0, "the Solidity CommitmentCreated event declaration is missing");
+  if (from < 0) return "";
+  const to = contract.indexOf(");", from);
+  require(to > from, "the Solidity CommitmentCreated event declaration is unterminated");
+  return to > from ? contract.slice(from, to) : "";
+})();
+
 const sourceChecks: Array<[boolean, string]> = [
   [contract.includes("mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId))"), "commitment creation-key mapping is missing"],
   [contract.includes("CommitmentCreationRequestConflict"), "commitment creation-key conflict error is missing"],
+  // P1-1 (2026-08-05): the indexed creationPayloadHash must have an event source. Assert the
+  // frozen preimage exists AND that both the Solidity event and the config.yaml signature emit it,
+  // so no future edit can reintroduce an indexed field with no legal materialization path.
+  [
+    contract.includes('#### Creation payload hash (frozen preimage)') &&
+      /creationPayloadHash = keccak256\(/.test(contract),
+    "the frozen creation-payload preimage is missing from contract-spec §6.1",
+  ],
+  // Scope this to the declaration itself. A `[\s\S]*?` span between the event name and the field
+  // name is not a check at all: it happily matches from the Solidity event forward to the
+  // config.yaml signature further down the file, and passes with the parameter deleted.
+  [
+    commitmentCreatedDeclaration.includes("bytes32 creationPayloadHash"),
+    "CommitmentCreated does not emit creationPayloadHash",
+  ],
+  [
+    /- event: CommitmentCreated\([^\n]*bytes32 creationPayloadHash/.test(contract),
+    "the config.yaml CommitmentCreated signature does not emit creationPayloadHash",
+  ],
+  [
+    indexerHandoff.includes("creationPayloadHash") && indexerHandoff.includes("never satisfy it with an RPC read"),
+    "indexer handoff does not bind creationPayloadHash to the emitted event",
+  ],
   [contract.includes("PoolHasLiveCommitments"), "pool zero-live close error is missing"],
   [contract.includes("PoolHasNonTerminalCycles"), "pool zero-cycle close error is missing"],
   [/struct Pool \{[\s\S]*liveCommitmentCount/.test(contract), "Pool.liveCommitmentCount is missing from the contract struct"],
@@ -315,6 +397,10 @@ const sourceChecks: Array<[boolean, string]> = [
     "acceptance matrix lacks late-claim convergence",
   ],
   [diagrams.includes("linkWork(commitmentId, workUID, requirementIndex, operationKey)"), "diagrams use the old Work-link signature"],
+  [
+    /\|\s*`submitForConfirmation`\s*\|[^|]*lead provider/.test(diagrams),
+    "the gallery submitForConfirmation row omits the accountable lead provider",
+  ],
   [diagrams.includes("pool.nonTerminalCycleCount = 0"), "diagrams omit the pool cycle-close guard"],
   [
     diagrams.includes("Sixteen core NET-NEW pooling entities plus ten auxiliary") &&
@@ -365,6 +451,21 @@ const sourceChecks: Array<[boolean, string]> = [
     "indexer handoff omits closure entities or reverse-delivered claims",
   ],
   [stateHandoff.includes("clientCommitmentId") && stateHandoff.includes("OFFLINE_LOCAL"), "state/API handoff omits retry or persistence truth"],
+  // P1-2 (2026-08-05): the PoolMemberHistory disclosure rule used to live only in prose inputs.
+  // Require it to be an output, an acceptance bullet, and a RED test, so the lane cannot turn
+  // GREEN while exposing participant rows to the wrong viewer.
+  [
+    section(stateHandoff, "## Outputs", "## Acceptance").includes("usePoolMemberHistory") &&
+      section(stateHandoff, "## Acceptance", "## RED / GREEN").includes("usePoolMemberHistory") &&
+      section(stateHandoff, "## RED / GREEN", "## Exact Bun commands").includes("usePoolMemberHistory"),
+    "PoolMemberHistory disclosure is not bound to state/API outputs, acceptance, and RED tests",
+  ],
+  [
+    stateHandoff.includes("usePoolParticipationSummary") &&
+      /former.{0,40}steward/i.test(stateHandoff) &&
+      stateHandoff.includes("unauthenticated"),
+    "state/API handoff omits the aggregate-only selector or the stale-steward disclosure case",
+  ],
   [clientHandoff.includes("clientCommitmentId") && clientHandoff.includes("SAVING_REMOTE"), "client handoff omits retry or persistence truth"],
   [
     adminHandoff.includes("Pool.nonTerminalCycleCount") &&

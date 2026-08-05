@@ -2,6 +2,34 @@
 
 These files are the lane-level dispatch surfaces for .plans/active/commitment-pooling/.
 
+## File index
+
+All 19 files in this directory. The plan hub's document map points here for the enumeration, so
+**a new handoff must get a row below in the same change** — this file previously described source
+order only, and a reader following the map could miss an active dispatch surface entirely.
+
+| File | Lane / role | Owner | Dispatch state |
+|---|---|---|---|
+| `README.md` | This index, the required handoff contract, the Linear boundary, and the shared safety rules that bind every lane | — | Always in force |
+| `codex-contracts.md` | Pooling module + register + resolver/schema contract work (PRD-721) | Codex | Backend lane 1 — the other two wait on it |
+| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Depends on frozen pooling events |
+| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Depends on core indexer GREEN |
+| `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
+| `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Blocked behind state/API |
+| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Blocked behind state/API |
+| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Blocked behind state/API |
+| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Blocked behind state/API |
+| `claude-community.md` | September Community interface work (PRD-682 track) | Claude | Follow-on wave |
+| `claude-docs.md` | Post-QA documentation polish (PRD-727) | Claude | Blocked until QA1 |
+| `claude-walkthrough-videos.md` | Post-certification walkthrough videos (PRD-728) | Claude | Blocked until QA2 |
+| `claude-qa-pass-1.md` | Staging QA pass 1 (PRD-729) | Claude | Blocked until runtime UI lands |
+| `codex-qa-pass-2.md` | QA pass 2 (PRD-730) | Codex | Blocked until docs polish lands |
+| `claude-standing-artifacts.md` | **Completed** 2026-08-02 Offer-once / Offer-over-time artifact convergence record | Claude | Closed — historical record |
+| `claude-offer-vocabulary-correction.md` | **Completed** PRD-789 sweep retiring `Practice` in favour of Offer once / Offer over time | Claude | Closed 2026-08-02 — historical record |
+| `claude-full-pooling-visual-docs.md` | Current bounded, additive unit: hand-drawn Story assets + the canonical Google Doc pass. Not a product implementation lane or branch instruction | Claude | Active, additive only |
+| `human-release-ops.md` | Broadcast, Garden-ID cutover, and live settlement exit evidence (PRD-731) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
+| `human-settlement-evidence.md` | September measurement-definition and operational-assignment gate (COM-11) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
+
 ## Source order
 
 1. status.json is machine truth for owner, lane state, dependencies, and dispatchability. Read `execution_sub_lanes` before trusting a machine-lane status: a ready machine lane can contain a blocked sub-lane (`contracts` ready does not make `settlement` dispatchable), and the blocked aggregate `ui` lane does not imply any sub-lane is dispatchable. Docs remains explicitly blocked through source convergence.

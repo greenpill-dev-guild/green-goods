@@ -6,6 +6,12 @@
 **Linear mirror**: PRD-651  
 **Authority**: plan Decision Log #42 / #51–#53; register #76 / #86–#88
 
+> **Why the range stops at #53 / #88.** The next entry in each list — Decision Log #54 and register
+> #89 — splits living delivery ownership between Codex and Claude Code. That is a process decision
+> about who edits which artifact, not a compatibility-architecture one, so it is deliberately
+> outside this brief's authority. Sources that list the binding set for *implementation* (such as
+> `status.json` and `handoffs/README.md`) correctly say #86–#89; this design brief does not.
+
 ## Purpose
 
 Describe what a full on-chain exchange layer could look like for Green Goods after the frozen

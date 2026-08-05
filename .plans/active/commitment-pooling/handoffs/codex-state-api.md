@@ -29,6 +29,20 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   proposed/matched/counterpart-lapsed derivation, and online `acceptExchange` mutation. It exposes
   `CommitmentExchange` as the atomic marker while preserving ordinary commitment queries and
   independent lifecycle invalidation on each side.
+- **`usePoolMemberHistory` — the viewer-aware participation-history selector, and the only
+  sanctioned consumer of the `PoolMemberHistory` entity** (added 2026-08-05; the disclosure rule
+  existed in the Inputs paragraph, contract-spec §8.2, and uiux-spec §D.3, but nothing in this
+  lane's outputs, acceptance, or tests made it provable). It takes
+  `{ chainId, poolId, account, viewer }` — `viewer` is the signed-in account, never an implicit
+  ambient one — and returns a discriminated result, not a nullable row:
+  `{ status: "visible", history }` · `{ status: "hidden" }` for an authenticated viewer with
+  neither current pool-steward capability nor self-identity · `{ status: "unauthenticated" }`.
+  Steward capability resolves from the **current** Hats-derived pool steward, so a former steward
+  reads `hidden`. `usePoolParticipationSummary({ chainId, poolId })` is the separate
+  aggregate-only selector for editorial surfaces; it returns pool-level counts and
+  `promiseKeptRate` and can never return a per-account row. Neither selector emits a score,
+  percentage, ranking, cross-pool merge, or per-person comparison, and value sums stay within one
+  exact `declaredValueBasis`.
 - Six offline job kinds: `commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, and
   `confirmation`.
 - Settlement and ProtocolToGarden funding remain online authority-gated mutations; neither is a
@@ -54,9 +68,16 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - Every ordinary Commitment job persists a stable private `clientCommitmentId` and deterministic
   creator-scoped `creationRequestKey` before its first send. Recovery calls
   `getCommitmentIdByCreationRequest`; a non-zero result binds only after every immutable creation
-  field and stored payload hash match. Zero permits the same-key sender call. Exact replay
-  completes without another commitment/class/provider slot/pool-live increment; a mismatch is a
-  terminal local identity conflict.
+  field and the stored `creationPayloadHash` match. Zero permits the same-key sender call. Exact
+  replay completes without another commitment/class/provider slot/pool-live increment; a mismatch
+  is a terminal local identity conflict.
+  The hash the client recomputes is the frozen preimage in contract-spec §6.1 "Creation payload
+  hash (frozen preimage)"; the same value is emitted in `CommitmentCreated` and indexed, so a
+  receipt-path or indexer-path recovery compares the identical value a `getCommitment` read
+  returns. Two client obligations follow from the frozen rules: retries must resend the persisted
+  payload byte-for-byte, including the `domainTags` array the module ignores for DomainImpact,
+  and the recomputation must use the effective confirmation threshold (1 when `confirmers` is
+  empty), not the raw submitted number.
 - Ordinary Commitment job payloads mirror the full ABI: creation includes
   `clientCommitmentId`, `creationRequestKey`, cycle, direction, claim type/mode, repeatable
   `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
@@ -152,6 +173,16 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   contributor total, and ordered
   `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows exactly.
   It accepts no child IDs or lifecycle fields, so preparation cannot change the hash.
+- **Participation-history disclosure is proven, not asserted.** `usePoolMemberHistory` returns
+  `unauthenticated` with no viewer, `hidden` for an authenticated viewer who is neither the
+  current pool steward nor the subject account, `hidden` for a **former** steward of that pool,
+  and `visible` for the current steward and for the subject reading their own row. No client or
+  admin module imports or binds the raw `PoolMemberHistory` entity, query, or generated type — a
+  grep-style boundary test over `packages/client/src` and `packages/admin/src` proves it, and the
+  only permitted import is the shared selector. Editorial surfaces resolve only
+  `usePoolParticipationSummary`. No selector output contains a rate, percentage, grade, rank,
+  per-person comparison, cross-pool merge, or a value sum spanning two `declaredValueBasis`
+  labels; `promiseKeptRate` stays pool-level.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action unless `gardenerDeliveryEnabled === true`; both `null` and `false` fail closed.
 - Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
@@ -179,6 +210,15 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `clientCommitmentId`/creation-key crash-window tests and Work-link operation-key tests covering
   exact replay, payload conflict, and a stale retry after a later unlink; capture expected failures
   before implementation.
+- RED: add `usePoolMemberHistory` disclosure tests before the selector exists — one case each for
+  no viewer (`unauthenticated`), an authenticated non-steward requesting another member
+  (`hidden`), a former/non-current steward of that pool (`hidden`), the current pool steward
+  (`visible`), and the subject reading their own row (`visible`) — plus a consumer-boundary test
+  asserting no `packages/client/src` or `packages/admin/src` file references the raw
+  `PoolMemberHistory` entity/query/type, an editorial test asserting
+  `usePoolParticipationSummary` exposes pool-level aggregates and no per-account row, and an
+  aggregation test asserting declared-value sums group by exact `declaredValueBasis` and never
+  merge two labels or produce a per-person figure. Capture these failures before implementation.
 - RED: add saved-Offer protocol and adapter tests for canonical `SavedOfferPayloadV1` validation,
   owner-scoped session/list/read/PUT/DELETE calls, optimistic version conflicts, tombstone
   handling, and the rule that an unavailable service leaves a draft visibly unsaved. The Agent
@@ -190,12 +230,13 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## Exact Bun commands
 
-The four named shared test files and the named Agent saved-Offer test file do not exist yet; they
+The five named shared test files and the named Agent saved-Offer test file do not exist yet; they
 are intentional to-be-created RED-first deliverables of this lane. The Agent test is a blocking
 prerequisite for the saved-Offer shared/client GREEN state, not optional follow-up coverage.
 
 - bun run --filter @green-goods/agent test -- src/__tests__/saved-offers.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-pooling.test.ts
+- bun run --filter @green-goods/shared test -- src/__tests__/pool-member-history-disclosure.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-jobs.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/settlement-selectors.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/settlement-aa-profile.test.ts
@@ -213,6 +254,9 @@ prerequisite for the saved-Offer shared/client GREEN state, not optional follow-
 ## Unblock evidence
 
 - Core dispatch requires frozen pooling interfaces plus core indexer entity/query/codegen/build proof. Settlement selector work remains blocked until the settlement interfaces and settlement indexer phase are GREEN.
+- Core GREEN additionally requires the five `usePoolMemberHistory` disclosure cases and the
+  client/admin raw-entity boundary test passing. A lane that renders participation history without
+  those proofs is not complete, however green the rest of the suite is.
 - Composite Garden replay proof is required before switching shared reads, but the live cutover itself is owned by `human-release-ops.md`.
 - Manual status.json gate is explicitly cleared.
 - RED proof is recorded before shared implementation; final GREEN includes targeted tests and typecheck.

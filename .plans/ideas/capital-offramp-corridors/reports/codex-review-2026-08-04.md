@@ -349,6 +349,11 @@ This remains **UNVERIFIABLE** without provider underwriting and legal review. No
 
 ### 4.4 Offline-first behavior is absent from the brief
 
+*Closed 2026-08-05. This finding is accurate for the reviewed 2026-08-03 source named in the header
+above. The corrected brief now carries `§7. Offline-first product contract`, which adopts the state
+model and hard safety rules set out below. Preserved unrewritten as the dated record of why that
+section exists.*
+
 Provider cash-out is an online, multi-system transaction even when Green Goods is offline-first. KYC, sanctions screening, bank-account verification, quotes, deposit addresses, onchain confirmation, provider processing, and fiat settlement all require current server state. A safe implementation must not present “cash out” as a queueable offline mutation.
 
 Minimum state model:

@@ -167,13 +167,54 @@ function arrowKey(head: string, source: string): string {
   return `<div class="dia-key arrow-key" role="note" aria-label="Arrow meaning key for this diagram">${items}</div>`;
 }
 
+function colourKey(chips: string[]): string {
+  return chips.length
+    ? `<div class="dia-key" role="note" aria-label="Colour and status key for this diagram">${chips.join("")}</div>`
+    : "";
+}
+
+// Sequence, entity-relationship, and class diagrams cannot carry flowchart
+// classDefs, so for a long time they carried no colour key at all — 16 of the 42
+// Architecture diagrams left the reader to guess which global legend applied,
+// against this file's own promise that every diagram reads on its own. Their
+// status vocabulary is simply a different one: participant kind and phase band
+// for sequences, stereotype for the class diagram, and a flat single status for
+// the ERDs. Say that locally, and derive it from the source so the key can never
+// claim a treatment the drawing doesn't carry.
+function sequenceChips(source: string): string[] {
+  const chips: string[] = [];
+  if (/^\s*actor\s/m.test(source)) {
+    chips.push(`<span><i class="sw sw-person"></i>people and outside parties — the acting side</span>`);
+  }
+  if (/^\s*participant\s/m.test(source)) {
+    chips.push(`<span><i class="sw sw-onchain"></i>contract, app, or read model — never a person</span>`);
+  }
+  if (/\brect\s+rgb/.test(source)) {
+    chips.push(`<span><i class="sw sw-band"></i>tinted band — one named phase; the note inside it names the phase</span>`);
+  }
+  return chips;
+}
+
+function classDiagramChips(source: string): string[] {
+  const chips: string[] = [];
+  if (/<<[^>]*\blive\b/.test(source)) chips.push(`<span><i class="sw"></i>${CLASS_CHIPS.built[1]} — <code>&lt;&lt;live&gt;&gt;</code></span>`);
+  if (/<<[^>]*\bnet-new\b/.test(source)) chips.push(`<span><i class="sw sw-planned"></i>${CLASS_CHIPS.planned[1]} — <code>&lt;&lt;net-new&gt;&gt;</code></span>`);
+  if (/<<[^>]*\bexternal\b/.test(source)) chips.push(`<span><i class="sw sw-derived"></i>outside Green Goods — <code>&lt;&lt;external&gt;&gt;</code></span>`);
+  return chips;
+}
+
 function diagramKey(source: string): string {
   const head = source.trim().split(/\s/, 1)[0] ?? "";
   if (head === "erDiagram") {
     const items = ERD_GLYPHS.map(([glyph, label]) => `<span>${glyph}${label}</span>`).join("");
-    return `<div class="erd-key" role="note" aria-label="Entity-relationship cardinality key">${items}<span class="erd-note">Read each line-end at the box it touches; the quoted label is the relationship reading.</span></div>`;
+    const flat = colourKey([
+      `<span><i class="sw sw-onchain"></i>one flat status — every box here is indexed read-model state; this diagram uses no planned or derived colour</span>`,
+    ]);
+    return `${flat}<div class="erd-key" role="note" aria-label="Entity-relationship cardinality key">${items}<span class="erd-note">Read each line-end at the box it touches; the quoted label is the relationship reading.</span></div>`;
   }
   const arrows = arrowKey(head, source);
+  if (head === "sequenceDiagram") return `${colourKey(sequenceChips(source))}${arrows}`;
+  if (head === "classDiagram") return `${colourKey(classDiagramChips(source))}${arrows}`;
   if (head !== "flowchart" && !head.startsWith("stateDiagram")) return arrows;
   const declared = new Set([...source.matchAll(/^\s*classDef\s+(\w+)/gm)].map((m) => m[1]));
   const classLists = [...source.matchAll(/^\s*class\s+([\w,\s]+?)\s+(\w+)\s*$/gm)];
@@ -195,10 +236,7 @@ function diagramKey(source: string): string {
     const chip = CLASS_CHIPS[cls];
     if (chip) chips.push(`<span><i class="sw ${chip[0]}"></i>${chip[1]}</span>`);
   }
-  const colour = chips.length
-    ? `<div class="dia-key" role="note" aria-label="Colour key for this diagram">${chips.join("")}</div>`
-    : "";
-  return `${colour}${arrows}`;
+  return `${colourKey(chips)}${arrows}`;
 }
 
 type Sec = { id: string; title: string; level: number; html: string[]; subs: { id: string; title: string }[] };
@@ -1234,6 +1272,10 @@ ul.legend li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:s
 .dia-key .sw-app{background:var(--diagram-app-fill);border-color:var(--diagram-app-border);}
 .dia-key .sw-onchain{background:var(--diagram-onchain-fill);border-color:var(--diagram-stone);}
 .dia-key .sw-person{background:var(--diagram-paper);border-color:var(--diagram-ink);}
+/* Sequence-diagram phase band. Matches the rect-rgb tint drawn inside the
+   diagram, which has no node class to borrow from. */
+.dia-key .sw-band{background:var(--diagram-planned-fill);border-color:var(--diagram-border);border-style:dotted;}
+.dia-key code{font-size:.94em;color:var(--stone);}
 /* Arrow-meaning key. Sits directly under the colour key when a diagram mixes
    arrow styles, so both semantics are readable without leaving the drawing. */
 .arrow-key{margin-top:-.85rem;}
@@ -2336,6 +2378,16 @@ assertBuild(
 );
 assertBuild(architectureMermaidCount === 42, "Architecture output must contain 42 Mermaid blocks (D25 splits into two recovery maps, D13 adds the bilateral exchange sequence, D27 splits into layers + capacity, and D28–D29 add the future compatibility path)");
 assertBuild(mermaidCount === 43, "Gallery output must contain 43 Mermaid blocks including the Screens flow");
+// Every diagram must be readable without remembering the global legend — the
+// promise visual-assets.md makes. Before 2026-08-05 only the 17 flowcharts and 9
+// state diagrams got a colour key; the 11 sequences, 4 ERDs, and 1 class diagram
+// got none. Tie the count to the block count so a new Mermaid type can never
+// ship keyless again.
+const architectureColourKeyCount = (archBody.match(/aria-label="Colour and status key/g) ?? []).length;
+assertBuild(
+  architectureColourKeyCount === architectureMermaidCount,
+  `every Architecture diagram needs its own colour/status key (${architectureColourKeyCount} keys for ${architectureMermaidCount} diagrams)`,
+);
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");
