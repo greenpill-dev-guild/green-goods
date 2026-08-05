@@ -11,6 +11,12 @@
 > `#46` and `settlement-spec.md` now require message-only CCIP command + authenticated
 > acknowledgment. Do not re-apply this transport wording.
 >
+> **Funding supersession (2026-08-04):** the 2026-07-10 session record below cites the then-current
+> "~$800/month figure". The confirmed arrangement is **$800 per month, paid in G$, for July through
+> September 2026 — $2,400 total**. The session wording is preserved as the record of what was
+> locked that day; the current fact lives in `reports/corrections-log.md`,
+> `reports/external-verification-2026-07-20.md`, and `settlement-spec.md` §2.
+>
 > **Readiness supersession (2026-07-24/25):** registers `#54`–`#60` amend `#53`; `#60` is the current
 > correction set.
 > AssessmentV3 is only a schema name on the upgraded existing `AssessmentResolver`; current
@@ -117,8 +123,8 @@ After the technical cross-read corrected the settlement receipt predicate, one f
 
 ### 2026-07-10 follow-up — RESR-57 external-brief session
 
-Production decisions locked with Afo: English-first brief, shareable doc/PDF venue through the July 31 dry run (docs-site later), precise funding provenance — $800 per month paid in G$, July through September 2026, for $2,400 total — a one-line design-only borrow-and-repay mention with a matching guardrail, a settlement-authority line pointing derivatives at `settlement-spec.md`, and narrow+reroute ownership (evaluator architecture note → PRD-649/docs lane; operator onboarding guide → PRD-701; interim 2026-07-16 target for the operator-facing subset).
+Production decisions locked with Afo: English-first brief, shareable doc/PDF venue through the July 31 dry run (docs-site later), precise funding provenance including the ~$800/month figure, a one-line design-only borrow-and-repay mention with a matching guardrail, a settlement-authority line pointing derivatives at `settlement-spec.md`, and narrow+reroute ownership (evaluator architecture note → PRD-649/docs lane; operator onboarding guide → PRD-701; interim 2026-07-16 target for the operator-facing subset).
 
-Repo-side applied: `external-communications.md` gained the settlement-authority line, a documentation-set ownership map (plus a member one-pager artifact), and three new claims guardrails (borrow-and-repay design-only; citation hygiene against the four unsourceable claims; precise separation between failed GIP-26 proposal terms and the Foundation-funded $800/month, July–September Green Goods pilot). `external-brief.md` (v1 draft, English) was created and passes the banned-vocabulary check.
+Repo-side applied: `external-communications.md` gained the settlement-authority line, a documentation-set ownership map (plus a member one-pager artifact), and three new claims guardrails (borrow-and-repay design-only; citation hygiene against the four unsourceable claims; precise Good Labs/GIP-26/$800-month provenance). `external-brief.md` (v1 draft, English) was created and passes the banned-vocabulary check.
 
 **Historical snapshot:** the connector was unavailable during this session, so the pending writes were staged in `reports/linear/linear-apply-pack.md`. They were subsequently applied and live-reconciled on 2026-07-11, including the predicate wording and PRD-651/697 due-date clears. Do not apply from either archived pack.

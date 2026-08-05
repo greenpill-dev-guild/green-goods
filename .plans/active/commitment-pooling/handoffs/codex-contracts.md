@@ -363,12 +363,21 @@ existing infrastructure.
 - bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender <verified-arbitrum-pooling-upgrade-owner>
 - bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
 
-Both Arbitrum One senders are placeholders on purpose. The live proxies currently report deployer
-EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`, but `contract-spec.md` §6.1's
-ownership gate makes that address valid **only** for the isolated, human-authorized
-ownership-transfer plan. Every other mainnet plan resolves its sender from the verified protocol
-3-of-5 Safe and fails closed otherwise, so pasting the EOA into the lines above would produce a
-plan this lane's own gate must reject.
+**The two Arbitrum One `--tx-plan` lines are future-only and must not be run yet.** Two independent
+reasons:
+
+1. `contract-spec.md` §6.1's ownership gate. The live proxies currently report deployer EOA
+   `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`, but that address is valid **only** for
+   the isolated, human-authorized ownership-transfer plan. Every other mainnet plan resolves its
+   sender from the verified protocol 3-of-5 Safe.
+2. `upgrade.ts` cannot yet enforce that. Today it accepts `--sender` optionally, silently falls back
+   to `process.env.SENDER_ADDRESS`, persists `sender: … ?? null` (`script/upgrade.ts:424`), and
+   never reads `owner()`. An unsubstituted placeholder therefore does not fail closed — it persists
+   whatever the environment happens to hold, which is exactly the EOA this gate excludes.
+
+Both lines unblock only after this lane ships the sender preflight named in Outputs: `--sender`
+mandatory, validated against the live proxy `owner()`, and rejecting missing, placeholder, and
+mismatched values **before** plan persistence.
 
 For a live chain, the commands execute in the listed dependency order, with a separately
 authorized receipt, post-action verifier, and persisted artifact between stages:

@@ -40,7 +40,12 @@ Brand-level country coverage does not satisfy this requirement.
 
 ### R-2 — Small-payout economics
 
-Obtain successful all-in quotes at $5, $15, $20, $50, and $100. Record:
+The test sizes are **input amounts: 5, 15, 20, 50, and 100 USDC on Arbitrum** — the payout a
+gardener actually holds, not a desired local-fiat output. Quote every candidate on that same basis
+so minimums, fees, and providers stay comparable. An explicit below-minimum rejection is a valid
+recorded result, not a missing row.
+
+For each size, obtain a successful all-in quote and record:
 
 - provider fee;
 - FX spread against an independent timestamped reference rate;

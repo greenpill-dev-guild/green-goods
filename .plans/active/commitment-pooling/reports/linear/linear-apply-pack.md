@@ -16,6 +16,14 @@
 > `#46` and `settlement-spec.md` replace that transport with message-only CCIP command +
 > authenticated acknowledgment. Do not apply the old settlement payloads to Linear.
 >
+> **Funding supersession (2026-08-04):** §2's payload states the July 2026 understanding —
+> "roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation
+> 2026-09-30". The confirmed arrangement is **$800 per month, paid in G$, for July through
+> September 2026 — $2,400 total**, with no Flow State mechanism claimed. That payload text is
+> preserved verbatim as the record of what was written on 2026-07-11; the current fact lives in
+> `reports/corrections-log.md`, `reports/external-verification-2026-07-20.md`, and
+> `settlement-spec.md` §2. Do not apply the historical wording to Linear.
+>
 > **Readiness supersession (2026-07-24/25):** registers `#54`–`#60` amend `#53`; `#60` is the current
 > correction set.
 > AssessmentV3 is only a schema name on the upgraded existing `AssessmentResolver`; current
@@ -62,7 +70,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 * The `CommitmentRegister` is non-transferable in v1 — no swaps, exchange rates, or tradeable vouchers; transferable settlement vouchers are the evidence-gated follow-on (PRD-651).
 * No custody anywhere: the module never holds rewards; August settlement is operator-executed from garden Safes (automation is a stretch goal, else September).
 * Borrow-and-repay is an active August-wave companion (`../../../commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and still undispatchable until its in-code interface freeze, spec revalidation, and human legal/operations review gates clear.
-* External evidence claims come only from the canonical synthesis Sources section. Funding provenance is stated precisely: GIP-26 failed its DAO vote; Good Labs Foundation separately funds Green Goods with $800 per month paid in G$, July through September 2026, for $2,400 total. No Flow State mechanism is claimed, and transaction-level token counts do not replace the funding agreement.
+* External evidence claims come only from the canonical synthesis Sources section (re-verified 2026-07-05). Funding provenance is stated precisely: GIP-26 failed its DAO vote (June 2026); the Good Labs Foundation funds the pilot directly, roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30.
 
 ## Deliverables and acceptance
 

@@ -6,8 +6,11 @@
 - Owner: Claude Code
 - State: ready for review/dispatch after the Codex compatibility sources are accepted
 - Runtime implementation: not authorized
-- Canonical gallery:
+- Canonical gallery (**publication destination, currently stale**):
   <https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d>
+  — the live build is still 2026-08-02 and carries neither D28/D29 nor the three new Story assets
+  (`reports/corrections-log.md`, 2026-08-05 entry). Do not read that URL as evidence of this work
+  unit; re-fetching it after republication is the completion check.
 - Canonical Google Doc:
   <https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit>
 - Linear context: PRD-650, PRD-651, PRD-721, PRD-727, and

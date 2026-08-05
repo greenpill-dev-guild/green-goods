@@ -15,7 +15,7 @@ remains in `ideas`.
 | RG-4 | Account eligibility | User-KYC or eligible garden entity is confirmed | Provider eligibility evidence |
 | RG-5 | Legal roles | Payer, owner, control, recipient, refund, and loss roles are accepted | Corridor legal role map |
 | RG-6 | Offline recovery | Expiry, interruption, duplicate, failure, and refund states recover safely | State walkthrough |
-| RG-7 | Accessibility | KYC and recovery are usable for the target devices and connectivity | Assisted-use review |
+| RG-7 | Accessibility | KYC and recovery are usable in the target language and on the target devices and connectivity, and survive screen-reader use, document capture, and an interrupted session | Assisted-use review recording each condition |
 | RG-8 | Privacy | Public settlement evidence excludes personal/payment identifiers | Data-boundary review |
 | RG-9 | Freshness | Regulator and quote evidence is no more than seven days old | Timestamped evidence |
 

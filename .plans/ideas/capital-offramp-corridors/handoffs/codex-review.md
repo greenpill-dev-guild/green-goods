@@ -2,8 +2,13 @@
 
 **Linear**: [RESR-71](https://linear.app/greenpill-dev-guild/issue/RESR-71/independent-review-pass-over-the-off-ramp-corridor-research) ·
 project [Capital Off-Ramp Corridors](https://linear.app/greenpill-dev-guild/project/capital-off-ramp-corridors-3f9573efe397)
-**Source under review**: `.plans/ideas/capital-offramp-corridors/brief.md`
+**Source under review**: `.plans/ideas/capital-offramp-corridors/brief.md`, as created 2026-08-03
 **Posture**: review only — produce a correction record, do not rewrite the brief
+**State**: **completed 2026-08-04.** This is the historical dispatch instruction, kept for
+provenance. Its output is [`reports/codex-review-2026-08-04.md`](../reports/codex-review-2026-08-04.md),
+and the corrections have since been applied to `brief.md`, which now runs sections 1–10. The
+section map below therefore describes the superseded 2026-08-03 source, not the current brief —
+read the corrected brief and the review report as the live artifacts.
 
 ---
 

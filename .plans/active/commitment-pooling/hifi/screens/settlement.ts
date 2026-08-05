@@ -870,7 +870,7 @@ ${hot(h("continue-shares"), btn("Close cycle and continue", { kind: "pri" }))}`;
   const header = pageHeader({
     title: "Close cycle",
     eyebrow: `${paused ? "Pool paused · " : ""}Step ${stepIx + 1} of 4`,
-    description: "Season of First Rains — close, share, certify, then rest.",
+    description: `${CYCLE} — close, share, certify, then rest.`,
     actions: stepDots(4, stepIx),
   });
   return deskWin(

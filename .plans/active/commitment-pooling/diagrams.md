@@ -2419,8 +2419,9 @@ Consequences carried by the rest of the system:
 ## D28. Three identities and the future adapter boundary
 
 **How to read this**: left to right. The first two identities belong to the initial,
-non-transferable implementation; the third belongs only to a later adapter layer. The arrows mean
-reference or evidence consumption, never ownership transfer. The reserved Pool address points to a
+non-transferable implementation; the third belongs only to a later adapter layer. The arrows show
+grouping, reference, evidence consumption, creation/versioning, or mint authorization — none of
+them transfers promise ownership. The reserved Pool address points to a
 versioned router so future voucher contracts can evolve without changing the initial Pool or
 registry storage. Everything is planned because the base Commitment Pooling contracts are
 specified but not deployed; the diagram separates **scope**, not live status.

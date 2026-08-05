@@ -1190,3 +1190,37 @@ G$ receipt evidence" — the exact claim the 2026-08-04 funding correction above
 sources are correct; the live URL is not. Republication is the manual step recorded in
 `visual-assets.md`, and until it runs, that URL should not be treated as current or reshared. The
 Google Doc's embedded images lag for the same reason.
+
+---
+
+## 2026-08-05 — PR #692 review dispositions
+
+Automated review of PR #692 raised thirteen findings. Nine were valid and are fixed; four were not.
+
+One was a genuine process violation worth naming: the 2026-08-04 funding correction had been
+applied **inside** `reports/linear/linear-apply-pack.md` §2 and `linear-update-pack.md`, which are
+archives of what was written to Linear on 2026-07-11 and 2026-07-10. Editing an applied payload
+makes a later audit attribute current terms to an old write. Both payloads are restored byte-exact
+and each file now carries a dated `Funding supersession` banner in the pattern it already used for
+the settlement and readiness supersessions. Correction records belong in dated banners and in this
+log — never in the historical payload.
+
+Also fixed: D28's legend claimed its arrows meant only reference or evidence consumption when the
+diagram also draws grouping, creation/versioning, and mint authorization; the Arbitrum One
+`--tx-plan` lines in `handoffs/codex-contracts.md` are now marked future-only, because a
+placeholder sender does not fail closed while `upgrade.ts` still falls back to `SENDER_ADDRESS`;
+the W5 wallet summary presented one garden's open-cycle counts as a total "across your gardens";
+`visual-assets.md`'s regeneration note still said 18 Story assets; the full-pooling handoff pointed
+at the gallery URL without marking it stale; and in `.plans/ideas/capital-offramp-corridors/`, the
+RG-7 accessibility gate dropped conditions its own spec and plan require, the R-2 quote matrix did
+not say whether its test sizes were input USDC or delivered fiat, and the review handoff still
+described the superseded 2026-08-03 section map.
+
+Declined, with reasons: D19's "the ProtocolToGarden route architecture ships in this release's
+build scope" is the plan's own three-tier framing (Decision Log #14) and the next clause gates
+value movement, so weakening it would contradict the plan; the exchange brief's `register #86–#88`
+is deliberate because #89 is delivery-ownership rather than architecture, matching
+`handoffs/codex-contracts.md`; "How can an individual gardener … turn a payout" is correct English
+after the modal `can`; and `reports/codex-review-2026-08-04.md` §4.4 is a dated adversarial-review
+finding about the 2026-08-03 source, scoped by its own header — rewriting it would repeat the
+archive-immutability error described above.
