@@ -17,6 +17,33 @@ import {
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
 
+interface IAssessmentV3ConfigRedTarget {
+    function setAssessmentV3SchemaUID(bytes32 uid) external;
+    function assessmentV3SchemaUID() external view returns (bytes32);
+}
+
+struct AssessmentV3Input {
+    string title;
+    string description;
+    string assessmentConfigCID;
+    uint8 domain;
+    uint256 startDate;
+    uint256 endDate;
+    string location;
+    uint8 assessmentKind;
+    uint256 cycleId;
+    bytes32 baselineUID;
+}
+
+error AssessmentV2SchemaUIDRequired();
+error AssessmentV3SchemaUIDRequired();
+error SchemaUIDCollision(bytes32 uid);
+error InvalidAssessmentKind(uint8 kind);
+error BaselineRequired();
+error BaselineForbidden();
+error InvalidBaseline(bytes32 baselineUID);
+error BaselineGardenMismatch(bytes32 baselineUID, address expectedGarden, address actualGarden);
+
 /// @title AssessmentResolverTest
 /// @notice Unit tests for AssessmentResolver v2 onAttest validation logic
 /// @dev Tests identity checks, required field validation, and domain validation
@@ -30,6 +57,9 @@ contract AssessmentResolverTest is Test {
     address private operator = address(0x789);
     address private gardener = address(0x201);
     address private stranger = address(0x999);
+
+    bytes32 private constant ASSESSMENT_V2_UID = bytes32(uint256(200));
+    bytes32 private constant ASSESSMENT_V3_UID = bytes32(uint256(300));
 
     function setUp() public {
         // Deploy mock EAS and garden access control
@@ -360,6 +390,148 @@ contract AssessmentResolverTest is Test {
     }
 
     // =========================================================================
+    // Assessment v3 In-Place Upgrade and Dual-Schema Tests (PRD-721 RED)
+    // =========================================================================
+
+    event AssessmentV3SchemaUIDUpdated(bytes32 indexed oldUID, bytes32 indexed newUID);
+
+    function testSetAssessmentV3SchemaUIDRequiresPinnedV2() public {
+        vm.prank(multisig);
+        vm.expectRevert(AssessmentV2SchemaUIDRequired.selector);
+        IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(ASSESSMENT_V3_UID);
+    }
+
+    function testSetAssessmentV3SchemaUIDRejectsZeroAndCollision() public {
+        vm.prank(multisig);
+        assessmentResolver.setSchemaUID(ASSESSMENT_V2_UID);
+
+        vm.prank(multisig);
+        vm.expectRevert(AssessmentV3SchemaUIDRequired.selector);
+        IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(bytes32(0));
+
+        vm.prank(multisig);
+        vm.expectRevert(abi.encodeWithSelector(SchemaUIDCollision.selector, ASSESSMENT_V2_UID));
+        IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(ASSESSMENT_V2_UID);
+    }
+
+    function testSetAssessmentV3SchemaUIDEmitsOldAndNew() public {
+        vm.prank(multisig);
+        assessmentResolver.setSchemaUID(ASSESSMENT_V2_UID);
+
+        vm.expectEmit(true, true, false, false);
+        emit AssessmentV3SchemaUIDUpdated(bytes32(0), ASSESSMENT_V3_UID);
+        vm.prank(multisig);
+        IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(ASSESSMENT_V3_UID);
+
+        assertEq(
+            IAssessmentV3ConfigRedTarget(address(assessmentResolver)).assessmentV3SchemaUID(),
+            ASSESSMENT_V3_UID
+        );
+    }
+
+    function testV2AttestationStillResolvesAfterV3Activation() public {
+        _activateDualSchemas();
+        Attestation memory attestation = _buildAssessmentAttestation(evaluator, _validAssessment());
+        attestation.schema = ASSESSMENT_V2_UID;
+
+        vm.prank(address(mockEAS));
+        assertTrue(assessmentResolver.attest(attestation));
+    }
+
+    function testV3BaselineAllowsEvaluatorOrOperator() public {
+        _activateDualSchemas();
+        AssessmentV3Input memory schema = _validAssessmentV3();
+
+        vm.prank(address(mockEAS));
+        assertTrue(assessmentResolver.attest(_buildAssessmentV3Attestation(operator, schema)));
+
+        vm.prank(address(mockEAS));
+        assertTrue(assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema)));
+    }
+
+    function testV3DeltaRequiresEvaluator() public {
+        _activateDualSchemas();
+        bytes32 baselineUID = _storeBaselineAttestation(address(mockGarden), ASSESSMENT_V2_UID);
+        AssessmentV3Input memory schema = _validAssessmentV3();
+        schema.assessmentKind = 1;
+        schema.baselineUID = baselineUID;
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(NotAuthorizedAttester.selector);
+        assessmentResolver.attest(_buildAssessmentV3Attestation(operator, schema));
+    }
+
+    function testV3RejectsUnknownKind() public {
+        _activateDualSchemas();
+        AssessmentV3Input memory schema = _validAssessmentV3();
+        schema.assessmentKind = 3;
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidAssessmentKind.selector, uint8(3)));
+        assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
+    }
+
+    function testV3DeltaRequiresBaseline() public {
+        _activateDualSchemas();
+        AssessmentV3Input memory schema = _validAssessmentV3();
+        schema.assessmentKind = 1;
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(BaselineRequired.selector);
+        assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
+    }
+
+    function testV3BaselineForbidsBaselineUID() public {
+        _activateDualSchemas();
+        AssessmentV3Input memory schema = _validAssessmentV3();
+        schema.baselineUID = bytes32(uint256(1));
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(BaselineForbidden.selector);
+        assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
+    }
+
+    function testV3DeltaRejectsUnknownBaseline() public {
+        _activateDualSchemas();
+        AssessmentV3Input memory schema = _validAssessmentV3();
+        schema.assessmentKind = 1;
+        schema.baselineUID = bytes32(uint256(0xBAD));
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(abi.encodeWithSelector(InvalidBaseline.selector, schema.baselineUID));
+        assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
+    }
+
+    function testV3DeltaRejectsBaselineFromAnotherGarden() public {
+        _activateDualSchemas();
+        address otherGarden = address(new MockGardenAccessControl());
+        bytes32 baselineUID = _storeBaselineAttestation(otherGarden, ASSESSMENT_V2_UID);
+        AssessmentV3Input memory schema = _validAssessmentV3();
+        schema.assessmentKind = 1;
+        schema.baselineUID = baselineUID;
+
+        vm.prank(address(mockEAS));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BaselineGardenMismatch.selector, baselineUID, address(mockGarden), otherGarden
+            )
+        );
+        assessmentResolver.attest(_buildAssessmentV3Attestation(evaluator, schema));
+    }
+
+    function testV2SetterCannotDisableOrCollideAfterV3Activation() public {
+        _activateDualSchemas();
+
+        vm.prank(multisig);
+        vm.expectRevert(AssessmentV2SchemaUIDRequired.selector);
+        assessmentResolver.setSchemaUID(bytes32(0));
+
+        vm.prank(multisig);
+        vm.expectRevert(abi.encodeWithSelector(SchemaUIDCollision.selector, ASSESSMENT_V3_UID));
+        assessmentResolver.setSchemaUID(ASSESSMENT_V3_UID);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -372,6 +544,66 @@ contract AssessmentResolverTest is Test {
             startDate: 1_000_000,
             endDate: 2_000_000,
             location: "Garden Plot A"
+        });
+    }
+
+    function _validAssessmentV3() internal pure returns (AssessmentV3Input memory) {
+        return AssessmentV3Input({
+            title: "Q2 Baseline",
+            description: "Baseline assessment",
+            assessmentConfigCID: "bafy-assessment-v3-config",
+            domain: 1,
+            startDate: 2_000_000,
+            endDate: 3_000_000,
+            location: "Garden Plot B",
+            assessmentKind: 0,
+            cycleId: 0,
+            baselineUID: bytes32(0)
+        });
+    }
+
+    function _activateDualSchemas() internal {
+        vm.startPrank(multisig);
+        assessmentResolver.setSchemaUID(ASSESSMENT_V2_UID);
+        IAssessmentV3ConfigRedTarget(address(assessmentResolver)).setAssessmentV3SchemaUID(ASSESSMENT_V3_UID);
+        vm.stopPrank();
+    }
+
+    function _storeBaselineAttestation(address recipient, bytes32 schema) internal returns (bytes32 uid) {
+        uid = keccak256(abi.encode(recipient, schema));
+        Attestation memory baseline = _buildAssessmentAttestation(evaluator, _validAssessment());
+        baseline.uid = uid;
+        baseline.schema = schema;
+        baseline.recipient = recipient;
+        mockEAS.setAttestationByUID(uid, baseline);
+    }
+
+    function _buildAssessmentV3Attestation(
+        address attester,
+        AssessmentV3Input memory schema
+    ) internal view returns (Attestation memory) {
+        return Attestation({
+            uid: bytes32(uint256(2)),
+            schema: ASSESSMENT_V3_UID,
+            time: uint64(block.timestamp),
+            expirationTime: 0,
+            revocationTime: 0,
+            refUID: bytes32(0),
+            recipient: address(mockGarden),
+            attester: attester,
+            revocable: false,
+            data: abi.encode(
+                schema.title,
+                schema.description,
+                schema.assessmentConfigCID,
+                schema.domain,
+                schema.startDate,
+                schema.endDate,
+                schema.location,
+                schema.assessmentKind,
+                schema.cycleId,
+                schema.baselineUID
+            )
         });
     }
 
