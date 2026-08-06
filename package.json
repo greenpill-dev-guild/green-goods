@@ -164,6 +164,7 @@
     "contracts:pooling:upgrade:dry:arbitrum": "APP_ENV=development bun run --cwd packages/contracts pooling:upgrade:dry:arbitrum",
     "contracts:pooling:upgrade:plan:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= SENDER_ADDRESS=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 bun run --cwd packages/contracts pooling:upgrade:plan:arbitrum",
     "contracts:pooling:upgrade:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= SENDER_ADDRESS=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 bun run --cwd packages/contracts pooling:upgrade:arbitrum --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "contracts:pooling:rehearse:arbitrum-fork": "APP_ENV=development bun run --cwd packages/contracts test:fork:pooling:arbitrum",
     "contracts:upgrade:signal-pool-yield-wiring:dry:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:signal-pool-yield-wiring:dry:arbitrum'",
     "contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:signal-pool-yield-wiring:simulate:arbitrum'",
     "contracts:upgrade:signal-pool-yield-wiring:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run upgrade:signal-pool-yield-wiring:arbitrum'",

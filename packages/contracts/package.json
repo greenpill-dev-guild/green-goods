@@ -46,6 +46,7 @@
     "test:fork:arbitrum:ci": "bun script/utils/fork-shards.mjs run arbitrum",
     "test:fork:hats-module-upgrade:arbitrum": "bun script/utils/fork-shards.mjs run hats-module-upgrade-arbitrum",
     "test:fork:hats-module-upgrade:sepolia": "bun script/utils/fork-shards.mjs run hats-module-upgrade-sepolia",
+    "test:fork:pooling:arbitrum": "bun script/utils/fork-shards.mjs run pooling-arbitrum",
     "test:fork:sepolia:ci": "bun script/utils/fork-shards.mjs run sepolia",
     "test:fork:ethereum:ci": "bun script/utils/fork-shards.mjs run ethereum",
     "test:fork:gardens:ci": "bun script/utils/fork-shards.mjs run gardens",

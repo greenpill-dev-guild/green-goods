@@ -29,13 +29,19 @@ const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
     testEnv: {
       HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
       HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
       HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION:
         "0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2",
     },
+  },
+  "pooling-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "Commitment Pooling release rehearsal against live Arbitrum Hats, EAS, and WorkApprovalResolver",
+    glob: "test/fork/ArbitrumCommitmentPooling.t.sol",
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
