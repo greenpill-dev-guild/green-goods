@@ -7,11 +7,11 @@ import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingMod
 import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
 import { ActionRegistry } from "../../registries/Action.sol";
-import { CommitmentPoolingRoster } from "./CommitmentPoolingRoster.sol";
+import { CommitmentPoolingTerms } from "./CommitmentPoolingTerms.sol";
 
 /// @title CommitmentPoolingViews
 /// @notice Read-only commitment, contributor, claim, and proof views.
-abstract contract CommitmentPoolingViews is CommitmentPoolingRoster {
+abstract contract CommitmentPoolingViews is CommitmentPoolingTerms {
     function getCommitment(uint256 commitmentId) external view returns (ICommitmentPoolingModule.Commitment memory) {
         return _requireCommitment(commitmentId);
     }
