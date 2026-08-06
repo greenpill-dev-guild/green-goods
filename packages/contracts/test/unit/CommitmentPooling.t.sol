@@ -221,6 +221,24 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         module.markReadyForConfirmation(commitmentId, "default confirmer joined the roster");
     }
 
+    function testReadyOverrideRequiresOpenRecognitionPolicyForCycleScopedCommitment() public {
+        uint256 commitmentId = _createOffer(keccak256("closed-cycle-override"));
+        _acceptOffer(commitmentId);
+        address[] memory credited = new address[](1);
+        credited[0] = CREATOR;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-cycle-credit", credited);
+
+        uint256 unavailableCycleId = 999;
+        bytes32 commitmentBase = keccak256(abi.encode(commitmentId, uint256(169)));
+        vm.store(address(module), bytes32(uint256(commitmentBase) + 1), bytes32(unavailableCycleId));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.RecognitionPolicyUnavailable.selector, unavailableCycleId)
+        );
+        module.markReadyForConfirmation(commitmentId, "cycle policy is not open");
+    }
+
     function testProtocolOfferGardenClaimUsesClaimingGardenStewardsForDefaultConfirmation() public {
         address rootOnlySteward = address(0xA001);
         uint256 protocolId = _openProtocolPool();
@@ -255,6 +273,34 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         module.confirmFulfillment(commitmentId);
 
         vm.prank(CLAIMANT);
+        module.confirmFulfillment(commitmentId);
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+        );
+    }
+
+    function testGardenRequestKeepsRequestCreatorAsDefaultConfirmer() public {
+        uint256 protocolId = _openProtocolPool();
+        hats.setOperator(ROOT_GARDEN, CREATOR, true);
+        hats.setOperator(POOL_GARDEN, CLAIMANT, true);
+
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("garden-request-confirm"));
+        params.poolId = protocolId;
+        params.direction = ICommitmentPoolingModule.CommitmentDirection.Request;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Garden, POOL_GARDEN);
+
+        address[] memory credited = new address[](1);
+        credited[0] = CLAIMANT;
+        vm.prank(CLAIMANT);
+        module.attachEvidence(commitmentId, "bafy-garden-request-credit", credited);
+        module.markReadyForConfirmation(commitmentId, "request creator confirmation ready");
+
+        vm.prank(CREATOR);
         module.confirmFulfillment(commitmentId);
         assertEq(
             uint256(module.getCommitment(commitmentId).state),
