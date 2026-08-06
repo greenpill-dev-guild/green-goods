@@ -40,6 +40,7 @@ export const CHAIN_ID_MAP: Record<string, string> = {
   localhost: "31337",
   mainnet: "1",
   arbitrum: "42161",
+  "arbitrum-sepolia": "421614",
   sepolia: "11155111",
   celo: "42220",
 };
@@ -52,6 +53,7 @@ const ALCHEMY_NETWORK_PATHS: Record<string, string> = {
   mainnet: "eth-mainnet",
   sepolia: "eth-sepolia",
   arbitrum: "arb-mainnet",
+  "arbitrum-sepolia": "arb-sepolia",
 };
 
 const RPC_ENV_ALIASES: Record<string, string[]> = {
@@ -63,6 +65,7 @@ const RPC_ENV_DEFAULTS: Record<string, string> = {
   ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   MAINNET_RPC_URL: "https://ethereum.drpc.org",
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
+  ARBITRUM_SEPOLIA_RPC_URL: "https://sepolia-rollup.arbitrum.io/rpc",
   SEPOLIA_RPC_URL: "https://sepolia.drpc.org",
   CELO_RPC_URL: "https://forno.celo.org",
   OPTIMISM_RPC_URL: "https://mainnet.optimism.io",
