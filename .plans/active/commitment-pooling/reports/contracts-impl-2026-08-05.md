@@ -2,9 +2,12 @@
 
 ## Status
 
-PRD-721 remains **in progress** on `feature/build-commitment-pooling-contracts` at
-`042a8e851`. This is the handoff-authorized clean checkpoint after the production-path bounds
-freeze, not the full first-PR acceptance surface.
+PRD-721 contract behavior remains **in progress** on `feature/build-commitment-pooling-contracts`,
+with the review corrections implemented through `4256623d0`. The review-correction run is
+**BLOCKED** only on canonical branch-mirror reconciliation: Plan Hub requires the machine-lane
+signal `codex/contracts/commitment-pooling`, while this dispatch requires the actual execution
+branch `feature/build-commitment-pooling-contracts`. Changing that validator is outside this
+lane. This remains a tested checkpoint, not the full first-PR acceptance surface.
 
 Afo's 2026-08-05 direction resolved the benchmark-order blocker. The real module paths and
 canonical events were implemented before measurement, the 8/16/24/32/40 matrix passed, and all
@@ -29,6 +32,10 @@ not a need to validate this checkpoint through deployment.
 | `96d7efd2b` | `test(contracts): exercise pooling production paths` — real dependency fixture, production RED cases, and 8/16/24/32/40 harness. |
 | `4b08bc437` | `feat(contracts): implement pooling benchmark paths` — real bounded entrypoints and canonical events. |
 | `042a8e851` | `perf(contracts): freeze pooling bounds at 40` — measured table and ABI getter reconciliation. |
+| `8fd27b66b` | `test(contracts): cover pooling review regressions` — RED credit, reachability, claiming-garden, and replay cases. |
+| `3353d4457` | `test(contracts): lock pooling readiness direction` — RED non-Open-cycle and Request-default cases. |
+| `c37c04c3c` | `fix(contracts): enforce pooling readiness gates` — frozen Ready, confirmation, and configuration semantics. |
+| `4256623d0` | `test(contracts): measure cold pooling bounds` — operation-specific cold transactions and actual canonical logs. |
 
 ## Completed in this checkpoint
 
@@ -53,6 +60,16 @@ not a need to validate this checkpoint through deployment.
   assessment attachment, roster freeze, and ordinary confirmation/fulfillment.
 - Implemented named confirmer acceptance de-duplication and contributor filtering plus
   roster-mutation reachability revalidation for the measured path.
+- Enforced the shared Ready predicates on every automatic, submitted, and steward-override path:
+  non-zero verified credit, Open recognition policy for cycle-scoped commitments, complete linked-
+  Work freshness, and an ordinary threshold reachable after contributor exclusion or an explicitly
+  configured protocol fallback.
+- Corrected direction-aware ordinary confirmation: a Protocol-pool Offer claimed by a Garden uses
+  the claiming GardenAccount's operator/owner Hat wearers, the GardenAccount itself never calls,
+  provider/root-only stewards and contributors are rejected, and a Garden Request still uses its
+  creator/requester as the default confirmer.
+- Made configuration replay exact: initialization emits the paused-first transition, while exact
+  dependency, schema, and pause repeats return without storage or event mutation.
 - Preserved the previously completed CommitmentRegistry, AssessmentResolver dual-schema upgrade,
   TestimonyResolver, WorkApprovalResolver bridge, GardenToken callback, schema/deploy foundations,
   and storage baselines.
@@ -78,26 +95,41 @@ TestimonyResolver suites failed before their artifacts existed; the AssessmentRe
 ran 26 legacy passes with 12 expected v3/dual-schema failures. WorkApproval bridge and GardenToken
 callback coverage remain GREEN-only historical provenance.
 
+The fresh reviewer-fix RED sequence was also recorded before the production correction:
+
+- `8fd27b66b`: the exact CommitmentPooling command produced 12 passes and 5 expected failures for
+  zero-credit Ready override, unreachable default confirmation, provider-garden authorization,
+  missing initialization pause replay, and noisy exact configuration repeats.
+- `3353d4457`: the expanded command produced 12 passes and 7 expected failures, adding non-Open
+  recognition-policy and Garden-Request direction cases. After `c37c04c3c`, all 19 focused cases
+  pass.
+
 ## Frozen production bounds
 
-Measured on the `4b08bc437` tree with Solc 0.8.28 using exactly:
+Re-measured on the `4256623d0` tree with Solc 0.8.28 using exactly:
 
 `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`
 
-Each cell deploys a fresh real proxy/module dependency graph, executes the named production
-entrypoints/scans, and records the largest transaction plus largest ABI-encoded canonical event
-data in that path.
+The harness contains 60 operation-specific cases. Each case prepares a fresh real proxy/module
+dependency graph and specification-valid state in Foundry `setUp`, then measures exactly one top-
+level test transaction with a fresh access list. Each cell records the largest cold transaction
+and largest actual canonical module-log payload among its named operations.
 
 | Bound | 8 | 16 | 24 | 32 | 40 | Selected | Why 48 is rejected |
 |---|---:|---:|---:|---:|---:|---:|---|
-| `MAX_REQUIREMENTS` | 1,043,475 / 1,920 B | 1,534,758 / 2,688 B | 2,028,433 / 3,456 B | 2,524,982 / 4,224 B | 3,024,608 / 4,992 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
-| `MAX_LINKED_WORKS_PER_COMMITMENT` | 108,320 / 128 B | 108,326 / 128 B | 137,757 / 128 B | 181,126 / 128 B | 224,496 / 128 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
-| `MAX_CONTRIBUTORS_PER_COMMITMENT` | 85,465 / 416 B | 97,269 / 672 B | 152,394 / 928 B | 221,664 / 1,184 B | 305,080 / 1,440 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
-| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` | 56,653 / 448 B | 97,635 / 704 B | 152,761 / 960 B | 222,032 / 1,216 B | 305,446 / 1,472 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
-| `MAX_CONFIRMERS` | 258,926 / 384 B | 447,431 / 640 B | 646,176 / 896 B | 855,161 / 1,152 B | 1,074,387 / 1,408 B | **40** | Outside the authorized measured matrix; no transaction/indexer safety proof. |
+| `MAX_REQUIREMENTS` | 1,242,130 / 1,920 B | 1,873,097 / 2,688 B | 2,504,598 / 3,456 B | 3,136,637 / 4,224 B | 3,769,213 / 4,992 B | **40** | Outside the authorized measured matrix; no cold-transaction vector proof. |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` | 168,032 / 128 B | 170,870 / 128 B | 230,239 / 128 B | 289,608 / 128 B | 348,978 / 128 B | **40** | Outside the authorized measured matrix; no cold-transaction vector proof. |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` | 166,137 / 448 B | 194,515 / 704 B | 288,197 / 960 B | 396,023 / 1,216 B | 517,992 / 1,472 B | **40** | Outside the authorized measured matrix; no cold-transaction vector proof. |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` | 114,980 / 448 B | 194,515 / 704 B | 288,197 / 960 B | 396,023 / 1,216 B | 517,992 / 1,472 B | **40** | Outside the authorized measured matrix; no cold-transaction vector proof. |
+| `MAX_CONFIRMERS` | 767,941 / 1,024 B | 960,070 / 1,024 B | 1,152,133 / 1,024 B | 1,344,270 / 1,152 B | 1,536,424 / 1,408 B | **40** | Outside the authorized measured matrix; no cold-transaction vector proof. |
 
-All measurements remain below the frozen harness ceilings of 10,000,000 gas and 16,384 event-data
-bytes. The same values and rejection reasons are recorded in `handoffs/codex-contracts.md`.
+All measured cold transactions remain below 10,000,000 gas and the actual canonical logs emitted
+with the harness's fixed strings remain below 16,384 data bytes. This is not a global payload claim:
+the frozen ABI keeps `unitLabel`, metadata/evidence/reason CIDs, and declared-value basis as dynamic
+strings, while the specification requires only non-empty values and defines no maximum byte length.
+The table therefore proves the bounded-vector contribution for the exact canonical fixture strings.
+No string cap or ABI error was invented. The same limitation, values, and rejection reasons are
+recorded in `handoffs/codex-contracts.md`; all five getters remain reconciled at **40**.
 
 ## Command evidence
 
@@ -105,19 +137,19 @@ All commands were run from the repository root through the exact Bun wrappers.
 
 | Command surface | Result |
 |---|---|
-| `CommitmentPooling.t.sol` | PASS — 12 tests. |
+| `CommitmentPooling.t.sol` | PASS — 19 tests. |
 | `CommitmentRegistry.t.sol` | PASS — 6 tests. |
-| `CommitmentPoolingBounds.t.sol` | PASS — 1 production matrix test. |
+| `CommitmentPoolingBounds.t.sol` | PASS — 60 cold production-path tests. |
 | `AssessmentResolver.t.sol` | PASS — 40 tests. |
 | `TestimonyResolver.t.sol` | PASS — 8 tests. |
 | `WorkApprovalResolver.t.sol` | PASS — 43 tests. |
 | `StorageLayout.t.sol` | PASS — 28 tests. |
-| Seven named files combined | PASS — 138 tests. |
+| Seven named files combined | PASS — 204 tests. |
 | `bun run --filter @green-goods/contracts check:storage-layout` | PASS — all 12 protected layouts matched. |
 | `bun run --filter @green-goods/contracts test:script` | PASS — 53 tests in 5 files. |
 | `bun run --filter @green-goods/contracts build:full` | PASS. |
 | `bun run --filter @green-goods/contracts lint:check` | PASS — 0 errors, 195 existing warning-level findings. |
-| `bun run --filter @green-goods/contracts test` | PASS — 1,585 tests across 68 suites, 0 failed, 0 skipped. |
+| `bun run --filter @green-goods/contracts test` | PASS — 1,651 tests across 127 suites, 0 failed, 0 skipped. |
 | `node scripts/harness/plan-hub.mjs validate` | PASS — 41 feature hubs. |
 
 The first sandboxed Foundry invocation crashed while initializing macOS Dynamic Store. The same
@@ -127,7 +159,18 @@ repository artifact, environment file, or chain state.
 ## Deviations and observations
 
 - No frozen ABI, storage, event, error, hash preimage, or state-machine deviation is known in the
-  completed slice. No contradictory specification source was encountered.
+  completed slice. No contradictory specification source was encountered. The historical
+  8/16/24/32 handoff wording is now explicitly reconciled to Afo's later 8/16/24/32/40 authorization.
+- The frozen dynamic string fields prevent a finite global event-payload maximum. The prior report's
+  broader payload-safety wording was removed; this is an evidence limitation, not a contract-spec
+  deviation.
+- Reviewer finding 5 cannot be applied inside the authorized paths. `status.json` keeps Plan Hub's
+  required machine-lane branch `codex/contracts/commitment-pooling` and separately records the
+  actual dispatched branch under `execution_sub_lanes.contracts.branch`. Setting the machine-lane
+  value to the actual branch makes `node scripts/harness/plan-hub.mjs validate` fail because
+  `scripts/harness/plan-hub.mjs` hard-codes the former value. That script is outside the contracts
+  lane, so the exact evidence and requested authorization are recorded in
+  `reports/contracts-blocker-2026-08-05.md`.
 - The module intentionally does not claim interface completeness yet. Missing selectors are listed
   below and must be implemented and RED-tested before this PR can be called PRD-721 complete.
 - The checkout was clean at dispatch and no unrelated concurrent change was encountered.
@@ -144,8 +187,8 @@ repository artifact, environment file, or chain state.
    the complete direct-B consent and reservation revalidation surface.
 3. Complete Open contributor join/leave, managed removal, requirement assignment, unlink,
    two-pass `syncWorkDecisions`, stale/late decision cases, and all max-plus-one cases.
-4. Complete `setDeclaredReward`, `setDeclaredValue`, `setConfirmerRule`, default Garden confirmer,
-   local/protocol fallback provenance, cancellation, expiry, disputes, and payout recording.
+4. Complete `setDeclaredReward`, `setDeclaredValue`, `setConfirmerRule`, local/protocol fallback
+   provenance, cancellation, expiry, disputes, and payout recording.
 5. Implement `validateRecognitionSnapshot` with the canonical settlement-spec §3.1.3 preimage
    `keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))` and complete recognition
    weight/remainder tests.
@@ -171,20 +214,22 @@ Linear: PRD-721
   dual-schema AssessmentResolver, TestimonyResolver, WorkApproval bridge, and GardenToken wiring.
 - Implement the production pool, creation/replay, acceptance, contributor, evidence, Work-decision,
   assessment, readiness, and ordinary-confirmation paths used by the frozen bounded vectors.
-- Replace the synthetic planning values with the real 8/16/24/32/40 production matrix and freeze
-  all five explicit ABI bounds at 40.
+- Enforce the frozen Ready, claimant-garden confirmation, and exact configuration-replay semantics
+  found by independent review.
+- Replace the warmed synthetic planning values with the cold-transaction 8/16/24/32/40 production
+  matrix, actual canonical logs, and five explicit ABI bounds reconciled at 40.
 
 This remains a checkpoint PR description until the remaining cycle/series/exchange/recognition,
 terminal/fallback, and deployment-toolchain acceptance listed in the implementation report lands.
 
 ## Validation
 
-- [x] Seven named Foundry files pass (138 tests)
+- [x] Seven named Foundry files pass (204 tests)
 - [x] `bun run --filter @green-goods/contracts check:storage-layout`
 - [x] `bun run --filter @green-goods/contracts test:script` (53 tests)
 - [x] `bun run --filter @green-goods/contracts build:full`
 - [x] `bun run --filter @green-goods/contracts lint:check`
-- [x] `bun run --filter @green-goods/contracts test` (1,585 tests, 0 failed)
+- [x] `bun run --filter @green-goods/contracts test` (1,651 tests, 0 failed)
 - [ ] Complete remaining PRD-721 lifecycle/ABI and dry-run deployment acceptance
 
 ## Safety

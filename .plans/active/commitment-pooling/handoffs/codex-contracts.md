@@ -404,7 +404,9 @@ every conflicting state. Broadcast remains outside this handoff.
 > paths before the final bounds freeze. The exact paths and canonical events were measured at
 > 8/16/24/32/40, and all five explicit `pure` getters now reconcile to the selected value 40.
 > The superseded synthetic values remain only in git history and must not be consumed. This work
-> performed no broadcast or live chain-state mutation. See `reports/contracts-blocker-2026-08-05.md`.
+> performed no broadcast or live chain-state mutation. See
+> `reports/contracts-impl-2026-08-05.md`; the separate branch-mirror blocker is recorded in
+> `reports/contracts-blocker-2026-08-05.md`.
 
 The table below records the largest transaction gas and largest canonical event-data payload in
 each named real-module path from
@@ -421,18 +423,28 @@ The 2026-08-05 authorization supersedes the ordering below only for the producti
 
 | Bound | 8 | 16 | 24 | 32 | 40 | Selected | Rejection reason for the next size |
 |---|---|---|---|---|---|---|---|
-| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | 1,043,475 gas / 1,920 B | 1,534,758 gas / 2,688 B | 2,028,433 gas / 3,456 B | 2,524,982 gas / 4,224 B | 3,024,608 gas / 4,992 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
-| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | 108,320 gas / 128 B | 108,326 gas / 128 B | 137,757 gas / 128 B | 181,126 gas / 128 B | 224,496 gas / 128 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
-| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | 85,465 gas / 416 B | 97,269 gas / 672 B | 152,394 gas / 928 B | 221,664 gas / 1,184 B | 305,080 gas / 1,440 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
-| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | 56,653 gas / 448 B | 97,635 gas / 704 B | 152,761 gas / 960 B | 222,032 gas / 1,216 B | 305,446 gas / 1,472 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
-| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | 258,926 gas / 384 B | 447,431 gas / 640 B | 646,176 gas / 896 B | 855,161 gas / 1,152 B | 1,074,387 gas / 1,408 B | **40** | 48 is outside the authorized measured matrix, so it has no transaction/indexer safety proof. |
+| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | 1,242,130 gas / 1,920 B | 1,873,097 gas / 2,688 B | 2,504,598 gas / 3,456 B | 3,136,637 gas / 4,224 B | 3,769,213 gas / 4,992 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | 168,032 gas / 128 B | 170,870 gas / 128 B | 230,239 gas / 128 B | 289,608 gas / 128 B | 348,978 gas / 128 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | 166,137 gas / 448 B | 194,515 gas / 704 B | 288,197 gas / 960 B | 396,023 gas / 1,216 B | 517,992 gas / 1,472 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | 114,980 gas / 448 B | 194,515 gas / 704 B | 288,197 gas / 960 B | 396,023 gas / 1,216 B | 517,992 gas / 1,472 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_CONFIRMERS` (creation / acceptance dedupe / roster-mutation revalidation) | 767,941 gas / 1,024 B | 960,070 gas / 1,024 B | 1,152,133 gas / 1,024 B | 1,344,270 gas / 1,152 B | 1,536,424 gas / 1,408 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
 
-Measured 2026-08-05 on commit `4b08bc437` with Solc 0.8.28 through the exact Bun-wrapped
-`test/CommitmentPoolingBounds.t.sol` command. Each cell deploys a fresh proxy/module dependency
-graph, executes the named production entrypoints and scans, and records the largest canonical
-event-data payload in that path. All measured cells remain below the harness ceilings of
-10,000,000 gas and 16,384 event-data bytes. The largest authorized measured size is therefore
-selected for each ABI bound; unmeasured size 48 remains rejected.
+Re-measured 2026-08-05 on commit `4256623d0` with Solc 0.8.28 through the exact Bun-wrapped
+`test/CommitmentPoolingBounds.t.sol` command. The harness has 60 operation-specific cases. Each
+case prepares a fresh proxy/module dependency graph and specification-valid production state in
+Foundry `setUp`, then measures exactly one top-level test transaction with a fresh access list.
+Gas is the largest cold transaction among the named operations; payload bytes come from the actual
+canonical module logs emitted by those calls, not a synthetic `abi.encode` estimate. All measured
+cells remain below 10,000,000 gas and 16,384 event-data bytes, so the largest authorized measured
+size remains selected and all five `pure` ABI getters remain 40; unmeasured size 48 remains
+rejected.
+
+The payload column is deliberately limited to the exact canonical fixture strings used by the
+harness. `unitLabel`, metadata/evidence/reason CIDs, and declared-value basis are frozen dynamic
+`string` ABI fields for which the specification defines non-empty validation but no maximum byte
+length. Therefore this table proves the bounded-vector contribution to canonical event payloads;
+it does **not** claim a finite global worst-case payload ceiling for arbitrary caller strings. No
+new string cap or ABI error was invented during this correction.
 
 ## Out of scope
 
@@ -459,7 +471,8 @@ Before **starting the first contracts PR**:
 During the **first contracts PR**, before bounded module behavior is called GREEN:
 
 - RED ABI/storage/event tests and the bounds harness land first.
-- The 8/16/24/32 table above is measured and all five values are frozen.
+- The 2026-08-05 authorized 8/16/24/32/40 table above is measured and all five values are frozen;
+  this supersedes the historical four-size wording in the 2026-07-28 amendment below.
 - Standalone schema-registration and isolated deployment targets gain their specified dry-run
   acceptance.
 - The two Arbitrum Sepolia post-deploy verifier targets and the `421614` network record land before
@@ -477,9 +490,9 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It
   measures all five bounded vectors — `MAX_REQUIREMENTS`, `MAX_LINKED_WORKS_PER_COMMITMENT`,
   `MAX_CONTRIBUTORS_PER_COMMITMENT`, `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and
-  `MAX_CONFIRMERS` — at 8/16/24/32 each, for worst-case creation, approval credit, Ready
-  evaluation, event payload, and replay cost. The 8/16/24/32 result table is recorded in this
-  handoff, below, and no constant may be frozen before that table exists.
+  `MAX_CONFIRMERS` — at the superseding 8/16/24/32/40 matrix, for creation, approval credit, Ready
+  evaluation, measured canonical-fixture event payload, and replay cost. The result table is
+  recorded in this handoff, above, and no constant may be frozen before that table exists.
 - Reject a DomainImpact requirement-total above the separately measured
   `MAX_LINKED_WORKS_PER_COMMITMENT`; the active Work array is the authoritative enumerable
   readiness set, so creation must never accept a quota that the link bound makes unfulfillable.
