@@ -457,10 +457,13 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     `keccak256(abi.encode(block.chainid, commitmentId, recognitionEntries))`, which
     `settlement-spec.md` and the contracts handoff restate rather than author.
     WorkApprovalResolver's post-upgrade layout is 2+48 → 5+45. The mandatory `--sender`/live
-    `owner()` upgrade gate, the `421614` network record and artifact path, the badge-schema chain
+    `owner()` upgrade gate, the badge-schema chain
     map, the release-gate posture, the named MAX-bound benchmark harness, and the dual-chain
     courier process and fixture are itemized as net-new lane deliverables instead of being assumed
-    to exist. The ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof is release-ops
+    to exist. **Superseded 2026-08-06:** the `421614` network record and artifact path are
+    withdrawn as deliverables; the pooling rehearsal is an Arbitrum One fork
+    (`bun run contracts:pooling:rehearse:arbitrum-fork`) because Hats has no Arbitrum Sepolia
+    deployment. See `contract-spec.md` §7.3, amendment 2026-08-06. The ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof is release-ops
     evidence and never gates settlement lane GREEN, which covers proof-ladder rungs 1–3 only.
     `ContributorPayout.included` is dropped because payability is exactly `amount > 0`. Phase
     dates are unchanged: the 2026-07-31 Build close is recorded as known drift because the
@@ -831,6 +834,9 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Record RED/GREEN proof (scripted event-sequence test) before marking complete
 - [x] Write `handoffs/codex-indexer.md`
 - [ ] Dispatch core indexing when pooling events freeze; hold only settlement handlers for settlement event freeze. Record snapshot, switch criterion, rollback package, and Afolabi Aiyeloja as accountable live-cutover owner
+- [x] Rehearsal target settled 2026-08-06: Arbitrum One fork, not `421614`. Hats has no Arbitrum
+      Sepolia deployment; `test/fork/ArbitrumCommitmentPooling.t.sol` runs the full runbook against
+      live Hats/EAS/WorkApprovalResolver and passes 7/7.
 - [ ] Planning readiness: self-describing unit events, `421614` placement, canonical settlement
   ERD, the Envio `3.2.1` multichain/replay behavior proven by merged PR #649 (`8fd89e660` on
   `develop`), first-event seeds, and Celo RPC mode are frozen locally;

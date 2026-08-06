@@ -98,6 +98,19 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
 
 ## Direct-lane and dual-chain testnet evidence gate
 
+> **Amendment 2026-08-06 (rehearsal target).** The **pooling** rehearsal no longer uses a testnet.
+> It runs on an Arbitrum One fork —
+> `bun run contracts:pooling:rehearse:arbitrum-fork` — against live Hats, EAS, and the live
+> `WorkApprovalResolver`, because Hats has no Arbitrum Sepolia deployment. See `contract-spec.md`
+> §7.3, amendment 2026-08-06.
+>
+> This changes nothing below. The **settlement** lane's CCIP evidence ladder is a separate
+> problem: a fork cannot prove a cross-chain lane, so items 3–5 still need live chains. But the
+> same question applies — Celo Sepolia has no published CCIP lane and Kernel `0.3.1` is
+> unsupported there, so the settlement lane owner should re-derive whether items 3 and 4 buy
+> anything a paired fork process does not. Recorded here as an open question for that lane, not
+> resolved by this amendment.
+
 Celo Sepolia is active. Chainlink's official directory currently publishes the direct
 Arbitrum One↔Celo Mainnet route in both directions at v1.5.0, but does not list the exact
 Arbitrum Sepolia↔Celo Sepolia pair. The prior “no active Celo testnet” statement was

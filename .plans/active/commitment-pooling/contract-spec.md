@@ -2387,6 +2387,35 @@ frozen/reverting-module cases, plus
 
 Deployment artifacts are the source of truth for addresses; pre-broadcast zero/missing addresses mean pending broadcast, post-broadcast they are blockers (root CLAUDE.md contract deployment rules).
 
+> **Amendment 2026-08-06 (approved rehearsal-target change; supersedes the Arbitrum Sepolia
+> rehearsal below).** The pooling rehearsal runs on an **Arbitrum One fork**, not on `421614`.
+> Afo approved this on 2026-08-06 after the paragraph below was proven correct: Hats Protocol has
+> no Arbitrum Sepolia deployment, so the rehearsal would have had to stand up a hand-rolled Hats
+> tree and would have proven nothing about the real one. A fork runs the same runbook against live
+> Hats, live EAS and SchemaRegistry, live garden accounts, and the live `WorkApprovalResolver`.
+>
+> The rehearsal is `packages/contracts/test/fork/ArbitrumCommitmentPooling.t.sol`, run through
+> `bun run contracts:pooling:rehearse:arbitrum-fork` (shard `pooling-arbitrum`, also inside the
+> `arbitrum` CI shard). It registers both additive schemas on the real SchemaRegistry, pins
+> assessment v2, activates v3, deploys and wires the module and register, unpauses, opens a pool,
+> and drives a full commitment through a real EAS work approval into the module's
+> `onWorkDecision` bridge — the only place that bridge is exercised without a mock resolver. It
+> also proves the deterministic UID the release tooling computes off-chain is the UID real EAS
+> assigns, which is what makes an interrupted registration resumable rather than duplicated.
+>
+> The rehearsal immediately earned its place: `setAssessmentV3SchemaUID` reverts
+> `AssessmentV2SchemaUIDRequired` while the v2 UID is zero, which is exactly the live Arbitrum
+> state. Pinning the verified v2 UID is therefore an ordered runbook step, now asserted rather
+> than discovered during a broadcast.
+>
+> A fork still cannot prove keystore signing, Etherscan verification, or real gas and block
+> timing. Those belong to the broadcast runbook and remain human Release gates. The `421614`
+> network record, its scripts, and the four named `421614` gaps below are withdrawn as lane
+> deliverables; the verified EAS addresses are retained in
+> `packages/contracts/script/utils/pooling-release.ts` should the decision ever be revisited.
+> The settlement lane's separate Celo Sepolia / CCIP evidence plan is **not** covered by this
+> amendment and must re-derive its own posture.
+
 Arbitrum Sepolia is not interchangeable with Ethereum Sepolia for protocol dependencies. The
 official EAS repository publishes `421614` EAS
 `0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE` and SchemaRegistry
