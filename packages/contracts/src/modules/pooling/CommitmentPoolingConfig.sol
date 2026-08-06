@@ -37,7 +37,10 @@ abstract contract CommitmentPoolingConfig is CommitmentPoolingCredit {
         pure
         returns (ICommitmentPoolingModule.RecognitionPolicy memory policy)
     {
-        policy = ICommitmentPoolingModule.RecognitionPolicy({ equalParticipationBps: 2000, verifiedContributionBps: 8000 });
+        policy = ICommitmentPoolingModule.RecognitionPolicy({
+            equalParticipationBps: CYCLELESS_EQUAL_PARTICIPATION_BPS,
+            verifiedContributionBps: CYCLELESS_VERIFIED_CONTRIBUTION_BPS
+        });
     }
 
     function getCommitmentIdByCreationRequest(

@@ -7,11 +7,11 @@ import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingMod
 import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
 import { ActionRegistry } from "../../registries/Action.sol";
-import { CommitmentPoolingExchange } from "./CommitmentPoolingExchange.sol";
+import { CommitmentPoolingRecognition } from "./CommitmentPoolingRecognition.sol";
 
 /// @title CommitmentPoolingViews
 /// @notice Read-only commitment, contributor, claim, and proof views.
-abstract contract CommitmentPoolingViews is CommitmentPoolingExchange {
+abstract contract CommitmentPoolingViews is CommitmentPoolingRecognition {
     function getCommitment(uint256 commitmentId) external view returns (ICommitmentPoolingModule.Commitment memory) {
         return _requireCommitment(commitmentId);
     }
@@ -49,10 +49,7 @@ abstract contract CommitmentPoolingViews is CommitmentPoolingExchange {
     }
 
     function isEligibleContributor(uint256 commitmentId, address contributor) external view returns (bool) {
-        ICommitmentPoolingModule.Commitment storage commitment = _requireCommitment(commitmentId);
-        ICommitmentPoolingModule.ContributorRecord storage record = contributors[commitmentId][contributor];
-        return commitment.state == ICommitmentPoolingModule.CommitmentState.Fulfilled && commitment.contributorsFrozen
-            && record.active && (record.approvedWorkCredits != 0 || record.evidenceCredits != 0);
+        return _isEligibleContributor(commitmentId, _requireCommitment(commitmentId), contributor);
     }
 
     function getPendingClaim(

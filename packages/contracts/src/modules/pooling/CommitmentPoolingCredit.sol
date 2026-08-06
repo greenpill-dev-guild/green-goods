@@ -12,6 +12,22 @@ import { CommitmentPoolingAccess, IWorkDecisionSequenceResolver } from "./Commit
 /// @title CommitmentPoolingCredit
 /// @notice Contribution credit, readiness freeze, and confirmer reachability.
 abstract contract CommitmentPoolingCredit is CommitmentPoolingAccess {
+    /// @dev Recognition eligibility, defined once: a still-active contributor of a Fulfilled
+    ///      commitment whose roster has frozen, holding at least one verified credit.
+    function _isEligibleContributor(
+        uint256 commitmentId,
+        ICommitmentPoolingModule.Commitment storage commitment,
+        address contributor
+    )
+        internal
+        view
+        returns (bool)
+    {
+        ICommitmentPoolingModule.ContributorRecord storage record = contributors[commitmentId][contributor];
+        return commitment.state == ICommitmentPoolingModule.CommitmentState.Fulfilled && commitment.contributorsFrozen
+            && record.active && (record.approvedWorkCredits != 0 || record.evidenceCredits != 0);
+    }
+
     function _eligibleNamedConfirmerCount(
         uint256 commitmentId,
         address prospectiveContributor

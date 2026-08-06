@@ -30,6 +30,12 @@ abstract contract CommitmentPoolingStorage is OwnableUpgradeable, ReentrancyGuar
     uint256 internal constant MAX_CONTRIBUTORS_PER_COMMITMENT_VALUE = 40;
     uint256 internal constant MAX_LINKED_WORKS_PER_COMMITMENT_VALUE = 40;
 
+    /// @dev Every allocation and recognition vector is denominated in these basis points, and the
+    ///      cycle-less preset is the immutable protocol policy for a commitment with no cycle.
+    uint256 internal constant TOTAL_ALLOCATION_BPS = 10_000;
+    uint16 internal constant CYCLELESS_EQUAL_PARTICIPATION_BPS = 2000;
+    uint16 internal constant CYCLELESS_VERIFIED_CONTRIBUTION_BPS = 8000;
+
     // ═════════════════════════════════ Storage ═════════════════════════════════
 
     IHatsModule public hatsModule;

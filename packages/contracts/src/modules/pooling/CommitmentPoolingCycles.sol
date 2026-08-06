@@ -57,10 +57,11 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
 
         uint256 allocationSum = uint256(allocation.gardeners) + allocation.treasury + allocation.operator
             + allocation.evaluator + allocation.community + allocation.funder;
-        if (allocationSum != 10_000) revert ICommitmentPoolingModule.InvalidAllocation();
-        if (uint256(recognitionPolicy.equalParticipationBps) + recognitionPolicy.verifiedContributionBps != 10_000) {
-            revert ICommitmentPoolingModule.InvalidAllocation();
-        }
+        if (allocationSum != TOTAL_ALLOCATION_BPS) revert ICommitmentPoolingModule.InvalidAllocation();
+        if (
+            uint256(recognitionPolicy.equalParticipationBps) + recognitionPolicy.verifiedContributionBps
+                != TOTAL_ALLOCATION_BPS
+        ) revert ICommitmentPoolingModule.InvalidAllocation();
 
         if (cycle.cycleType == ICommitmentPoolingModule.CycleType.Season) {
             if (pool.openSeasonCycleId != 0) {
