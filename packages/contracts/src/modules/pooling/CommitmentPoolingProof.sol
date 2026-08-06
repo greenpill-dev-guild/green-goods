@@ -80,9 +80,7 @@ abstract contract CommitmentPoolingProof is CommitmentPoolingConfirmation {
         ) revert ICommitmentPoolingModule.InvalidAssessmentAttestation(assessmentUID);
         commitment.assessmentUID = assessmentUID;
         emit ICommitmentPoolingModule.AssessmentAttached(commitmentId, assessmentUID, msg.sender);
-        if (_requirementsComplete(commitment) && (!commitment.requiresAssessment || assessmentUID != bytes32(0))) {
-            _freezeAndReady(commitmentId, commitment, false, "");
-        }
+        _evaluateAutomaticReady(commitmentId, commitment);
     }
 
     // solhint-disable-next-line code-complexity
@@ -178,14 +176,42 @@ abstract contract CommitmentPoolingProof is CommitmentPoolingConfirmation {
         (uint256 workActionUID,,,,) = abi.decode(work.data, (uint256, string, string, string, string[]));
         if (workActionUID != actionUID) return;
 
+        if (!_creditWorkDecision(commitmentId, commitment, workUID, approvalUID, decisionSequence, approved, work.attester))
+        {
+            return;
+        }
+        _evaluateAutomaticReady(commitmentId, commitment);
+    }
+
+    // ═════════════════════════════ Internal ═════════════════════════════
+
+    /// @notice Records one already-validated effective decision and applies its requirement credit.
+    /// @dev Shared with the steward catch-up in CommitmentPoolingSync. The two callers differ only
+    ///      in how they treat invalid input — the resolver hook must never revert, catch-up must —
+    ///      so validation stays with each caller and only the effect lives here.
+    /// @return counted Whether the decision reached a requirement row and could therefore have
+    ///         changed readiness. Non-DomainImpact links carry no row and never do.
+    // solhint-disable-next-line code-complexity
+    function _creditWorkDecision(
+        uint256 commitmentId,
+        ICommitmentPoolingModule.Commitment storage commitment,
+        bytes32 workUID,
+        bytes32 decisionUID,
+        uint64 decisionSequence,
+        bool approved,
+        address attester
+    )
+        internal
+        returns (bool counted)
+    {
         latestWorkDecisionSequence[workUID] = decisionSequence;
-        latestWorkDecisionUID[workUID] = approvalUID;
-        approvalCounted[approvalUID] = true;
+        latestWorkDecisionUID[workUID] = decisionUID;
+        approvalCounted[decisionUID] = true;
 
         uint16 indexPlusOne = workRequirementIndexPlusOne[workUID];
-        if (indexPlusOne == 0) return;
+        if (indexPlusOne == 0) return false;
         uint16 requirementIndex = indexPlusOne - 1;
-        ICommitmentPoolingModule.ContributorRecord storage record = contributors[commitmentId][work.attester];
+        ICommitmentPoolingModule.ContributorRecord storage record = contributors[commitmentId][attester];
         ICommitmentPoolingModule.CommitmentRequirement storage requirement = commitment.requirements[requirementIndex];
         uint256 unitsBefore = _approvedUnits(commitment);
 
@@ -201,8 +227,8 @@ abstract contract CommitmentPoolingProof is CommitmentPoolingConfirmation {
             emit ICommitmentPoolingModule.ApprovedWorkCounted(
                 commitmentId,
                 workUID,
-                work.attester,
-                approvalUID,
+                attester,
+                decisionUID,
                 decisionSequence,
                 requirementIndex,
                 requirement.approvedCount,
@@ -222,8 +248,8 @@ abstract contract CommitmentPoolingProof is CommitmentPoolingConfirmation {
             emit ICommitmentPoolingModule.ApprovedWorkReversed(
                 commitmentId,
                 workUID,
-                work.attester,
-                approvalUID,
+                attester,
+                decisionUID,
                 decisionSequence,
                 requirementIndex,
                 requirement.approvedCount,
@@ -231,7 +257,17 @@ abstract contract CommitmentPoolingProof is CommitmentPoolingConfirmation {
                 unitsBefore - unitsAfter
             );
         }
+        return true;
+    }
 
+    /// @dev The Work-gated auto-flip shared by assessment attachment, the resolver hook, and the
+    ///      steward catch-up. `_freezeAndReady` still owns every freeze precondition.
+    function _evaluateAutomaticReady(
+        uint256 commitmentId,
+        ICommitmentPoolingModule.Commitment storage commitment
+    )
+        internal
+    {
         if (_requirementsComplete(commitment) && (!commitment.requiresAssessment || commitment.assessmentUID != bytes32(0)))
         {
             _freezeAndReady(commitmentId, commitment, false, "");
