@@ -364,12 +364,10 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
     // fabricate a signal production never emits.
     //
     // Resolution decided 2026-08-05: recover through the terminal machinery, not the
-    // confirmation predicate (contract-spec.md 223-224). raiseDispute is available to
-    // a steward from ReadyForConfirmation with no time gate and resolves to Fulfilled,
-    // covering cycle-less commitments whose dueDate is 0; expireCommitment adds a
-    // permissionless past-due exit. Both are frozen in ICommitmentPoolingModule and
-    // unimplemented in this checkpoint. Replace these characterizations with recovery
-    // assertions when those selectors land.
+    // confirmation predicate (contract-spec.md 223-224). These tests now assert that
+    // recovery end to end — a steward raises a dispute from ReadyForConfirmation with
+    // no time gate and resolves it to Fulfilled, so a dark or contributor-only claiming
+    // garden costs the provider nothing.
     // ───────────────────────────────────────────────────────────────────────────
 
     function testGardenOfferFreezeIsNotBlockedWhenClaimingGardenGoesDark() public {
@@ -387,7 +385,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         );
     }
 
-    function testGardenOfferCannotBeConfirmedAfterEveryClaimingStewardIsRevoked() public {
+    function testGardenOfferRecoversThroughDisputeAfterStewardsRevoked() public {
         address poolSteward = address(0xA001);
         hats.setOperator(ROOT_GARDEN, poolSteward, true);
         uint256 commitmentId = _readyGardenOffer(keccak256("garden-offer-revoked-after-freeze"));
@@ -407,13 +405,22 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         vm.prank(poolSteward);
         module.confirmFulfillmentAsFallback(commitmentId, "claiming garden went dark");
 
-        assertEq(
-            uint256(module.getCommitment(commitmentId).state),
-            uint256(ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation)
+        // The terminal machinery is the recovery: dispute from ReadyForConfirmation has no
+        // time gate, so the provider is not stranded by a garden that went dark.
+        vm.prank(poolSteward);
+        module.raiseDispute(commitmentId, "bafy-claiming-garden-dark");
+        vm.prank(poolSteward);
+        module.resolveDispute(
+            commitmentId, ICommitmentPoolingModule.DisputeResolution.Fulfilled, "bafy-steward-verified-delivery"
         );
+
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state), uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+        );
+        assertEq(registry.fulfilledOf(CREATOR, commitmentId), 1);
     }
 
-    function testGardenOfferCannotBeConfirmedWhenEveryClaimingStewardIsAContributor() public {
+    function testGardenOfferRecoversThroughDisputeWhenStewardsAreContributors() public {
         address poolSteward = address(0xA001);
         hats.setOperator(ROOT_GARDEN, poolSteward, true);
         uint256 commitmentId = _readyGardenOffer(keccak256("garden-offer-steward-is-contributor"));
@@ -435,6 +442,18 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         );
         vm.prank(poolSteward);
         module.confirmFulfillmentAsFallback(commitmentId, "only steward is a contributor");
+
+        // Same recovery: the contributor-only garden is resolved through dispute, not confirmation.
+        vm.prank(poolSteward);
+        module.raiseDispute(commitmentId, "bafy-only-steward-is-contributor");
+        vm.prank(poolSteward);
+        module.resolveDispute(
+            commitmentId, ICommitmentPoolingModule.DisputeResolution.Fulfilled, "bafy-steward-verified-delivery"
+        );
+
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state), uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+        );
     }
 
     /// @dev Protocol-pool Offer claimed by POOL_GARDEN, credited and one call away from Ready.
