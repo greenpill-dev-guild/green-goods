@@ -105,6 +105,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
         nextCommitmentId = 1;
         nextCommitmentSeriesId = 1;
         rootGarden = rootGarden_;
+        emit ICommitmentPoolingModule.ModulePauseStatusChanged(false, true);
     }
 
     function MAX_CONFIRMERS() external pure returns (uint256) {
@@ -162,6 +163,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     function setGardenToken(address gardenToken_) external onlyOwner onlyWhilePaused {
         if (gardenToken_ == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         address previous = gardenToken;
+        if (previous == gardenToken_) return;
         gardenToken = gardenToken_;
         emit ICommitmentPoolingModule.ModuleDependencyUpdated(
             ICommitmentPoolingModule.ModuleDependency.GardenToken, previous, gardenToken_
@@ -171,6 +173,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     function setHatsModule(address hatsModule_) external onlyOwner onlyWhilePaused {
         if (hatsModule_ == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         address previous = address(hatsModule);
+        if (previous == hatsModule_) return;
         hatsModule = IHatsModule(hatsModule_);
         emit ICommitmentPoolingModule.ModuleDependencyUpdated(
             ICommitmentPoolingModule.ModuleDependency.HatsModule, previous, hatsModule_
@@ -180,6 +183,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     function setActionRegistry(address actionRegistry_) external onlyOwner onlyWhilePaused {
         if (actionRegistry_ == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         address previous = address(actionRegistry);
+        if (previous == actionRegistry_) return;
         actionRegistry = ActionRegistry(actionRegistry_);
         emit ICommitmentPoolingModule.ModuleDependencyUpdated(
             ICommitmentPoolingModule.ModuleDependency.ActionRegistry, previous, actionRegistry_
@@ -189,6 +193,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     function setCommitmentRegistry(address registry_) external onlyOwner onlyWhilePaused {
         if (registry_ == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         address previous = address(commitmentRegistry);
+        if (previous == registry_) return;
         commitmentRegistry = ICommitmentRegistry(registry_);
         emit ICommitmentPoolingModule.ModuleDependencyUpdated(
             ICommitmentPoolingModule.ModuleDependency.CommitmentRegistry, previous, registry_
@@ -198,6 +203,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     function setWorkApprovalResolver(address resolver_) external onlyOwner onlyWhilePaused {
         if (resolver_ == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         address previous = workApprovalResolver;
+        if (previous == resolver_) return;
         workApprovalResolver = resolver_;
         emit ICommitmentPoolingModule.ModuleDependencyUpdated(
             ICommitmentPoolingModule.ModuleDependency.WorkApprovalResolver, previous, resolver_
@@ -207,6 +213,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     function setEAS(address eas_) external onlyOwner onlyWhilePaused {
         if (eas_ == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         address previous = address(eas);
+        if (previous == eas_) return;
         eas = IEAS(eas_);
         emit ICommitmentPoolingModule.ModuleDependencyUpdated(ICommitmentPoolingModule.ModuleDependency.EAS, previous, eas_);
     }
@@ -230,6 +237,10 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
                 || workApprovalUID == legacyAssessmentUID || workApprovalUID == assessmentV3UID
                 || legacyAssessmentUID == assessmentV3UID
         ) revert ICommitmentPoolingModule.SchemaUIDCollision(workUID);
+        if (
+            workSchemaUID == workUID && workApprovalSchemaUID == workApprovalUID
+                && legacyAssessmentSchemaUID == legacyAssessmentUID && assessmentV3SchemaUID == assessmentV3UID
+        ) return;
 
         _setSchemaUID(ICommitmentPoolingModule.ModuleSchemaKind.Work, workSchemaUID, workUID);
         _setSchemaUID(ICommitmentPoolingModule.ModuleSchemaKind.WorkApproval, workApprovalSchemaUID, workApprovalUID);
@@ -244,6 +255,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     }
 
     function setPaused(bool paused_) external onlyOwner {
+        if (paused == paused_) return;
         if (!paused_) _requireCompleteConfiguration();
         bool previous = paused;
         paused = paused_;
@@ -955,6 +967,7 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     }
 
     function _setSchemaUID(ICommitmentPoolingModule.ModuleSchemaKind kind, bytes32 previous, bytes32 next) private {
+        if (previous == next) return;
         emit ICommitmentPoolingModule.ModuleSchemaUIDUpdated(kind, previous, next);
     }
 
@@ -1507,7 +1520,15 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
     )
         private
     {
+        if (commitment.totalVerifiedCredits == 0) {
+            revert ICommitmentPoolingModule.NoEligibleContributors(commitmentId);
+        }
+        if (
+            commitment.cycleId != 0
+                && cycles[commitment.cycleId].state != ICommitmentPoolingModule.CycleState.Open
+        ) revert ICommitmentPoolingModule.RecognitionPolicyUnavailable(commitment.cycleId);
         _assertWorkDecisionsFresh(commitmentId);
+        _assertConfirmationReachable(commitmentId, commitment);
         commitment.contributorsFrozen = true;
         commitment.state = ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation;
         emit ICommitmentPoolingModule.ContributorRosterFrozen(commitmentId, commitment.contributorCount);
@@ -1568,11 +1589,46 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
         address defaultConfirmer = commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer
             ? commitment.counterparty
             : commitment.creator;
-        if (commitment.counterpartyKind == ICommitmentPoolingModule.ClaimType.Garden) {
+        if (
+            commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer
+                && commitment.counterpartyKind == ICommitmentPoolingModule.ClaimType.Garden
+        ) {
             if (account == defaultConfirmer) return false;
-            return _isGardenSteward(commitment.providerGarden, account);
+            return _isGardenSteward(defaultConfirmer, account);
         }
         return account == defaultConfirmer;
+    }
+
+    function _assertConfirmationReachable(
+        uint256 commitmentId,
+        ICommitmentPoolingModule.Commitment storage commitment
+    )
+        private
+        view
+    {
+        if (commitment.protocolFallbackEnabled) {
+            if (protocolPoolId == 0) revert ICommitmentPoolingModule.ModuleNotReady();
+            return;
+        }
+
+        address[] storage named = commitmentConfirmers[commitmentId];
+        if (named.length != 0) {
+            if (_eligibleNamedConfirmerCount(commitmentId, address(0)) < commitment.confirmationThreshold) {
+                revert ICommitmentPoolingModule.ConfirmationThresholdUnreachable(commitmentId);
+            }
+            return;
+        }
+
+        if (commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Request) {
+            if (contributors[commitmentId][commitment.creator].active) {
+                revert ICommitmentPoolingModule.ConfirmationThresholdUnreachable(commitmentId);
+            }
+            return;
+        }
+        if (
+            commitment.counterpartyKind == ICommitmentPoolingModule.ClaimType.Individual
+                && contributors[commitmentId][commitment.counterparty].active
+        ) revert ICommitmentPoolingModule.ConfirmationThresholdUnreachable(commitmentId);
     }
 
     function _fulfillCommitment(

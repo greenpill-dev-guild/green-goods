@@ -190,6 +190,10 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         vm.prank(EVALUATOR);
         module.attachAssessment(commitmentId, secondUID);
 
+        address[] memory credited = new address[](1);
+        credited[0] = CREATOR;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-assessment-credit", credited);
         module.markReadyForConfirmation(commitmentId, "manual review complete");
         vm.expectRevert();
         vm.prank(EVALUATOR);
