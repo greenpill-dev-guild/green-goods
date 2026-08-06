@@ -182,9 +182,8 @@ abstract contract CommitmentPoolingCredit is CommitmentPoolingAccess {
     ///      fixed. The spec-owned recovery is the terminal machinery (contract-spec.md 223-224):
     ///      raiseDispute is available to a steward from ReadyForConfirmation with no time gate and
     ///      resolves to Fulfilled, which also covers cycle-less commitments whose dueDate is 0;
-    ///      expireCommitment additionally offers a permissionless past-due exit. Both are frozen in
-    ///      ICommitmentPoolingModule and remain unimplemented in this checkpoint, so the gap is
-    ///      open and characterized by tests rather than silently patched here.
+    ///      expireCommitment additionally offers a permissionless past-due exit. Both now ship in
+    ///      CommitmentPoolingTerminal, so that recovery is live rather than merely specified.
     function _ordinaryConfirmationReachable(
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment
