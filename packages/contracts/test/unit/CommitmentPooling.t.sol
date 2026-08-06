@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Attestation } from "@eas/IEAS.sol";
 
@@ -26,6 +27,57 @@ contract CommitmentPoolingTest is Test {
         assertEq(module.owner(), OWNER);
         assertEq(module.rootGarden(), ROOT_GARDEN);
         assertTrue(module.paused());
+    }
+
+    function testInitializerEmitsExplicitPausedFirstTransition() public {
+        address implementation = deployCode("CommitmentPooling.sol:CommitmentPoolingModule");
+        bytes memory initData = abi.encodeWithSelector(ICommitmentPoolingModule.initialize.selector, OWNER, ROOT_GARDEN);
+
+        vm.recordLogs();
+        new ERC1967Proxy(implementation, initData);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        bytes32 pauseTopic = keccak256("ModulePauseStatusChanged(bool,bool)");
+        bool found;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == pauseTopic) {
+                (bool previousPaused, bool paused_) = abi.decode(logs[i].data, (bool, bool));
+                assertFalse(previousPaused);
+                assertTrue(paused_);
+                found = true;
+            }
+        }
+        assertTrue(found, "missing paused-first replay event");
+    }
+
+    function testExactConfigurationRepeatsAreEventFreeNoOps() public {
+        address dependency = address(0xD001);
+        bytes32 workUID = bytes32(uint256(1));
+        bytes32 approvalUID = bytes32(uint256(2));
+        bytes32 legacyAssessmentUID = bytes32(uint256(3));
+        bytes32 assessmentV3UID = bytes32(uint256(4));
+
+        vm.startPrank(OWNER);
+        module.setGardenToken(dependency);
+        module.setHatsModule(dependency);
+        module.setActionRegistry(dependency);
+        module.setCommitmentRegistry(dependency);
+        module.setWorkApprovalResolver(dependency);
+        module.setEAS(dependency);
+        module.setSchemaUIDs(workUID, approvalUID, legacyAssessmentUID, assessmentV3UID);
+
+        vm.recordLogs();
+        module.setGardenToken(dependency);
+        module.setHatsModule(dependency);
+        module.setActionRegistry(dependency);
+        module.setCommitmentRegistry(dependency);
+        module.setWorkApprovalResolver(dependency);
+        module.setEAS(dependency);
+        module.setSchemaUIDs(workUID, approvalUID, legacyAssessmentUID, assessmentV3UID);
+        module.setPaused(true);
+        vm.stopPrank();
+
+        assertEq(vm.getRecordedLogs().length, 0);
     }
 
     function testInitializerRejectsZeroRoot() public {
@@ -142,6 +194,72 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         vm.expectRevert();
         vm.prank(EVALUATOR);
         module.attachAssessment(commitmentId, secondUID);
+    }
+
+    function testReadyOverrideCannotBypassVerifiedCreditPredicate() public {
+        uint256 commitmentId = _createOffer(keccak256("zero-credit-override"));
+        _acceptOffer(commitmentId);
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NoEligibleContributors.selector, commitmentId));
+        module.markReadyForConfirmation(commitmentId, "override cannot manufacture credit");
+    }
+
+    function testReadyOverrideCannotFreezeUnreachableDefaultConfirmer() public {
+        uint256 commitmentId = _createOffer(keccak256("unreachable-default-confirmer"));
+        _acceptOffer(commitmentId);
+
+        vm.prank(CREATOR);
+        module.addContributor(commitmentId, CLAIMANT);
+        address[] memory credited = new address[](1);
+        credited[0] = CREATOR;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-ready-credit", credited);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ConfirmationThresholdUnreachable.selector, commitmentId)
+        );
+        module.markReadyForConfirmation(commitmentId, "default confirmer joined the roster");
+    }
+
+    function testProtocolOfferGardenClaimUsesClaimingGardenStewardsForDefaultConfirmation() public {
+        address rootOnlySteward = address(0xA001);
+        uint256 protocolId = _openProtocolPool();
+        hats.setOperator(ROOT_GARDEN, CREATOR, true);
+        hats.setOperator(ROOT_GARDEN, rootOnlySteward, true);
+        hats.setOperator(POOL_GARDEN, CLAIMANT, true);
+
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("garden-offer"));
+        params.poolId = protocolId;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Garden, POOL_GARDEN);
+
+        address[] memory credited = new address[](1);
+        credited[0] = CREATOR;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-garden-offer-credit", credited);
+        module.markReadyForConfirmation(commitmentId, "garden claimant confirmation ready");
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotConfirmer.selector, rootOnlySteward));
+        vm.prank(rootOnlySteward);
+        module.confirmFulfillment(commitmentId);
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotConfirmer.selector, POOL_GARDEN));
+        vm.prank(POOL_GARDEN);
+        module.confirmFulfillment(commitmentId);
+
+        vm.expectRevert(ICommitmentPoolingModule.SelfConfirmation.selector);
+        vm.prank(CREATOR);
+        module.confirmFulfillment(commitmentId);
+
+        vm.prank(CLAIMANT);
+        module.confirmFulfillment(commitmentId);
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+        );
     }
 
     function testGardenRequestStoresAuthenticatedRequesterAsLead() public {
