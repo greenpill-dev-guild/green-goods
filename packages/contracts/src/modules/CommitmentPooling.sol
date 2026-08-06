@@ -1523,10 +1523,9 @@ contract CommitmentPoolingModule is OwnableUpgradeable, ReentrancyGuardUpgradeab
         if (commitment.totalVerifiedCredits == 0) {
             revert ICommitmentPoolingModule.NoEligibleContributors(commitmentId);
         }
-        if (
-            commitment.cycleId != 0
-                && cycles[commitment.cycleId].state != ICommitmentPoolingModule.CycleState.Open
-        ) revert ICommitmentPoolingModule.RecognitionPolicyUnavailable(commitment.cycleId);
+        if (commitment.cycleId != 0 && cycles[commitment.cycleId].state != ICommitmentPoolingModule.CycleState.Open) {
+            revert ICommitmentPoolingModule.RecognitionPolicyUnavailable(commitment.cycleId);
+        }
         _assertWorkDecisionsFresh(commitmentId);
         _assertConfirmationReachable(commitmentId, commitment);
         commitment.contributorsFrozen = true;

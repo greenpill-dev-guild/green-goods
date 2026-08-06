@@ -279,8 +279,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         vm.prank(CLAIMANT);
         module.confirmFulfillment(commitmentId);
         assertEq(
-            uint256(module.getCommitment(commitmentId).state),
-            uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+            uint256(module.getCommitment(commitmentId).state), uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
         );
     }
 
@@ -307,8 +306,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         vm.prank(CREATOR);
         module.confirmFulfillment(commitmentId);
         assertEq(
-            uint256(module.getCommitment(commitmentId).state),
-            uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
+            uint256(module.getCommitment(commitmentId).state), uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled)
         );
     }
 
