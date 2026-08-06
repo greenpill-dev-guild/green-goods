@@ -16,11 +16,16 @@ const CONTRACTS_ROOT = path.join(__dirname, "../..");
  */
 const REQUIRED_ADDRESS_KEYS = [
   "guardian",
-  "rootGardenAddress",
   "gardenToken",
   "hatsModule",
   "actionRegistry",
   "workApprovalResolver",
+] as const;
+
+/** Dependencies the artifact nests under their own object rather than a flat key. */
+const REQUIRED_NESTED_ADDRESSES = [
+  { label: "rootGarden.address", parent: "rootGarden", child: "address" },
+  { label: "eas.address", parent: "eas", child: "address" },
 ] as const;
 
 const REQUIRED_SCHEMA_KEYS = [
@@ -77,9 +82,12 @@ export class PoolingDeployer {
   }
 
   private findMissingDependencies(deployment: Record<string, unknown>): string[] {
-    const missing = REQUIRED_ADDRESS_KEYS.filter((key) => isZeroOrMissing(deployment[key]));
-    const easAddress = (deployment.eas as { address?: unknown } | undefined)?.address;
-    if (isZeroOrMissing(easAddress)) missing.push("eas.address" as (typeof REQUIRED_ADDRESS_KEYS)[number]);
+    const missing: string[] = REQUIRED_ADDRESS_KEYS.filter((key) => isZeroOrMissing(deployment[key]));
+
+    REQUIRED_NESTED_ADDRESSES.forEach(({ label, parent, child }) => {
+      const nested = deployment[parent] as Record<string, unknown> | undefined;
+      if (isZeroOrMissing(nested?.[child])) missing.push(label);
+    });
 
     const schemas = (deployment.schemas ?? {}) as Record<string, unknown>;
     const missingSchemas = REQUIRED_SCHEMA_KEYS.filter((key) => {
@@ -99,7 +107,7 @@ export class PoolingDeployer {
     console.log("  - CommitmentRegistry (initialize(owner, module))");
     console.log("\nWould wire the module while still paused:");
     console.log(`  owner/guardian:         ${deployment.guardian}`);
-    console.log(`  rootGarden:             ${deployment.rootGardenAddress}`);
+    console.log(`  rootGarden:             ${(deployment.rootGarden as { address?: string } | undefined)?.address}`);
     console.log(`  gardenToken:            ${deployment.gardenToken}`);
     console.log(`  hatsModule:             ${deployment.hatsModule}`);
     console.log(`  actionRegistry:         ${deployment.actionRegistry}`);

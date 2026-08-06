@@ -25,7 +25,8 @@ contract DeployCommitmentPooling is Script {
     function run() public returns (PoolingDeployment memory deployment) {
         string memory json = _readDeployment();
         address owner = _requireAddress(json, ".guardian", "guardian");
-        address rootGarden = _requireAddress(json, ".rootGardenAddress", "rootGardenAddress");
+        // `_saveDeployment` nests the root garden under its own object, not a flat key.
+        address rootGarden = _requireAddress(json, ".rootGarden.address", "rootGarden.address");
 
         vm.startBroadcast();
 
