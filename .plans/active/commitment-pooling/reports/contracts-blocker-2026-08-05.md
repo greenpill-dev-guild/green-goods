@@ -2,12 +2,14 @@
 
 ## Current status
 
-**BLOCKED ON CANONICAL BRANCH-MIRROR RECONCILIATION** after `4256623d0`.
+**NOT BLOCKED.** The branch-mirror blocker recorded after `4256623d0` was withdrawn on 2026-08-05
+and the contracts lane is back to in progress.
 
-The contract and bounds corrections requested by the fresh review are GREEN. The remaining P2
-planning finding asks the canonical contracts lane branch to match the actual dispatched branch,
-but the repository validator hard-codes a different machine-lane convention in a file outside the
-authorized PRD-721 contracts paths. No validator bypass or out-of-lane edit was made.
+The reviewer who raised the branch mismatch withdrew that finding on re-review: the canonical
+machine-lane branch and the dispatched execution-sub-lane branch are two different fields *by
+design*, and the plan already says so (`plan.todo.md` Decision Log #19). Plan Hub validation passes
+against the current values, so there was never anything to reconcile and no `plan-hub.mjs` change is
+required. Details in "Withdrawn blocker" below.
 
 ## Resolved blocker status — production bounds evidence
 
@@ -111,9 +113,12 @@ event, or treat “not measured” as evidence that the next size is unsafe.
   WorkApproval/GardenToken callback behavior, and all six required storage layouts remain green.
 - No deployment, broadcast, live authority change, schema registration, or chain mutation occurred.
 
-## Active blocker — canonical branch mirror
+## Withdrawn blocker — canonical branch mirror
 
-### Issue
+**WITHDRAWN 2026-08-05.** The two branch values are intentionally different fields, not a mismatch.
+Recording this as a blocker halted valid PRD-721 work and requested an unnecessary validator change.
+
+### Issue as originally recorded
 
 The fresh reviewer correctly observed that this run's actual branch is
 `feature/build-commitment-pooling-contracts`, while the machine-lane branch in `status.json` and
@@ -142,20 +147,33 @@ node scripts/harness/plan-hub.mjs validate
 
 ### Options considered
 
-1. **Authorize a narrow Plan Hub follow-up (recommended).** Teach the validator to accept an
+1. **Authorize a narrow Plan Hub follow-up.** Teach the validator to accept an
    explicit dispatched integration-branch override, then change the canonical lane signal and
-   rerun validation. This addresses the reviewer finding without lying about either value.
+   rerun validation. Rejected on re-review: it solves a problem that does not exist.
 2. Switch this run to `codex/contracts/commitment-pooling`. Rejected: the dispatch explicitly
    prohibits branch creation or switching and requires the current feature branch before commits.
 3. Leave the feature branch in the canonical field despite failed validation. Rejected: this would
    knowingly leave the active plan invalid.
-4. Retain the machine-lane convention and the separate actual execution branch. This is the safe,
-   valid checkpoint used here, but it does not fully satisfy reviewer finding 5.
+4. Retain the machine-lane convention and the separate actual execution branch. **Selected.** This
+   is not a compromise: it is what Decision Log #19 already specifies, and Plan Hub validates it.
 
-### Recommendation
+### Resolution (2026-08-05)
 
-Authorize a separately scoped edit to `scripts/harness/plan-hub.mjs` that preserves default lane
-branch conventions while accepting a manifest-declared dispatched branch override. Then update the
-canonical signal to `feature/build-commitment-pooling-contracts`, rerun Plan Hub validation, and
-return the contracts lane from blocked to in progress. No contract deployment or dry broadcast is
-needed for this correction.
+Option 4 was already the correct state, and it is not a partial satisfaction of the reviewer
+finding — the finding itself was withdrawn. `plan.todo.md` Decision Log #19 establishes that
+`status.json` carries only Plan Hub's canonical machine lanes while detailed workstreams live in
+`execution_sub_lanes`; the branch fields follow that same split. Keeping the convention in
+`lanes.contracts.branch` and the dispatched branch in `execution_sub_lanes.contracts.branch` is the
+design, not a workaround.
+
+Verified on 2026-08-05:
+
+```text
+node scripts/harness/plan-hub.mjs validate
+Validated 41 feature hubs.
+```
+
+Actions taken: the branch-mirror blocker was withdrawn, both branch fields were left in their
+intended places, and `lanes.contracts` plus `execution_sub_lanes.contracts` returned to
+`in_progress`. Option 1's recommended `scripts/harness/plan-hub.mjs` edit is **not** required and
+should not be pursued — no validator change, deployment, or broadcast is involved.

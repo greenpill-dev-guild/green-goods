@@ -351,6 +351,114 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         assertEq(module.nextCommitmentId(), nextCommitmentBefore);
     }
 
+    // ───────────────────────────────────────────────────────────────────────────
+    // Garden-recipient confirmation liveness.
+    //
+    // These characterize a KNOWN OPEN GAP, not desired behavior. A Garden Offer's
+    // default confirmer is the set of current owner/steward Hat wearers, and no
+    // on-chain predicate can decide whether that set still contains an eligible,
+    // non-contributor address: IHatsModule exposes only per-account queries, and
+    // IHats.viewHat returns a wearer count that does NOT fall on revocation because
+    // HatsModule._revokeRole transfers the Hat to a burn address rather than
+    // burning it (Hats.sol:716). Any mock that decrements supply on revoke would
+    // fabricate a signal production never emits.
+    //
+    // Resolution decided 2026-08-05: recover through the terminal machinery, not the
+    // confirmation predicate (contract-spec.md 223-224). raiseDispute is available to
+    // a steward from ReadyForConfirmation with no time gate and resolves to Fulfilled,
+    // covering cycle-less commitments whose dueDate is 0; expireCommitment adds a
+    // permissionless past-due exit. Both are frozen in ICommitmentPoolingModule and
+    // unimplemented in this checkpoint. Replace these characterizations with recovery
+    // assertions when those selectors land.
+    // ───────────────────────────────────────────────────────────────────────────
+
+    function testGardenOfferFreezeIsNotBlockedWhenClaimingGardenGoesDark() public {
+        uint256 commitmentId = _readyGardenOffer(keccak256("garden-offer-goes-dark"));
+
+        // Revoke every current owner/steward Hat of the claiming garden before the freeze.
+        hats.setOperator(POOL_GARDEN, CLAIMANT, false);
+
+        // The freeze still succeeds: revocation left viewHat().supply untouched, so no
+        // reachability probe can observe that the garden went dark.
+        module.markReadyForConfirmation(commitmentId, "claiming garden has no current stewards");
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation)
+        );
+    }
+
+    function testGardenOfferCannotBeConfirmedAfterEveryClaimingStewardIsRevoked() public {
+        address poolSteward = address(0xA001);
+        hats.setOperator(ROOT_GARDEN, poolSteward, true);
+        uint256 commitmentId = _readyGardenOffer(keccak256("garden-offer-revoked-after-freeze"));
+        module.markReadyForConfirmation(commitmentId, "garden claimant confirmation ready");
+
+        hats.setOperator(POOL_GARDEN, CLAIMANT, false);
+
+        // No ordinary confirmer remains.
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotConfirmer.selector, CLAIMANT));
+        vm.prank(CLAIMANT);
+        module.confirmFulfillment(commitmentId);
+
+        // And fallback is refused, because Garden reachability cannot be disproved.
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.OrdinaryConfirmationStillReachable.selector, commitmentId)
+        );
+        vm.prank(poolSteward);
+        module.confirmFulfillmentAsFallback(commitmentId, "claiming garden went dark");
+
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation)
+        );
+    }
+
+    function testGardenOfferCannotBeConfirmedWhenEveryClaimingStewardIsAContributor() public {
+        address poolSteward = address(0xA001);
+        hats.setOperator(ROOT_GARDEN, poolSteward, true);
+        uint256 commitmentId = _readyGardenOffer(keccak256("garden-offer-steward-is-contributor"));
+
+        // The claiming garden's only steward joins the provider roster before the freeze.
+        hats.setGardener(ROOT_GARDEN, CLAIMANT, true);
+        vm.prank(CREATOR);
+        module.addContributor(commitmentId, CLAIMANT);
+        module.markReadyForConfirmation(commitmentId, "garden claimant confirmation ready");
+
+        // Contributor exclusion blocks the only ordinary confirmer.
+        vm.expectRevert(ICommitmentPoolingModule.SelfConfirmation.selector);
+        vm.prank(CLAIMANT);
+        module.confirmFulfillment(commitmentId);
+
+        // Supply cannot exclude contributors, so fallback is refused here too.
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.OrdinaryConfirmationStillReachable.selector, commitmentId)
+        );
+        vm.prank(poolSteward);
+        module.confirmFulfillmentAsFallback(commitmentId, "only steward is a contributor");
+    }
+
+    /// @dev Protocol-pool Offer claimed by POOL_GARDEN, credited and one call away from Ready.
+    ///      The commitment pool garden (ROOT_GARDEN) and claiming garden (POOL_GARDEN) differ,
+    ///      so local fallback authority is distinguishable from the ordinary garden path.
+    function _readyGardenOffer(bytes32 creationKey) private returns (uint256 commitmentId) {
+        uint256 protocolId = _openProtocolPool();
+        hats.setOperator(ROOT_GARDEN, CREATOR, true);
+        hats.setOperator(POOL_GARDEN, CLAIMANT, true);
+
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(creationKey);
+        params.poolId = protocolId;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        vm.prank(CREATOR);
+        commitmentId = module.createCommitment(params);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Garden, POOL_GARDEN);
+
+        address[] memory credited = new address[](1);
+        credited[0] = CREATOR;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-garden-offer-credit", credited);
+    }
+
     function _openProtocolPool() private returns (uint256 protocolId) {
         protocolId = module.registerPool(ROOT_GARDEN, ICommitmentPoolingModule.PoolType.Protocol);
         module.setProviderOpenCommitmentCap(protocolId, 128);
