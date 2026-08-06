@@ -99,7 +99,7 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
         }
 
         cycle.state = ICommitmentPoolingModule.CycleState.Reconciled;
-        if (pool.openSeasonCycleId == cycleId) pool.openSeasonCycleId = 0;
+        _clearSeasonGuard(cycle, pool, cycleId);
         emit ICommitmentPoolingModule.CycleClosed(cycleId, cycle.poolId);
     }
 
@@ -129,7 +129,7 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
 
         cycle.state = ICommitmentPoolingModule.CycleState.Cancelled;
         pool.nonTerminalCycleCount--;
-        if (pool.openSeasonCycleId == cycleId) pool.openSeasonCycleId = 0;
+        _clearSeasonGuard(cycle, pool, cycleId);
         emit ICommitmentPoolingModule.CycleCancelled(cycleId, cycle.poolId, reasonCID);
     }
 
@@ -138,6 +138,20 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
     }
 
     // ═════════════════════════════ Internal ═════════════════════════════
+
+    /// @dev Only a Season may own the one-open-Season guard. Campaign close and cancel never read
+    ///      or write it, so stale or migrated state pointing the field at a Campaign can never be
+    ///      cleared by closing that Campaign and admit a second concurrent Season.
+    function _clearSeasonGuard(
+        ICommitmentPoolingModule.Cycle storage cycle,
+        ICommitmentPoolingModule.Pool storage pool,
+        uint256 cycleId
+    )
+        private
+    {
+        if (cycle.cycleType != ICommitmentPoolingModule.CycleType.Season) return;
+        if (pool.openSeasonCycleId == cycleId) pool.openSeasonCycleId = 0;
+    }
 
     function _requireCycle(uint256 cycleId) internal view returns (ICommitmentPoolingModule.Cycle storage cycle) {
         cycle = cycles[cycleId];

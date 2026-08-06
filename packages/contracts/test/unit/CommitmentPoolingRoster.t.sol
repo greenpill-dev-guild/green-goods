@@ -133,6 +133,76 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertEq(vm.getRecordedLogs().length, 0);
     }
 
+    // ─────────────── Default-confirmer reachability on roster entry ───────────────
+    //
+    // Every roster mutation revalidates confirmer reachability, including the
+    // direction-aware default. Without this, the default confirmer could join, gain
+    // evidence credit, become unable to leave, and strand the commitment forever with
+    // its units and live counts reserved.
+
+    function testOfferCounterpartyCannotSelfJoinAndStrandOrdinaryReadiness() public {
+        uint256 commitmentId = _openPolicyOffer(keccak256("counterparty-self-join"));
+
+        // CLAIMANT accepted the Offer, so they are the Individual default confirmer.
+        assertEq(module.getCommitment(commitmentId).counterparty, CLAIMANT);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ConfirmationThresholdUnreachable.selector, commitmentId)
+        );
+        vm.prank(CLAIMANT);
+        module.joinCommitment(commitmentId);
+
+        // The rejected join left no residue.
+        assertFalse(module.isContributor(commitmentId, CLAIMANT));
+        assertEq(module.getCommitment(commitmentId).contributorCount, 1);
+    }
+
+    function testLeadManagedAddOfTheDefaultConfirmerIsRejected() public {
+        uint256 commitmentId = _createOffer(keccak256("counterparty-managed-add"));
+        _acceptOffer(commitmentId);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ConfirmationThresholdUnreachable.selector, commitmentId)
+        );
+        vm.prank(CREATOR);
+        module.addContributor(commitmentId, CLAIMANT);
+    }
+
+    function testRequestCreatorCannotBeAddedToTheRosterTheyMustConfirm() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("request-creator-add"));
+        params.direction = ICommitmentPoolingModule.CommitmentDirection.Request;
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+
+        // CREATOR is the Request default confirmer; CLAIMANT is the lead provider.
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ConfirmationThresholdUnreachable.selector, commitmentId)
+        );
+        vm.prank(CLAIMANT);
+        module.addContributor(commitmentId, CREATOR);
+    }
+
+    function testProtocolFallbackPermitsTheDefaultConfirmerToJoin() public {
+        module.registerPool(ROOT_GARDEN, ICommitmentPoolingModule.PoolType.Protocol);
+
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("fallback-join"));
+        params.contributorPolicy = ICommitmentPoolingModule.ContributorPolicy.Open;
+        params.protocolFallbackEnabled = true;
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+        _acceptOffer(commitmentId);
+
+        // An explicitly selected protocol fallback supplies the structural path, so the
+        // ordinary default confirmer joining the roster is no longer a dead end.
+        vm.prank(CLAIMANT);
+        module.joinCommitment(commitmentId);
+
+        assertTrue(module.isContributor(commitmentId, CLAIMANT));
+        assertEq(module.getCommitment(commitmentId).contributorCount, 2);
+    }
+
     // ───────────────────────────── Helpers ─────────────────────────────
 
     function _openPolicyOffer(bytes32 creationKey) private returns (uint256 commitmentId) {

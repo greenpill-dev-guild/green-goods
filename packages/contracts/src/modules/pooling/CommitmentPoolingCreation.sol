@@ -144,7 +144,7 @@ abstract contract CommitmentPoolingCreation is CommitmentPoolingCreationValidati
         uint8[] memory requirementDomains,
         uint32[] memory requirementRequiredCounts
     )
-        internal
+        private
     {
         emit ICommitmentPoolingModule.CommitmentCreated(
             commitmentId,

@@ -208,21 +208,32 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         module.markReadyForConfirmation(commitmentId, "override cannot manufacture credit");
     }
 
-    function testReadyOverrideCannotFreezeUnreachableDefaultConfirmer() public {
+    function testDefaultConfirmerIsRejectedAtRosterEntryNotAtFreeze() public {
         uint256 commitmentId = _createOffer(keccak256("unreachable-default-confirmer"));
         _acceptOffer(commitmentId);
 
+        // The roster mutation itself now rejects the default confirmer, so a commitment can
+        // never reach the freeze in this state. Catching it here rather than at Ready matters:
+        // once the counterparty held evidence credit they could no longer leave, and the
+        // commitment would have been stranded Accepted with its units and live counts reserved.
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ConfirmationThresholdUnreachable.selector, commitmentId)
+        );
         vm.prank(CREATOR);
         module.addContributor(commitmentId, CLAIMANT);
+
+        // The rejected mutation left no residue, and an untouched roster still reaches Ready.
+        assertFalse(module.isContributor(commitmentId, CLAIMANT));
         address[] memory credited = new address[](1);
         credited[0] = CREATOR;
         vm.prank(CREATOR);
         module.attachEvidence(commitmentId, "bafy-ready-credit", credited);
+        module.markReadyForConfirmation(commitmentId, "default confirmer stayed off the roster");
 
-        vm.expectRevert(
-            abi.encodeWithSelector(ICommitmentPoolingModule.ConfirmationThresholdUnreachable.selector, commitmentId)
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation)
         );
-        module.markReadyForConfirmation(commitmentId, "default confirmer joined the roster");
     }
 
     function testReadyOverrideRequiresOpenRecognitionPolicyForCycleScopedCommitment() public {

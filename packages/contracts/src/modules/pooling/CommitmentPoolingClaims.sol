@@ -226,14 +226,15 @@ abstract contract CommitmentPoolingClaims is CommitmentPoolingCreation {
         if (supplied > MAX_CONTRIBUTORS_PER_COMMITMENT_VALUE) {
             revert ICommitmentPoolingModule.TooManyContributors(supplied, MAX_CONTRIBUTORS_PER_COMMITMENT_VALUE);
         }
-        if (
-            commitmentConfirmers[commitmentId].length != 0
-                && _eligibleNamedConfirmerCount(commitmentId, contributor) < commitment.confirmationThreshold
-                && !commitment.protocolFallbackEnabled
-        ) revert ICommitmentPoolingModule.ConfirmationThresholdUnreachable(commitmentId);
-
+        // Activate first so reachability is evaluated against the roster this mutation would
+        // actually produce; a revert unwinds the write. Checking only the named group here used
+        // to let the direction-aware default confirmer — an Individual Offer counterparty or a
+        // Request creator — join the roster and strand the commitment: once they hold evidence
+        // credit they can no longer leave, and every Ready path reverts
+        // ConfirmationThresholdUnreachable with units and live counts reserved indefinitely.
         contributors[commitmentId][contributor].active = true;
         commitment.contributorCount++;
+        _assertConfirmationReachable(commitmentId, commitment);
         emit ICommitmentPoolingModule.ContributorAdded(commitmentId, contributor, addedBy);
     }
 }

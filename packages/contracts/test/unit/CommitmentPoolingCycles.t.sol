@@ -166,6 +166,31 @@ contract CommitmentPoolingCyclesTest is CommitmentPoolingFixture {
 
     // ───────────────────────────── Helpers ─────────────────────────────
 
+    function testCampaignCloseAndCancelNeverTouchTheSeasonGuard() public {
+        uint256 seasonId = _openSeason();
+        assertEq(module.getPool(poolId).openSeasonCycleId, seasonId);
+
+        uint256 closedCampaign = _seed(ICommitmentPoolingModule.CycleType.Campaign);
+        module.openCycle(closedCampaign, _allocation(), _recognition());
+        module.closeCycle(closedCampaign);
+        assertEq(module.getPool(poolId).openSeasonCycleId, seasonId, "campaign close must not clear the guard");
+
+        uint256 cancelledCampaign = _seed(ICommitmentPoolingModule.CycleType.Campaign);
+        module.openCycle(cancelledCampaign, _allocation(), _recognition());
+        module.cancelCycle(cancelledCampaign, "bafy-campaign-cancel");
+        assertEq(module.getPool(poolId).openSeasonCycleId, seasonId, "campaign cancel must not clear the guard");
+
+        // The Season still owns the guard, so a second Season is still refused.
+        uint256 secondSeason = _seed(ICommitmentPoolingModule.CycleType.Season);
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.SeasonAlreadyOpen.selector, poolId, seasonId));
+        module.openCycle(secondSeason, _allocation(), _recognition());
+
+        // Closing the Season itself releases it.
+        module.closeCycle(seasonId);
+        assertEq(module.getPool(poolId).openSeasonCycleId, 0);
+        module.openCycle(secondSeason, _allocation(), _recognition());
+    }
+
     function _allocation() private pure returns (ICommitmentPoolingModule.AllocationBps memory) {
         return ICommitmentPoolingModule.AllocationBps({
             gardeners: 5000,

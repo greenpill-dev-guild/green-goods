@@ -138,7 +138,7 @@ abstract contract CommitmentPoolingPools is CommitmentPoolingConfig {
         if (poolId != 0) pool = pools[poolId];
     }
 
-    function _registerPool(address garden, ICommitmentPoolingModule.PoolType poolType) internal returns (uint256 poolId) {
+    function _registerPool(address garden, ICommitmentPoolingModule.PoolType poolType) private returns (uint256 poolId) {
         if (garden == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
         poolId = nextPoolId++;
         gardenPool[garden] = poolId;
