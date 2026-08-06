@@ -3,14 +3,25 @@ import * as path from "node:path";
 import { solidityPackedKeccak256 } from "ethers";
 
 /**
- * Shared, RPC-free logic for the Commitment Pooling release lane: the Arbitrum Sepolia
- * rehearsal target, the two additive EAS registrations, and the fail-closed preflights that
- * every pooling deploy or upgrade runs before it is allowed to touch a live proxy.
+ * Shared, RPC-free logic for the Commitment Pooling release lane: the two additive EAS
+ * registrations, the grouped upgrade keys, and the fail-closed preflights that every pooling
+ * deploy or upgrade runs before it is allowed to touch a live proxy.
  */
 
-/** Arbitrum Sepolia. Deliberately distinct from Ethereum Sepolia — the two share no addresses. */
-export const ARBITRUM_SEPOLIA_CHAIN_ID = "421614";
-export const ARBITRUM_SEPOLIA_NETWORK = "arbitrum-sepolia";
+/**
+ * Rehearsal target: an Arbitrum One fork, not a testnet.
+ *
+ * Arbitrum Sepolia (421614) was evaluated and rejected as the rehearsal chain. Hats Protocol has
+ * no deployment there, so a rehearsal would have to stand up a hand-rolled Hats tree and would
+ * prove nothing about the real one. `test/fork/ArbitrumCommitmentPooling.t.sol` runs the same
+ * runbook against live Hats, EAS, and the WorkApprovalResolver instead.
+ *
+ * If that decision is ever revisited, the published 421614 EAS v1.3.0 deployment — verified
+ * against the EAS repository on 2026-08-06 — is EAS `0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE`
+ * and SchemaRegistry `0x45CB6Fa0870a8Af06796Ac15915619a0f22cd475`. Neither is shared with
+ * Ethereum Sepolia; never copy an `11155111` address onto `421614`.
+ */
+export const POOLING_REHEARSAL_FORK_NETWORK = "arbitrum";
 
 /** Artifact keys the pooling lane owns in `deployments/{chainId}-latest.json`. */
 export const POOLING_UPGRADE_KEYS = ["commitmentPoolingModule", "commitmentRegistry"] as const;

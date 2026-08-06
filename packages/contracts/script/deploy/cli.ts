@@ -142,9 +142,10 @@ Examples:
   # Migrate stuck greengoods.eth registrations into the current mainnet receiver
   bun deploy.ts ens-migrate --network mainnet --broadcast
 
-  # Rehearse the Commitment Pooling lane on Arbitrum Sepolia before Arbitrum One
-  bun deploy.ts commitment-schemas --network arbitrum-sepolia --dry-run
-  bun deploy.ts pooling --network arbitrum-sepolia --dry-run
+  # Plan the Commitment Pooling lane. Rehearse first with the Arbitrum One fork:
+  #   bun run test:fork:pooling:arbitrum
+  bun deploy.ts commitment-schemas --network arbitrum --dry-run
+  bun deploy.ts pooling --network arbitrum --dry-run
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 

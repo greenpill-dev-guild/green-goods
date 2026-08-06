@@ -115,28 +115,6 @@
       },
       "ccipChainSelector": 4949039107694359620
     },
-    "arbitrum-sepolia": {
-      "chainId": 421614,
-      "name": "Arbitrum Sepolia",
-      "rpcUrl": "${ARBITRUM_SEPOLIA_RPC_URL}",
-      "nativeCurrency": {
-        "name": "Arbitrum Sepolia Ether",
-        "symbol": "ETH",
-        "decimals": 18
-      },
-      "blockExplorer": "https://sepolia.arbiscan.io",
-      "verifyApiUrl": "https://api.etherscan.io/v2/api",
-      "verifyApiKey": "${ETHERSCAN_API_KEY}",
-      "deployConfig": {
-        "gasPrice": "auto",
-        "gasLimit": "auto",
-        "confirmations": 2
-      },
-      "contracts": {
-        "eas": "0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE",
-        "easSchemaRegistry": "0x45CB6Fa0870a8Af06796Ac15915619a0f22cd475"
-      }
-    },
     "celo": {
       "chainId": 42220,
       "name": "Celo",

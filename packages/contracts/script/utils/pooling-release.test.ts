@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NetworkManager } from "./network";
 import {
-  ARBITRUM_SEPOLIA_CHAIN_ID,
+  POOLING_REHEARSAL_FORK_NETWORK,
   POOLING_UPGRADE_KEYS,
   assertProxyOwnership,
   computeSchemaUID,
@@ -14,23 +14,23 @@ import { resolveUpgradeTargets } from "../upgrade";
 const ZERO = "0x0000000000000000000000000000000000000000";
 const OWNER = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
 
-describe("Arbitrum Sepolia network record", () => {
+describe("pooling rehearsal target", () => {
   const networkManager = new NetworkManager();
 
-  it("resolves the 421614 rehearsal target by name and by chain id", () => {
-    expect(networkManager.getChainId("arbitrum-sepolia")).toBe(421_614);
-    expect(networkManager.getChainIdString("arbitrum-sepolia")).toBe(ARBITRUM_SEPOLIA_CHAIN_ID);
-    expect(networkManager.getNetwork(421_614).name).toBe("arbitrum-sepolia");
+  it("rehearses on an Arbitrum One fork", () => {
+    expect(POOLING_REHEARSAL_FORK_NETWORK).toBe("arbitrum");
+    expect(networkManager.getChainId(POOLING_REHEARSAL_FORK_NETWORK)).toBe(42_161);
   });
 
-  it("carries the published Arbitrum Sepolia EAS deployment, never a copied Ethereum Sepolia address", () => {
-    const arbitrumSepolia = networkManager.getNetwork("arbitrum-sepolia");
-    const ethereumSepolia = networkManager.getNetwork("sepolia");
+  it("does not configure a half-supported Sepolia testnet as a deploy target", () => {
+    // Hats Protocol has no Arbitrum Sepolia deployment and Celo Sepolia has no published CCIP
+    // lane, so neither can carry an honest rehearsal. Listing them would advertise support the
+    // toolchain cannot deliver; the fork lane is the rehearsal.
+    const configured = networkManager.getAvailableNetworks();
 
-    expect(arbitrumSepolia.contracts?.eas).toBe("0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE");
-    expect(arbitrumSepolia.contracts?.easSchemaRegistry).toBe("0x45CB6Fa0870a8Af06796Ac15915619a0f22cd475");
-    expect(arbitrumSepolia.contracts?.eas).not.toBe(ethereumSepolia.contracts?.eas);
-    expect(arbitrumSepolia.contracts?.easSchemaRegistry).not.toBe(ethereumSepolia.contracts?.easSchemaRegistry);
+    expect(configured).not.toContain("arbitrum-sepolia");
+    expect(configured).not.toContain("celo-sepolia");
+    expect(() => networkManager.getNetwork(421_614)).toThrow(/Network not found/);
   });
 });
 

@@ -345,8 +345,8 @@ Examples:
   # Upgrade and wire the signal-pool/yield lane
   bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --broadcast --sender 0xFBAf...
 
-  # Rehearse the grouped pooling upgrade on Arbitrum Sepolia before Arbitrum One
-  bun script/upgrade.ts pooling --network arbitrum-sepolia --dry-run
+  # Rehearse the grouped pooling upgrade (fork rehearsal first: bun run test:fork:pooling:arbitrum)
+  bun script/upgrade.ts pooling --network arbitrum --dry-run
   `);
 }
 

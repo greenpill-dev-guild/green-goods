@@ -135,7 +135,7 @@ scripts/
 - `.claude/scripts/` — Claude harness scripts (skill frontmatter check, codex lane dispatch, agent gates)
 - `docs/scripts/` — Docusaurus generators (`docs-audit.mjs`, `generate-protocol-status.mjs`)
 - `packages/*/scripts/` — package-local scripts (e.g. `packages/indexer/scripts/`)
-- `packages/contracts/script/` — Foundry scripts and their Bun CLIs. Commitment Pooling adds `deploy/commitment-schemas.ts` + `DeployCommitmentSchemas.s.sol` (resumable assessment-v3 / community-testimony EAS registration), `deploy/pooling.ts` + `DeployPooling.s.sol` (module + register, deployed paused), and `utils/pooling-release.ts` (deterministic schema UIDs, grouped upgrade keys, live `owner()` preflight); callers are the root `contracts:pooling:*` scripts
+- `packages/contracts/script/` — Foundry scripts and their Bun CLIs. Commitment Pooling adds `deploy/commitment-schemas.ts` + `DeployCommitmentSchemas.s.sol` (resumable assessment-v3 / community-testimony EAS registration), `deploy/pooling.ts` + `DeployPooling.s.sol` (module + register, deployed paused), and `utils/pooling-release.ts` (deterministic schema UIDs, grouped upgrade keys, live `owner()` preflight). The release rehearsal is `test/fork/ArbitrumCommitmentPooling.t.sol` on an Arbitrum One fork, not a testnet; callers are the root `contracts:pooling:*` scripts
 
 ## Adding a new script
 
