@@ -104,7 +104,7 @@ const SHARDS = {
   },
 };
 
-const SHARD_ORDER = ["arbitrum", "sepolia", "ethereum", "gardens", "octant"];
+const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant"];
 
 function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), "../../.env"), override: false, quiet: true });

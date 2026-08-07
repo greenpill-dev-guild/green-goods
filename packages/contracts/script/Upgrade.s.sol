@@ -14,6 +14,7 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { TestimonyResolver } from "../src/resolvers/Testimony.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
@@ -230,6 +231,36 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("AssessmentResolver upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Upgrade TestimonyResolver
+    /// @dev The EAS address is a constructor argument, so it is baked into implementation bytecode
+    ///      and cannot be changed by an upgrade. It is re-read from the network config here so a
+    ///      new implementation can never silently point at a different EAS than the proxy was
+    ///      deployed against.
+    function upgradeTestimonyResolver() public {
+        address proxy = loadProxyAddress("testimonyResolver");
+        console.log("Upgrading TestimonyResolver proxy at:", proxy);
+
+        validateProxy(proxy, "TestimonyResolver");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        address currentImplAddr = address(uint160(uint256(vm.load(proxy, implementationSlot))));
+        console.log("Current TestimonyResolver implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        (address eas,,,) = loadNetworkConfig();
+        console.log("Using EAS:", eas);
+
+        TestimonyResolver newImpl = new TestimonyResolver(eas);
+        console.log("New TestimonyResolver implementation:", address(newImpl));
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("TestimonyResolver upgraded successfully");
 
         vm.stopBroadcast();
     }

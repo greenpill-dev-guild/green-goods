@@ -26,6 +26,7 @@ type ContractName =
   | "work-resolver"
   | "work-approval-resolver"
   | "assessment-resolver"
+  | "testimony-resolver"
   | "deployment-registry"
   | "greenwill"
   | "pooling"
@@ -44,6 +45,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
+  "testimony-resolver": "upgradeTestimonyResolver()",
   "deployment-registry": "upgradeDeployment()",
   greenwill: "upgradeGreenWill()",
   pooling: "upgradePooling()",
@@ -87,6 +89,7 @@ const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
   "assessment-resolver": "assessmentResolver",
+  "testimony-resolver": "testimonyResolver",
   "deployment-registry": "deploymentRegistry",
   greenwill: "greenWill",
 };

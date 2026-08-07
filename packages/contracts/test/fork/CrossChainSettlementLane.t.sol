@@ -191,10 +191,15 @@ contract CrossChainSettlementLaneForkTest is Test {
 
         arbRouter = abi.decode(vm.parseJson(json, ".networks.arbitrum.contracts.ccipRouter"), (address));
         celoRouter = abi.decode(vm.parseJson(json, ".networks.celo.contracts.ccipRouter"), (address));
-        arbSelector = uint64(abi.decode(vm.parseJson(json, ".networks.arbitrum.ccipChainSelector"), (uint256)));
-        celoSelector = uint64(abi.decode(vm.parseJson(json, ".networks.celo.ccipChainSelector"), (uint256)));
+        // Base-10 strings, not JSON numbers — see `testSelectorsAreStoredAsExactStrings`.
+        arbSelector = _selector(json, ".networks.arbitrum.ccipChainSelector");
+        celoSelector = _selector(json, ".networks.celo.ccipChainSelector");
         arbChainId = abi.decode(vm.parseJson(json, ".networks.arbitrum.chainId"), (uint256));
         celoChainId = abi.decode(vm.parseJson(json, ".networks.celo.chainId"), (uint256));
+    }
+
+    function _selector(string memory json, string memory jsonPath) private view returns (uint64) {
+        return uint64(vm.parseUint(abi.decode(vm.parseJson(json, jsonPath), (string))));
     }
 
     /// @dev Skips rather than fails when either RPC is missing, matching `CrossChainENS.t.sol`.

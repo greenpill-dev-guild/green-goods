@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { NetworkManager } from "./network";
 import {
@@ -326,5 +328,44 @@ describe("pooling configuration planning", () => {
     ]);
     expect(new Set(plan.map((step) => step.target)).size).toBe(proxies.length);
     expect(proxies.find((proxy) => proxy.label === "testimonyResolver")?.address).toBe(targets.testimonyResolver);
+  });
+});
+
+describe("CCIP chain selector serialization", () => {
+  const networksPath = path.join(__dirname, "../../deployments/networks.json");
+  const raw = fs.readFileSync(networksPath, "utf8");
+
+  /**
+   * CCIP selectors are uint64 and exceed `Number.MAX_SAFE_INTEGER`, so a JSON number is lossy the
+   * moment any TypeScript consumer calls `JSON.parse` — Arbitrum's `4949039107694359620` becomes
+   * `4949039107694359552`, off by 68. Solidity's `vm.parseJson` is exact, which is precisely why a
+   * Solidity-only fork test could report the lane green while the shipped config was already
+   * corrupt for every JS reader.
+   */
+  it("stores every selector as a base-10 string, never a JSON number", () => {
+    const unquoted = [...raw.matchAll(/"ccipChainSelector":\s*([^"\s,}][^,}]*)/g)].map((match) => match[1].trim());
+
+    expect(unquoted).toEqual([]);
+  });
+
+  it("round-trips every selector through JSON.parse without losing a digit", () => {
+    const networks = JSON.parse(raw).networks as Record<string, { ccipChainSelector?: unknown }>;
+
+    for (const [name, config] of Object.entries(networks)) {
+      const selector = config.ccipChainSelector;
+      if (selector === undefined) continue;
+
+      expect(typeof selector, `${name}.ccipChainSelector must be a string`).toBe("string");
+      // Exact both ways: parseable as an integer, and unchanged when rendered back.
+      expect(String(BigInt(selector as string)), `${name}.ccipChainSelector lost precision`).toBe(selector);
+    }
+  });
+
+  it("pins the two selectors the settlement lane was verified against", () => {
+    const networks = JSON.parse(raw).networks as Record<string, { ccipChainSelector?: string }>;
+
+    // Official Chainlink directory values, proven live on chain 2026-08-06.
+    expect(networks.arbitrum.ccipChainSelector).toBe("4949039107694359620");
+    expect(networks.celo.ccipChainSelector).toBe("1346049177634351622");
   });
 });

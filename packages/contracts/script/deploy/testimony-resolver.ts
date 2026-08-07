@@ -60,15 +60,14 @@ export class TestimonyResolverDeployer {
       );
     }
 
-    // Redeploying orphans the registered schema: its UID is derived from the resolver address, so
-    // a new proxy leaves the existing schema pointing at the old one. Refuse rather than strand it.
+    // Already recorded means there is nothing to do. This is not a redeploy guard — the script's
+    // CREATE2 addresses are deterministic, so a rerun cannot produce a second deployment — it just
+    // avoids sending a pointless transaction and re-merging identical values.
     const existing = deployment.testimonyResolver;
     if (!isZeroOrMissing(existing)) {
-      throw new Error(
-        `TestimonyResolver is already deployed at ${existing}. Its address is baked into the community ` +
-          "testimony schema UID, so redeploying orphans the registered schema. To replace it, upgrade the " +
-          "proxy with `bun script/upgrade.ts` instead.",
-      );
+      console.log(`\nTestimonyResolver is already recorded at ${existing}; nothing to do.`);
+      console.log("To ship new implementation bytecode, use `bun script/upgrade.ts testimony-resolver`.");
+      return;
     }
 
     if (!options.broadcast) {
@@ -119,8 +118,13 @@ export class TestimonyResolverDeployer {
 
     console.log("\nDRY RUN - no transactions will be sent");
     console.log("Script: script/DeployTestimonyResolver.s.sol:DeployTestimonyResolver");
-    console.log("\nWould deploy one UUPS proxy:");
-    console.log("  - TestimonyResolver (initialize(owner))");
+    console.log("\nWould deploy, via CREATE2 with versioned salts:");
+    console.log("  - TestimonyResolver implementation (EAS baked into constructor)");
+    console.log("  - ERC1967 proxy over it (initialize(owner))");
+    console.log("  Addresses are deterministic and printed by the script before it sends. A run");
+    console.log("  interrupted after broadcast but before the artifact merge is recoverable: rerun");
+    console.log("  and the same two addresses are found already deployed, so no second deployment");
+    console.log("  transaction is sent and the artifact is simply rewritten.");
     console.log(`\n  owner:             ${owner ?? "unreadable — the script reads assessmentResolver.owner()"}`);
     console.log("    (taken from the sibling resolvers, not the artifact guardian, so one sender");
     console.log("     can run pooling-configure across all three)");

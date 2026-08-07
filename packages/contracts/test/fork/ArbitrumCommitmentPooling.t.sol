@@ -10,6 +10,7 @@ import { CommitmentRegistry } from "../../src/registries/Commitment.sol";
 import { TestimonyResolver } from "../../src/resolvers/Testimony.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
 import { PoolingConfiguration } from "../../script/lib/PoolingConfiguration.sol";
+import { DeployTestimonyResolver } from "../../script/DeployTestimonyResolver.s.sol";
 
 /// @title ArbitrumCommitmentPoolingForkTest
 /// @notice Production rehearsal for the Commitment Pooling release, on an Arbitrum One fork.
@@ -69,7 +70,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      Calling it as `this.configureExternally(...)` keeps `msg.sender` at this contract,
     ///      which is the resolver owner on the fork.
     function configureExternally(PoolingConfiguration.Targets memory targets) external returns (uint256) {
-        return targets.configure();
+        return targets.configure(address(this));
     }
 
     /// @dev The artifact-shaped inputs `deploy.ts pooling-configure` reads and hands to the same
@@ -122,6 +123,80 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertFalse(pooling.paused(), "the fully wired module unpauses");
     }
 
+    // ─────────────────────── Deterministic deploy rehearsal ───────────────────────
+
+    /// @notice The deploy target's own CREATE2 derivation, run against live Arbitrum.
+    /// @dev Drives `DeployTestimonyResolver` itself rather than a copy of its logic. The previous
+    ///      revision of this file hand-deployed proxies with `new ERC1967Proxy`, so it proved
+    ///      nothing about the script an operator actually runs — the gap that let a plain-CREATE,
+    ///      non-recoverable deploy reach review.
+    function testDeployTargetPredictsTheAddressesItDeploys() public {
+        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
+        address owner = assessmentResolver.owner();
+
+        (address predictedImpl, address predictedProxy) = deployer.predictAddresses(_easAddress(), owner);
+        assertEq(predictedImpl.code.length, 0, "the predicted implementation must be unoccupied first");
+        assertEq(predictedProxy.code.length, 0, "the predicted proxy must be unoccupied first");
+
+        DeployTestimonyResolver.TestimonyDeployment memory result = deployer.deployOrReuse(_easAddress(), owner);
+
+        assertTrue(result.deployedSomething, "the first run must deploy");
+        assertEq(result.testimonyResolverImpl, predictedImpl, "implementation landed off its prediction");
+        assertEq(result.testimonyResolver, predictedProxy, "proxy landed off its prediction");
+        assertEq(
+            TestimonyResolver(payable(result.testimonyResolver)).owner(), owner, "proxy owner must be the sibling owner"
+        );
+    }
+
+    /// @notice A rerun after a lost artifact deploys nothing and returns the same addresses.
+    /// @dev This is the recovery property. Under plain CREATE, a run whose transaction mined but
+    ///      whose artifact merge failed would, on retry, deploy a SECOND implementation and proxy at
+    ///      fresh nonce-derived addresses — orphaning the first along with any schema registered
+    ///      against it, since the schema UID commits to the resolver address.
+    function testDeployTargetRecoversWithoutASecondDeployment() public {
+        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
+        address owner = assessmentResolver.owner();
+
+        DeployTestimonyResolver.TestimonyDeployment memory first = deployer.deployOrReuse(_easAddress(), owner);
+        bytes32 implCodehash = first.testimonyResolverImpl.codehash;
+        bytes32 proxyCodehash = first.testimonyResolver.codehash;
+
+        // Exactly the retry an operator performs after a failed merge.
+        DeployTestimonyResolver.TestimonyDeployment memory second = deployer.deployOrReuse(_easAddress(), owner);
+
+        assertFalse(second.deployedSomething, "a recovery rerun must send no deployment transaction");
+        assertEq(second.testimonyResolver, first.testimonyResolver, "recovery must return the same proxy");
+        assertEq(second.testimonyResolverImpl, first.testimonyResolverImpl, "recovery must return the same implementation");
+        assertEq(second.testimonyResolver.codehash, proxyCodehash, "the proxy must not have been replaced");
+        assertEq(second.testimonyResolverImpl.codehash, implCodehash, "the implementation must not have been replaced");
+    }
+
+    /// @notice A proxy at the predicted address that was upgraded elsewhere is not silently reused.
+    /// @dev CREATE2 proves the address was created from this creation code; it cannot prove nobody
+    ///      upgraded the proxy afterwards. That is what the ERC-1967 slot read covers.
+    function testDeployTargetRefusesAProxyUpgradedOutFromUnderIt() public {
+        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
+        address owner = assessmentResolver.owner();
+        DeployTestimonyResolver.TestimonyDeployment memory first = deployer.deployOrReuse(_easAddress(), owner);
+
+        address foreignImplementation = deployCode("Testimony.sol:TestimonyResolver", abi.encode(_easAddress()));
+        vm.store(
+            first.testimonyResolver,
+            0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc,
+            bytes32(uint256(uint160(foreignImplementation)))
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                DeployTestimonyResolver.ExistingProxyMismatch.selector,
+                "implementation",
+                first.testimonyResolverImpl,
+                foreignImplementation
+            )
+        );
+        deployer.deployOrReuse(_easAddress(), owner);
+    }
+
     // ─────────────────────── Resolver configuration rehearsal ───────────────────────
 
     /// @notice Re-running the configure step on a configured chain is a no-op, not a revert.
@@ -131,7 +206,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         PoolingConfiguration.Targets memory targets = _configurationTargets();
 
         assertTrue(targets.isConfigured(), "setUp must leave the chain fully configured");
-        assertEq(targets.configure(), 0, "a configured chain needs no further calls");
+        assertEq(targets.configure(address(this)), 0, "a configured chain needs no further calls");
         assertTrue(targets.isConfigured(), "re-running must not disturb the configured state");
     }
 
@@ -145,7 +220,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         targets.testimonyResolver = address(fresh);
         targets.communityTestimonySchemaUID = freshSchemaUID;
 
-        assertEq(targets.configure(), 2, "only the two unsatisfied testimony steps may be written");
+        assertEq(targets.configure(address(this)), 2, "only the two unsatisfied testimony steps may be written");
         assertEq(fresh.schemaUID(), freshSchemaUID);
         assertEq(fresh.commitmentModule(), address(pooling));
         assertTrue(targets.isConfigured(), "the resumed run must reach the configured state");
@@ -196,6 +271,30 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
             abi.encodeWithSelector(PoolingConfiguration.AssessmentSchemaUIDCollision.selector, assessmentSchemaUID)
         );
         this.configureExternally(targets);
+    }
+
+    /// @notice A caller who does not own every proxy is rejected before the first write.
+    /// @dev The failure this prevents is partial configuration, not the revert. Without the upfront
+    ///      check the run would send calls until it reached a proxy it does not own and revert
+    ///      there, leaving the earlier steps applied. Proven by handing a fresh testimony resolver
+    ///      owned by someone else to an otherwise-valid target set and showing nothing moved.
+    function testConfigureRefusesACallerThatDoesNotOwnEveryProxy() public {
+        (TestimonyResolver foreign, bytes32 foreignSchemaUID) = _deployTestimonyResolverWithSchema("foreign");
+        foreign.transferOwnership(address(0xBEEFBEEF));
+
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+        targets.testimonyResolver = address(foreign);
+        targets.communityTestimonySchemaUID = foreignSchemaUID;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PoolingConfiguration.ConfigurationNotOwner.selector, "testimonyResolver", address(0xBEEFBEEF), address(this)
+            )
+        );
+        this.configureExternally(targets);
+
+        assertEq(foreign.schemaUID(), bytes32(0), "no step may land when ownership fails");
+        assertEq(foreign.commitmentModule(), address(0), "no step may land when ownership fails");
     }
 
     /// @notice Every address and UID is required before a single call is sent.
@@ -363,7 +462,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      rather than a hand-copied sequence. A rehearsal of a copy proves only that the copy
     ///      works; this proves the code an operator will actually run.
     function _configureResolvers() private {
-        uint256 written = _configurationTargets().configure();
+        uint256 written = _configurationTargets().configure(address(this));
 
         assertEq(written, 5, "a fresh chain must need all five configuration calls");
     }

@@ -25,15 +25,19 @@ contract ConfigurePooling is Script {
 
     function run() public returns (uint256 written) {
         PoolingConfiguration.Targets memory targets = _readTargets();
+        // Declared, never inferred. `pooling-configure.ts` sets this from --sender after proving it
+        // equals every live owner(); a missing value must stop the run rather than guess.
+        address expectedOwner = vm.envAddress("POOLING_CONFIGURE_EXPECTED_OWNER");
 
         console.log("Configuring Commitment Pooling resolvers");
         console.log("  assessmentResolver:      ", targets.assessmentResolver);
         console.log("  testimonyResolver:       ", targets.testimonyResolver);
         console.log("  workApprovalResolver:    ", targets.workApprovalResolver);
         console.log("  commitmentPoolingModule: ", targets.commitmentPoolingModule);
+        console.log("  expected owner:          ", expectedOwner);
 
         vm.startBroadcast();
-        written = targets.configure();
+        written = targets.configure(expectedOwner);
         vm.stopBroadcast();
 
         // A zero here is the re-run contract holding, not a failure: every step was already

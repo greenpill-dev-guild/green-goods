@@ -146,7 +146,15 @@ export class PoolingConfigureDeployer {
    * All five calls are `onlyOwner` across three separate proxies, so the run only works if one
    * account owns all three. On Arbitrum One the resolvers are owned by the deployer rather than
    * the artifact's `guardian`, which is exactly the kind of divergence that burns a nonce halfway
-   * through a broadcast — prove it up front instead.
+   * through a broadcast.
+   *
+   * A broadcast FAILS CLOSED on anything it cannot prove: no RPC, an unreadable `owner()`, or a
+   * missing `--sender` all refuse to send. Earlier this returned early and broadcast anyway, which
+   * defeated the point of the check. A dry run degrades to a printed note instead, because its
+   * whole job is to be usable before a signer exists.
+   *
+   * `ConfigurePooling.s.sol` re-proves ownership on chain in the same transaction context before
+   * its first write, so this is a readable early failure, not the authority.
    *
    * Skipped when nothing would be written, so a confirmatory re-run does not demand a sender.
    */
@@ -157,7 +165,7 @@ export class PoolingConfigureDeployer {
     try {
       rpcUrl = this.networkManager.getRpcUrl(options.network);
     } catch {
-      console.log("\nSkipping the owner preflight: no RPC configured for this network.");
+      this.ownerPreflightUnavailable(options, `no RPC is configured for ${options.network}`);
       return;
     }
 
@@ -166,16 +174,38 @@ export class PoolingConfigureDeployer {
       owner: this.readOwner(proxy.address, rpcUrl),
     }));
 
-    if (owners.some((observation) => !observation.owner)) {
-      console.log("\nSkipping the owner preflight: owner() was unreadable on at least one resolver.");
+    const unreadable = owners.filter((observation) => !observation.owner);
+    if (unreadable.length > 0) {
+      this.ownerPreflightUnavailable(
+        options,
+        `owner() was unreadable on ${unreadable.map((observation) => observation.label).join(", ")}`,
+      );
       return;
     }
 
     console.log("\nResolver owners:");
     owners.forEach((observation) => console.log(`  ${observation.label}: ${observation.owner}`));
 
-    assertProxyOwnership(owners, options.sender ?? process.env.SENDER_ADDRESS);
+    const sender = options.sender ?? process.env.SENDER_ADDRESS;
+    if (!sender && !options.broadcast) {
+      console.log("No --sender given; a broadcast will require one that owns every resolver above.");
+      return;
+    }
+
+    assertProxyOwnership(owners, sender);
     console.log("Owner preflight passed: one sender owns every resolver this run writes to.");
+  }
+
+  /** A broadcast that cannot prove ownership refuses; a dry run says so and continues. */
+  private ownerPreflightUnavailable(options: ParsedOptions, reason: string): void {
+    if (options.broadcast) {
+      throw new Error(
+        `Owner preflight could not run (${reason}), so this broadcast is refused. Every configuration ` +
+          "call is onlyOwner across three proxies; sending blind risks applying some steps and reverting " +
+          "on the rest. Provide a reachable RPC and --sender, then retry.",
+      );
+    }
+    console.log(`\nOwner preflight unavailable (${reason}); a broadcast would refuse to run.`);
   }
 
   private readOwner(address: string, rpcUrl: string): string | null {
@@ -240,10 +270,21 @@ export class PoolingConfigureDeployer {
     console.log("Password will be prompted interactively");
     console.log("forge", redactSensitiveArgs(args).join(" "));
 
+    // The script requires this and will not infer an owner. It is only set here after
+    // `assertSingleOwner` proved this sender equals every live `owner()`.
+    if (!senderAddress) {
+      throw new Error("pooling-configure requires --sender (or SENDER_ADDRESS) to declare the expected resolver owner");
+    }
+
     execFileSync("forge", args, {
       stdio: "inherit",
       cwd: CONTRACTS_ROOT,
-      env: { ...process.env, FOUNDRY_PROFILE: "production", FORGE_BROADCAST: "true" },
+      env: {
+        ...process.env,
+        FOUNDRY_PROFILE: "production",
+        FORGE_BROADCAST: "true",
+        POOLING_CONFIGURE_EXPECTED_OWNER: senderAddress,
+      },
     });
 
     console.log("\nCommitment Pooling resolvers configured. The work-approval bridge is live:");

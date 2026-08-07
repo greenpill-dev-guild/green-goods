@@ -2,10 +2,11 @@
 pragma solidity ^0.8.25;
 /* solhint-disable no-console */
 
-import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
+import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
+import { DeployHelper } from "./DeployHelper.sol";
 import { TestimonyResolver } from "../src/resolvers/Testimony.sol";
 
 interface IOwnable {
@@ -13,23 +14,44 @@ interface IOwnable {
 }
 
 /// @title DeployTestimonyResolver
-/// @notice Deploys the community testimony resolver behind a UUPS proxy.
-/// @dev Deliberately its own target and the first step of the pooling lane. The EAS address is a
-///      constructor argument on the implementation, so it is baked into bytecode and cannot be
-///      changed by an upgrade — it is read from the deployment artifact rather than passed in, so
-///      the resolver can never point at an EAS this chain does not run.
+/// @notice Deploys the community testimony resolver behind a UUPS proxy, deterministically.
+/// @dev First step of the pooling lane, and its own target because of an ordering cycle: the
+///      community testimony schema's UID is `keccak256(schema, resolver, revocable)`, so the schema
+///      cannot be registered before this address exists, and the resolver cannot pin a `schemaUID`
+///      before the schema is registered. Deploying unconfigured breaks the cycle.
 ///
-///      The resolver deploys unconfigured on purpose: `schemaUID` cannot be pinned until
-///      `deploy.ts commitment-schemas` registers the schema, and that registration needs this
-///      address to compute the schema's deterministic UID. The cycle resolves in exactly this
-///      order — deploy here, register the schema, then `deploy.ts pooling-configure`.
-contract DeployTestimonyResolver is Script {
+///      **Both deployments use CREATE2 with versioned salts** (`contract-spec.md` §7.1). An earlier
+///      revision used plain `CREATE`, which made the target neither deterministic nor retry-safe:
+///      if the transaction mined but artifact persistence or the append-only merge then failed, the
+///      canonical artifact still read zero, so a retry deployed a *second* implementation and proxy
+///      at fresh nonce-derived addresses and orphaned the first — along with any schema already
+///      registered against it, since the schema UID commits to the resolver address.
+///
+///      CREATE2 removes that failure mode by construction. The address is derived from the creation
+///      code, so a retry predicts the same two addresses, finds them already occupied, sends no
+///      deployment transaction, and simply rewrites the result artifact. That is the
+///      "reconstructs the missing result artifact without another deployment transaction"
+///      requirement, and it is why existing code can be *reused* rather than merely tolerated: an
+///      address only holds this bytecode if it was deployed from this exact creation code.
+contract DeployTestimonyResolver is DeployHelper {
     error MissingDependency(string name);
     error ResolverOwnerMismatch(address assessmentOwner, address workApprovalOwner);
+    error PredictedAddressMismatch(string name, address predicted, address deployed);
+    error ExistingProxyMismatch(string field, address expected, address actual);
+
+    /// @dev Bump to intentionally claim a fresh address pair. Never bump to work around a failed
+    ///      run — that is the case CREATE2 exists to make recoverable.
+    string internal constant DEPLOY_VERSION = "v1";
+
+    bytes32 internal constant ERC1967_IMPLEMENTATION_SLOT =
+        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     struct TestimonyDeployment {
         address testimonyResolver;
         address testimonyResolverImpl;
+        /// @dev False on a recovery rerun. This is the property that makes an interrupted run safe,
+        ///      so it is returned rather than merely logged, and asserted by the fork rehearsal.
+        bool deployedSomething;
     }
 
     function run() public returns (TestimonyDeployment memory deployment) {
@@ -37,24 +59,129 @@ contract DeployTestimonyResolver is Script {
         address owner = _resolverOwner(json);
         address eas = _requireAddress(json, ".eas.address", "eas.address");
 
-        vm.startBroadcast();
-
-        deployment.testimonyResolverImpl = address(new TestimonyResolver(eas));
-        deployment.testimonyResolver = address(
-            new ERC1967Proxy(
-                deployment.testimonyResolverImpl, abi.encodeWithSelector(TestimonyResolver.initialize.selector, owner)
-            )
-        );
-
-        vm.stopBroadcast();
-
-        console.log("TestimonyResolver implementation:", deployment.testimonyResolverImpl);
-        console.log("TestimonyResolver proxy:", deployment.testimonyResolver);
+        (address predictedImpl, address predictedProxy) = predictAddresses(eas, owner);
+        // Predicted before anything is sent, so an operator can compare against the runbook.
+        console.log("TestimonyResolver predicted implementation:", predictedImpl);
+        console.log("TestimonyResolver predicted proxy:", predictedProxy);
         console.log("TestimonyResolver EAS:", eas);
         console.log("TestimonyResolver owner:", owner);
-        console.log("Unconfigured: schemaUID and commitmentModule are set by deploy.ts pooling-configure");
 
+        vm.startBroadcast();
+        deployment = deployOrReuse(eas, owner);
+        vm.stopBroadcast();
+
+        if (!deployment.deployedSomething) {
+            console.log("Nothing deployed: both addresses already hold this exact code (recovery rerun)");
+        }
+        console.log("Unconfigured: schemaUID and commitmentModule are set by deploy.ts pooling-configure");
         _saveDeployment(deployment);
+    }
+
+    /// @notice The two addresses this target will always produce for a given (eas, owner).
+    /// @dev Public so the Arbitrum fork rehearsal drives the real derivation instead of a copy.
+    function predictAddresses(address eas, address owner) public view returns (address impl, address proxy) {
+        (bytes32 baseSalt, address factory,) = getDeploymentDefaults();
+
+        impl = Create2.computeAddress(
+            _versionedSalt(baseSalt, "TestimonyResolverImpl"), keccak256(_implementationCode(eas)), factory
+        );
+        proxy = Create2.computeAddress(
+            _versionedSalt(baseSalt, "TestimonyResolverProxy"), keccak256(_proxyCode(impl, owner)), factory
+        );
+    }
+
+    /// @notice Deploy whatever is missing and verify whatever already exists.
+    /// @dev Idempotent by construction: on a rerun both addresses are occupied, nothing is sent,
+    ///      and `deployedSomething` comes back false.
+    function deployOrReuse(address eas, address owner) public returns (TestimonyDeployment memory deployment) {
+        (bytes32 baseSalt, address factory,) = getDeploymentDefaults();
+        (deployment.testimonyResolverImpl, deployment.testimonyResolver) = predictAddresses(eas, owner);
+
+        bool deployedImpl = _deployImplementation(
+            deployment.testimonyResolverImpl,
+            _implementationCode(eas),
+            _versionedSalt(baseSalt, "TestimonyResolverImpl"),
+            factory
+        );
+        bool deployedProxy = _deployProxy(
+            deployment,
+            _proxyCode(deployment.testimonyResolverImpl, owner),
+            _versionedSalt(baseSalt, "TestimonyResolverProxy"),
+            factory,
+            owner
+        );
+        deployment.deployedSomething = deployedImpl || deployedProxy;
+    }
+
+    function _implementationCode(address eas) private pure returns (bytes memory) {
+        return abi.encodePacked(type(TestimonyResolver).creationCode, abi.encode(eas));
+    }
+
+    function _proxyCode(address implementation, address owner) private pure returns (bytes memory) {
+        return abi.encodePacked(
+            type(ERC1967Proxy).creationCode,
+            abi.encode(implementation, abi.encodeWithSelector(TestimonyResolver.initialize.selector, owner))
+        );
+    }
+
+    /// @dev Versioned so a deliberate re-issue is an explicit code change, never an accident.
+    function _versionedSalt(bytes32 baseSalt, string memory label) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(baseSalt, label, DEPLOY_VERSION));
+    }
+
+    /// @dev Occupied means it was deployed from this exact creation code — the address commits to
+    ///      it — so reuse is safe and no further bytecode comparison adds information.
+    function _deployImplementation(
+        address predicted,
+        bytes memory code,
+        bytes32 salt,
+        address factory
+    )
+        private
+        returns (bool deployed)
+    {
+        if (predicted.code.length > 0) {
+            console.log("Reusing existing implementation (exact creation code):", predicted);
+            return false;
+        }
+        address created = _deployCreate2(code, salt, factory);
+        if (created != predicted) revert PredictedAddressMismatch("implementation", predicted, created);
+        return true;
+    }
+
+    /// @dev The proxy's own address commits to its creation code, which includes the implementation
+    ///      and the `initialize(owner)` call. The two reads below therefore confirm the proxy was
+    ///      not upgraded or re-owned since — the states CREATE2 alone cannot rule out.
+    function _deployProxy(
+        TestimonyDeployment memory deployment,
+        bytes memory code,
+        bytes32 salt,
+        address factory,
+        address owner
+    )
+        private
+        returns (bool deployed)
+    {
+        if (deployment.testimonyResolver.code.length == 0) {
+            address created = _deployCreate2(code, salt, factory);
+            if (created != deployment.testimonyResolver) {
+                revert PredictedAddressMismatch("proxy", deployment.testimonyResolver, created);
+            }
+            return true;
+        }
+
+        console.log("Reusing existing proxy; verifying implementation and owner:", deployment.testimonyResolver);
+
+        address currentImplementation =
+            address(uint160(uint256(vm.load(deployment.testimonyResolver, ERC1967_IMPLEMENTATION_SLOT))));
+        if (currentImplementation != deployment.testimonyResolverImpl) {
+            revert ExistingProxyMismatch("implementation", deployment.testimonyResolverImpl, currentImplementation);
+        }
+
+        // A zero owner would mean the proxy exists but its initializer never ran.
+        address currentOwner = IOwnable(deployment.testimonyResolver).owner();
+        if (currentOwner != owner) revert ExistingProxyMismatch("owner", owner, currentOwner);
+        return false;
     }
 
     /// @dev Owner is taken from the resolvers already on chain, not from the artifact's
@@ -93,9 +220,9 @@ contract DeployTestimonyResolver is Script {
         if (value == address(0)) revert MissingDependency(name);
     }
 
-    /// @dev Side file only; the CLI promotes both addresses into the canonical artifact, so a
-    ///      crash between broadcast and merge leaves a recoverable record rather than a
-    ///      half-written deployment.
+    /// @dev Side file only; the CLI promotes both addresses into the canonical artifact. Because
+    ///      the addresses are deterministic, a retry after a failed merge rewrites this file with
+    ///      identical contents and sends no deployment transaction.
     function _saveDeployment(TestimonyDeployment memory deployment) private {
         string memory output = "testimonyResolver";
         vm.serializeAddress(output, "testimonyResolver", deployment.testimonyResolver);

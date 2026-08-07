@@ -22,6 +22,10 @@ interface IWorkApprovalResolverConfig {
     function setCommitmentModule(address module) external;
 }
 
+interface IOwnableConfig {
+    function owner() external view returns (address);
+}
+
 /// @title PoolingConfiguration
 /// @notice The five resolver calls that turn a deployed, wired Commitment Pooling module from
 ///         inert into live — as one ordered, re-runnable sequence.
@@ -46,6 +50,12 @@ library PoolingConfiguration {
     error ConfigurationConflict(string step, bytes32 onChain, bytes32 requested);
     error MissingConfiguration(string name);
     error AssessmentSchemaUIDCollision(bytes32 uid);
+    /// @notice A proxy this run must write to is not owned by the caller.
+    /// @dev Checked for ALL THREE proxies before the first write. Every setter is `onlyOwner`, so
+    ///      without this the run would send calls until it reached a proxy the caller does not own
+    ///      and revert there — leaving the earlier steps applied and the module half-configured.
+    ///      That partial state is the failure this guard exists to prevent, not the revert itself.
+    error ConfigurationNotOwner(string target, address owner, address expectedOwner);
 
     struct Targets {
         address assessmentResolver;
@@ -59,8 +69,9 @@ library PoolingConfiguration {
 
     /// @notice Number of calls a run actually sent, for the operator-facing summary.
     /// @dev A fully configured chain returns 0 — that is the re-run contract, not a failure.
-    function configure(Targets memory targets) internal returns (uint256 written) {
+    function configure(Targets memory targets, address expectedOwner) internal returns (uint256 written) {
         _requireTargets(targets);
+        _requireEveryTargetOwnedBy(targets, expectedOwner);
 
         IAssessmentResolverConfig assessment = IAssessmentResolverConfig(targets.assessmentResolver);
         ITestimonyResolverConfig testimony = ITestimonyResolverConfig(targets.testimonyResolver);
@@ -101,6 +112,30 @@ library PoolingConfiguration {
             && testimony.schemaUID() == targets.communityTestimonySchemaUID
             && testimony.commitmentModule() == targets.commitmentPoolingModule
             && IWorkApprovalResolverConfig(targets.workApprovalResolver).commitmentModule() == targets.commitmentPoolingModule;
+    }
+
+    /// @dev All three proxies must be owned by the SAME declared account, proven before the first
+    ///      write. The owner is passed in rather than read from `msg.sender`: this is an internal
+    ///      library function, so it inlines into its caller, where `msg.sender` is that caller's
+    ///      own caller and not the address the outgoing setter calls will carry. Under
+    ///      `vm.startBroadcast` the two differ again. Making the expectation explicit is the only
+    ///      reading that is correct in a script, in a test, and on chain.
+    ///
+    ///      What this proves: the three proxies agree on one owner, and it is the one the operator
+    ///      declared. What it cannot prove: that the broadcasting key is that owner — forge sends
+    ///      each call as its own transaction, so a wrong signer would revert partway with earlier
+    ///      steps applied. `pooling-configure.ts` closes that gap by refusing to broadcast unless
+    ///      `--sender` equals every live `owner()`.
+    function _requireEveryTargetOwnedBy(Targets memory targets, address expectedOwner) private view {
+        if (expectedOwner == address(0)) revert MissingConfiguration("expectedOwner");
+        _requireOwner("assessmentResolver", targets.assessmentResolver, expectedOwner);
+        _requireOwner("testimonyResolver", targets.testimonyResolver, expectedOwner);
+        _requireOwner("workApprovalResolver", targets.workApprovalResolver, expectedOwner);
+    }
+
+    function _requireOwner(string memory label, address target, address expectedOwner) private view {
+        address owner = IOwnableConfig(target).owner();
+        if (owner != expectedOwner) revert ConfigurationNotOwner(label, owner, expectedOwner);
     }
 
     function _requireTargets(Targets memory targets) private pure {
