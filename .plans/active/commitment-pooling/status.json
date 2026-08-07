@@ -33,7 +33,8 @@
     "release_ops_handoff": "handoffs/human-release-ops.md",
     "linear_update_pack": "reports/linear/linear-update-pack.md",
     "plan": "plan.todo.md",
-    "eval": "acceptance-matrix.md"
+    "eval": "acceptance-matrix.md",
+    "contracts_hardening_handoff": "handoffs/claude-contracts-hardening.md"
   },
   "linear": {
     "parentIssue": "PRD-650",
