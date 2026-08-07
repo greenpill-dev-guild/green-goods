@@ -396,6 +396,9 @@ jobs:
           bun run test:fork:octant:ci
           octant_status=$?
 
+          bun run test:fork:settlement-lane
+          settlement_lane_status=$?
+
           set -e
 
           failed=0
@@ -409,6 +412,10 @@ jobs:
           fi
           if [[ "$octant_status" -ne 0 ]]; then
             echo "::error::Octant fork shard failed with exit code $octant_status"
+            failed=1
+          fi
+          if [[ "$settlement_lane_status" -ne 0 ]]; then
+            echo "::error::Settlement lane fork shard failed with exit code $settlement_lane_status"
             failed=1
           fi
 
