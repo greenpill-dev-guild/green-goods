@@ -14,11 +14,20 @@ import { extractErrorMessage } from "./extract-message";
  */
 interface ErrorInfo {
   name: string;
-  message: string;
+  message?: string;
   action?: string;
+  messageKey?: string;
+  actionKey?: string;
   recoverable: boolean;
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
 }
+
+const LOCALIZED_ERROR_FALLBACKS = {
+  SelfAttestation: {
+    message: "You cannot review your own work submission",
+    action: "Ask another garden operator to approve or reject this work",
+  },
+} as const;
 
 /**
  * Common contract error signatures and their human-readable messages
@@ -253,6 +262,13 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
     recoverable: false,
   },
 
+  "0x9bce3284": {
+    name: "SelfAttestation",
+    messageKey: "app.errors.contract.selfAttestation.message",
+    actionKey: "app.errors.contract.selfAttestation.action",
+    recoverable: false,
+  },
+
   // ============================================================================
   // AssessmentResolver.sol errors
   // ============================================================================
@@ -368,6 +384,10 @@ export interface ParsedContractError {
   name: string;
   /** Human-readable error message */
   message: string;
+  /** Optional i18n key for the error message */
+  messageKey?: string;
+  /** Optional i18n key for the suggested action */
+  actionKey?: string;
   /** Optional suggested action for user */
   action?: string;
   /** Whether this is a recognized error */
@@ -376,6 +396,23 @@ export interface ParsedContractError {
   recoverable: boolean;
   /** Suggested next action for user */
   suggestedAction?: "retry" | "join-garden" | "contact-support" | "check-wallet";
+
+function parseKnownError(raw: string, errorInfo: ErrorInfo): ParsedContractError {
+  const fallback = LOCALIZED_ERROR_FALLBACKS[errorInfo.name as "SelfAttestation"]
+
+return {
+    raw,
+    name: errorInfo.name,
+    message: errorInfo.message ?? fallback?.message ?? "Transaction failed. Please try again."
+,
+    action: errorInfo.action ?? fallback?.action,
+    messageKey: errorInfo.messageKey,
+    actionKey: errorInfo.actionKey,
+    isKnown: true,
+    recoverable: errorInfo.recoverable,
+    suggestedAction: errorInfo.suggestedAction,
+  }
+}
 }
 
 /**
@@ -433,30 +470,13 @@ export function parseContractError(error: unknown): ParsedContractError {
 
   // Check if we have a known error
   if (signature && ERROR_SIGNATURES[signature]) {
-    const knownError = ERROR_SIGNATURES[signature];
-    return {
-      raw: signature,
-      name: knownError.name,
-      message: knownError.message,
-      action: knownError.action,
-      isKnown: true,
-      recoverable: knownError.recoverable,
-      suggestedAction: knownError.suggestedAction,
-    };
+    return parseKnownError(signature, ERROR_SIGNATURES[signature]);
   }
 
   // Check if error string contains known error name
   for (const [_sig, errorInfo] of Object.entries(ERROR_SIGNATURES)) {
     if (errorStr.toLowerCase().includes(errorInfo.name.toLowerCase())) {
-      return {
-        raw: signature ?? errorStr,
-        name: errorInfo.name,
-        message: errorInfo.message,
-        action: errorInfo.action,
-        isKnown: true,
-        recoverable: errorInfo.recoverable,
-        suggestedAction: errorInfo.suggestedAction,
-      };
+      return parseKnownError(signature ?? errorStr, errorInfo);
     }
   }
 

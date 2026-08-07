@@ -5,7 +5,13 @@
  * Covers metadata display, minting states, and navigation.
  */
 
-import type { Address, AllowlistEntry, HypercertMetadata, MintingState } from "@green-goods/shared";
+import type {
+  Address,
+  AllowlistEntry,
+  EASGardenAssessment,
+  HypercertMetadata,
+  MintingState,
+} from "@green-goods/shared";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -226,6 +232,29 @@ describe("components/Hypercerts/HypercertPreview", () => {
       render(createElement(HypercertPreview, defaultProps));
 
       expect(screen.getByText(/100,000,000|100000000/)).toBeInTheDocument();
+    });
+  });
+
+  describe("EAS assessment summary", () => {
+    it("renders without requiring hydrated assessment fields", () => {
+      const selectedAssessment: EASGardenAssessment = {
+        id: "assessment-eas-1",
+        authorAddress: "0x0000000000000000000000000000000000000099",
+        gardenAddress: "0x0000000000000000000000000000000000000001",
+        title: "Indexed solar assessment",
+        description: "Indexed assessment description",
+        assessmentConfigCID: "bafy-assessment-config",
+        domain: 0,
+        startDate: 1704067200,
+        endDate: 1711929600,
+        location: "",
+        createdAt: 1704067200,
+      };
+
+      render(createElement(HypercertPreview, { ...defaultProps, selectedAssessment }));
+
+      expect(screen.getByText("Indexed solar assessment")).toBeInTheDocument();
+      expect(screen.getByText("Indexed assessment description")).toBeInTheDocument();
     });
   });
 

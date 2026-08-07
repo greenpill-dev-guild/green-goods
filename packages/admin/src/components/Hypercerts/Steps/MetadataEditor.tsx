@@ -2,6 +2,7 @@ import {
   type CapitalType,
   cn,
   DatePicker,
+  type EASGardenAssessment,
   FormInput,
   FormTextarea,
   type GardenAssessment,
@@ -14,7 +15,7 @@ import {
   RiFileTextLine,
   RiSparklingLine,
 } from "@remixicon/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 
 /** Get localized SDG name for accessibility */
@@ -42,7 +43,7 @@ interface MetadataEditorProps {
   suggestedStart: number | null;
   suggestedEnd: number | null;
   /** Assessment used to prefill metadata fields (if any) */
-  selectedAssessment?: GardenAssessment | null;
+  selectedAssessment?: GardenAssessment | EASGardenAssessment | null;
 }
 
 const CAPITALS: CapitalType[] = [
@@ -76,8 +77,14 @@ export function MetadataEditor({
   const intl = useIntl();
   const { formatMessage } = intl;
 
-  const workScopesText = draft.workScopes.join(", ");
-  const impactScopesText = draft.impactScopes.join(", ");
+  const [workScopesText, setWorkScopesText] = useState(() => draft.workScopes.join(", "));
+  const [impactScopesText, setImpactScopesText] = useState(() => draft.impactScopes.join(", "));
+  const [isEditingWorkScopes, setIsEditingWorkScopes] = useState(false);
+  const [isEditingImpactScopes, setIsEditingImpactScopes] = useState(false);
+  const workScopesValue = isEditingWorkScopes ? workScopesText : draft.workScopes.join(", ");
+  const impactScopesValue = isEditingImpactScopes
+    ? impactScopesText
+    : draft.impactScopes.join(", ");
 
   // Date validation
   const workDateError = useMemo(() => {
@@ -141,15 +148,7 @@ export function MetadataEditor({
 
       <FormInput
         id="hypercert-title"
-        label={
-          <>
-            {formatMessage({ id: "app.hypercerts.metadata.title" })}
-            <span className="ml-0.5 text-error-base" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only">{formatMessage({ id: "app.form.required" })}</span>
-          </>
-        }
+        label={`${formatMessage({ id: "app.hypercerts.metadata.title" })} *`}
         value={draft.title}
         onChange={(event) => onUpdate({ title: event.target.value })}
         placeholder={formatMessage({ id: "app.hypercerts.metadata.title.placeholder" })}
@@ -169,17 +168,17 @@ export function MetadataEditor({
         <div className="space-y-1">
           <FormInput
             id="hypercert-work-scope"
-            label={
-              <>
-                {formatMessage({ id: "app.hypercerts.metadata.workScope" })}
-                <span className="ml-0.5 text-error-base" aria-hidden="true">
-                  *
-                </span>
-                <span className="sr-only">{formatMessage({ id: "app.form.required" })}</span>
-              </>
-            }
-            value={workScopesText}
-            onChange={(event) => onUpdate({ workScopes: parseCommaList(event.target.value) })}
+            label={`${formatMessage({ id: "app.hypercerts.metadata.workScope" })} *`}
+            value={workScopesValue}
+            onFocus={() => {
+              setWorkScopesText(draft.workScopes.join(", "));
+              setIsEditingWorkScopes(true);
+            }}
+            onChange={(event) => {
+              setWorkScopesText(event.target.value);
+              onUpdate({ workScopes: parseCommaList(event.target.value) });
+            }}
+            onBlur={() => setIsEditingWorkScopes(false)}
             placeholder={formatMessage({ id: "app.hypercerts.metadata.scope.placeholder" })}
             aria-required="true"
           />
@@ -205,8 +204,16 @@ export function MetadataEditor({
         <FormInput
           id="hypercert-impact-scope"
           label={formatMessage({ id: "app.hypercerts.metadata.impactScope" })}
-          value={impactScopesText}
-          onChange={(event) => onUpdate({ impactScopes: parseCommaList(event.target.value) })}
+          value={impactScopesValue}
+          onFocus={() => {
+            setImpactScopesText(draft.impactScopes.join(", "));
+            setIsEditingImpactScopes(true);
+          }}
+          onChange={(event) => {
+            setImpactScopesText(event.target.value);
+            onUpdate({ impactScopes: parseCommaList(event.target.value) });
+          }}
+          onBlur={() => setIsEditingImpactScopes(false)}
           placeholder={formatMessage({ id: "app.hypercerts.metadata.scope.placeholder" })}
         />
       </div>
