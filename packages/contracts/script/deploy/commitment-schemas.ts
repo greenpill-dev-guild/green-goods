@@ -175,6 +175,7 @@ export class CommitmentSchemasDeployer {
     const args = [
       "script",
       "script/DeployCommitmentSchemas.s.sol:DeployCommitmentSchemas",
+      ...(options.finalizeCommunityTestimony ? ["--sig", "finalizeCommunityTestimony()"] : []),
       "--chain-id",
       chainId,
       "--rpc-url",

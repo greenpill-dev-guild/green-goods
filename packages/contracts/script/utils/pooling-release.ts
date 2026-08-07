@@ -39,13 +39,7 @@ export const COMMITMENT_SCHEMA_KEYS = ["assessmentV3", "communityTestimony"] as 
  * `workApprovalBridge` is the one that decides whether the release means anything: without it the
  * resolver never calls `onWorkDecision`, so approved work never earns commitment credit.
  */
-export const POOLING_CONFIGURATION_STEP_KEYS = [
-  "assessmentV2Pin",
-  "assessmentV3",
-  "testimonySchema",
-  "testimonyModule",
-  "workApprovalBridge",
-] as const;
+export const POOLING_CONFIGURATION_STEP_KEYS = ["assessmentV2Pin", "assessmentV3", "workApprovalBridge"] as const;
 
 export type CommitmentSchemaKey = (typeof COMMITMENT_SCHEMA_KEYS)[number];
 
@@ -101,15 +95,12 @@ export interface PoolingConfigurationTargets {
   commitmentPoolingModule: string;
   assessmentSchemaUID: string;
   assessmentV3SchemaUID: string;
-  communityTestimonySchemaUID: string;
 }
 
 /** What the three resolver proxies currently hold on chain. */
 export interface PoolingConfigurationState {
   assessmentSchemaUID: string;
   assessmentV3SchemaUID: string;
-  testimonySchemaUID: string;
-  testimonyCommitmentModule: string;
   workApprovalCommitmentModule: string;
 }
 
@@ -211,11 +202,7 @@ const CONFIGURATION_ADDRESS_KEYS = [
 ] as const;
 
 /** Schema UID keys read from the artifact's nested `schemas` block. */
-const CONFIGURATION_SCHEMA_KEYS = [
-  "assessmentSchemaUID",
-  "assessmentV3SchemaUID",
-  "communityTestimonySchemaUID",
-] as const;
+const CONFIGURATION_SCHEMA_KEYS = ["assessmentSchemaUID", "assessmentV3SchemaUID"] as const;
 
 /**
  * Pull the configuration inputs out of a deployment artifact, naming every missing key at once.
@@ -313,28 +300,6 @@ export function planPoolingConfiguration(
       },
       state.assessmentV3SchemaUID,
       "Repointing a live assessmentV3SchemaUID revalidates existing attestations; resolve deliberately.",
-    ),
-    planStep(
-      {
-        key: "testimonySchema",
-        target: "testimonyResolver",
-        address: targets.testimonyResolver,
-        signature: "setSchemaUID(bytes32)",
-        argument: targets.communityTestimonySchemaUID,
-      },
-      state.testimonySchemaUID,
-      "TestimonyResolver.setSchemaUID reverts SchemaUIDConflict once a different UID is pinned.",
-    ),
-    planStep(
-      {
-        key: "testimonyModule",
-        target: "testimonyResolver",
-        address: targets.testimonyResolver,
-        signature: "setCommitmentModule(address)",
-        argument: targets.commitmentPoolingModule,
-      },
-      state.testimonyCommitmentModule,
-      "The resolver is bridged to a different pooling module; resolve deliberately.",
     ),
     planStep(
       {

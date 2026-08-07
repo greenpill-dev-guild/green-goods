@@ -10,13 +10,6 @@ interface IAssessmentResolverConfig {
     function setAssessmentV3SchemaUID(bytes32 uid) external;
 }
 
-interface ITestimonyResolverConfig {
-    function schemaUID() external view returns (bytes32);
-    function commitmentModule() external view returns (address);
-    function setSchemaUID(bytes32 uid) external;
-    function setCommitmentModule(address module) external;
-}
-
 interface IWorkApprovalResolverConfig {
     function commitmentModule() external view returns (address);
     function setCommitmentModule(address module) external;
@@ -67,12 +60,10 @@ library PoolingConfiguration {
 
     struct Targets {
         address assessmentResolver;
-        address testimonyResolver;
         address workApprovalResolver;
         address commitmentPoolingModule;
         bytes32 assessmentSchemaUID;
         bytes32 assessmentV3SchemaUID;
-        bytes32 communityTestimonySchemaUID;
     }
 
     /// @notice Number of calls a run actually sent, for the operator-facing summary.
@@ -82,7 +73,6 @@ library PoolingConfiguration {
         _requireEveryTargetOwnedBy(targets, expectedOwner);
 
         IAssessmentResolverConfig assessment = IAssessmentResolverConfig(targets.assessmentResolver);
-        ITestimonyResolverConfig testimony = ITestimonyResolverConfig(targets.testimonyResolver);
         IWorkApprovalResolverConfig workApproval = IWorkApprovalResolverConfig(targets.workApprovalResolver);
 
         // Deployment leaves the v2 UID unpinned, so this is a real ordered step of the runbook and
@@ -95,14 +85,6 @@ library PoolingConfiguration {
             assessment.setAssessmentV3SchemaUID(targets.assessmentV3SchemaUID);
             written++;
         }
-        if (_needsUID("testimonySchema", testimony.schemaUID(), targets.communityTestimonySchemaUID)) {
-            testimony.setSchemaUID(targets.communityTestimonySchemaUID);
-            written++;
-        }
-        if (_needsAddress("testimonyModule", testimony.commitmentModule(), targets.commitmentPoolingModule)) {
-            testimony.setCommitmentModule(targets.commitmentPoolingModule);
-            written++;
-        }
         if (_needsAddress("workApprovalBridge", workApproval.commitmentModule(), targets.commitmentPoolingModule)) {
             workApproval.setCommitmentModule(targets.commitmentPoolingModule);
             written++;
@@ -113,12 +95,13 @@ library PoolingConfiguration {
     ///         without re-deriving which setter proves what.
     function isConfigured(Targets memory targets) internal view returns (bool) {
         IAssessmentResolverConfig assessment = IAssessmentResolverConfig(targets.assessmentResolver);
-        ITestimonyResolverConfig testimony = ITestimonyResolverConfig(targets.testimonyResolver);
 
+        // Community Testimony is deliberately absent: its schema pin and module activation belong
+        // to the ordered recovery lane in DeployCommitmentSchemas (contract-spec §6.4.4), which
+        // must pin before any record exists and activate only after the record is proven exact.
+        // Folding those two calls in here would have made activation just another setter.
         return assessment.schemaUID() == targets.assessmentSchemaUID
             && assessment.assessmentV3SchemaUID() == targets.assessmentV3SchemaUID
-            && testimony.schemaUID() == targets.communityTestimonySchemaUID
-            && testimony.commitmentModule() == targets.commitmentPoolingModule
             && IWorkApprovalResolverConfig(targets.workApprovalResolver).commitmentModule() == targets.commitmentPoolingModule;
     }
 
@@ -137,7 +120,6 @@ library PoolingConfiguration {
     function _requireEveryTargetOwnedBy(Targets memory targets, address expectedOwner) private view {
         if (expectedOwner == address(0)) revert MissingConfiguration("expectedOwner");
         _requireOwner("assessmentResolver", targets.assessmentResolver, expectedOwner);
-        _requireOwner("testimonyResolver", targets.testimonyResolver, expectedOwner);
         _requireOwner("workApprovalResolver", targets.workApprovalResolver, expectedOwner);
     }
 
@@ -148,14 +130,10 @@ library PoolingConfiguration {
 
     function _requireTargets(Targets memory targets) private pure {
         if (targets.assessmentResolver == address(0)) revert MissingConfiguration("assessmentResolver");
-        if (targets.testimonyResolver == address(0)) revert MissingConfiguration("testimonyResolver");
         if (targets.workApprovalResolver == address(0)) revert MissingConfiguration("workApprovalResolver");
         if (targets.commitmentPoolingModule == address(0)) revert MissingConfiguration("commitmentPoolingModule");
         if (targets.assessmentSchemaUID == bytes32(0)) revert MissingConfiguration("assessmentSchemaUID");
         if (targets.assessmentV3SchemaUID == bytes32(0)) revert MissingConfiguration("assessmentV3SchemaUID");
-        if (targets.communityTestimonySchemaUID == bytes32(0)) {
-            revert MissingConfiguration("communityTestimonySchemaUID");
-        }
         // The resolver reverts SchemaUIDCollision on this; catching it here names the artifact
         // defect instead of surfacing a bare resolver revert mid-broadcast.
         if (targets.assessmentV3SchemaUID == targets.assessmentSchemaUID) {

@@ -31,7 +31,6 @@ contract ConfigurePooling is Script {
 
         console.log("Configuring Commitment Pooling resolvers");
         console.log("  assessmentResolver:      ", targets.assessmentResolver);
-        console.log("  testimonyResolver:       ", targets.testimonyResolver);
         console.log("  workApprovalResolver:    ", targets.workApprovalResolver);
         console.log("  commitmentPoolingModule: ", targets.commitmentPoolingModule);
         console.log("  expected owner:          ", expectedOwner);
@@ -51,12 +50,10 @@ contract ConfigurePooling is Script {
         string memory json = _readDeployment();
 
         targets.assessmentResolver = _address(json, ".assessmentResolver");
-        targets.testimonyResolver = _address(json, ".testimonyResolver");
         targets.workApprovalResolver = _address(json, ".workApprovalResolver");
         targets.commitmentPoolingModule = _address(json, ".commitmentPoolingModule");
         targets.assessmentSchemaUID = _uid(json, ".schemas.assessmentSchemaUID");
         targets.assessmentV3SchemaUID = _uid(json, ".schemas.assessmentV3SchemaUID");
-        targets.communityTestimonySchemaUID = _uid(json, ".schemas.communityTestimonySchemaUID");
     }
 
     function _readDeployment() private view returns (string memory) {

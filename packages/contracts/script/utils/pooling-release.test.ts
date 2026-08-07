@@ -230,13 +230,9 @@ describe("pooling configuration planning", () => {
     expect(v2Index).toBeLessThan(v3Index);
   });
 
-  it("registers the testimony schema before its commitment module, which reverts while the UID is zero", () => {
-    const plan = planPoolingConfiguration(targets, unconfigured);
-    const schemaIndex = plan.findIndex((step) => step.key === "testimonySchema");
-    const moduleIndex = plan.findIndex((step) => step.key === "testimonyModule");
-
-    expect(schemaIndex).toBeLessThan(moduleIndex);
-  });
+  // The former "registers the testimony schema before its commitment module" case moved with the
+  // work: Community Testimony's pin and activation are now the ordered recovery lane in
+  // `CommitmentSchemaRecovery`, exercised in test/unit/CommitmentSchemaRecovery.t.sol.
 
   it("is safe to re-run: a fully configured chain plans no writes", () => {
     const configured = {
@@ -262,11 +258,7 @@ describe("pooling configuration planning", () => {
 
     const plan = planPoolingConfiguration(targets, halfway);
 
-    expect(plan.filter((step) => step.action === "set").map((step) => step.key)).toEqual([
-      "testimonySchema",
-      "testimonyModule",
-      "workApprovalBridge",
-    ]);
+    expect(plan.filter((step) => step.action === "set").map((step) => step.key)).toEqual(["workApprovalBridge"]);
   });
 
   it("ignores checksum casing when comparing a live module address", () => {
@@ -282,10 +274,14 @@ describe("pooling configuration planning", () => {
     expect(bridges.every((step) => step.action === "satisfied")).toBe(true);
   });
 
-  it("fails closed when the testimony resolver already holds a different schema UID", () => {
-    const conflicting = { ...unconfigured, testimonySchemaUID: `0x${"99".repeat(32)}` };
+  it("fails closed when the assessment resolver already holds a different v3 schema UID", () => {
+    const conflicting = {
+      ...unconfigured,
+      assessmentSchemaUID: targets.assessmentSchemaUID,
+      assessmentV3SchemaUID: `0x${"99".repeat(32)}`,
+    };
 
-    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/testimony/i);
+    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/assessmentV3SchemaUID/);
   });
 
   it("fails closed when the assessment resolver is validating a different v2 schema than the artifact records", () => {
@@ -321,13 +317,9 @@ describe("pooling configuration planning", () => {
     const proxies = configurationOwnerTargets(plan);
 
     // Every proxy the plan writes to, each listed once.
-    expect(proxies.map((proxy) => proxy.label).sort()).toEqual([
-      "assessmentResolver",
-      "testimonyResolver",
-      "workApprovalResolver",
-    ]);
+    expect(proxies.map((proxy) => proxy.label).sort()).toEqual(["assessmentResolver", "workApprovalResolver"]);
     expect(new Set(plan.map((step) => step.target)).size).toBe(proxies.length);
-    expect(proxies.find((proxy) => proxy.label === "testimonyResolver")?.address).toBe(targets.testimonyResolver);
+    expect(proxies.find((proxy) => proxy.label === "workApprovalResolver")?.address).toBe(targets.workApprovalResolver);
   });
 });
 
@@ -437,6 +429,8 @@ describe("configuration plan conformance with the Solidity authority", () => {
     // v2 must be pinned before v3 (AssessmentV2SchemaUIDRequired) and the testimony schema before
     // its module (SchemaUIDRequired). Both are resolver reverts, not preferences.
     expect(keys.indexOf("assessmentV2Pin")).toBeLessThan(keys.indexOf("assessmentV3"));
-    expect(keys.indexOf("testimonySchema")).toBeLessThan(keys.indexOf("testimonyModule"));
+    // The testimony pair left this plan for the ordered recovery lane; the bridge stays last
+    // because it is what makes the module non-inert.
+    expect(keys.indexOf("workApprovalBridge")).toBe(keys.length - 1);
   });
 });

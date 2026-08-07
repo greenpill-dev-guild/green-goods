@@ -10,6 +10,7 @@ import { CommitmentRegistry } from "../../src/registries/Commitment.sol";
 import { TestimonyResolver } from "../../src/resolvers/Testimony.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
 import { PoolingConfiguration } from "../../script/lib/PoolingConfiguration.sol";
+import { CommitmentSchemaRecovery } from "../../script/lib/CommitmentSchemaRecovery.sol";
 import { DeployTestimonyResolver } from "../../script/DeployTestimonyResolver.s.sol";
 
 /// @title ArbitrumCommitmentPoolingForkTest
@@ -35,6 +36,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
 
     bytes32 internal assessmentV3SchemaUID;
     bytes32 internal communityTestimonySchemaUID;
+    /// @dev Labelled schema string per fixture resolver, so observations read the right one.
+    mapping(address => string) private testimonySchemaOf;
     string internal assessmentV3Schema;
     string internal communityTestimonySchema;
 
@@ -61,6 +64,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         _registerCommitmentSchemas();
         _deployAndWirePooling();
         _configureResolvers();
+        _finalizeCommunityTestimony();
         _openPool();
     }
 
@@ -69,6 +73,16 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      happen one call deeper than the cheatcode, so the failure cases need this external hop.
     ///      Calling it as `this.configureExternally(...)` keeps `msg.sender` at this contract,
     ///      which is the resolver owner on the fork.
+    function configureExternallyAs(
+        PoolingConfiguration.Targets memory targets,
+        address expectedOwner
+    )
+        external
+        returns (uint256)
+    {
+        return targets.configure(expectedOwner);
+    }
+
     function configureExternally(PoolingConfiguration.Targets memory targets) external returns (uint256) {
         return targets.configure(address(this));
     }
@@ -77,12 +91,10 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      library this test drives.
     function _configurationTargets() private view returns (PoolingConfiguration.Targets memory targets) {
         targets.assessmentResolver = address(assessmentResolver);
-        targets.testimonyResolver = address(testimonyResolver);
         targets.workApprovalResolver = address(workApprovalResolver);
         targets.commitmentPoolingModule = address(pooling);
         targets.assessmentSchemaUID = assessmentSchemaUID;
         targets.assessmentV3SchemaUID = assessmentV3SchemaUID;
-        targets.communityTestimonySchemaUID = communityTestimonySchemaUID;
     }
 
     // ─────────────────────── Schema registration rehearsal ───────────────────────
@@ -249,21 +261,12 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertTrue(targets.isConfigured(), "re-running must not disturb the configured state");
     }
 
-    /// @notice A partially configured chain writes only the steps that did not land.
-    /// @dev A fresh testimony resolver with its own registered schema reproduces a run that died
-    ///      after the assessment steps: the two testimony steps are open, the other three are not.
-    function testConfigureResumesAfterAnInterruptedRun() public {
-        (TestimonyResolver fresh, bytes32 freshSchemaUID) = _deployTestimonyResolverWithSchema("resume");
-
-        PoolingConfiguration.Targets memory targets = _configurationTargets();
-        targets.testimonyResolver = address(fresh);
-        targets.communityTestimonySchemaUID = freshSchemaUID;
-
-        assertEq(targets.configure(address(this)), 2, "only the two unsatisfied testimony steps may be written");
-        assertEq(fresh.schemaUID(), freshSchemaUID);
-        assertEq(fresh.commitmentModule(), address(pooling));
-        assertTrue(targets.isConfigured(), "the resumed run must reach the configured state");
-    }
+    /// @dev The former `testConfigureResumesAfterAnInterruptedRun` lived here while `configure`
+    ///      owned the two testimony steps and a fresh resolver could stand in for a half-finished
+    ///      run. Its three remaining steps all sit on shared live proxies, so a partial state is no
+    ///      longer constructible from a fork. Resume semantics moved with the work: they are now
+    ///      the ordered recovery states in `CommitmentSchemaRecovery`, covered exhaustively in
+    ///      `test/unit/CommitmentSchemaRecovery.t.sol` and end to end below.
 
     /// @notice The live work-approval bridge is never silently repointed at another module.
     /// @dev Repointing it redirects commitment credit; that is a deliberate operator act.
@@ -275,7 +278,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 PoolingConfiguration.ConfigurationConflict.selector,
-                "testimonyModule",
+                "workApprovalBridge",
                 bytes32(uint256(uint160(address(pooling)))),
                 bytes32(uint256(uint160(address(replacement))))
             )
@@ -287,15 +290,12 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     /// @dev Overwriting it would revalidate every existing attestation against a different schema.
     function testConfigureRefusesToRepointALiveSchemaUid() public {
         PoolingConfiguration.Targets memory targets = _configurationTargets();
-        bytes32 foreignUID = keccak256("some-other-testimony-schema");
-        targets.communityTestimonySchemaUID = foreignUID;
+        bytes32 foreignUID = keccak256("some-other-assessment-v3-schema");
+        targets.assessmentV3SchemaUID = foreignUID;
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                PoolingConfiguration.ConfigurationConflict.selector,
-                "testimonySchema",
-                communityTestimonySchemaUID,
-                foreignUID
+                PoolingConfiguration.ConfigurationConflict.selector, "assessmentV3", assessmentV3SchemaUID, foreignUID
             )
         );
         this.configureExternally(targets);
@@ -318,22 +318,17 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      there, leaving the earlier steps applied. Proven by handing a fresh testimony resolver
     ///      owned by someone else to an otherwise-valid target set and showing nothing moved.
     function testConfigureRefusesACallerThatDoesNotOwnEveryProxy() public {
-        (TestimonyResolver foreign, bytes32 foreignSchemaUID) = _deployTestimonyResolverWithSchema("foreign");
-        foreign.transferOwnership(address(0xBEEFBEEF));
-
         PoolingConfiguration.Targets memory targets = _configurationTargets();
-        targets.testimonyResolver = address(foreign);
-        targets.communityTestimonySchemaUID = foreignSchemaUID;
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                PoolingConfiguration.ConfigurationNotOwner.selector, "testimonyResolver", address(0xBEEFBEEF), address(this)
+                PoolingConfiguration.ConfigurationNotOwner.selector,
+                "assessmentResolver",
+                address(this),
+                address(0xBEEFBEEF)
             )
         );
-        this.configureExternally(targets);
-
-        assertEq(foreign.schemaUID(), bytes32(0), "no step may land when ownership fails");
-        assertEq(foreign.commitmentModule(), address(0), "no step may land when ownership fails");
+        this.configureExternallyAs(targets, address(0xBEEFBEEF));
     }
 
     /// @notice Every address and UID is required before a single call is sent.
@@ -354,6 +349,103 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(pooling.workApprovalResolver(), address(workApprovalResolver));
         assertEq(address(workApprovalResolver.commitmentModule()), address(pooling), "the bridge must be wired");
         assertEq(testimonyResolver.commitmentModule(), address(pooling));
+    }
+
+    // ────────────── Community Testimony ordered recovery, against live EAS ──────────────
+
+    /// @notice setUp walked the lane, so the live resolver reports Finalized.
+    /// @dev The unit suite enumerates the classifier; this proves the states it names are the ones
+    ///      real chain state produces — pinned UID, a real SchemaRegistry record, and a live module.
+    function testLaneReachesFinalizedAgainstLiveEas() public {
+        assertEq(
+            uint256(CommitmentSchemaRecovery.classify(_recoveryObservation(testimonyResolver, address(pooling)))),
+            uint256(CommitmentSchemaRecovery.State.Finalized),
+            "setUp must leave the lane finalized"
+        );
+        assertEq(testimonyResolver.commitmentModule(), address(pooling), "activation is the last action");
+    }
+
+    /// @notice A freshly deployed resolver is Unprepared, and finalization refuses to run.
+    /// @dev The out-of-order case the lane exists to prevent: finalizing here would register a
+    ///      record and activate a module against a resolver whose schema was never pinned.
+    function testFinalizationRefusesAnUnpreparedResolver() public {
+        (TestimonyResolver fresh,) = _deployTestimonyResolverWithSchema("unprepared", false);
+        // Built before arming the cheatcode: the observation makes live reads, and expectRevert
+        // would otherwise latch onto the first of those instead of the classifier.
+        CommitmentSchemaRecovery.Observation memory observation = _recoveryObservation(fresh, address(pooling));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaRecovery.UnexpectedRecoveryState.selector,
+                CommitmentSchemaRecovery.State.Unprepared,
+                "finalization"
+            )
+        );
+        this.finalizableExternally(observation);
+    }
+
+    /// @notice Pinned but unregistered is Prepared, and finalization still has both steps to do.
+    function testPreparedResolverStillNeedsRecordAndActivation() public {
+        (TestimonyResolver fresh,) = _deployTestimonyResolverWithSchema("prepared", true);
+
+        CommitmentSchemaRecovery.State state =
+            CommitmentSchemaRecovery.classify(_recoveryObservation(fresh, address(pooling)));
+
+        assertEq(uint256(state), uint256(CommitmentSchemaRecovery.State.Prepared), "pin without record is Prepared");
+        assertTrue(CommitmentSchemaRecovery.needsRecord(state), "the record still has to be registered");
+        assertTrue(CommitmentSchemaRecovery.needsActivation(state), "and the module still has to be set");
+        assertEq(fresh.commitmentModule(), address(0), "a prepared resolver is inert");
+    }
+
+    /// @notice A third party registering the record first is RecordRegistered, not a failure.
+    /// @dev `SchemaRegistry.register` is permissionless, so anyone can land the record between
+    ///      preparation and finalization. Because the UID commits to (schema, resolver, revocable),
+    ///      their record is byte-identical to ours — the lane resumes rather than fails closed.
+    function testAPermissionlessRegistrationResumesRatherThanBlocking() public {
+        (TestimonyResolver fresh, string memory schema) = _deployTestimonyResolverWithSchema("frontrun", true);
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+
+        vm.prank(address(0xF00DF00D));
+        ISchemaRegistry(schemaRegistry).register(schema, address(fresh), false);
+
+        CommitmentSchemaRecovery.State state =
+            CommitmentSchemaRecovery.classify(_recoveryObservation(fresh, address(pooling)));
+
+        assertEq(uint256(state), uint256(CommitmentSchemaRecovery.State.RecordRegistered), "a foreign register resumes");
+        assertFalse(CommitmentSchemaRecovery.needsRecord(state), "the record is already exact");
+        assertTrue(CommitmentSchemaRecovery.needsActivation(state), "only activation remains");
+    }
+
+    /// @dev `vm.expectRevert` needs the revert one frame deeper than the cheatcode.
+    function finalizableExternally(CommitmentSchemaRecovery.Observation memory observation)
+        external
+        pure
+        returns (CommitmentSchemaRecovery.State)
+    {
+        return CommitmentSchemaRecovery.assertFinalizable(observation);
+    }
+
+    /// @dev Built from live chain reads, not from what the test believes it did.
+    function _recoveryObservation(
+        TestimonyResolver resolver,
+        address expectedModule
+    )
+        private
+        view
+        returns (CommitmentSchemaRecovery.Observation memory observation)
+    {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+        string memory schema = _testimonySchemaFor(resolver);
+        bytes32 expectedUID = keccak256(abi.encodePacked(schema, address(resolver), false));
+        ISchemaRegistry.SchemaRecord memory record = ISchemaRegistry(schemaRegistry).getSchema(expectedUID);
+
+        observation.pinnedUID = resolver.schemaUID();
+        observation.expectedUID = expectedUID;
+        observation.recordExists = record.uid != bytes32(0);
+        observation.recordMatches = record.uid == expectedUID && record.resolver == address(resolver) && !record.revocable
+            && keccak256(bytes(record.schema)) == keccak256(bytes(schema));
+        observation.module = resolver.commitmentModule();
+        observation.expectedModule = expectedModule;
     }
 
     // ──────────────────── Full lifecycle through the live resolver ────────────────────
@@ -444,11 +536,16 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      constructor bakes in the EAS address. Returns the schema registered against it, whose
     ///      UID is derived from this proxy's address — the ordering cycle that makes the resolver
     ///      its own deploy step.
-    function _deployTestimonyResolverWithSchema(string memory label)
+    /// @dev A resolver at whatever lane state the caller asks for, built the way preparation
+    ///      builds one: deployed, then optionally pinned. Never registers the record — that is
+    ///      finalization's step, and the tests that want it registered do so explicitly.
+    function _deployTestimonyResolverWithSchema(
+        string memory label,
+        bool pinSchema
+    )
         private
-        returns (TestimonyResolver resolver, bytes32 schemaUID)
+        returns (TestimonyResolver resolver, string memory schema)
     {
-        (, address schemaRegistry) = _getEASForChain(block.chainid);
         // The implementation loads from artifacts rather than `new`, so its creation code never
         // enters this test contract's own bytecode — the full fork stack already fills it.
         resolver = TestimonyResolver(
@@ -462,10 +559,20 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
             )
         );
 
-        // EAS rejects a duplicate (schema, resolver, revocable) triple, but each proxy gets a
-        // fresh address, so the label only has to keep repeat callers legible in a trace.
-        string memory schema = string.concat(communityTestimonySchema, ",string ", label);
-        schemaUID = ISchemaRegistry(schemaRegistry).register(schema, address(resolver), false);
+        // EAS rejects a duplicate (schema, resolver, revocable) triple, but each proxy gets a fresh
+        // address, so the label only has to keep repeat callers legible in a trace.
+        schema = string.concat(communityTestimonySchema, ",string ", label);
+        testimonySchemaOf[address(resolver)] = schema;
+
+        if (pinSchema) {
+            resolver.setSchemaUID(keccak256(abi.encodePacked(schema, address(resolver), false)));
+        }
+    }
+
+    /// @dev The canonical resolver uses the real schema; fixtures use their labelled variant.
+    function _testimonySchemaFor(TestimonyResolver resolver) private view returns (string memory) {
+        string memory recorded = testimonySchemaOf[address(resolver)];
+        return bytes(recorded).length == 0 ? communityTestimonySchema : recorded;
     }
 
     /// @dev Mirrors `deploy.ts commitment-schemas` against the live Arbitrum SchemaRegistry.
@@ -488,13 +595,25 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
                 )
             )
         );
+        // PREPARATION pins the deterministic UID and deliberately does NOT register the record.
+        // Registration is permissionless, so the record is not ours to control; the pin is, and it
+        // makes the resolver provably inert while `commitmentModule` is zero.
         communityTestimonySchemaUID =
-            ISchemaRegistry(schemaRegistry).register(communityTestimonySchema, address(testimonyResolver), false);
+            keccak256(abi.encodePacked(communityTestimonySchema, address(testimonyResolver), false));
+        testimonyResolver.setSchemaUID(communityTestimonySchemaUID);
 
-        // Neither resolver is pinned to a schema here. Deployment leaves the v2 UID zero — which
-        // is exactly the live Arbitrum state — and every resolver-side setter belongs to
-        // `_configureResolvers`, so this test rehearses the real step boundary.
+        assertEq(testimonyResolver.commitmentModule(), address(0), "preparation must leave the resolver inert");
+        // Deployment leaves the v2 UID zero — exactly the live Arbitrum state — and every
+        // assessment setter belongs to `_configureResolvers`, so the step boundary is real.
         assertEq(assessmentResolver.schemaUID(), bytes32(0), "deployment leaves the v2 UID unpinned");
+    }
+
+    /// @dev Mirrors `deploy.ts commitment-schemas --finalize-community-testimony`: register the
+    ///      exact record, then activate the resolver against the module as the last action.
+    function _finalizeCommunityTestimony() private {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+        ISchemaRegistry(schemaRegistry).register(communityTestimonySchema, address(testimonyResolver), false);
+        testimonyResolver.setCommitmentModule(address(pooling));
     }
 
     /// @dev Mirrors `deploy.ts pooling-configure` by calling the library that target broadcasts,
@@ -503,7 +622,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     function _configureResolvers() private {
         uint256 written = _configurationTargets().configure(address(this));
 
-        assertEq(written, 5, "a fresh chain must need all five configuration calls");
+        assertEq(written, 3, "a fresh chain must need all three configuration calls");
     }
 
     /// @dev Mirrors `deploy.ts pooling`. Resolver-side wiring is deliberately not done here — it
