@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
 import { Attestation } from "@eas/IEAS.sol";
 
 import { ICommitmentPoolingModule } from "../../../src/interfaces/ICommitmentPoolingModule.sol";
@@ -19,10 +19,14 @@ interface IMockWorkDecisionResolver {
 ///      rejected transition is a correct outcome, not a failure. What matters is that the calls
 ///      which DO land leave the accounting consistent, which is what the invariants assert.
 ///
-///      Deliberately not a fixture subclass. The invariant target must expose only lifecycle
-///      entry points — if the fuzzer could reach setup helpers it would rebuild the world mid-run
-///      and the invariants would be about a moving target.
-contract CommitmentPoolingAccountingHandler is Test {
+///      Deliberately neither a fixture subclass nor a `Test`. The invariant target must expose
+///      only lifecycle entry points: a fixture would let the fuzzer rebuild the world mid-run, and
+///      inheriting `Test` publishes `failed()` as a target selector, spending campaign calls on
+///      something that is not part of the lifecycle. Hence the raw cheatcode handle and the local
+///      `_bound` below.
+contract CommitmentPoolingAccountingHandler {
+    Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
     address internal constant POOL_GARDEN = address(0xCAFE);
     bytes32 internal constant WORK_SCHEMA_UID = bytes32(uint256(101));
     bytes32 internal constant WORK_APPROVAL_SCHEMA_UID = bytes32(uint256(102));
@@ -97,10 +101,10 @@ contract CommitmentPoolingAccountingHandler is Test {
         params.claimMode = ICommitmentPoolingModule.ClaimMode.Open;
         params.contributorPolicy = ICommitmentPoolingModule.ContributorPolicy.LeadManaged;
         params.unitLabel = "hours";
-        params.targetUnits = uint256(bound(unitSeed, 1, 8));
+        params.targetUnits = uint256(_bound(unitSeed, 1, 8));
         params.metadataCID = "bafy-invariant-commitment";
         // A due date in the near future keeps `expireCommitment` reachable via warping.
-        params.dueDate = uint64(block.timestamp + bound(dueSeed, 1, 30) * 1 days);
+        params.dueDate = uint64(block.timestamp + _bound(dueSeed, 1, 30) * 1 days);
         params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
         params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 0, requiredCount: 2 });
 
@@ -206,7 +210,7 @@ contract CommitmentPoolingAccountingHandler is Test {
         (bool ok, uint256 commitmentId) = _pickCommitment(idSeed);
         if (!ok) return;
 
-        vm.warp(block.timestamp + bound(daysSeed, 1, 40) * 1 days);
+        vm.warp(block.timestamp + _bound(daysSeed, 1, 40) * 1 days);
         vm.prank(_actor(callerSeed));
         try module.expireCommitment(commitmentId) { } catch { }
     }
@@ -229,7 +233,7 @@ contract CommitmentPoolingAccountingHandler is Test {
         if (!ok) return;
 
         ICommitmentPoolingModule.DisputeResolution resolution =
-            ICommitmentPoolingModule.DisputeResolution(uint8(bound(resolutionSeed, 0, 3)));
+            ICommitmentPoolingModule.DisputeResolution(uint8(_bound(resolutionSeed, 0, 3)));
 
         // Resolution is a steward act; the invariant test owns the module.
         try module.resolveDispute(commitmentId, resolution, "bafy-invariant-resolution") { } catch { }
@@ -239,6 +243,11 @@ contract CommitmentPoolingAccountingHandler is Test {
 
     function _actor(uint8 seed) private view returns (address) {
         return actors[seed % ACTOR_COUNT];
+    }
+
+    /// @dev Local stand-in for `StdUtils.bound`, which would arrive with `Test`. Inclusive.
+    function _bound(uint256 value, uint256 min, uint256 max) private pure returns (uint256) {
+        return min + (value % (max - min + 1));
     }
 
     function _pickCommitment(uint256 seed) private view returns (bool ok, uint256 commitmentId) {
