@@ -18,6 +18,8 @@ import { GreenWillDeployer } from "./greenwill";
 import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
 import { PoolingDeployer } from "./pooling";
+import { PoolingConfigureDeployer } from "./pooling-configure";
+import { TestimonyResolverDeployer } from "./testimony-resolver";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 
@@ -42,6 +44,8 @@ export class DeploymentCLI {
   private greenWillDeployer: GreenWillDeployer;
   private poolingDeployer: PoolingDeployer;
   private commitmentSchemasDeployer: CommitmentSchemasDeployer;
+  private testimonyResolverDeployer: TestimonyResolverDeployer;
+  private poolingConfigureDeployer: PoolingConfigureDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -63,6 +67,8 @@ export class DeploymentCLI {
     this.greenWillDeployer = new GreenWillDeployer(this.networkManager, this.deploymentAddresses);
     this.poolingDeployer = new PoolingDeployer(this.networkManager, this.deploymentAddresses);
     this.commitmentSchemasDeployer = new CommitmentSchemasDeployer(this.networkManager, this.deploymentAddresses);
+    this.testimonyResolverDeployer = new TestimonyResolverDeployer(this.networkManager, this.deploymentAddresses);
+    this.poolingConfigureDeployer = new PoolingConfigureDeployer(this.networkManager, this.deploymentAddresses);
   }
 
   /**
@@ -85,8 +91,10 @@ Commands:
   badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
   greenwill                Deploy or dry-run initial GreenWill proxy and three-badge config
   badge-schemas            Future/backlog: deploy GreenWill portable EAS badge schema
+  testimony-resolver       Deploy the community testimony resolver proxy (pooling lane, step 1)
   commitment-schemas       Register or reconcile the assessment v3 and community testimony EAS schemas
   pooling                  Deploy CommitmentPoolingModule and CommitmentRegistry (module stays paused)
+  pooling-configure        Wire the resolvers to the module; the work-approval bridge goes live here
   ens-migrate              Reconcile Arbitrum ENS sends and migrate missing mainnet receiver records
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
@@ -142,10 +150,13 @@ Examples:
   # Migrate stuck greengoods.eth registrations into the current mainnet receiver
   bun deploy.ts ens-migrate --network mainnet --broadcast
 
-  # Plan the Commitment Pooling lane. Rehearse first with the Arbitrum One fork:
+  # Plan the Commitment Pooling lane, in order. Each step's output is the next step's input, so
+  # the sequence cannot be reordered. Rehearse the whole thing first on an Arbitrum One fork:
   #   bun run test:fork:pooling:arbitrum
+  bun deploy.ts testimony-resolver --network arbitrum --dry-run
   bun deploy.ts commitment-schemas --network arbitrum --dry-run
   bun deploy.ts pooling --network arbitrum --dry-run
+  bun deploy.ts pooling-configure --network arbitrum --dry-run
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
@@ -313,8 +324,18 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
           break;
         }
 
+        case "testimony-resolver": {
+          await this.testimonyResolverDeployer.deployTestimonyResolver(options);
+          break;
+        }
+
         case "pooling": {
           await this.poolingDeployer.deployPooling(options);
+          break;
+        }
+
+        case "pooling-configure": {
+          await this.poolingConfigureDeployer.configurePooling(options);
           break;
         }
 

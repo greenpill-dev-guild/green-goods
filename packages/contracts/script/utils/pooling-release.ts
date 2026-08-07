@@ -29,6 +29,24 @@ export const POOLING_UPGRADE_KEYS = ["commitmentPoolingModule", "commitmentRegis
 /** Config keys appended for this lane. Order is the registration order. */
 export const COMMITMENT_SCHEMA_KEYS = ["assessmentV3", "communityTestimony"] as const;
 
+/**
+ * The resolver configuration a deployed module needs before it is anything but inert, in
+ * dependency order. Order is load-bearing twice over: `setAssessmentV3SchemaUID` reverts
+ * `AssessmentV2SchemaUIDRequired` while the v2 UID is zero — which is the live Arbitrum state —
+ * and `TestimonyResolver.setCommitmentModule` reverts `SchemaUIDRequired` before its schema is
+ * pinned.
+ *
+ * `workApprovalBridge` is the one that decides whether the release means anything: without it the
+ * resolver never calls `onWorkDecision`, so approved work never earns commitment credit.
+ */
+export const POOLING_CONFIGURATION_STEP_KEYS = [
+  "assessmentV2Pin",
+  "assessmentV3",
+  "testimonySchema",
+  "testimonyModule",
+  "workApprovalBridge",
+] as const;
+
 export type CommitmentSchemaKey = (typeof COMMITMENT_SCHEMA_KEYS)[number];
 
 export interface SchemaField {
@@ -71,6 +89,40 @@ export interface ProxyOwnerObservation {
   address: string;
   /** `null` when the live `owner()` call produced no readable address. */
   owner: string | null;
+}
+
+export type PoolingConfigurationStepKey = (typeof POOLING_CONFIGURATION_STEP_KEYS)[number];
+
+/** Everything the configuration run reads out of `deployments/{chainId}-latest.json`. */
+export interface PoolingConfigurationTargets {
+  assessmentResolver: string;
+  testimonyResolver: string;
+  workApprovalResolver: string;
+  commitmentPoolingModule: string;
+  assessmentSchemaUID: string;
+  assessmentV3SchemaUID: string;
+  communityTestimonySchemaUID: string;
+}
+
+/** What the three resolver proxies currently hold on chain. */
+export interface PoolingConfigurationState {
+  assessmentSchemaUID: string;
+  assessmentV3SchemaUID: string;
+  testimonySchemaUID: string;
+  testimonyCommitmentModule: string;
+  workApprovalCommitmentModule: string;
+}
+
+export type PoolingConfigurationAction = "set" | "satisfied";
+
+export interface PoolingConfigurationStep {
+  key: PoolingConfigurationStepKey;
+  /** Deployment-artifact key of the proxy this step calls. */
+  target: keyof PoolingConfigurationTargets;
+  address: string;
+  signature: string;
+  argument: string;
+  action: PoolingConfigurationAction;
 }
 
 function schemasConfigPath(): string {
@@ -140,6 +192,177 @@ export function planSchemaRegistration(
   }
 
   return { key: definition.key, uid, action: "reconcile" };
+}
+
+function isZeroOrMissing(value: unknown): boolean {
+  return typeof value !== "string" || !value.startsWith("0x") || /^0x0+$/i.test(value);
+}
+
+function sameHex(left: string, right: string): boolean {
+  return left.toLowerCase() === right.toLowerCase();
+}
+
+/** Address keys read flat off the artifact root. */
+const CONFIGURATION_ADDRESS_KEYS = [
+  "assessmentResolver",
+  "testimonyResolver",
+  "workApprovalResolver",
+  "commitmentPoolingModule",
+] as const;
+
+/** Schema UID keys read from the artifact's nested `schemas` block. */
+const CONFIGURATION_SCHEMA_KEYS = [
+  "assessmentSchemaUID",
+  "assessmentV3SchemaUID",
+  "communityTestimonySchemaUID",
+] as const;
+
+/**
+ * Pull the configuration inputs out of a deployment artifact, naming every missing key at once.
+ *
+ * Reported together rather than one at a time because they are produced by three different
+ * earlier steps — core deploy, `deploy.ts testimony-resolver`, `deploy.ts commitment-schemas`,
+ * `deploy.ts pooling` — and an operator holding the whole list can tell which one to re-run.
+ */
+export function readPoolingConfigurationTargets(deployment: Record<string, unknown>): PoolingConfigurationTargets {
+  const schemas = (deployment.schemas ?? {}) as Record<string, unknown>;
+
+  const missing = [
+    ...CONFIGURATION_ADDRESS_KEYS.filter((key) => isZeroOrMissing(deployment[key])),
+    ...CONFIGURATION_SCHEMA_KEYS.filter((key) => isZeroOrMissing(schemas[key])).map((key) => `schemas.${key}`),
+  ];
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Pooling configuration cannot run until these deployment keys are non-zero: ${missing.join(", ")}. ` +
+        "Deploy the testimony resolver, register the commitment schemas, deploy pooling, then retry.",
+    );
+  }
+
+  return {
+    assessmentResolver: deployment.assessmentResolver as string,
+    testimonyResolver: deployment.testimonyResolver as string,
+    workApprovalResolver: deployment.workApprovalResolver as string,
+    commitmentPoolingModule: deployment.commitmentPoolingModule as string,
+    assessmentSchemaUID: schemas.assessmentSchemaUID as string,
+    assessmentV3SchemaUID: schemas.assessmentV3SchemaUID as string,
+    communityTestimonySchemaUID: schemas.communityTestimonySchemaUID as string,
+  };
+}
+
+/**
+ * A value already on chain either matches what we intend to write — in which case the step is
+ * already satisfied and re-running is a no-op — or it is something else, which is an operator
+ * conflict this run must not paper over.
+ */
+function planStep(
+  step: Omit<PoolingConfigurationStep, "action">,
+  live: string,
+  conflictDetail: string,
+): PoolingConfigurationStep {
+  if (isZeroOrMissing(live)) return { ...step, action: "set" };
+  if (sameHex(live, step.argument)) return { ...step, action: "satisfied" };
+
+  throw new Error(
+    `Pooling configuration conflict on ${step.target}.${step.signature}: ` +
+      `chain holds ${live}, this run would write ${step.argument}. ${conflictDetail}`,
+  );
+}
+
+/**
+ * Decide what a configuration run should do about each of the five resolver calls, given what the
+ * three proxies currently hold. Returns every step in dependency order, each marked `set` or
+ * `satisfied`, so a dry run reads the same as a broadcast and an interrupted run resumes exactly
+ * where it stopped.
+ *
+ * Every divergence throws rather than overwriting. These are live proxies handling real Arbitrum
+ * attestations: repointing a schema UID silently revalidates existing attestations against a
+ * different schema, and repointing the work-approval bridge silently redirects credit to another
+ * module. Both are deliberate operator acts, never a side effect of re-running a configure step.
+ */
+export function planPoolingConfiguration(
+  targets: PoolingConfigurationTargets,
+  state: PoolingConfigurationState,
+): PoolingConfigurationStep[] {
+  if (sameHex(targets.assessmentV3SchemaUID, targets.assessmentSchemaUID)) {
+    throw new Error(
+      `Assessment v3 UID ${targets.assessmentV3SchemaUID} equals the v2 UID; the resolver reverts ` +
+        "SchemaUIDCollision. The artifact records the same UID twice — re-register the v3 schema.",
+    );
+  }
+
+  return [
+    planStep(
+      {
+        key: "assessmentV2Pin",
+        target: "assessmentResolver",
+        address: targets.assessmentResolver,
+        signature: "setSchemaUID(bytes32)",
+        argument: targets.assessmentSchemaUID,
+      },
+      state.assessmentSchemaUID,
+      "The resolver is validating a schema this artifact does not record; reconcile before continuing.",
+    ),
+    planStep(
+      {
+        key: "assessmentV3",
+        target: "assessmentResolver",
+        address: targets.assessmentResolver,
+        signature: "setAssessmentV3SchemaUID(bytes32)",
+        argument: targets.assessmentV3SchemaUID,
+      },
+      state.assessmentV3SchemaUID,
+      "Repointing a live assessmentV3SchemaUID revalidates existing attestations; resolve deliberately.",
+    ),
+    planStep(
+      {
+        key: "testimonySchema",
+        target: "testimonyResolver",
+        address: targets.testimonyResolver,
+        signature: "setSchemaUID(bytes32)",
+        argument: targets.communityTestimonySchemaUID,
+      },
+      state.testimonySchemaUID,
+      "TestimonyResolver.setSchemaUID reverts SchemaUIDConflict once a different UID is pinned.",
+    ),
+    planStep(
+      {
+        key: "testimonyModule",
+        target: "testimonyResolver",
+        address: targets.testimonyResolver,
+        signature: "setCommitmentModule(address)",
+        argument: targets.commitmentPoolingModule,
+      },
+      state.testimonyCommitmentModule,
+      "The resolver is bridged to a different pooling module; resolve deliberately.",
+    ),
+    planStep(
+      {
+        key: "workApprovalBridge",
+        target: "workApprovalResolver",
+        address: targets.workApprovalResolver,
+        signature: "setCommitmentModule(address)",
+        argument: targets.commitmentPoolingModule,
+      },
+      state.workApprovalCommitmentModule,
+      "Repointing the live work-approval bridge redirects commitment credit; resolve deliberately.",
+    ),
+  ];
+}
+
+/**
+ * The distinct proxies a plan calls, each paired with its address.
+ *
+ * Derived from the plan rather than kept as a second list, so a step added to
+ * `planPoolingConfiguration` is automatically covered by the owner preflight instead of silently
+ * escaping it.
+ */
+export function configurationOwnerTargets(
+  plan: PoolingConfigurationStep[],
+): Array<{ label: keyof PoolingConfigurationTargets; address: string }> {
+  const seen = new Map<keyof PoolingConfigurationTargets, string>();
+  plan.forEach((step) => seen.set(step.target, step.address));
+  return [...seen].map(([label, address]) => ({ label, address }));
 }
 
 /**

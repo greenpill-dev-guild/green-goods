@@ -9,6 +9,7 @@ import { CommitmentPoolingModule } from "../../src/modules/CommitmentPooling.sol
 import { CommitmentRegistry } from "../../src/registries/Commitment.sol";
 import { TestimonyResolver } from "../../src/resolvers/Testimony.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
+import { PoolingConfiguration } from "../../script/lib/PoolingConfiguration.sol";
 
 /// @title ArbitrumCommitmentPoolingForkTest
 /// @notice Production rehearsal for the Commitment Pooling release, on an Arbitrum One fork.
@@ -25,6 +26,8 @@ import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolin
 ///      What a fork still cannot prove: keystore signing, Etherscan verification, and real gas or
 ///      block timing. Those belong to a broadcast runbook, not to contract correctness.
 contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
+    using PoolingConfiguration for PoolingConfiguration.Targets;
+
     CommitmentPoolingModule internal pooling;
     CommitmentRegistry internal commitmentRegistry;
     TestimonyResolver internal testimonyResolver;
@@ -56,7 +59,29 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
 
         _registerCommitmentSchemas();
         _deployAndWirePooling();
+        _configureResolvers();
         _openPool();
+    }
+
+    /// @dev `PoolingConfiguration.configure` is an internal library function, so it inlines into
+    ///      whichever contract calls it — here, this test. `vm.expectRevert` requires the revert to
+    ///      happen one call deeper than the cheatcode, so the failure cases need this external hop.
+    ///      Calling it as `this.configureExternally(...)` keeps `msg.sender` at this contract,
+    ///      which is the resolver owner on the fork.
+    function configureExternally(PoolingConfiguration.Targets memory targets) external returns (uint256) {
+        return targets.configure();
+    }
+
+    /// @dev The artifact-shaped inputs `deploy.ts pooling-configure` reads and hands to the same
+    ///      library this test drives.
+    function _configurationTargets() private view returns (PoolingConfiguration.Targets memory targets) {
+        targets.assessmentResolver = address(assessmentResolver);
+        targets.testimonyResolver = address(testimonyResolver);
+        targets.workApprovalResolver = address(workApprovalResolver);
+        targets.commitmentPoolingModule = address(pooling);
+        targets.assessmentSchemaUID = assessmentSchemaUID;
+        targets.assessmentV3SchemaUID = assessmentV3SchemaUID;
+        targets.communityTestimonySchemaUID = communityTestimonySchemaUID;
     }
 
     // ─────────────────────── Schema registration rehearsal ───────────────────────
@@ -95,6 +120,93 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
 
         assertTrue(bare.paused(), "a half-wired module must stay paused");
         assertFalse(pooling.paused(), "the fully wired module unpauses");
+    }
+
+    // ─────────────────────── Resolver configuration rehearsal ───────────────────────
+
+    /// @notice Re-running the configure step on a configured chain is a no-op, not a revert.
+    /// @dev The property that makes the step recoverable: an operator whose run died between two
+    ///      of the five calls can simply run it again.
+    function testConfigureIsSafeToReRun() public {
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+
+        assertTrue(targets.isConfigured(), "setUp must leave the chain fully configured");
+        assertEq(targets.configure(), 0, "a configured chain needs no further calls");
+        assertTrue(targets.isConfigured(), "re-running must not disturb the configured state");
+    }
+
+    /// @notice A partially configured chain writes only the steps that did not land.
+    /// @dev A fresh testimony resolver with its own registered schema reproduces a run that died
+    ///      after the assessment steps: the two testimony steps are open, the other three are not.
+    function testConfigureResumesAfterAnInterruptedRun() public {
+        (TestimonyResolver fresh, bytes32 freshSchemaUID) = _deployTestimonyResolverWithSchema("resume");
+
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+        targets.testimonyResolver = address(fresh);
+        targets.communityTestimonySchemaUID = freshSchemaUID;
+
+        assertEq(targets.configure(), 2, "only the two unsatisfied testimony steps may be written");
+        assertEq(fresh.schemaUID(), freshSchemaUID);
+        assertEq(fresh.commitmentModule(), address(pooling));
+        assertTrue(targets.isConfigured(), "the resumed run must reach the configured state");
+    }
+
+    /// @notice The live work-approval bridge is never silently repointed at another module.
+    /// @dev Repointing it redirects commitment credit; that is a deliberate operator act.
+    function testConfigureRefusesToRepointALiveBridge() public {
+        CommitmentPoolingModule replacement = _deployBareModule();
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+        targets.commitmentPoolingModule = address(replacement);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PoolingConfiguration.ConfigurationConflict.selector,
+                "testimonyModule",
+                bytes32(uint256(uint160(address(pooling)))),
+                bytes32(uint256(uint160(address(replacement))))
+            )
+        );
+        this.configureExternally(targets);
+    }
+
+    /// @notice A live schema UID is never silently repointed.
+    /// @dev Overwriting it would revalidate every existing attestation against a different schema.
+    function testConfigureRefusesToRepointALiveSchemaUid() public {
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+        bytes32 foreignUID = keccak256("some-other-testimony-schema");
+        targets.communityTestimonySchemaUID = foreignUID;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                PoolingConfiguration.ConfigurationConflict.selector,
+                "testimonySchema",
+                communityTestimonySchemaUID,
+                foreignUID
+            )
+        );
+        this.configureExternally(targets);
+    }
+
+    /// @notice The v3 UID cannot equal v2; the resolver reverts SchemaUIDCollision on it.
+    function testConfigureRejectsAnAssessmentSchemaCollision() public {
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+        targets.assessmentV3SchemaUID = assessmentSchemaUID;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(PoolingConfiguration.AssessmentSchemaUIDCollision.selector, assessmentSchemaUID)
+        );
+        this.configureExternally(targets);
+    }
+
+    /// @notice Every address and UID is required before a single call is sent.
+    function testConfigureNamesAMissingTargetInsteadOfWritingPartially() public {
+        PoolingConfiguration.Targets memory targets = _configurationTargets();
+        targets.commitmentPoolingModule = address(0);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(PoolingConfiguration.MissingConfiguration.selector, "commitmentPoolingModule")
+        );
+        this.configureExternally(targets);
     }
 
     function testRegisterMirrorsTheDeployScriptWiring() public {
@@ -190,12 +302,18 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
 
     // ───────────────────────────── Rehearsal setup ─────────────────────────────
 
-    /// @dev Mirrors `deploy.ts commitment-schemas` against the live Arbitrum SchemaRegistry.
-    function _registerCommitmentSchemas() private {
+    /// @dev Mirrors `deploy.ts testimony-resolver`: a UUPS proxy over an implementation whose
+    ///      constructor bakes in the EAS address. Returns the schema registered against it, whose
+    ///      UID is derived from this proxy's address — the ordering cycle that makes the resolver
+    ///      its own deploy step.
+    function _deployTestimonyResolverWithSchema(string memory label)
+        private
+        returns (TestimonyResolver resolver, bytes32 schemaUID)
+    {
         (, address schemaRegistry) = _getEASForChain(block.chainid);
-        // Implementations load from artifacts rather than `new`, so their creation code never
+        // The implementation loads from artifacts rather than `new`, so its creation code never
         // enters this test contract's own bytecode — the full fork stack already fills it.
-        testimonyResolver = TestimonyResolver(
+        resolver = TestimonyResolver(
             payable(
                 address(
                     new ERC1967Proxy(
@@ -206,27 +324,52 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
             )
         );
 
+        // EAS rejects a duplicate (schema, resolver, revocable) triple, but each proxy gets a
+        // fresh address, so the label only has to keep repeat callers legible in a trace.
+        string memory schema = string.concat(communityTestimonySchema, ",string ", label);
+        schemaUID = ISchemaRegistry(schemaRegistry).register(schema, address(resolver), false);
+    }
+
+    /// @dev Mirrors `deploy.ts commitment-schemas` against the live Arbitrum SchemaRegistry.
+    function _registerCommitmentSchemas() private {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+
         assessmentV3Schema = _generateSchemaString("assessmentV3");
         communityTestimonySchema = _generateSchemaString("communityTestimony");
 
         assessmentV3SchemaUID =
             ISchemaRegistry(schemaRegistry).register(assessmentV3Schema, address(assessmentResolver), false);
+
+        testimonyResolver = TestimonyResolver(
+            payable(
+                address(
+                    new ERC1967Proxy(
+                        deployCode("Testimony.sol:TestimonyResolver", abi.encode(_easAddress())),
+                        abi.encodeWithSelector(TestimonyResolver.initialize.selector, address(this))
+                    )
+                )
+            )
+        );
         communityTestimonySchemaUID =
             ISchemaRegistry(schemaRegistry).register(communityTestimonySchema, address(testimonyResolver), false);
 
-        // v2 must be pinned before v3 exists: setAssessmentV3SchemaUID reverts
-        // AssessmentV2SchemaUIDRequired while schemaUID is zero. Deployment leaves it zero — which
-        // is exactly the live Arbitrum state — so pinning the verified v2 UID is a real, ordered
-        // step of the release runbook and not test scaffolding.
+        // Neither resolver is pinned to a schema here. Deployment leaves the v2 UID zero — which
+        // is exactly the live Arbitrum state — and every resolver-side setter belongs to
+        // `_configureResolvers`, so this test rehearses the real step boundary.
         assertEq(assessmentResolver.schemaUID(), bytes32(0), "deployment leaves the v2 UID unpinned");
-        assessmentResolver.setSchemaUID(assessmentSchemaUID);
-
-        assessmentResolver.setAssessmentV3SchemaUID(assessmentV3SchemaUID);
-        testimonyResolver.setSchemaUID(communityTestimonySchemaUID);
     }
 
-    /// @dev Mirrors `deploy.ts pooling`, then performs the two configuration calls the deploy
-    ///      tooling does not yet own: the resolver bridges back to the module.
+    /// @dev Mirrors `deploy.ts pooling-configure` by calling the library that target broadcasts,
+    ///      rather than a hand-copied sequence. A rehearsal of a copy proves only that the copy
+    ///      works; this proves the code an operator will actually run.
+    function _configureResolvers() private {
+        uint256 written = _configurationTargets().configure();
+
+        assertEq(written, 5, "a fresh chain must need all five configuration calls");
+    }
+
+    /// @dev Mirrors `deploy.ts pooling`. Resolver-side wiring is deliberately not done here — it
+    ///      is a separate operator step, and the module is inert until it runs.
     function _deployAndWirePooling() private {
         pooling = _deployBareModule();
         commitmentRegistry = CommitmentRegistry(
@@ -241,9 +384,6 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         pooling.setCommitmentRegistry(address(commitmentRegistry));
         pooling.setSchemaUIDs(workSchemaUID, workApprovalSchemaUID, assessmentSchemaUID, assessmentV3SchemaUID);
         pooling.setPaused(false);
-
-        workApprovalResolver.setCommitmentModule(address(pooling));
-        testimonyResolver.setCommitmentModule(address(pooling));
     }
 
     /// @dev Everything the deploy script wires except the register and the schema UIDs, so the

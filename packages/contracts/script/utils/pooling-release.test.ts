@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { NetworkManager } from "./network";
 import {
+  POOLING_CONFIGURATION_STEP_KEYS,
   POOLING_REHEARSAL_FORK_NETWORK,
   POOLING_UPGRADE_KEYS,
   assertProxyOwnership,
   computeSchemaUID,
+  configurationOwnerTargets,
   loadCommitmentSchemas,
+  planPoolingConfiguration,
   planSchemaRegistration,
+  readPoolingConfigurationTargets,
   schemaString,
 } from "./pooling-release";
 import { resolveUpgradeTargets } from "../upgrade";
@@ -148,5 +152,179 @@ describe("live proxy owner preflight", () => {
     const unreadable = [{ ...targets[0], owner: null }];
 
     expect(() => assertProxyOwnership(unreadable, OWNER)).toThrow(/commitmentPoolingModule/);
+  });
+});
+
+describe("pooling configuration targets", () => {
+  const artifact = {
+    assessmentResolver: "0xA000000000000000000000000000000000000001",
+    testimonyResolver: "0xA000000000000000000000000000000000000002",
+    workApprovalResolver: "0xA000000000000000000000000000000000000003",
+    commitmentPoolingModule: "0xA000000000000000000000000000000000000004",
+    schemas: {
+      assessmentSchemaUID: `0x${"11".repeat(32)}`,
+      assessmentV3SchemaUID: `0x${"22".repeat(32)}`,
+      communityTestimonySchemaUID: `0x${"33".repeat(32)}`,
+    },
+  };
+
+  it("reads every address and schema UID the configuration run needs", () => {
+    const targets = readPoolingConfigurationTargets(artifact);
+
+    expect(targets.commitmentPoolingModule).toBe(artifact.commitmentPoolingModule);
+    expect(targets.assessmentV3SchemaUID).toBe(artifact.schemas.assessmentV3SchemaUID);
+    expect(targets.communityTestimonySchemaUID).toBe(artifact.schemas.communityTestimonySchemaUID);
+  });
+
+  it("names the missing key rather than configuring against a zero address", () => {
+    expect(() => readPoolingConfigurationTargets({ ...artifact, testimonyResolver: ZERO })).toThrow(
+      /testimonyResolver/,
+    );
+    expect(() => readPoolingConfigurationTargets({ ...artifact, commitmentPoolingModule: undefined })).toThrow(
+      /commitmentPoolingModule/,
+    );
+  });
+
+  it("names the missing schema UID, which is the prerequisite the resolvers actually revert on", () => {
+    const withoutV3 = { ...artifact, schemas: { ...artifact.schemas, assessmentV3SchemaUID: undefined } };
+
+    expect(() => readPoolingConfigurationTargets(withoutV3)).toThrow(/assessmentV3SchemaUID/);
+  });
+});
+
+describe("pooling configuration planning", () => {
+  const targets = {
+    assessmentResolver: "0xA000000000000000000000000000000000000001",
+    testimonyResolver: "0xA000000000000000000000000000000000000002",
+    workApprovalResolver: "0xA000000000000000000000000000000000000003",
+    commitmentPoolingModule: "0xA000000000000000000000000000000000000004",
+    assessmentSchemaUID: `0x${"11".repeat(32)}`,
+    assessmentV3SchemaUID: `0x${"22".repeat(32)}`,
+    communityTestimonySchemaUID: `0x${"33".repeat(32)}`,
+  };
+  const ZERO_UID = `0x${"00".repeat(32)}`;
+  /** Live Arbitrum before this lane runs: core deployed, nothing pooling-related configured. */
+  const unconfigured = {
+    assessmentSchemaUID: ZERO_UID,
+    assessmentV3SchemaUID: ZERO_UID,
+    testimonySchemaUID: ZERO_UID,
+    testimonyCommitmentModule: ZERO,
+    workApprovalCommitmentModule: ZERO,
+  };
+
+  it("plans every step in dependency order from an unconfigured chain", () => {
+    const plan = planPoolingConfiguration(targets, unconfigured);
+
+    expect(plan.map((step) => step.key)).toEqual([...POOLING_CONFIGURATION_STEP_KEYS]);
+    expect(plan.every((step) => step.action === "set")).toBe(true);
+  });
+
+  it("pins the v2 assessment UID before setting v3, which reverts while v2 is zero", () => {
+    const plan = planPoolingConfiguration(targets, unconfigured);
+    const v2Index = plan.findIndex((step) => step.key === "assessmentV2Pin");
+    const v3Index = plan.findIndex((step) => step.key === "assessmentV3");
+
+    expect(v2Index).toBeGreaterThanOrEqual(0);
+    expect(v2Index).toBeLessThan(v3Index);
+  });
+
+  it("registers the testimony schema before its commitment module, which reverts while the UID is zero", () => {
+    const plan = planPoolingConfiguration(targets, unconfigured);
+    const schemaIndex = plan.findIndex((step) => step.key === "testimonySchema");
+    const moduleIndex = plan.findIndex((step) => step.key === "testimonyModule");
+
+    expect(schemaIndex).toBeLessThan(moduleIndex);
+  });
+
+  it("is safe to re-run: a fully configured chain plans no writes", () => {
+    const configured = {
+      assessmentSchemaUID: targets.assessmentSchemaUID,
+      assessmentV3SchemaUID: targets.assessmentV3SchemaUID,
+      testimonySchemaUID: targets.communityTestimonySchemaUID,
+      testimonyCommitmentModule: targets.commitmentPoolingModule,
+      workApprovalCommitmentModule: targets.commitmentPoolingModule,
+    };
+
+    const plan = planPoolingConfiguration(targets, configured);
+
+    expect(plan.map((step) => step.key)).toEqual([...POOLING_CONFIGURATION_STEP_KEYS]);
+    expect(plan.every((step) => step.action === "satisfied")).toBe(true);
+  });
+
+  it("resumes an interrupted run, writing only the steps that did not land", () => {
+    const halfway = {
+      ...unconfigured,
+      assessmentSchemaUID: targets.assessmentSchemaUID,
+      assessmentV3SchemaUID: targets.assessmentV3SchemaUID,
+    };
+
+    const plan = planPoolingConfiguration(targets, halfway);
+
+    expect(plan.filter((step) => step.action === "set").map((step) => step.key)).toEqual([
+      "testimonySchema",
+      "testimonyModule",
+      "workApprovalBridge",
+    ]);
+  });
+
+  it("ignores checksum casing when comparing a live module address", () => {
+    const configured = {
+      ...unconfigured,
+      testimonyCommitmentModule: targets.commitmentPoolingModule.toLowerCase(),
+      workApprovalCommitmentModule: targets.commitmentPoolingModule.toUpperCase().replace("0X", "0x"),
+    };
+
+    const plan = planPoolingConfiguration(targets, configured);
+    const bridges = plan.filter((step) => step.key === "testimonyModule" || step.key === "workApprovalBridge");
+
+    expect(bridges.every((step) => step.action === "satisfied")).toBe(true);
+  });
+
+  it("fails closed when the testimony resolver already holds a different schema UID", () => {
+    const conflicting = { ...unconfigured, testimonySchemaUID: `0x${"99".repeat(32)}` };
+
+    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/testimony/i);
+  });
+
+  it("fails closed when the assessment resolver is validating a different v2 schema than the artifact records", () => {
+    const conflicting = { ...unconfigured, assessmentSchemaUID: `0x${"99".repeat(32)}` };
+
+    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/assessment/i);
+  });
+
+  it("refuses to silently repoint a live v3 schema UID, which would revalidate existing attestations", () => {
+    const conflicting = {
+      ...unconfigured,
+      assessmentSchemaUID: targets.assessmentSchemaUID,
+      assessmentV3SchemaUID: `0x${"99".repeat(32)}`,
+    };
+
+    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/assessmentV3SchemaUID/);
+  });
+
+  it("refuses to silently repoint the live work-approval bridge at a different module", () => {
+    const conflicting = { ...unconfigured, workApprovalCommitmentModule: "0xB000000000000000000000000000000000000009" };
+
+    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/workApprovalResolver/);
+  });
+
+  it("rejects a v3 UID equal to v2, which the resolver reverts as a collision", () => {
+    const collided = { ...targets, assessmentV3SchemaUID: targets.assessmentSchemaUID };
+
+    expect(() => planPoolingConfiguration(collided, unconfigured)).toThrow(/collision/i);
+  });
+
+  it("derives the owner-preflight proxies from the plan, so a new step cannot escape the check", () => {
+    const plan = planPoolingConfiguration(targets, unconfigured);
+    const proxies = configurationOwnerTargets(plan);
+
+    // Every proxy the plan writes to, each listed once.
+    expect(proxies.map((proxy) => proxy.label).sort()).toEqual([
+      "assessmentResolver",
+      "testimonyResolver",
+      "workApprovalResolver",
+    ]);
+    expect(new Set(plan.map((step) => step.target)).size).toBe(proxies.length);
+    expect(proxies.find((proxy) => proxy.label === "testimonyResolver")?.address).toBe(targets.testimonyResolver);
   });
 });
