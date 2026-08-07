@@ -2,13 +2,14 @@
 pragma solidity ^0.8.25;
 /* solhint-disable no-console */
 
-import { Script } from "forge-std/Script.sol";
+import { DeployHelper } from "./DeployHelper.sol";
 import { console } from "forge-std/console.sol";
 import { ISchemaRegistry } from "@eas/ISchemaRegistry.sol";
 import { ISchemaResolver } from "@eas/resolver/ISchemaResolver.sol";
 import { SchemaRecord } from "@eas/ISchemaRegistry.sol";
 
 import { CommitmentSchemaRecovery } from "./lib/CommitmentSchemaRecovery.sol";
+import { TestimonyResolverDeployment } from "./lib/TestimonyResolverDeployment.sol";
 
 interface ITestimonyResolverLifecycle {
     function schemaUID() external view returns (bytes32);
@@ -30,11 +31,12 @@ interface IModuleBoundary {
 ///      interrupted after a successful `register` but before its artifact was written reads the
 ///      same UID back and reconciles instead of re-registering. A UID that already holds a
 ///      different record fails closed: EAS schemas are immutable, so that is an operator conflict.
-contract DeployCommitmentSchemas is Script {
+contract DeployCommitmentSchemas is DeployHelper {
     error MissingSchemaRegistry();
     error ModuleNotDeployed(address module);
     error ModuleOwnerMismatch(address resolverOwner, address moduleOwner);
     error PinnedUIDMismatch(bytes32 pinned, bytes32 expected);
+    error ResolverOwnerMismatch(address assessmentOwner, address workApprovalOwner);
     error MissingResolver(string name);
     error SchemaRecordConflict(bytes32 uid);
 
@@ -58,16 +60,34 @@ contract DeployCommitmentSchemas is Script {
         string memory json = _readDeployment();
         ISchemaRegistry registry = _schemaRegistry(json);
         address assessmentResolver = _requireAddress(json, ".assessmentResolver", "assessmentResolver");
-        address testimonyResolver = _requireAddress(json, ".testimonyResolver", "testimonyResolver");
+        address eas = _requireAddress(json, ".eas.address", "eas.address");
+        address owner = _resolverOwner(json, assessmentResolver);
+        (, address factory,) = getDeploymentDefaults();
 
+        // §6.4.4: preparation deploys/reconciles the resolver itself. Predicted before anything is
+        // sent so an operator can compare against the runbook.
+        (address predictedImpl, address predictedProxy) = TestimonyResolverDeployment.predictAddresses(eas, owner, factory);
+        console.log("TestimonyResolver predicted implementation:", predictedImpl);
+        console.log("TestimonyResolver predicted proxy:", predictedProxy);
+        console.log("TestimonyResolver owner (from sibling resolvers):", owner);
+
+        address testimonyResolver = predictedProxy;
         bytes32 expectedTestimonyUID = keccak256(abi.encodePacked(COMMUNITY_TESTIMONY_SCHEMA, testimonyResolver, REVOCABLE));
 
+        vm.startBroadcast();
+        TestimonyResolverDeployment.Deployment memory resolver =
+            TestimonyResolverDeployment.deployOrReuse(eas, owner, factory);
+        if (!resolver.deployedSomething) {
+            console.log("Resolver already at both predicted addresses (recovery rerun); nothing deployed");
+        }
+
+        // Classified only now: the resolver has to exist before its state can be read, and a
+        // fresh deployment is trivially Unprepared.
         CommitmentSchemaRecovery.State state = CommitmentSchemaRecovery.assertPreparable(
             _observe(registry, testimonyResolver, expectedTestimonyUID, address(0))
         );
         console.log("Community Testimony recovery state on entry:", uint256(state));
 
-        vm.startBroadcast();
         bytes32 assessmentV3UID = _registerOrReconcile(registry, ASSESSMENT_V3_SCHEMA, assessmentResolver);
 
         // Read-before-set: zero pins the expected UID, the exact value skips the transaction, and
@@ -83,7 +103,7 @@ contract DeployCommitmentSchemas is Script {
             ITestimonyResolverLifecycle(testimonyResolver).commitmentModule() == address(0),
             "preparation must leave the testimony resolver inactive"
         );
-        _savePreparation(assessmentV3UID, expectedTestimonyUID);
+        _savePreparation(resolver, assessmentV3UID, expectedTestimonyUID);
     }
 
     /// @notice FINALIZATION. Registers the exact Community Testimony record, then activates the
@@ -125,6 +145,20 @@ contract DeployCommitmentSchemas is Script {
             "finalization did not reach the activated state"
         );
         _saveFinalization(expectedUID);
+    }
+
+    /// @dev Owner comes from the resolvers already on chain, not the artifact's `guardian`. On
+    ///      Arbitrum One those diverge — both live resolvers are owned by the deployer while
+    ///      `guardian` is a different address — and initializing under `guardian` would split the
+    ///      lane across two signers. Deriving from a sibling makes "one owner across every
+    ///      resolver" true by construction; the mismatch check makes divergence loud.
+    function _resolverOwner(string memory json, address assessmentResolver) private view returns (address owner) {
+        address workApprovalResolver = _requireAddress(json, ".workApprovalResolver", "workApprovalResolver");
+
+        owner = ITestimonyResolverLifecycle(assessmentResolver).owner();
+        address workApprovalOwner = ITestimonyResolverLifecycle(workApprovalResolver).owner();
+        if (owner != workApprovalOwner) revert ResolverOwnerMismatch(owner, workApprovalOwner);
+        if (owner == address(0)) revert MissingResolver("assessmentResolver.owner()");
     }
 
     /// @dev The module must exist, be a real contract, and share the resolver's owner. A module
@@ -217,8 +251,16 @@ contract DeployCommitmentSchemas is Script {
     ///      canonical artifact must not carry the Community Testimony schema keys until the record
     ///      is reconciled and the resolver activated, so the CLI promotes them from the
     ///      finalization side file, never this one.
-    function _savePreparation(bytes32 assessmentV3UID, bytes32 predictedTestimonyUID) private {
+    function _savePreparation(
+        TestimonyResolverDeployment.Deployment memory resolver,
+        bytes32 assessmentV3UID,
+        bytes32 predictedTestimonyUID
+    )
+        private
+    {
         string memory output = "commitmentSchemasPreparation";
+        vm.serializeAddress(output, "testimonyResolver", resolver.testimonyResolver);
+        vm.serializeAddress(output, "testimonyResolverImpl", resolver.testimonyResolverImpl);
         vm.serializeBytes32(output, "assessmentV3SchemaUID", assessmentV3UID);
         string memory serialized =
             vm.serializeBytes32(output, "predictedCommunityTestimonySchemaUID", predictedTestimonyUID);

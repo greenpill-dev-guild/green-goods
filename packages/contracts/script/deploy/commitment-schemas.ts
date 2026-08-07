@@ -17,6 +17,12 @@ import {
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 
+/**
+ * Addresses preparation produces. The resolver is deployed by this target now (contract-spec
+ * §6.4.4), so its addresses land here rather than coming from a separate step.
+ */
+const PREPARATION_KEYS = ["testimonyResolver", "testimonyResolverImpl"] as const;
+
 /** Artifact key each schema lands under in `deployments/{chainId}-latest.json#schemas`. */
 const ARTIFACT_KEYS: Record<string, string> = {
   assessmentV3: "assessmentV3SchemaUID",
@@ -58,11 +64,24 @@ export class CommitmentSchemasDeployer {
     const chainId = this.networkManager.getChainIdString(options.network);
     const deployment = this.deploymentAddresses.loadForChain(options.network) as Record<string, unknown>;
     const schemaRegistry = this.resolveSchemaRegistry(options.network, deployment);
-    const definitions = loadCommitmentSchemas();
+    // The two modes own different registrations. Preparation registers AssessmentV3 and only PINS
+    // the Community Testimony UID; its record belongs to finalization, after the module exists and
+    // has been verified (contract-spec §6.4.4). Planning both here would advertise a registration
+    // preparation deliberately does not perform.
+    const definitions = loadCommitmentSchemas().filter((definition) =>
+      options.finalizeCommunityTestimony ? definition.key === "communityTestimony" : definition.key === "assessmentV3",
+    );
 
+    const mode = options.finalizeCommunityTestimony ? "FINALIZATION" : "PREPARATION";
     console.log(
-      `${options.broadcast ? "Registering" : "Planning"} commitment EAS schemas for ${options.network} ` +
+      `${options.broadcast ? "Running" : "Planning"} commitment-schemas ${mode} for ${options.network} ` +
         `(chainId: ${networkConfig.chainId})`,
+    );
+    console.log(
+      options.finalizeCommunityTestimony
+        ? "Registers the exact Community Testimony record, then activates the resolver against the module."
+        : "Deploys the testimony resolver (CREATE2), registers AssessmentV3, and pins the Community\n" +
+            "Testimony UID. The resolver stays inert: its module is set only by the finalization run.",
     );
     console.log(`SchemaRegistry: ${schemaRegistry}`);
 

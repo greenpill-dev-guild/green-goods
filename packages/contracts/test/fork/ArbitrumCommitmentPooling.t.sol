@@ -11,7 +11,7 @@ import { TestimonyResolver } from "../../src/resolvers/Testimony.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
 import { PoolingConfiguration } from "../../script/lib/PoolingConfiguration.sol";
 import { CommitmentSchemaRecovery } from "../../script/lib/CommitmentSchemaRecovery.sol";
-import { DeployTestimonyResolver } from "../../script/DeployTestimonyResolver.s.sol";
+import { TestimonyResolverDeployment } from "../../script/lib/TestimonyResolverDeployment.sol";
 
 /// @title ArbitrumCommitmentPoolingForkTest
 /// @notice Production rehearsal for the Commitment Pooling release, on an Arbitrum One fork.
@@ -138,7 +138,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     // ─────────────────────── Deterministic deploy rehearsal ───────────────────────
 
     /// @notice The deploy target's own CREATE2 derivation, run against live Arbitrum.
-    /// @dev Drives `DeployTestimonyResolver` itself rather than a copy of its logic. The previous
+    /// @dev Drives `TestimonyResolverDeployment` itself rather than a copy of its logic. The previous
     ///      revision of this file hand-deployed proxies with `new ERC1967Proxy`, so it proved
     ///      nothing about the script an operator actually runs — the gap that let a plain-CREATE,
     ///      non-recoverable deploy reach review.
@@ -149,7 +149,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      These constants are what make that change loud. If this test fails, the address pair
     ///      moved — update the runbook deliberately, do not update the constants to match.
     function testDeploymentSaltsArePinnedToTheDeclaredNamespaceAndVersion() public {
-        (bytes32 implSalt, bytes32 proxySalt) = new DeployTestimonyResolver().deploymentSalts();
+        (bytes32 implSalt, bytes32 proxySalt) = TestimonyResolverDeployment.deploymentSalts();
 
         assertEq(
             implSalt,
@@ -170,26 +170,28 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      `DEPLOYMENT_SALT`, so retrying from a clean environment would have predicted a
     ///      different pair and deployed a second implementation and proxy over an already-mined run.
     function testPredictedAddressesIgnoreTheAmbientDeploymentSalt() public {
-        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
         address owner = assessmentResolver.owner();
-        (address baselineImpl, address baselineProxy) = deployer.predictAddresses(_easAddress(), owner);
+        (address baselineImpl, address baselineProxy) =
+            TestimonyResolverDeployment.predictAddresses(_easAddress(), owner, _create2Factory());
 
         vm.setEnv("DEPLOYMENT_SALT", "some-other-release-salt");
-        (address impl, address proxy) = deployer.predictAddresses(_easAddress(), owner);
+        (address impl, address proxy) =
+            TestimonyResolverDeployment.predictAddresses(_easAddress(), owner, _create2Factory());
 
         assertEq(impl, baselineImpl, "implementation address moved with the ambient salt");
         assertEq(proxy, baselineProxy, "proxy address moved with the ambient salt");
     }
 
     function testDeployTargetPredictsTheAddressesItDeploys() public {
-        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
         address owner = assessmentResolver.owner();
 
-        (address predictedImpl, address predictedProxy) = deployer.predictAddresses(_easAddress(), owner);
+        (address predictedImpl, address predictedProxy) =
+            TestimonyResolverDeployment.predictAddresses(_easAddress(), owner, _create2Factory());
         assertEq(predictedImpl.code.length, 0, "the predicted implementation must be unoccupied first");
         assertEq(predictedProxy.code.length, 0, "the predicted proxy must be unoccupied first");
 
-        DeployTestimonyResolver.TestimonyDeployment memory result = deployer.deployOrReuse(_easAddress(), owner);
+        TestimonyResolverDeployment.Deployment memory result =
+            TestimonyResolverDeployment.deployOrReuse(_easAddress(), owner, _create2Factory());
 
         assertTrue(result.deployedSomething, "the first run must deploy");
         assertEq(result.testimonyResolverImpl, predictedImpl, "implementation landed off its prediction");
@@ -205,15 +207,16 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      fresh nonce-derived addresses — orphaning the first along with any schema registered
     ///      against it, since the schema UID commits to the resolver address.
     function testDeployTargetRecoversWithoutASecondDeployment() public {
-        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
         address owner = assessmentResolver.owner();
 
-        DeployTestimonyResolver.TestimonyDeployment memory first = deployer.deployOrReuse(_easAddress(), owner);
+        TestimonyResolverDeployment.Deployment memory first =
+            TestimonyResolverDeployment.deployOrReuse(_easAddress(), owner, _create2Factory());
         bytes32 implCodehash = first.testimonyResolverImpl.codehash;
         bytes32 proxyCodehash = first.testimonyResolver.codehash;
 
         // Exactly the retry an operator performs after a failed merge.
-        DeployTestimonyResolver.TestimonyDeployment memory second = deployer.deployOrReuse(_easAddress(), owner);
+        TestimonyResolverDeployment.Deployment memory second =
+            TestimonyResolverDeployment.deployOrReuse(_easAddress(), owner, _create2Factory());
 
         assertFalse(second.deployedSomething, "a recovery rerun must send no deployment transaction");
         assertEq(second.testimonyResolver, first.testimonyResolver, "recovery must return the same proxy");
@@ -226,9 +229,9 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     /// @dev CREATE2 proves the address was created from this creation code; it cannot prove nobody
     ///      upgraded the proxy afterwards. That is what the ERC-1967 slot read covers.
     function testDeployTargetRefusesAProxyUpgradedOutFromUnderIt() public {
-        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
         address owner = assessmentResolver.owner();
-        DeployTestimonyResolver.TestimonyDeployment memory first = deployer.deployOrReuse(_easAddress(), owner);
+        TestimonyResolverDeployment.Deployment memory first =
+            TestimonyResolverDeployment.deployOrReuse(_easAddress(), owner, _create2Factory());
 
         address foreignImplementation = deployCode("Testimony.sol:TestimonyResolver", abi.encode(_easAddress()));
         vm.store(
@@ -239,13 +242,13 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                DeployTestimonyResolver.ExistingProxyMismatch.selector,
+                TestimonyResolverDeployment.ExistingProxyMismatch.selector,
                 "implementation",
                 first.testimonyResolverImpl,
                 foreignImplementation
             )
         );
-        deployer.deployOrReuse(_easAddress(), owner);
+        this.deployOrReuseExternally(_easAddress(), owner, _create2Factory());
     }
 
     // ─────────────────────── Resolver configuration rehearsal ───────────────────────
@@ -414,6 +417,19 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(uint256(state), uint256(CommitmentSchemaRecovery.State.RecordRegistered), "a foreign register resumes");
         assertFalse(CommitmentSchemaRecovery.needsRecord(state), "the record is already exact");
         assertTrue(CommitmentSchemaRecovery.needsActivation(state), "only activation remains");
+    }
+
+    /// @dev `deployOrReuse` is an internal library function, so it inlines into this contract and
+    ///      reverts at the cheatcode's own depth. The hop restores the frame expectRevert needs.
+    function deployOrReuseExternally(
+        address eas,
+        address owner,
+        address factory
+    )
+        external
+        returns (TestimonyResolverDeployment.Deployment memory)
+    {
+        return TestimonyResolverDeployment.deployOrReuse(eas, owner, factory);
     }
 
     /// @dev `vm.expectRevert` needs the revert one frame deeper than the cheatcode.
@@ -667,6 +683,13 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         pooling.setPoolCharter(poolId, "ipfs://QmForkPoolCharter");
         pooling.markPoolReady(poolId);
         pooling.openPool(poolId);
+    }
+
+    /// @dev The canonical deterministic-deployment factory, which is what `getDeploymentDefaults()`
+    ///      hands the deploy script. Reading it from the network config would drag the whole
+    ///      DeployHelper into this test for one address.
+    function _create2Factory() private pure returns (address) {
+        return 0x4e59b44847b379578588920cA78FbF26c0B4956C;
     }
 
     function _easAddress() private view returns (address eas) {
