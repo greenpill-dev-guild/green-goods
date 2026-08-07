@@ -2144,6 +2144,43 @@ Two buckets, rejected for different reasons; Hyperlane and LayerZero appear in b
 
 **Messaging for the settle-trigger (Arch 2).** The 2026-07-02 research declined cross-chain messaging in favour of operator execution plus receipt verification. That conclusion is **superseded by the 2026-07-23 transport re-freeze** after Chainlink Functions retirement and review of Green Goods' existing Chainlink CCIP sender/receiver integration. Message-only CCIP is now adopted because it creates an authenticated Arbitrum-command → bounded-Celo-execution → Arbitrum-acknowledgment path without bridging G$. The old cost figures were point-in-time estimates and are not release evidence; implementation must quote the live route and monitor native fee reserves.
 
+> **Amendment 2026-08-06 (transport verified; testing pattern recorded).** Nothing here is
+> implemented — `src/` still contains no settlement module, and `settlementEnabled` /
+> `settlementAdapter` remain reserved MVP fields that are always false and zero. What has changed
+> is that the transport this architecture depends on is now **proven live rather than assumed**,
+> and the lane has a testing approach it does not have to invent.
+>
+> **Lane, verified on chain 2026-08-06.** Celo Mainnet's `ccipRouter` and `ccipChainSelector` were
+> both **zero** in `deployments/networks.json`, so nothing cross-chain to Celo could be fork-tested
+> at all. They now hold the official Chainlink directory values, checked against live forks of both
+> chains rather than trusted:
+>
+> | | Arbitrum One | Celo Mainnet |
+> |---|---|---|
+> | router | `0x141fa059441E0ca23ce184B6A78bafD2A517DdE8` | `0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62` |
+> | chain selector | `4949039107694359620` | `1346049177634351622` |
+>
+> Both report `typeAndVersion() == "Router 1.2.0"`, `isChainSupported` is true in **both**
+> directions, and both directions quote a non-zero native fee for a message-only, zero-token
+> payload. Re-runnable as `bun run contracts:settlement:verify-lane`
+> (`test/fork/CrossChainSettlementLane.t.sol`). It is read-only: no broadcast, no deployment, no
+> funds. The routers and selectors are read from `networks.json`, so a pass proves the shipped
+> config is the live one.
+>
+> **Testing pattern — use `test/fork/CrossChainENS.t.sol`, do not re-derive one.** It already runs
+> two forks in one process, alternates with `vm.selectFork`, hand-builds a
+> `Client.Any2EVMMessage`, and delivers it with `vm.prank(router)` then `receiver.ccipReceive`.
+> That is the right shape: a CCIP receiver's whole trust model is "the router called me, from this
+> source selector, with this sender," so impersonating the real router on a fork exercises exactly
+> that boundary with real contracts on both ends. The only simulated part is Chainlink's transport
+> — their audited infrastructure, not ours. Same reasoning as the pooling fork decision: simulate
+> only what belongs to someone else.
+>
+> A revision to the release evidence ladder — dropping the Celo Sepolia Safe/Zodiac rehearsal and
+> the ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof — is **proposed, not applied**, in
+> `handoffs/human-release-ops.md` (amendment 2026-08-06) and tracked on PRD-731. This lane's owner
+> decides. The frozen architecture in §3, §4, and §4.1 is untouched.
+
 ### 10.3 Why Architecture 3 is an evolution, not a replacement
 
 It wins decisively on **build reuse** — pool, limiter, quoter and registry already exist and are permissionlessly deployable (~1 CELO via `ge-publish`). It loses on **third-party protocol dependency**: it binds Green Goods to GE's roadmap and maintenance, **doubles the partnership surface** (GoodDollar *and* GE must agree), and amends the locked "one poolId carries both capabilities" principle to "poolId anchors proof; settlement venue is a referenced external Celo contract." It is also less reversible.

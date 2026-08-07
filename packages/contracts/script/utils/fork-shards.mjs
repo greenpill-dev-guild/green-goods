@@ -22,6 +22,8 @@ const DEFAULTS = {
   SEPOLIA_FORK_BLOCK_NUMBER: "10917257",
   ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
+  // Celo's public node. Only the settlement-lane shard forks Celo, and it is read-only.
+  CELO_RPC_URL: "https://forno.celo.org",
 };
 
 const SHARDS = {
@@ -42,6 +44,12 @@ const SHARDS = {
     description:
       "Commitment Pooling release rehearsal against live Arbitrum Hats, EAS, and WorkApprovalResolver",
     glob: "test/fork/ArbitrumCommitmentPooling.t.sol",
+  },
+  "settlement-lane": {
+    chain: "ARBITRUM",
+    description:
+      "Read-only proof that the Arbitrum One <-> Celo Mainnet CCIP lane is live, against real routers on both forks",
+    glob: "test/fork/CrossChainSettlementLane.t.sol",
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",
