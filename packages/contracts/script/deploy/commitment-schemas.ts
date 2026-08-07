@@ -218,14 +218,21 @@ export class CommitmentSchemasDeployer {
       env: { ...process.env, FOUNDRY_PROFILE: "production", FORGE_BROADCAST: "true" },
     });
 
-    this.mergeIntoDeployment(chainId, definitions, plans);
+    this.mergeIntoDeployment(chainId, definitions, plans, options);
   }
 
-  /** Append-only merge of both UIDs into the canonical artifact's `schemas` block. */
+  /**
+   * Append-only merge into the canonical artifact.
+   *
+   * Preparation also promotes the resolver addresses it deployed, since it owns that deployment
+   * now. Its side file is the recovery record: a run whose transaction mined but whose merge
+   * failed re-runs to the same CREATE2 addresses and rewrites the same values.
+   */
   private mergeIntoDeployment(
     chainId: string,
     definitions: CommitmentSchemaDefinition[],
     plans: SchemaRegistrationPlan[],
+    options: ParsedOptions,
   ): void {
     const mainDeploymentPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
     if (!fs.existsSync(mainDeploymentPath)) {
@@ -244,9 +251,29 @@ export class CommitmentSchemasDeployer {
     });
     deployment.schemas = schemas;
 
+    if (!options.finalizeCommunityTestimony) {
+      this.mergePreparedResolver(chainId, deployment);
+    }
+
     fs.writeFileSync(mainDeploymentPath, `${JSON.stringify(deployment, null, 2)}\n`);
     console.log(`\nMerged commitment schema UIDs into ${path.basename(mainDeploymentPath)}`);
     plans.forEach((plan) => console.log(`  ${plan.key}: ${plan.uid}`));
+  }
+
+  /** Promote the resolver addresses preparation deployed, from its side file. */
+  private mergePreparedResolver(chainId: string, deployment: Record<string, unknown>): void {
+    const preparedPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-commitment-schemas-prepared.json`);
+    if (!fs.existsSync(preparedPath)) return;
+
+    const prepared = JSON.parse(fs.readFileSync(preparedPath, "utf8")) as Record<string, unknown>;
+    PREPARATION_KEYS.forEach((key) => {
+      const value = prepared[key];
+      if (typeof value !== "string" || !value.startsWith("0x") || /^0x0+$/i.test(value)) {
+        throw new Error(`Preparation result is missing ${key}; refusing to record a partial deployment`);
+      }
+      deployment[key] = value;
+      console.log(`  ${key}: ${value}`);
+    });
   }
 
   private resolveResolver(key: string, deployment: Record<string, unknown>): string {
