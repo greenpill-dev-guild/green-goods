@@ -11,6 +11,7 @@ import { TestimonyResolver } from "../../src/resolvers/Testimony.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
 import { PoolingConfiguration } from "../../script/lib/PoolingConfiguration.sol";
 import { CommitmentSchemaRecovery } from "../../script/lib/CommitmentSchemaRecovery.sol";
+import { CommitmentSchemaLane } from "../../script/lib/CommitmentSchemaLane.sol";
 import { TestimonyResolverDeployment } from "../../script/lib/TestimonyResolverDeployment.sol";
 
 /// @title ArbitrumCommitmentPoolingForkTest
@@ -61,10 +62,10 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         provider = forkGardener;
         recipient = forkEvaluator;
 
-        _registerCommitmentSchemas();
+        _runPreparation();
         _deployAndWirePooling();
         _configureResolvers();
-        _finalizeCommunityTestimony();
+        _runFinalization();
         _openPool();
     }
 
@@ -114,6 +115,27 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
             "community testimony UID must match SchemaRegistry._getUID"
         );
         assertTrue(assessmentV3SchemaUID != assessmentSchemaUID, "v3 must be a fresh UID beside v2");
+    }
+
+    /// @notice The Solidity constants match the schema config the TypeScript planner reads.
+    /// @dev `DeployCommitmentSchemas` hardcodes both schema strings while `pooling-release.ts`
+    ///      generates them from `config/schemas.json`. Nothing else forces them to agree, and a
+    ///      config edit would silently give the planner one deterministic UID and the broadcast
+    ///      another — the resolver would then be pinned to a schema the tooling cannot find.
+    ///      `_generateSchemaString` reads the same config the planner does, so this is the parity
+    ///      check. The lane already runs on the generated strings; this pins the constants to them.
+    function testScriptSchemaConstantsMatchTheSharedConfig() public {
+        assertEq(
+            assessmentV3Schema,
+            "string title,string description,string assessmentConfigCID,uint8 domain,uint256 startDate,"
+            "uint256 endDate,string location,uint8 assessmentKind,uint256 cycleId,bytes32 baselineUID",
+            "assessment v3 config string drifted from DeployCommitmentSchemas.ASSESSMENT_V3_SCHEMA"
+        );
+        assertEq(
+            communityTestimonySchema,
+            "uint256 commitmentId,string title,string testimonyCID",
+            "community testimony config string drifted from DeployCommitmentSchemas.COMMUNITY_TESTIMONY_SCHEMA"
+        );
     }
 
     /// @notice v2 stays readable and configured after v3 is added to the same resolver proxy.
@@ -182,23 +204,21 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(proxy, baselineProxy, "proxy address moved with the ambient salt");
     }
 
+    /// @notice The addresses preparation actually deployed are the ones the derivation predicts.
+    /// @dev Observed from the other side now that `setUp` runs the real preparation mode: rather
+    ///      than deploying inside the test and checking its own output, this asserts the lane's
+    ///      deployment landed where an operator comparing against the runbook would expect. The
+    ///      `deployedSomething` assertion for a genuinely first run lives in `_runPreparation`.
     function testDeployTargetPredictsTheAddressesItDeploys() public {
         address owner = assessmentResolver.owner();
 
         (address predictedImpl, address predictedProxy) =
             TestimonyResolverDeployment.predictAddresses(_easAddress(), owner, _create2Factory());
-        assertEq(predictedImpl.code.length, 0, "the predicted implementation must be unoccupied first");
-        assertEq(predictedProxy.code.length, 0, "the predicted proxy must be unoccupied first");
 
-        TestimonyResolverDeployment.Deployment memory result =
-            TestimonyResolverDeployment.deployOrReuse(_easAddress(), owner, _create2Factory());
-
-        assertTrue(result.deployedSomething, "the first run must deploy");
-        assertEq(result.testimonyResolverImpl, predictedImpl, "implementation landed off its prediction");
-        assertEq(result.testimonyResolver, predictedProxy, "proxy landed off its prediction");
-        assertEq(
-            TestimonyResolver(payable(result.testimonyResolver)).owner(), owner, "proxy owner must be the sibling owner"
-        );
+        assertEq(address(testimonyResolver), predictedProxy, "preparation deployed off its prediction");
+        assertGt(predictedProxy.code.length, 0, "the predicted proxy must be occupied after preparation");
+        assertGt(predictedImpl.code.length, 0, "the predicted implementation must be occupied after preparation");
+        assertEq(testimonyResolver.owner(), owner, "proxy owner must be the sibling owner");
     }
 
     /// @notice A rerun after a lost artifact deploys nothing and returns the same addresses.
@@ -432,6 +452,53 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         return TestimonyResolverDeployment.deployOrReuse(eas, owner, factory);
     }
 
+    /// @notice Finalization refuses a module address with no code behind it.
+    /// @dev A guard with no negative test is a guard that can be deleted silently: removing the
+    ///      `code.length` check survived the whole suite, because the happy path always has a real
+    ///      module. An EOA or a typo'd address would otherwise be activated as the bridge.
+    function testFinalizationRefusesAModuleWithNoCode() public {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+        address notAContract = address(0xDEADDEAD);
+
+        vm.expectRevert(abi.encodeWithSelector(CommitmentSchemaLane.ModuleNotDeployed.selector, notAContract));
+        this.finalizeExternally(
+            CommitmentSchemaLane.FinalizationInputs({
+                schemaRegistry: schemaRegistry,
+                testimonyResolver: address(testimonyResolver),
+                module: notAContract,
+                communityTestimonySchema: communityTestimonySchema
+            })
+        );
+    }
+
+    /// @notice Preparation refuses when the sibling resolvers no longer share an owner.
+    /// @dev The derivation exists so one sender can run the whole lane. If the siblings have
+    ///      diverged, silently taking one of them would produce a resolver the configure step
+    ///      cannot govern — so divergence must be loud. Removing this check also survived the
+    ///      whole suite, since the fork stack's resolvers always agree.
+    function testPreparationRefusesDivergedSiblingOwners() public {
+        address assessmentOwner = assessmentResolver.owner();
+        workApprovalResolver.transferOwnership(address(0xBEEFBEEF));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaLane.ResolverOwnerMismatch.selector, assessmentOwner, address(0xBEEFBEEF)
+            )
+        );
+        this.resolverOwnerExternally(address(assessmentResolver), address(workApprovalResolver));
+    }
+
+    function finalizeExternally(CommitmentSchemaLane.FinalizationInputs memory inputs)
+        external
+        returns (CommitmentSchemaLane.FinalizationResult memory)
+    {
+        return CommitmentSchemaLane.finalize(inputs);
+    }
+
+    function resolverOwnerExternally(address assessment, address workApproval) external view returns (address) {
+        return CommitmentSchemaLane.resolverOwner(assessment, workApproval);
+    }
+
     /// @dev `vm.expectRevert` needs the revert one frame deeper than the cheatcode.
     function finalizableExternally(CommitmentSchemaRecovery.Observation memory observation)
         external
@@ -591,45 +658,64 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         return bytes(recorded).length == 0 ? communityTestimonySchema : recorded;
     }
 
-    /// @dev Mirrors `deploy.ts commitment-schemas` against the live Arbitrum SchemaRegistry.
-    function _registerCommitmentSchemas() private {
+    /// @dev Runs `commitment-schemas` PREPARATION through the same library the deploy script
+    ///      broadcasts — not a hand-rolled copy. The first review's headline objection was a
+    ///      rehearsal that never ran the deploy script; pinning and activating inline here would
+    ///      have reintroduced exactly that one level up.
+    function _runPreparation() private {
         (, address schemaRegistry) = _getEASForChain(block.chainid);
-
         assessmentV3Schema = _generateSchemaString("assessmentV3");
         communityTestimonySchema = _generateSchemaString("communityTestimony");
 
-        assessmentV3SchemaUID =
-            ISchemaRegistry(schemaRegistry).register(assessmentV3Schema, address(assessmentResolver), false);
-
-        testimonyResolver = TestimonyResolver(
-            payable(
-                address(
-                    new ERC1967Proxy(
-                        deployCode("Testimony.sol:TestimonyResolver", abi.encode(_easAddress())),
-                        abi.encodeWithSelector(TestimonyResolver.initialize.selector, address(this))
-                    )
-                )
-            )
+        CommitmentSchemaLane.PreparationResult memory result = CommitmentSchemaLane.prepare(
+            CommitmentSchemaLane.PreparationInputs({
+                schemaRegistry: schemaRegistry,
+                assessmentResolver: address(assessmentResolver),
+                workApprovalResolver: address(workApprovalResolver),
+                eas: _easAddress(),
+                create2Factory: _create2Factory(),
+                assessmentV3Schema: assessmentV3Schema,
+                communityTestimonySchema: communityTestimonySchema
+            })
         );
-        // PREPARATION pins the deterministic UID and deliberately does NOT register the record.
-        // Registration is permissionless, so the record is not ours to control; the pin is, and it
-        // makes the resolver provably inert while `commitmentModule` is zero.
-        communityTestimonySchemaUID =
-            keccak256(abi.encodePacked(communityTestimonySchema, address(testimonyResolver), false));
-        testimonyResolver.setSchemaUID(communityTestimonySchemaUID);
 
+        testimonyResolver = TestimonyResolver(payable(result.testimonyResolver));
+        assessmentV3SchemaUID = result.assessmentV3UID;
+        communityTestimonySchemaUID = result.communityTestimonyUID;
+
+        assertEq(
+            uint256(result.stateOnEntry),
+            uint256(CommitmentSchemaRecovery.State.Unprepared),
+            "a fresh chain enters preparation Unprepared"
+        );
+        assertTrue(result.deployedSomething, "preparation must deploy the resolver on a fresh chain");
         assertEq(testimonyResolver.commitmentModule(), address(0), "preparation must leave the resolver inert");
-        // Deployment leaves the v2 UID zero — exactly the live Arbitrum state — and every
-        // assessment setter belongs to `_configureResolvers`, so the step boundary is real.
+        // Deployment leaves the v2 UID zero — exactly the live Arbitrum state — and the assessment
+        // setters belong to `_configureResolvers`, so the step boundary is real.
         assertEq(assessmentResolver.schemaUID(), bytes32(0), "deployment leaves the v2 UID unpinned");
     }
 
-    /// @dev Mirrors `deploy.ts commitment-schemas --finalize-community-testimony`: register the
-    ///      exact record, then activate the resolver against the module as the last action.
-    function _finalizeCommunityTestimony() private {
+    /// @dev Runs `commitment-schemas --finalize-community-testimony` through the same library the
+    ///      deploy script broadcasts.
+    function _runFinalization() private {
         (, address schemaRegistry) = _getEASForChain(block.chainid);
-        ISchemaRegistry(schemaRegistry).register(communityTestimonySchema, address(testimonyResolver), false);
-        testimonyResolver.setCommitmentModule(address(pooling));
+
+        CommitmentSchemaLane.FinalizationResult memory result = CommitmentSchemaLane.finalize(
+            CommitmentSchemaLane.FinalizationInputs({
+                schemaRegistry: schemaRegistry,
+                testimonyResolver: address(testimonyResolver),
+                module: address(pooling),
+                communityTestimonySchema: communityTestimonySchema
+            })
+        );
+
+        assertEq(
+            uint256(result.stateOnEntry),
+            uint256(CommitmentSchemaRecovery.State.Prepared),
+            "finalization runs from the prepared state"
+        );
+        assertTrue(result.registeredRecord, "finalization registers the record");
+        assertTrue(result.activated, "finalization activates the resolver");
     }
 
     /// @dev Mirrors `deploy.ts pooling-configure` by calling the library that target broadcasts,

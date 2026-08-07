@@ -8,7 +8,7 @@ import { ISchemaRegistry } from "@eas/ISchemaRegistry.sol";
 import { ISchemaResolver } from "@eas/resolver/ISchemaResolver.sol";
 import { SchemaRecord } from "@eas/ISchemaRegistry.sol";
 
-import { CommitmentSchemaRecovery } from "./lib/CommitmentSchemaRecovery.sol";
+import { CommitmentSchemaLane } from "./lib/CommitmentSchemaLane.sol";
 import { TestimonyResolverDeployment } from "./lib/TestimonyResolverDeployment.sol";
 
 interface ITestimonyResolverLifecycle {
@@ -58,173 +58,76 @@ contract DeployCommitmentSchemas is DeployHelper {
     ///      registers. Activation is finalization's job, after the record has been proven exact.
     function run() public {
         string memory json = _readDeployment();
-        ISchemaRegistry registry = _schemaRegistry(json);
-        address assessmentResolver = _requireAddress(json, ".assessmentResolver", "assessmentResolver");
-        address eas = _requireAddress(json, ".eas.address", "eas.address");
-        address owner = _resolverOwner(json, assessmentResolver);
-        (, address factory,) = getDeploymentDefaults();
+        CommitmentSchemaLane.PreparationInputs memory inputs = CommitmentSchemaLane.PreparationInputs({
+            schemaRegistry: _schemaRegistry(json),
+            assessmentResolver: _requireAddress(json, ".assessmentResolver", "assessmentResolver"),
+            workApprovalResolver: _requireAddress(json, ".workApprovalResolver", "workApprovalResolver"),
+            eas: _requireAddress(json, ".eas.address", "eas.address"),
+            create2Factory: _create2Factory(),
+            assessmentV3Schema: ASSESSMENT_V3_SCHEMA,
+            communityTestimonySchema: COMMUNITY_TESTIMONY_SCHEMA
+        });
 
-        // §6.4.4: preparation deploys/reconciles the resolver itself. Predicted before anything is
-        // sent so an operator can compare against the runbook.
-        (address predictedImpl, address predictedProxy) = TestimonyResolverDeployment.predictAddresses(eas, owner, factory);
+        // Predicted before anything is sent so an operator can compare against the runbook.
+        address owner = CommitmentSchemaLane.resolverOwner(inputs.assessmentResolver, inputs.workApprovalResolver);
+        (address predictedImpl, address predictedProxy) =
+            TestimonyResolverDeployment.predictAddresses(inputs.eas, owner, inputs.create2Factory);
         console.log("TestimonyResolver predicted implementation:", predictedImpl);
         console.log("TestimonyResolver predicted proxy:", predictedProxy);
         console.log("TestimonyResolver owner (from sibling resolvers):", owner);
 
-        address testimonyResolver = predictedProxy;
-        bytes32 expectedTestimonyUID = keccak256(abi.encodePacked(COMMUNITY_TESTIMONY_SCHEMA, testimonyResolver, REVOCABLE));
-
         vm.startBroadcast();
-        TestimonyResolverDeployment.Deployment memory resolver =
-            TestimonyResolverDeployment.deployOrReuse(eas, owner, factory);
-        if (!resolver.deployedSomething) {
-            console.log("Resolver already at both predicted addresses (recovery rerun); nothing deployed");
-        }
-
-        // Classified only now: the resolver has to exist before its state can be read, and a
-        // fresh deployment is trivially Unprepared.
-        CommitmentSchemaRecovery.State state = CommitmentSchemaRecovery.assertPreparable(
-            _observe(registry, testimonyResolver, expectedTestimonyUID, address(0))
-        );
-        console.log("Community Testimony recovery state on entry:", uint256(state));
-
-        bytes32 assessmentV3UID = _registerOrReconcile(registry, ASSESSMENT_V3_SCHEMA, assessmentResolver);
-
-        // Read-before-set: zero pins the expected UID, the exact value skips the transaction, and
-        // any other non-zero value already failed closed in assertPreparable above.
-        if (ITestimonyResolverLifecycle(testimonyResolver).schemaUID() == bytes32(0)) {
-            ITestimonyResolverLifecycle(testimonyResolver).setSchemaUID(expectedTestimonyUID);
-            console.log("Pinned Community Testimony UID (resolver still inert):");
-            console.logBytes32(expectedTestimonyUID);
-        }
+        CommitmentSchemaLane.PreparationResult memory result = CommitmentSchemaLane.prepare(inputs);
         vm.stopBroadcast();
 
-        require(
-            ITestimonyResolverLifecycle(testimonyResolver).commitmentModule() == address(0),
-            "preparation must leave the testimony resolver inactive"
-        );
-        _savePreparation(resolver, assessmentV3UID, expectedTestimonyUID);
+        console.log("Community Testimony recovery state on entry:", uint256(result.stateOnEntry));
+        if (!result.deployedSomething) {
+            console.log("Resolver already at both predicted addresses (recovery rerun); nothing deployed");
+        }
+        console.log("Pinned Community Testimony UID (resolver still inert):");
+        console.logBytes32(result.communityTestimonyUID);
+
+        _savePreparation(result);
     }
 
     /// @notice FINALIZATION. Registers the exact Community Testimony record, then activates the
     ///         resolver against the module — the last action in the lane.
     /// @dev The module is read from the deployment artifact only; there is deliberately no
     ///      caller-supplied override, because a wrong module here is what an attacker would want.
-    ///      Accepts exactly the three ordered recovery states and re-runs as a no-op once finalized.
     function finalizeCommunityTestimony() public {
         string memory json = _readDeployment();
-        ISchemaRegistry registry = _schemaRegistry(json);
-        address testimonyResolver = _requireAddress(json, ".testimonyResolver", "testimonyResolver");
-        address module = _requireAddress(json, ".commitmentPoolingModule", "commitmentPoolingModule");
-        _assertModuleBoundary(testimonyResolver, module);
-
-        bytes32 expectedUID = keccak256(abi.encodePacked(COMMUNITY_TESTIMONY_SCHEMA, testimonyResolver, REVOCABLE));
-        CommitmentSchemaRecovery.State state =
-            CommitmentSchemaRecovery.assertFinalizable(_observe(registry, testimonyResolver, expectedUID, module));
-        console.log("Community Testimony recovery state on entry:", uint256(state));
-
-        // Belt and braces: assertFinalizable already rejects any other pin, but this is the value
-        // the record and the activation both commit to.
-        bytes32 pinned = ITestimonyResolverLifecycle(testimonyResolver).schemaUID();
-        if (pinned != expectedUID) revert PinnedUIDMismatch(pinned, expectedUID);
+        CommitmentSchemaLane.FinalizationInputs memory inputs = CommitmentSchemaLane.FinalizationInputs({
+            schemaRegistry: _schemaRegistry(json),
+            testimonyResolver: _requireAddress(json, ".testimonyResolver", "testimonyResolver"),
+            module: _requireAddress(json, ".commitmentPoolingModule", "commitmentPoolingModule"),
+            communityTestimonySchema: COMMUNITY_TESTIMONY_SCHEMA
+        });
 
         vm.startBroadcast();
-        if (CommitmentSchemaRecovery.needsRecord(state)) {
-            _registerOrReconcile(registry, COMMUNITY_TESTIMONY_SCHEMA, testimonyResolver);
-        }
-        if (CommitmentSchemaRecovery.needsActivation(state)) {
-            ITestimonyResolverLifecycle(testimonyResolver).setCommitmentModule(module);
-            console.log("Community Testimony resolver ACTIVATED against module:", module);
+        CommitmentSchemaLane.FinalizationResult memory result = CommitmentSchemaLane.finalize(inputs);
+        vm.stopBroadcast();
+
+        console.log("Community Testimony recovery state on entry:", uint256(result.stateOnEntry));
+        if (result.activated) {
+            console.log("Community Testimony resolver ACTIVATED against module:", inputs.module);
         } else {
             console.log("Already finalized; no transaction sent");
         }
-        vm.stopBroadcast();
 
-        require(
-            ITestimonyResolverLifecycle(testimonyResolver).commitmentModule() == module,
-            "finalization did not reach the activated state"
-        );
-        _saveFinalization(expectedUID);
+        _saveFinalization(result.communityTestimonyUID);
     }
 
-    /// @dev Owner comes from the resolvers already on chain, not the artifact's `guardian`. On
-    ///      Arbitrum One those diverge — both live resolvers are owned by the deployer while
-    ///      `guardian` is a different address — and initializing under `guardian` would split the
-    ///      lane across two signers. Deriving from a sibling makes "one owner across every
-    ///      resolver" true by construction; the mismatch check makes divergence loud.
-    function _resolverOwner(string memory json, address assessmentResolver) private view returns (address owner) {
-        address workApprovalResolver = _requireAddress(json, ".workApprovalResolver", "workApprovalResolver");
-
-        owner = ITestimonyResolverLifecycle(assessmentResolver).owner();
-        address workApprovalOwner = ITestimonyResolverLifecycle(workApprovalResolver).owner();
-        if (owner != workApprovalOwner) revert ResolverOwnerMismatch(owner, workApprovalOwner);
-        if (owner == address(0)) revert MissingResolver("assessmentResolver.owner()");
+    /// @dev The canonical deterministic-deployment factory from the shared network config. The
+    ///      SALT is deliberately not taken from there (see TestimonyResolverDeployment), but the
+    ///      factory address is chain infrastructure, not a lane identity.
+    function _create2Factory() private view returns (address factory) {
+        (, factory,) = getDeploymentDefaults();
     }
 
-    /// @dev The module must exist, be a real contract, and share the resolver's owner. A module
-    ///      whose owner differs is one this operator cannot govern, which is not a bridge worth
-    ///      activating.
-    function _assertModuleBoundary(address testimonyResolver, address module) private view {
-        if (module.code.length == 0) revert ModuleNotDeployed(module);
-
-        address resolverOwner = ITestimonyResolverLifecycle(testimonyResolver).owner();
-        address moduleOwner = IModuleBoundary(module).owner();
-        if (resolverOwner != moduleOwner) revert ModuleOwnerMismatch(resolverOwner, moduleOwner);
-    }
-
-    function _observe(
-        ISchemaRegistry registry,
-        address testimonyResolver,
-        bytes32 expectedUID,
-        address expectedModule
-    )
-        private
-        view
-        returns (CommitmentSchemaRecovery.Observation memory observation)
-    {
-        SchemaRecord memory record = registry.getSchema(expectedUID);
-
-        observation.pinnedUID = ITestimonyResolverLifecycle(testimonyResolver).schemaUID();
-        observation.expectedUID = expectedUID;
-        observation.recordExists = record.uid != bytes32(0);
-        // The UID commits to (schema, resolver, revocable), so a record found under it always
-        // matches by construction. Compared anyway: this is the value the activation trusts.
-        observation.recordMatches = record.uid == expectedUID && address(record.resolver) == testimonyResolver
-            && record.revocable == REVOCABLE && keccak256(bytes(record.schema)) == keccak256(bytes(COMMUNITY_TESTIMONY_SCHEMA));
-        observation.module = ITestimonyResolverLifecycle(testimonyResolver).commitmentModule();
-        observation.expectedModule = expectedModule;
-    }
-
-    function _schemaRegistry(string memory json) private pure returns (ISchemaRegistry) {
+    function _schemaRegistry(string memory json) private pure returns (address) {
         address schemaRegistry = abi.decode(vm.parseJson(json, ".eas.schemaRegistry"), (address));
         if (schemaRegistry == address(0)) revert MissingSchemaRegistry();
-        return ISchemaRegistry(schemaRegistry);
-    }
-
-    function _registerOrReconcile(
-        ISchemaRegistry registry,
-        string memory schema,
-        address resolver
-    )
-        private
-        returns (bytes32 uid)
-    {
-        uid = keccak256(abi.encodePacked(schema, resolver, REVOCABLE));
-        SchemaRecord memory existing = registry.getSchema(uid);
-
-        if (existing.uid == uid) {
-            // Same UID means the same (schema, resolver, revocable) triple by construction, so a
-            // populated record here is always this exact schema already registered.
-            console.log("Reconciled existing schema:");
-            console.logBytes32(uid);
-            return uid;
-        }
-        if (existing.uid != bytes32(0)) revert SchemaRecordConflict(uid);
-
-        bytes32 registered = registry.register(schema, ISchemaResolver(resolver), REVOCABLE);
-        if (registered != uid) revert SchemaRecordConflict(registered);
-        console.log("Registered schema:");
-        console.logBytes32(uid);
+        return schemaRegistry;
     }
 
     function _readDeployment() private view returns (string memory) {
@@ -251,19 +154,13 @@ contract DeployCommitmentSchemas is DeployHelper {
     ///      canonical artifact must not carry the Community Testimony schema keys until the record
     ///      is reconciled and the resolver activated, so the CLI promotes them from the
     ///      finalization side file, never this one.
-    function _savePreparation(
-        TestimonyResolverDeployment.Deployment memory resolver,
-        bytes32 assessmentV3UID,
-        bytes32 predictedTestimonyUID
-    )
-        private
-    {
+    function _savePreparation(CommitmentSchemaLane.PreparationResult memory result) private {
         string memory output = "commitmentSchemasPreparation";
-        vm.serializeAddress(output, "testimonyResolver", resolver.testimonyResolver);
-        vm.serializeAddress(output, "testimonyResolverImpl", resolver.testimonyResolverImpl);
-        vm.serializeBytes32(output, "assessmentV3SchemaUID", assessmentV3UID);
+        vm.serializeAddress(output, "testimonyResolver", result.testimonyResolver);
+        vm.serializeAddress(output, "testimonyResolverImpl", result.testimonyResolverImpl);
+        vm.serializeBytes32(output, "assessmentV3SchemaUID", result.assessmentV3UID);
         string memory serialized =
-            vm.serializeBytes32(output, "predictedCommunityTestimonySchemaUID", predictedTestimonyUID);
+            vm.serializeBytes32(output, "predictedCommunityTestimonySchemaUID", result.communityTestimonyUID);
 
         string memory outputPath = string.concat(
             vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-commitment-schemas-prepared.json"
