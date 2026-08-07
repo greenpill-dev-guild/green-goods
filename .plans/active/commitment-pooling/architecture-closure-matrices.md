@@ -21,7 +21,10 @@ control, persistence label, or lifecycle transition must add a row here and pass
 - **Natural-key recovery** means a retry first reads the authoritative target and treats an exact
   already-applied result as success; it never blindly rebroadcasts.
 - **Creation-key recovery** means a client operation key and payload hash are persisted before the
-  first send and the contract returns the original identity on exact replay.
+  first send and the contract returns the original identity on exact replay. The commitment
+  preimage is frozen in contract-spec §6.1 "Creation payload hash (frozen preimage)" and is
+  **emitted** in `CommitmentCreated`, so all three lanes — contract, client, indexer — derive the
+  same value and no indexed field depends on a prohibited RPC backfill.
 - **No automatic retry** means the person must authorize a new wallet action.
 
 ---
@@ -44,7 +47,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | EO-07 | `CommitmentSeriesCreated` | Series immutable identity | Fill the `creationSeen = false` placeholder once and set the flag. Lifecycle and metadata cursors are independent and nullable; creation initializes only the field whose cursor is absent. | metadata or lifecycle before creation |
 | EO-08 | `CommitmentSeriesMetadataUpdated` | Series metadata | Independent latest-wins metadata cursor. | two metadata updates in both orders |
 | EO-09 | `CommitmentSeriesRested`, `CommitmentSeriesResumed`, `CommitmentSeriesRetired` | Series lifecycle | Independent latest-wins lifecycle cursor. Retired remains terminal on-chain. | Rest/Resume/Retire in both orders |
-| EO-10 | `CommitmentCreated` | Commitment immutable identity, requirements, Need/counter relationships, base pool/cycle/series counts | Create once, fill placeholders, apply the base Offered/Requested projection once, then atomically drain typed pending projections in position order. Set-like relationship arrays are unique and deterministically sorted. | every dependent event before creation; duplicate creation |
+| EO-10 | `CommitmentCreated` | Commitment immutable identity, emitted `creationRequestKey`/`creationPayloadHash`, requirements, Need/counter relationships, base pool/cycle/series counts | Create once, fill placeholders, apply the base Offered/Requested projection once, then atomically drain typed pending projections in position order. Set-like relationship arrays are unique and deterministically sorted. Both creation-recovery fields are assigned verbatim from the event; no handler recomputes or RPC-reads the hash. | every dependent event before creation; duplicate creation |
 | EO-11 | `RewardDeclared` | Declared reward tuple | Independent latest-wins reward cursor. Creation may not restore an older initial tuple. | two declarations in both orders; declaration before creation |
 | EO-12 | `ValueDeclared` | Declared value/basis tuple | Independent latest-wins value cursor. Zero/empty values are data, not absence. | two updates in both orders; update before creation |
 | EO-13 | `ConfirmerRuleSet` | Complete confirmer rule tuple | Independent latest-wins rule cursor. The list, threshold, and fallback flag move atomically. | opposing rules in both orders; update before creation |
@@ -226,7 +229,7 @@ unkeyed `createCommitment`.
 | LC-01 | Pool | every non-terminal commitment in the pool, including cycle-less Offered/Requested and every cycle-bound live state | creation/claim/readiness/ordinary confirmation require the documented pool state | `closePool` requires `Pool.liveCommitmentCount == 0` and no Open/Seeded/Reconciled cycle awaiting its own terminal act; Composted follows Closed | browse, evidence/linkage where still legal, cancel, expire, dispute, and resolution remain available; the admin lists every blocker |
 | LC-02 | Cycle | every non-terminal commitment with this non-zero cycle ID | Seed while Ready/Open; Open from Seeded with valid snapshots and Season cardinality | close/cancel require `Cycle.liveCommitmentCount == 0`; compost requires Reconciled | safe-wind-down actions do not resume a Paused pool |
 | LC-03 | Series | Active/Resting series plus all linked instances, whose lifecycles remain independent | create in Ready/Open; add places only Active + pool Open | Retired blocks new places but never terminates or hides existing instances | existing Offered/Accepted instances remain discoverable/actionable until their own terminal state |
-| LC-04 | Commitment | Offered/Requested/Accepted/ReadyForConfirmation/Disputed are live; derived Active/EvidenceSubmitted/PartiallyApproved map to Accepted | complete creation/eligibility/capacity checks before mutation | Fulfilled/Cancelled/Expired are terminal; dispute restoration reverses/reapplies live counts exactly once | cancellation/expiry/dispute paths remain; a cycle-less due-date-less commitment requires explicit cancellation before pool closure |
+| LC-04 | Commitment | Offered/Requested/Accepted/ReadyForConfirmation/Disputed are live; derived Active/EvidenceSubmitted/PartiallyApproved map to Accepted | complete creation/eligibility/capacity checks before mutation | Fulfilled and Cancelled are unconditionally terminal — no outgoing transition exists. **Expired is closed for capacity and live-count accounting but is dispute-reopenable**: `raiseDispute` is legal from Expired, re-increments the live counts, and `resolveDispute` then returns to Expired or resolves Cancelled, never Fulfilled. A generic "terminal state" guard must not be applied to Expired, or it will reject a valid dispute, strand the live count, and hide the wind-down action. Dispute restoration reverses/reapplies live counts exactly once | cancellation/expiry/dispute paths remain; a cycle-less due-date-less commitment requires explicit cancellation before pool closure |
 | LC-05 | Claim request | `PENDING` while the parent remains claimable | one active request per canonical claimant and exact stored terms | Accepted/Declined/Superseded are terminal attempts; a fresh post-decline request is a later event | acceptance/cancel/expiry supersedes every current or late-arriving older request |
 | LC-06 | Capacity | Offered Offers and Accepted Offers/Requests hold full class units and one lead-provider slot | cap checked only on a new reservation | Fulfill converts; cancel/expire release; no second acceptance commit and no double release | pool/cycle/series state changes never silently release, recreate, or hide capacity |
 | LC-07 | Contributors | current cursor-correct active roster before freeze | eligibility/policy/cap/credit gates precede mutation | roster and credit ledger freeze before Ready/Fulfilled; terminal history waits for exact frozen rows | safe wind-down may finish evidence/work/dispute as allowed; no add/remove/assignment after freeze |
@@ -248,6 +251,29 @@ unreachable.
 
 ---
 
+## Future full-pool compatibility gate
+
+This gate freezes adaptability without adding future voucher behavior to Matrices A–D or their
+current counts:
+
+| Boundary | Initial implementation invariant | Future layer obligation |
+|---|---|---|
+| Promise instance | registry `classId == commitmentId`; immutable, non-transferable authority | consume eligible facts without transferring or rewriting the promise |
+| Ongoing Offer | `commitmentSeriesId` groups pool-scoped instances and Story | reference as issuer context only; never turn the series into a token |
+| Voucher instrument | absent from the initial ABI/storage | own a separate `voucherClassId`, version, issuer, backing mode, supply cap, and redemption terms |
+| Adapter seam | Pool reserves one zero `settlementAdapter` address and disabled flag | resolve a versioned adapter/router; never silently bind one forever-fixed token |
+| First backing mode | fulfilled balances are authoritative; committed balances are not mint authority | prevent double consumption of fulfilled backing |
+| Capacity backing | unavailable | remain disabled until consent, issuance, exposure, default, repair, legal, audit, and liquidity rules close |
+| G$ | separate support/settlement command and acknowledgment rail | never call support payout “voucher redemption” without explicit voucher terms |
+| Expansion order | no venue or federation | prove one bounded pool's seed, exchange in/out, redemption, and repair before federation |
+
+Any future voucher implementation must create its own complete event, entity, retry, persistence,
+lifecycle, custody, redemption, and wind-down matrices. It may not alter the current **54 events**,
+**86 module functions**, **56 executable calls**, or other Matrix A–D counts until a separately
+reviewed implementation amendment deliberately promotes the new surface.
+
+---
+
 ## Closure gate
 
 The architecture is closed only when:
@@ -264,4 +290,7 @@ The architecture is closed only when:
 6. `bun .plans/active/commitment-pooling/architecture-closure.validate.ts` passes;
 7. the normal prototype, visual, ontology, format, and repo verification gates pass; and
 8. one final adversarial PR review reports no unresolved blocker or major finding against these
-   matrices.
+   matrices; and
+9. the future full-pool compatibility gate above remains explicit in the contract, series,
+   exchange, evidence, diagram, Plan Hub, and Linear sources without adding voucher code to the
+   initial implementation lane.

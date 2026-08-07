@@ -482,6 +482,26 @@ their original accountable lead and contributors.
 No series, saved Offer metadata, or history is saleable, transferable as a token, or usable as
 collateral.
 
+### 8.1 Future voucher compatibility boundary
+
+An ongoing Offer and a future settlement voucher remain different objects:
+
+- `commitmentSeriesId` is the pool-scoped social and protocol identity of one Offer used over
+  time. It groups immutable instances and their Story.
+- A later `voucherClassId` is an adapter-owned issuer instrument. It may reference one series as
+  issuer context, but it never becomes the series and never moves its holder, history, or
+  succession authority.
+- A displayed available place cannot simultaneously back a voucher merely because provider
+  capacity is reserved. The first activatable voucher mode consumes exact fulfilled-instance
+  backing only.
+- Any later capacity-backed mode needs separate adapter accounting so one place cannot be promised,
+  displayed, claimed, and issued against more than its authorized amount.
+- No voucher holder gains the right to create a new place, accept a claim, confirm fulfillment,
+  change contributors, inherit recognition, or take over the Story.
+
+The complete future boundary, lifecycle, single-pool proof, and federation gates live in
+`exchange-architecture-brief.md`. They add no initial `CommitmentSeries` ABI or storage.
+
 ## 9. Trust, burden, and evidence
 
 - “Kept N times” means N Fulfilled Commitment instances. It does not mean verified impact N times.
@@ -501,19 +521,23 @@ collateral.
 - this specification and companion plan/spec amendments;
 - contract, indexer, state/API, acceptance, ontology, and handoff boundaries;
 - Linear issue and dependency reconciliation;
-- canonical Google Doc prose and final image placement;
+- Mermaid Architecture and Reference material generated from `diagrams.md`;
 - final cross-source review.
 
-### Claude Code-owned canonical artifacts
+### Claude Code-owned narrative and visual artifacts
 
 - lo-fi wireframes and canonical hi-fi screens;
 - prototype journeys, fixtures, states, and coverage;
-- visual-gallery story assets and architecture imagery;
+- visual-gallery hand-drawn Story assets and their SVG/2x PNG pairs;
+- canonical Google Doc prose and final image placement, preserving the document's current voice,
+  headings, cadence, built/planned distinctions, and citation structure;
 - rendered light/dark/mobile verification;
 - publication of the canonical prototype and gallery artifacts.
 
-Claude implements the locked model. Artifact work may not redefine series authority, capacity
-semantics, persistence, visibility, or succession scope.
+This living ownership split supersedes the older wording in plan Decision Log #49 and register
+#84 without rewriting those dated records. Claude implements the locked narrative/artifact model.
+Artifact and Google Doc work may not redefine promise/series/voucher identity, capacity semantics,
+persistence, visibility, succession, backing, redemption, or federation scope.
 
 The private Fable exploration must be corrected before its concepts enter the canonical artifacts:
 
@@ -530,10 +554,12 @@ The private Fable exploration must be corrected before its concepts enter the ca
 | Horizon | Scope |
 |---|---|
 | **Architecture amendment before PRD-721 continues** | module-owned series, validated `commitmentSeriesId`, Offer capacity reservation, series events, indexer entities, state/API contract, acceptance and handoff updates |
+| **Full-pooling compatibility freeze before PRD-721 dispatch** | keep `commitmentId`/registry class, `commitmentSeriesId`, and future `voucherClassId` separate; reserve a versioned adapter/router; activate fulfilled backing before any capacity backing; keep G$ support distinct from redemption; add no initial ABI/storage |
 | **Canonical artifact pass** | Offer once/over time choice, saved Offer metadata, available instance, Story, cycle roll-up, rest/resume/retire, later-succession preview |
 | **Backend implementation** | contracts → indexer → shared state/API, each under existing RED/GREEN and release gates |
 | **Runtime app implementation** | signed saved-Offer persistence, client/admin/editorial ongoing-Offer surfaces after backend and prototype gates |
 | **Follow-on series slice** | co-holder, apprenticeship relationship, two-step handover, fork lineage, community-held |
+| **Follow-on full-pool stages** | field evidence → fulfilled-backed voucher and redemption → one bounded pool with seed/exchange/redeem/repair → separately gated capacity backing and/or federation |
 
 ## 12. Explicitly unchanged or excluded
 
@@ -544,8 +570,9 @@ The private Fable exploration must be corrected before its concepts enter the ca
 - Exact-label unit accounting with no cross-label arithmetic
 - Settlement and CreditRegistry custody boundaries
 - Garden-to-garden routing
-- Transferable vouchers or labor obligations
-- Relative-pricing enforcement
+- Transferable-voucher **implementation or activation**; the compatibility architecture is
+  specified in `exchange-architecture-brief.md`
+- Relative-pricing enforcement implementation
 - Cross-pool reputation
 - Public personal histories
 - Scores, ranks, leaderboards, or reliability-adjusted protocol permissions

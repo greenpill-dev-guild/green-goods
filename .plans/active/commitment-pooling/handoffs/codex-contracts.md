@@ -48,6 +48,13 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   `poolId` so its marker is self-describing without an RPC read, and the ordinary lifecycles never
   couple after acceptance. The architecture brief does not authorize the
   transferable/multilateral layer.
+- [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796), Decision Log
+  #51–#53/register #86–#88, and `exchange-architecture-brief.md` freeze the later
+  compatibility boundary without expanding this lane. Keep initial registry
+  `classId == commitmentId`; keep `commitmentSeriesId` as the pool-scoped Offer-over-time
+  identity; add no `voucherClassId`, voucher event, adapter router, backing receipt, issuance,
+  redemption, venue, custody, capacity-backed, or federation surface. The existing reserved
+  Pool fields remain disabled. G$ support remains separate from voucher redemption.
 - settlement-spec.md, which holds the canonical `validateRecognitionSnapshot` hash preimage this
   lane must implement: `recognitionSnapshotHash = keccak256(abi.encode(block.chainid,
   commitmentId, recognitionEntries))` (`settlement-spec.md` §3.1.3, mirrored into contract-spec
@@ -348,13 +355,29 @@ existing infrastructure.
 - bun script/upgrade.ts commitment-pooling --network arbitrum-sepolia --dry-run --pure-simulation
 - bun script/upgrade.ts commitment-pooling --network arbitrum-sepolia --tx-plan --sender <verified-421614-pooling-upgrade-owner>
 - bun script/upgrade.ts assessment-resolver --network arbitrum --dry-run --pure-simulation
-- bun script/upgrade.ts assessment-resolver --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+- bun script/upgrade.ts assessment-resolver --network arbitrum --tx-plan --sender <verified-arbitrum-assessment-owner>
 - bun script/deploy.ts commitment-schemas --network arbitrum --dry-run
 - bun script/deploy.ts commitment-pooling --network arbitrum --dry-run
 - bun script/deploy.ts commitment-schemas --network arbitrum --finalize-community-testimony --dry-run
 - bun script/upgrade.ts commitment-pooling --network arbitrum --dry-run --pure-simulation
-- bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+- bun script/upgrade.ts commitment-pooling --network arbitrum --tx-plan --sender <verified-arbitrum-pooling-upgrade-owner>
 - bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --dry-run
+
+**The two Arbitrum One `--tx-plan` lines are future-only and must not be run yet.** Two independent
+reasons:
+
+1. `contract-spec.md` §6.1's ownership gate. The live proxies currently report deployer EOA
+   `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`, but that address is valid **only** for
+   the isolated, human-authorized ownership-transfer plan. Every other mainnet plan resolves its
+   sender from the verified protocol 3-of-5 Safe.
+2. `upgrade.ts` cannot yet enforce that. Today it accepts `--sender` optionally, silently falls back
+   to `process.env.SENDER_ADDRESS`, persists `sender: … ?? null` (`script/upgrade.ts:424`), and
+   never reads `owner()`. An unsubstituted placeholder therefore does not fail closed — it persists
+   whatever the environment happens to hold, which is exactly the EOA this gate excludes.
+
+Both lines unblock only after this lane ships the sender preflight named in Outputs: `--sender`
+mandatory, validated against the live proxy `owner()`, and rejecting missing, placeholder, and
+mismatched values **before** plan persistence.
 
 For a live chain, the commands execute in the listed dependency order, with a separately
 authorized receipt, post-action verifier, and persisted artifact between stages:
@@ -402,14 +425,19 @@ This is the ordered first-PR boundary, not a reason to postpone implementation:
 
 ## Out of scope
 
-- SettlementModule implementation, Celo execution, bridged G$, transferable vouchers, CreditRegistry, raw Celo indexing, Sarafu integration, UI, and any broadcast.
+- SettlementModule implementation, Celo execution, bridged G$, transferable-voucher implementation
+  or adapter activation, backing receipts, issuance, seed inventory, redemption, venue custody,
+  capacity-backed issuance, federation, CreditRegistry, raw Celo indexing, Sarafu integration, UI,
+  and any broadcast.
 - Editing existing production schema definitions or using bulk --update-schemas.
 
 ## Unblock evidence
 
-Current architecture/specification evidence is complete: the corrected handoff and exact
-interface/event/storage tables are present, contributor-share and protocol-funding decisions are
-closed, and the architecture fine-comb is reconciled. Do not re-open those historical items.
+Current initial-deploy architecture/specification evidence is complete: the corrected handoff and
+exact interface/event/storage tables are present, contributor-share and protocol-funding decisions
+are closed, and the architecture fine-comb is reconciled. The full-pool compatibility freeze adds
+no initial ABI/storage. PRD-796 must be accepted before this lane is deliberately dispatched. Do
+not turn its future stages into PRD-721 deliverables.
 
 Before **starting the first contracts PR**:
 
@@ -484,10 +512,20 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   O(1) `uncountedLinkedWorkCount`: link increments, Accepted-and-unfrozen unlink decrements, and
   the first countable approval decrements exactly once.
 - Every `createCommitment` requires a non-zero creator-scoped `creationRequestKey`, stores the
-  full normalized payload hash and resulting ID, returns the original ID without mutation/event
+  resulting ID and the **frozen** `creationPayloadHash` preimage defined in contract-spec §6.1
+  "Creation payload hash (frozen preimage)", returns the original ID without mutation/event
   on exact replay, and rejects conflicting key reuse. Pool `liveCommitmentCount` increments once
   per successful creation and follows the same reversible live/terminal transition helper.
   `closePool` requires that count and `nonTerminalCycleCount` to both be zero.
+- **`CommitmentCreated` emits `creationPayloadHash`** (amendment 2026-08-05). This is not optional
+  telemetry: the indexer's `Commitment.creationPayloadHash` has no other legal source, because
+  handler RPC backfill is prohibited. Implement the preimage byte-for-byte as specified —
+  every `CreateCommitmentParams` member once in declaration order, dynamic members pre-hashed,
+  `creator`/`creationRequestKey` excluded, `domainTags` hashed as submitted rather than derived,
+  and the effective (empty-list-forced-to-1) confirmation threshold. Add a unit test asserting the
+  emitted hash equals the value later returned by `getCommitment`, and a second asserting that a
+  same-key resend of a byte-identical payload reverts nothing and emits nothing while a
+  single-field change reverts `CommitmentCreationRequestConflict`.
 - `linkWork(commitmentId, workUID, requirementIndex, operationKey)` binds a repeated action to one exact row and
   stores index-plus-one. `WorkApprovalResolver` forwards both approved and rejected decisions.
   The non-zero caller-scoped operation key stores the exact link payload hash; replay is a no-op

@@ -2,7 +2,7 @@
 // the sibling diagrams.md + wireframes.md + hand-drawn SVGs. Four audience tabs
 // (decision 2026-07-18):
 //   1) The story    — the 7-step loop + roles + journeys + money maps (shareable narrative)
-//   2) Architecture — D1–D27 with their "How to read this" panels (Mermaid renders
+//   2) Architecture — D1–D29 with their "How to read this" panels (Mermaid renders
 //                     locally through the locked embedded runtime and natively on
 //                     the Claude Artifact host)
 //   3) Screens      — cross-surface flow map + 37 low-fi ASCII screen headings:
@@ -10,7 +10,7 @@
 //                     reconciled to the hi-fi registry (2026-07-27). The hi-fi screen
 //                     set is a different artifact entirely — see
 //                     prototypes-artifact.build.ts.
-//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 33-asset
+//   4) Reference    — added 2026-07-27: the diagrams.md preamble, the 36-asset
 //                     coverage matrix, the sensitive-action permission table,
 //                     the ship-time appendix, and the audited Open-questions
 //                     findings panel, so the diagrams lead their own tab.
@@ -167,13 +167,58 @@ function arrowKey(head: string, source: string): string {
   return `<div class="dia-key arrow-key" role="note" aria-label="Arrow meaning key for this diagram">${items}</div>`;
 }
 
+function colourKey(chips: string[]): string {
+  return chips.length
+    ? `<div class="dia-key" role="note" aria-label="Colour and status key for this diagram">${chips.join("")}</div>`
+    : "";
+}
+
+// Sequence, entity-relationship, and class diagrams cannot carry flowchart
+// classDefs, so for a long time they carried no colour key at all — 16 of the 42
+// Architecture diagrams left the reader to guess which global legend applied,
+// against this file's own promise that every diagram reads on its own. Their
+// status vocabulary is simply a different one: participant kind and phase band
+// for sequences, stereotype for the class diagram, and a flat single status for
+// the ERDs. Say that locally, and derive it from the source so the key can never
+// claim a treatment the drawing doesn't carry.
+function sequenceChips(source: string): string[] {
+  const chips: string[] = [];
+  if (/^\s*actor\s/m.test(source)) {
+    chips.push(`<span><i class="sw sw-person"></i>people and outside parties — the acting side</span>`);
+  }
+  if (/^\s*participant\s/m.test(source)) {
+    chips.push(`<span><i class="sw sw-onchain"></i>contract, app, or read model — never a person</span>`);
+  }
+  if (/\brect\s+rgb/.test(source)) {
+    chips.push(`<span><i class="sw sw-band"></i>tinted band — one named phase; the note inside it names the phase</span>`);
+  }
+  return chips;
+}
+
+function classDiagramChips(source: string): string[] {
+  const chips: string[] = [];
+  if (/<<[^>]*\blive\b/.test(source)) chips.push(`<span><i class="sw"></i>${CLASS_CHIPS.built[1]} — <code>&lt;&lt;live&gt;&gt;</code></span>`);
+  if (/<<[^>]*\bnet-new\b/.test(source)) chips.push(`<span><i class="sw sw-planned"></i>${CLASS_CHIPS.planned[1]} — <code>&lt;&lt;net-new&gt;&gt;</code></span>`);
+  if (/<<[^>]*\bexternal\b/.test(source)) chips.push(`<span><i class="sw sw-derived"></i>outside Green Goods — <code>&lt;&lt;external&gt;&gt;</code></span>`);
+  return chips;
+}
+
 function diagramKey(source: string): string {
   const head = source.trim().split(/\s/, 1)[0] ?? "";
   if (head === "erDiagram") {
     const items = ERD_GLYPHS.map(([glyph, label]) => `<span>${glyph}${label}</span>`).join("");
-    return `<div class="erd-key" role="note" aria-label="Entity-relationship cardinality key">${items}<span class="erd-note">Read each line-end at the box it touches; the quoted label is the relationship reading.</span></div>`;
+    const flat = colourKey([
+      // Two swatches, because an ERD actually paints two: attribute rows alternate
+      // between the on-chain and app-only fills purely as zebra striping. Showing one
+      // swatch left a reader matching the grey band against the global legend, where
+      // that token means "app-only" — a status this diagram never expresses.
+      `<span><i class="sw sw-onchain"></i><i class="sw sw-app"></i>one flat status — every box is indexed read-model state. Rows alternate tint for readability only: neither shade is a status, and this diagram uses no planned or derived colour.</span>`,
+    ]);
+    return `${flat}<div class="erd-key" role="note" aria-label="Entity-relationship cardinality key">${items}<span class="erd-note">Read each line-end at the box it touches; the quoted label is the relationship reading.</span></div>`;
   }
   const arrows = arrowKey(head, source);
+  if (head === "sequenceDiagram") return `${colourKey(sequenceChips(source))}${arrows}`;
+  if (head === "classDiagram") return `${colourKey(classDiagramChips(source))}${arrows}`;
   if (head !== "flowchart" && !head.startsWith("stateDiagram")) return arrows;
   const declared = new Set([...source.matchAll(/^\s*classDef\s+(\w+)/gm)].map((m) => m[1]));
   const classLists = [...source.matchAll(/^\s*class\s+([\w,\s]+?)\s+(\w+)\s*$/gm)];
@@ -195,10 +240,7 @@ function diagramKey(source: string): string {
     const chip = CLASS_CHIPS[cls];
     if (chip) chips.push(`<span><i class="sw ${chip[0]}"></i>${chip[1]}</span>`);
   }
-  const colour = chips.length
-    ? `<div class="dia-key" role="note" aria-label="Colour key for this diagram">${chips.join("")}</div>`
-    : "";
-  return `${colour}${arrows}`;
+  return `${colourKey(chips)}${arrows}`;
 }
 
 type Sec = { id: string; title: string; level: number; html: string[]; subs: { id: string; title: string }[] };
@@ -329,6 +371,9 @@ const layersSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-three-layers.
 const timelineSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-timeline-band.svg`, "utf8");
 const ownershipSvg = readFileSync(`${DIR}/artifacts/visuals/rollout-ownership-map.svg`, "utf8");
 const useCasesSvg = readFileSync(`${DIR}/artifacts/visuals/use-cases-journey-strip.svg`, "utf8");
+const pilotPathwaysSvg = readFileSync(`${DIR}/artifacts/visuals/external-brief-pilot-pathways.svg`, "utf8");
+const fullPoolingPathSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-path-to-full-pooling.svg`, "utf8");
+const singlePoolLoopSvg = readFileSync(`${DIR}/artifacts/visuals/synthesis-single-pool-loop.svg`, "utf8");
 // Offering over time (2026-08-02) — the durable, repeatable Offer.
 const offerContinuesSvg = readFileSync(`${DIR}/artifacts/visuals/offer-that-continues.svg`, "utf8");
 const standingCapacitySvg = readFileSync(`${DIR}/artifacts/visuals/standing-capacity-reserved.svg`, "utf8");
@@ -372,7 +417,7 @@ function sectionsHtml(secs: Sec[], opts: SectionOpts = {}): { nav: string; body:
 }
 
 // Tab routing (2026-07-27; permission table added 2026-07-31): the diagrams must lead the
-// Architecture pane, so the preamble, the 33-asset coverage matrix, the
+// Architecture pane, so the preamble, the 36-asset coverage matrix, the
 // sensitive-action permission table (pure reference matrix, zero diagrams), and the ship-time
 // appendix move to a Reference pane. Nothing is dropped — the deep material
 // renders there in full, and a purpose-written intro carries only what you need
@@ -390,7 +435,7 @@ const REFERENCE_RENAMES: Record<string, string> = {
 };
 
 // Since the 2026-08-02 renumbering, the D-number IS the reading position, so this
-// array is simply D1..D26. The groups below are the reader-facing arc the numbers
+// array is simply D1..D29. The groups below are the reader-facing arc the numbers
 // now encode: overview, then a promise in the field, states/claims/exchange, the
 // data and value rails, and finally operations with deployment last. A new diagram
 // takes the number of the place it belongs, rather than being appended.
@@ -407,6 +452,8 @@ const ARCHITECTURE_READING_ORDER = [
   "D25.", "D26.",
   // 6. Offering over time — the durable Offer layer above one-shot promises
   "D27.",
+  // 7. Future full pool — compatibility first, staged promotion second
+  "D28.", "D29.",
 ] as const;
 const architectureCandidates = dia.secs.filter((s) => !REFERENCE_TITLES.includes(s.title));
 const architectureSecs = ARCHITECTURE_READING_ORDER.map((prefix) => {
@@ -564,6 +611,8 @@ const requiredArchitectureSections = [
   ["D25.", "d25-error-taxonomy-surface-and-recovery-map"],
   ["D26.", "d26-deployment-and-upgrade-topology"],
   ["D27.", "d27-offer-layers-and-honest-capacity"],
+  ["D28.", "d28-three-identities-and-the-future-adapter-boundary"],
+  ["D29.", "d29-full-commitment-pooling-grows-through-gates"],
 ];
 
 // Every diagram-bearing section carries a reading guide. The list used to skip
@@ -572,7 +621,7 @@ const requiredArchitectureSections = [
 const diagramHowToPrefixes = [
   "D1.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D8.", "D9.", "D10.",
   "D11.", "D12.", "D13.", "D14.", "D15.", "D16.", "D17.", "D18.", "D19.",
-  "D20.", "D21.", "D22.", "D23.", "D24.", "D25.", "D26.", "D27.",
+  "D20.", "D21.", "D22.", "D23.", "D24.", "D25.", "D26.", "D27.", "D28.", "D29.",
 ];
 
 const storyBodyRaw = `
@@ -605,10 +654,16 @@ const storyBodyRaw = `
   <p>The first journey is pure mutual aid, like childcare during a work day or a ride to the market, where the recipient's confirmation <em>is</em> the whole review. The second is a shared project on the evidence rails that run today: planting, composting, and restoration work that travels through photo evidence and steward approval before anyone confirms. The third adds a declared G$ reward, settled separately on Celo under its own gates. <strong>It is the same loop each time.</strong> Only the proof required and the payout attached differ.</p>
   ${respSvg(useCasesSvg, "Three ways a Need becomes action")}
 </section>
+<section id="story-pilot-pathways">
+  <h2>What this can look like in three communities</h2>
+  <p class="lede">The same commitment loop can serve very different work. These pathways are grounded examples, not a promise that every garden will use the system in the same way.</p>
+  <p>Tech and Sun can use repeated commitments to make learning and climate work dependable. Muizenberg and the Deep South can connect visible waste problems to cleanup, mapping, and recycling. AgroforestDAO and Redemption Hill can keep seasonal care, mentoring, and observation legible across a much longer horizon. In each place, the community still decides what matters, what counts as evidence, and who is able to confirm that a promise was kept.</p>
+  ${respSvg(pilotPathwaysSvg, "Three grounded community pathways")}
+</section>
 <section id="story-money">
   <h2>Where value lives, and how we know it moved</h2>
-  <p class="lede">Proof and coordination stay on Arbitrum. G$ lives and moves only on Celo. The designated Green Goods topology receives Foundation-funded House of Alignment pilot funds directly in the protocol Safe, once partner mechanism and address evidence clear. From there, one derived funding route reaches garden accounts. A settlement counts as received only after the authenticated Celo executor acknowledgment returns through CCIP.</p>
-  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's Safe pays the exact net amount on Celo. Upstream of all that, the pilot's ${extLink(EXTERNAL_LINKS.houseOfAlignment, "House of Alignment")} stream — ${extLink(EXTERNAL_LINKS.gooddollar, "GoodDollar")}'s ecosystem-alignment programme, funded directly by the Good Labs Foundation — lands in the protocol Safe. <strong>No token ever bridges at any point.</strong> Neither a person's report nor elapsed time can mark support as arrived. Only the executor's authenticated acknowledgment does that.</p>
+  <p class="lede">Proof and coordination stay on Arbitrum. G$ lives and moves only on Celo. Good Labs Foundation provides Green Goods with $800 per month, paid in G$, for July through September 2026 — $2,400 total — through the House of Alignment pilot. That upstream funding lands in the designated protocol Safe. From there, one derived funding route reaches garden accounts. A downstream settlement counts as received only after the authenticated Celo executor acknowledgment returns through CCIP.</p>
+  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's Safe pays the exact net amount on Celo. Upstream of all that, the Foundation-funded ${extLink(EXTERNAL_LINKS.houseOfAlignment, "House of Alignment")} pilot provides three monthly $800 allocations paid in G$. A transaction-level token count never replaces that $2,400 agreement and never proves onward distribution. <strong>No token ever bridges at any point.</strong> Neither a person's report nor elapsed time can mark downstream support as arrived. Only the executor's authenticated acknowledgment does that.</p>
   ${respSvg(moneySvg, "Arbitrum proof and Celo value map")}
 </section>
 <section id="story-settlement">
@@ -693,8 +748,20 @@ const storyBodyRaw = `
   <p>Naming the layers keeps the claim honest in both directions.</p>
   <p>Layer one is the August foundation: Needs, offers and requests, evidence, independent confirmation, and repair, with declared value and exchange references recorded as terms. Counts-only standing, rotation, and reserve framing are approved August app-roadmap additions rather than current shipped UI.</p>
   <p>Layer two is the planned path by which value reaches verified outcomes: direct support, supporter-vault yield, impact certificates, and the separately gated G$ settlement rail. <strong>Pooled funds live in treasury Safes and vaults, never inside the pooling mechanism.</strong> The CreditRegistry is an August companion, records-only and interest-free, sitting behind interface-freeze, spec-revalidation, and human legal/operations gates.</p>
-  <p>Layer three names later roadmap extensions: transferable vouchers, exchange execution, relative pricing, and garden-to-garden routing. They extend the same reserved fields and records without being presented as shipped.</p>
+  <p>Layer three names later roadmap extensions: transferable vouchers, exchange execution, relative pricing, and garden-to-garden routing. They attach through the reserved adapter seam and reference base evidence while keeping a separate voucher identity; none is presented as shipped.</p>
   ${respSvg(layersSvg, "Three layers of commitment pooling built in stages")}
+</section>
+<section id="story-full-pooling-path">
+  <h2>A path to fuller commitment pooling</h2>
+  <p class="lede">The first layer is useful on its own. The architecture can grow, but evidence and a separate decision gate stand between every stage.</p>
+  <p>The compatibility work comes first: keep an ordinary promise, an ongoing Offer, and any future voucher class as different things. Field evidence then has to show that a fulfilled-backed claim and redemption path solve a real community need. Only after that would one bounded pool test issuance, exchange, redemption, and repair. Capacity backing and federation are later decisions, not automatic consequences of a successful pilot. <strong>G$ may support outcomes at any stage, but it never becomes voucher redemption by implication.</strong></p>
+  ${respSvg(fullPoolingPathSvg, "Commitment pooling grows through separate evidence and decision gates")}
+</section>
+<section id="story-single-pool">
+  <h2>What one bounded pool would still need to prove</h2>
+  <p class="lede">Before any federation story, one pool has to make issuance, limits, exchange, redemption, and failure repair work in a way people can understand and govern.</p>
+  <p>This loop begins only with an authorized class backed by fulfilled commitments. It keeps supply and holding limits visible, seeds bounded inventory, lets people exchange in and out, and ends in redemption or a repairable failure. The promise record stays outside the loop, so exchange cannot rewrite who made or kept the original promise. The G$ rail also stays outside unless explicit class terms make it part of redemption. <strong>Every part of this loop is future work: it is specified as a path, not authorized as a launch.</strong></p>
+  ${respSvg(singlePoolLoopSvg, "One bounded future pool from authorized issuance to redemption or repair")}
 </section>
 <section id="story-timeline">
   <h2>The rollout sequence</h2>
@@ -719,7 +786,7 @@ const storyBodyRaw = `
     <li><b>${extLink(EXTERNAL_LINKS.ruddickStewardship, "Ruddick, “Proto-Social Infrastructure and Stewardship of Commitment Pooling” (IJCCR, 2026)")}</b> <span>the later treatment that names the six functions the gallery's function map follows</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.sarafuRct, "Mqamelo, “Community Currencies as Crisis Response” (Frontiers in Blockchain, 2022)")}</b> <span>the randomised trial behind the Sarafu evidence — the field record, not a projection</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.regenerativeBonds, "Ruddick et al., “Regenerative Bonds” (2026)")}</b> <span>formal debt, mutual aid, and local settlement capacity — the lineage behind borrow-and-repay</span></li>
-    <li><b>${extLink(EXTERNAL_LINKS.houseOfAlignment, "GIP-26 — House of Alignment")}</b> <span>the GoodDollar governance thread that establishes the pilot's funding arrangement</span></li>
+    <li><b>${extLink(EXTERNAL_LINKS.houseOfAlignment, "GIP-26 — House of Alignment")}</b> <span>the failed protocol-emissions proposal that preceded the separately Foundation-funded pilot; it does not itself establish the current pilot terms</span></li>
   </ul>
 </section>`;
 
@@ -731,6 +798,7 @@ const STORY_READING_ORDER = [
   ["story-loop", "The commitment loop"],
   ["story-roles", "Who does what"],
   ["story-use-cases", "Three grounded journeys"],
+  ["story-pilot-pathways", "Three community pathways"],
   // Offering over time reads straight after the grounded journeys: the durable
   // the ongoing Offer is what those journeys repeat, so it belongs before the
   // system-level framing rather than after the money story.
@@ -740,6 +808,8 @@ const STORY_READING_ORDER = [
   ["story-rest", "Rest without erasure"],
   ["story-succession", "Succession later, with consent"],
   ["story-layers", "Three layers, named honestly"],
+  ["story-full-pooling-path", "A path to fuller pooling"],
+  ["story-single-pool", "What one bounded pool must prove"],
   ["story-ge-functions", "Six protocol functions"],
   ["story-money", "Where value lives"],
   ["story-settlement", "How a payout becomes provable"],
@@ -774,7 +844,7 @@ const storyNav = STORY_READING_ORDER
 const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
-  <p class="lede">${architectureSecs.length} named diagrams, D1 through D26, drawn from the frozen contract, settlement and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p class="lede">${architectureSecs.length} named diagrams, D1 through D${architectureSecs.length}, drawn from the frozen contract, settlement, exchange, evidence, and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
   <p><strong>Read them in order.</strong> Since the 2026-08-02 renumbering the D-number <em>is</em> the reading position, moving from the whole system down to the code that deploys it. Returning readers can still open any section directly: every section carries its own “How to read this” panel, and D15 guides each sub-block separately. <strong>Anchors published before the renumbering still resolve</strong>, so an older link or citation lands on whichever section now holds that content.</p>
   <ul class="wayfind">
     <li><b>Overview · D1–D4</b> <span>who participates, where state and value live, who is accountable, and which role may do what</span></li>
@@ -782,6 +852,8 @@ const archIntro = `
     <li><b>States, claims, and exchange · D8–D14</b> <span>the pool, cycle and commitment machines, how a claim is granted, the paired-start exchange branch, and the worked value split</span></li>
     <li><b>Data and value rails · D15–D24</b> <span>the read model and indexer pipeline, then funding topology, settlement, and the Solidity surface underneath</span></li>
     <li><b>Operate and deploy · D25–D26</b> <span>error recovery, then deployment last; the exact permission table lives on Reference</span></li>
+    <li><b>Offer over time · D27</b> <span>the durable Offer identity, ordinary instances, Story, and honest capacity reservation</span></li>
+    <li><b>Future full pool · D28–D29</b> <span>the three-identity compatibility boundary, then the evidence-gated path from fulfilled backing through one bounded pool to possible later federation</span></li>
   </ul>
   <p><strong>Six sections open with an overview and then zoom in.</strong> D5 and D10 split into three acts, D15 into an entity map plus two field blocks, D21 into healthy path, idempotency and retries, D25 into the error, where it manifests, and how the person responds, and D14 into recognition and payment. Sub-blocks are indented in the section list on the left.</p>
   <p><strong>Two colour systems, never mixed.</strong> Component diagrams carry <em>build status</em> — the three treatments below. State machines carry <em>storage provenance</em> — the second key. Green tint always and only means built/live; people are paper with an ink outline; and every diagram footnotes exactly the treatments it uses, so the key you need is always directly under the drawing. Each entity-relationship diagram likewise carries its own cardinality key.</p>
@@ -797,7 +869,7 @@ const archIntro = `
     <li><span class="sw sw-derived" aria-hidden="true"></span><span><b>Derived</b> — the indexer computes it from events; no transaction writes it</span></li>
     <li><span class="sw sw-app" aria-hidden="true"></span><span><b>App-only</b> — client-side; <code>Draft</code> lives in IndexedDB and has no chain presence</span></li>
   </ul>
-  <p><strong>The Reference tab holds the rest</strong> — the 33-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the un-numbered sensitive-action permission table, and the open questions this set does not answer.</p>
+  <p><strong>The Reference tab holds the rest</strong> — the 36-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the un-numbered sensitive-action permission table, and the open questions this set does not answer.</p>
 </section>`;
 
 // Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
@@ -1204,6 +1276,10 @@ ul.legend li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:s
 .dia-key .sw-app{background:var(--diagram-app-fill);border-color:var(--diagram-app-border);}
 .dia-key .sw-onchain{background:var(--diagram-onchain-fill);border-color:var(--diagram-stone);}
 .dia-key .sw-person{background:var(--diagram-paper);border-color:var(--diagram-ink);}
+/* Sequence-diagram phase band. Matches the rect-rgb tint drawn inside the
+   diagram, which has no node class to borrow from. */
+.dia-key .sw-band{background:var(--diagram-planned-fill);border-color:var(--diagram-border);border-style:dotted;}
+.dia-key code{font-size:.94em;color:var(--stone);}
 /* Arrow-meaning key. Sits directly under the colour key when a diagram mixes
    arrow styles, so both semantics are readable without leaving the drawing. */
 .arrow-key{margin-top:-.85rem;}
@@ -2296,7 +2372,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 28, "Architecture output must contain 28 sections (27 D-sections + the hand-written intro; the permission table renders on Reference)");
+assertBuild(architectureSectionCount === 30, "Architecture output must contain 30 sections (29 D-sections + the hand-written intro; the permission table renders on Reference)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -2304,8 +2380,18 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 40, "Architecture output must contain 40 Mermaid blocks (D25 splits into two recovery maps, D13 adds the bilateral exchange sequence, and D27 splits into layers + capacity)");
-assertBuild(mermaidCount === 41, "Gallery output must contain 41 Mermaid blocks including the Screens flow");
+assertBuild(architectureMermaidCount === 42, "Architecture output must contain 42 Mermaid blocks (D25 splits into two recovery maps, D13 adds the bilateral exchange sequence, D27 splits into layers + capacity, and D28–D29 add the future compatibility path)");
+assertBuild(mermaidCount === 43, "Gallery output must contain 43 Mermaid blocks including the Screens flow");
+// Every diagram must be readable without remembering the global legend — the
+// promise visual-assets.md makes. Before 2026-08-05 only the 17 flowcharts and 9
+// state diagrams got a colour key; the 11 sequences, 4 ERDs, and 1 class diagram
+// got none. Tie the count to the block count so a new Mermaid type can never
+// ship keyless again.
+const architectureColourKeyCount = (archBody.match(/aria-label="Colour and status key/g) ?? []).length;
+assertBuild(
+  architectureColourKeyCount === architectureMermaidCount,
+  `every Architecture diagram needs its own colour/status key (${architectureColourKeyCount} keys for ${architectureMermaidCount} diagrams)`,
+);
 // The Reference pane is the only home of the deep material now, so losing a routed
 // section there would silently delete it from the gallery rather than move it.
 assertBuild(referenceSecs.length === REFERENCE_TITLES.length, "every Reference-routed section must resolve to a diagrams.md section");

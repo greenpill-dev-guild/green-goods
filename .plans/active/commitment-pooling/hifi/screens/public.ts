@@ -5,6 +5,7 @@
 // data, no addresses; percentage rates only at ≥5 due commitments and ≥3
 // distinct promisers, counts-only sentences below that (§7.2).
 
+import { CYCLE, SEASON_LIVE, SEASON_LIVE_KEPT_RATE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import type { HifiDef } from "./index";
@@ -39,9 +40,9 @@ function w15(state: W15State): string {
   switch (state) {
     case "above-threshold":
       panel = `<span class="kicker">Promises</span>
-<h3 class="serif-h">Midway through the Season of First Rains</h3>
-<div class="estatrow"><div class="estat"><div class="serif-n">14</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">11</div><div class="l">kept so far</div></div><div class="estat">${hot("w15.units", `<div class="eunits"><div class="erow"><span>Hours</span><span class="num">40 of 52</span></div><div class="erow"><span>Rides</span><span class="num">14 of 16</span></div></div>`)}
-${hot("w15.rate", `<div><div class="serif-n">79%</div><div class="l">kept rate</div></div>`)}</div></div>
+<h3 class="serif-h">Midway through the ${CYCLE}</h3>
+<div class="estatrow"><div class="estat"><div class="serif-n">${SEASON_LIVE.made}</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">${SEASON_LIVE.kept}</div><div class="l">kept so far</div></div><div class="estat">${hot("w15.units", `<div class="eunits"><div class="erow"><span>Hours</span><span class="num">${SEASON_LIVE.units.hours.done} of ${SEASON_LIVE.units.hours.of}</span></div><div class="erow"><span>Rides</span><span class="num">${SEASON_LIVE.units.rides.done} of ${SEASON_LIVE.units.rides.of}</span></div></div>`)}
+${hot("w15.rate", `<div><div class="serif-n">${SEASON_LIVE_KEPT_RATE}%</div><div class="l">kept rate</div></div>`)}</div></div>
 <p style="margin:0;max-width:52ch">Fulfilled promises from this cycle are anchored in the certificates below.</p>`;
       break;
     case "pre-launch":
@@ -51,8 +52,8 @@ ${hot("w15.rate", `<div><div class="serif-n">79%</div><div class="l">kept rate</
       break;
     default:
       panel = `<span class="kicker">Promises</span>
-<h3 class="serif-h">Midway through the Season of First Rains</h3>
-${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">9 promises made, 7 kept so far — running through Aug 30.</p>`)}
+<h3 class="serif-h">Midway through the ${CYCLE}</h3>
+${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">${SEASON_LIVE.made} promises made, ${SEASON_LIVE.kept} kept so far — running through Aug 30.</p>`)}
 <p style="margin:0;max-width:52ch;color:var(--stone)">Fulfilled promises from this cycle are anchored in the certificates below.</p>`;
   }
   return webWin("greengoods.app/gardens/rocinha", `${context}<div class="epanel">${panel}</div>${after}`, "w15.install");

@@ -4,6 +4,7 @@
 // Dissolved lo-fi variants: W23G → W23@delivery-blocked, MF8 → W25@context-chooser.
 // W6's retired home summary card lives on as the W5 header line (Decision Log #28f).
 
+import { GARDEN, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
@@ -42,7 +43,7 @@ function w5(state: W5State): string {
   let inner: string;
   switch (state) {
     case "queued":
-      inner = `${hot("w5.summary", `<div class="t-meta num">7 of 9 promises kept this cycle across your gardens</div>`)}
+      inner = `${hot("w5.summary", `<div class="t-meta num">${SEASON_LIVE.kept} of ${SEASON_LIVE.made} promises kept this cycle in ${GARDEN}</div>`)}
 ${sectionTitle("My commitments")}
 ${card(
         listRow({ icon: "seedling-line", primary: "Compost workshop", meta: "Rocinha · Offered", chipHtml: chip("Queued", "queued") }) +
@@ -72,7 +73,7 @@ ${banner("Waiting for your garden membership — it will send once you're welcom
       inner = emptyState("wifi-off-line", "Couldn't load your promises", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })));
       break;
     default:
-      inner = `${hot("w5.summary", `<div class="t-meta num">7 of 9 promises kept this cycle across your gardens</div>`)}
+      inner = `${hot("w5.summary", `<div class="t-meta num">${SEASON_LIVE.kept} of ${SEASON_LIVE.made} promises kept this cycle in ${GARDEN}</div>`)}
 ${sectionTitle("Waiting on you")}
 ${card(
         hot("w5.inbox-row", listRow({ icon: "hand-heart-line", primary: "Maria — Prune the north beds", meta: "Rocinha · confirm when kept", chevron: true })) +
@@ -97,7 +98,7 @@ ${disclosure(
 
 const W5_HOTS: HifiDef["hots"] = {
   "w5.seg": { l: "Wallet tabs", info: "The shipping WalletDrawer's three tabs — Cookies · Tokens · Commitments. Commitments is the cross-garden promises home (UX:186); G$ balances stay in Tokens." },
-  "w5.summary": { l: "Cycle summary line", info: "W6's retired Home card lives on as this header line (Decision Log #28f); absolute numbers below the small-community threshold (UX:191)." },
+  "w5.summary": { l: "Cycle summary line", info: "W6's retired Home card lives on as this header line (Decision Log #28f); absolute numbers below the small-community threshold (UX:191). The counts belong to one garden's open cycle and say so — the panel below spans gardens, but no cross-garden total is derived, because unlike cycles never aggregate." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of promises waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own promises grouped by garden." },
   "w5.retry": { l: "Try again", info: "Read-surface recovery for the cross-garden pools panel — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12)." },
