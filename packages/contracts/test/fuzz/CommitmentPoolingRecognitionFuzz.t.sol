@@ -170,7 +170,9 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
 
     /// @notice Exactly one vector is accepted: moving a single bps between rows is rejected.
     /// @dev Without this the acceptance in every test above would be near-vacuous — a validator
-    ///      that accepted anything summing to 10,000 would pass them all.
+    ///      that accepted anything summing to 10,000 would pass them all. This covers the WEIGHTS;
+    ///      `testFuzzRejectsEveryMalformedVectorShape` covers the vector's shape, which is a
+    ///      separate family of defect (order, duplicates, length) that reweighting cannot express.
     /// forge-config: default.fuzz.runs = 96
     function testFuzzTheCanonicalVectorIsTheOnlyOneAccepted(
         uint8 rawCount,
@@ -204,6 +206,66 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
         // Still totals 10,000 — only the per-row recomputation can reject it.
         vm.expectRevert(ICommitmentPoolingModule.InvalidAllocation.selector);
         module.validateRecognitionSnapshot(commitmentId, entries, _hash(commitmentId, entries));
+    }
+
+    /// @notice Every malformed *shape* is rejected, not just every wrong weight.
+    /// @dev The one-bps test above perturbs values while keeping the vector well-formed, so on its
+    ///      own it left the strict-ascending check unexercised — removing that check from
+    ///      `_readCanonicalCredits` survived the whole fuzz suite. Order, duplication, and length
+    ///      are the three ways a caller can misdescribe the roster while every weight still looks
+    ///      canonical.
+    /// forge-config: default.fuzz.runs = 96
+    function testFuzzRejectsEveryMalformedVectorShape(uint8 rawCount, uint256 creditSeed, uint16 rawEqualBps) public {
+        (uint256 commitmentId, uint16 equalBps) = _fulfilledFuzzCommitment(rawCount, creditSeed, rawEqualBps);
+        ICommitmentPoolingModule.RecognitionEntry[] memory canonical = _canonicalEntries(equalBps);
+        uint256 rows = canonical.length;
+
+        // Wrong length, both directions. Reachable at every roster size.
+        _expectRejected(commitmentId, _resized(canonical, rows + 1));
+        if (rows > 1) _expectRejected(commitmentId, _resized(canonical, rows - 1));
+        if (rows < 2) return;
+
+        // Descending order: same rows, same weights, wrong sort.
+        ICommitmentPoolingModule.RecognitionEntry[] memory swapped = _copy(canonical);
+        (swapped[0], swapped[1]) = (canonical[1], canonical[0]);
+        _expectRejected(commitmentId, swapped);
+
+        // A duplicate row, which strict-ascending rejects for the same reason as bad order.
+        ICommitmentPoolingModule.RecognitionEntry[] memory duplicated = _copy(canonical);
+        duplicated[1].contributor = canonical[0].contributor;
+        _expectRejected(commitmentId, duplicated);
+    }
+
+    function _expectRejected(uint256 commitmentId, ICommitmentPoolingModule.RecognitionEntry[] memory entries) private {
+        vm.expectRevert(ICommitmentPoolingModule.InvalidAllocation.selector);
+        module.validateRecognitionSnapshot(commitmentId, entries, _hash(commitmentId, entries));
+    }
+
+    function _copy(ICommitmentPoolingModule.RecognitionEntry[] memory source)
+        private
+        pure
+        returns (ICommitmentPoolingModule.RecognitionEntry[] memory copied)
+    {
+        copied = new ICommitmentPoolingModule.RecognitionEntry[](source.length);
+        for (uint256 i = 0; i < source.length; i++) {
+            copied[i] = source[i];
+        }
+    }
+
+    /// @dev Truncates or pads; a padded tail row reuses the last contributor, so the vector is the
+    ///      wrong length AND unsorted, which is exactly what a careless caller would produce.
+    function _resized(
+        ICommitmentPoolingModule.RecognitionEntry[] memory source,
+        uint256 length
+    )
+        private
+        pure
+        returns (ICommitmentPoolingModule.RecognitionEntry[] memory resized)
+    {
+        resized = new ICommitmentPoolingModule.RecognitionEntry[](length);
+        for (uint256 i = 0; i < length; i++) {
+            resized[i] = i < source.length ? source[i] : source[source.length - 1];
+        }
     }
 
     /// @notice The canonical hash is stable and bound to this commitment on this chain.

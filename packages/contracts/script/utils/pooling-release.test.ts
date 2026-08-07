@@ -369,3 +369,61 @@ describe("CCIP chain selector serialization", () => {
     expect(networks.celo.ccipChainSelector).toBe("1346049177634351622");
   });
 });
+
+describe("configuration plan conformance with the Solidity authority", () => {
+  const libraryPath = path.join(__dirname, "../lib/PoolingConfiguration.sol");
+  const library = fs.readFileSync(libraryPath, "utf8");
+
+  const targets = {
+    assessmentResolver: "0xA000000000000000000000000000000000000001",
+    testimonyResolver: "0xA000000000000000000000000000000000000002",
+    workApprovalResolver: "0xA000000000000000000000000000000000000003",
+    commitmentPoolingModule: "0xA000000000000000000000000000000000000004",
+    assessmentSchemaUID: `0x${"11".repeat(32)}`,
+    assessmentV3SchemaUID: `0x${"22".repeat(32)}`,
+    communityTestimonySchemaUID: `0x${"33".repeat(32)}`,
+  };
+  const ZERO_UID = `0x${"00".repeat(32)}`;
+  const unconfigured = {
+    assessmentSchemaUID: ZERO_UID,
+    assessmentV3SchemaUID: ZERO_UID,
+    testimonySchemaUID: ZERO_UID,
+    testimonyCommitmentModule: ZERO,
+    workApprovalCommitmentModule: ZERO,
+  };
+
+  /**
+   * `planPoolingConfiguration` and `PoolingConfiguration.configure` describe the same five steps in
+   * two languages. Only the Solidity one decides what a broadcast writes; the TypeScript one is
+   * what an operator reads before approving it. Drift between them would not write the wrong
+   * setter — it would show the operator a plan that is not the plan.
+   *
+   * Text-matched on purpose: vitest cannot execute the library, and the realistic drift is a step
+   * added, removed, or reordered on one side only. That this catches.
+   */
+  it("plans exactly the steps the Solidity library executes, in the same order", () => {
+    const solidityOrder = [...library.matchAll(/_needs(?:UID|Address)\(\s*"([A-Za-z0-9]+)"/g)].map((match) => match[1]);
+
+    expect(solidityOrder).toEqual([...POOLING_CONFIGURATION_STEP_KEYS]);
+    expect(planPoolingConfiguration(targets, unconfigured).map((step) => step.key)).toEqual(solidityOrder);
+  });
+
+  it("names setters the Solidity library actually calls", () => {
+    const plan = planPoolingConfiguration(targets, unconfigured);
+
+    for (const step of plan) {
+      // "setSchemaUID(bytes32)" -> "setSchemaUID(", which is how the library invokes it.
+      const call = `${step.signature.slice(0, step.signature.indexOf("("))}(`;
+      expect(library, `${step.key} calls ${step.signature}, absent from the library`).toContain(call);
+    }
+  });
+
+  it("keeps the ordering constraints that make the sequence non-reorderable", () => {
+    const keys = planPoolingConfiguration(targets, unconfigured).map((step) => step.key);
+
+    // v2 must be pinned before v3 (AssessmentV2SchemaUIDRequired) and the testimony schema before
+    // its module (SchemaUIDRequired). Both are resolver reverts, not preferences.
+    expect(keys.indexOf("assessmentV2Pin")).toBeLessThan(keys.indexOf("assessmentV3"));
+    expect(keys.indexOf("testimonySchema")).toBeLessThan(keys.indexOf("testimonyModule"));
+  });
+});

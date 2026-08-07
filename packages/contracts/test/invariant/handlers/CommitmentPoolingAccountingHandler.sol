@@ -36,6 +36,10 @@ contract CommitmentPoolingAccountingHandler {
     MockEAS private immutable eas;
     IMockWorkDecisionResolver private immutable decisionResolver;
     uint256 private immutable poolId;
+    /// @dev One open cycle, so roughly half the commitments are cycle-scoped. Without it every
+    ///      commitment is cycle-less and the cycle branch of the live-count accounting — including
+    ///      the Expired -> Disputed re-increment — is unreachable.
+    uint256 private immutable cycleId;
 
     address[] private actors;
 
@@ -49,6 +53,18 @@ contract CommitmentPoolingAccountingHandler {
     uint256 public approvedWorkCount;
     uint256 public fulfilledCount;
     uint256 public disputedCount;
+    uint256 public cycleScopedCount;
+    uint256 public lateDecisionCount;
+
+    /// @dev Work already linked to a commitment, so a decision can arrive LATER in the sequence
+    ///      instead of immediately after the link. Deciding inline can never reach the post-freeze
+    ///      path: once a roster freezes, linking fails, so the decision never happens either.
+    struct LinkedWork {
+        uint256 commitmentId;
+        bytes32 workUID;
+    }
+
+    LinkedWork[] private linkedWorks;
 
     uint256 private nonce;
 
@@ -58,12 +74,14 @@ contract CommitmentPoolingAccountingHandler {
         address hats_,
         address eas_,
         address decisionResolver_,
-        uint256 poolId_
+        uint256 poolId_,
+        uint256 cycleId_
     ) {
         module = ICommitmentPoolingModule(module_);
         eas = MockEAS(eas_);
         decisionResolver = IMockWorkDecisionResolver(decisionResolver_);
         poolId = poolId_;
+        cycleId = cycleId_;
 
         for (uint256 i = 0; i < ACTOR_COUNT; i++) {
             address actor = address(uint160(0x5000 + i));
@@ -88,10 +106,19 @@ contract CommitmentPoolingAccountingHandler {
 
     /// @dev An Offer commits its units at creation; a Request commits them at acceptance. Both
     ///      directions are reachable so the release path covers each holder.
-    function createCommitment(uint8 creatorSeed, uint8 directionSeed, uint8 unitSeed, uint8 dueSeed) external {
+    function createCommitment(
+        uint8 creatorSeed,
+        uint8 directionSeed,
+        uint8 unitSeed,
+        uint8 dueSeed,
+        bool cycleScoped
+    )
+        external
+    {
         address creator = _actor(creatorSeed);
         ICommitmentPoolingModule.CreateCommitmentParams memory params;
         params.poolId = poolId;
+        params.cycleId = cycleScoped ? cycleId : 0;
         params.creationRequestKey = keccak256(abi.encode("invariant-commitment", nonce++));
         params.direction = directionSeed % 2 == 0
             ? ICommitmentPoolingModule.CommitmentDirection.Offer
@@ -111,6 +138,7 @@ contract CommitmentPoolingAccountingHandler {
         vm.prank(creator);
         try module.createCommitment(params) returns (uint256 commitmentId) {
             commitments.push(commitmentId);
+            if (cycleScoped) cycleScopedCount++;
         } catch { }
     }
 
@@ -163,8 +191,9 @@ contract CommitmentPoolingAccountingHandler {
         _setWorkAttestation(workUID, _actor(workerSeed));
 
         vm.prank(_actor(leadSeed));
-        try module.linkWork(commitmentId, workUID, 0, keccak256(abi.encode(commitmentId, "link", slot))) { }
-        catch {
+        try module.linkWork(commitmentId, workUID, 0, keccak256(abi.encode(commitmentId, "link", slot))) {
+            linkedWorks.push(LinkedWork({ commitmentId: commitmentId, workUID: workUID }));
+        } catch {
             return;
         }
 
@@ -174,6 +203,28 @@ contract CommitmentPoolingAccountingHandler {
 
         vm.prank(address(decisionResolver));
         try module.onWorkDecision(workUID, approvalUID, uint64(slot + 1), POOL_GARDEN, approved) {
+            if (approved) approvedWorkCount++;
+        } catch { }
+    }
+
+    /// @notice Deliver a decision for a Work linked earlier in the sequence.
+    /// @dev The only way to reach a decision arriving AFTER its commitment froze, which is the
+    ///      state the post-freeze credit guard exists for. Deciding inline right after linking can
+    ///      never reach it: once a roster freezes, linking fails, so the decision never happens.
+    ///      Sequences come from the global nonce so every decision strictly outranks the last.
+    function decideLinkedWork(uint256 workSeed, bool approved) external {
+        if (linkedWorks.length == 0) return;
+        LinkedWork memory linked = linkedWorks[workSeed % linkedWorks.length];
+
+        uint256 slot = nonce++;
+        bytes32 approvalUID = keccak256(abi.encode(linked.workUID, "late-approval", slot));
+        _setApprovalAttestation(approvalUID, linked.workUID, approved);
+        decisionResolver.setDecisionSequence(approvalUID, uint64(slot + 1));
+        decisionResolver.setLatestDecisionSequence(linked.workUID, uint64(slot + 1));
+
+        vm.prank(address(decisionResolver));
+        try module.onWorkDecision(linked.workUID, approvalUID, uint64(slot + 1), POOL_GARDEN, approved) {
+            lateDecisionCount++;
             if (approved) approvedWorkCount++;
         } catch { }
     }

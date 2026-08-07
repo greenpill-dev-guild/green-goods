@@ -20,6 +20,7 @@ import { CommitmentPoolingAccountingHandler } from "./handlers/CommitmentPooling
 ///      commitment cap that is the pool's only exposure limit.
 contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     CommitmentPoolingAccountingHandler private handler;
+    uint256 private invariantCycleId;
 
     /// @dev Inline target support; this forge-std version has no StdInvariant, matching
     ///      `test/invariant/RoleHierarchy.t.sol`.
@@ -39,8 +40,18 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         _setUpProductionFixture();
         _registerActions(2);
 
+        // An open cycle so roughly half of the handler's commitments are cycle-scoped. Without one
+        // the cycle branch of the live-count accounting is unreachable and its invariant is vacuous.
+        invariantCycleId = _openCycle();
+
         handler = new CommitmentPoolingAccountingHandler(
-            address(module), address(registry), address(hats), address(mockEAS), address(decisionResolver), poolId
+            address(module),
+            address(registry),
+            address(hats),
+            address(mockEAS),
+            address(decisionResolver),
+            poolId,
+            invariantCycleId
         );
 
         // The handler drives every actor, so each must be able to hold the roles the lifecycle
@@ -108,6 +119,14 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
                 );
             } else {
                 assertEq(class_.totalFulfilled, 0, "a cancelled or expired commitment converted units");
+                // Released, or Registered when an unaccepted Request never committed any units.
+                // Still Committed would mean releaseUnits ran its arithmetic without closing the
+                // slot, which leaves the provider's open-commitment seat occupied forever.
+                assertTrue(
+                    class_.accountingState == ICommitmentRegistry.AccountingState.Released
+                        || class_.accountingState == ICommitmentRegistry.AccountingState.Registered,
+                    "a cancelled or expired commitment left its units unreleased"
+                );
             }
         }
     }
@@ -151,11 +170,19 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     function invariant_liveCountsMatchNonTerminalCommitments() public {
         uint256 count = handler.commitmentCount();
         uint256 live;
+        uint256 liveInCycle;
         for (uint256 i = 0; i < count; i++) {
-            if (!_isTerminal(module.getCommitment(handler.commitmentAt(i)).state)) live++;
+            ICommitmentPoolingModule.Commitment memory commitment = module.getCommitment(handler.commitmentAt(i));
+            if (_isTerminal(commitment.state)) continue;
+            live++;
+            if (commitment.cycleId == invariantCycleId) liveInCycle++;
         }
 
         assertEq(module.getPool(poolId).liveCommitmentCount, live, "pool live count drifted");
+        // The cycle counter is what closing a cycle gates on, and it is maintained by a separate
+        // pair of increments — including the Expired -> Disputed re-increment. A cycle whose count
+        // never returns to zero can never be closed.
+        assertEq(module.getCycle(invariantCycleId).liveCommitmentCount, liveInCycle, "cycle live count drifted");
     }
 
     // ═════════════════════ 4. Contributor credit accounting ═════════════════════
@@ -193,6 +220,15 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     // ═════════════════════ 5. Frozen roster immutability ═════════════════════
 
     /// @notice Once frozen, a roster's size and credit totals never change again.
+    /// @dev Scope note, verified 2026-08-06. `CommitmentPoolingProof.onWorkDecision` also short-
+    ///      circuits on `commitment.contributorsFrozen`, and removing that clause survives every
+    ///      invariant here. That is correct, not a coverage hole: `contributorsFrozen = true` is
+    ///      assigned in exactly two places, and each sets the state to ReadyForConfirmation
+    ///      (`CommitmentPoolingCredit.sol:62-63`) or Fulfilled (`CommitmentPoolingTerminal.sol:168`)
+    ///      in the same breath, so `Accepted && frozen` — the only combination that clause can
+    ///      change — is unreachable through the public API. It is defence-in-depth of the same kind
+    ///      as the deliberately unreachable guards in `acceptExchange`. Killing that mutation would
+    ///      require first introducing the bug that makes the state reachable.
     /// @dev The freeze is what makes a recognition snapshot reproducible: a late approval or
     ///      reversal landing after it would silently change a vector that has already been hashed
     ///      and, downstream, settled against.
@@ -245,7 +281,7 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     ///      nothing.
     function testHandlerReachesEveryStateTheInvariantsCover() public {
         // Offer by actor 0, claimed by actor 1, two approvals to meet requiredCount, then confirm.
-        handler.createCommitment(0, 0, 3, 5);
+        handler.createCommitment(0, 0, 3, 5, false);
         assertEq(handler.commitmentCount(), 1, "handler cannot create a commitment");
 
         handler.claimCommitment(0, 1);
@@ -263,10 +299,42 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         assertGt(handler.fulfilledCount(), 0, "handler cannot reach Fulfilled");
 
         // A second commitment carried to Disputed, the state that keeps live counts non-zero.
-        handler.createCommitment(1, 0, 2, 5);
+        handler.createCommitment(1, 0, 2, 5, false);
         handler.claimCommitment(1, 2);
         handler.raiseDispute(1, 1);
         assertGt(handler.disputedCount(), 0, "handler cannot raise a dispute");
+
+        // Cycle-scoped commitments and decisions that arrive after their link are both reachable;
+        // each was previously impossible, which let a real mutation survive every invariant.
+        handler.createCommitment(2, 0, 2, 5, true);
+        assertGt(handler.cycleScopedCount(), 0, "handler cannot create a cycle-scoped commitment");
+
+        handler.claimCommitment(2, 3);
+        handler.linkAndDecideWork(2, 2, 2, true);
+        handler.decideLinkedWork(0, false);
+        assertGt(handler.lateDecisionCount(), 0, "handler cannot deliver a decision after its link");
+    }
+
+    function _openCycle() private returns (uint256 cycleId) {
+        cycleId = module.seedCycle(
+            poolId,
+            ICommitmentPoolingModule.CycleType.Season,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 365 days),
+            "bafy-invariant-cycle"
+        );
+        module.openCycle(
+            cycleId,
+            ICommitmentPoolingModule.AllocationBps({
+                gardeners: 6000,
+                treasury: 1500,
+                operator: 1000,
+                evaluator: 500,
+                community: 500,
+                funder: 500
+            }),
+            ICommitmentPoolingModule.RecognitionPolicy({ equalParticipationBps: 2000, verifiedContributionBps: 8000 })
+        );
     }
 
     function _isTerminal(ICommitmentPoolingModule.CommitmentState state) private pure returns (bool) {
