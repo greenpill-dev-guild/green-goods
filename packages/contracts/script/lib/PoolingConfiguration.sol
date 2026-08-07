@@ -51,7 +51,15 @@ library PoolingConfiguration {
     error MissingConfiguration(string name);
     error AssessmentSchemaUIDCollision(bytes32 uid);
     /// @notice A proxy this run must write to is not owned by the caller.
-    /// @dev Checked for ALL THREE proxies before the first write. Every setter is `onlyOwner`, so
+    /// @dev Checked for ALL THREE proxies before the first write **within a single simulation**.
+    ///      That is a weaker guarantee than it looks: `forge script` submits each setter as its own
+    ///      transaction, so ownership verified here is ownership at simulation time, not a
+    ///      precondition attached to each submitted call. If ownership moves mid-broadcast — to a
+    ///      Safe, say — earlier setters can land and later ones revert, leaving configuration split.
+    ///      Closing that needs an atomic owner-side executor or a runbook ownership freeze; it is
+    ///      not closed here. What this does close is the cheap, likely case: a wrong declared owner
+    ///      fails before anything is written rather than halfway through. Every setter is
+    ///      `onlyOwner`, so
     ///      without this the run would send calls until it reached a proxy the caller does not own
     ///      and revert there — leaving the earlier steps applied and the module half-configured.
     ///      That partial state is the failure this guard exists to prevent, not the revert itself.

@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 
 import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
+import { NetworkSelectors } from "../../script/lib/NetworkSelectors.sol";
 
 interface ITypeAndVersion {
     function typeAndVersion() external view returns (string memory);
@@ -192,14 +193,17 @@ contract CrossChainSettlementLaneForkTest is Test {
         arbRouter = abi.decode(vm.parseJson(json, ".networks.arbitrum.contracts.ccipRouter"), (address));
         celoRouter = abi.decode(vm.parseJson(json, ".networks.celo.contracts.ccipRouter"), (address));
         // Base-10 strings, not JSON numbers — see `testSelectorsAreStoredAsExactStrings`.
-        arbSelector = _selector(json, ".networks.arbitrum.ccipChainSelector");
-        celoSelector = _selector(json, ".networks.celo.ccipChainSelector");
+        arbSelector = _selector(json, ".networks.arbitrum");
+        celoSelector = _selector(json, ".networks.celo");
         arbChainId = abi.decode(vm.parseJson(json, ".networks.arbitrum.chainId"), (uint256));
         celoChainId = abi.decode(vm.parseJson(json, ".networks.celo.chainId"), (uint256));
     }
 
-    function _selector(string memory json, string memory jsonPath) private view returns (uint64) {
-        return uint64(vm.parseUint(abi.decode(vm.parseJson(json, jsonPath), (string))));
+    /// @dev Delegates to the parser deployment code uses. This file previously had its own copy,
+    ///      so a review could mutate `DeployHelper`'s parse to return a wrong selector and all six
+    ///      lane tests still passed — verifying a selector no deploy would ever read.
+    function _selector(string memory json, string memory networkKey) private pure returns (uint64) {
+        return NetworkSelectors.readCcipChainSelector(json, networkKey);
     }
 
     /// @dev Skips rather than fails when either RPC is missing, matching `CrossChainENS.t.sol`.

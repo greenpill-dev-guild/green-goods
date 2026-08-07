@@ -70,12 +70,63 @@ export class TestimonyResolverDeployer {
       return;
     }
 
+    this.assertNoSaltOverride(options);
+
     if (!options.broadcast) {
-      this.printDryRunPlan(options.network, deployment, chainId);
+      this.printDryRunPlan(options, deployment, chainId);
       return;
     }
 
     this.broadcast(options, chainId);
+  }
+
+  /**
+   * This target pins its own salt namespace so the recovery address cannot move. A `--salt` or
+   * ambient `DEPLOYMENT_SALT` therefore does nothing here — and silently doing nothing is exactly
+   * the trap: an operator recovering an interrupted run would believe they had reproduced the
+   * original identity. Refuse loudly instead.
+   */
+  private assertNoSaltOverride(options: ParsedOptions): void {
+    if (options.deploymentSalt) {
+      throw new Error(
+        "testimony-resolver does not accept --salt. Its CREATE2 addresses are pinned to an " +
+          "internal namespace so an interrupted run is recoverable from any shell; a salt override " +
+          "would move them. To claim a fresh address pair deliberately, bump DEPLOY_VERSION in " +
+          "script/DeployTestimonyResolver.s.sol.",
+      );
+    }
+    if (process.env.DEPLOYMENT_SALT) {
+      console.log(
+        "\nNote: DEPLOYMENT_SALT is set in the environment and is IGNORED by this target. Its " +
+          "addresses derive from a pinned internal namespace, not from the shared deploy salt.",
+      );
+    }
+  }
+
+  /**
+   * Ask the Foundry script itself for the addresses it will produce, rather than recomputing
+   * CREATE2 here. A second derivation is a second thing that can drift from the one that actually
+   * deploys. Runs without an RPC.
+   */
+  private predictAddresses(eas: string, owner: string): { impl: string; proxy: string } | null {
+    try {
+      const raw = execFileSync(
+        "forge",
+        [
+          "script",
+          "script/DeployTestimonyResolver.s.sol:DeployTestimonyResolver",
+          "--sig",
+          "predictAddresses(address,address)",
+          eas,
+          owner,
+        ],
+        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+      );
+      const found = raw.match(/0x[0-9a-fA-F]{40}/g);
+      return found && found.length >= 2 ? { impl: found[0], proxy: found[1] } : null;
+    } catch {
+      return null;
+    }
   }
 
   private findMissingDependencies(deployment: Record<string, unknown>): string[] {
@@ -112,20 +163,39 @@ export class TestimonyResolverDeployer {
     }
   }
 
-  private printDryRunPlan(network: string, deployment: Record<string, unknown>, chainId: string): void {
-    const eas = (deployment.eas as { address?: string } | undefined)?.address;
-    const owner = this.readResolverOwner(network, deployment.assessmentResolver as string);
+  private printDryRunPlan(options: ParsedOptions, deployment: Record<string, unknown>, chainId: string): void {
+    const eas = (deployment.eas as { address?: string } | undefined)?.address as string;
+    // `--pure-simulation` promises no RPC calls, so the live owner read is skipped there and the
+    // proxy address — which commits to the owner through its initialize calldata — is unknowable.
+    const owner = options.pureSimulation
+      ? null
+      : this.readResolverOwner(options.network, deployment.assessmentResolver as string);
+    const predicted = owner ? this.predictAddresses(eas, owner) : null;
 
     console.log("\nDRY RUN - no transactions will be sent");
     console.log("Script: script/DeployTestimonyResolver.s.sol:DeployTestimonyResolver");
     console.log("\nWould deploy, via CREATE2 with versioned salts:");
     console.log("  - TestimonyResolver implementation (EAS baked into constructor)");
     console.log("  - ERC1967 proxy over it (initialize(owner))");
-    console.log("  Addresses are deterministic and printed by the script before it sends. A run");
-    console.log("  interrupted after broadcast but before the artifact merge is recoverable: rerun");
-    console.log("  and the same two addresses are found already deployed, so no second deployment");
-    console.log("  transaction is sent and the artifact is simply rewritten.");
-    console.log(`\n  owner:             ${owner ?? "unreadable — the script reads assessmentResolver.owner()"}`);
+
+    console.log("\nDeterministic identity:");
+    console.log("  salt namespace:  green-goods:testimony-resolver");
+    console.log("  version:         v1   (bump DEPLOY_VERSION to claim a fresh pair on purpose)");
+    console.log("  --salt:          rejected by this target; DEPLOYMENT_SALT is ignored");
+    if (predicted) {
+      console.log(`  implementation:  ${predicted.impl}`);
+      console.log(`  proxy:           ${predicted.proxy}`);
+      console.log("  Compare both against the runbook before broadcasting. A run interrupted after");
+      console.log("  broadcast but before the artifact merge reruns to these same two addresses,");
+      console.log("  sends no deployment transaction, and just rewrites the artifact.");
+    } else if (options.pureSimulation) {
+      console.log("  addresses:       not derivable offline — the proxy commits to the live owner.");
+      console.log("                   Re-run without --pure-simulation to print both.");
+    } else {
+      console.log("  addresses:       unavailable (owner unreadable or forge prediction failed).");
+    }
+
+    console.log(`\n  owner:             ${owner ?? "unread — the script reads assessmentResolver.owner()"}`);
     console.log("    (taken from the sibling resolvers, not the artifact guardian, so one sender");
     console.log("     can run pooling-configure across all three)");
     console.log(`  eas (constructor): ${eas}`);

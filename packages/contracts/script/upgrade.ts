@@ -299,10 +299,12 @@ Contracts:
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
+  testimony-resolver      Upgrade TestimonyResolver (explicit target; excluded from all)
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
   pooling                 Upgrade CommitmentPoolingModule and CommitmentRegistry as one group
-  all                     Upgrade standard contracts (excludes HatsModule, GreenWill, and pooling)
+  all                     Upgrade standard contracts (excludes HatsModule, TestimonyResolver,
+                          GreenWill, and pooling)
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)

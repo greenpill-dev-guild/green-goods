@@ -43,6 +43,14 @@ contract DeployTestimonyResolver is DeployHelper {
     ///      run — that is the case CREATE2 exists to make recoverable.
     string internal constant DEPLOY_VERSION = "v1";
 
+    /// @dev This target's own salt namespace. Deliberately NOT `getDeploymentDefaults()`, which
+    ///      honours the ambient `DEPLOYMENT_SALT` env var: that would make the recovery address
+    ///      depend on the operator's shell, so a retry from a clean environment would predict a
+    ///      different pair and deploy a second implementation and proxy over the top of a run that
+    ///      had already mined. The whole point of CREATE2 here is an identity that survives a
+    ///      crashed run, which it cannot do if an env var can move it.
+    string internal constant DEPLOY_SALT_NAMESPACE = "green-goods:testimony-resolver";
+
     bytes32 internal constant ERC1967_IMPLEMENTATION_SLOT =
         0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
@@ -77,36 +85,40 @@ contract DeployTestimonyResolver is DeployHelper {
         _saveDeployment(deployment);
     }
 
+    /// @notice The two CREATE2 salts this target uses, exposed so they can be pinned by test.
+    /// @dev Pure functions of the namespace, version, and label — independent of compiled bytecode,
+    ///      so a regression test can assert them without breaking on every legitimate recompile.
+    ///      That is what makes a change to the salt derivation loud rather than merely internally
+    ///      consistent: a mutation that drops DEPLOY_VERSION still produces a self-consistent
+    ///      deploy, and only a pinned expectation catches it.
+    function deploymentSalts() public pure returns (bytes32 implSalt, bytes32 proxySalt) {
+        return (_versionedSalt("TestimonyResolverImpl"), _versionedSalt("TestimonyResolverProxy"));
+    }
+
     /// @notice The two addresses this target will always produce for a given (eas, owner).
     /// @dev Public so the Arbitrum fork rehearsal drives the real derivation instead of a copy.
     function predictAddresses(address eas, address owner) public view returns (address impl, address proxy) {
-        (bytes32 baseSalt, address factory,) = getDeploymentDefaults();
+        (, address factory,) = getDeploymentDefaults();
 
-        impl = Create2.computeAddress(
-            _versionedSalt(baseSalt, "TestimonyResolverImpl"), keccak256(_implementationCode(eas)), factory
-        );
-        proxy = Create2.computeAddress(
-            _versionedSalt(baseSalt, "TestimonyResolverProxy"), keccak256(_proxyCode(impl, owner)), factory
-        );
+        impl = Create2.computeAddress(_versionedSalt("TestimonyResolverImpl"), keccak256(_implementationCode(eas)), factory);
+        proxy =
+            Create2.computeAddress(_versionedSalt("TestimonyResolverProxy"), keccak256(_proxyCode(impl, owner)), factory);
     }
 
     /// @notice Deploy whatever is missing and verify whatever already exists.
     /// @dev Idempotent by construction: on a rerun both addresses are occupied, nothing is sent,
     ///      and `deployedSomething` comes back false.
     function deployOrReuse(address eas, address owner) public returns (TestimonyDeployment memory deployment) {
-        (bytes32 baseSalt, address factory,) = getDeploymentDefaults();
+        (, address factory,) = getDeploymentDefaults();
         (deployment.testimonyResolverImpl, deployment.testimonyResolver) = predictAddresses(eas, owner);
 
         bool deployedImpl = _deployImplementation(
-            deployment.testimonyResolverImpl,
-            _implementationCode(eas),
-            _versionedSalt(baseSalt, "TestimonyResolverImpl"),
-            factory
+            deployment.testimonyResolverImpl, _implementationCode(eas), _versionedSalt("TestimonyResolverImpl"), factory
         );
         bool deployedProxy = _deployProxy(
             deployment,
             _proxyCode(deployment.testimonyResolverImpl, owner),
-            _versionedSalt(baseSalt, "TestimonyResolverProxy"),
+            _versionedSalt("TestimonyResolverProxy"),
             factory,
             owner
         );
@@ -125,8 +137,8 @@ contract DeployTestimonyResolver is DeployHelper {
     }
 
     /// @dev Versioned so a deliberate re-issue is an explicit code change, never an accident.
-    function _versionedSalt(bytes32 baseSalt, string memory label) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(baseSalt, label, DEPLOY_VERSION));
+    function _versionedSalt(string memory label) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked(DEPLOY_SALT_NAMESPACE, DEPLOY_VERSION, label));
     }
 
     /// @dev Occupied means it was deployed from this exact creation code — the address commits to

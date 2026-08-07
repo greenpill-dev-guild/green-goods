@@ -1038,16 +1038,23 @@ The 2026-07-23 planning snapshot records Arbitrum One selector
 `4949039107694359620` and router `0x141fa059441E0ca23ce184B6A78bafD2A517DdE8`,
 plus Celo mainnet selector `1346049177634351622` and router
 `0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62`;
-the repository's Celo network entry remains zero until the implementation/configuration lane
-is explicitly dispatched. These values are evidence, not timeless constants. Immediately
+~~the repository's Celo network entry remains zero until the implementation/configuration lane
+is explicitly dispatched~~ — **superseded 2026-08-06: the Celo entry now holds both values and is
+verified on chain by `bun run contracts:settlement:verify-lane`; see the amendment in §10.2.**
+These values are evidence, not timeless constants. Immediately
 before implementation, dry-run, and broadcast, the verifier must read the official Chainlink
 CCIP directory, prove the Arbitrum One ↔ Celo lane in both directions, reject zero or mismatched
 router/selector values, read router bytecode, and persist the source URL, observation time,
 block, router/selector pair, and code hash in the settlement metadata.
 
-**Selector serialization is a release-critical migration.** CCIP selectors exceed JavaScript's
-safe-integer range. `deployments/networks.json` currently stores non-zero selectors as JSON
-numbers; a normal `JSON.parse` already rounds Arbitrum's official
+**Selector serialization is a release-critical migration.** ✅ **Done 2026-08-06 — this paragraph
+describes the problem, not remaining work.** All five `ccipChainSelector` entries are base-10
+strings, read through the single parser `script/lib/NetworkSelectors.sol`, and three regression
+tests reject the numeric form. Nothing below is outstanding for PRD-686.
+
+CCIP selectors exceed JavaScript's
+safe-integer range. `deployments/networks.json` ~~currently stores~~ *stored* non-zero selectors as
+JSON numbers; a normal `JSON.parse` already rounds Arbitrum's official
 `4949039107694359620` to `4949039107694360000`. The settlement implementation lane must
 migrate every `ccipChainSelector` to a base-10 string, update Solidity/TypeScript consumers to
 parse exact `uint64`/`bigint` values, and add a round-trip fixture for Ethereum, Sepolia,

@@ -408,14 +408,27 @@ describe("configuration plan conformance with the Solidity authority", () => {
     expect(planPoolingConfiguration(targets, unconfigured).map((step) => step.key)).toEqual(solidityOrder);
   });
 
-  it("names setters the Solidity library actually calls", () => {
-    const plan = planPoolingConfiguration(targets, unconfigured);
+  it("names, per step, the exact setter and proxy the Solidity library calls", () => {
+    // Local handle -> artifact key, e.g. `ITestimonyResolverConfig testimony = ...(targets.testimonyResolver)`.
+    const handles = new Map(
+      [...library.matchAll(/(\w+)\s*=\s*I\w+Config\(targets\.(\w+)\)/g)].map((m) => [m[1], m[2]]),
+    );
 
-    for (const step of plan) {
-      // "setSchemaUID(bytes32)" -> "setSchemaUID(", which is how the library invokes it.
-      const call = `${step.signature.slice(0, step.signature.indexOf("("))}(`;
-      expect(library, `${step.key} calls ${step.signature}, absent from the library`).toContain(call);
-    }
+    // Each guarded block: _needsX("stepKey", ...)) { handle.setter( ... )
+    const solidity = [...library.matchAll(/_needs(?:UID|Address)\(\s*"(\w+)"[\s\S]*?\)\)\s*\{\s*(\w+)\.(\w+)\(/g)].map(
+      (m) => ({ key: m[1], target: handles.get(m[2]), setter: m[3] }),
+    );
+
+    const planned = planPoolingConfiguration(targets, unconfigured).map((step) => ({
+      key: step.key,
+      target: step.target,
+      setter: step.signature.slice(0, step.signature.indexOf("(")),
+    }));
+
+    // Whole ordered tuples, not name presence: an earlier revision only checked that each setter
+    // name appeared somewhere in the library, so swapping a step's setter for another step's
+    // still passed and the dry run could advertise a call the broadcast never makes.
+    expect(solidity).toEqual(planned);
   });
 
   it("keeps the ordering constraints that make the sequence non-reorderable", () => {

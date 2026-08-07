@@ -130,6 +130,45 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
     ///      revision of this file hand-deployed proxies with `new ERC1967Proxy`, so it proved
     ///      nothing about the script an operator actually runs — the gap that let a plain-CREATE,
     ///      non-recoverable deploy reach review.
+    /// @notice The salts are exactly the declared namespace, version, and labels.
+    /// @dev Pinned rather than recomputed. A test that derives the expected salt the same way the
+    ///      target does proves only internal consistency: dropping `DEPLOY_VERSION` from the
+    ///      preimage would still deploy and still self-agree, moving the release identity silently.
+    ///      These constants are what make that change loud. If this test fails, the address pair
+    ///      moved — update the runbook deliberately, do not update the constants to match.
+    function testDeploymentSaltsArePinnedToTheDeclaredNamespaceAndVersion() public {
+        (bytes32 implSalt, bytes32 proxySalt) = new DeployTestimonyResolver().deploymentSalts();
+
+        assertEq(
+            implSalt,
+            keccak256(abi.encodePacked("green-goods:testimony-resolver", "v1", "TestimonyResolverImpl")),
+            "implementation salt moved"
+        );
+        assertEq(
+            proxySalt,
+            keccak256(abi.encodePacked("green-goods:testimony-resolver", "v1", "TestimonyResolverProxy")),
+            "proxy salt moved"
+        );
+        assertTrue(implSalt != proxySalt, "the two deployments must not share a salt");
+    }
+
+    /// @notice The predicted pair does not move when the shared deploy salt is set.
+    /// @dev The recovery property is worthless if an operator's shell can change the address. An
+    ///      earlier revision derived the salt from `getDeploymentDefaults()`, which honours
+    ///      `DEPLOYMENT_SALT`, so retrying from a clean environment would have predicted a
+    ///      different pair and deployed a second implementation and proxy over an already-mined run.
+    function testPredictedAddressesIgnoreTheAmbientDeploymentSalt() public {
+        DeployTestimonyResolver deployer = new DeployTestimonyResolver();
+        address owner = assessmentResolver.owner();
+        (address baselineImpl, address baselineProxy) = deployer.predictAddresses(_easAddress(), owner);
+
+        vm.setEnv("DEPLOYMENT_SALT", "some-other-release-salt");
+        (address impl, address proxy) = deployer.predictAddresses(_easAddress(), owner);
+
+        assertEq(impl, baselineImpl, "implementation address moved with the ambient salt");
+        assertEq(proxy, baselineProxy, "proxy address moved with the ambient salt");
+    }
+
     function testDeployTargetPredictsTheAddressesItDeploys() public {
         DeployTestimonyResolver deployer = new DeployTestimonyResolver();
         address owner = assessmentResolver.owner();

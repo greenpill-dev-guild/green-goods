@@ -153,13 +153,26 @@ export class PoolingConfigureDeployer {
    * defeated the point of the check. A dry run degrades to a printed note instead, because its
    * whole job is to be usable before a signer exists.
    *
-   * `ConfigurePooling.s.sol` re-proves ownership on chain in the same transaction context before
-   * its first write, so this is a readable early failure, not the authority.
+   * `ConfigurePooling.s.sol` re-proves ownership on chain before its first write, so this is a
+   * readable early failure rather than the authority. Note that neither check is atomic with the
+   * setters: forge submits each as its own transaction, so both prove ownership at simulation
+   * time. Ownership moving mid-broadcast can still split configuration across owners, and only a
+   * runbook freeze or an owner-side atomic executor closes that.
    *
    * Skipped when nothing would be written, so a confirmatory re-run does not demand a sender.
    */
   private assertSingleOwner(options: ParsedOptions, plan: PoolingConfigurationStep[]): void {
     if (plan.every((step) => step.action === "satisfied")) return;
+
+    // `--pure-simulation` promises no RPC calls at all, and `readLiveState` already honours it.
+    // Reaching for `owner()` here anyway would break that contract for an air-gapped preflight —
+    // and quietly, since the failure is a timeout rather than an error. A broadcast never takes
+    // this branch: `--pure-simulation` is a dry-run flag, and the check below still fails closed.
+    if (options.pureSimulation && !options.broadcast) {
+      console.log("\nOwner preflight skipped: --pure-simulation makes no RPC calls.");
+      console.log("Re-run without it, with --sender, before broadcasting.");
+      return;
+    }
 
     let rpcUrl: string;
     try {

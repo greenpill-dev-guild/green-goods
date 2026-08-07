@@ -3,6 +3,8 @@ pragma solidity ^0.8.25;
 /* solhint-disable no-console */
 
 import { Script } from "forge-std/Script.sol";
+
+import { NetworkSelectors } from "./lib/NetworkSelectors.sol";
 import { console } from "forge-std/console.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
@@ -149,17 +151,7 @@ abstract contract DeployHelper is Script {
             // NameWrapper not configured - defaults to address(0) (unwrapped names)
         }
 
-        // Stored as a base-10 STRING, never a JSON number: CCIP selectors exceed JavaScript's
-        // safe-integer range, so any TypeScript consumer doing a plain `JSON.parse` would silently
-        // round the value (Arbitrum's loses 68). Solidity would read a number correctly, which is
-        // exactly why the corruption stayed invisible here.
-        // solhint-disable-next-line no-empty-blocks
-        try vm.parseJson(json, string.concat(basePath, ".ccipChainSelector")) returns (bytes memory data) {
-            config.ccipChainSelector = uint64(vm.parseUint(abi.decode(data, (string))));
-            // solhint-disable-next-line no-empty-blocks
-        } catch {
-            // CCIP chain selector not configured - defaults to 0
-        }
+        config.ccipChainSelector = NetworkSelectors.readCcipChainSelector(json, basePath);
 
         // Get deployment defaults
         config.safe = json.readAddress(".deploymentDefaults.safe");

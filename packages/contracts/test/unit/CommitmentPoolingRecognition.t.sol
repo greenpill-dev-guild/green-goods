@@ -157,6 +157,46 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         assertEq(module.validateRecognitionSnapshot(commitmentId, entries, expected), expected);
     }
 
+    // ──────────────── Defense in depth: incoherent aggregate credits ────────────────
+
+    /// @notice The total-allocation guard rejects a vector whose every row is individually correct.
+    /// @dev Recorded because a review round wrongly called this guard redundant. It is redundant
+    ///      only while `totalVerifiedCredits == sum(per-contributor credits)` — an invariant
+    ///      maintained *outside* this function, by the credit and roster paths. The moment those
+    ///      diverge, every per-row equality still passes and the vector silently under-allocates:
+    ///      three one-credit contributors against a stored aggregate of 5 recompute to
+    ///      2268 / 2268 / 2267, which totals 6,803. Only the final `total != 10_000` check catches
+    ///      that, so it is load-bearing against upgrade, migration, or accounting drift.
+    ///
+    ///      `invariant_contributorCreditTotalsAgreeWithRecords` is the other half of the pair: it
+    ///      proves no *public* path can produce the divergence this test injects directly.
+    function testRejectsACoherentVectorOverAnIncoherentCreditAggregate() public {
+        uint256 commitmentId = _fulfilledEvidenceCommitment(keccak256("recognition-aggregate-drift"), 0);
+        assertEq(module.getCommitment(commitmentId).totalVerifiedCredits, 3, "three one-credit contributors");
+
+        _corruptTotalVerifiedCredits(commitmentId, 5);
+
+        // The vector below is exactly what the module recomputes under the corrupted aggregate, so
+        // every per-row equality passes and the total guard is the only thing left to reject it.
+        ICommitmentPoolingModule.RecognitionEntry[] memory entries = _entries([uint16(2268), 2268, 2267]);
+        vm.expectRevert(ICommitmentPoolingModule.InvalidAllocation.selector);
+        module.validateRecognitionSnapshot(commitmentId, entries, _hash(commitmentId, entries));
+    }
+
+    /// @dev `commitments` is slot 169; `totalVerifiedCredits` is struct slot 13 at byte offset 8,
+    ///      packed beside the two contributor counters. Read back through the public getter so a
+    ///      storage-layout change makes this test fail loudly rather than silently corrupt nothing.
+    function _corruptTotalVerifiedCredits(uint256 commitmentId, uint64 value) private {
+        bytes32 slot = bytes32(uint256(keccak256(abi.encode(commitmentId, uint256(169)))) + 13);
+        uint256 word = uint256(vm.load(address(module), slot));
+        uint256 mask = uint256(type(uint64).max) << 64;
+        vm.store(address(module), slot, bytes32((word & ~mask) | (uint256(value) << 64)));
+
+        ICommitmentPoolingModule.Commitment memory commitment = module.getCommitment(commitmentId);
+        assertEq(commitment.totalVerifiedCredits, value, "storage layout moved; this test wrote the wrong slot");
+        assertEq(commitment.eligibleContributorCount, 3, "neighbouring packed field was clobbered");
+    }
+
     // ───────────────────────────── Helpers ─────────────────────────────
 
     function _hash(

@@ -279,6 +279,45 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     ///      every call silently reverted in its try/catch would satisfy all seven properties
     ///      vacuously, which is the classic way an invariant suite reports green while testing
     ///      nothing.
+    /// @notice A cycle-scoped commitment that expires and is then disputed leaves both counters
+    ///         consistent — deterministically, not when the fuzzer happens to find it.
+    /// @dev This is the exact four-call episode a review's shrinker produced. Relying on the
+    ///      campaign to rediscover it was seed-dependent: removing the cycle re-increment in
+    ///      `CommitmentPoolingTerminal` survived one 16x96 run and was caught by the next. A known
+    ///      counter defect must not depend on the seed, so the sequence is pinned here and the
+    ///      campaign is left to find the episodes nobody wrote down.
+    ///
+    ///      `raiseDispute` decremented the counters on expiry and re-increments them here, so a
+    ///      Disputed commitment holds its cycle open and the resolution decrements exactly once. If
+    ///      that pairing were off, the cycle could never reach the zero that closing requires.
+    function testCycleScopedExpiryThenDisputeKeepsBothCountersConsistent() public {
+        handler.createCommitment(0, 0, 3, 5, true);
+        assertEq(handler.cycleScopedCount(), 1, "the commitment must be cycle-scoped");
+        uint256 commitmentId = handler.commitmentAt(0);
+
+        handler.claimCommitment(0, 1);
+        assertEq(module.getPool(poolId).liveCommitmentCount, 1, "an accepted commitment is live");
+        assertEq(module.getCycle(invariantCycleId).liveCommitmentCount, 1, "and live in its cycle");
+
+        handler.expireCommitment(0, 1, 9);
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.Expired),
+            "the commitment must actually expire"
+        );
+        assertEq(module.getPool(poolId).liveCommitmentCount, 0, "expiry decrements the pool counter");
+        assertEq(module.getCycle(invariantCycleId).liveCommitmentCount, 0, "expiry decrements the cycle counter");
+
+        handler.raiseDispute(0, 0);
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.Disputed),
+            "the expired commitment must actually be disputed"
+        );
+        assertEq(module.getPool(poolId).liveCommitmentCount, 1, "a dispute re-opens the pool counter");
+        assertEq(module.getCycle(invariantCycleId).liveCommitmentCount, 1, "a dispute re-opens the cycle counter");
+    }
+
     function testHandlerReachesEveryStateTheInvariantsCover() public {
         // Offer by actor 0, claimed by actor 1, two approvals to meet requiredCount, then confirm.
         handler.createCommitment(0, 0, 3, 5, false);
