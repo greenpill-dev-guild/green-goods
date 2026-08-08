@@ -117,6 +117,10 @@ jobs:
         working-directory: packages/contracts
         run: bun run build
 
+      - name: Check deployed bytecode sizes (EIP-170)
+        working-directory: packages/contracts
+        run: bun run check:sizes
+
   realism-audit:
     name: Test Realism Audit
     if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'

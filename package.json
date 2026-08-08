@@ -131,6 +131,7 @@
     "build:shared": "cd packages/shared && bun run build",
     "build:indexer": "cd packages/indexer && bun run build",
     "build:contracts": "cd packages/contracts && bun run build",
+    "check:contract-sizes": "bun run --cwd packages/contracts check:sizes",
     "check:contracts-storage-layout:hats-module": "bun run --cwd packages/contracts check:storage-layout:hats-module",
     "sourcemaps": "APP_ENV=production node scripts/ops/upload-sourcemaps.js --env production",
     "sourcemaps:dry-run": "APP_ENV=staging node scripts/ops/upload-sourcemaps.js --env staging --dry-run",
