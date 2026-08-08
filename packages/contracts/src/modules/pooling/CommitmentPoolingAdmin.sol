@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IEAS, Attestation } from "@eas/IEAS.sol";
+import { IEAS } from "@eas/IEAS.sol";
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
+import { CommitmentPoolingPoolsLib } from "../../lib/pooling/CommitmentPoolingPoolsLib.sol";
+import { CommitmentPoolingViewsLib } from "../../lib/pooling/CommitmentPoolingViewsLib.sol";
 import { ActionRegistry } from "../../registries/Action.sol";
-import { CommitmentPoolingCredit, IWorkDecisionSequenceResolver } from "./CommitmentPoolingCredit.sol";
+import { CommitmentPoolingBase } from "./CommitmentPoolingBase.sol";
 
-/// @title CommitmentPoolingConfig
-/// @notice Frozen bounds, dependency wiring, schema UIDs, and pause control.
-abstract contract CommitmentPoolingConfig is CommitmentPoolingCredit {
+/// @title CommitmentPoolingAdmin
+/// @notice The administrative surface: frozen bounds, dependency wiring, schema UIDs, pause
+///         control, and the pool registration/state lifecycle.
+/// @dev Config setters are deliberately NOT library-extracted: they are value-typed state writes
+///      libraries cannot perform, and measurement showed the boundary codecs cost more bytecode
+///      than the tiny validation bodies save (+160 bytes net). Pool behavior lives in the
+///      deployed `CommitmentPoolingPoolsLib`; the shells own the pool counter increment and the
+///      protocol-pool scalar write. ABI, events, and reverts are unchanged.
+abstract contract CommitmentPoolingAdmin is CommitmentPoolingBase {
+    // ═════════════════════════════ Config ═════════════════════════════
+
     function MAX_CONFIRMERS() external pure returns (uint256) {
         return MAX_CONFIRMERS_VALUE;
     }
@@ -165,5 +175,95 @@ abstract contract CommitmentPoolingConfig is CommitmentPoolingCredit {
         bool previous = paused;
         paused = paused_;
         emit ICommitmentPoolingModule.ModulePauseStatusChanged(previous, paused_);
+    }
+
+    // ═════════════════════════════ Pools ═════════════════════════════
+
+    function onGardenMinted(address garden) external whenOperational returns (uint256 poolId) {
+        poolId = CommitmentPoolingPoolsLib.onGardenMinted(gardenPool, pools, nextPoolId, gardenToken, garden);
+        if (poolId == nextPoolId) nextPoolId = poolId + 1;
+    }
+
+    function registerPool(
+        address garden,
+        ICommitmentPoolingModule.PoolType poolType
+    )
+        external
+        whenOperational
+        returns (uint256 poolId)
+    {
+        poolId = CommitmentPoolingPoolsLib.registerPool(_env(), gardenPool, pools, nextPoolId, rootGarden, garden, poolType);
+        if (poolId == nextPoolId) nextPoolId = poolId + 1;
+        if (poolType == ICommitmentPoolingModule.PoolType.Protocol) protocolPoolId = poolId;
+    }
+
+    function setPoolCharter(uint256 poolId, string calldata charterCID) external whenOperational {
+        CommitmentPoolingPoolsLib.setPoolCharter(_env(), pools, poolId, charterCID);
+    }
+
+    function markPoolReady(uint256 poolId) external whenOperational {
+        CommitmentPoolingPoolsLib.markPoolReady(_env(), pools, poolId);
+    }
+
+    function openPool(uint256 poolId) external whenOperational {
+        CommitmentPoolingPoolsLib.openPool(_env(), pools, poolId);
+    }
+
+    function pausePool(uint256 poolId, string calldata reasonCID) external {
+        CommitmentPoolingPoolsLib.pausePool(_env(), pools, poolId, reasonCID);
+    }
+
+    function resumePool(uint256 poolId) external whenOperational {
+        CommitmentPoolingPoolsLib.resumePool(_env(), pools, poolId);
+    }
+
+    function closePool(uint256 poolId) external {
+        CommitmentPoolingPoolsLib.closePool(_env(), pools, poolId);
+    }
+
+    function compostPool(uint256 poolId) external {
+        CommitmentPoolingPoolsLib.compostPool(_env(), pools, poolId);
+    }
+
+    function reopenPool(uint256 poolId, bool toOpen) external whenOperational {
+        CommitmentPoolingPoolsLib.reopenPool(_env(), pools, poolId, toOpen);
+    }
+
+    function setProviderOpenCommitmentCap(uint256 poolId, uint256 cap) external whenOperational {
+        CommitmentPoolingPoolsLib.setProviderOpenCommitmentCap(_env(), pools, poolId, cap);
+    }
+
+    function getPool(uint256 poolId) external view returns (ICommitmentPoolingModule.Pool memory) {
+        uint256 slot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            slot := pools.slot
+        }
+        _forwardView(abi.encodeWithSelector(CommitmentPoolingViewsLib.getPool.selector, slot, poolId));
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            revert(0, 0)
+        } // unreachable
+    }
+
+    function getPoolByGarden(address garden)
+        external
+        view
+        returns (uint256 poolId, ICommitmentPoolingModule.Pool memory pool)
+    {
+        uint256 gardenPoolSlot;
+        uint256 poolsSlot;
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            gardenPoolSlot := gardenPool.slot
+            poolsSlot := pools.slot
+        }
+        _forwardView(
+            abi.encodeWithSelector(CommitmentPoolingViewsLib.getPoolByGarden.selector, gardenPoolSlot, poolsSlot, garden)
+        );
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            revert(0, 0)
+        } // unreachable
     }
 }

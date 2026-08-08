@@ -2,16 +2,24 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingExchange } from "./CommitmentPoolingExchange.sol";
+import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCreditLib } from "./CommitmentPoolingCreditLib.sol";
+import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
 
-/// @title CommitmentPoolingRecognition
-/// @notice The canonical recognition validator shared by settlement and Hypercert composition.
+/// @title CommitmentPoolingRecognitionLib
+/// @notice Deployed behavior library: the canonical recognition validator shared by settlement and
+///         Hypercert composition.
 /// @dev The module cannot enumerate contributors, so completeness is proved by requiring exactly
 ///      `eligibleContributorCount` strictly ascending eligible rows. Everything else — policy,
 ///      credits, weights, remainders — is recomputed here from on-chain records, so a
 ///      self-consistent caller-supplied vector is never authority for anything.
-abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
+///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
+library CommitmentPoolingRecognitionLib {
     function validateRecognitionSnapshot(
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
+            storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.RecognitionEntry[] calldata entries,
         bytes32 suppliedHash
@@ -20,7 +28,8 @@ abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
         view
         returns (bytes32 canonicalHash)
     {
-        ICommitmentPoolingModule.Commitment storage commitment = _requireCommitment(commitmentId);
+        ICommitmentPoolingModule.Commitment storage commitment =
+            CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
         if (commitment.state != ICommitmentPoolingModule.CommitmentState.Fulfilled) {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }
@@ -31,8 +40,8 @@ abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
         }
         if (entries.length != commitment.eligibleContributorCount) revert ICommitmentPoolingModule.InvalidAllocation();
 
-        uint256[] memory credits = _readCanonicalCredits(commitmentId, commitment, entries);
-        _assertCanonicalWeights(entries, credits, commitment.totalVerifiedCredits, _recognitionPolicyOf(commitment));
+        uint256[] memory credits = _readCanonicalCredits(contributors, commitmentId, commitment, entries);
+        _assertCanonicalWeights(entries, credits, commitment.totalVerifiedCredits, _recognitionPolicyOf(cycles, commitment));
 
         // Every field of `entries` is now proven equal to the recomputed vector, so hashing the
         // supplied array and hashing a rebuilt one are the same bytes.
@@ -44,20 +53,26 @@ abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
 
     /// @dev A cycle-scoped commitment uses the policy snapshotted at its cycle's open; a
     ///      cycle-less one uses the immutable protocol preset.
-    function _recognitionPolicyOf(ICommitmentPoolingModule.Commitment storage commitment)
+    function _recognitionPolicyOf(
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        ICommitmentPoolingModule.Commitment storage commitment
+    )
         private
         view
         returns (ICommitmentPoolingModule.RecognitionPolicy memory policy)
     {
         if (commitment.cycleId == 0) {
             return ICommitmentPoolingModule.RecognitionPolicy({
-                equalParticipationBps: CYCLELESS_EQUAL_PARTICIPATION_BPS,
-                verifiedContributionBps: CYCLELESS_VERIFIED_CONTRIBUTION_BPS
+                equalParticipationBps: CommitmentPoolingCommonLib.CYCLELESS_EQUAL_PARTICIPATION_BPS,
+                verifiedContributionBps: CommitmentPoolingCommonLib.CYCLELESS_VERIFIED_CONTRIBUTION_BPS
             });
         }
         policy = cycles[commitment.cycleId].recognitionPolicy;
         // A cycle that never opened carries no snapshot, so there is no policy to recompute from.
-        if (uint256(policy.equalParticipationBps) + policy.verifiedContributionBps != TOTAL_ALLOCATION_BPS) {
+        if (
+            uint256(policy.equalParticipationBps) + policy.verifiedContributionBps
+                != CommitmentPoolingCommonLib.TOTAL_ALLOCATION_BPS
+        ) {
             revert ICommitmentPoolingModule.RecognitionPolicyUnavailable(commitment.cycleId);
         }
     }
@@ -65,6 +80,8 @@ abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
     /// @dev Proves the canonical sort and per-row eligibility, and reads each row's credit total.
     ///      Strictly ascending is what rejects both an out-of-order row and a duplicate.
     function _readCanonicalCredits(
+        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
+            storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment,
         ICommitmentPoolingModule.RecognitionEntry[] calldata entries
@@ -78,7 +95,7 @@ abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
         for (uint256 i = 0; i < entries.length; i++) {
             address contributor = entries[i].contributor;
             if (contributor <= previous) revert ICommitmentPoolingModule.InvalidAllocation();
-            if (!_isEligibleContributor(commitmentId, commitment, contributor)) {
+            if (!CommitmentPoolingCreditLib.isEligibleContributor(contributors, commitmentId, commitment, contributor)) {
                 revert ICommitmentPoolingModule.NotEligibleContributor(contributor);
             }
             ICommitmentPoolingModule.ContributorRecord storage record = contributors[commitmentId][contributor];
@@ -124,7 +141,9 @@ abstract contract CommitmentPoolingRecognition is CommitmentPoolingExchange {
             if (entries[i].recognitionWeightBps != weight) revert ICommitmentPoolingModule.InvalidAllocation();
             total += weight;
         }
-        if (total != TOTAL_ALLOCATION_BPS) revert ICommitmentPoolingModule.InvalidAllocation();
+        if (total != CommitmentPoolingCommonLib.TOTAL_ALLOCATION_BPS) {
+            revert ICommitmentPoolingModule.InvalidAllocation();
+        }
     }
 
     /// @dev Position of row `index` ordered by descending numerator remainder. Rows already sit in

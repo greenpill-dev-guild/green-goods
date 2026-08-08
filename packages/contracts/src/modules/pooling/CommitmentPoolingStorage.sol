@@ -9,32 +9,36 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
+import { CommitmentPoolingCommonLib } from "../../lib/pooling/CommitmentPoolingCommonLib.sol";
 import { ActionRegistry } from "../../registries/Action.sol";
-
-interface IWorkDecisionSequenceResolver {
-    function latestDecisionSequence(bytes32 workUID) external view returns (uint64);
-    function decisionSequenceByUID(bytes32 decisionUID) external view returns (uint64);
-}
 
 /// @title CommitmentPoolingStorage
 /// @notice Sole storage declaration for the Commitment Pooling control plane.
-/// @dev Every behavior contract in this directory inherits this base and declares NO storage of
-///      its own, so the layout stays byte-identical regardless of how the behavior is split.
+/// @dev Every chain contract in this directory inherits this base and declares NO storage of
+///      its own, and the deployed behavior libraries under `src/lib/pooling/` hold none either,
+///      so the layout stays byte-identical regardless of how behavior is organized.
 ///      The three upgradeable bases below must keep this exact order — the frozen layout baseline
 ///      assigns their slots before this contract's own entries.
 abstract contract CommitmentPoolingStorage is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
-    // Frozen by the PRD-721 8/16/24/32/40 production-path benchmark on 2026-08-05.
-    uint256 internal constant MAX_CONFIRMERS_VALUE = 40;
-    uint256 internal constant MAX_REQUIREMENTS_VALUE = 40;
-    uint256 internal constant MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT_VALUE = 40;
-    uint256 internal constant MAX_CONTRIBUTORS_PER_COMMITMENT_VALUE = 40;
-    uint256 internal constant MAX_LINKED_WORKS_PER_COMMITMENT_VALUE = 40;
+    // Frozen by the PRD-721 8/16/24/32/40 production-path benchmark on 2026-08-05. The values
+    // live in CommitmentPoolingCommonLib so the deployed behavior libraries share them; these
+    // aliases keep every module-side reference and the MAX_*() ABI getters compiling unchanged.
+    uint256 internal constant MAX_CONFIRMERS_VALUE = CommitmentPoolingCommonLib.MAX_CONFIRMERS;
+    uint256 internal constant MAX_REQUIREMENTS_VALUE = CommitmentPoolingCommonLib.MAX_REQUIREMENTS;
+    uint256 internal constant MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT_VALUE =
+        CommitmentPoolingCommonLib.MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT;
+    uint256 internal constant MAX_CONTRIBUTORS_PER_COMMITMENT_VALUE =
+        CommitmentPoolingCommonLib.MAX_CONTRIBUTORS_PER_COMMITMENT;
+    uint256 internal constant MAX_LINKED_WORKS_PER_COMMITMENT_VALUE =
+        CommitmentPoolingCommonLib.MAX_LINKED_WORKS_PER_COMMITMENT;
 
     /// @dev Every allocation and recognition vector is denominated in these basis points, and the
     ///      cycle-less preset is the immutable protocol policy for a commitment with no cycle.
-    uint256 internal constant TOTAL_ALLOCATION_BPS = 10_000;
-    uint16 internal constant CYCLELESS_EQUAL_PARTICIPATION_BPS = 2000;
-    uint16 internal constant CYCLELESS_VERIFIED_CONTRIBUTION_BPS = 8000;
+    uint256 internal constant TOTAL_ALLOCATION_BPS = CommitmentPoolingCommonLib.TOTAL_ALLOCATION_BPS;
+    uint16 internal constant CYCLELESS_EQUAL_PARTICIPATION_BPS =
+        CommitmentPoolingCommonLib.CYCLELESS_EQUAL_PARTICIPATION_BPS;
+    uint16 internal constant CYCLELESS_VERIFIED_CONTRIBUTION_BPS =
+        CommitmentPoolingCommonLib.CYCLELESS_VERIFIED_CONTRIBUTION_BPS;
 
     // ═════════════════════════════════ Storage ═════════════════════════════════
 

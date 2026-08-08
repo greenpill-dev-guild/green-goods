@@ -2,14 +2,22 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingTerminal } from "./CommitmentPoolingTerminal.sol";
+import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
 
-/// @title CommitmentPoolingCycles
-/// @notice Cycle seeding, opening, reconciliation, composting, and cancellation.
+/// @title CommitmentPoolingCyclesLib
+/// @notice Deployed behavior library: cycle seeding, opening, reconciliation, composting, and
+///         cancellation.
 /// @dev A pool may hold one open Season and any number of open Campaigns. `Pool.openSeasonCycleId`
-///      is the bounded O(1) Season guard; no function here enumerates cycles.
-abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
+///      is the bounded O(1) Season guard; no function here enumerates cycles. The cycle counter
+///      arrives by value — the shell increments it exactly when a fresh id is returned.
+///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
+library CommitmentPoolingCyclesLib {
     function seedCycle(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        uint256 nextCycleIdValue,
         uint256 poolId,
         ICommitmentPoolingModule.CycleType cycleType,
         uint64 startTime,
@@ -17,18 +25,17 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
         string calldata metadataCID
     )
         external
-        whenOperational
         returns (uint256 cycleId)
     {
-        ICommitmentPoolingModule.Pool storage pool = _requirePool(poolId);
+        ICommitmentPoolingModule.Pool storage pool = CommitmentPoolingGuardLib.requirePool(pools, poolId);
         if (pool.state != ICommitmentPoolingModule.PoolState.Ready && pool.state != ICommitmentPoolingModule.PoolState.Open)
         {
             revert ICommitmentPoolingModule.PoolNotInState(poolId, pool.state);
         }
-        _requirePoolSteward(poolId, pool);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, poolId, pool);
         if (endTime <= startTime) revert ICommitmentPoolingModule.InvalidTimeWindow(startTime, endTime);
 
-        cycleId = nextCycleId++;
+        cycleId = nextCycleIdValue;
         ICommitmentPoolingModule.Cycle storage cycle = cycles[cycleId];
         cycle.poolId = poolId;
         cycle.cycleType = cycleType;
@@ -42,25 +49,29 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
     }
 
     function openCycle(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         uint256 cycleId,
         ICommitmentPoolingModule.AllocationBps calldata allocation,
         ICommitmentPoolingModule.RecognitionPolicy calldata recognitionPolicy
     )
         external
-        whenOperational
     {
         ICommitmentPoolingModule.Cycle storage cycle =
-            _requireCycleInState(cycleId, ICommitmentPoolingModule.CycleState.Seeded);
-        ICommitmentPoolingModule.Pool storage pool = _requirePool(cycle.poolId);
-        _requirePoolState(cycle.poolId, pool, ICommitmentPoolingModule.PoolState.Open);
-        _requirePoolSteward(cycle.poolId, pool);
+            _requireCycleInState(cycles, cycleId, ICommitmentPoolingModule.CycleState.Seeded);
+        ICommitmentPoolingModule.Pool storage pool = CommitmentPoolingGuardLib.requirePool(pools, cycle.poolId);
+        CommitmentPoolingGuardLib.requirePoolState(cycle.poolId, pool, ICommitmentPoolingModule.PoolState.Open);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, cycle.poolId, pool);
 
         uint256 allocationSum = uint256(allocation.gardeners) + allocation.treasury + allocation.operator
             + allocation.evaluator + allocation.community + allocation.funder;
-        if (allocationSum != TOTAL_ALLOCATION_BPS) revert ICommitmentPoolingModule.InvalidAllocation();
+        if (allocationSum != CommitmentPoolingCommonLib.TOTAL_ALLOCATION_BPS) {
+            revert ICommitmentPoolingModule.InvalidAllocation();
+        }
         if (
             uint256(recognitionPolicy.equalParticipationBps) + recognitionPolicy.verifiedContributionBps
-                != TOTAL_ALLOCATION_BPS
+                != CommitmentPoolingCommonLib.TOTAL_ALLOCATION_BPS
         ) revert ICommitmentPoolingModule.InvalidAllocation();
 
         if (cycle.cycleType == ICommitmentPoolingModule.CycleType.Season) {
@@ -90,11 +101,18 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
     }
 
     /// @notice The reconcile act. Locks the fulfilled set before any certificate can mint.
-    function closeCycle(uint256 cycleId) external whenOperational {
+    function closeCycle(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        uint256 cycleId
+    )
+        external
+    {
         ICommitmentPoolingModule.Cycle storage cycle =
-            _requireCycleInState(cycleId, ICommitmentPoolingModule.CycleState.Open);
-        ICommitmentPoolingModule.Pool storage pool = _requirePool(cycle.poolId);
-        _requirePoolSteward(cycle.poolId, pool);
+            _requireCycleInState(cycles, cycleId, ICommitmentPoolingModule.CycleState.Open);
+        ICommitmentPoolingModule.Pool storage pool = CommitmentPoolingGuardLib.requirePool(pools, cycle.poolId);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, cycle.poolId, pool);
         if (cycle.liveCommitmentCount != 0) {
             revert ICommitmentPoolingModule.CycleHasLiveCommitments(cycleId, cycle.liveCommitmentCount);
         }
@@ -104,25 +122,40 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
         emit ICommitmentPoolingModule.CycleClosed(cycleId, cycle.poolId);
     }
 
-    function compostCycle(uint256 cycleId) external whenOperational {
+    function compostCycle(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        uint256 cycleId
+    )
+        external
+    {
         ICommitmentPoolingModule.Cycle storage cycle =
-            _requireCycleInState(cycleId, ICommitmentPoolingModule.CycleState.Reconciled);
-        ICommitmentPoolingModule.Pool storage pool = _requirePool(cycle.poolId);
-        _requirePoolSteward(cycle.poolId, pool);
+            _requireCycleInState(cycles, cycleId, ICommitmentPoolingModule.CycleState.Reconciled);
+        ICommitmentPoolingModule.Pool storage pool = CommitmentPoolingGuardLib.requirePool(pools, cycle.poolId);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, cycle.poolId, pool);
 
         cycle.state = ICommitmentPoolingModule.CycleState.Composted;
         pool.nonTerminalCycleCount--;
         emit ICommitmentPoolingModule.CycleComposted(cycleId, cycle.poolId);
     }
 
-    function cancelCycle(uint256 cycleId, string calldata reasonCID) external whenOperational {
-        ICommitmentPoolingModule.Cycle storage cycle = _requireCycle(cycleId);
+    function cancelCycle(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        uint256 cycleId,
+        string calldata reasonCID
+    )
+        external
+    {
+        ICommitmentPoolingModule.Cycle storage cycle = requireCycle(cycles, cycleId);
         if (
             cycle.state != ICommitmentPoolingModule.CycleState.Seeded
                 && cycle.state != ICommitmentPoolingModule.CycleState.Open
         ) revert ICommitmentPoolingModule.CycleNotInState(cycleId, cycle.state);
-        ICommitmentPoolingModule.Pool storage pool = _requirePool(cycle.poolId);
-        _requirePoolSteward(cycle.poolId, pool);
+        ICommitmentPoolingModule.Pool storage pool = CommitmentPoolingGuardLib.requirePool(pools, cycle.poolId);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, cycle.poolId, pool);
         if (bytes(reasonCID).length == 0) revert ICommitmentPoolingModule.ReasonRequired();
         if (cycle.liveCommitmentCount != 0) {
             revert ICommitmentPoolingModule.CycleHasLiveCommitments(cycleId, cycle.liveCommitmentCount);
@@ -134,8 +167,18 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
         emit ICommitmentPoolingModule.CycleCancelled(cycleId, cycle.poolId, reasonCID);
     }
 
-    function getCycle(uint256 cycleId) external view returns (ICommitmentPoolingModule.Cycle memory) {
-        return _requireCycle(cycleId);
+    function requireCycle(
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        uint256 cycleId
+    )
+        internal
+        view
+        returns (ICommitmentPoolingModule.Cycle storage cycle)
+    {
+        cycle = cycles[cycleId];
+        if (cycle.state == ICommitmentPoolingModule.CycleState.None) {
+            revert ICommitmentPoolingModule.UnknownCycle(cycleId);
+        }
     }
 
     // ═════════════════════════════ Internal ═════════════════════════════
@@ -154,14 +197,8 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
         if (pool.openSeasonCycleId == cycleId) pool.openSeasonCycleId = 0;
     }
 
-    function _requireCycle(uint256 cycleId) internal view returns (ICommitmentPoolingModule.Cycle storage cycle) {
-        cycle = cycles[cycleId];
-        if (cycle.state == ICommitmentPoolingModule.CycleState.None) {
-            revert ICommitmentPoolingModule.UnknownCycle(cycleId);
-        }
-    }
-
     function _requireCycleInState(
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         uint256 cycleId,
         ICommitmentPoolingModule.CycleState expected
     )
@@ -169,7 +206,7 @@ abstract contract CommitmentPoolingCycles is CommitmentPoolingTerminal {
         view
         returns (ICommitmentPoolingModule.Cycle storage cycle)
     {
-        cycle = _requireCycle(cycleId);
+        cycle = requireCycle(cycles, cycleId);
         if (cycle.state != expected) revert ICommitmentPoolingModule.CycleNotInState(cycleId, cycle.state);
     }
 }

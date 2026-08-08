@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IEAS, Attestation } from "@eas/IEAS.sol";
-
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
-import { IHatsModule } from "../../interfaces/IHatsModule.sol";
-import { ActionRegistry } from "../../registries/Action.sol";
-import { CommitmentPoolingPools, IWorkDecisionSequenceResolver } from "./CommitmentPoolingPools.sol";
+import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
 
-/// @title CommitmentPoolingCreationValidation
-/// @notice Creation-time input validation and the frozen payload hash.
-abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools {
+/// @title CommitmentPoolingCreationChecksLib
+/// @notice Creation-time input validation and the frozen payload hash, shared by commitment
+///         creation, term edits, and exchange acceptance.
+/// @dev Internal-only: inlined into the deployed behavior libraries, never deployed itself.
+///      Semantics track `contract-spec.md` §6.1 exactly; the payload hash preimage is frozen.
+library CommitmentPoolingCreationChecksLib {
     // solhint-disable-next-line code-complexity
-    function _resolveCreator(
+    function resolveCreator(
+        CommitmentPoolingCommonLib.Env memory env,
         ICommitmentPoolingModule.CreateCommitmentParams calldata params,
         ICommitmentPoolingModule.Pool storage pool
     )
@@ -21,7 +21,8 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         view
         returns (address creator)
     {
-        bool steward = msg.sender == owner() || _isGardenSteward(pool.garden, msg.sender);
+        bool steward =
+            msg.sender == env.owner || CommitmentPoolingGuardLib.isGardenSteward(env.hats, pool.garden, msg.sender);
         if (pool.poolType == ICommitmentPoolingModule.PoolType.Protocol && !steward) {
             revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
         }
@@ -29,7 +30,7 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
             if (!steward) revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
             if (params.onBehalfOf == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
             creator = params.onBehalfOf;
-            if (!_isGardenMember(pool.garden, creator)) {
+            if (!CommitmentPoolingGuardLib.isGardenMember(env.hats, pool.garden, creator)) {
                 revert ICommitmentPoolingModule.NotEligibleContributor(creator);
             }
         } else {
@@ -37,16 +38,16 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
             creator = msg.sender;
             if (params.commitmentType == ICommitmentPoolingModule.CommitmentType.SeasonCampaign) {
                 if (!steward) revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
-            } else if (!_isGardenMember(pool.garden, creator)) {
+            } else if (!CommitmentPoolingGuardLib.isGardenMember(env.hats, pool.garden, creator)) {
                 revert ICommitmentPoolingModule.UnauthorizedCaller(msg.sender);
             }
         }
     }
 
-    function _validateCycleForCreation(
+    function validateCycleForCreation(
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         uint256 poolId,
-        uint256 cycleId,
-        ICommitmentPoolingModule.CommitmentType
+        uint256 cycleId
     )
         internal
         view
@@ -64,7 +65,8 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         }
     }
 
-    function _validateSeriesForCreation(
+    function validateSeriesForCreation(
+        mapping(uint256 seriesId => ICommitmentPoolingModule.CommitmentSeries series) storage commitmentSeries,
         ICommitmentPoolingModule.CreateCommitmentParams calldata params,
         address creator
     )
@@ -96,16 +98,19 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
     }
 
     // solhint-disable-next-line code-complexity
-    function _validateCounterCommitment(
+    function validateCounterCommitment(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         ICommitmentPoolingModule.CreateCommitmentParams calldata params,
-        address creator
+        address creator,
+        uint256 nextCommitmentIdValue
     )
         internal
         view
     {
         uint256 counterId = params.counterCommitmentId;
         if (counterId == 0) return;
-        if (counterId == nextCommitmentId) revert ICommitmentPoolingModule.SelfCounterCommitment();
+        if (counterId == nextCommitmentIdValue) revert ICommitmentPoolingModule.SelfCounterCommitment();
         ICommitmentPoolingModule.Commitment storage counter = commitments[counterId];
         if (counter.state == ICommitmentPoolingModule.CommitmentState.None) {
             revert ICommitmentPoolingModule.UnknownCounterCommitment(counterId);
@@ -127,14 +132,17 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
                 revert ICommitmentPoolingModule.ExchangeClaimTypeUnsupported(counterId, counter.claimType);
             }
             if (counter.creator == creator) revert ICommitmentPoolingModule.SelfExchange(creator);
-            if (commitmentRegistry.committedOf(counter.creator, counterId) != counter.targetUnits) {
+            if (env.registry.committedOf(counter.creator, counterId) != counter.targetUnits) {
                 revert ICommitmentPoolingModule.ExchangeStateInvalid(counterId, counter.state);
             }
         }
     }
 
     // solhint-disable-next-line code-complexity
-    function _validateAndBuildRequirements(ICommitmentPoolingModule.CreateCommitmentParams calldata params)
+    function validateAndBuildRequirements(
+        CommitmentPoolingCommonLib.Env memory env,
+        ICommitmentPoolingModule.CreateCommitmentParams calldata params
+    )
         internal
         view
         returns (
@@ -147,15 +155,15 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         uint256 length = params.requirements.length;
         if (params.commitmentType != ICommitmentPoolingModule.CommitmentType.DomainImpact) {
             if (length != 0) revert ICommitmentPoolingModule.InvalidDomains();
-            domains = _validateSubmittedDomains(params.domainTags);
+            domains = validateSubmittedDomains(params.domainTags);
             actionUIDs = new uint256[](0);
             requirementDomains = new uint8[](0);
             requiredCounts = new uint32[](0);
             return (domains, actionUIDs, requirementDomains, requiredCounts);
         }
         if (length == 0) revert ICommitmentPoolingModule.InvalidRequirementCount(0);
-        if (length > MAX_REQUIREMENTS_VALUE) {
-            revert ICommitmentPoolingModule.TooManyRequirements(length, MAX_REQUIREMENTS_VALUE);
+        if (length > CommitmentPoolingCommonLib.MAX_REQUIREMENTS) {
+            revert ICommitmentPoolingModule.TooManyRequirements(length, CommitmentPoolingCommonLib.MAX_REQUIREMENTS);
         }
 
         actionUIDs = new uint256[](length);
@@ -169,10 +177,10 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
             if (requirement.requiredCount == 0) {
                 revert ICommitmentPoolingModule.InvalidRequirementCount(i);
             }
-            if (actionRegistry.actionToOwner(requirement.actionUID) == address(0)) {
+            if (env.actionRegistry.actionToOwner(requirement.actionUID) == address(0)) {
                 revert ICommitmentPoolingModule.UnknownAction(requirement.actionUID);
             }
-            uint8 domain = uint8(actionRegistry.getAction(requirement.actionUID).domain);
+            uint8 domain = uint8(env.actionRegistry.getAction(requirement.actionUID).domain);
             if (!seenDomain[domain]) {
                 seenDomain[domain] = true;
                 uniqueDomainCount++;
@@ -182,8 +190,10 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
             requiredCounts[i] = requirement.requiredCount;
             totalRequired += requirement.requiredCount;
         }
-        if (totalRequired > MAX_LINKED_WORKS_PER_COMMITMENT_VALUE) {
-            revert ICommitmentPoolingModule.TooManyLinkedWorks(totalRequired, MAX_LINKED_WORKS_PER_COMMITMENT_VALUE);
+        if (totalRequired > CommitmentPoolingCommonLib.MAX_LINKED_WORKS_PER_COMMITMENT) {
+            revert ICommitmentPoolingModule.TooManyLinkedWorks(
+                totalRequired, CommitmentPoolingCommonLib.MAX_LINKED_WORKS_PER_COMMITMENT
+            );
         }
         domains = new uint8[](uniqueDomainCount);
         uint256 cursor;
@@ -192,7 +202,7 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         }
     }
 
-    function _validateSubmittedDomains(uint8[] calldata submitted) internal pure returns (uint8[] memory domains) {
+    function validateSubmittedDomains(uint8[] calldata submitted) internal pure returns (uint8[] memory domains) {
         domains = submitted;
         bool[4] memory seen;
         for (uint256 i = 0; i < submitted.length; i++) {
@@ -202,7 +212,7 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         }
     }
 
-    function _creationPayloadHash(
+    function creationPayloadHash(
         ICommitmentPoolingModule.CreateCommitmentParams calldata params,
         uint32 effectiveConfirmationThreshold
     )
@@ -240,7 +250,7 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         );
     }
 
-    function _validateReward(ICommitmentPoolingModule.DeclaredReward calldata reward) internal pure {
+    function validateReward(ICommitmentPoolingModule.DeclaredReward calldata reward) internal pure {
         if (reward.amount == 0) {
             if (
                 reward.rail != ICommitmentPoolingModule.RewardRail.None || reward.source != address(0)
@@ -259,25 +269,26 @@ abstract contract CommitmentPoolingCreationValidation is CommitmentPoolingPools 
         }
     }
 
-    function _validateDeclaredValue(uint256 value, string calldata basis) internal pure {
+    function validateDeclaredValue(uint256 value, string calldata basis) internal pure {
         if ((value == 0) != (bytes(basis).length == 0)) {
             revert ICommitmentPoolingModule.InvalidValueDeclaration();
         }
     }
 
-    function _validateConfirmerRule(
+    function validateConfirmerRule(
+        CommitmentPoolingCommonLib.Env memory env,
         address[] calldata namedConfirmers,
         uint32 threshold,
         bool protocolFallbackEnabled
     )
         internal
-        view
+        pure
     {
         uint256 length = namedConfirmers.length;
-        if (length > MAX_CONFIRMERS_VALUE) {
-            revert ICommitmentPoolingModule.TooManyConfirmers(length, MAX_CONFIRMERS_VALUE);
+        if (length > CommitmentPoolingCommonLib.MAX_CONFIRMERS) {
+            revert ICommitmentPoolingModule.TooManyConfirmers(length, CommitmentPoolingCommonLib.MAX_CONFIRMERS);
         }
         if (length != 0 && threshold == 0) revert ICommitmentPoolingModule.InvalidConfirmerRule();
-        if (protocolFallbackEnabled && protocolPoolId == 0) revert ICommitmentPoolingModule.ModuleNotReady();
+        if (protocolFallbackEnabled && env.protocolPoolId == 0) revert ICommitmentPoolingModule.ModuleNotReady();
     }
 }

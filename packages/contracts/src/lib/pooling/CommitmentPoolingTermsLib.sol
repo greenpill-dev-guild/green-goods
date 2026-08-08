@@ -2,23 +2,31 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingRoster } from "./CommitmentPoolingRoster.sol";
+import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCreationChecksLib } from "./CommitmentPoolingCreationChecksLib.sol";
+import { CommitmentPoolingCreditLib } from "./CommitmentPoolingCreditLib.sol";
+import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
 
-/// @title CommitmentPoolingTerms
-/// @notice Pre-acceptance term edits and the Arbitrum-rail reward record.
+/// @title CommitmentPoolingTermsLib
+/// @notice Deployed behavior library: pre-acceptance term edits and the Arbitrum-rail reward
+///         record.
 /// @dev Terms are steward-editable only while nobody has accepted them; once a counterparty is
 ///      bound, reward, valuation, and confirmer terms are the agreement and stop moving.
-abstract contract CommitmentPoolingTerms is CommitmentPoolingRoster {
+///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
+library CommitmentPoolingTermsLib {
     /// @notice Declared reward is a reference to a payment made elsewhere, never custody.
     function setDeclaredReward(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         uint256 commitmentId,
         ICommitmentPoolingModule.DeclaredReward calldata reward
     )
         external
-        whenOperational
     {
-        ICommitmentPoolingModule.Commitment storage commitment = _requireEditableTerms(commitmentId);
-        _validateReward(reward);
+        ICommitmentPoolingModule.Commitment storage commitment =
+            _requireEditableTerms(env, pools, commitments, commitmentId);
+        CommitmentPoolingCreationChecksLib.validateReward(reward);
 
         commitment.reward = reward;
         // Unlike creation, an explicit steward edit always emits: clearing a declared reward is
@@ -28,15 +36,18 @@ abstract contract CommitmentPoolingTerms is CommitmentPoolingRoster {
 
     /// @notice Records-only valuation term; no protocol arithmetic consumes it.
     function setDeclaredValue(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         uint256 commitmentId,
         uint256 declaredUnitValue,
         string calldata declaredValueBasis
     )
         external
-        whenOperational
     {
-        ICommitmentPoolingModule.Commitment storage commitment = _requireEditableTerms(commitmentId);
-        _validateDeclaredValue(declaredUnitValue, declaredValueBasis);
+        ICommitmentPoolingModule.Commitment storage commitment =
+            _requireEditableTerms(env, pools, commitments, commitmentId);
+        CommitmentPoolingCreationChecksLib.validateDeclaredValue(declaredUnitValue, declaredValueBasis);
 
         commitment.declaredUnitValue = declaredUnitValue;
         commitment.declaredValueBasis = declaredValueBasis;
@@ -45,16 +56,22 @@ abstract contract CommitmentPoolingTerms is CommitmentPoolingRoster {
 
     /// @notice Replaces the whole confirmer rule: named group, threshold, and fallback selection.
     function setConfirmerRule(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
+            storage contributors,
+        mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId,
         address[] calldata confirmers,
         uint32 threshold,
         bool protocolFallbackEnabled
     )
         external
-        whenOperational
     {
-        ICommitmentPoolingModule.Commitment storage commitment = _requireEditableTerms(commitmentId);
-        _validateConfirmerRule(confirmers, threshold, protocolFallbackEnabled);
+        ICommitmentPoolingModule.Commitment storage commitment =
+            _requireEditableTerms(env, pools, commitments, commitmentId);
+        CommitmentPoolingCreationChecksLib.validateConfirmerRule(env, confirmers, threshold, protocolFallbackEnabled);
 
         // An empty group means the direction-aware default confirmer, who is exactly one address.
         uint32 effectiveThreshold = confirmers.length == 0 ? 1 : threshold;
@@ -67,7 +84,9 @@ abstract contract CommitmentPoolingTerms is CommitmentPoolingRoster {
 
         // Same order as every roster mutation: write first, then prove the rule this write would
         // actually produce can still confirm. A revert unwinds the rewrite entirely.
-        _assertConfirmationReachable(commitmentId, commitment);
+        CommitmentPoolingCreditLib.assertConfirmationReachable(
+            env, commitmentConfirmers, contributors, commitmentId, commitment
+        );
         emit ICommitmentPoolingModule.ConfirmerRuleSet(
             commitmentId, confirmers, effectiveThreshold, protocolFallbackEnabled
         );
@@ -76,15 +95,24 @@ abstract contract CommitmentPoolingTerms is CommitmentPoolingRoster {
     /// @notice Records a payout already executed on the Arbitrum rail. Moves no value.
     /// @dev Source, recipient, token, and amount are read from the commitment, never from the
     ///      caller, so the record cannot describe a payment the declared terms never promised.
-    function recordRewardPaid(uint256 commitmentId, bytes32 payoutRef) external whenOperational {
-        ICommitmentPoolingModule.Commitment storage commitment = _requireCommitment(commitmentId);
+    function recordRewardPaid(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        uint256 commitmentId,
+        bytes32 payoutRef
+    )
+        external
+    {
+        ICommitmentPoolingModule.Commitment storage commitment =
+            CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
         if (commitment.state != ICommitmentPoolingModule.CommitmentState.Fulfilled) {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }
-        _requirePoolSteward(commitment.poolId, pools[commitment.poolId]);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, commitment.poolId, pools[commitment.poolId]);
         if (commitment.rewardPaid) revert ICommitmentPoolingModule.RewardAlreadyRecorded(commitmentId);
 
-        // `_validateReward` gates both writes to this struct, so a zero amount is exactly the
+        // `validateReward` gates both writes to this struct, so a zero amount is exactly the
         // None rail and a non-zero ArbitrumExternal amount always carries a source and a token.
         ICommitmentPoolingModule.DeclaredReward storage reward = commitment.reward;
         if (reward.amount == 0) revert ICommitmentPoolingModule.RewardNotDeclared(commitmentId);
@@ -103,13 +131,18 @@ abstract contract CommitmentPoolingTerms is CommitmentPoolingRoster {
 
     // ═════════════════════════════ Internal ═════════════════════════════
 
-    function _requireEditableTerms(uint256 commitmentId)
+    function _requireEditableTerms(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        uint256 commitmentId
+    )
         private
         view
         returns (ICommitmentPoolingModule.Commitment storage commitment)
     {
-        commitment = _requireCommitment(commitmentId);
-        _requirePreAcceptanceState(commitmentId, commitment);
-        _requirePoolSteward(commitment.poolId, pools[commitment.poolId]);
+        commitment = CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePreAcceptanceState(commitmentId, commitment);
+        CommitmentPoolingGuardLib.requirePoolSteward(env, commitment.poolId, pools[commitment.poolId]);
     }
 }

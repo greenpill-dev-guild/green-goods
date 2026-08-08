@@ -2,18 +2,34 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingSync } from "./CommitmentPoolingSync.sol";
+import { CommitmentPoolingAcceptanceLib } from "./CommitmentPoolingAcceptanceLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCreationChecksLib } from "./CommitmentPoolingCreationChecksLib.sol";
+import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
 
-/// @title CommitmentPoolingExchange
-/// @notice Atomic bilateral Offer x Offer acceptance.
+/// @title CommitmentPoolingExchangeLib
+/// @notice Deployed behavior library: atomic bilateral Offer x Offer acceptance.
 /// @dev The only bilateral exception to the one-way `counterCommitmentId` reference. Consent is
 ///      two direct creator acts — B's creator consented by creating B, A's creator consents by
 ///      calling — which is stricter than either claim gate, so the ApprovalGated operator path is
 ///      never consulted and both claim modes are valid here. Lifecycle stays independent
 ///      afterwards: nothing in cancellation, expiry, dispute, or fulfilment reads the reference.
-abstract contract CommitmentPoolingExchange is CommitmentPoolingSync {
-    function acceptExchange(uint256 exchangeCommitmentId) external whenOperational nonReentrant {
-        ICommitmentPoolingModule.Commitment storage offerB = _requireCommitment(exchangeCommitmentId);
+///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
+library CommitmentPoolingExchangeLib {
+    function acceptExchange(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
+            storage contributors,
+        mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
+        uint256 exchangeCommitmentId
+    )
+        external
+    {
+        ICommitmentPoolingModule.Commitment storage offerB =
+            CommitmentPoolingGuardLib.requireCommitment(commitments, exchangeCommitmentId);
         uint256 counterCommitmentId = offerB.counterCommitmentId;
         if (counterCommitmentId == 0) revert ICommitmentPoolingModule.ExchangeCounterpartMismatch(exchangeCommitmentId);
         ICommitmentPoolingModule.Commitment storage offerA = commitments[counterCommitmentId];
@@ -22,13 +38,17 @@ abstract contract CommitmentPoolingExchange is CommitmentPoolingSync {
         }
         if (msg.sender != offerA.creator) revert ICommitmentPoolingModule.UnauthorizedCaller(msg.sender);
 
-        _requireExchangeEligible(counterCommitmentId, offerA, exchangeCommitmentId, offerB);
+        _requireExchangeEligible(env, cycles, counterCommitmentId, offerA, exchangeCommitmentId, offerB);
 
         // Each creator accepts the other's Offer and stays the lead provider of their own. Both
         // classes were reserved at Offer creation, so neither acceptance touches the registry.
         address gardenContext = pools[offerB.poolId].garden;
         address acceptorOfA = offerB.creator;
-        _acceptCommitment(
+        CommitmentPoolingAcceptanceLib.acceptCommitment(
+            env,
+            pools,
+            contributors,
+            commitmentConfirmers,
             counterCommitmentId,
             offerA,
             acceptorOfA,
@@ -36,7 +56,11 @@ abstract contract CommitmentPoolingExchange is CommitmentPoolingSync {
             ICommitmentPoolingModule.ClaimType.Individual,
             gardenContext
         );
-        _acceptCommitment(
+        CommitmentPoolingAcceptanceLib.acceptCommitment(
+            env,
+            pools,
+            contributors,
+            commitmentConfirmers,
             exchangeCommitmentId,
             offerB,
             msg.sender,
@@ -49,12 +73,13 @@ abstract contract CommitmentPoolingExchange is CommitmentPoolingSync {
         );
     }
 
-    // ═════════════════════════════ Internal ═════════════════════════════
-
     /// @dev Every named precondition runs before either side mutates, so a failure anywhere
     ///      leaves both Offers exactly as they were. Creation already proved the immutable half
     ///      of this for an Offer B, but the pair must still hold at acceptance time.
+    // solhint-disable-next-line code-complexity
     function _requireExchangeEligible(
+        CommitmentPoolingCommonLib.Env memory env,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         uint256 commitmentIdA,
         ICommitmentPoolingModule.Commitment storage offerA,
         uint256 commitmentIdB,
@@ -90,23 +115,24 @@ abstract contract CommitmentPoolingExchange is CommitmentPoolingSync {
         }
 
         // The conditional Open-cycle rule is the same predicate creation applies, per side.
-        _validateCycleForCreation(offerA.poolId, offerA.cycleId, offerA.commitmentType);
-        _validateCycleForCreation(offerB.poolId, offerB.cycleId, offerB.commitmentType);
+        CommitmentPoolingCreationChecksLib.validateCycleForCreation(cycles, offerA.poolId, offerA.cycleId);
+        CommitmentPoolingCreationChecksLib.validateCycleForCreation(cycles, offerB.poolId, offerB.cycleId);
 
-        _requireFullReservation(commitmentIdA, offerA);
-        _requireFullReservation(commitmentIdB, offerB);
+        _requireFullReservation(env, commitmentIdA, offerA);
+        _requireFullReservation(env, commitmentIdB, offerB);
     }
 
     /// @dev An Offer whose exact full quota is no longer Committed to its creator is no longer the
     ///      obligation the counterpart agreed to.
     function _requireFullReservation(
+        CommitmentPoolingCommonLib.Env memory env,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage offer
     )
         private
         view
     {
-        if (commitmentRegistry.committedOf(offer.creator, commitmentId) != offer.targetUnits) {
+        if (env.registry.committedOf(offer.creator, commitmentId) != offer.targetUnits) {
             revert ICommitmentPoolingModule.ExchangeStateInvalid(commitmentId, offer.state);
         }
     }

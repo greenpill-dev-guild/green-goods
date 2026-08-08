@@ -1,40 +1,51 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IEAS, Attestation } from "@eas/IEAS.sol";
-
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
-import { IHatsModule } from "../../interfaces/IHatsModule.sol";
-import { ActionRegistry } from "../../registries/Action.sol";
-import {
-    CommitmentPoolingCreationValidation, IWorkDecisionSequenceResolver
-} from "./CommitmentPoolingCreationValidation.sol";
+import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCreationChecksLib } from "./CommitmentPoolingCreationChecksLib.sol";
+import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
 
-/// @title CommitmentPoolingCreation
-/// @notice Commitment creation and its immutable creation event.
-abstract contract CommitmentPoolingCreation is CommitmentPoolingCreationValidation {
+/// @title CommitmentPoolingCreationLib
+/// @notice Deployed behavior library: commitment creation and its immutable creation event.
+/// @dev Runs via DELEGATECALL from `CommitmentPoolingModule`, so `msg.sender` is the module
+///      caller and every event and revert surfaces from the proxy address unchanged. State
+///      arrives as explicit storage references; the module's frozen layout is never assumed here.
+///      The commitment counter arrives by value — the shell increments it exactly when the
+///      returned id is the fresh one, so the idempotent replay return never burns an id.
+library CommitmentPoolingCreationLib {
     // solhint-disable-next-line code-complexity
-    function createCommitment(ICommitmentPoolingModule.CreateCommitmentParams calldata params)
+    function createCommitment(
+        CommitmentPoolingCommonLib.Env memory env,
+        ICommitmentPoolingModule.CreateCommitmentParams calldata params,
+        mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
+        mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        mapping(uint256 seriesId => ICommitmentPoolingModule.CommitmentSeries series) storage commitmentSeries,
+        mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
+        mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId)) storage
+            commitmentIdByCreationRequest,
+        uint256 nextCommitmentIdValue
+    )
         external
-        whenOperational
-        nonReentrant
         returns (uint256 commitmentId)
     {
-        ICommitmentPoolingModule.Pool storage pool = _requirePool(params.poolId);
-        _requirePoolState(params.poolId, pool, ICommitmentPoolingModule.PoolState.Open);
+        ICommitmentPoolingModule.Pool storage pool = CommitmentPoolingGuardLib.requirePool(pools, params.poolId);
+        CommitmentPoolingGuardLib.requirePoolState(params.poolId, pool, ICommitmentPoolingModule.PoolState.Open);
         if (params.creationRequestKey == bytes32(0)) {
             revert ICommitmentPoolingModule.InvalidCommitmentCreationRequestKey();
         }
         if (bytes(params.unitLabel).length == 0) revert ICommitmentPoolingModule.UnitLabelRequired();
         if (params.targetUnits == 0) revert ICommitmentPoolingModule.TargetUnitsRequired();
-        _validateReward(params.reward);
-        _validateDeclaredValue(params.declaredUnitValue, params.declaredValueBasis);
-        _validateConfirmerRule(params.confirmers, params.confirmationThreshold, params.protocolFallbackEnabled);
+        CommitmentPoolingCreationChecksLib.validateReward(params.reward);
+        CommitmentPoolingCreationChecksLib.validateDeclaredValue(params.declaredUnitValue, params.declaredValueBasis);
+        CommitmentPoolingCreationChecksLib.validateConfirmerRule(
+            env, params.confirmers, params.confirmationThreshold, params.protocolFallbackEnabled
+        );
 
-        address creator = _resolveCreator(params, pool);
+        address creator = CommitmentPoolingCreationChecksLib.resolveCreator(env, params, pool);
         uint32 effectiveThreshold = params.confirmers.length == 0 ? 1 : params.confirmationThreshold;
-        bytes32 creationPayloadHash = _creationPayloadHash(params, effectiveThreshold);
+        bytes32 creationPayloadHash = CommitmentPoolingCreationChecksLib.creationPayloadHash(params, effectiveThreshold);
         uint256 existingId = commitmentIdByCreationRequest[creator][params.creationRequestKey];
         if (existingId != 0) {
             if (commitments[existingId].creationPayloadHash != creationPayloadHash) {
@@ -43,18 +54,20 @@ abstract contract CommitmentPoolingCreation is CommitmentPoolingCreationValidati
             return existingId;
         }
 
-        _validateCycleForCreation(params.poolId, params.cycleId, params.commitmentType);
-        _validateSeriesForCreation(params, creator);
-        _validateCounterCommitment(params, creator);
+        CommitmentPoolingCreationChecksLib.validateCycleForCreation(cycles, params.poolId, params.cycleId);
+        CommitmentPoolingCreationChecksLib.validateSeriesForCreation(commitmentSeries, params, creator);
+        CommitmentPoolingCreationChecksLib.validateCounterCommitment(
+            env, commitments, params, creator, nextCommitmentIdValue
+        );
 
         (
             uint8[] memory domains,
             uint256[] memory requirementActionUIDs,
             uint8[] memory requirementDomains,
             uint32[] memory requirementRequiredCounts
-        ) = _validateAndBuildRequirements(params);
+        ) = CommitmentPoolingCreationChecksLib.validateAndBuildRequirements(env, params);
 
-        commitmentId = nextCommitmentId++;
+        commitmentId = nextCommitmentIdValue;
         ICommitmentPoolingModule.Commitment storage commitment = commitments[commitmentId];
         commitment.poolId = params.poolId;
         commitment.cycleId = params.cycleId;
@@ -103,12 +116,12 @@ abstract contract CommitmentPoolingCreation is CommitmentPoolingCreationValidati
         pool.liveCommitmentCount++;
         if (params.cycleId != 0) cycles[params.cycleId].liveCommitmentCount++;
 
-        commitmentRegistry.registerClass(commitmentId, params.poolId, params.cycleId, params.unitLabel, params.targetUnits);
+        env.registry.registerClass(commitmentId, params.poolId, params.cycleId, params.unitLabel, params.targetUnits);
         if (params.direction == ICommitmentPoolingModule.CommitmentDirection.Offer) {
-            if (!_isGardenMember(pool.garden, creator)) {
+            if (!CommitmentPoolingGuardLib.isGardenMember(env.hats, pool.garden, creator)) {
                 revert ICommitmentPoolingModule.NotEligibleContributor(creator);
             }
-            commitmentRegistry.commitUnits(commitmentId, creator, params.targetUnits);
+            env.registry.commitUnits(commitmentId, creator, params.targetUnits);
         }
 
         _emitCommitmentCreated(
