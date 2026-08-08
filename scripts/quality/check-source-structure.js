@@ -7,7 +7,34 @@ import { resolve } from "node:path";
 const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const NEW_FILE_MAX_LINES = 350;
 const MODIFIED_FILE_MAX_LINES = 500;
+// Declaration-only Solidity interfaces (src/interfaces/I*.sol with no function
+// bodies) carry no implementation complexity: their length is a direct projection
+// of a contract's frozen ABI surface, and Solidity's qualified-access rules
+// (`IExample.Member` never resolves through inheritance) mean splitting one
+// rewrites every consumer of every type, error, and event it declares —
+// measured at 1,347 references across 50 files for ICommitmentPoolingModule.
+// They get a wide cap instead of a split demand; anything past it is a sign the
+// underlying contract surface itself needs decomposition. Decision: PR #694.
+const DECLARATION_ONLY_INTERFACE_MAX_LINES = 1200;
 const ZERO_SHA = "0000000000000000000000000000000000000000";
+
+/**
+ * True for Solidity files under an interfaces/ directory whose top-level
+ * declarations are exclusively `interface` blocks (no contract/library/function
+ * bodies — `;`-terminated members only).
+ */
+function isDeclarationOnlySolidityInterface(filePath) {
+  if (!/packages\/[^/]+\/src\/interfaces\/I[A-Za-z0-9]*\.sol$/.test(filePath)) return false;
+  const absolutePath = resolve(repoRoot, filePath);
+  if (!existsSync(absolutePath)) return false;
+  const source = readFileSync(absolutePath, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  const declarations = [...source.matchAll(/^\s*(abstract\s+contract|contract|library|interface)\b/gm)];
+  if (declarations.length === 0 || declarations.some(([, kind]) => kind !== "interface")) return false;
+  // A function body inside an interface file (even a free function) disqualifies it.
+  return !/\bfunction\b[^;{]*\{/.test(source);
+}
 
 // Frozen ceilings for files that were already above MODIFIED_FILE_MAX_LINES when
 // the gate was adopted. An entry may never grow; touching a file above its ceiling
@@ -295,6 +322,15 @@ for (const filePath of relevantFiles) {
     if (lineCount > frozenCeiling) {
       failures.push(
         `- ${filePath}: ${lineCount} lines, above frozen ceiling ${frozenCeiling}. Reduce this file back to ${frozenCeiling} lines or below before merge; an allowlisted file may not grow.`,
+      );
+    }
+    continue;
+  }
+
+  if (isDeclarationOnlySolidityInterface(filePath)) {
+    if (lineCount > DECLARATION_ONLY_INTERFACE_MAX_LINES) {
+      failures.push(
+        `- ${filePath}: declaration-only interface at ${lineCount} lines (limit ${DECLARATION_ONLY_INTERFACE_MAX_LINES}). A surface this wide needs the underlying contract decomposed, not a wider cap.`,
       );
     }
     continue;
