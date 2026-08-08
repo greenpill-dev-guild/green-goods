@@ -2,10 +2,10 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingAcceptanceLib } from "./CommitmentPoolingAcceptanceLib.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingCreationChecksLib } from "./CommitmentPoolingCreationChecksLib.sol";
-import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
+import { CommitmentPoolingAcceptanceLib } from "./AcceptanceLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
+import { CommitmentPoolingCreationChecksLib } from "./CreationChecksLib.sol";
+import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 
 /// @title CommitmentPoolingExchangeLib
 /// @notice Deployed behavior library: atomic bilateral Offer x Offer acceptance.

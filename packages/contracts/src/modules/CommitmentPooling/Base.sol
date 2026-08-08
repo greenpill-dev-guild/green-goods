@@ -2,10 +2,10 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingCommonLib } from "../../lib/pooling/CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingCreditLib } from "../../lib/pooling/CommitmentPoolingCreditLib.sol";
-import { CommitmentPoolingViewsLib } from "../../lib/pooling/CommitmentPoolingViewsLib.sol";
-import { CommitmentPoolingStorage } from "./CommitmentPoolingStorage.sol";
+import { CommitmentPoolingCommonLib } from "../../lib/CommitmentPooling/CommonLib.sol";
+import { CommitmentPoolingCreditLib } from "../../lib/CommitmentPooling/CreditLib.sol";
+import { CommitmentPoolingViewsLib } from "../../lib/CommitmentPooling/ViewsLib.sol";
+import { CommitmentPoolingStorage } from "./Storage.sol";
 
 /// @title CommitmentPoolingBase
 /// @notice The library-call context builder, the raw-return view forwarding path, and the guards

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
+import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 
 /// @title CommitmentPoolingSeriesLib
 /// @notice Deployed behavior library: module-native, pool-scoped standing commitments.

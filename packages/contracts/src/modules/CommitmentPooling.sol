@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { CommitmentPoolingExtensions } from "./pooling/CommitmentPoolingExtensions.sol";
+import { CommitmentPoolingExtensions } from "./CommitmentPooling/Extensions.sol";
 
 /// @title CommitmentPoolingModule
 /// @notice Commitment Pooling control plane for pool, commitment, contributor, and proof lifecycles.
 /// @dev EIP-170 architecture: behavior lives in deployed external libraries under
-///      `src/lib/pooling/` (DELEGATECALLed, so events, reverts, and `msg.sender` surface from
-///      the proxy unchanged and each library carries its own 24,576-byte budget). The
-///      `./pooling/*` abstract contracts are thin shells in a single linear chain:
+///      `src/lib/CommitmentPooling/` (DELEGATECALLed, so events, reverts, and `msg.sender`
+///      surface from the proxy unchanged and each library carries its own 24,576-byte budget).
+///      The `./CommitmentPooling/*` abstract contracts are thin shells in a single linear chain:
 ///      Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> this contract.
 ///      Extensions stays last before this contract; a new surface points at the current tail and
 ///      Extensions re-points at it. Only CommitmentPoolingStorage declares state — libraries

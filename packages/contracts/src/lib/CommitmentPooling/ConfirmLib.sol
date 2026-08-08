@@ -2,9 +2,9 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingCreditLib } from "./CommitmentPoolingCreditLib.sol";
-import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
+import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
+import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 
 /// @title CommitmentPoolingConfirmLib
 /// @notice Deployed behavior library: readiness submission and ordinary or fallback confirmation.

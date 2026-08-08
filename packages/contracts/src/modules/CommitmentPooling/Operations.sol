@@ -2,13 +2,13 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingCyclesLib } from "../../lib/pooling/CommitmentPoolingCyclesLib.sol";
-import { CommitmentPoolingRosterLib } from "../../lib/pooling/CommitmentPoolingRosterLib.sol";
-import { CommitmentPoolingSyncLib } from "../../lib/pooling/CommitmentPoolingSyncLib.sol";
-import { CommitmentPoolingTerminalLib } from "../../lib/pooling/CommitmentPoolingTerminalLib.sol";
-import { CommitmentPoolingTermsLib } from "../../lib/pooling/CommitmentPoolingTermsLib.sol";
-import { CommitmentPoolingViewsLib } from "../../lib/pooling/CommitmentPoolingViewsLib.sol";
-import { CommitmentPoolingLifecycle } from "./CommitmentPoolingLifecycle.sol";
+import { CommitmentPoolingCyclesLib } from "../../lib/CommitmentPooling/CyclesLib.sol";
+import { CommitmentPoolingRosterLib } from "../../lib/CommitmentPooling/RosterLib.sol";
+import { CommitmentPoolingSyncLib } from "../../lib/CommitmentPooling/SyncLib.sol";
+import { CommitmentPoolingTerminalLib } from "../../lib/CommitmentPooling/TerminalLib.sol";
+import { CommitmentPoolingTermsLib } from "../../lib/CommitmentPooling/TermsLib.sol";
+import { CommitmentPoolingViewsLib } from "../../lib/CommitmentPooling/ViewsLib.sol";
+import { CommitmentPoolingLifecycle } from "./Lifecycle.sol";
 
 /// @title CommitmentPoolingOperations
 /// @notice The operational machinery around live commitments: terminal outcomes (cancel, expire,

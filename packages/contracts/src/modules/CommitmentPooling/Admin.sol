@@ -6,10 +6,10 @@ import { IEAS } from "@eas/IEAS.sol";
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
-import { CommitmentPoolingPoolsLib } from "../../lib/pooling/CommitmentPoolingPoolsLib.sol";
-import { CommitmentPoolingViewsLib } from "../../lib/pooling/CommitmentPoolingViewsLib.sol";
+import { CommitmentPoolingPoolsLib } from "../../lib/CommitmentPooling/PoolsLib.sol";
+import { CommitmentPoolingViewsLib } from "../../lib/CommitmentPooling/ViewsLib.sol";
 import { ActionRegistry } from "../../registries/Action.sol";
-import { CommitmentPoolingBase } from "./CommitmentPoolingBase.sol";
+import { CommitmentPoolingBase } from "./Base.sol";
 
 /// @title CommitmentPoolingAdmin
 /// @notice The administrative surface: frozen bounds, dependency wiring, schema UIDs, pause

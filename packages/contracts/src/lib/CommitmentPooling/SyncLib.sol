@@ -5,10 +5,10 @@ import { Attestation } from "@eas/IEAS.sol";
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { IWorkDecisionSequenceResolver } from "../../interfaces/IWorkDecisionSequenceResolver.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingCreditLib } from "./CommitmentPoolingCreditLib.sol";
-import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
-import { CommitmentPoolingWorkCreditLib } from "./CommitmentPoolingWorkCreditLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
+import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
+import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
+import { CommitmentPoolingWorkCreditLib } from "./WorkCreditLib.sol";
 
 /// @title CommitmentPoolingSyncLib
 /// @notice Deployed behavior library: Work unlinking and the steward catch-up for missed resolver

@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { IWorkDecisionSequenceResolver } from "../../interfaces/IWorkDecisionSequenceResolver.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 
 /// @title CommitmentPoolingCreditLib
 /// @notice Contribution credit, readiness freeze, and confirmer reachability — the shared engine

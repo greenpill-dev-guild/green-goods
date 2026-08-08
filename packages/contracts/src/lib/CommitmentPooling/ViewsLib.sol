@@ -2,9 +2,9 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingCyclesLib } from "./CommitmentPoolingCyclesLib.sol";
-import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
-import { CommitmentPoolingSeriesLib } from "./CommitmentPoolingSeriesLib.sol";
+import { CommitmentPoolingCyclesLib } from "./CyclesLib.sol";
+import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
+import { CommitmentPoolingSeriesLib } from "./SeriesLib.sol";
 
 /// @title CommitmentPoolingViewsLib
 /// @notice Deployed behavior library: the struct- and array-returning read views.

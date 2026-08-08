@@ -2,11 +2,11 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingClaimsLib } from "../../lib/pooling/CommitmentPoolingClaimsLib.sol";
-import { CommitmentPoolingConfirmLib } from "../../lib/pooling/CommitmentPoolingConfirmLib.sol";
-import { CommitmentPoolingCreationLib } from "../../lib/pooling/CommitmentPoolingCreationLib.sol";
-import { CommitmentPoolingProofLib } from "../../lib/pooling/CommitmentPoolingProofLib.sol";
-import { CommitmentPoolingAdmin } from "./CommitmentPoolingAdmin.sol";
+import { CommitmentPoolingClaimsLib } from "../../lib/CommitmentPooling/ClaimsLib.sol";
+import { CommitmentPoolingConfirmLib } from "../../lib/CommitmentPooling/ConfirmLib.sol";
+import { CommitmentPoolingCreationLib } from "../../lib/CommitmentPooling/CreationLib.sol";
+import { CommitmentPoolingProofLib } from "../../lib/CommitmentPooling/ProofLib.sol";
+import { CommitmentPoolingAdmin } from "./Admin.sol";
 
 /// @title CommitmentPoolingLifecycle
 /// @notice The commitment lifecycle from creation to fulfillment: creation, claims and

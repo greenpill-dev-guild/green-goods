@@ -9,13 +9,14 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgrade
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentRegistry } from "../../interfaces/ICommitmentRegistry.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
-import { CommitmentPoolingCommonLib } from "../../lib/pooling/CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCommonLib } from "../../lib/CommitmentPooling/CommonLib.sol";
 import { ActionRegistry } from "../../registries/Action.sol";
 
 /// @title CommitmentPoolingStorage
 /// @notice Sole storage declaration for the Commitment Pooling control plane.
 /// @dev Every chain contract in this directory inherits this base and declares NO storage of
-///      its own, and the deployed behavior libraries under `src/lib/pooling/` hold none either,
+///      its own, and the deployed behavior libraries under `src/lib/CommitmentPooling/` hold none
+///      either,
 ///      so the layout stays byte-identical regardless of how behavior is organized.
 ///      The three upgradeable bases below must keep this exact order — the frozen layout baseline
 ///      assigns their slots before this contract's own entries.

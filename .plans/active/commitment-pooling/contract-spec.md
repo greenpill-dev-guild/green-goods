@@ -263,8 +263,8 @@ implementation is therefore split at the **deployed-external-library boundary**,
 future selector must follow the same pattern:
 
 1. **Behavior lives in deployed `library` contracts** under
-   `packages/contracts/src/lib/pooling/`, DELEGATECALLed by thin shells in the six-link module
-   chain (`Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> module`).
+   `packages/contracts/src/lib/CommitmentPooling/`, DELEGATECALLed by thin shells in the six-link
+   module chain (`Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> module`).
    `msg.sender`, events, errors, and revert data surface from the proxy unchanged, so the
    permission matrix, the event contract, and the indexer boundary are unaffected by the
    split. Each library carries its own 24,576-byte budget.

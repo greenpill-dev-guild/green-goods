@@ -182,9 +182,9 @@ gate is `bun run check:sizes` (contracts package; CI runs it in the Lint And Bui
 builds the production profile and fails any deployable over the limit, warning above 90%.
 
 - `CommitmentPoolingModule` behavior lives in **deployed external libraries**
-  (`src/lib/pooling/`, DELEGATECALLed; each has its own 24,576-byte budget). The module side
-  is a six-link shell chain in `src/modules/pooling/` (Storage → Base → Admin → Lifecycle →
-  Operations → Extensions). New pooling selectors MUST land their bodies in a library, with
+  (`src/lib/CommitmentPooling/`, DELEGATECALLed; each has its own 24,576-byte budget). The module
+  side is a six-link shell chain in `src/modules/CommitmentPooling/` (Storage → Base → Admin →
+  Lifecycle → Operations → Extensions). New pooling selectors MUST land their bodies in a library, with
   only a thin shell in the chain — the binding pattern rules (Env snapshot, storage-ref
   threading, counter shells, raw-forwarded struct views, "no struct-of-mappings handles") are
   in `.plans/active/commitment-pooling/contract-spec.md` §6.1 "Deployed-library architecture".

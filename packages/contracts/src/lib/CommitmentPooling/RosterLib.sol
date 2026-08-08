@@ -2,9 +2,9 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingAcceptanceLib } from "./CommitmentPoolingAcceptanceLib.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingGuardLib } from "./CommitmentPoolingGuardLib.sol";
+import { CommitmentPoolingAcceptanceLib } from "./AcceptanceLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
+import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 
 /// @title CommitmentPoolingRosterLib
 /// @notice Deployed behavior library: open-policy self-join and self-exit, managed removal, and

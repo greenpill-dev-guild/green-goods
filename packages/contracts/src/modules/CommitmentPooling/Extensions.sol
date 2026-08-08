@@ -2,11 +2,11 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingExchangeLib } from "../../lib/pooling/CommitmentPoolingExchangeLib.sol";
-import { CommitmentPoolingRecognitionLib } from "../../lib/pooling/CommitmentPoolingRecognitionLib.sol";
-import { CommitmentPoolingSeriesLib } from "../../lib/pooling/CommitmentPoolingSeriesLib.sol";
-import { CommitmentPoolingViewsLib } from "../../lib/pooling/CommitmentPoolingViewsLib.sol";
-import { CommitmentPoolingOperations } from "./CommitmentPoolingOperations.sol";
+import { CommitmentPoolingExchangeLib } from "../../lib/CommitmentPooling/ExchangeLib.sol";
+import { CommitmentPoolingRecognitionLib } from "../../lib/CommitmentPooling/RecognitionLib.sol";
+import { CommitmentPoolingSeriesLib } from "../../lib/CommitmentPooling/SeriesLib.sol";
+import { CommitmentPoolingViewsLib } from "../../lib/CommitmentPooling/ViewsLib.sol";
+import { CommitmentPoolingOperations } from "./Operations.sol";
 
 /// @title CommitmentPoolingExtensions
 /// @notice The extension surfaces: atomic bilateral exchange, the canonical recognition

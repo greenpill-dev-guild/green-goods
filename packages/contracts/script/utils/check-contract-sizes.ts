@@ -180,7 +180,7 @@ async function main() {
     log(
       `${failures.length} contract(s) exceed the EIP-170 deployed-code limit and cannot be deployed ` +
         `to Arbitrum or any Ethereum-equivalent chain. Move behavior into external deployed libraries ` +
-        `(see src/lib/pooling/) or reduce scope.`,
+        `(see src/lib/CommitmentPooling/) or reduce scope.`,
     );
     process.exit(1);
   }

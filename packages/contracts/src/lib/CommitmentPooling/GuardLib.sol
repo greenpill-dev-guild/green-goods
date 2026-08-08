@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { IHatsModule } from "../../interfaces/IHatsModule.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 
 /// @title CommitmentPoolingGuardLib
 /// @notice The shared guards and role predicates of `CommitmentPoolingAccess`, parameterized so

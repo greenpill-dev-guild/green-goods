@@ -25,17 +25,17 @@ exit 0, full monorepo Ship Gate green, working tree clean.
 
 ## Architecture you must preserve
 
-Behavior lives in `src/modules/pooling/*` as ONE LINEAR inheritance chain:
+Behavior lives in deployed external libraries under `src/lib/CommitmentPooling/`, called by one
+linear shell chain under `src/modules/CommitmentPooling/`:
 
-Storage -> Access -> Credit -> Config -> Pools -> CreationValidation -> Creation -> Claims ->
-Confirmation -> Proof -> Terminal -> Cycles -> Roster -> Terms -> Sync -> Exchange -> Recognition
--> Series -> Views -> the concrete `CommitmentPoolingModule` in `src/modules/CommitmentPooling.sol`.
+Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> the concrete
+`CommitmentPoolingModule` in `src/modules/CommitmentPooling.sol`.
 
 - **Only `CommitmentPoolingStorage` declares state** (38 entries + `__gap[12]`). New behavior
   contracts declare NO storage. Constants are fine — they occupy no slots.
   `bun run check:storage-layout` must keep reporting `OK: CommitmentPoolingModule`.
-- Add a module by pointing it at the current chain tail and re-pointing `CommitmentPoolingViews`
-  at it. Views stays last before the concrete contract.
+- New selectors put their behavior in an external library and keep only the thin forwarding shell
+  in the appropriate chain contract. Extensions stays last before the concrete contract.
 - Keep `src/modules/CommitmentPooling.sol` and the name `CommitmentPoolingModule` — tests use
   `deployCode("CommitmentPooling.sol:CommitmentPoolingModule")` and the storage baseline is keyed
   on the name. Keep `initialize` on the concrete contract.

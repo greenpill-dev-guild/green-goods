@@ -2,8 +2,8 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
-import { CommitmentPoolingCommonLib } from "./CommitmentPoolingCommonLib.sol";
-import { CommitmentPoolingCreditLib } from "./CommitmentPoolingCreditLib.sol";
+import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
+import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
 
 /// @title CommitmentPoolingWorkCreditLib
 /// @notice The Work decision credit effect and the Work-gated automatic-ready flip, shared by the
