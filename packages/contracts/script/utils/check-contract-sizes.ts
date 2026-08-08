@@ -103,8 +103,43 @@ function formatRow(row: SizeRow, status: string): string {
   return `${status.padEnd(6)} ${String(row.bytes).padStart(6)} bytes  margin ${String(margin).padStart(7)}  ${row.name} (${row.source})`;
 }
 
+/** Newest mtime (ms) of any file under `dir` whose name passes `keep`. */
+function newestMtimeMs(dir: string, keep: (name: string) => boolean): number {
+  let newest = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      newest = Math.max(newest, newestMtimeMs(entryPath, keep));
+    } else if (keep(entry.name)) {
+      newest = Math.max(newest, statSync(entryPath).mtimeMs);
+    }
+  }
+  return newest;
+}
+
+/**
+ * `--skip-build` must not accept artifacts that predate the sources: an edited
+ * or newly added contract would then be measured stale or not at all, and the
+ * gate would pass on a set that no longer describes the tree. Branch switches
+ * refresh source mtimes, so this fails toward "rebuild", never toward a
+ * false green.
+ */
+function assertArtifactsCoverSources(): void {
+  const newestSource = newestMtimeMs(join(CONTRACTS_ROOT, "src"), (name) => name.endsWith(".sol"));
+  const newestArtifact = newestMtimeMs(OUT_DIR, (name) => name.endsWith(".json"));
+  if (newestSource > newestArtifact) {
+    log(
+      `--skip-build refused: a source under src/ is newer than every artifact under ${OUT_DIR} — ` +
+        `rerun without --skip-build so the production build covers the current tree.`,
+    );
+    process.exit(1);
+  }
+}
+
 async function main() {
-  if (!process.argv.includes("--skip-build")) {
+  if (process.argv.includes("--skip-build")) {
+    assertArtifactsCoverSources();
+  } else {
     await buildProduction();
   }
 
