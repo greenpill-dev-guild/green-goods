@@ -24,7 +24,6 @@ on:
       - "docs/docs/builders/specs/v1-0.mdx"
       - "packages/contracts/script/DeployBadgeSchema.s.sol"
   pull_request:
-    branches: [main, develop]
     paths:
       - "packages/shared/src/**"
       - "packages/contracts/src/**"
