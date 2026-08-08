@@ -6,6 +6,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import { GardenHooksLib } from "../lib/GardenHooks.sol";
 import { TBALib } from "../lib/TBA.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
@@ -380,89 +381,34 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         _initializeIntegrationsAndAccount(gardenAccount, config);
     }
 
-    /// @dev Phase 1: Hats tree, KarmaGAP project, Octant vault, Gardens community
+    /// @dev Phase 1: Hats tree, KarmaGAP project, Octant vault, Gardens community.
+    ///      Everything after the required Hats setup is a GardenHooksLib best-effort hook.
     function _initializeRoleAndGovernance(address gardenAccount, GardenConfig calldata config) private {
         // Hats Protocol: create hat tree + initial owner role
         hatsModule.createGardenHatTree(gardenAccount, config.name, communityToken);
         hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
 
-        // Grant Gardener role to configured gardeners (best-effort)
-        for (uint256 i = 0; i < config.gardeners.length; i++) {
-            if (config.gardeners[i] != address(0)) {
-                try hatsModule.grantRole(gardenAccount, config.gardeners[i], IHatsModule.GardenRole.Gardener) { } catch { }
-            }
-        }
-        // Grant Operator role to configured operators (best-effort)
-        for (uint256 i = 0; i < config.operators.length; i++) {
-            if (config.operators[i] != address(0)) {
-                try hatsModule.grantRole(gardenAccount, config.operators[i], IHatsModule.GardenRole.Operator) { } catch { }
-            }
-        }
-
-        // Karma GAP: create project (graceful degradation)
-        if (address(karmaGAPModule) != address(0)) {
-            try karmaGAPModule.createProject(
-                gardenAccount, _msgSender(), config.name, config.description, config.location, config.bannerImage
-            ) {
-                // Success handled by module events
-            } catch {
-                // Failure is non-blocking
-            }
-        }
-
-        // Octant vault setup (graceful degradation)
-        if (address(octantModule) != address(0)) {
-            try octantModule.onGardenMinted(gardenAccount, config.name) returns (address[] memory _vaults) {
-                _vaults; // Success handled by module events
-            } catch {
-                // Failure is non-blocking
-            }
-        }
-
-        // Gardens V2 community + signal pools (graceful degradation)
-        if (address(gardensModule) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme, config.name, config.description) returns (
-                address, address[] memory
-            ) {
-                // Success handled by module events
-            } catch {
-                // Failure is non-blocking — garden mint MUST NOT revert
-            }
-        }
+        GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.gardeners, IHatsModule.GardenRole.Gardener);
+        GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.operators, IHatsModule.GardenRole.Operator);
+        GardenHooksLib.notifyKarma(
+            karmaGAPModule,
+            gardenAccount,
+            _msgSender(),
+            config.name,
+            config.description,
+            config.location,
+            config.bannerImage
+        );
+        GardenHooksLib.notifyOctant(octantModule, gardenAccount, config.name);
+        GardenHooksLib.notifyGardens(gardensModule, gardenAccount, config.weightScheme, config.name, config.description);
     }
 
-    /// @dev Phase 2: CookieJar, ActionRegistry domains, ENS, account initialization
+    /// @dev Phase 2: CookieJar, Commitment Pooling, ActionRegistry domains, ENS, account
+    ///      initialization. ENS stays inline because its failure path writes refund storage.
     function _initializeIntegrationsAndAccount(address gardenAccount, GardenConfig calldata config) private {
-        // Cookie Jar: create per-asset jars (graceful degradation)
-        if (address(cookieJarModule) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try cookieJarModule.onGardenMinted(gardenAccount) returns (address[] memory _jars) {
-                _jars; // Success handled by module events
-            } catch {
-                // Failure is non-blocking — garden mint MUST NOT revert
-            }
-        }
-
-        // Commitment Pooling pool registration (graceful degradation)
-        if (address(commitmentPoolingModule) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try commitmentPoolingModule.onGardenMinted(gardenAccount) returns (uint256) {
-                // Success handled by module events.
-            } catch {
-                // Failure is non-blocking — garden mint MUST NOT revert.
-            }
-        }
-
-        // Set initial garden domains on ActionRegistry (graceful degradation)
-        if (config.domainMask > 0 && address(actionRegistry) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try actionRegistry.setGardenDomainsFromMint(gardenAccount, config.domainMask) {
-                // Success handled by ActionRegistry events
-            } catch {
-                // Non-blocking — garden mint MUST NOT revert
-            }
-        }
+        GardenHooksLib.notifyCookieJar(cookieJarModule, gardenAccount);
+        GardenHooksLib.notifyPooling(commitmentPoolingModule, gardenAccount);
+        GardenHooksLib.notifyActionDomains(actionRegistry, gardenAccount, config.domainMask);
 
         // ENS: register garden subdomain via CCIP (graceful degradation)
         if (address(ensModule) != address(0) && bytes(config.slug).length > 0) {
