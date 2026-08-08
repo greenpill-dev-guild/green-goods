@@ -11,6 +11,25 @@ struct AssessmentSchema {
     string location;
 }
 
+struct AssessmentV3Schema {
+    string title;
+    string description;
+    string assessmentConfigCID;
+    uint8 domain;
+    uint256 startDate;
+    uint256 endDate;
+    string location;
+    uint8 assessmentKind; // 0=Baseline, 1=Delta, 2=Technical
+    uint256 cycleId; // 0 = not cycle-scoped
+    bytes32 baselineUID; // required only for Delta
+}
+
+struct CommunityTestimonySchema {
+    uint256 commitmentId; // 0 = garden-level testimony
+    string title;
+    string testimonyCID;
+}
+
 struct WorkSchema {
     uint256 actionUID;
     string title;

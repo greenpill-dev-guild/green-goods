@@ -163,6 +163,12 @@
       "type": "t_bool"
     },
     {
+      "label": "commitmentPoolingModule",
+      "offset": 2,
+      "slot": "213",
+      "type": "t_contract(ICommitmentPoolingModule)"
+    },
+    {
       "label": "__gap",
       "offset": 0,
       "slot": "214",
@@ -207,6 +213,11 @@
     "t_contract(ActionRegistry)": {
       "encoding": "inplace",
       "label": "contract ActionRegistry",
+      "numberOfBytes": "20"
+    },
+    "t_contract(ICommitmentPoolingModule)": {
+      "encoding": "inplace",
+      "label": "contract ICommitmentPoolingModule",
       "numberOfBytes": "20"
     },
     "t_contract(ICookieJarModule)": {

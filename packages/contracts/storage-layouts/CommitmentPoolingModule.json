@@ -1,0 +1,1254 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_status",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "hatsModule",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_contract(IHatsModule)"
+    },
+    {
+      "label": "gardenToken",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "label": "commitmentRegistry",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_contract(ICommitmentRegistry)"
+    },
+    {
+      "label": "actionRegistry",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_contract(ActionRegistry)"
+    },
+    {
+      "label": "workApprovalResolver",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "label": "eas",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_contract(IEAS)"
+    },
+    {
+      "label": "workSchemaUID",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_bytes32"
+    },
+    {
+      "label": "workApprovalSchemaUID",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_bytes32"
+    },
+    {
+      "label": "legacyAssessmentSchemaUID",
+      "offset": 0,
+      "slot": "159",
+      "type": "t_bytes32"
+    },
+    {
+      "label": "assessmentV3SchemaUID",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_bytes32"
+    },
+    {
+      "label": "paused",
+      "offset": 0,
+      "slot": "161",
+      "type": "t_bool"
+    },
+    {
+      "label": "nextPoolId",
+      "offset": 0,
+      "slot": "162",
+      "type": "t_uint256"
+    },
+    {
+      "label": "nextCycleId",
+      "offset": 0,
+      "slot": "163",
+      "type": "t_uint256"
+    },
+    {
+      "label": "nextCommitmentId",
+      "offset": 0,
+      "slot": "164",
+      "type": "t_uint256"
+    },
+    {
+      "label": "nextCommitmentSeriesId",
+      "offset": 0,
+      "slot": "165",
+      "type": "t_uint256"
+    },
+    {
+      "label": "gardenPool",
+      "offset": 0,
+      "slot": "166",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "label": "pools",
+      "offset": 0,
+      "slot": "167",
+      "type": "t_mapping(t_uint256,t_struct(Pool)_storage)"
+    },
+    {
+      "label": "cycles",
+      "offset": 0,
+      "slot": "168",
+      "type": "t_mapping(t_uint256,t_struct(Cycle)_storage)"
+    },
+    {
+      "label": "commitments",
+      "offset": 0,
+      "slot": "169",
+      "type": "t_mapping(t_uint256,t_struct(Commitment)_storage)"
+    },
+    {
+      "label": "commitmentSeries",
+      "offset": 0,
+      "slot": "170",
+      "type": "t_mapping(t_uint256,t_struct(CommitmentSeries)_storage)"
+    },
+    {
+      "label": "seriesIdByCreationRequest",
+      "offset": 0,
+      "slot": "171",
+      "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+    },
+    {
+      "label": "commitmentConfirmers",
+      "offset": 0,
+      "slot": "172",
+      "type": "t_mapping(t_uint256,t_array(t_address)dyn_storage)"
+    },
+    {
+      "label": "hasConfirmed",
+      "offset": 0,
+      "slot": "173",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))"
+    },
+    {
+      "label": "workCommitment",
+      "offset": 0,
+      "slot": "174",
+      "type": "t_mapping(t_bytes32,t_uint256)"
+    },
+    {
+      "label": "approvalCounted",
+      "offset": 0,
+      "slot": "175",
+      "type": "t_mapping(t_bytes32,t_bool)"
+    },
+    {
+      "label": "pendingClaim",
+      "offset": 0,
+      "slot": "176",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(PendingClaim)_storage))"
+    },
+    {
+      "label": "contributors",
+      "offset": 0,
+      "slot": "177",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(ContributorRecord)_storage))"
+    },
+    {
+      "label": "requirementAssignments",
+      "offset": 0,
+      "slot": "178",
+      "type": "t_mapping(t_uint256,t_mapping(t_uint16,t_mapping(t_address,t_bool)))"
+    },
+    {
+      "label": "evidenceAttached",
+      "offset": 0,
+      "slot": "179",
+      "type": "t_mapping(t_uint256,t_mapping(t_bytes32,t_bool))"
+    },
+    {
+      "label": "workRequirementIndexPlusOne",
+      "offset": 0,
+      "slot": "180",
+      "type": "t_mapping(t_bytes32,t_uint16)"
+    },
+    {
+      "label": "workCreditActive",
+      "offset": 0,
+      "slot": "181",
+      "type": "t_mapping(t_bytes32,t_bool)"
+    },
+    {
+      "label": "latestWorkDecisionSequence",
+      "offset": 0,
+      "slot": "182",
+      "type": "t_mapping(t_bytes32,t_uint64)"
+    },
+    {
+      "label": "latestWorkDecisionUID",
+      "offset": 0,
+      "slot": "183",
+      "type": "t_mapping(t_bytes32,t_bytes32)"
+    },
+    {
+      "label": "commitmentWorkUIDs",
+      "offset": 0,
+      "slot": "184",
+      "type": "t_mapping(t_uint256,t_array(t_bytes32)dyn_storage)"
+    },
+    {
+      "label": "protocolPoolId",
+      "offset": 0,
+      "slot": "185",
+      "type": "t_uint256"
+    },
+    {
+      "label": "rootGarden",
+      "offset": 0,
+      "slot": "186",
+      "type": "t_address"
+    },
+    {
+      "label": "commitmentIdByCreationRequest",
+      "offset": 0,
+      "slot": "187",
+      "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+    },
+    {
+      "label": "workLinkPayloadHashByOperation",
+      "offset": 0,
+      "slot": "188",
+      "type": "t_mapping(t_address,t_mapping(t_bytes32,t_bytes32))"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "189",
+      "type": "t_array(t_uint256)12_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_bytes32)dyn_storage": {
+      "base": "t_bytes32",
+      "encoding": "dynamic_array",
+      "label": "bytes32[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_struct(CommitmentRequirement)_storage)dyn_storage": {
+      "base": "t_struct(CommitmentRequirement)_storage",
+      "encoding": "dynamic_array",
+      "label": "struct ICommitmentPoolingModule.CommitmentRequirement[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)12_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[12]",
+      "numberOfBytes": "384"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_array(t_uint8)dyn_storage": {
+      "base": "t_uint8",
+      "encoding": "dynamic_array",
+      "label": "uint8[]",
+      "numberOfBytes": "32"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_contract(ActionRegistry)": {
+      "encoding": "inplace",
+      "label": "contract ActionRegistry",
+      "numberOfBytes": "20"
+    },
+    "t_contract(ICommitmentRegistry)": {
+      "encoding": "inplace",
+      "label": "contract ICommitmentRegistry",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IEAS)": {
+      "encoding": "inplace",
+      "label": "contract IEAS",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IHatsModule)": {
+      "encoding": "inplace",
+      "label": "contract IHatsModule",
+      "numberOfBytes": "20"
+    },
+    "t_enum(ClaimMode)": {
+      "encoding": "inplace",
+      "enumMembers": ["Open", "ApprovalGated"],
+      "label": "enum ICommitmentPoolingModule.ClaimMode",
+      "numberOfBytes": "1"
+    },
+    "t_enum(ClaimType)": {
+      "encoding": "inplace",
+      "enumMembers": ["Garden", "Individual"],
+      "label": "enum ICommitmentPoolingModule.ClaimType",
+      "numberOfBytes": "1"
+    },
+    "t_enum(CommitmentDirection)": {
+      "encoding": "inplace",
+      "enumMembers": ["Offer", "Request"],
+      "label": "enum ICommitmentPoolingModule.CommitmentDirection",
+      "numberOfBytes": "1"
+    },
+    "t_enum(CommitmentSeriesState)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "Active", "Resting", "Retired"],
+      "label": "enum ICommitmentPoolingModule.CommitmentSeriesState",
+      "numberOfBytes": "1"
+    },
+    "t_enum(CommitmentState)": {
+      "encoding": "inplace",
+      "enumMembers": [
+        "None",
+        "Offered",
+        "Requested",
+        "Accepted",
+        "ReadyForConfirmation",
+        "Fulfilled",
+        "Cancelled",
+        "Expired",
+        "Disputed"
+      ],
+      "label": "enum ICommitmentPoolingModule.CommitmentState",
+      "numberOfBytes": "1"
+    },
+    "t_enum(CommitmentType)": {
+      "encoding": "inplace",
+      "enumMembers": ["DomainImpact", "SupportService", "SeasonCampaign", "StewardCaptured"],
+      "label": "enum ICommitmentPoolingModule.CommitmentType",
+      "numberOfBytes": "1"
+    },
+    "t_enum(ContributorPolicy)": {
+      "encoding": "inplace",
+      "enumMembers": ["Open", "LeadManaged"],
+      "label": "enum ICommitmentPoolingModule.ContributorPolicy",
+      "numberOfBytes": "1"
+    },
+    "t_enum(CycleState)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "Seeded", "Open", "Reconciled", "Composted", "Cancelled"],
+      "label": "enum ICommitmentPoolingModule.CycleState",
+      "numberOfBytes": "1"
+    },
+    "t_enum(CycleType)": {
+      "encoding": "inplace",
+      "enumMembers": ["Season", "Campaign"],
+      "label": "enum ICommitmentPoolingModule.CycleType",
+      "numberOfBytes": "1"
+    },
+    "t_enum(PoolState)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "NotReady", "Ready", "Open", "Paused", "Closed", "Composted"],
+      "label": "enum ICommitmentPoolingModule.PoolState",
+      "numberOfBytes": "1"
+    },
+    "t_enum(PoolType)": {
+      "encoding": "inplace",
+      "enumMembers": ["Garden", "Protocol"],
+      "label": "enum ICommitmentPoolingModule.PoolType",
+      "numberOfBytes": "1"
+    },
+    "t_enum(RewardRail)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "ArbitrumExternal", "CeloSettlement"],
+      "label": "enum ICommitmentPoolingModule.RewardRail",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_address,t_mapping(t_bytes32,t_bytes32))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(bytes32 => bytes32))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_bytes32,t_bytes32)"
+    },
+    "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(bytes32 => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_bytes32,t_uint256)"
+    },
+    "t_mapping(t_address,t_struct(ContributorRecord)_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ICommitmentPoolingModule.ContributorRecord)",
+      "numberOfBytes": "32",
+      "value": "t_struct(ContributorRecord)_storage"
+    },
+    "t_mapping(t_address,t_struct(PendingClaim)_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ICommitmentPoolingModule.PendingClaim)",
+      "numberOfBytes": "32",
+      "value": "t_struct(PendingClaim)_storage"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_bytes32,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_bytes32,t_bytes32)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => bytes32)",
+      "numberOfBytes": "32",
+      "value": "t_bytes32"
+    },
+    "t_mapping(t_bytes32,t_uint16)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint16)",
+      "numberOfBytes": "32",
+      "value": "t_uint16"
+    },
+    "t_mapping(t_bytes32,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_bytes32,t_uint64)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint64)",
+      "numberOfBytes": "32",
+      "value": "t_uint64"
+    },
+    "t_mapping(t_uint16,t_mapping(t_address,t_bool))": {
+      "encoding": "mapping",
+      "key": "t_uint16",
+      "label": "mapping(uint16 => mapping(address => bool))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_bool)"
+    },
+    "t_mapping(t_uint256,t_array(t_address)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => address[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_address)dyn_storage"
+    },
+    "t_mapping(t_uint256,t_array(t_bytes32)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => bytes32[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_bytes32)dyn_storage"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => bool))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_bool)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_struct(ContributorRecord)_storage))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => struct ICommitmentPoolingModule.ContributorRecord))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_struct(ContributorRecord)_storage)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_struct(PendingClaim)_storage))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => struct ICommitmentPoolingModule.PendingClaim))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_struct(PendingClaim)_storage)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_bytes32,t_bool))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(bytes32 => bool))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_bytes32,t_bool)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_uint16,t_mapping(t_address,t_bool)))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(uint16 => mapping(address => bool)))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_uint16,t_mapping(t_address,t_bool))"
+    },
+    "t_mapping(t_uint256,t_struct(Commitment)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ICommitmentPoolingModule.Commitment)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Commitment)_storage"
+    },
+    "t_mapping(t_uint256,t_struct(CommitmentSeries)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ICommitmentPoolingModule.CommitmentSeries)",
+      "numberOfBytes": "32",
+      "value": "t_struct(CommitmentSeries)_storage"
+    },
+    "t_mapping(t_uint256,t_struct(Cycle)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ICommitmentPoolingModule.Cycle)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Cycle)_storage"
+    },
+    "t_mapping(t_uint256,t_struct(Pool)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ICommitmentPoolingModule.Pool)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Pool)_storage"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(AllocationBps)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.AllocationBps",
+      "members": [
+        {
+          "label": "gardeners",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "treasury",
+          "offset": 2,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "operator",
+          "offset": 4,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "evaluator",
+          "offset": 6,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "community",
+          "offset": 8,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "funder",
+          "offset": 10,
+          "slot": "0",
+          "type": "t_uint16"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_struct(Commitment)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.Commitment",
+      "members": [
+        {
+          "label": "poolId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "cycleId",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "label": "commitmentSeriesId",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "label": "creator",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "label": "creationRequestKey",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "creationPayloadHash",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "counterparty",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_address"
+        },
+        {
+          "label": "leadProvider",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_address"
+        },
+        {
+          "label": "counterpartyKind",
+          "offset": 20,
+          "slot": "7",
+          "type": "t_enum(ClaimType)"
+        },
+        {
+          "label": "direction",
+          "offset": 21,
+          "slot": "7",
+          "type": "t_enum(CommitmentDirection)"
+        },
+        {
+          "label": "commitmentType",
+          "offset": 22,
+          "slot": "7",
+          "type": "t_enum(CommitmentType)"
+        },
+        {
+          "label": "state",
+          "offset": 23,
+          "slot": "7",
+          "type": "t_enum(CommitmentState)"
+        },
+        {
+          "label": "claimType",
+          "offset": 24,
+          "slot": "7",
+          "type": "t_enum(ClaimType)"
+        },
+        {
+          "label": "claimMode",
+          "offset": 25,
+          "slot": "7",
+          "type": "t_enum(ClaimMode)"
+        },
+        {
+          "label": "contributorPolicy",
+          "offset": 26,
+          "slot": "7",
+          "type": "t_enum(ContributorPolicy)"
+        },
+        {
+          "label": "domains",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_array(t_uint8)dyn_storage"
+        },
+        {
+          "label": "requirements",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_array(t_struct(CommitmentRequirement)_storage)dyn_storage"
+        },
+        {
+          "label": "dueDate",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_uint64"
+        },
+        {
+          "label": "unitLabel",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "targetUnits",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_uint256"
+        },
+        {
+          "label": "contributorCount",
+          "offset": 0,
+          "slot": "13",
+          "type": "t_uint32"
+        },
+        {
+          "label": "eligibleContributorCount",
+          "offset": 4,
+          "slot": "13",
+          "type": "t_uint32"
+        },
+        {
+          "label": "totalVerifiedCredits",
+          "offset": 8,
+          "slot": "13",
+          "type": "t_uint64"
+        },
+        {
+          "label": "evidenceCount",
+          "offset": 16,
+          "slot": "13",
+          "type": "t_uint32"
+        },
+        {
+          "label": "contributorsFrozen",
+          "offset": 20,
+          "slot": "13",
+          "type": "t_bool"
+        },
+        {
+          "label": "confirmationThreshold",
+          "offset": 21,
+          "slot": "13",
+          "type": "t_uint32"
+        },
+        {
+          "label": "confirmationCount",
+          "offset": 25,
+          "slot": "13",
+          "type": "t_uint32"
+        },
+        {
+          "label": "protocolFallbackEnabled",
+          "offset": 29,
+          "slot": "13",
+          "type": "t_bool"
+        },
+        {
+          "label": "requiresAssessment",
+          "offset": 30,
+          "slot": "13",
+          "type": "t_bool"
+        },
+        {
+          "label": "assessmentUID",
+          "offset": 0,
+          "slot": "14",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "needUID",
+          "offset": 0,
+          "slot": "15",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "counterCommitmentId",
+          "offset": 0,
+          "slot": "16",
+          "type": "t_uint256"
+        },
+        {
+          "label": "metadataCID",
+          "offset": 0,
+          "slot": "17",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "reward",
+          "offset": 0,
+          "slot": "18",
+          "type": "t_struct(DeclaredReward)_storage"
+        },
+        {
+          "label": "declaredUnitValue",
+          "offset": 0,
+          "slot": "21",
+          "type": "t_uint256"
+        },
+        {
+          "label": "declaredValueBasis",
+          "offset": 0,
+          "slot": "22",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "rewardPaid",
+          "offset": 0,
+          "slot": "23",
+          "type": "t_bool"
+        },
+        {
+          "label": "preDisputeState",
+          "offset": 1,
+          "slot": "23",
+          "type": "t_enum(CommitmentState)"
+        },
+        {
+          "label": "providerGarden",
+          "offset": 2,
+          "slot": "23",
+          "type": "t_address"
+        },
+        {
+          "label": "counterpartyPoolId",
+          "offset": 0,
+          "slot": "24",
+          "type": "t_uint256"
+        },
+        {
+          "label": "counterpartyGardenAccount",
+          "offset": 0,
+          "slot": "25",
+          "type": "t_address"
+        }
+      ],
+      "numberOfBytes": "832"
+    },
+    "t_struct(CommitmentRequirement)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.CommitmentRequirement",
+      "members": [
+        {
+          "label": "actionUID",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "domain",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint8"
+        },
+        {
+          "label": "requiredCount",
+          "offset": 1,
+          "slot": "1",
+          "type": "t_uint32"
+        },
+        {
+          "label": "approvedCount",
+          "offset": 5,
+          "slot": "1",
+          "type": "t_uint32"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_struct(CommitmentSeries)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.CommitmentSeries",
+      "members": [
+        {
+          "label": "poolId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "createdBy",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "currentHolder",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "state",
+          "offset": 20,
+          "slot": "2",
+          "type": "t_enum(CommitmentSeriesState)"
+        },
+        {
+          "label": "metadataCID",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "creationPayloadHash",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_bytes32"
+        }
+      ],
+      "numberOfBytes": "160"
+    },
+    "t_struct(ContributorRecord)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.ContributorRecord",
+      "members": [
+        {
+          "label": "active",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "label": "uncountedLinkedWorkCount",
+          "offset": 1,
+          "slot": "0",
+          "type": "t_uint32"
+        },
+        {
+          "label": "approvedWorkCredits",
+          "offset": 5,
+          "slot": "0",
+          "type": "t_uint32"
+        },
+        {
+          "label": "evidenceCredits",
+          "offset": 9,
+          "slot": "0",
+          "type": "t_uint32"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_struct(Cycle)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.Cycle",
+      "members": [
+        {
+          "label": "poolId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "cycleType",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_enum(CycleType)"
+        },
+        {
+          "label": "state",
+          "offset": 1,
+          "slot": "1",
+          "type": "t_enum(CycleState)"
+        },
+        {
+          "label": "startTime",
+          "offset": 2,
+          "slot": "1",
+          "type": "t_uint64"
+        },
+        {
+          "label": "endTime",
+          "offset": 10,
+          "slot": "1",
+          "type": "t_uint64"
+        },
+        {
+          "label": "metadataCID",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "allocation",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_struct(AllocationBps)_storage"
+        },
+        {
+          "label": "recognitionPolicy",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_struct(RecognitionPolicy)_storage"
+        },
+        {
+          "label": "liveCommitmentCount",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint32"
+        }
+      ],
+      "numberOfBytes": "192"
+    },
+    "t_struct(DeclaredReward)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.DeclaredReward",
+      "members": [
+        {
+          "label": "rail",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_enum(RewardRail)"
+        },
+        {
+          "label": "source",
+          "offset": 1,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "token",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "amount",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "96"
+    },
+    "t_struct(PendingClaim)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.PendingClaim",
+      "members": [
+        {
+          "label": "claimant",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "requestedBy",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "kind",
+          "offset": 20,
+          "slot": "1",
+          "type": "t_enum(ClaimType)"
+        },
+        {
+          "label": "gardenContext",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "requestedAt",
+          "offset": 20,
+          "slot": "2",
+          "type": "t_uint64"
+        },
+        {
+          "label": "active",
+          "offset": 28,
+          "slot": "2",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "96"
+    },
+    "t_struct(Pool)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.Pool",
+      "members": [
+        {
+          "label": "garden",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "poolType",
+          "offset": 20,
+          "slot": "0",
+          "type": "t_enum(PoolType)"
+        },
+        {
+          "label": "state",
+          "offset": 21,
+          "slot": "0",
+          "type": "t_enum(PoolState)"
+        },
+        {
+          "label": "proofEnabled",
+          "offset": 22,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "label": "settlementEnabled",
+          "offset": 23,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "label": "charterCID",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "openSeasonCycleId",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint256"
+        },
+        {
+          "label": "settlementAdapter",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "label": "liveCommitmentCount",
+          "offset": 20,
+          "slot": "3",
+          "type": "t_uint32"
+        },
+        {
+          "label": "nonTerminalCycleCount",
+          "offset": 24,
+          "slot": "3",
+          "type": "t_uint32"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_struct(RecognitionPolicy)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICommitmentPoolingModule.RecognitionPolicy",
+      "members": [
+        {
+          "label": "equalParticipationBps",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "verifiedContributionBps",
+          "offset": 2,
+          "slot": "0",
+          "type": "t_uint16"
+        }
+      ],
+      "numberOfBytes": "32"
+    },
+    "t_uint16": {
+      "encoding": "inplace",
+      "label": "uint16",
+      "numberOfBytes": "2"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint32": {
+      "encoding": "inplace",
+      "label": "uint32",
+      "numberOfBytes": "4"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}

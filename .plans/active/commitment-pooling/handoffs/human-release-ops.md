@@ -98,6 +98,85 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
 
 ## Direct-lane and dual-chain testnet evidence gate
 
+> **Amendment 2026-08-06 (rehearsal target).** The **pooling** rehearsal no longer uses a testnet.
+> It runs on an Arbitrum One fork —
+> `bun run contracts:pooling:rehearse:arbitrum-fork` — against live Hats, EAS, and the live
+> `WorkApprovalResolver`, because Hats has no Arbitrum Sepolia deployment. See `contract-spec.md`
+> §7.3, amendment 2026-08-06.
+>
+> This changes nothing below. The **settlement** lane's CCIP evidence ladder is a separate
+> problem: a fork cannot prove a cross-chain lane, so items 3–5 still need live chains. But the
+> same question applies — Celo Sepolia has no published CCIP lane and Kernel `0.3.1` is
+> unsupported there, so the settlement lane owner should re-derive whether items 3 and 4 buy
+> anything a paired fork process does not. Recorded here as an open question for that lane, not
+> resolved by this amendment.
+
+> **Amendment 2026-08-06 (lane verified; ladder revision proposed).** Item 5's on-chain check now
+> exists and passes as an automated read-only test:
+> `bun run contracts:settlement:verify-lane` →
+> `packages/contracts/test/fork/CrossChainSettlementLane.t.sol`. Celo Mainnet's CCIP router and
+> chain selector were both **zero** in `deployments/networks.json` until this run; nothing
+> cross-chain could be fork-tested against Celo at all. They are now the official Chainlink
+> directory values, **verified on chain rather than trusted**:
+>
+> | | Arbitrum One | Celo Mainnet |
+> |---|---|---|
+> | router | `0x141fa059441E0ca23ce184B6A78bafD2A517DdE8` | `0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62` |
+> | chain selector | `4949039107694359620` | `1346049177634351622` |
+>
+> Observed 2026-08-06 against live Arbitrum One and Celo Mainnet forks: both addresses report
+> `typeAndVersion() == "Router 1.2.0"`; `isChainSupported` is **true in both directions**; and both
+> directions quote a non-zero native fee for a message-only, zero-token payload
+> (Arbitrum→Celo ≈ 5.84e13 wei ETH, Celo→Arbitrum ≈ 2.14e18 wei CELO). A bogus selector returns
+> false, so those trues mean something, and the test asserts `block.chainid` on both forks so a
+> misconfigured RPC cannot verify some other chain's lane and report it as Celo's. The test reads
+> the routers and selectors out of `networks.json` rather than hardcoding them, so a pass proves
+> the *shipped config* is live.
+>
+> **Proposed ladder revision — settlement lane's call, not made here.** Items 3 and 4 are
+> recommended for removal:
+>
+> - **Item 3 (Celo Sepolia Safe/Zodiac rehearsal)** uses a surrogate token and Kernel `0.2.4`
+>   against production `0.3.1`, on a chain with no published CCIP lane. It rehearses a different
+>   wallet stack moving a different asset over a lane that does not exist.
+> - **Item 4 (ephemeral Arbitrum Sepolia↔Ethereum Sepolia proof)** demonstrates that Chainlink's
+>   transport works, on a pair that will never be used. That is not in question.
+>
+> Replacement ladder, cheapest first:
+>
+> 1. pure tuple/versioning/replay tests, no chain;
+> 2. per-side fork tests;
+> 3. a **paired-fork round trip** carrying the command and the acknowledgment by hand (see the
+>    testing pattern below);
+> 4. read-only live lane verification — **shipped, green, and re-runnable today**;
+> 5. ONE message-only, zero-value ping and acknowledgment on the real Arbitrum One↔Celo Mainnet
+>    lane;
+> 6. the minimum-value canary and recorded observation period (unchanged, item 7 below).
+>
+> What forks genuinely cannot prove — DON liveness, real delivery latency, destination gas under
+> congestion — comes from step 5 alone. The Safe/Zodiac signer ceremony is a human process and is
+> not bought by any testnet rehearsal. Items 6 and 7 below are unchanged.
+
+### Cross-chain testing pattern (settlement lane)
+
+The repo already solved this for ENS; the settlement lane should build on it rather than
+re-derive it. `packages/contracts/test/fork/CrossChainENS.t.sol` is the working precedent:
+
+1. `vm.createFork` for each chain, then alternate with `vm.selectFork`;
+2. build the payload on the source fork and hand-encode a `Client.Any2EVMMessage`;
+3. deliver it on the destination fork with `vm.prank(router)` followed by
+   `receiver.ccipReceive(message)`.
+
+This is sound because a CCIP receiver's entire trust model is "the router called me, from this
+source selector, with this sender." Impersonating the real router on a fork exercises exactly that
+boundary, with real contracts on both ends. The only simulated part is Chainlink's transport —
+their audited infrastructure, not ours. Same reasoning as the pooling fork decision: simulate only
+what belongs to someone else.
+
+`CrossChainSettlementLane.t.sol` adds the other half — proving the real lane between those two
+chains is published, supported, and priced — so a paired-fork round trip is testing a route that
+demonstrably exists.
+
 Celo Sepolia is active. Chainlink's official directory currently publishes the direct
 Arbitrum One↔Celo Mainnet route in both directions at v1.5.0, but does not list the exact
 Arbitrum Sepolia↔Celo Sepolia pair. The prior “no active Celo testnet” statement was
@@ -125,6 +204,10 @@ Current package checks:
 - `bun run --filter @green-goods/contracts build:full`
 - `bun run --filter @green-goods/indexer check:indexing-boundary`
 - `bun run --filter @green-goods/indexer build`
+- `bun run contracts:settlement:verify-lane` — read-only Arbitrum One↔Celo Mainnet CCIP lane
+  verification against both real routers. No broadcast, no deployment, no funds. Re-run this
+  immediately before any value authority is granted; a lane that was live in August is not
+  evidence that it is live today.
 
 Lane-produced settlement deploy/dry-run targets must be added through the existing Bun deploy wrapper, documented by `--help`, and copied here before use. No command in this handoff authorizes a broadcast.
 

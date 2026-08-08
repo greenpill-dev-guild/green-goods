@@ -653,6 +653,58 @@ contract WorkApprovalResolverTest is Test {
     }
 
     // =========================================================================
+    // Commitment Pooling Decision Bridge
+    // =========================================================================
+
+    function testDecisionBridgeUnsetPreservesLegacyBehavior() public {
+        Attestation memory attestation = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(attestation));
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 0);
+        assertEq(workApprovalResolver.decisionSequenceByUID(attestation.uid), 0);
+    }
+
+    function testDecisionBridgeAssignsMonotonicApprovalAndRejectionSequences() public {
+        MockCommitmentDecisionModule module = new MockCommitmentDecisionModule(false);
+        vm.prank(multisig);
+        workApprovalResolver.setCommitmentModule(address(module));
+
+        Attestation memory approval = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+        approval.uid = bytes32(uint256(201));
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(approval));
+
+        Attestation memory rejection = _buildApprovalAttestation(operator, workUID, activeActionId, false);
+        rejection.uid = bytes32(uint256(202));
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(rejection));
+
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 2);
+        assertEq(workApprovalResolver.decisionSequenceByUID(approval.uid), 1);
+        assertEq(workApprovalResolver.decisionSequenceByUID(rejection.uid), 2);
+        assertEq(module.callCount(), 2);
+        assertEq(module.lastWorkUID(), workUID);
+        assertEq(module.lastDecisionUID(), rejection.uid);
+        assertEq(module.lastSequence(), 2);
+        assertFalse(module.lastApproved());
+    }
+
+    function testRevertingDecisionBridgeDoesNotBlockAttestationOrSequence() public {
+        MockCommitmentDecisionModule module = new MockCommitmentDecisionModule(true);
+        vm.prank(multisig);
+        workApprovalResolver.setCommitmentModule(address(module));
+
+        Attestation memory approval = _buildApprovalAttestation(operator, workUID, activeActionId, true);
+        approval.uid = bytes32(uint256(203));
+        vm.prank(address(mockEAS));
+        assertTrue(workApprovalResolver.attest(approval));
+
+        assertEq(workApprovalResolver.latestDecisionSequence(workUID), 1);
+        assertEq(workApprovalResolver.decisionSequenceByUID(approval.uid), 1);
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -719,5 +771,27 @@ contract MockKarmaForWorkApproval {
         returns (bytes32)
     {
         return bytes32(uint256(1));
+    }
+}
+
+contract MockCommitmentDecisionModule {
+    bool private immutable shouldRevert;
+    uint256 public callCount;
+    bytes32 public lastWorkUID;
+    bytes32 public lastDecisionUID;
+    uint64 public lastSequence;
+    bool public lastApproved;
+
+    constructor(bool shouldRevert_) {
+        shouldRevert = shouldRevert_;
+    }
+
+    function onWorkDecision(bytes32 workUID, bytes32 decisionUID, uint64 sequence, address, bool approved) external {
+        if (shouldRevert) revert("bridge unavailable");
+        callCount += 1;
+        lastWorkUID = workUID;
+        lastDecisionUID = decisionUID;
+        lastSequence = sequence;
+        lastApproved = approved;
     }
 }

@@ -13,6 +13,8 @@ export interface ParsedOptions {
   force: boolean;
   dryRun: boolean;
   pureSimulation: boolean;
+  /** commitment-schemas only: run the finalization mode instead of preparation. */
+  finalizeCommunityTestimony: boolean;
   skipEnvio: boolean;
   skipVerification: boolean;
   startIndexer: boolean;
@@ -112,6 +114,7 @@ export class CliParser {
       force: false,
       dryRun: false,
       pureSimulation: false,
+      finalizeCommunityTestimony: false,
       skipEnvio: false,
       skipVerification: false,
       startIndexer: false,
@@ -151,6 +154,9 @@ export class CliParser {
           break;
         case "--pure-simulation":
           options.pureSimulation = true;
+          break;
+        case "--finalize-community-testimony":
+          options.finalizeCommunityTestimony = true;
           break;
         case "--skip-envio":
           options.skipEnvio = true;

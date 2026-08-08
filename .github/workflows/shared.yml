@@ -21,7 +21,6 @@ on:
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
   pull_request:
-    branches: [main, develop]
     paths:
       - "package.json"
       - "bun.lock"

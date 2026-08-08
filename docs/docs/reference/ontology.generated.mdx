@@ -255,10 +255,6 @@ Offline job-queue mutation kinds (the write-ahead ledger's vocabulary).
 |---|---|---|---|---|
 | shared | shared | <code>packages/shared/src/types/job-queue.ts · JobKindMap</code> | <code>work, approval</code> |  |
 
-## Commitment Pooling Vocabularies (spec — not deployed)
-
-Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live.
-
 ### `commitment-pool-type`
 
 :::warning Name collision
@@ -269,7 +265,9 @@ Commitment-pooling pool anchor kind. Name-collides with the live Gardens V2 sign
 
 **Canonical members:** Garden (0) · Protocol (1)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `PoolType`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · PoolType</code> | <code>Garden, Protocol</code> |  |
 
 ### `pool-state`
 
@@ -277,7 +275,9 @@ Commitment pool lifecycle — every state is on-chain.
 
 **Canonical members:** None (0) · NotReady (1) · Ready (2) · Open (3) · Paused (4) · Closed (5) · Composted (6)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `PoolState`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · PoolState</code> | <code>None, NotReady, Ready, Open, Paused, Closed, Composted</code> |  |
 
 ### `cycle-type`
 
@@ -285,7 +285,9 @@ Cycle kinds: one open Season per pool; Campaigns may overlap.
 
 **Canonical members:** Season (0) · Campaign (1)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CycleType`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CycleType</code> | <code>Season, Campaign</code> |  |
 
 ### `cycle-state`
 
@@ -295,7 +297,9 @@ On-chain cycle states; Draft lives in app IndexedDB and InProgress/Reviewing are
 
 **Derived states (never stored):** Draft · InProgress · Reviewing
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CycleState`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CycleState</code> | <code>None, Seeded, Open, Reconciled, Composted, Cancelled</code> |  |
 
 ### `commitment-direction`
 
@@ -303,7 +307,9 @@ Whether a commitment offers capacity or requests it; drives the direction-aware 
 
 **Canonical members:** Offer (0) · Request (1)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CommitmentDirection`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentDirection</code> | <code>Offer, Request</code> |  |
 
 ### `commitment-type`
 
@@ -311,7 +317,9 @@ Commitment archetypes; DomainImpact keeps the full Work → WorkApproval path, t
 
 **Canonical members:** DomainImpact (0) · SupportService (1) · SeasonCampaign (2) · StewardCaptured (3)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CommitmentType`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentType</code> | <code>DomainImpact, SupportService, SeasonCampaign, StewardCaptured</code> |  |
 
 ### `commitment-state`
 
@@ -321,7 +329,9 @@ On-chain commitment states; Draft is app-side and Active/EvidenceSubmitted/Parti
 
 **Derived states (never stored):** Draft · Active · EvidenceSubmitted · PartiallyApproved · Reconciled
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CommitmentState`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentState</code> | <code>None, Offered, Requested, Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired, Disputed</code> |  |
 
 ### `claim-type`
 
@@ -329,7 +339,9 @@ Immutable claimant-eligibility class set at commitment creation; runtime claim k
 
 **Canonical members:** Garden (0) · Individual (1)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `ClaimType`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ClaimType</code> | <code>Garden, Individual</code> |  |
 
 ### `contributor-policy`
 
@@ -337,7 +349,9 @@ How contributor membership is established before the commitment roster freezes.
 
 **Canonical members:** Open (0) · LeadManaged (1)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `ContributorPolicy`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ContributorPolicy</code> | <code>Open, LeadManaged</code> |  |
 
 ### `claim-mode`
 
@@ -345,7 +359,9 @@ Whether claiming transitions immediately (Open) or awaits operator acceptance (A
 
 **Canonical members:** Open (0) · ApprovalGated (1)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `ClaimMode`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ClaimMode</code> | <code>Open, ApprovalGated</code> |  |
 
 ### `dispute-resolution`
 
@@ -353,7 +369,9 @@ Steward-only dispute outcomes; RestorePrevious replays the stored pre-dispute st
 
 **Canonical members:** RestorePrevious (0) · Fulfilled (1) · Cancelled (2) · Expired (3)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `DisputeResolution`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · DisputeResolution</code> | <code>RestorePrevious, Fulfilled, Cancelled, Expired</code> |  |
 
 ### `reward-rail`
 
@@ -361,7 +379,9 @@ Reward reference rail: ArbitrumExternal records operator-paid jar/treasury rewar
 
 **Canonical members:** None (0) · ArbitrumExternal (1) · CeloSettlement (2)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `RewardRail`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · RewardRail</code> | <code>None, ArbitrumExternal, CeloSettlement</code> |  |
 
 ### `accounting-state`
 
@@ -369,7 +389,33 @@ CommitmentRegistry unit-class accounting states (non-transferable, ERC-1155-styl
 
 **Canonical members:** Registered (0) · Committed (1) · Released (2) · Fulfilled (3)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentRegistry.sol` · `AccountingState`. The drift gate flags arrival so the status flips to live with declared representations._
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentRegistry.sol · AccountingState</code> | <code>Registered, Committed, Released, Fulfilled</code> |  |
+
+### `confirmation-path`
+
+The authority path that produced fulfillment provenance. PoolFallback is local-garden authority; ProtocolFallback is an explicitly selected Green Goods protocol-garden authority.
+
+**Canonical members:** Ordinary (0) · PoolFallback (1) · ProtocolFallback (2)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ConfirmationPath</code> | <code>Ordinary, PoolFallback, ProtocolFallback</code> |  |
+
+### `commitment-series-state`
+
+Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.
+
+**Canonical members:** None (0) · Active (1) · Resting (2) · Retired (3)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentSeriesState</code> | <code>None, Active, Resting, Retired</code> |  |
+
+## Commitment Pooling Vocabularies (spec — not deployed)
+
+Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live.
 
 ### `commitment-payout-plan-status`
 
@@ -378,14 +424,6 @@ Derived progress of a frozen commitment payout plan across its contributor child
 **Canonical members:** Draft (0) · Pending (1) · Partial (2) · Complete (3) · Failed (4)
 
 _Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `PayoutPlanStatus`. The drift gate flags arrival so the status flips to live with declared representations._
-
-### `confirmation-path`
-
-The authority path that produced fulfillment provenance. PoolFallback is local-garden authority; ProtocolFallback is an explicitly selected Green Goods protocol-garden authority.
-
-**Canonical members:** Ordinary (0) · PoolFallback (1) · ProtocolFallback (2)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `ConfirmationPath`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ### `disbursement-state`
 
@@ -467,14 +505,6 @@ Read-model grouping boundary for exact-label commitment-unit summaries.
 
 _Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentUnitScope`. The drift gate flags arrival so the status flips to live with declared representations._
 
-### `commitment-series-state`
-
-Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.
-
-**Canonical members:** None (0) · Active (1) · Resting (2) · Retired (3)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` · `CommitmentSeriesState`. The drift gate flags arrival so the status flips to live with declared representations._
-
 ## EAS Schemas
 
 ### `assessment` — Green Goods Assessment v2
@@ -533,7 +563,7 @@ Registered via the standalone badge-schemas path outside config/schemas.json; th
 
 ### `assessmentV3` — Green Goods Assessment v3
 
-status: spec · revocable: false · resolver: none
+status: live · revocable: false · resolver: none
 
 Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exactly two new EAS registrations in the commitment-pooling track.
 
@@ -552,7 +582,7 @@ Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exact
 
 ### `communityTestimony` — Green Goods Community Testimony
 
-status: spec · revocable: false · resolver: none
+status: live · revocable: false · resolver: none
 
 Community-Hat-gated testimony attached to a commitment; the second of exactly two new EAS registrations.
 

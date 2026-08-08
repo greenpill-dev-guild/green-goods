@@ -13,7 +13,6 @@ on:
       - "scripts/quality/check-source-structure.js"
       - ".github/workflows/agent.yml"
   pull_request:
-    branches: [main, develop]
     paths:
       - "package.json"
       - "bun.lock"
