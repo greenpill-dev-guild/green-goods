@@ -174,6 +174,26 @@ try octantModule.onWorkApproved(garden, name) returns (address vault) {
 }
 ```
 
+### Contract Size — EIP-170 (MANDATORY)
+
+Deployed bytecode is capped at 24,576 bytes on Arbitrum and every Ethereum-equivalent chain.
+**Foundry tests do NOT enforce this** — a green suite says nothing about deployability. The
+gate is `bun run check:sizes` (contracts package; CI runs it in the Lint And Build job): it
+builds the production profile and fails any deployable over the limit, warning above 90%.
+
+- `CommitmentPoolingModule` behavior lives in **deployed external libraries**
+  (`src/lib/pooling/`, DELEGATECALLed; each has its own 24,576-byte budget). The module side
+  is a six-link shell chain in `src/modules/pooling/` (Storage → Base → Admin → Lifecycle →
+  Operations → Extensions). New pooling selectors MUST land their bodies in a library, with
+  only a thin shell in the chain — the binding pattern rules (Env snapshot, storage-ref
+  threading, counter shells, raw-forwarded struct views, "no struct-of-mappings handles") are
+  in `.plans/active/commitment-pooling/contract-spec.md` §6.1 "Deployed-library architecture".
+- `OctantModule` sits at **90 bytes of margin** (production profile). Any edit to it will
+  trip the WARN band; plan a library extraction before growing it.
+- Measurement gotcha: `forge build <path> --skip test --skip script` can silently skip
+  emitting the named concrete target's artifact. Size measurements must build with no path
+  argument (the gate does this correctly).
+
 ### Gas Optimization
 
 ```solidity

@@ -255,6 +255,46 @@ One UUPS module that owns the whole commitment-pooling control plane: durable po
 - Steward gate `_requirePoolSteward(poolId)` resolves `pools[poolId].garden` and applies `hatsModule.isStewardOf || isOwnerOf`, falling back to module owner: copy of `_requireOperator` in `packages/contracts/src/modules/Hypercerts.sol:282-287`. `IHatsModule.isOperatorOf` is the deprecated alias that forwards to `isStewardOf` (`packages/contracts/src/modules/Hats.sol:294-296`); the frozen form is `isStewardOf` so this lane and the settlement lane name one predicate. For the protocol pool this resolves to root-garden Hats, so the protocol team stewards it by wearing root-garden Steward hats (register #8). Note the deliberate asymmetry with settlement: the module-owner fallback exists here for pool administration, while settlement's value-moving payout writes have no module-owner bypass.
 - Graceful mint integration: GardenToken wraps `onGardenMinted` in try/catch (`packages/contracts/src/tokens/Garden.sol:421-430` pattern); the module itself is idempotent like `packages/contracts/src/modules/CookieJar.sol:138-141`.
 
+#### Deployed-library architecture (EIP-170) — binding since 2026-08-08
+
+The module's behavior exceeds one contract's 24,576-byte EIP-170 budget (it measured 56,601
+bytes assembled monolithically; evidence in `reports/eip170-size-wall-2026-08-08.md`). The
+implementation is therefore split at the **deployed-external-library boundary**, and every
+future selector must follow the same pattern:
+
+1. **Behavior lives in deployed `library` contracts** under
+   `packages/contracts/src/lib/pooling/`, DELEGATECALLed by thin shells in the six-link module
+   chain (`Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> module`).
+   `msg.sender`, events, errors, and revert data surface from the proxy unchanged, so the
+   permission matrix, the event contract, and the indexer boundary are unaffected by the
+   split. Each library carries its own 24,576-byte budget.
+2. **Only `CommitmentPoolingStorage` declares state.** Libraries hold none and receive
+   explicit `mapping(...) storage` references plus a value-typed
+   `CommitmentPoolingCommonLib.Env` snapshot built by `CommitmentPoolingBase._env()`.
+   Never introduce a struct-of-mappings "storage handle" — the module's slots are not
+   contiguous and no such struct pointer can alias them.
+3. **Counters increment in the shell**: libraries take `next*Id` by value; the shell
+   increments only when the returned id equals the passed value, which preserves the
+   idempotent replay-return contract without scalar writes from a library.
+4. **Value-typed config writes stay module-side** (the Config section of
+   `CommitmentPoolingAdmin`): measured, the extraction costs more in boundary codecs than the
+   setter bodies weigh (+160 bytes).
+5. **Struct/array views raw-forward** through `CommitmentPoolingBase._forwardView` →
+   `poolingViewDelegate` → `CommitmentPoolingViewsLib`, with compiler-derived `.slot`
+   arguments and an unreachable trailing revert per shell. This keeps the big ABI encoders
+   (led by the 40-field `Commitment`) out of the module. `poolingViewDelegate(bytes)` is the
+   one non-interface ABI member this machinery adds, in the same class as the OZ/UUPS
+   externals.
+6. **Gate**: `bun run check:sizes` (CI-enforced) fails any deployable over 24,576 bytes and
+   warns above 90%. The module currently measures 21,198 bytes; new selectors land their
+   weight in libraries (a shell costs a few hundred bytes), so headroom erodes slowly — but
+   check the gate output in every contracts PR.
+7. **Deploy/upgrade shape**: `new CommitmentPoolingModule()` in a Foundry script
+   auto-deploys and links every library in the same broadcast (~13 extra CREATEs). Etherscan
+   verification of the implementation requires the library address mappings. Foundry links
+   test artifacts automatically, so `deployCode("CommitmentPooling.sol:CommitmentPoolingModule")`
+   keeps working in fixtures and fork rehearsals.
+
 #### Storage layout (slot accounting)
 
 Named storage entries, in declaration order. Comment style follows `packages/contracts/src/modules/CookieJar.sol:55-59` ("declares N storage entries above and reserves M more here (50 total); inherited contracts maintain their own storage layouts independently").
