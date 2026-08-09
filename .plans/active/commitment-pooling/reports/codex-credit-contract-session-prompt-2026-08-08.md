@@ -61,10 +61,12 @@ Three decisions landed after stage 1 merged. They are the reason gate 2 is still
 touches something the credit seam sits next to. Read the code, not this summary.
 
 **Deployment identity is emitted.** `SettlementModule.initialize` emits
-`SettlementDeploymentPinned(ccipRouter, localChainSelector, remoteEvmChainId)` and the executor
-emits `ExecutorDeploymentPinned(ccipRouter, gDollarToken, remoteChainSelector)`. These are the
-indexer's only source for those fields. If you add an initialization path, it emits its identity
-the same way.
+`SettlementDeploymentPinned(ccipRouter, localChainSelector, remoteEvmChainId)`, and the executor
+emits `ExecutorDeploymentPinned(ccipRouter, gDollarToken, remoteChainSelector, localChainSelector,
+sourceEvmChainId)` — the executor carries `LOCAL_CHAIN_SELECTOR` and `SOURCE_EVM_CHAIN_ID` as
+constructor immutables purely so it can state them, since neither is needed to execute a
+settlement. These events are the indexer's only source for those fields. If you add an
+initialization path, it announces its identity the same way.
 
 **Acknowledgments are checked against the live route.** `SettlementLifecycleLib.canStillAcknowledge`
 is the shared predicate: the active peer, or the previous peer inside its unexpired grace window.
