@@ -307,7 +307,7 @@ ID. The contract stores the complete normalized creation payload hash and
 `commitmentIdByCreationRequest[creator][creationRequestKey]`. Restart recovery first calls
 `getCommitmentIdByCreationRequest(creator, creationRequestKey)`. A non-zero result binds only
 after pool, cycle, series, creator, direction, kind, claim terms, contributor policy, requirements,
-units, assessment, due date, metadata, Need, counter-commitment, value, fallback, and reward
+units, assessment, due date, metadata, Need, counter-commitment, value, fallback, and consideration
 snapshots all match. Zero permits another send with the same key. Exact contract replay returns
 the first ID with no second event, class commitment, provider slot, or pool-live increment;
 conflicting payload reuse stops locally and reverts onchain. A retry control may therefore say
@@ -385,7 +385,7 @@ type SavedOfferPayloadV1 = {
 };
 ```
 
-Pool, cycle, claimant, due-date, reward-payment, confirmer, availability, and active Commitment
+Pool, cycle, claimant, due-date, consideration-payment, confirmer, availability, and active Commitment
 state are deliberately absent. They are chosen or validated when the owner explicitly creates an
 Offer. `seriesLinks` are convenience references only; the module remains authoritative for series
 holder, lifecycle, pool, and linked instances. `moduleAddress` is the normalized canonical

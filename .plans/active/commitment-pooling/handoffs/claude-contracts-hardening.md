@@ -13,7 +13,7 @@ concurrent agent sessions on one tree.
 
 The contracts are complete. All 86 functions in the frozen `ICommitmentPoolingModule` resolve on
 the compiled `CommitmentPoolingModule` ABI — verified against the artifact, not by reading source.
-Eleven commits landed (`a5f78ea76..f005f7202`): term edits and reward record, work unlink and
+Eleven commits landed (`a5f78ea76..f005f7202`): term edits and consideration record, work unlink and
 decision catch-up, atomic bilateral exchange, canonical recognition snapshot, module-native
 commitment series, the deploy/schema/upgrade toolchain, an artifact-path fix, the Arbitrum One
 fork rehearsal, retirement of the Arbitrum Sepolia path, and two plan-hub records.
@@ -92,8 +92,8 @@ pooling is correct. Treat it as its own change with its own storage-layout check
 
 **Read this before touching anything cross-chain: the settlement contracts do not exist yet.**
 `src/` contains no settlement module. `Commitment.settlementEnabled` and `settlementAdapter` are
-reserved fields that are always false and zero in MVP, and `RewardRail.CeloSettlement` is an enum
-value the module deliberately refuses in `recordRewardPaid`. Do not write a
+reserved fields that are always false and zero in MVP, and `ConsiderationRail.CeloSettlement` is an enum
+value the module deliberately refuses in `recordConsiderationPaid`. Do not write a
 `CeloSettlementExecutor` — that is the settlement lane's work (PRD-686), and its architecture is
 frozen in `settlement-spec.md`.
 

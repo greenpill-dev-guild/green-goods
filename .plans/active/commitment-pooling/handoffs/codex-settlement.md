@@ -5,19 +5,20 @@
 - Machine lane: contracts
 - Execution sub-lane: settlement
 - Owner: Codex
-- Branch signal: `codex/settlement/commitment-pooling`
-- Current state: independent local review/correction complete; blocked for live mirror
-  convergence/re-read and the frozen pooling reward/provider interface; follow `status.json`
-- Linear context: PRD-686 under parent PRD-650
-- Dispatch boundary: this plan handoff does not authorize code changes on its own; implementation requires a separate explicit lane dispatch.
+- Branch signal: `feature/build-commitment-pooling-contracts`
+- Current state: implementation in progress after the 2026-08-08 dispatch and live Linear
+  convergence; deployment/value authorization remains blocked; follow `status.json`
+- Linear context: PRD-686 implementation plus PRD-800 successor architecture under PRD-650
+- Dispatch boundary: Afo explicitly dispatched this implementation lane on 2026-08-08. This grants
+  no deploy, broadcast, Safe mutation, route activation, or value-movement authority.
 
 ## Inputs
 
-- Frozen CommitmentPoolingModule Fulfilled reward/provider interface.
+- Frozen CommitmentPoolingModule Fulfilled consideration/provider interface.
 - `settlement-spec.md` exact command/ack tuples, state machine, events, authority boundary,
   GoodDollar exact-net fee model, and current direct-lane/testnet evidence gate — including the
-  2026-08-01 amendment: `DisbursementKind` ships with three members
-  (`ContributorReward`, `Funding`, `LoanPrincipal`); `LoanPrincipal` is reserved for the
+  2026-08-08 amendment: `DisbursementKind` ships with four members
+  (`ContributorConsideration`, `Funding`, `LoanPrincipal`, `GardenBeneficiary`); `LoanPrincipal` is reserved for the
   unblocked credit chain and no code path queues it until that lane dispatches.
 - Existing `packages/contracts/src/registries/LocalCCIPRouter.sol` is the local-router starting
   point. Extend or adapt it into the paired-router harness; do not create an unrelated parallel
@@ -49,7 +50,7 @@
 - Arbitrum UUPS `SettlementModule`: immutable implementation router, official source CCIP
   selector, and destination EVM chain ID (`42220` production; `11142220` only for isolated,
   paused local/mock or component proof and never as CCIP-lane evidence);
-  write-once protocol garden/canonical G$; canonical reward/funding derivation; immutable batch
+  write-once protocol garden/canonical G$; canonical consideration/funding derivation; immutable batch
   membership with a hard ceiling of 24 and a measurement-gated 0–24 configured limit; exact
   dispatch-only delegate; observable native-fee floor; data-only CCIP dispatch; same-key retry;
   authenticated acknowledgment receiver; failure/new-attempt recovery; unbatched-Queued or
@@ -98,8 +99,8 @@
 ## Acceptance
 
 - Queue derives garden, recipients, amounts, kind, and funding route from canonical
-  Fulfilled/funding facts. Commitment rewards require `RewardRail.CeloSettlement`; core
-  `recordRewardPaid` accepts only `ArbitrumExternal`, proving mutual exclusion. Caller cannot
+  Fulfilled/funding facts. Commitment considerations require `ConsiderationRail.CeloSettlement`; core
+  `recordConsiderationPaid` accepts only `ArbitrumExternal`, proving mutual exclusion. Caller cannot
   supply token, Safe, target, selector, or calldata. Every batch is homogeneous by executor
   garden, source, token, kind, and funding route because one command carries one kind.
 - `executionKey = keccak256(abi.encode(sourceChainSelector, sourceSettlementModule, isBatch, settlementId, attempt))`; tests prove same-numbered disbursement and batch subjects cannot collide.
@@ -139,20 +140,23 @@
   fee change, token pause/unpause, maximum-fee-bps/absolute-fee limits, ERC-20 false,
   ERC-777 reentrancy,
   source-as-recipient, and duplicate-recipient cases.
-- Every fulfilled commitment payout plan sources G$ from the registered `providerGarden` Safe.
+- Every fulfilled commitment payout plan sources G$ from the registered `payerGarden` Safe — the
+  asking side (register #90): the pool garden for a Request, the claiming garden for an Offer.
+  For garden-internal commitments this equals `providerGarden`, so nothing changes there; in the
+  protocol pool they differ and the provider Safe must never be spent. Payout-plan authority
+  follows the payer garden's steward, because no garden may spend a Safe it does not steward.
   The pooling declaration supplies zero source/token sentinels; SettlementModule derives the
   payer from that registered Safe and the plan token exclusively from its write-once
   `gDollarToken`.
-  Its explicit retained amount plus contributor child disbursements conserves declared support;
-  each non-zero eligible contributor target is derived from the frozen plan. If protocol support
-  must reach that garden first, `ProtocolToGarden` is the separate and only funding route from the
-  protocol Safe to the provider garden Safe. Funding and contributor payout never share a command
-  or masquerade as one another.
+  Contributor shape conserves retained amount plus contributor children; beneficiary shape
+  conserves the one frozen external-garden Safe amount. `ProtocolToGarden` is separately the only
+  discretionary non-commitment funding route. Funding, contributor consideration, and garden
+  beneficiary never masquerade as one another.
 - Native ETH/CELO fee balances, quote, reserve threshold, low-balance state, and withdrawal constraints are observable and tested. Arbitrum command dispatch/retry always spends the module reserve; Celo `AcknowledgmentSent.reserveFunded` distinguishes automatic/sponsored reserve spend from an exact caller-funded retry. LINK fee payment is out of scope.
 - `dispatcher` is a single optional Arbitrum address with dispatch/retry authority only. Protocol garden and canonical G$ have no post-initialization setter. Both contracts preserve their configured native-fee floor on sends and withdrawals.
 - `gardenerDeliveryEnabled()` remains the canonical AA capability gate for non-zero contributor
   preparation and member sends. Failure does not block payout-plan creation/edit/finalization,
-  all-retained zero-child completion, or `ProtocolToGarden`.
+  all-retained zero-child completion, GardenBeneficiary Safe preparation, or `ProtocolToGarden`.
 - Shared currently constructs Kernel `0.3.1` accounts. Pimlico's official support matrix lists
   that implementation on Arbitrum One, Arbitrum Sepolia, and Celo Mainnet, but not on Celo
   Sepolia; Celo Sepolia lists Kernel `0.2.4`. The workaround has two non-interchangeable tiers:
@@ -231,23 +235,54 @@ its addresses and artifacts stay under `.generated/runtime` and never merge into
   included Celo Mainnet canonical-G$ first-use operation are required before member delivery.
   GoodDollar operating evidence and explicit human broadcast/canary authorization remain required.
 
+## Binding payer/recipient completion — 2026-08-08
+
+This section supersedes the provider-pays and contributor-only parts of the dated amendments below.
+
+- Reject a fulfilled record with `payerGarden == address(0)` before account lookup or plan writes.
+  Request payer is the pool garden fixed at creation; Offer payer is the claiming garden fixed at
+  acceptance. `providerGarden` remains delivery attribution and roster/EAS scope.
+- Plan creation derives one immutable shape. Request + Garden claim becomes
+  `GardenBeneficiary`: the provider/claiming garden must differ from payer, its registered Celo Safe
+  must be active and is frozen with the full declared amount, retention and contributor rows are
+  zero, and the recognition input/hash are empty. Every other case is
+  `ContributorConsideration` and uses the canonical recognition vector.
+- `setContributorPayouts` accepts contributor shape only. It forces retention to zero whenever
+  payer differs from provider and always proves declared = retained + contributor total.
+  Beneficiary conservation is declared = beneficiary amount, with all other value fields zero.
+- `prepareGardenBeneficiaryPayout(planId)` is permission-checked and idempotent like contributor
+  preparation, but rechecks both registered Safes and ignores `gardenerDeliveryEnabled`.
+- Every commitment-bound child participates in the same batching, dispatch, acknowledgment,
+  failure, requeue, cancellation, and general parent-counter logic. Beneficiary batches/dispatch
+  recheck payer and every beneficiary account/frozen Safe. A beneficiary plan cannot complete
+  locally; it has one payable child until Confirmed.
+- Keep the execution-key domain unchanged: source selector, source module, subject domain, numeric
+  subject ID, and attempt remain sufficient because payout kind and plan shape are immutable.
+- Index `payerGardenId`, beneficiary fields, and the two settlement kinds. Derive
+  `CommitmentSettlementFlow` from payer/provider plus the write-once protocol garden. This observes
+  intended Green Goods direction, not later raw Celo token circulation.
+
 ## Binding architecture amendment — 2026-07-28
 
-- The provider garden Safe is the payer for member allocation. Protocol-to-garden funding remains a separate parent transfer and must not be conflated with contributor payout.
+- The **payer** garden Safe funds member allocation; `providerGarden` is attribution and role
+  scope only. Protocol-to-garden funding remains a separate parent transfer and must not be
+  conflated with contributor payout — and it is no longer how the protocol pays for work it
+  commissioned, since a protocol-pool Request is now commitment-bound to the protocol Safe.
 - Add one stable `CommitmentPayoutPlan`: creation validates the complete sorted recognition vector
   and hash through CommitmentPooling's canonical on-chain recomputation. Atomic full-vector
   amount edits derive payment weights; callers never author recognition and payment weights
-  independently. Creation's deterministic full-reward base-unit allocation is rounding-equivalent
+  independently. Creation's deterministic full-consideration base-unit allocation is rounding-equivalent
   even when its normalized payment bps cannot exactly equal recognition; every noncanonical
   amount/retention divergence requires a stored reason.
-- Explicit finalization verifies declared amount = garden-retained amount + all contributor payout amounts, freezes the plan, and creates no child. A later idempotent `prepareContributorPayout` call materializes exactly one `ContributorReward` disbursement from a frozen non-zero row; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
-- Re-read the immutable provider-garden settlement account before every value-authorizing payout
-  write: edit, finalization, first child preparation, ContributorReward batch creation, and initial
+- Explicit finalization verifies declared amount = garden-retained amount + all contributor payout amounts, freezes the plan, and creates no child. A later idempotent `prepareContributorPayout` call materializes exactly one `ContributorConsideration` disbursement from a frozen non-zero row; an all-retained zero-child plan completes on finalization without CCIP or a self-transfer.
+- Re-read the immutable payer-garden settlement account before every value-authorizing payout
+  write: edit, finalization, first child preparation, ContributorConsideration batch creation, and initial
   dispatch all require it to remain Active. Deactivation does not erase history or block public
   reads, authenticated acknowledgments, terminal cancellation, exact-child idempotent returns, or
   same-execution-key retry paths under their existing gates.
-- A protocol Safe payment to a garden Safe is only `Funding` through `queueFunding` with
-  `FundingRoute.ProtocolToGarden`; it is never a garden-beneficiary `ContributorReward`.
+- A discretionary protocol Safe top-up to a garden Safe is only `Funding` through `queueFunding`
+  with `FundingRoute.ProtocolToGarden`. An earned Garden-claimed protocol Request is separately
+  commitment-bound as `GardenBeneficiary`; neither kind may masquerade as the other.
 - Funding batch creation and initial dispatch revalidate both immutable sides: the protocol
   source settlement account and every target-garden recipient settlement account must still be
   active immediately before value authority is batched or sent. Deactivation leaves the subject
@@ -257,7 +292,7 @@ its addresses and artifacts stay under `.generated/runtime` and never merge into
 
 ## Binding review closure — 2026-07-29
 
-- Resolve create/edit/finalize/prepare/requeue/cancel authority from the immutable provider or
+- Resolve create/edit/finalize/prepare/requeue/cancel authority from the immutable payer or
   executor garden's operator/owner Hats. The exact predicate is
   `IHatsModule.isStewardOf(garden, msg.sender) || IHatsModule.isOwnerOf(garden, msg.sender)`
   against that immutable garden, mirroring `_requireOperator` in
@@ -292,17 +327,18 @@ its addresses and artifacts stay under `.generated/runtime` and never merge into
   division or remainder allocation, hashes those rows plus retention, and requires a non-empty
   recognition-divergence reason. Finalization completes that plan locally even when member
   delivery is disabled.
-- Tests cover a one-base-unit reward split across multiple contributors: creation floors each
+- Tests cover a one-base-unit consideration split across multiple contributors: creation floors each
   recognition share, assigns residual units by fractional remainder then lowercase address,
   records no reason for that canonical vector, and still requires a reason for any steward-edited
   amount or retention difference.
-- Tests deactivate the provider account after plan creation and prove that edit, finalization,
-  first preparation, ContributorReward batch creation, and initial dispatch fail before fee quote
+- Tests deactivate the payer account after plan creation and prove that edit, finalization,
+  first preparation, ContributorConsideration batch creation, and initial dispatch fail before fee quote
   or mutation. Exact existing-child preparation, reads, acknowledgments, cancellation, and
   same-key retry retain their documented behavior.
-- Tests prove protocol-to-garden value is queued only through `queueFunding` as
-  `DisbursementKind.Funding` plus `FundingRoute.ProtocolToGarden`; no commitment payout-plan or
-  garden-beneficiary reward path can encode the same transfer.
+- Tests prove discretionary protocol-to-garden value is queued only through `queueFunding` as
+  `DisbursementKind.Funding` plus `FundingRoute.ProtocolToGarden`, while an earned Garden-claimed
+  Request is commitment-bound `GardenBeneficiary` with a non-zero plan ID and
+  `FundingRoute.None`; neither path can encode the other.
 - Child or batch cancellation retains `payoutPlanOfCommitment` and never permits a second plan or
   replacement child. Only authenticated-failure requeue creates a later logical attempt.
 - `createBatch` rejects a duplicate derived recipient before fee quote, storage mutation, or

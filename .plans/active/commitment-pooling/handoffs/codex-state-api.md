@@ -80,7 +80,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   empty), not the raw submitted number.
 - Ordinary Commitment job payloads mirror the full ABI: creation includes
   `clientCommitmentId`, `creationRequestKey`, cycle, direction, claim type/mode, repeatable
-  `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, reward
+  `{ actionUID, requiredCount }` requirements, contributor policy/roster facts, need, consideration
   rail/source/token/amount, evidence, timing, and the explicit `protocolFallbackEnabled`
   selection. DomainImpact creation never accepts caller-authored
   domain tags; the contract derives them from ActionRegistry, while evidence-only types preserve
@@ -132,6 +132,12 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   Reconciled. The shared composer used by W26 and `/hub/certify/create` rejects cycle zero and
   every other state before allowlist or metadata construction.
 - Settlement precedence and states: Confirmed, Cancelled-from-Queued, Cancelled-from-Failed, authenticated execution Failed, Celo executed/acknowledgment-pending, Dispatched, derived delivery-delayed, Queued, then member-delivery-disabled only when no disbursement exists; `isBatch` remains an explicit command/key domain fact; source/executor pause, matching batch limits, executor caps, native-fee-low, and source-chain-linked Celo Safe/role/peer readiness remain separate capabilities.
+- Settlement plan types preserve `payerGardenId` separately from `providerGardenId`, immutable
+  `ContributorConsideration` or `GardenBeneficiary` shape, beneficiary garden/Safe/amount/child,
+  and general payable/child counters. Derive `CommitmentSettlementFlow` from payer/provider plus
+  protocol garden; do not infer it from token addresses or recipient. Beneficiary preparation is
+  Safe-to-Safe and remains available when gardener delivery is disabled, subject to active payer
+  and beneficiary accounts.
 - Separate mutations for same-key command retry, stored acknowledgment retry, a new logical attempt after authenticated failure, unbatched-Queued or Failed individual cancellation, and atomic whole-batch cancellation while Queued. Timeout alone never exposes cancellation or new-attempt actions, and a Queued batch member never exposes an individual cancel mutation.
 - **Operations capability selectors (this lane owns them; register #69).** `canQueueFunding`
   resolves current protocol-steward authority or `SettlementModule.owner()`; `canOperateSettlement`
@@ -155,8 +161,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - Request creation/acceptance/decline/supersession and direction-aware confirmation render from canonical stored/indexed data. A small-garden fixture with every local confirmer on the contributor roster blocks when protocol fallback is unselected, becomes Ready when it was selected pre-acceptance, and renders “confirmed by Green Goods team — fallback” only from `PROTOCOL_FALLBACK` provenance. Local fallback and ordinary confirmation use distinct labels, and a contributor is disabled on every path.
 - Garden requests expose both canonical GardenAccount claimant and requestedBy operator;
   Individual requests expose the same address for both. Runtime claim type cannot diverge from
-  the stored creation type. Claim preflight disables a creator-operated Garden request, and the
-  mutation maps the on-chain acceptance-time requester recheck to the same self-claim error.
+  the stored creation type. Claim preflight disables a creator-operated Garden request, every
+  Garden claim in a garden pool, and a protocol garden targeting itself; the mutation maps each
+  on-chain rejection to the corresponding recovery explanation.
 - Ready selectors expose the onchain charter/provider-open-commitment-cap predicate separately from the current, non-revoked Baseline app preflight, plus evidence, per-action Work approval, and assessment blockers, without treating sentinel `None`/`UNKNOWN` values as renderable identities.
 - Ready selectors expose the non-zero verified-contributor gate and either the selected cycle's
   already-opened recognition policy or the immutable cycle-less 20/80 default. Direct
@@ -173,6 +180,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   contributor total, and ordered
   `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows exactly.
   It accepts no child IDs or lifecycle fields, so preparation cannot change the hash.
+- Beneficiary snapshot hashing separately encodes chain ID, plan ID, immutable payout kind,
+  beneficiary garden, frozen Safe, and full amount. It accepts no contributor rows, retention, or
+  mutable child fields. Shape cannot change through shared mutations.
 - **Participation-history disclosure is proven, not asserted.** `usePoolMemberHistory` returns
   `unauthenticated` with no viewer, `hidden` for an authenticated viewer who is neither the
   current pool steward nor the subject account, `hidden` for a **former** steward of that pool,
@@ -185,8 +195,8 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   labels; `promiseKeptRate` stays pool-level.
 - Exact label bytes determine unit-summary identity: `hours` and `Hours` render as separate groups. Event replay cannot change any selector result.
 - Settlement selectors never merge Queued with Dispatched, never merge derived delay with authenticated failure, never present Dispatched or executed/acknowledgment-pending as arrived, preserve the command's destination-peer/version/payload snapshot and cancellation origin, expose a single atomic cancellation affordance for a Queued batch and none for its members, never hide historical settlement state when member delivery is later disabled, and never offer a new member-delivery action unless `gardenerDeliveryEnabled === true`; both `null` and `false` fail closed.
-- Reward selectors enforce the declared rail: `ArbitrumExternal` can surface only core
-  `RewardPaid`; `CeloSettlement` can surface only SettlementModule state; `None` has neither.
+- Consideration selectors enforce the declared rail: `ArbitrumExternal` can surface only core
+  `ConsiderationPaid`; `CeloSettlement` can surface only SettlementModule state; `None` has neither.
 - Acknowledgment reads preserve the exact originating command-message relationship and stored
   return receiver/version; an older retry ID delivered out of order can join only to its own
   execution key and never to another settlement.
@@ -270,8 +280,9 @@ prerequisite for the saved-Offer shared/client GREEN state, not optional follow-
   contributor units, recognition/payment snapshot hashes, garden retention, parent
   finalization, stable plan pointer, and contributor child status.
 - Mutations cover online-only roster management before the ReadyForConfirmation freeze, atomic
-  full-vector payout saves, explicit payout-plan finalization, idempotent per-contributor
-  preparation, and child dispatch/recovery through the existing job queue. There is no
+  full-vector contributor payout saves, explicit payout-plan finalization, idempotent
+  per-contributor or garden-beneficiary preparation, and child dispatch/recovery through the
+  online settlement path. There is no
   metadata-only recognition-repair mutation. Hooks remain in `@green-goods/shared`.
 - Keep recognition and payment as separate read models. Payment weights derive from amounts and may default from recognition, but a receipt is shown only from authenticated settlement confirmation. An all-retained finalized plan completes without creating a child receipt.
 

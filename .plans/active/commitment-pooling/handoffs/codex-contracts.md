@@ -201,10 +201,12 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   resolved lead must also pass the current `providerGarden` membership predicate; tests cover an
   Offer creator who lost their Hat and an ineligible StewardCaptured `onBehalfOf`.
   UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
-  exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
+  exclusively to `SettlementModule`: the **payer** garden Safe is payer — the pool garden for a
+  Request, the claiming garden for an Offer, equal to the provider garden only for garden-internal
+  commitments (register #90) — the plan names an explicit
   retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
-- `DeclaredReward` carries `RewardRail { None, ArbitrumExternal, CeloSettlement }`. Zero reward
-  requires `None` plus zero source/token/amount; `recordRewardPaid` accepts only
+- `DeclaredConsideration` carries `ConsiderationRail { None, ArbitrumExternal, CeloSettlement }`. Zero consideration
+  requires `None` plus zero source/token/amount; `recordConsiderationPaid` accepts only
   `ArbitrumExternal`, so a Celo settlement declaration cannot also be recorded on the external
   rail. `CeloSettlement` accepts a non-zero amount with zero source/token sentinels; pooling has
   no canonical-token dependency, and SettlementModule exclusively derives its write-once
@@ -243,7 +245,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   mutates no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class
   registered for an unaccepted Request reads as a known label with zero units. Expected/open units
   move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
-- `recordRewardPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-reward facts.
+- `recordConsiderationPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-consideration facts.
 - AssessmentResolver dual-schema config ABI, setter, event, errors, no-new-initializer UUPS
   upgrade, v2 state-preservation proof, and 3+47 storage layout match contract-spec §6.4.3
   exactly. `AssessmentV3` is a schema/artifact-key name only: no `AssessmentV3Resolver`
@@ -585,9 +587,12 @@ During the **first contracts PR**, before bounded module behavior is called GREE
 - Garden-claimed Requests use the authenticated Open `claimCommitment` caller or the consumed
   ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
   GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
-  checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
-  declarations require zero source/token sentinels; SettlementModule exclusively derives its
-  configured G$ token, and the provider-garden Safe becomes authoritative only there.
+  checked against creator, and `acceptClaim` rechecks the stored requester. Garden pools reject
+  institutional claims, and a protocol garden cannot target itself as the institutional claimant;
+  both open and approval-gated attempts fail before accepted/pending state. CeloSettlement
+  declarations require zero source/token sentinels; SettlementModule derives its configured G$
+  token and immutable payer-garden Safe, and separately freezes an external beneficiary Safe for
+  a Garden-claimed Request.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
   than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments
