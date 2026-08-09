@@ -31,6 +31,160 @@ enum PoolType {
   ACTION
 }
 
+enum DisbursementState {
+  UNKNOWN
+  QUEUED
+  DISPATCHED
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementKind {
+  UNKNOWN
+  CONTRIBUTOR_CONSIDERATION
+  FUNDING
+  LOAN_PRINCIPAL
+  GARDEN_BENEFICIARY
+}
+
+enum FundingRoute {
+  UNKNOWN
+  NONE
+  PROTOCOL_TO_GARDEN
+}
+
+enum CommitmentSettlementFlow {
+  UNKNOWN
+  INTERNAL
+  PROTOCOL_TO_GARDEN
+  GARDEN_TO_PROTOCOL
+  GARDEN_TO_GARDEN
+}
+
+enum CommitmentPayoutPlanStatus {
+  DRAFT
+  PENDING
+  PARTIAL
+  COMPLETE
+  FAILED
+}
+
+type SettlementConfiguration {
+  id: ID!
+  chainId: Int!
+  role: String!
+  gardenerDeliveryEnabled: Boolean
+  protocolGarden: String
+  gDollarToken: String!
+  hatsModule: String
+  commitmentPoolingModule: String
+  localContract: String!
+  localRouter: String!
+  localChainSelector: BigInt!
+  remoteChainSelector: BigInt
+  remoteEvmChainId: Int
+  activePeer: String
+  previousPeer: String
+  previousPeerExpiresAt: BigInt
+  protocolVersion: Int!
+  dispatcher: String
+  batchSizeLimit: Int!
+  maxTransferAmount: BigInt
+  maxBatchAmount: BigInt
+  maxFeeBps: Int
+  maxFeeAmount: BigInt
+  periodDuration: Int
+  maxPeriodAmount: BigInt
+  feeReserveMinimum: BigInt!
+  nativeFeeBalance: BigInt!
+  feeReserveLow: Boolean!
+  peerConfigured: Boolean!
+  paused: Boolean!
+  pendingPayoutPlanEntityIds: [String!]!
+  updatedAt: Int!
+}
+
+type CommitmentPayoutPlan {
+  id: ID!
+  chainId: Int!
+  payoutPlanId: BigInt!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  providerGarden: String!
+  providerGardenId: String!
+  payerGarden: String!
+  payerGardenId: String!
+  settlementFlow: CommitmentSettlementFlow!
+  source: String!
+  token: String!
+  payoutKind: DisbursementKind!
+  declaredAmount: BigInt!
+  gardenRetainedAmount: BigInt!
+  contributorPayoutTotal: BigInt!
+  beneficiaryGarden: String
+  beneficiaryGardenId: String
+  beneficiaryRecipient: String
+  beneficiaryAmount: BigInt!
+  beneficiaryDisbursementId: BigInt
+  beneficiaryDisbursementEntityId: String
+  recognitionContributorCount: Int!
+  payablePayoutCount: Int!
+  preparedPayoutCount: Int!
+  confirmedPayoutCount: Int!
+  failedPayoutCount: Int!
+  cancelledPayoutCount: Int!
+  recognitionSnapshotHash: String!
+  paymentSnapshotHash: String!
+  paymentSnapshotVersion: Int!
+  latestEditReasonCID: String
+  finalized: Boolean!
+  status: CommitmentPayoutPlanStatus!
+  disbursementEntityIds: [String!]!
+  createdBy: String!
+  createdAt: Int!
+  finalizedAt: Int
+  updatedAt: Int!
+}
+
+type Disbursement {
+  id: ID!
+  chainId: Int!
+  disbursementId: BigInt!
+  garden: String!
+  gardenId: String!
+  executorGarden: String!
+  executorGardenId: String!
+  commitmentId: BigInt
+  commitmentEntityId: String
+  payoutPlanId: BigInt
+  payoutPlanEntityId: String
+  contributor: String
+  contributorEntityId: String
+  settlementFlow: CommitmentSettlementFlow
+  kind: DisbursementKind!
+  fundingRoute: FundingRoute!
+  source: String!
+  recipient: String!
+  token: String!
+  amount: BigInt!
+  state: DisbursementState!
+  batchId: BigInt
+  batchEntityId: String
+  reasonCID: String
+  attempt: Int!
+  executionKey: String
+  commandMessageId: String
+  dispatchedAt: Int
+  celoExecutionTx: String
+  acknowledgmentMessageId: String
+  confirmedAt: Int
+  failureCode: Int
+  cancelledFromState: DisbursementState
+  createdAt: Int!
+  updatedAt: Int!
+}
+
 type Action {
   id: ID!
   chainId: Int!

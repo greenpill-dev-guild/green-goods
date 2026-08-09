@@ -193,6 +193,15 @@ export const OctantModule = createContract("OctantModule", [
 ] as const);
 export const OctantVault = createContract("OctantVault", ["Deposit", "Withdraw"] as const);
 export const YieldSplitter = createContract("YieldSplitter", ["YieldSplit"] as const);
+export const SettlementModule = createContract("SettlementModule", [
+  "FundingConfigurationLocked",
+  "CommitmentPayoutPlanCreated",
+  "CommitmentPayoutPlanFinalized",
+  "DisbursementQueued",
+  "SettlementAcknowledged",
+  "DisbursementRequeued",
+  "DisbursementCancelled",
+] as const);
 
 export function createTestIndexer(): TestIndexer {
   return createEnvioTestIndexer();
