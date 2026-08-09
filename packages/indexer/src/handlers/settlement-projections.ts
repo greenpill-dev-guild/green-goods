@@ -1,4 +1,10 @@
-import type { CommitmentPayoutPlan, Disbursement, SettlementConfiguration } from "envio";
+import type {
+  CommitmentPayoutPlan,
+  Disbursement,
+  SettlementConfiguration,
+  SettlementExecution,
+  SettlementSubjectState,
+} from "envio";
 
 import { normalizeAddress, ZERO_ADDRESS } from "./shared";
 
@@ -14,6 +20,55 @@ export function payoutPlanId(chainId: number, id: bigint): string {
 
 export function disbursementId(chainId: number, id: bigint): string {
   return `${chainId}-${id}`;
+}
+
+export function settlementAccountId(chainId: number, garden: string): string {
+  return `${chainId}-${normalizeAddress(garden)}`;
+}
+
+export function contributorPayoutId(
+  chainId: number,
+  payoutPlan: bigint,
+  contributor: string
+): string {
+  return `${chainId}-${payoutPlan}-${normalizeAddress(contributor)}`;
+}
+
+export function payoutSnapshotId(chainId: number, payoutPlan: bigint, version: bigint): string {
+  return `${chainId}-${payoutPlan}-${version}`;
+}
+
+export function payoutSnapshotRowId(
+  chainId: number,
+  payoutPlan: bigint,
+  version: bigint,
+  contributor: string
+): string {
+  return `${payoutSnapshotId(chainId, payoutPlan, version)}-${normalizeAddress(contributor)}`;
+}
+
+export function settlementBatchId(chainId: number, id: bigint): string {
+  return `${chainId}-${id}`;
+}
+
+export function settlementSubjectId(chainId: number, isBatch: boolean, id: bigint): string {
+  return `${chainId}-${isBatch ? "B" : "D"}-${id}`;
+}
+
+export function settlementMessageId(chainId: number, id: string): string {
+  return `${chainId}-${id.toLowerCase()}`;
+}
+
+export function settlementCommandIndexId(chainId: number, key: string): string {
+  return `${chainId}-${key.toLowerCase()}`;
+}
+
+export function settlementExecutionId(chainId: number, key: string): string {
+  return `${chainId}-${key.toLowerCase()}`;
+}
+
+export function settlementGardenRouteId(chainId: number, garden: string): string {
+  return `${chainId}-${normalizeAddress(garden)}`;
 }
 
 export function optionalAddress(value: string): string | undefined {
@@ -80,6 +135,48 @@ export function payoutStatus(plan: PayoutStatusFacts): CommitmentPayoutPlan["sta
   return "PENDING";
 }
 
+export function applySubjectStateToDisbursement(
+  entity: Disbursement,
+  subject: SettlementSubjectState
+): Disbursement {
+  return {
+    ...entity,
+    state: subject.state,
+    attempt: subject.attempt,
+    executionKey: subject.executionKey,
+    commandMessageId: subject.commandMessageId,
+    acknowledgmentMessageId: subject.acknowledgmentMessageId,
+    failureCode: subject.failureCode,
+    dispatchedAt: subject.dispatchedAt,
+    confirmedAt: subject.confirmedAt,
+    reasonCID: subject.reasonCID ?? entity.reasonCID,
+    updatedAt: Math.max(entity.updatedAt, subject.updatedAt),
+  };
+}
+
+export function executionStatus(status: bigint): SettlementExecution["status"] {
+  if (status === 1n) return "SUCCESS";
+  if (status === 2n) return "FAILED";
+  return "UNKNOWN";
+}
+
+export function acknowledgmentDeferralCode(
+  code: bigint
+): SettlementExecution["acknowledgmentDeferralCode"] {
+  switch (code) {
+    case 0n:
+      return "NONE";
+    case 1n:
+      return "QUOTE_FAILED";
+    case 2n:
+      return "FEE_RESERVE_LOW";
+    case 3n:
+      return "SEND_FAILED";
+    default:
+      return "UNKNOWN";
+  }
+}
+
 export function sourceConfiguration(
   chainId: number,
   localContract: string,
@@ -101,6 +198,7 @@ export function sourceConfiguration(
     localChainSelector: existing?.localChainSelector ?? 0n,
     remoteChainSelector: existing?.remoteChainSelector,
     remoteEvmChainId: existing?.remoteEvmChainId,
+    destinationGasLimit: existing?.destinationGasLimit,
     activePeer: existing?.activePeer,
     previousPeer: existing?.previousPeer,
     previousPeerExpiresAt: existing?.previousPeerExpiresAt,
@@ -119,6 +217,49 @@ export function sourceConfiguration(
     peerConfigured: existing?.peerConfigured ?? false,
     paused: existing?.paused ?? true,
     pendingPayoutPlanEntityIds: existing?.pendingPayoutPlanEntityIds ?? [],
+    updatedAt,
+  };
+}
+
+export function executorConfiguration(
+  chainId: number,
+  localContract: string,
+  updatedAt: number,
+  existing?: SettlementConfiguration
+): SettlementConfiguration {
+  return {
+    id: configurationId(chainId),
+    chainId,
+    role: "EXECUTOR",
+    gardenerDeliveryEnabled: undefined,
+    protocolGarden: undefined,
+    gDollarToken: existing?.gDollarToken ?? ZERO_ADDRESS,
+    hatsModule: undefined,
+    commitmentPoolingModule: undefined,
+    localContract: normalizeAddress(localContract),
+    localRouter: existing?.localRouter ?? ZERO_ADDRESS,
+    localChainSelector: existing?.localChainSelector ?? 0n,
+    remoteChainSelector: existing?.remoteChainSelector,
+    remoteEvmChainId: existing?.remoteEvmChainId,
+    destinationGasLimit: existing?.destinationGasLimit,
+    activePeer: existing?.activePeer,
+    previousPeer: existing?.previousPeer,
+    previousPeerExpiresAt: existing?.previousPeerExpiresAt,
+    protocolVersion: existing?.protocolVersion ?? 0,
+    dispatcher: undefined,
+    batchSizeLimit: existing?.batchSizeLimit ?? 0,
+    maxTransferAmount: existing?.maxTransferAmount,
+    maxBatchAmount: existing?.maxBatchAmount,
+    maxFeeBps: existing?.maxFeeBps,
+    maxFeeAmount: existing?.maxFeeAmount,
+    periodDuration: existing?.periodDuration,
+    maxPeriodAmount: existing?.maxPeriodAmount,
+    feeReserveMinimum: existing?.feeReserveMinimum ?? 0n,
+    nativeFeeBalance: existing?.nativeFeeBalance ?? 0n,
+    feeReserveLow: existing?.feeReserveLow ?? true,
+    peerConfigured: existing?.peerConfigured ?? false,
+    paused: existing?.paused ?? true,
+    pendingPayoutPlanEntityIds: [],
     updatedAt,
   };
 }
