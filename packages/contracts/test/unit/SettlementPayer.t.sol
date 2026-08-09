@@ -15,6 +15,11 @@ interface ISettlementCcipReceiver {
 
 contract SettlementPayerMockRouter {
     uint256 public fee;
+    uint256 public nonce;
+    uint64 public lastDestinationSelector;
+    bytes public lastReceiver;
+    bytes public lastData;
+    bytes32 public lastMessageId;
 
     function setFee(uint256 fee_) external {
         fee = fee_;
@@ -24,8 +29,20 @@ contract SettlementPayerMockRouter {
         return fee;
     }
 
-    function ccipSend(uint64, Client.EVM2AnyMessage calldata) external payable returns (bytes32) {
-        return keccak256(abi.encode(block.number, msg.sender, msg.value));
+    function ccipSend(
+        uint64 destinationSelector,
+        Client.EVM2AnyMessage calldata message
+    )
+        external
+        payable
+        returns (bytes32 messageId)
+    {
+        require(msg.value == fee, "fee");
+        lastDestinationSelector = destinationSelector;
+        lastReceiver = message.receiver;
+        lastData = message.data;
+        messageId = keccak256(abi.encode(address(this), ++nonce));
+        lastMessageId = messageId;
     }
 
     function deliver(

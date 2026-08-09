@@ -372,6 +372,7 @@ interface ISettlementModule {
     error GardenerDeliveryDisabled();
     error SourceMustBePaused();
     error SourceNotReady();
+    error ImmutableConfigurationMismatch();
 
     function initialize(
         address owner_,

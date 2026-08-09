@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { CCIPReceiver } from "@chainlink/contracts-ccip/contracts/applications/CCIPReceiver.sol";
 
+import { ISettlementModule } from "../interfaces/ISettlementModule.sol";
 import { SettlementPlanLib } from "../lib/Settlement/PlanLib.sol";
 import { SettlementModuleStorage } from "./Settlement/Storage.sol";
 import { SettlementViews } from "./Settlement/Views.sol";
@@ -65,8 +66,22 @@ contract SettlementModule is SettlementViews {
         emit PausedSet(true);
     }
 
-    function _authorizeUpgrade(address) internal view override onlyOwner {
+    function _authorizeUpgrade(address newImplementation) internal view override onlyOwner {
         if (!paused) revert SourceMustBePaused();
+        if (
+            _replacementImmutable(newImplementation, ISettlementModule.CCIP_ROUTER.selector)
+                != uint256(uint160(CCIP_ROUTER))
+                || _replacementImmutable(newImplementation, ISettlementModule.SOURCE_CHAIN_SELECTOR.selector)
+                    != SOURCE_CHAIN_SELECTOR
+                || _replacementImmutable(newImplementation, ISettlementModule.DESTINATION_EVM_CHAIN_ID.selector)
+                    != DESTINATION_EVM_CHAIN_ID
+        ) revert ImmutableConfigurationMismatch();
+    }
+
+    function _replacementImmutable(address implementation, bytes4 selector) private view returns (uint256 value) {
+        (bool success, bytes memory result) = implementation.staticcall(abi.encodeWithSelector(selector));
+        if (!success || result.length != 32) revert ImmutableConfigurationMismatch();
+        value = abi.decode(result, (uint256));
     }
 
     receive() external payable {

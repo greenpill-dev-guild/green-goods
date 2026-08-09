@@ -226,6 +226,91 @@ contract CCIPSettlementIntegrationTest is Test {
         assertEq(uint8(settlement.payoutPlanStatus(planId)), uint8(ISettlementModule.PayoutPlanStatus.Complete));
     }
 
+    function testExecutionFailureRequeuesIntoNewAttemptAndThenConfirms() public {
+        vm.startPrank(OWNER);
+        uint256 planId = settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+        settlement.finalizeCommitmentPayoutPlan(planId);
+        uint256 disbursementId = settlement.prepareGardenBeneficiaryPayout(planId);
+        settlement.dispatchDisbursement(disbursementId);
+        executor.setPaused(true);
+        executor.setGardenRouteActive(PROVIDER_GARDEN, false);
+        executor.setPaused(false);
+        vm.stopPrank();
+
+        celoRouter.deliver(
+            address(executor),
+            arbitrumRouter.lastMessageId(),
+            ARBITRUM_SELECTOR,
+            address(settlement),
+            arbitrumRouter.lastData()
+        );
+        arbitrumRouter.deliver(
+            address(settlement), celoRouter.lastMessageId(), CELO_SELECTOR, address(executor), celoRouter.lastData()
+        );
+        assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(token.balanceOf(address(beneficiarySafe)), 0);
+
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setGardenRouteActive(PROVIDER_GARDEN, true);
+        executor.setPaused(false);
+        settlement.requeue(disbursementId);
+        settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+        assertEq(settlement.getDisbursement(disbursementId).attempt, 1);
+
+        celoRouter.deliver(
+            address(executor),
+            arbitrumRouter.lastMessageId(),
+            ARBITRUM_SELECTOR,
+            address(settlement),
+            arbitrumRouter.lastData()
+        );
+        arbitrumRouter.deliver(
+            address(settlement), celoRouter.lastMessageId(), CELO_SELECTOR, address(executor), celoRouter.lastData()
+        );
+        assertEq(
+            uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Confirmed)
+        );
+        assertEq(token.balanceOf(address(beneficiarySafe)), 100 ether);
+        assertEq(uint8(settlement.payoutPlanStatus(planId)), uint8(ISettlementModule.PayoutPlanStatus.Complete));
+    }
+
+    function testCallerFundedAcknowledgmentRetryCompletesWithoutSecondTransfer() public {
+        celoRouter.setFee(1);
+        vm.startPrank(OWNER);
+        uint256 planId = settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+        settlement.finalizeCommitmentPayoutPlan(planId);
+        uint256 disbursementId = settlement.prepareGardenBeneficiaryPayout(planId);
+        settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+
+        celoRouter.deliver(
+            address(executor),
+            arbitrumRouter.lastMessageId(),
+            ARBITRUM_SELECTOR,
+            address(settlement),
+            arbitrumRouter.lastData()
+        );
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        ICeloSettlementExecutor.ExecutionResult memory deferred = executor.executionResultOf(dispatched.executionKey);
+        assertFalse(deferred.acknowledgmentSent);
+        assertEq(token.balanceOf(address(beneficiarySafe)), 100 ether);
+
+        address caller = address(0xC411E2);
+        vm.deal(caller, 1);
+        vm.prank(caller);
+        executor.retryAcknowledgment{ value: 1 }(dispatched.executionKey);
+        arbitrumRouter.deliver(
+            address(settlement), celoRouter.lastMessageId(), CELO_SELECTOR, address(executor), celoRouter.lastData()
+        );
+
+        assertEq(
+            uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Confirmed)
+        );
+        assertEq(token.balanceOf(address(beneficiarySafe)), 100 ether);
+    }
+
     function _gardenRequest() internal pure returns (ICommitmentPoolingModule.Commitment memory commitment) {
         commitment.state = ICommitmentPoolingModule.CommitmentState.Fulfilled;
         commitment.direction = ICommitmentPoolingModule.CommitmentDirection.Request;

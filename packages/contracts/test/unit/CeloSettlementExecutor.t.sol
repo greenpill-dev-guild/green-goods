@@ -17,17 +17,39 @@ interface ICcipMessageReceiver {
 contract ExecutorMockRouter {
     uint256 public fee;
     uint256 public nonce;
+    bool public quoteReverts;
+    bool public sendReverts;
+    uint64 public lastDestinationSelector;
+    bytes public lastReceiver;
+    bytes public lastData;
 
     function setFee(uint256 fee_) external {
         fee = fee_;
     }
 
+    function setFailures(bool quoteReverts_, bool sendReverts_) external {
+        quoteReverts = quoteReverts_;
+        sendReverts = sendReverts_;
+    }
+
     function getFee(uint64, Client.EVM2AnyMessage calldata) external view returns (uint256) {
+        require(!quoteReverts, "quote");
         return fee;
     }
 
-    function ccipSend(uint64, Client.EVM2AnyMessage calldata) external payable returns (bytes32 messageId) {
+    function ccipSend(
+        uint64 destinationSelector,
+        Client.EVM2AnyMessage calldata message
+    )
+        external
+        payable
+        returns (bytes32 messageId)
+    {
+        require(!sendReverts, "send");
         require(msg.value == fee, "fee");
+        lastDestinationSelector = destinationSelector;
+        lastReceiver = message.receiver;
+        lastData = message.data;
         messageId = keccak256(abi.encode(address(this), ++nonce));
     }
 

@@ -59,6 +59,11 @@ contract CeloSettlementExecutor is CeloSettlementViews {
 
     function _authorizeUpgrade(address newImplementation) internal view override onlyOwner {
         _requirePaused();
+        try ICeloSettlementExecutor(newImplementation).CCIP_ROUTER() returns (address replacementRouter) {
+            if (replacementRouter != CCIP_ROUTER) revert ImmutableRouterMismatch(CCIP_ROUTER, replacementRouter);
+        } catch {
+            revert ImmutableRouterMismatch(CCIP_ROUTER, address(0));
+        }
         try ICeloSettlementExecutor(newImplementation).G_DOLLAR_TOKEN() returns (address replacementToken) {
             if (replacementToken != G_DOLLAR_TOKEN) {
                 revert ImmutableGdollarMismatch(G_DOLLAR_TOKEN, replacementToken);

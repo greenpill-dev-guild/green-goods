@@ -126,6 +126,7 @@ interface ICeloSettlementExecutor {
     error ExecutorMustBePaused();
     error ExecutorNotReady();
     error ImmutableGdollarMismatch(address currentToken, address replacementToken);
+    error ImmutableRouterMismatch(address currentRouter, address replacementRouter);
 
     function initialize(
         address owner_,
