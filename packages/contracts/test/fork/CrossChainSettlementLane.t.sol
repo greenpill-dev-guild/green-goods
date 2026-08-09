@@ -20,8 +20,8 @@ interface ITypeAndVersion {
 ///
 ///      Nothing here is a settlement contract. `Commitment.settlementEnabled` and
 ///      `settlementAdapter` are reserved MVP fields that are always false and zero, and
-///      `RewardRail.CeloSettlement` is an enum value the module deliberately refuses in
-///      `recordRewardPaid`. This test is about the transport those contracts will eventually sit
+///      `ConsiderationRail.CeloSettlement` is an enum value the module deliberately refuses in
+///      `recordConsiderationPaid`. This test is about the transport those contracts will eventually sit
 ///      on, not about the contracts.
 ///
 ///      Router addresses and chain selectors are read from `deployments/networks.json` rather than
