@@ -1732,7 +1732,7 @@
     },
     {
       "id": "settlement-execution-status",
-      "status": "spec",
+      "status": "live",
       "definition": "GraphQL execution-result mirror with an explicit UNKNOWN sentinel.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1740,11 +1740,17 @@
         "value_scheme": "none",
         "members": ["UNKNOWN", "SUCCESS", "FAILED"]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "SettlementExecutionStatus"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "SettlementExecutionStatus",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "SUCCESS", "FAILED"]
+        }
+      ],
       "mappings": []
     },
     {

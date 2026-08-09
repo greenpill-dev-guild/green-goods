@@ -468,6 +468,16 @@ Stored settlement failure taxonomy used for deterministic recovery and operator 
 | source-solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch</code> |  |
 | executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch</code> |  |
 
+### `settlement-execution-status`
+
+GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
+
+**Canonical members:** UNKNOWN · SUCCESS · FAILED
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| indexer | indexer | <code>packages/indexer/schema.graphql · SettlementExecutionStatus</code> | <code>UNKNOWN, SUCCESS, FAILED</code> |  |
+
 ### `commitment-series-state`
 
 Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.
@@ -497,14 +507,6 @@ Why an executor acknowledgment could not be sent immediately without changing th
 **Canonical members:** None (0) · QuoteFailed (1) · FeeReserveLow (2) · SendFailed (3)
 
 _Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `AcknowledgmentDeferralCode`. The drift gate flags arrival so the status flips to live with declared representations._
-
-### `settlement-execution-status`
-
-GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
-
-**Canonical members:** UNKNOWN · SUCCESS · FAILED
-
-_Spec-only — planned anchor `packages/indexer/schema.graphql` · `SettlementExecutionStatus`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ### `commitment-claim-request-state`
 
