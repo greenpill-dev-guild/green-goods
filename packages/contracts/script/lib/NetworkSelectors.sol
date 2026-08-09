@@ -35,20 +35,34 @@ library NetworkSelectors {
         }
         if (raw.length == 0) return 0;
 
-        // Shape check before decoding, because a failed `abi.decode` cannot be caught. An
-        // ABI-encoded string is at least 64 bytes (32 offset + 32 length); a JSON number decodes
-        // to a single 32-byte word. Refusing the short case is what stops a future entry silently
-        // reintroducing the lossy numeric format for TypeScript consumers.
-        if (raw.length < 64) revert MalformedChainSelector(key);
-
-        string memory decoded = abi.decode(raw, (string));
-        if (bytes(decoded).length == 0) revert MalformedChainSelector(key);
+        // Read whichever shape arrived, because forge picks it, not this library: `parseJson`
+        // infers a type per value, and that inference moved between forge versions. On current
+        // stable a quoted selector past 2**63 arrives as a bare 32-byte word — the same encoding
+        // an unquoted JSON number produces — while older builds returned an ABI string for both
+        // magnitudes. Treating the short encoding as proof of an unquoted entry therefore rejected
+        // correctly-quoted config: Sepolia's 16015286601757825753 is in exactly that range, so the
+        // settlement lane could not read its own network entry on a current toolchain.
+        //
+        // Rejecting the unquoted numeric FORM stays enforced, but against the config file's text
+        // in `script/utils/pooling-release.test.ts`, where quoting is directly observable and no
+        // toolchain sits between the rule and the bytes it judges. Precision is not at stake here:
+        // Solidity reads either encoding exactly, and the lossiness this guards against is a
+        // TypeScript `JSON.parse` failure mode that only that file-level check can see.
+        uint256 parsed;
+        if (raw.length >= 64) {
+            string memory decoded = abi.decode(raw, (string));
+            if (bytes(decoded).length == 0) revert MalformedChainSelector(key);
+            parsed = VM.parseUint(decoded);
+        } else if (raw.length == 32) {
+            parsed = abi.decode(raw, (uint256));
+        } else {
+            revert MalformedChainSelector(key);
+        }
 
         // Range-checked before narrowing: an unchecked `uint64` cast turns a value that does not
         // fit into a different, valid-looking selector rather than an error — 2^64+1 becomes 1.
         // That contradicts this library's whole contract of failing loud on a malformed entry, and
         // the TypeScript round-trip cannot catch it because the string itself round-trips fine.
-        uint256 parsed = VM.parseUint(decoded);
         if (parsed > type(uint64).max) revert MalformedChainSelector(key);
 
         return uint64(parsed);
