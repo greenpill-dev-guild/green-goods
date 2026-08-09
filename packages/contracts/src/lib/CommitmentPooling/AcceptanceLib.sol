@@ -11,6 +11,33 @@ import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 ///         shared by claims, roster, and bilateral exchange behavior.
 /// @dev Internal-only: inlined into each deployed behavior library, never deployed itself.
 library CommitmentPoolingAcceptanceLib {
+    /// @dev Claiming a priced Offer makes `gardenContext` its payer, so the claim is that garden
+    ///      promising to pay — the same kind of institutional act that already requires a steward
+    ///      on the Garden-claim branch. Without it any member could bind their garden to an
+    ///      obligation no steward agreed to, and reserve the provider's capacity against it. The
+    ///      gate is the price, not the claim shape: free Offers are ordinary peer-to-peer mutual
+    ///      aid and stay open to any member. Checked both when the claim is made and again at the
+    ///      acceptance that actually binds the payer, because an approval-gated claim can sit
+    ///      pending for arbitrarily long (Decision Log #61).
+    function requirePricedOfferClaimAuthority(
+        CommitmentPoolingCommonLib.Env memory env,
+        ICommitmentPoolingModule.Commitment storage commitment,
+        ICommitmentPoolingModule.ClaimType kind,
+        address gardenContext,
+        address claimant
+    )
+        internal
+        view
+    {
+        bool priced = kind == ICommitmentPoolingModule.ClaimType.Individual && gardenContext != address(0)
+            && commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer
+            && commitment.consideration.amount != 0;
+        if (!priced) return;
+        if (!CommitmentPoolingGuardLib.isGardenSteward(env.hats, gardenContext, claimant)) {
+            revert ICommitmentPoolingModule.PricedOfferClaimRequiresSteward(gardenContext, claimant);
+        }
+    }
+
     function resolveClaimant(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
@@ -47,6 +74,8 @@ library CommitmentPoolingAcceptanceLib {
             }
         } else if (!CommitmentPoolingGuardLib.isGardenMember(env.hats, gardenContext, msg.sender)) {
             revert ICommitmentPoolingModule.NotEligibleClaimant(msg.sender);
+        } else {
+            requirePricedOfferClaimAuthority(env, commitment, kind, gardenContext, msg.sender);
         }
 
         if (kind == ICommitmentPoolingModule.ClaimType.Garden) {
@@ -96,6 +125,11 @@ library CommitmentPoolingAcceptanceLib {
         if (!CommitmentPoolingGuardLib.isGardenMember(env.hats, providerGarden, leadProvider)) {
             revert ICommitmentPoolingModule.NotEligibleContributor(leadProvider);
         }
+        // Re-checked here, not just at claim time: for an Offer the roster check above covers the
+        // creator, never the claimant, so nothing else here would notice a claimant who lost their
+        // steward hat while an approval-gated claim sat pending. Ordered after that check so the
+        // provider-side error stays the specific one where both apply.
+        requirePricedOfferClaimAuthority(env, commitment, kind, gardenContext, claimant);
         if (commitment.contributorCount + 1 > CommitmentPoolingCommonLib.MAX_CONTRIBUTORS_PER_COMMITMENT) {
             revert ICommitmentPoolingModule.TooManyContributors(
                 commitment.contributorCount + 1, CommitmentPoolingCommonLib.MAX_CONTRIBUTORS_PER_COMMITMENT

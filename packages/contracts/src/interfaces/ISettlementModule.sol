@@ -43,7 +43,12 @@ interface ISettlementModule {
         RouteReverted,
         UnsupportedReceiverPaysFee,
         FeeQuoteExceeded,
-        BalanceDeltaMismatch
+        BalanceDeltaMismatch,
+        /// @dev Source-side disposition, never sent by an executor. Appended last so ordinals 0-11
+        ///      stay identical to `ICeloSettlementExecutor.FailureCode`, and the acknowledgment
+        ///      bound still rejects anything above `BalanceDeltaMismatch` arriving over CCIP.
+        ///      Written only by `failStrandedSubject` (Decision Log #60).
+        SourceStranded
     }
 
     struct SettlementAccount {
@@ -192,6 +197,16 @@ interface ISettlementModule {
         bytes32 permissionsConfigHash,
         bytes32 recoveryConfigHash,
         uint8 recoveryThreshold
+    );
+    /// @notice The implementation immutables, announced once so nothing off chain has to guess them.
+    /// @dev Emitted from `initialize` before any other settlement fact. The router, the local chain
+    ///      selector, and the destination EVM chain ID are constructor immutables, so without this
+    ///      the only way to learn them is an RPC read against a known address — which the indexer
+    ///      cannot do, and which a fresh consumer cannot bootstrap from at all. Gating projection on
+    ///      configuration that no event carries is what left four indexed entity types permanently
+    ///      uncreated (pre-merge review 2026-08-09, Decision Log #59).
+    event SettlementDeploymentPinned(
+        address indexed ccipRouter, uint64 indexed localChainSelector, uint64 indexed remoteEvmChainId
     );
     event SettlementRecoveryUpdated(address indexed garden, address[3] recoveryOwners, bytes32 recoveryConfigHash);
     event SettlementAccountStatusChanged(address indexed garden, bool active);
@@ -373,6 +388,10 @@ interface ISettlementModule {
     error SourceMustBePaused();
     error SourceNotReady();
     error ImmutableConfigurationMismatch();
+    /// @notice An acknowledgment arrived from an executor we no longer trust (Decision Log #60).
+    error RetiredPeerAcknowledgment(address sender);
+    /// @notice The subject's executor can still acknowledge, so there is nothing to close out.
+    error SubjectNotStranded(bool isBatch, uint256 subjectId);
 
     function initialize(
         address owner_,
@@ -436,6 +455,10 @@ interface ISettlementModule {
     function retryCommand(uint256 disbursementId) external returns (bytes32 messageId);
     function retryBatchCommand(uint256 batchId) external returns (bytes32 messageId);
     function requeue(uint256 disbursementId) external;
+    /// @notice Owner-only close-out for a Dispatched subject whose executor can no longer acknowledge.
+    /// @dev Refuses while the snapshotted executor is still the active or unexpired previous peer.
+    ///      Confirm on Celo whether the payment actually landed before requeuing (Decision Log #60).
+    function failStrandedSubject(bool isBatch, uint256 subjectId) external;
     function cancelDisbursement(uint256 disbursementId, string calldata reasonCID) external;
     function cancelBatch(uint256 batchId, string calldata reasonCID) external;
     function getDisbursement(uint256 disbursementId) external view returns (Disbursement memory);

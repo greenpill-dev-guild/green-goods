@@ -63,6 +63,14 @@ interface ICeloSettlementExecutor {
         uint256 amount;
     }
 
+    /// @notice The implementation immutables, announced once so nothing off chain has to guess them.
+    /// @dev The executor twin of `ISettlementModule.SettlementDeploymentPinned`, emitted from
+    ///      `initialize` before any other fact. `remoteEvmChainId` is the source chain this executor
+    ///      answers to, which is the field the indexer needs to key cross-chain rows and which no
+    ///      other event carries (Decision Log #59).
+    event ExecutorDeploymentPinned(
+        address indexed ccipRouter, address indexed gDollarToken, uint64 indexed remoteChainSelector
+    );
     event SourcePeerUpdated(
         uint64 indexed sourceChainSelector,
         address indexed sourceSettlementModule,

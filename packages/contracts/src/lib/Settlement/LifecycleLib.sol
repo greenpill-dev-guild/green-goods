@@ -33,6 +33,9 @@ library SettlementLifecycleLib {
         uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID
     );
     event BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID);
+    event StrandedSubjectFailed(
+        bytes32 indexed executionKey, bool isBatch, uint256 indexed subjectId, address indexed retiredExecutor
+    );
 
     /// @dev Keeps the full batch-homogeneity proof adjacent to the state transition it authorizes.
     // solhint-disable-next-line code-complexity
@@ -323,6 +326,96 @@ library SettlementLifecycleLib {
             if (entry.payoutPlanId != 0) ++planState.payoutPlans[entry.payoutPlanId].cancelledPayoutCount;
         }
         emit BatchCancelled(batchId, msg.sender, reasonCID);
+    }
+
+    /// @notice Close out a Dispatched subject whose executor can no longer acknowledge it.
+    /// @dev The companion to the live-peer acknowledgment check. Tightening authentication without
+    ///      this would trade a security hole for a liveness one: a command still unacknowledged
+    ///      when its executor's grace window closes can never be acknowledged, `requeue` requires
+    ///      `Failed`, and
+    ///      `cancelDisbursement` accepts only `Queued|Failed` — so the subject, and the payout plan
+    ///      counting it, would be stuck at `Dispatched` forever with no operator move available.
+    ///
+    ///      Deliberately narrow. It refuses while the snapshotted executor is still the active peer
+    ///      or inside an unexpired grace window, so it can never pre-empt an acknowledgment that
+    ///      could still legitimately arrive. It records a source-side failure rather than a
+    ///      success, and marks the command settled so a re-instated peer's late acknowledgment
+    ///      cannot double-count. Whether the Celo side actually paid is not knowable here, which is
+    ///      why the operator must confirm on Celo before requeuing (Decision Log #60).
+    function failStrandedSubject(
+        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
+        mapping(uint256 batchId => ISettlementModule.Batch batch) storage batches,
+        mapping(bytes32 executionKey => ISettlementModule.CommandRecord record) storage records,
+        SettlementPlanLib.State storage planState,
+        ISettlementModule.CcipRoute memory route,
+        bool isBatch,
+        uint256 subjectId
+    )
+        public
+    {
+        bytes32 executionKey = isBatch
+            ? _knownBatch(batches, subjectId).executionKey
+            : _knownDisbursement(disbursements, subjectId).executionKey;
+        ISettlementModule.CommandRecord storage record = records[executionKey];
+        if (executionKey == bytes32(0) || record.subjectId == 0) revert ISettlementModule.InvalidExecutionKey();
+        if (record.acknowledged) revert ISettlementModule.InvalidExecutionKey();
+
+        if (canStillAcknowledge(route, record.destinationExecutor)) {
+            revert ISettlementModule.SubjectNotStranded(isBatch, subjectId);
+        }
+
+        record.acknowledged = true;
+        if (isBatch) _failStrandedBatch(disbursements, batches, planState, subjectId);
+        else _failStrandedDisbursement(disbursements, planState, subjectId);
+        emit StrandedSubjectFailed(executionKey, isBatch, subjectId, record.destinationExecutor);
+    }
+
+    /// @notice Whether an executor is still trusted to acknowledge: the active peer, or the
+    ///         previous one inside its unexpired grace window.
+    /// @dev Shared with the acknowledgment path so the two can never disagree about who is retired
+    ///      — a subject must be closeable exactly when its acknowledgment would be refused.
+    function canStillAcknowledge(ISettlementModule.CcipRoute memory route, address executor) internal view returns (bool) {
+        if (executor == route.destinationExecutor) return true;
+        return executor == route.previousDestinationExecutor && route.previousPeerExpiresAt != 0
+            && block.timestamp <= route.previousPeerExpiresAt;
+    }
+
+    function _failStrandedBatch(
+        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
+        mapping(uint256 batchId => ISettlementModule.Batch batch) storage batches,
+        SettlementPlanLib.State storage planState,
+        uint256 batchId
+    )
+        private
+    {
+        ISettlementModule.Batch storage batch = batches[batchId];
+        if (batch.state != ISettlementModule.DisbursementState.Dispatched) {
+            revert ISettlementModule.BatchNotInState(batchId, batch.state);
+        }
+        batch.state = ISettlementModule.DisbursementState.Failed;
+        batch.failureCode = uint8(ISettlementModule.FailureCode.SourceStranded);
+        for (uint256 index; index < batch.disbursementIds.length; ++index) {
+            ISettlementModule.Disbursement storage entry = disbursements[batch.disbursementIds[index]];
+            entry.state = ISettlementModule.DisbursementState.Failed;
+            entry.failureCode = uint8(ISettlementModule.FailureCode.SourceStranded);
+            if (entry.payoutPlanId != 0) ++planState.payoutPlans[entry.payoutPlanId].failedPayoutCount;
+        }
+    }
+
+    function _failStrandedDisbursement(
+        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
+        SettlementPlanLib.State storage planState,
+        uint256 disbursementId
+    )
+        private
+    {
+        ISettlementModule.Disbursement storage disbursement = disbursements[disbursementId];
+        if (disbursement.state != ISettlementModule.DisbursementState.Dispatched) {
+            revert ISettlementModule.DisbursementNotInState(disbursementId, disbursement.state);
+        }
+        disbursement.state = ISettlementModule.DisbursementState.Failed;
+        disbursement.failureCode = uint8(ISettlementModule.FailureCode.SourceStranded);
+        if (disbursement.payoutPlanId != 0) ++planState.payoutPlans[disbursement.payoutPlanId].failedPayoutCount;
     }
 
     function _dispatchRequest(

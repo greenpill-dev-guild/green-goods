@@ -645,4 +645,25 @@ describe("settlement lifecycle projections", () => {
       true
     );
   });
+
+  // Every other test here seeds the lane config directly, which is exactly how four entity types
+  // came to be permanently uncreated in production without a single failing test: they gate on
+  // remoteEvmChainId, and nothing wrote it. This one drives the config through the events the
+  // contracts actually emit, so the production write path is covered rather than assumed.
+  it("learns router, selector, and remote chain id from the contracts themselves", async () => {
+    const mockDb = createTestIndexer();
+
+    const pinned = SettlementModule.SettlementDeploymentPinned.createMockEvent({
+      ccipRouter: addr(92),
+      localChainSelector: 4_949_039_107_694_359_620n,
+      remoteEvmChainId: 42_220n,
+      mockEventData: mockEvent(1_000),
+    });
+    const after = await processEvents(mockDb, [pinned]);
+
+    const config = await after.SettlementConfiguration.get(`${CHAIN_ID}-settlement-config`);
+    assert.equal(config?.localRouter, addr(92).toLowerCase());
+    assert.equal(config?.localChainSelector, 4_949_039_107_694_359_620n);
+    assert.equal(config?.remoteEvmChainId, 42_220);
+  });
 });

@@ -60,6 +60,9 @@ contract SettlementModule is SettlementViews {
         _nextBatchId = 1;
         SettlementPlanLib.initialize(_planState);
 
+        // First fact out of this contract: the immutables nothing else emits. Anything projecting
+        // settlement state can key on these without an RPC read (Decision Log #59).
+        emit SettlementDeploymentPinned(CCIP_ROUTER, SOURCE_CHAIN_SELECTOR, DESTINATION_EVM_CHAIN_ID);
         emit FundingConfigurationLocked(protocolGarden_, gDollarToken_);
         emit HatsModuleUpdated(address(0), hatsModule_);
         emit CommitmentPoolingModuleUpdated(address(0), commitmentPoolingModule_);

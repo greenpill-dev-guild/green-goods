@@ -123,6 +123,12 @@ abstract contract SettlementLifecycle is SettlementPlans {
         SettlementLifecycleLib.cancelBatch(_disbursements, _batches, _planState, batchId, reasonCID);
     }
 
+    function failStrandedSubject(bool isBatch, uint256 subjectId) external override onlyOwner nonReentrant {
+        SettlementLifecycleLib.failStrandedSubject(
+            _disbursements, _batches, _commandRecords, _planState, _ccipRoute, isBatch, subjectId
+        );
+    }
+
     function fundFees() external payable override {
         emit FeeReserveFunded(msg.sender, msg.value);
     }
@@ -139,7 +145,7 @@ abstract contract SettlementLifecycle is SettlementPlans {
 
     function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
         SettlementAcknowledgmentLib.receiveAcknowledgment(
-            _disbursements, _batches, _commandRecords, commandExecutionKeys, _planState, message
+            _disbursements, _batches, _commandRecords, commandExecutionKeys, _planState, _ccipRoute, message
         );
     }
 }

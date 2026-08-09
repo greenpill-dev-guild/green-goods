@@ -583,6 +583,9 @@ interface ICommitmentPoolingModule {
     ///         protocol garden itself. Otherwise a Garden-scoped Request would settle from the
     ///         protocol Safe back to that same Safe instead of creating cross-garden circulation.
     error GardenClaimMustBeExternal(uint256 poolId, address garden);
+    /// @notice Only a steward may commit a garden to pay for an Offer that carries a price.
+    /// @dev Free Offers stay claimable by any member (Decision Log #61).
+    error PricedOfferClaimRequiresSteward(address garden, address claimant);
     error ExchangeClaimTypeUnsupported(uint256 commitmentId, ClaimType actual);
     /// @notice Paired acceptance is barter: both sides must be free (register #90). One
     ///         `gardenContext` covers both acceptances, so a priced side would record that single

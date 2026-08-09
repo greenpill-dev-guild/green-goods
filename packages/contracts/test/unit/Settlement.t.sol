@@ -8,6 +8,116 @@ import { SettlementPayerTest } from "./SettlementPayer.t.sol";
 
 contract SettlementLifecycleTest is SettlementPayerTest {
     address internal constant CONTRIBUTOR = address(0x9000);
+    address internal constant ACTIVE_EXECUTOR = address(0x8000);
+    address internal constant REPLACEMENT_EXECUTOR = address(0x8001);
+
+    /// @dev Dispatch a beneficiary child and hand back what a later acknowledgment needs.
+    function _dispatchedSubject() private returns (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) {
+        pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
+        vm.startPrank(OWNER);
+        uint256 planId = settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+        settlement.finalizeCommitmentPayoutPlan(planId);
+        childId = settlement.prepareGardenBeneficiaryPayout(planId);
+        commandMessageId = settlement.dispatchDisbursement(childId);
+        vm.stopPrank();
+        executionKey = settlement.getDisbursement(childId).executionKey;
+    }
+
+    /// @dev Replacing an executor on the same lane requires a grace window — configuration refuses
+    ///      a zero-grace swap — so a retirement always looks like this: swap, then wait it out.
+    function _retireActiveExecutor(uint64 graceSeconds) private {
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCcipRoute(1, REPLACEMENT_EXECUTOR, 500_000, 1, graceSeconds);
+        settlement.setPaused(false);
+        vm.stopPrank();
+    }
+
+    /// @notice A replaced executor loses acknowledgment authority when its grace window expires.
+    /// @dev Authentication ran only against the snapshot taken when the command was dispatched, and
+    ///      that snapshot never expires — so the grace window the configuration layer carefully
+    ///      negotiates was never actually enforced against an acknowledgment. A retired executor
+    ///      kept authority over everything in flight to it forever, and could report success with
+    ///      nothing having left the Safe.
+    function testARetiredExecutorCannotAcknowledgeOnceItsGraceExpires() public {
+        (, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerAcknowledgment.selector, ACTIVE_EXECUTOR));
+        router.deliver(
+            address(settlement),
+            keccak256("retired-ack"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+    }
+
+    /// @notice The previous peer keeps acknowledging while its grace window is open.
+    /// @dev The point of a grace window is to drain in-flight commands, so a cutover that grants
+    ///      one must not break the acknowledgments it exists to allow.
+    function testThePreviousPeerCanAcknowledgeInsideItsGraceWindow() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+
+        router.deliver(
+            address(settlement),
+            keccak256("grace-ack"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
+    }
+
+    /// @notice A subject whose executor has retired can be closed out, and only once it truly has.
+    /// @dev Without this the tightened acknowledgment check would trade a security hole for a
+    ///      liveness one: requeue needs Failed and cancel accepts only Queued or Failed, so a
+    ///      Dispatched subject nobody can acknowledge would sit there forever, and the payout plan
+    ///      counting it would never resolve.
+    function testAStrandedSubjectCanBeFailedOnlyOnceItIsGenuinelyStranded() public {
+        (uint256 childId,,) = _dispatchedSubject();
+
+        // Still the active peer, so an acknowledgment could yet arrive — refuse to pre-empt it.
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.SubjectNotStranded.selector, false, childId));
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+
+        // Retired but still inside its grace window: the acknowledgment is still legitimate, so
+        // closing the subject out here would pre-empt a payment that may well have happened.
+        _retireActiveExecutor(7 days);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.SubjectNotStranded.selector, false, childId));
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+
+        ISettlementModule.Disbursement memory stranded = settlement.getDisbursement(childId);
+        assertEq(uint8(stranded.state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(stranded.failureCode, uint8(ISettlementModule.FailureCode.SourceStranded));
+
+        // Failed is the state the ordinary recovery paths accept, which is the whole point.
+        vm.prank(OWNER);
+        settlement.requeue(childId);
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    /// @notice Closing out a stranded subject is the owner's call, not a steward's.
+    function testStrandedSubjectCloseOutIsOwnerOnly() public {
+        (uint256 childId,,) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert();
+        vm.prank(CONTRIBUTOR);
+        settlement.failStrandedSubject(false, childId);
+    }
 
     function testBeneficiaryFailureRequeueAndCancelMovesParentCounters() public {
         pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));

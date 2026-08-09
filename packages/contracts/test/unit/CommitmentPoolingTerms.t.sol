@@ -16,6 +16,10 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
     function setUp() public {
         _setUpProductionFixture();
         hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
+        // Claiming a priced Offer commits the garden to pay for it, which is a steward's call, so
+        // the priced tests below claim as the steward rather than as CLAIMANT. CLAIMANT stays a
+        // plain member on purpose — the steward-only assertions here depend on it.
+        hats.setGardener(POOL_GARDEN, POOL_STEWARD, true);
     }
 
     // ─────────────────────────── Declared consideration ───────────────────────────
@@ -31,7 +35,9 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         module.setDeclaredConsideration(commitmentId, _arbitrumConsideration(500));
         assertEq(module.getCommitment(commitmentId).consideration.amount, 500);
 
-        _acceptOffer(commitmentId);
+        // Priced now, so the claim is a steward's to make.
+        vm.prank(POOL_STEWARD);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ICommitmentPoolingModule.CommitmentNotInState.selector,
@@ -196,7 +202,7 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         vm.prank(POOL_STEWARD);
         module.recordConsiderationPaid(commitmentId, keccak256("payout"));
 
-        _fulfill(commitmentId);
+        _fulfillPriced(commitmentId);
         vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotPoolSteward.selector, CLAIMANT, poolId));
         vm.prank(CLAIMANT);
         module.recordConsiderationPaid(commitmentId, keccak256("payout"));
@@ -223,6 +229,34 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         );
         vm.prank(POOL_STEWARD);
         module.recordConsiderationPaid(commitmentId, keccak256("payout"));
+    }
+
+    /// @notice A member cannot commit their garden to pay for an Offer; a steward can.
+    /// @dev The garden that claims a priced Offer becomes its payer, so claiming one is the garden
+    ///      promising to pay. Before this rule any gardener could bind their garden to that
+    ///      obligation and reserve the provider's capacity against it, with no steward involved.
+    function testAPricedOfferIsClaimableOnlyByASteward() public {
+        uint256 commitmentId = _createOfferWithConsideration(keccak256("priced-claim"), _arbitrumConsideration(500));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.PricedOfferClaimRequiresSteward.selector, POOL_GARDEN, CLAIMANT)
+        );
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+
+        vm.prank(POOL_STEWARD);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        assertEq(uint8(module.getCommitment(commitmentId).state), uint8(ICommitmentPoolingModule.CommitmentState.Accepted));
+    }
+
+    /// @notice A free Offer stays claimable by any member — the gate is the price, not the shape.
+    /// @dev Ordinary peer-to-peer mutual aid is the common pilot case and must not need a steward.
+    function testAFreeOfferStaysClaimableByAnyMember() public {
+        uint256 commitmentId = _createOffer(keccak256("free-claim"));
+
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        assertEq(uint8(module.getCommitment(commitmentId).state), uint8(ICommitmentPoolingModule.CommitmentState.Accepted));
     }
 
     function testRecordConsiderationPaidRejectsAnUndeclaredConsideration() public {
@@ -270,7 +304,21 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         returns (uint256 commitmentId)
     {
         commitmentId = _createOfferWithConsideration(creationKey, consideration);
-        _fulfill(commitmentId);
+        _fulfillPriced(commitmentId);
+    }
+
+    /// @dev The priced twin of `_fulfill`: a priced Offer may only be claimed by a steward of the
+    ///      garden that will owe the consideration, so the steward is also the confirmer here.
+    function _fulfillPriced(uint256 commitmentId) private {
+        vm.prank(POOL_STEWARD);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        address[] memory credited = new address[](1);
+        credited[0] = CREATOR;
+        vm.prank(CREATOR);
+        module.attachEvidence(commitmentId, "bafy-terms-credit", credited);
+        module.markReadyForConfirmation(commitmentId, "ready for consideration coverage");
+        vm.prank(POOL_STEWARD);
+        module.confirmFulfillment(commitmentId);
     }
 
     /// @dev Accept, credit, freeze, and confirm through the ordinary counterparty path.

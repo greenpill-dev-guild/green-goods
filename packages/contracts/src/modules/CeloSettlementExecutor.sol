@@ -53,6 +53,8 @@ contract CeloSettlementExecutor is CeloSettlementViews {
             protocolVersion: protocolVersion_
         });
         paused = true;
+        // First fact out of this contract: the immutables nothing else emits (Decision Log #59).
+        emit ExecutorDeploymentPinned(CCIP_ROUTER, G_DOLLAR_TOKEN, sourceChainSelector_);
         emit SourcePeerUpdated(sourceChainSelector_, sourceSettlementModule_, address(0), 0, protocolVersion_);
         emit PausedSet(true);
     }
