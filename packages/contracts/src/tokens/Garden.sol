@@ -6,6 +6,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC721Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import { GardenHooksLib } from "../lib/GardenHooks.sol";
 import { TBALib } from "../lib/TBA.sol";
 import { IGardenAccount } from "../interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
@@ -14,6 +15,7 @@ import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { OctantModule } from "../modules/Octant.sol";
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 import { IGreenGoodsENS } from "../interfaces/IGreenGoodsENS.sol";
+import { ICommitmentPoolingModule } from "../interfaces/ICommitmentPoolingModule.sol";
 import { Deployment } from "../registries/Deployment.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 
@@ -52,12 +54,16 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Whether minting is open to anyone (true) or restricted to owner/allowlist (false)
     bool public openMinting;
 
+    /// @notice Optional Commitment Pooling mint callback
+    ICommitmentPoolingModule public commitmentPoolingModule;
+
     /**
      * @dev Storage gap for future upgrades
      * Reserves 37 slots (50 total - 13 used slots: _nextTokenId, deploymentRegistry, hatsModule,
      * karmaGAPModule, octantModule, gardensModule, actionRegistry, cookieJarModule, ensModule,
      * communityToken, failedENSRefunds, totalPendingENSRefunds, transferRestriction+openMinting)
-     * Note: transferRestriction (enum, 1 byte) and openMinting (bool, 1 byte) pack into one slot.
+     * Note: transferRestriction (1 byte), openMinting (1 byte), and commitmentPoolingModule
+     * (20 bytes) pack into one slot. The 37-slot gap remains unchanged.
      */
     uint256[37] private __gap;
 
@@ -100,6 +106,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Emitted when the open minting mode is changed.
     event OpenMintingUpdated(bool indexed open);
+
+    /// @notice Emitted when the optional Commitment Pooling module changes.
+    event CommitmentPoolingModuleUpdated(address indexed oldModule, address indexed newModule);
 
     /// @notice Emitted when an ENS registration refund is queued for manual claim
     event ENSRegistrationRefundQueued(address indexed minter, uint256 amount);
@@ -247,6 +256,13 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         emit OpenMintingUpdated(_open);
     }
 
+    /// @notice Sets or disables the optional Commitment Pooling mint callback.
+    function setCommitmentPoolingModule(address _module) external onlyOwner {
+        address oldModule = address(commitmentPoolingModule);
+        commitmentPoolingModule = ICommitmentPoolingModule(_module);
+        emit CommitmentPoolingModuleUpdated(oldModule, _module);
+    }
+
     /// @notice Modifier to check if caller is authorized to mint gardens.
     /// @dev Delegates to _checkMintAuthorization() to avoid modifier inlining stack depth issues.
     modifier onlyAuthorizedMinter() {
@@ -365,79 +381,34 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         _initializeIntegrationsAndAccount(gardenAccount, config);
     }
 
-    /// @dev Phase 1: Hats tree, KarmaGAP project, Octant vault, Gardens community
+    /// @dev Phase 1: Hats tree, KarmaGAP project, Octant vault, Gardens community.
+    ///      Everything after the required Hats setup is a GardenHooksLib best-effort hook.
     function _initializeRoleAndGovernance(address gardenAccount, GardenConfig calldata config) private {
         // Hats Protocol: create hat tree + initial owner role
         hatsModule.createGardenHatTree(gardenAccount, config.name, communityToken);
         hatsModule.grantRole(gardenAccount, _msgSender(), IHatsModule.GardenRole.Owner);
 
-        // Grant Gardener role to configured gardeners (best-effort)
-        for (uint256 i = 0; i < config.gardeners.length; i++) {
-            if (config.gardeners[i] != address(0)) {
-                try hatsModule.grantRole(gardenAccount, config.gardeners[i], IHatsModule.GardenRole.Gardener) { } catch { }
-            }
-        }
-        // Grant Operator role to configured operators (best-effort)
-        for (uint256 i = 0; i < config.operators.length; i++) {
-            if (config.operators[i] != address(0)) {
-                try hatsModule.grantRole(gardenAccount, config.operators[i], IHatsModule.GardenRole.Operator) { } catch { }
-            }
-        }
-
-        // Karma GAP: create project (graceful degradation)
-        if (address(karmaGAPModule) != address(0)) {
-            try karmaGAPModule.createProject(
-                gardenAccount, _msgSender(), config.name, config.description, config.location, config.bannerImage
-            ) {
-                // Success handled by module events
-            } catch {
-                // Failure is non-blocking
-            }
-        }
-
-        // Octant vault setup (graceful degradation)
-        if (address(octantModule) != address(0)) {
-            try octantModule.onGardenMinted(gardenAccount, config.name) returns (address[] memory _vaults) {
-                _vaults; // Success handled by module events
-            } catch {
-                // Failure is non-blocking
-            }
-        }
-
-        // Gardens V2 community + signal pools (graceful degradation)
-        if (address(gardensModule) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try gardensModule.onGardenMinted(gardenAccount, config.weightScheme, config.name, config.description) returns (
-                address, address[] memory
-            ) {
-                // Success handled by module events
-            } catch {
-                // Failure is non-blocking — garden mint MUST NOT revert
-            }
-        }
+        GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.gardeners, IHatsModule.GardenRole.Gardener);
+        GardenHooksLib.grantRolesBestEffort(hatsModule, gardenAccount, config.operators, IHatsModule.GardenRole.Operator);
+        GardenHooksLib.notifyKarma(
+            karmaGAPModule,
+            gardenAccount,
+            _msgSender(),
+            config.name,
+            config.description,
+            config.location,
+            config.bannerImage
+        );
+        GardenHooksLib.notifyOctant(octantModule, gardenAccount, config.name);
+        GardenHooksLib.notifyGardens(gardensModule, gardenAccount, config.weightScheme, config.name, config.description);
     }
 
-    /// @dev Phase 2: CookieJar, ActionRegistry domains, ENS, account initialization
+    /// @dev Phase 2: CookieJar, Commitment Pooling, ActionRegistry domains, ENS, account
+    ///      initialization. ENS stays inline because its failure path writes refund storage.
     function _initializeIntegrationsAndAccount(address gardenAccount, GardenConfig calldata config) private {
-        // Cookie Jar: create per-asset jars (graceful degradation)
-        if (address(cookieJarModule) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try cookieJarModule.onGardenMinted(gardenAccount) returns (address[] memory _jars) {
-                _jars; // Success handled by module events
-            } catch {
-                // Failure is non-blocking — garden mint MUST NOT revert
-            }
-        }
-
-        // Set initial garden domains on ActionRegistry (graceful degradation)
-        if (config.domainMask > 0 && address(actionRegistry) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try actionRegistry.setGardenDomainsFromMint(gardenAccount, config.domainMask) {
-                // Success handled by ActionRegistry events
-            } catch {
-                // Non-blocking — garden mint MUST NOT revert
-            }
-        }
+        GardenHooksLib.notifyCookieJar(cookieJarModule, gardenAccount);
+        GardenHooksLib.notifyPooling(commitmentPoolingModule, gardenAccount);
+        GardenHooksLib.notifyActionDomains(actionRegistry, gardenAccount, config.domainMask);
 
         // ENS: register garden subdomain via CCIP (graceful degradation)
         if (address(ensModule) != address(0) && bytes(config.slug).length > 0) {

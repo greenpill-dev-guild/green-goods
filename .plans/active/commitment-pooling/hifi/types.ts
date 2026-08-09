@@ -50,8 +50,12 @@ export type BeneficiarySettlementAccountState = "NotRequired" | "Unregistered" |
 // never renders as product copy, but keeping it here prevents account readiness
 // or another local concept from being folded into the contract lifecycle.
 export type DisbursementLifecycle = "None" | "Queued" | "Dispatched" | "Confirmed" | "Failed" | "Cancelled";
-export type DisbursementKind = "Reward" | "Funding";
-export type DisbursementRoute = "ContributorReward" | "ProtocolToGarden";
+export type DisbursementKind =
+  | "ContributorConsideration"
+  | "Funding"
+  | "LoanPrincipal"
+  | "GardenBeneficiary";
+export type DisbursementRoute = "ContributorConsideration" | "GardenBeneficiary" | "ProtocolToGarden";
 // Onchain queueFunding capability, not deployer status: route visibility never
 // implies submit authority (register #69).
 export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
@@ -88,13 +92,13 @@ export type ContractCall =
   | "joinCommitment" | "leaveCommitment" | "addContributor" | "removeContributor"
   | "setContributorRequirement" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
   | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment" | "expireCommitment"
-  | "raiseDispute" | "resolveDispute" | "recordRewardPaid"
+  | "raiseDispute" | "resolveDispute" | "recordConsiderationPaid"
   | "setPoolCharter" | "setProviderOpenCommitmentCap"
   | "markPoolReady" | "openPool" | "pausePool" | "resumePool" | "closePool"
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
   | "createCommitmentPayoutPlan" | "setContributorPayouts" | "finalizeCommitmentPayoutPlan"
-  | "prepareContributorPayout" | "queueFunding" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
+  | "prepareContributorPayout" | "prepareGardenBeneficiaryPayout" | "queueFunding" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 
 // Metadata for one registered hotspot (a tappable control on a screen).

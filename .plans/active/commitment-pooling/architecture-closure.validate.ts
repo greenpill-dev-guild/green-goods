@@ -167,7 +167,7 @@ for (const functionName of new Set(classifiedFunctions)) {
 
 const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n\/\/ Metadata/)?.[1] ?? "";
 const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
-require(contractCalls.length === 56, `expected 56 executable hi-fi call names, found ${contractCalls.length}`);
+require(contractCalls.length === 57, `expected 57 executable hi-fi call names, found ${contractCalls.length}`);
 const executablePoolingCalls = contractCalls.filter((call) => poolingFunctions.includes(call));
 require(
   executablePoolingCalls.length === 41,
@@ -330,7 +330,7 @@ const sourceChecks: Array<[boolean, string]> = [
   [/type CommitmentClaimRequest \{[\s\S]*requestedBy: String(?:\s|#)/.test(contract), "claim sparse placeholder payload is not nullable"],
   [/type CommitmentContributor \{[\s\S]*additionSeen: Boolean!/.test(contract), "contributor sparse-add marker is missing"],
   [/type CommitmentWorkAttribution \{[\s\S]*linkSeen: Boolean!/.test(contract), "Work sparse-link marker is missing"],
-  [/type Commitment \{[\s\S]*rewardUpdateBlockNumber/.test(contract), "commitment reward replay cursor is missing"],
+  [/type Commitment \{[\s\S]*considerationUpdateBlockNumber/.test(contract), "commitment consideration replay cursor is missing"],
   [/type Commitment \{[\s\S]*acceptanceBlockNumber/.test(contract), "commitment acceptance position is missing"],
   [/type CommitmentContributor \{[\s\S]*membershipBlockNumber/.test(contract), "contributor membership cursor is missing"],
   [/type CommitmentWorkAttribution \{[\s\S]*linkLifecycleBlockNumber/.test(contract), "Work link lifecycle cursor is missing"],

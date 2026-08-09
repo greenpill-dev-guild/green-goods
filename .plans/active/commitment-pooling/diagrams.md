@@ -375,7 +375,7 @@ flowchart LR
 | D10 | Contributor add/remove/join/assignment are Accepted-state mutations; every Ready path freezes the roster. |
 | D15/D16 | Add contributor/index/attribution entities and contributor recognition fields; Hypercert expansion uses eligible contributors. |
 | D20/D21/D22/D23 | A commitment payout plan owns multiple child disbursements; parent status is derived and each child keeps the existing command/ack state machine. |
-| D18/D19 | The provider garden Safe pays contributors; ProtocolToGarden remains an independent top-up from the protocol Safe. |
+| D18/D19 | The **payer** garden Safe pays contributors — the pool garden for a Request, the claiming garden for an Offer (register #90). For garden-internal commitments that is the same garden as the provider, so D18/D19 are unchanged there; in the protocol pool the two separate, so a protocol Request spends the protocol Safe and a protocol Offer spends the claiming garden's Safe. ProtocolToGarden remains an independent top-up from the protocol Safe. |
 | D11/D12 | Claim acceptance resolves the lead; subsequent roster policy does not alter the canonical claimant/request record. |
 | D4 / permission table | Lead, contributor, confirmer, steward, dispatcher, and executor are separate capabilities. |
 | D7 | Team/evidence actions may queue; payout-plan editing and dispatch stay online steward operations. |
@@ -387,7 +387,7 @@ flowchart LR
 | Role | Pool & cycle control | Create / claim promises | Evidence & work | Assessment / testimony | Approve work | Confirm fulfillment | Hypercert certificate | Queue & execute value | Confirm settlement | Configure protocol |
 |---|---|---|---|---|---|---|---|---|---|---|
 | **Module owner** | ✓ fallback steward | — | — | — | — | — | — | ✓ queue protocol funding only | — | ✓ pause · peer/module wiring · measured limits · dispatcher assignment · UUPS upgrade |
-| **Protocol steward** | ✓ root-pool stewardship | ✓ seed and adjudicate protocol commitments | ✓ attach within ordinary pool rules | ✓ Baseline analog capture when acting as steward | ✓ existing WorkApproval scope | selected `ProtocolFallback` on any pool, with reason, never as a contributor; current root-garden Hats only | ✓ repair zero-eligible attribution before composition | ✓ explicit ProtocolToGarden funding; no commitment-reward bypass | — | — |
+| **Protocol steward** | ✓ root-pool stewardship | ✓ seed and adjudicate protocol commitments | ✓ attach within ordinary pool rules | ✓ Baseline analog capture when acting as steward | ✓ existing WorkApproval scope | selected `ProtocolFallback` on any pool, with reason, never as a contributor; current root-garden Hats only | ✓ repair zero-eligible attribution before composition | ✓ explicit ProtocolToGarden funding; no commitment-consideration bypass | — | — |
 | **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for gardeners | ✓ Baseline analog capture only | ✓ WorkApproval (existing flow) | local `PoolFallback` only, with reason, never as a contributor; local wins for dual-role callers | ✓ repair contributor attribution before composition | ✓ create/edit/finalize/prepare provider payout plans; dispatch/retry/requeue/cancel within resolved scope | — | — |
 | **Gardener** | — | ✓ own Offer / Request · claim open commitments | ✓ own evidence · link work | — | — | ✓ when eligible confirmer | — | — | — | — |
 | **Lead provider** | — | — | ✓ deliver + evidence | — | — | ✗ never confirm own delivery | — | — | — | — |
@@ -431,7 +431,7 @@ The Arbitrum module owner and the Celo executor owner are separate implementatio
 
 ## D5. Offer/request → work → approval → confirmation → fulfillment
 
-**How to read this**: the full happy path of one promise, left to right in time — created, claimed, delivered through the existing Work → WorkApproval rail, confirmed by the counterparty, and rewarded. The steward performs every one of their steps in the Admin app (Hub work stage + garden Pool tab — W7/W13); the gardener acts in the client PWA. The payout lane at the end covers **non-G$ declared rewards only** — G$ rewards leave this diagram and queue on the SettlementModule (D21, D19).
+**How to read this**: the full happy path of one promise, left to right in time — created, claimed, delivered through the existing Work → WorkApproval rail, confirmed by the counterparty, and paid. The steward performs every one of their steps in the Admin app (Hub work stage + garden Pool tab — W7/W13); the gardener acts in the client PWA. The payout lane at the end covers **non-G$ declared considerations only** — G$ considerations leave this diagram and queue on the SettlementModule (D21, D19).
 
 Preconditions: pool `Open`; an optional cycle exists, belongs to the pool, and is `Open`; an optional `needUID` (0 = none) links the commitment to the Need that motivated it — stored as-is, never read from EAS, lineage drawn in D15. Who is who depends only on direction:
 
@@ -558,7 +558,7 @@ sequenceDiagram
   M-->>IDX: CommitmentReadyForConfirmation
 ```
 
-#### D5.3 Act 3 — Confirmation, fulfillment, reward, and close
+#### D5.3 Act 3 — Confirmation, fulfillment, consideration, and close
 
 ```mermaid
 sequenceDiagram
@@ -581,11 +581,11 @@ sequenceDiagram
   M->>R: fulfillUnits(class, leadProvider, units)
   R-->>IDX: UnitsFulfilled (the lead-provider slot is released once)
   M-->>IDX: CommitmentFulfilled (client hero moment fires)
-  opt reward.rail == ArbitrumExternal
+  opt consideration.rail == ArbitrumExternal
     OP->>RAILS: execute payout on an existing rail (jar / treasury)
-    OP->>M: recordRewardPaid(commitmentId, payoutRef)
-    M-->>IDX: RewardPaid(derived source, leadProvider, token, amount)
-    Note over RAILS,IDX: CeloSettlement rewards never<br/>use this lane — they queue on<br/>the SettlementModule (D21, D19)
+    OP->>M: recordConsiderationPaid(commitmentId, payoutRef)
+    M-->>IDX: ConsiderationPaid(derived source, leadProvider, token, amount)
+    Note over RAILS,IDX: CeloSettlement considerations never<br/>use this lane — they queue on<br/>the SettlementModule (D21, D19)
   end
   Note over OP,M: cycle close requires cycle.liveCommitmentCount = 0<br/>pool close also requires pool.liveCommitmentCount = 0<br/>and pool.nonTerminalCycleCount = 0
   alt cycle-scoped (cycleId != 0)
@@ -1075,9 +1075,9 @@ This is the approved August bilateral rung of the exchange ladder: **reference r
 
 ## D14. Where value and recognition flow (worked Model 1)
 
-**How to read this**: D3 shows *who* is accountable and *which* artifacts exist; this shows *how much* goes *where*. Two flows, deliberately separate — recognition (certificate units, D14.0) and payment (declared G$ reward, D14.1) — because the amendment keeps them linked but distinct. Every number on an edge is the **Model 1 default preset** (not chain-enforced): the six-role split 6000/1500/1000/500/500/500 bps and the within-gardeners 2,000 equal / 8,000 verified policy, traced through one concrete example. The class identifier for the steward share is `operatorBps`; its drawn label reads "steward share" everywhere.
+**How to read this**: D3 shows *who* is accountable and *which* artifacts exist; this shows *how much* goes *where*. Two flows, deliberately separate — recognition (certificate units, D14.0) and payment (declared G$ consideration, D14.1) — because the amendment keeps them linked but distinct. Every number on an edge is the **Model 1 default preset** (not chain-enforced): the six-role split 6000/1500/1000/500/500/500 bps and the within-gardeners 2,000 equal / 8,000 verified policy, traced through one concrete example. The class identifier for the steward share is `operatorBps`; its drawn label reads "steward share" everywhere.
 
-Worked example used by both blocks: a cycle closes with a **10,000-unit certificate** and **2 fulfilled commitments**; commitment A's frozen roster has **2 eligible contributors** with verified credits **3 and 1**; commitment A's declared reward is **500 G$** on the CeloSettlement rail.
+Worked example used by both blocks: a cycle closes with a **10,000-unit certificate** and **2 fulfilled commitments**; commitment A's frozen roster has **2 eligible contributors** with verified credits **3 and 1**; commitment A's declared consideration is **500 G$** on the CeloSettlement rail.
 
 #### D14.0 Recognition → certificate units
 
@@ -1117,12 +1117,12 @@ flowchart TB
 - Remainders (none in this example) go by descending fractional remainder, then ascending lowercase address; budgets smaller than the contributor count still conserve exactly.
 - Only the gardeners class has a sub-tree; the other five classes expand flat per-address allowlists (contract-spec §9.3).
 
-#### D14.1 Payment — declared reward, retention, and children
+#### D14.1 Payment — declared consideration, retention, and children
 
 ```mermaid
 flowchart TB
-  FUL["Commitment A Fulfilled<br/>declared reward 500 G$ · CeloSettlement rail"]
-  PLAN["CommitmentPayoutPlan (Draft)<br/>full-reward default from recognition:<br/>floor(500 × 7000/10,000) = 350 · floor(500 × 3000/10,000) = 150<br/>gardenRetainedAmount = 0"]
+  FUL["Commitment A Fulfilled<br/>declared consideration 500 G$ · CeloSettlement rail"]
+  PLAN["CommitmentPayoutPlan (Draft)<br/>full-consideration default from recognition:<br/>floor(500 × 7000/10,000) = 350 · floor(500 × 3000/10,000) = 150<br/>gardenRetainedAmount = 0"]
   EDIT["Steward divergence (optional)<br/>atomic full-vector edit, reason required:<br/>retain 100 → payouts 280 + 120"]
   FIN["Finalize<br/>verify 500 = retained + Σ payouts · freeze rows"]
   KEEP["Garden retains 100 G$<br/>no self-transfer — a bookkeeping sink"]
@@ -1660,8 +1660,8 @@ flowchart TD
   CCIP["Chainlink CCIP<br/>data-only both directions<br/>no token amounts"]
 
   HOA ==>|"three monthly pilot allocations<br/>upstream fact, not a queued action"| PS
-  PS ==>|"ProtocolToGarden<br/>source + recipient derived"| GS
-  GS ==>|"contributor child disbursements<br/>provider garden is payer"| MEM
+  PS ==>|"Funding top-up or GardenBeneficiary<br/>route/recipient derived"| GS
+  GS ==>|"ContributorConsideration when garden pays<br/>payer and recipients derived"| MEM
   CE -->|"instructs the exact-net G$ transfer<br/>bounded Zodiac Roles allowance + fee/gross caps<br/>never custodies, never funds the Safe"| PS
   CE -->|"instructs the exact-net G$ transfer<br/>bounded Zodiac Roles allowance + fee/gross caps<br/>never custodies, never funds the Safe"| GS
 
@@ -1682,7 +1682,7 @@ flowchart TD
   class PS,GS,MEM,CE,CPM,SM,CCIP,PM,DM,GR planned
 ```
 
-The Safe owner set remains exactly protocol recovery multisig, Dev Guild recovery multisig, and one named garden recovery delegate, threshold 2. The `CeloSettlementExecutor` is installed only as the reviewed Zodiac Roles v2 member with an exact `bytes32` role key, native `WithinAllowance(allowanceKey)`, canonical G$ transfer conditions, and per-transfer/batch/fee/period caps; there is no separate Allowance Module. Every amount is an exact-net recipient promise, receiver-pays fails closed, and source/recipient balance deltas are checked. Source commands and automatic acknowledgments are sponsored from monitored native reserves; a permissionless acknowledgment retry may instead supply the exact CELO quote without reducing the reserve. Protocol-Safe inflow remains an external treasury fact; the command path models ProtocolToGarden and commitment rewards only. The bottom delivery hop always means **same-address counterfactual smart accounts on Celo** (plan register #16), gated by `gardenerDeliveryEnabled`. That gate flips only after the recorded Celo AA/paymaster exit evidence in `settlement-spec.md` Appendix A, including the Kernel-version split. If the spike fails, ProtocolToGarden continues while member delivery stays blocked.
+The Safe owner set remains exactly protocol recovery multisig, Dev Guild recovery multisig, and one named garden recovery delegate, threshold 2. The `CeloSettlementExecutor` is installed only as the reviewed Zodiac Roles v2 member with an exact `bytes32` role key, native `WithinAllowance(allowanceKey)`, canonical G$ transfer conditions, and per-transfer/batch/fee/period caps; there is no separate Allowance Module. Every amount is an exact-net recipient promise, receiver-pays fails closed, and source/recipient balance deltas are checked. Source commands and automatic acknowledgments are sponsored from monitored native reserves; a permissionless acknowledgment retry may instead supply the exact CELO quote without reducing the reserve. Protocol-Safe inflow remains an external treasury fact; the command path models ProtocolToGarden and commitment considerations only. The bottom delivery hop always means **same-address counterfactual smart accounts on Celo** (plan register #16), gated by `gardenerDeliveryEnabled`. That gate flips only after the recorded Celo AA/paymaster exit evidence in `settlement-spec.md` Appendix A, including the Kernel-version split. If the spike fails, ProtocolToGarden continues while member delivery stays blocked.
 
 ## D19. Protocol-to-garden funding route
 
@@ -1733,7 +1733,9 @@ unknown/not configured, never ready. Only explicit `true` enables first contribu
 preparation or gardener sends, while `null` and `false` both fail closed without hiding fulfilled
 commitments, payout plans, unprepared rows, or historical child states. `SettlementAccount` is the Arbitrum-owned garden account;
 `SettlementGardenRoute` is its Celo Safe/Roles execution route.
-`CommitmentPayoutPlan` and `ContributorPayout` preserve recognition/payment/retention facts;
+`CommitmentPayoutPlan` preserves immutable contributor-or-beneficiary shape plus payer/provider,
+flow, recognition/payment/retention, and beneficiary-Safe facts; `ContributorPayout` exists only
+for contributor shape;
 `Disbursement` and `SettlementBatch` are Arbitrum-owned child subjects, `SettlementMessage` stores each
 command or acknowledgment by event chain and CCIP message ID, and `SettlementExecution` stores
 the idempotent Celo result by execution key. The joins distinguish a Celo execution from an
@@ -1750,7 +1752,8 @@ erDiagram
   SETTLEMENT_GARDEN_ROUTE ||--o{ SETTLEMENT_EXECUTION : "bounded Safe execution route"
   COMMITMENT_PAYOUT_PLAN ||--o{ CONTRIBUTOR_PAYOUT : "recognition and payment entries"
   CONTRIBUTOR_PAYOUT |o--o| DISBURSEMENT : "non-zero child"
-  SETTLEMENT_ACCOUNT ||--o{ COMMITMENT_PAYOUT_PLAN : "provider garden payer"
+  COMMITMENT_PAYOUT_PLAN |o--o| DISBURSEMENT : "garden beneficiary child"
+  SETTLEMENT_ACCOUNT ||--o{ COMMITMENT_PAYOUT_PLAN : "immutable payer garden"
   DISBURSEMENT }o--o| SETTLEMENT_BATCH : "optional immutable batch entry"
   DISBURSEMENT ||--o{ SETTLEMENT_MESSAGE : "unbatched command and acknowledgment"
   SETTLEMENT_BATCH ||--o{ SETTLEMENT_MESSAGE : "batch command and acknowledgment"
@@ -1785,7 +1788,8 @@ erDiagram
     BigInt commitmentId "nullable for funding"
     BigInt payoutPlanId "nullable for funding"
     String contributor "nullable for funding"
-    DisbursementKind kind "contributor reward or funding"
+    DisbursementKind kind "consideration, beneficiary, funding, or reserved loan"
+    CommitmentSettlementFlow settlementFlow "nullable derived commitment direction"
     FundingRoute fundingRoute "none or protocol-to-garden"
     DisbursementState state "Arbitrum canonical state"
     Int attempt "current logical attempt"
@@ -1794,8 +1798,13 @@ erDiagram
   COMMITMENT_PAYOUT_PLAN {
     ID id "sourceChainId-payoutPlanId"
     BigInt commitmentId "one plan per commitment"
-    String providerGardenId "payer identity"
-    CommitmentPayoutPlanStatus status "finalization + conservation + child states; zero-child finalization is Complete"
+    String providerGardenId "delivery attribution"
+    String payerGardenId "Safe authority identity"
+    DisbursementKind payoutKind "immutable contributor or beneficiary shape"
+    CommitmentSettlementFlow settlementFlow "derived payer-provider direction"
+    String beneficiaryGardenId "nullable external garden"
+    String beneficiaryRecipient "nullable frozen Celo Safe"
+    CommitmentPayoutPlanStatus status "general payable-child state; beneficiary never completes locally"
   }
   CONTRIBUTOR_PAYOUT {
     ID id "sourceChainId-planId-contributor"
@@ -1843,7 +1852,10 @@ indexed state.
 
 Every steward action below is taken in the capability-gated Admin Operations workspace or the garden-scoped W21 detail path; route visibility never grants a write. Who does what:
 
-- **Pool steward** — creates the contributor payout plan, may edit its complete amount vector while Draft, and explicitly finalizes it before preparing any child. Finalization verifies conservation and freezes the plan without creating child disbursements; an all-retained zero-child plan completes at finalization without CCIP. After finalization, prepares each payable contributor row into one immutable Queued child.
+- **Payer-garden steward** — creates the immutable payout shape and explicitly finalizes before
+  preparing a child. Contributor shape may edit its complete vector while Draft; beneficiary shape
+  freezes the active external garden Safe at creation and cannot be edited. Only a zero-payable
+  garden-internal contributor plan completes locally; beneficiary completion requires its child.
 - **Protocol steward** — queues the independent ProtocolToGarden funding route.
 - **Anyone** — acknowledgment retry is permissionless when supplying the exact CELO quote; dispatch and command retry additionally accept the configured `dispatcher`.
 
@@ -1852,7 +1864,7 @@ Every steward action below is taken in the capability-gated Admin Operations wor
 ```mermaid
 sequenceDiagram
   autonumber
-  actor OP as Provider-garden steward
+  actor OP as Payer-garden steward
   actor PST as Protocol steward / module owner
   actor DSP as Settlement steward / dispatcher
   participant SM as SettlementModule (Arbitrum)
@@ -1863,7 +1875,7 @@ sequenceDiagram
   participant SAFE as Executor-garden Celo Safe
   participant IDX as Envio read model
 
-  alt ContributorReward — one child of a fulfilled commitment
+  alt ContributorConsideration — contributor-shaped fulfilled commitment
     OP->>SM: create plan with recognition vector + hash
     SM->>CPM: validate canonical frozen recognition vector + hash
     SM-->>IDX: PayoutPlanCreated + versioned ordered rows + PayoutSnapshotCommitted
@@ -1876,14 +1888,21 @@ sequenceDiagram
     else all retained — no payable row
       Note over SM,IDX: parent becomes Complete without CCIP or self-transfer
     end
+  else GardenBeneficiary — one Safe child of a garden-claimed Request
+    OP->>SM: create plan with empty recognition vector/hash
+    SM-->>IDX: PayoutPlanCreated(kind, payer, provider, beneficiary garden/Safe/amount)
+    OP->>SM: finalizeCommitmentPayoutPlan
+    Note over OP,SM: payer and beneficiary accounts active; beneficiary Safe still frozen match
+    OP->>SM: prepareGardenBeneficiaryPayout(planId)
+    SM-->>IDX: DisbursementQueued(kind=GardenBeneficiary)
   else Funding — ProtocolToGarden top-up, commitmentId is 0
     PST->>SM: queueFunding(garden, amount) — protocol steward or owner only
     Note over SM,CPM: no commitment is read — source, recipient and token<br/>derive from the funding config
     SM-->>IDX: DisbursementQueued ("funding is queued")
   end
-  opt a contributor child or funding disbursement is Queued
+  opt any supported disbursement is Queued
     DSP->>SM: dispatchDisbursement or dispatchBatch
-    Note over DSP,SM: contributor parent is already finalized and immutable
+    Note over DSP,SM: commitment parent is finalized; payer active;<br/>beneficiary account rechecked when applicable
     SM->>AR: ccipSend(command tuple, no tokens, snapshotted peer/version/gas)
     SM-->>IDX: SettlementCommandDispatched (key, messageId, peer, payloadHash)
     AR-->>CR: CCIP delivery
@@ -2145,7 +2164,7 @@ Ownership at a glance: the three live proxies currently expose the deployer EOA 
 
 ## D25. Error taxonomy — surface and recovery map
 
-**How to read this**: choose the family first, then follow its one surface, actor, and recovery path. The diagrams separate creation/lifecycle from settlement/offline so every box stays legible. The selector ledger below assigns all 161 unique Solidity error names in `contract-spec.md` and `settlement-spec.md` to exactly one family. Duplicate common names such as `ZeroAddress`, `UnauthorizedCaller`, and `RewardNotDeclared` appear once in the ledger even when more than one contract declares them.
+**How to read this**: choose the family first, then follow its one surface, actor, and recovery path. The diagrams separate creation/lifecycle from settlement/offline so every box stays legible. The selector ledger below assigns all 161 unique Solidity error names in `contract-spec.md` and `settlement-spec.md` to exactly one family. Duplicate common names such as `ZeroAddress`, `UnauthorizedCaller`, and `ConsiderationNotDeclared` appear once in the ledger even when more than one contract declares them.
 
 #### D25.0 Creation and lifecycle
 
@@ -2201,9 +2220,9 @@ The recovery surface never suggests retrying with the same ineligible identity.
 
 | Family | Exact named errors |
 |---|---|
-| Validation | `AssessmentRequired`, `AssessmentV2SchemaUIDRequired`, `AssessmentV3SchemaUIDRequired`, `BaselineForbidden`, `BaselineGardenMismatch`, `BaselineRequired`, `CharterRequired`, `ClaimModeMismatch`, `ClaimTypeMismatch`, `CommitmentModuleRequired`, `ConfigCIDRequired`, `CyclePoolMismatch`, `EvidenceCIDRequired`, `EvidenceContributorsRequired`, `EvidenceRequired`, `IncompleteDecisionHistory`, `InvalidAllocation`, `InvalidApprovalAttestation`, `InvalidAssessmentAttestation`, `InvalidAssessmentKind`, `InvalidBaseline`, `InvalidCommitment`, `InvalidConfirmerRule`, `InvalidDisputeResolution`, `InvalidDomain`, `InvalidDomains`, `InvalidRequirementAssignment`, `InvalidRequirementCount`, `InvalidRewardConfiguration`, `InvalidSchema`, `InvalidTimeWindow`, `InvalidValueDeclaration`, `InvalidWorkAttestation`, `NoEligibleContributors`, `ReasonRequired`, `RecognitionPolicyUnavailable`, `RewardNotDeclared`, `RewardRailMismatch`, `SchemaUIDCollision`, `SchemaUIDConflict`, `SchemaUIDRequired`, `TargetUnitsRequired`, `TestimonyRequired`, `TitleRequired`, `UnitLabelRequired`, `UnknownAction`, `UnknownClass`, `UnknownCommitment`, `UnknownCycle`, `UnknownPool`, `WorkActionMismatch`, `WorkApprovalRequired`, `ZeroAddress` |
+| Validation | `AssessmentRequired`, `AssessmentV2SchemaUIDRequired`, `AssessmentV3SchemaUIDRequired`, `BaselineForbidden`, `BaselineGardenMismatch`, `BaselineRequired`, `CharterRequired`, `ClaimModeMismatch`, `ClaimTypeMismatch`, `CommitmentModuleRequired`, `ConfigCIDRequired`, `CyclePoolMismatch`, `EvidenceCIDRequired`, `EvidenceContributorsRequired`, `EvidenceRequired`, `IncompleteDecisionHistory`, `InvalidAllocation`, `InvalidApprovalAttestation`, `InvalidAssessmentAttestation`, `InvalidAssessmentKind`, `InvalidBaseline`, `InvalidCommitment`, `InvalidConfirmerRule`, `InvalidDisputeResolution`, `InvalidDomain`, `InvalidDomains`, `InvalidRequirementAssignment`, `InvalidRequirementCount`, `InvalidConsiderationConfiguration`, `InvalidSchema`, `InvalidTimeWindow`, `InvalidValueDeclaration`, `InvalidWorkAttestation`, `NoEligibleContributors`, `ReasonRequired`, `RecognitionPolicyUnavailable`, `ConsiderationNotDeclared`, `ConsiderationRailMismatch`, `SchemaUIDCollision`, `SchemaUIDConflict`, `SchemaUIDRequired`, `TargetUnitsRequired`, `TestimonyRequired`, `TitleRequired`, `UnitLabelRequired`, `UnknownAction`, `UnknownClass`, `UnknownCommitment`, `UnknownCycle`, `UnknownPool`, `WorkActionMismatch`, `WorkApprovalRequired`, `ZeroAddress` |
 | Permission / identity | `CommitmentGardenMismatch`, `IneligibleContributor`, `NotAuthorizedAttester`, `NotCommunityMember`, `NotConfirmer`, `NotEligibleClaimant`, `NotEligibleContributor`, `NotModule`, `NotPoolSteward`, `NotSettlementSteward`, `ProviderMismatch`, `SelfConfirmation`, `SelfCounterparty`, `UnauthorizedCaller` |
-| State machine | `AlreadyConfirmed`, `ApprovalAlreadyCounted`, `AssessmentAlreadyAttached`, `ClaimNotPending`, `ClassAccountingStateMismatch`, `ClassAlreadyRegistered`, `CommitmentNotInState`, `ContributorAlreadyActive`, `ContributorHasCredit`, `ContributorNotActive`, `ContributorPolicyMismatch`, `CycleNotAcceptingCommitments`, `CycleNotInState`, `EvidenceAlreadyAttached`, `LeadContributorCannotLeave`, `ModuleMustBePaused`, `ModuleNotReady`, `ModulePaused`, `NotDue`, `PoolExists`, `PoolNotInState`, `RewardAlreadyRecorded`, `RosterAlreadyFrozen`, `SeasonAlreadyOpen`, `WorkAlreadyLinked`, `WorkNotLinkedToCommitment` |
+| State machine | `AlreadyConfirmed`, `ApprovalAlreadyCounted`, `AssessmentAlreadyAttached`, `ClaimNotPending`, `ClassAccountingStateMismatch`, `ClassAlreadyRegistered`, `CommitmentNotInState`, `ContributorAlreadyActive`, `ContributorHasCredit`, `ContributorNotActive`, `ContributorPolicyMismatch`, `CycleNotAcceptingCommitments`, `CycleNotInState`, `EvidenceAlreadyAttached`, `LeadContributorCannotLeave`, `ModuleMustBePaused`, `ModuleNotReady`, `ModulePaused`, `NotDue`, `PoolExists`, `PoolNotInState`, `ConsiderationAlreadyRecorded`, `RosterAlreadyFrozen`, `SeasonAlreadyOpen`, `WorkAlreadyLinked`, `WorkNotLinkedToCommitment` |
 | Capacity | `ConfirmationThresholdUnreachable`, `CycleHasLiveCommitments`, `InsufficientCommitted`, `InvalidUnitAmount`, `OpenCommitmentCapExceeded`, `OpenCommitmentCapRequired`, `QuotaExceeded`, `QuotaRequired`, `TooManyConfirmers`, `TooManyContributors`, `TooManyEvidenceContributors`, `TooManyLinkedWorks`, `TooManyRequirements` |
 | Exchange | `CounterCommitmentPoolMismatch`, `ExchangeClaimTypeUnsupported`, `ExchangeCounterpartMismatch`, `ExchangeDirectionInvalid`, `ExchangeStateInvalid`, `SelfCounterCommitment`, `SelfExchange`, `UnknownCounterCommitment` |
 | Settlement | `AcknowledgmentFeeReserveFloorViolated`, `AmountRequired`, `BatchEntryMismatch`, `BatchNotInState`, `BatchSizeOutOfBounds`, `BatchedDisbursementCannotBeCancelled`, `CcipTokensNotAllowed`, `CommitmentPayoutPlanExists`, `DisbursementNotInState`, `DispatchedSettlementCannotBeCancelled`, `DuplicateBatchEntry`, `DuplicateBatchRecipient`, `ExecutorMustBePaused`, `ExecutorNotReady`, `FeeReserveFloorViolated`, `FundingConfigurationIncomplete`, `GardenRouteAlreadyConfigured`, `GardenerDeliveryDisabled`, `ImmutableGdollarMismatch`, `IncorrectAcknowledgmentFee`, `InsufficientNativeFee`, `InvalidCcipSender`, `InvalidCcipSource`, `InvalidExecutionKey`, `InvalidFeePolicy`, `InvalidPayoutVector`, `InvalidRecognitionVector`, `InvalidRecoveryConfiguration`, `InvalidSettlementChain`, `MalformedSettlementCommand`, `PayoutPlanFinalized`, `PayoutPlanInvariantMismatch`, `PayoutPlanNotFinalized`, `PolicyNotConfigured`, `RecognitionPaymentDivergenceRequiresReason`, `RecognitionSnapshotMismatch`, `SafeAlreadyAssigned`, `SettlementAccountInactive`, `SourceMustBePaused`, `SourceNotReady`, `TooManyPayoutContributors`, `UnknownBatch`, `UnknownDisbursement`, `UnknownExecutionKey`, `UnknownPayoutPlan`, `UnknownSettlementAccount`, `UnsupportedMessageVersion` |
@@ -2285,7 +2304,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `updateCommitmentSeriesMetadata` | Current series holder | Active or Resting; non-empty metadata; prospective only — prior and open instances are never rewritten |
 | `restCommitmentSeries`, `resumeCommitmentSeries`, `retireCommitmentSeries` | Current series holder | Active ↔ Resting; Active/Resting → Retired, which is terminal for new places and never transitions an existing instance |
 | `createCommitment` | Pool gardener for own Offer/Request; steward for SeasonCampaign/StewardCaptured; root steward or owner in protocol pool | Pool/cycle accepts; non-zero creator-scoped `creationRequestKey`; exact payload replay returns the first ID with no second reservation; stored authorship and `onBehalfOf` determine the lead provider; DomainImpact arrays are valid |
-| `setDeclaredReward`, `setDeclaredValue`, `setConfirmerRule` | Resolved pool steward | Pre-acceptance only; named confirmer input is bounded by the benchmark-frozen `MAX_CONFIRMERS`; `setConfirmerRule` stores the explicit protocol-fallback selection, which requires registered `protocolPoolId`; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared` — a records-only term, never a settlement amount or conversion rule |
+| `setDeclaredConsideration`, `setDeclaredValue`, `setConfirmerRule` | Resolved pool steward | Pre-acceptance only; named confirmer input is bounded by the benchmark-frozen `MAX_CONFIRMERS`; `setConfirmerRule` stores the explicit protocol-fallback selection, which requires registered `protocolPoolId`; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared` — a records-only term, never a settlement amount or conversion rule |
 | `claimCommitment` | Gardener of the eligible garden; or protocol-pool garden operator/owner / individual gardener according to stored `claimType` | Runtime kind equals stored type; canonical claimant and `requestedBy` are derived, not substituted |
 | `acceptClaim`, `declineClaim` | Resolved pool steward | Named pending claimant exists; acceptance consumes stored terms and one provider count slot; decline reason mandatory |
 | `acceptExchange` | Creator of the referenced commitment A | B names A through its immutable `counterCommitmentId`; same pool; Offer×Offer, Offered×Offered, Individual×Individual, distinct creators; B is direct-created, never `StewardCaptured`/`onBehalfOf`; both full immutable-quota classes must still be Committed to their creators. Two `CommitmentAccepted`, one `ContributorAdded` lead event per creator, and one `ExchangeAccepted` marker commit atomically, with no second registry commit and no provider-cap headroom check |
@@ -2304,7 +2323,7 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | `cancelCommitment` | Creator or steward before acceptance; steward after acceptance | Allowed state only; accepted record releases units and one slot once |
 | `expireCommitment` | Anyone | Past due date/cycle end; accepted record releases units and one slot once |
 | `raiseDispute`, `resolveDispute` | Creator/counterparty/named confirmer/steward may raise; steward resolves | Allowed state and mandatory reason; prior slot state preserved; expired prior state cannot resolve Fulfilled; a direct Fulfilled result rejects a resolving contributor-steward, requires an opened/cycle-less policy and verified contributor, and freezes the roster first when it was not already Ready |
-| `recordRewardPaid` | Resolved pool steward | Fulfilled; `reward.rail == ArbitrumExternal`; one record; earned-reward facts derive from storage; every other rail reverts |
+| `recordConsiderationPaid` | Resolved pool steward | Fulfilled; `consideration.rail == ArbitrumExternal`; one record; earned-consideration facts derive from storage; every other rail reverts |
 | `setGardenToken`, `setHatsModule`, `setActionRegistry`, `setCommitmentRegistry`, `setWorkApprovalResolver`, `setEAS`, `setSchemaUIDs` | Module owner | Module initialized paused and must remain paused for dependency/schema changes; dependencies reject zero; all four schema UIDs reject zero/collision; every real change emits old/new facts |
 | Pooling-module `setPaused` | Module owner | Pause always available; unpause requires every dependency plus four non-zero, pairwise-distinct schema UIDs |
 | `setProviderOpenCommitmentCap` | Resolved pool steward | Non-zero concurrent commitment count; module forwards to the register; required before Ready |
@@ -2315,10 +2334,10 @@ This table is the Architecture-tab copy of the two canonical permission matrices
 | Community Testimony config: `setSchemaUID`, `setCommitmentModule` | TestimonyResolver owner (protocol multisig) | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID. Preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | `registerSettlementAccount`, `updateSettlementRecovery`, `setAccountActive` | Steward or `SettlementModule` owner | Registration is write-once for garden/account/Roles modifier/`roleKey`/`allowanceKey` and the immutable permissions hash; `chainId == DESTINATION_EVM_CHAIN_ID()`; the three recovery owners are sorted, unique, non-zero, and **none is a current executor**; threshold fixed at 2. A recovery update may change only owners and the recovery hash. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
 | `setGardenerDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and gardener sends, but never hides payout plans or historical children and never blocks the funding route |
-| `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` | Resolved provider-garden settlement steward (operator/owner of immutable `providerGarden`) | Fulfilled commitment; active provider-garden settlement account at every value-authorizing write; Celo rail; complete sorted eligible recognition vector bound to its hash; atomic full-vector amount edits; amount-derived payment weights; provider-garden Safe payer; reason-required divergence; explicit finalization creates no child; exact retained-plus-payout invariant; idempotent one-child preparation from a frozen non-zero row; zero-child all-retained completion; no arbitrary recipient/token |
+| `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` / `prepareGardenBeneficiaryPayout` | Resolved payer-garden settlement steward (operator/owner of immutable `payerGarden`, register #90) | Fulfilled, priced Celo commitment with non-zero payer. Shape derives immutably. Contributor edits preserve exact conservation and allow retention only when payer = provider. Beneficiary freezes an active external garden Safe, full amount, zero retention/contributor rows, and one payable child; it cannot enter contributor edits or complete locally. Both preparation paths are idempotent; beneficiary has no gardener-delivery gate |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
-| `createBatch` | Resolved settlement steward for the immutable executor garden | Unique Queued batch entries and unique derived recipients share executor garden/source/token/kind/funding route; ContributorReward batches require the provider/executor garden account still Active; duplicate recipients revert before fee quote or mutation; batch composition is immutable; measured configured limit is non-zero and at or below hard ceiling 24 |
-| `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Resolved settlement steward for immutable `executorGarden`, or exact configured dispatcher | Parent plan explicitly finalized before contributor dispatch; initial ContributorReward dispatch rechecks the provider/executor garden account Active; frozen data-only payload; adequate native fee reserve; initial dispatch snapshots destination selector/executor/gas/version/payload hash; retry preserves the snapshot, attempt, execution key, and payload while producing only a new message ID. The module owner has no independent value-moving bypass |
+| `createBatch` | Resolved settlement steward for immutable executor garden | Unique Queued entries and recipients share executor/source/token/kind/route; both commitment kinds recheck payer, beneficiary kind also rechecks each receiving garden and frozen Safe, Funding rechecks source and targets; immutable measured batch limit |
+| `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand` | Resolved settlement steward for immutable `executorGarden`, or exact configured dispatcher | Commitment parent finalized; initial dispatch rechecks payer and, for beneficiary, receiving garden/Safe; frozen payload and fee reserve; retry preserves snapshotted route/attempt/key/payload and creates only a message ID. Module owner has no value-moving bypass |
 | `requeue` | Resolved settlement steward | Authenticated `Failed` disbursement only; increments the individual attempt; an immutable failed batch is never rewritten as a batch |
 | `cancelDisbursement` | Resolved settlement steward | unbatched `Queued` or authenticated `Failed` only, with reason; dispatched work cannot be cancelled for a timeout or missing acknowledgment; parent commitment-plan pointer remains stable |
 | `cancelBatch` | Resolved batch steward | whole immutable batch while `Queued`, with reason; no partial-entry cancellation; parent commitment-plan pointers remain stable |

@@ -3,6 +3,8 @@ pragma solidity ^0.8.25;
 /* solhint-disable no-console */
 
 import { Script } from "forge-std/Script.sol";
+
+import { NetworkSelectors } from "./lib/NetworkSelectors.sol";
 import { console } from "forge-std/console.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { stdJson } from "forge-std/StdJson.sol";
@@ -63,6 +65,14 @@ abstract contract DeployHelper is Script {
         address ensReceiver;
         address gardenerAccountLogic; // DEPRECATED: kept for JSON backward compatibility
         address gardenerRegistry; // DEPRECATED: replaced by GreenGoodsENS (CCIP), kept for JSON compat
+        // Commitment Pooling lane. Never populated here: each is deployed by its own later,
+        // separately gated target (`deploy.ts commitment-schemas` and `deploy.ts pooling`), which
+        // merges the real address into the artifact. A fresh core deploy emits them as zero, which
+        // is the documented "pending broadcast" state rather than a missing key.
+        address commitmentPoolingModule;
+        address commitmentRegistry;
+        address testimonyResolver;
+        address testimonyResolverImpl;
         bytes32 assessmentSchemaUID;
         bytes32 workSchemaUID;
         bytes32 workApprovalSchemaUID;
@@ -141,13 +151,7 @@ abstract contract DeployHelper is Script {
             // NameWrapper not configured - defaults to address(0) (unwrapped names)
         }
 
-        // solhint-disable-next-line no-empty-blocks
-        try vm.parseJson(json, string.concat(basePath, ".ccipChainSelector")) returns (bytes memory data) {
-            config.ccipChainSelector = uint64(abi.decode(data, (uint256)));
-            // solhint-disable-next-line no-empty-blocks
-        } catch {
-            // CCIP chain selector not configured - defaults to 0
-        }
+        config.ccipChainSelector = NetworkSelectors.readCcipChainSelector(json, basePath);
 
         // Get deployment defaults
         config.safe = json.readAddress(".deploymentDefaults.safe");
@@ -314,6 +318,10 @@ abstract contract DeployHelper is Script {
         vm.serializeAddress(obj, "ensReceiver", result.ensReceiver);
         vm.serializeAddress(obj, "gardenerAccountLogic", result.gardenerAccountLogic);
         vm.serializeAddress(obj, "gardenerRegistry", result.gardenerRegistry);
+        vm.serializeAddress(obj, "commitmentPoolingModule", result.commitmentPoolingModule);
+        vm.serializeAddress(obj, "commitmentRegistry", result.commitmentRegistry);
+        vm.serializeAddress(obj, "testimonyResolver", result.testimonyResolver);
+        vm.serializeAddress(obj, "testimonyResolverImpl", result.testimonyResolverImpl);
 
         // Serialize root garden info
         console.log("\nRoot Garden:");

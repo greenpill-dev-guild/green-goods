@@ -37,6 +37,7 @@ function options(overrides: Partial<ParsedOptions> = {}): ParsedOptions {
     force: false,
     dryRun: true,
     pureSimulation: false,
+    finalizeCommunityTestimony: false,
     skipEnvio: false,
     skipVerification: false,
     startIndexer: false,

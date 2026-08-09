@@ -254,7 +254,7 @@ not an implementation kickoff.
 
 The command/ack pattern, per-lane `SettlementConfiguration`, and bounded executor generalize to
 any CCIP-supported chain only through a new executor deployment, a published and verified lane,
-and a reward-rail enum extension delivered through a reviewed UUPS upgrade. Arbitrum-local
+and a consideration-rail enum extension delivered through a reviewed UUPS upgrade. Arbitrum-local
 automated settlement is the degenerate no-CCIP case; `ArbitrumExternal` already covers the
 operator-recorded local path, so automation would still need a separately named and authorized
 rail rather than silently changing that meaning.

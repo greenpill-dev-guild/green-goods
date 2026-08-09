@@ -22,3 +22,6 @@ import "./handlers/hypercerts";
 import "./handlers/greenWill";
 import "./handlers/yieldSplitter";
 import "./handlers/cookieJarFactory";
+import "./handlers/settlement";
+import "./handlers/settlement-lifecycle";
+import "./handlers/settlement-executor";

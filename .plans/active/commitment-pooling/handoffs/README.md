@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 19 files in this directory. The plan hub's document map points here for the enumeration, so
+All 20 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -15,6 +15,7 @@ order only, and a reader following the map could miss an active dispatch surface
 | `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Depends on frozen pooling events |
 | `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Depends on core indexer GREEN |
 | `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
+| `claude-contracts-hardening.md` | Resolver wiring, cross-chain approach, and contract hardening follow-ups (PRD-799) | Claude | Runs alongside the contracts lane |
 | `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Blocked behind state/API |
 | `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Blocked behind state/API |
 | `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Blocked behind state/API |
@@ -98,7 +99,7 @@ linear.laneSyncMode is lane_issues (register #37, amended by registers #39 and #
   metadata-only fallback, but cycle-less commitments are recognition/payment-only and cannot enter
   Hypercert bundles without a six-role cycle allocation. Settlement hash-binds recognition,
   persists contributor order, emits versioned complete payout snapshots, derives payment weights
-  from atomic amounts, treats the canonical full-reward base-unit allocation as
+  from atomic amounts, treats the canonical full-consideration base-unit allocation as
   rounding-equivalent, finalizes without creating children, rejects duplicate batch recipients,
   and materializes each immutable child only through idempotent post-finalization preparation. It
   conserves retained plus payout amounts, completes all-retained plans without CCIP, and never

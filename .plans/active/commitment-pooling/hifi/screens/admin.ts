@@ -1097,7 +1097,7 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · provider-garden payout plan · unqueued")}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · payer-garden payout plan · unqueued")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
@@ -1110,7 +1110,7 @@ ${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-g
       actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Create payout draft…", { kind: "pri" }))}`;
       break;
     case "queue-settlement-garden":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "25 G$")}${kv("Payer", "Awka Hub · provider garden Safe")}${kv("Garden retains", "5 G$")}${kv("Contributor children", "Maria 12 G$ · João 8 G$")}${banner(
+      body = `${kv("Consideration rail", "Celo G$ settlement")}${kv("Declared support", "25 G$")}${kv("Payer", "Awka Hub · payer garden Safe")}${kv("Garden retains", "5 G$")}${kv("Contributor children", "Maria 12 G$ · João 8 G$")}${banner(
         "Saving creates an editable draft and derives payment weights from these amounts. Finalization separately verifies recognition, conservation, and canonical recipients before any child can dispatch.",
         "stone",
       )}`;
@@ -1143,7 +1143,7 @@ ${kv("Maria → João", "6 hours · due Aug 12")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "João · Jul 12 · 2 of 2")}${kv("Provider", "Maria — cannot confirm")}
 ${kv("Team", "Maria · lead; Ana and Kwame · contributors")}${kv("Recognition", "40% · 35% · 25% from approved contribution")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "500 G$ · provider-garden Safe")}${kv("Payment", "plan not yet saved")}
+${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "500 G$ · payer-garden Safe")}${kv("Payment", "plan not yet saved")}
 ${banner("The garden receives the commitment support, retains an explicit amount, then pays contributors through child deliveries.", "stone")}`;
       actions = `${dismiss("Close")}${hot("w10.allocate-contributors", btn("Set recognition and payment…", { kind: "pri" }))}`;
       break;
@@ -1174,8 +1174,8 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.allocate-contributors": { l: "Set recognition and payment", to: "screen:W10@contributor-allocation", info: "Opens the steward editor with Hypercert recognition weights as the default payment weights." },
   "w10.save-contributor-allocation": { l: "Create payout draft", to: "screen:W21@payout-plan-edit", info: "Creates the stable recognition-bound Draft with its canonical default, then opens the separate recoverable amount-vector edit. If the edit transaction is rejected, retry only setContributorPayouts; never recreate the parent.", calls: ["createCommitmentPayoutPlan"] },
   "w10.all-retained-preview": { l: "Preview all-retained case", to: "screen:W21@payout-retained", info: "Shows the zero-child path: finalization completes the plan without CCIP or a self-transfer." },
-  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
-  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
+  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → ConsiderationPaid; no value moves here." },
+  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordConsiderationPaid → ConsiderationPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordConsiderationPaid"] },
   "w10.fallback": { l: "Confirm as garden fallback", to: "screen:W10@fallback-confirm", info: "Current local-garden Hats only; mandatory reason; every contributor is blocked (CS §6.1)." },
   "w10.fallback-confirm": { l: "Garden fallback (confirm)", to: "screen:W2@fulfilled-pool-fallback", info: "confirmFulfillmentAsFallback emits the caller, PoolFallback, and required reason; the member timeline renders that exact provenance.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.protocol-fallback-confirm": {

@@ -193,6 +193,52 @@ export const OctantModule = createContract("OctantModule", [
 ] as const);
 export const OctantVault = createContract("OctantVault", ["Deposit", "Withdraw"] as const);
 export const YieldSplitter = createContract("YieldSplitter", ["YieldSplit"] as const);
+export const SettlementModule = createContract("SettlementModule", [
+  "FundingConfigurationLocked",
+  "SettlementAccountRegistered",
+  "SettlementRecoveryUpdated",
+  "SettlementAccountStatusChanged",
+  "CcipRouteUpdated",
+  "GardenerDeliveryStatusChanged",
+  "BatchSizeLimitUpdated",
+  "DispatcherUpdated",
+  "FeeReserveMinimumUpdated",
+  "HatsModuleUpdated",
+  "CommitmentPoolingModuleUpdated",
+  "PausedSet",
+  "CommitmentPayoutPlanCreated",
+  "ContributorPayoutSet",
+  "CommitmentPayoutSnapshotCommitted",
+  "CommitmentPayoutPlanFinalized",
+  "DisbursementQueued",
+  "BatchCreated",
+  "SettlementCommandDispatched",
+  "SettlementCommandRetried",
+  "SettlementAcknowledged",
+  "DuplicateAcknowledgmentIgnored",
+  "StaleAcknowledgmentIgnored",
+  "DisbursementRequeued",
+  "DisbursementCancelled",
+  "BatchCancelled",
+  "FeeReserveFunded",
+  "ExcessFeesWithdrawn",
+] as const);
+export const CeloSettlementExecutor = createContract("CeloSettlementExecutor", [
+  "SourcePeerUpdated",
+  "GardenRouteConfigured",
+  "GardenRouteStatusChanged",
+  "CapsUpdated",
+  "FeePolicyUpdated",
+  "PeriodicCapUpdated",
+  "AcknowledgmentFeeReserveMinimumUpdated",
+  "AcknowledgmentFeeReserveFunded",
+  "ExcessAcknowledgmentFeesWithdrawn",
+  "PausedSet",
+  "SettlementExecutionStored",
+  "DuplicateSettlementMessage",
+  "AcknowledgmentSent",
+  "AcknowledgmentDeferred",
+] as const);
 
 export function createTestIndexer(): TestIndexer {
   return createEnvioTestIndexer();

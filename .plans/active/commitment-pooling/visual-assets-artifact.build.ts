@@ -731,7 +731,7 @@ const storyBodyRaw = `
 <section id="story-circular">
   <h2>A circular G$ economy</h2>
   <p class="lede">The selected return leg is explicit: support streams in, flows to gardens and gardeners, and gardens spend earned G$ on Green Goods team services. Local merchant and store routes remain unmodeled.</p>
-  <p>A pool that only pays out eventually empties. The circle drawn here is the chosen model: support streams into the protocol Safe, flows to gardens and gardeners for promises kept, and <strong>the return leg on the right closes the loop upward</strong> when gardens spend earned G$ on Green Goods team services — support sessions, onboarding, and workshops. Whether charging for those services fits the House of Alignment circulation mandate is still awaiting GoodDollar confirmation, and the drawing says so rather than assuming the answer. That external answer does not alter the contract or settlement interfaces; it does gate partner claims and how far the distribution model can be scaled.</p>
+  <p>A pool that only pays out eventually empties. The circle drawn here is the chosen model: support streams into the protocol Safe, flows to gardens and gardeners for promises kept, and <strong>the return leg on the right closes the loop upward</strong> when gardens spend earned G$ on Green Goods team services — support sessions, onboarding, and workshops. GoodDollar confirmed this arrangement on 2026-08-08 and said they want to see circulation. That confirmation closes the mandate question; partner claims still require evidence that circulation actually happened.</p>
   ${respSvg(circSvg, "Circular G dollar economy")}
 </section>
 <section id="story-ge-functions">
@@ -953,13 +953,13 @@ const OPEN_QUESTIONS: ReadonlyArray<{
   },
   {
     question: "Can gardens spend G$ back into the protocol for Green Goods team services (the return leg)?",
-    verdict: "answered-gap",
+    verdict: "answered",
     finding:
-      "Internally settled 2026-08-02: yes, and it is the point of the circulation model rather than a side effect. G$ a garden earns by keeping protocol-pool commitments is what it then spends on Green Goods team services — support sessions, onboarding, and workshops — which closes the loop the corrected funding topology previously left open above garden Safes. The circulation asset now draws that return arc as a first-class leg. What is not settled is external: whether charging gardens for protocol services is compatible with the House of Alignment circulation mandate has been raised with GoodDollar governance and never answered, so the arc ships drawn but explicitly marked as pending that confirmation.",
-    riderLabel: "External dependency",
+      "Settled internally on 2026-08-02 and confirmed externally by GoodDollar on 2026-08-08: yes. G$ a garden earns by keeping protocol-pool commitments is what it then spends on Green Goods team services — support sessions, onboarding, and workshops — which closes the loop the corrected funding topology previously left open above garden Safes. GoodDollar said they want to see circulation. The circulation asset draws that return arc as a first-class leg.",
+    riderLabel: "Evidence boundary",
     rider:
-      "The open half belongs to GoodDollar, not to the contract build: confirm the mandate reading before the return leg is described to partners as agreed rather than proposed. No contract, state, or settlement interface changes either way, but distribution scaling and partner-facing claims depend on the answer.",
-    cites: "reports/corrections-log.md §9b and the 2026-08-02 return-leg entry · settlement-spec.md §11 reseed-rate note · plan.todo.md follow-up #6",
+      "The mandate question is closed, but confirmation is not evidence of executed circulation. Partner claims must still use observed pilot evidence; no contract, state, or settlement interface should infer a completed payment from the confirmation itself.",
+    cites: "reports/corrections-log.md §9b and the 2026-08-08 disposition · settlement-spec.md §11 · plan.todo.md Decision Log #45/#56 and follow-up #6",
   },
 ];
 

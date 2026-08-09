@@ -158,7 +158,7 @@ Only change a claim where the new compatibility architecture requires it:
 
 - class registration is curation/capacity accounting, not seed inventory;
 - bilateral `acceptExchange` is a paired start, not pooled exchange;
-- G$ reward/support payout is not voucher redemption;
+- G$ consideration/support payout is not voucher redemption;
 - the full later loop adds its own voucher class, backing, seed inventory, exchange, redemption,
   and repair;
 - the base pool/module never custodies the voucher or G$.
@@ -229,7 +229,7 @@ next`. Explain:
 - the Tech and Sun two-horizon example.
 
 Keep the existing invitation, funding, trust, and garden examples intact. Correct only exact
-misleading synonyms such as seed/class-registration, paired-start/exchange, or reward/redemption.
+misleading synonyms such as seed/class-registration, paired-start/exchange, or consideration/redemption.
 
 ### Tab 02 — Deeper Reference
 

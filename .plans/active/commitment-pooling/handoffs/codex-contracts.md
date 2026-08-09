@@ -201,10 +201,12 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   resolved lead must also pass the current `providerGarden` membership predicate; tests cover an
   Offer creator who lost their Hat and an ineligible StewardCaptured `onBehalfOf`.
   UID 0 remains valid through the concrete ActionRegistry ABI. Celo G$ payout derivation belongs
-  exclusively to `SettlementModule`: the provider garden Safe is payer, the plan names an explicit
+  exclusively to `SettlementModule`: the **payer** garden Safe is payer — the pool garden for a
+  Request, the claiming garden for an Offer, equal to the provider garden only for garden-internal
+  commitments (register #90) — the plan names an explicit
   retained amount, and each non-zero eligible contributor allocation becomes a child disbursement.
-- `DeclaredReward` carries `RewardRail { None, ArbitrumExternal, CeloSettlement }`. Zero reward
-  requires `None` plus zero source/token/amount; `recordRewardPaid` accepts only
+- `DeclaredConsideration` carries `ConsiderationRail { None, ArbitrumExternal, CeloSettlement }`. Zero consideration
+  requires `None` plus zero source/token/amount; `recordConsiderationPaid` accepts only
   `ArbitrumExternal`, so a Celo settlement declaration cannot also be recorded on the external
   rail. `CeloSettlement` accepts a non-zero amount with zero source/token sentinels; pooling has
   no canonical-token dependency, and SettlementModule exclusively derives its write-once
@@ -243,7 +245,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   mutates no `expectedUnits`, open, or fulfilled total and no open-commitment count, so a class
   registered for an unaccepted Request reads as a known label with zero units. Expected/open units
   move only on `UnitsCommitted`. `cycleId == 0` means no cycle-scoped row.
-- `recordRewardPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-reward facts.
+- `recordConsiderationPaid(commitmentId, payoutRef)` derives and emits stored source/provider recipient/token/amount; callers cannot override earned-consideration facts.
 - AssessmentResolver dual-schema config ABI, setter, event, errors, no-new-initializer UUPS
   upgrade, v2 state-preservation proof, and 3+47 storage layout match contract-spec §6.4.3
   exactly. `AssessmentV3` is a schema/artifact-key name only: no `AssessmentV3Resolver`
@@ -400,28 +402,51 @@ every conflicting state. Broadcast remains outside this handoff.
 
 ## Bounded-constant benchmark results
 
-The table below is the recording surface for
-`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It is
-empty because the harness does not exist yet; no `MAX_*` constant may be frozen, and no value
-above may stop being called provisional, until every row carries measured numbers from that run.
-Record worst-case gas and event-payload size per bound per size, then name the selected value and
-say why the next size up was rejected.
+> **PRODUCTION BOUNDS FROZEN — 2026-08-05:** Afo authorized the specification-frozen production
+> paths before the final bounds freeze. The exact paths and canonical events were measured at
+> 8/16/24/32/40, and all five explicit `pure` getters now reconcile to the selected value 40.
+> The superseded synthetic values remain only in git history and must not be consumed. This work
+> performed no broadcast or live chain-state mutation. See
+> `reports/contracts-impl-2026-08-05.md`; the separate branch-mirror blocker is recorded in
+> `reports/contracts-blocker-2026-08-05.md`.
 
-This is the ordered first-PR boundary, not a reason to postpone implementation:
+The table below records the largest transaction gas and largest canonical event-data payload in
+each named real-module path from
+`bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`.
+
+The 2026-08-05 authorization supersedes the ordering below only for the production benchmark:
 
 1. Add the RED ABI/storage/event tests plus `CommitmentPoolingBounds.t.sol`.
-2. Run and record the 8/16/24/32 matrix below.
-3. Freeze all five values in this table and in the explicit `pure` ABI getters.
-4. Only then implement the bounded module loops and indexer validators that consume them, in the
-   same PR or a dependent PR. No downstream lane may copy the provisional planning targets.
+2. Implement the specification-frozen bounded module paths without treating the provisional value
+   as a final ABI bound.
+3. Run and record the 8/16/24/32/40 production-path matrix with canonical events.
+4. Freeze all five measured values in this table and in the explicit `pure` ABI getters. No
+   downstream lane may copy the provisional planning targets.
 
-| Bound | 8 | 16 | 24 | 32 | Selected | Rejection reason for the next size |
-|---|---|---|---|---|---|---|
-| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | | | | | provisional 16 | |
-| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | | | | | provisional 32 | |
-| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | | | | | provisional 32 | |
-| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | | | | | provisional 32 | |
-| `MAX_CONFIRMERS` (acceptance dedupe / roster-mutation revalidation) | | | | | provisional 32 | |
+| Bound | 8 | 16 | 24 | 32 | 40 | Selected | Rejection reason for the next size |
+|---|---|---|---|---|---|---|---|
+| `MAX_REQUIREMENTS` (create / approval credit / Ready eval / event payload / replay) | 1,242,130 gas / 1,920 B | 1,873,097 gas / 2,688 B | 2,504,598 gas / 3,456 B | 3,136,637 gas / 4,224 B | 3,769,213 gas / 4,992 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_LINKED_WORKS_PER_COMMITMENT` (link / freeze-time full-set scan) | 168,032 gas / 128 B | 170,870 gas / 128 B | 230,239 gas / 128 B | 289,608 gas / 128 B | 348,978 gas / 128 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_CONTRIBUTORS_PER_COMMITMENT` (end-to-end create → finalize vector) | 166,137 gas / 448 B | 194,515 gas / 704 B | 288,197 gas / 960 B | 396,023 gas / 1,216 B | 517,992 gas / 1,472 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT` (attach / event payload) | 114,980 gas / 448 B | 194,515 gas / 704 B | 288,197 gas / 960 B | 396,023 gas / 1,216 B | 517,992 gas / 1,472 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+| `MAX_CONFIRMERS` (creation / acceptance dedupe / roster-mutation revalidation) | 767,941 gas / 1,024 B | 960,070 gas / 1,024 B | 1,152,133 gas / 1,024 B | 1,344,270 gas / 1,152 B | 1,536,424 gas / 1,408 B | **40** | 48 is outside the authorized measured matrix, so it has no cold-transaction vector proof. |
+
+Re-measured 2026-08-05 on commit `4256623d0` with Solc 0.8.28 through the exact Bun-wrapped
+`test/CommitmentPoolingBounds.t.sol` command. The harness has 60 operation-specific cases. Each
+case prepares a fresh proxy/module dependency graph and specification-valid production state in
+Foundry `setUp`, then measures exactly one top-level test transaction with a fresh access list.
+Gas is the largest cold transaction among the named operations; payload bytes come from the actual
+canonical module logs emitted by those calls, not a synthetic `abi.encode` estimate. All measured
+cells remain below 10,000,000 gas and 16,384 event-data bytes, so the largest authorized measured
+size remains selected and all five `pure` ABI getters remain 40; unmeasured size 48 remains
+rejected.
+
+The payload column is deliberately limited to the exact canonical fixture strings used by the
+harness. `unitLabel`, metadata/evidence/reason CIDs, and declared-value basis are frozen dynamic
+`string` ABI fields for which the specification defines non-empty validation but no maximum byte
+length. Therefore this table proves the bounded-vector contribution to canonical event payloads;
+it does **not** claim a finite global worst-case payload ceiling for arbitrary caller strings. No
+new string cap or ABI error was invented during this correction.
 
 ## Out of scope
 
@@ -448,7 +473,8 @@ Before **starting the first contracts PR**:
 During the **first contracts PR**, before bounded module behavior is called GREEN:
 
 - RED ABI/storage/event tests and the bounds harness land first.
-- The 8/16/24/32 table above is measured and all five values are frozen.
+- The 2026-08-05 authorized 8/16/24/32/40 table above is measured and all five values are frozen;
+  this supersedes the historical four-size wording in the 2026-07-28 amendment below.
 - Standalone schema-registration and isolated deployment targets gain their specified dry-run
   acceptance.
 - The two Arbitrum Sepolia post-deploy verifier targets and the `421614` network record land before
@@ -466,9 +492,9 @@ During the **first contracts PR**, before bounded module behavior is called GREE
   `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`. It
   measures all five bounded vectors — `MAX_REQUIREMENTS`, `MAX_LINKED_WORKS_PER_COMMITMENT`,
   `MAX_CONTRIBUTORS_PER_COMMITMENT`, `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and
-  `MAX_CONFIRMERS` — at 8/16/24/32 each, for worst-case creation, approval credit, Ready
-  evaluation, event payload, and replay cost. The 8/16/24/32 result table is recorded in this
-  handoff, below, and no constant may be frozen before that table exists.
+  `MAX_CONFIRMERS` — at the superseding 8/16/24/32/40 matrix, for creation, approval credit, Ready
+  evaluation, measured canonical-fixture event payload, and replay cost. The result table is
+  recorded in this handoff, above, and no constant may be frozen before that table exists.
 - Reject a DomainImpact requirement-total above the separately measured
   `MAX_LINKED_WORKS_PER_COMMITMENT`; the active Work array is the authoritative enumerable
   readiness set, so creation must never accept a quota that the link bound makes unfulfillable.
@@ -561,9 +587,12 @@ During the **first contracts PR**, before bounded module behavior is called GREE
 - Garden-claimed Requests use the authenticated Open `claimCommitment` caller or the consumed
   ApprovalGated pending claim's stored `requestedBy` as the accountable lead while retaining the
   GardenAccount as counterparty/provider scope. The requester and canonical claimant are each
-  checked against creator, and `acceptClaim` rechecks the stored requester. CeloSettlement
-  declarations require zero source/token sentinels; SettlementModule exclusively derives its
-  configured G$ token, and the provider-garden Safe becomes authoritative only there.
+  checked against creator, and `acceptClaim` rechecks the stored requester. Garden pools reject
+  institutional claims, and a protocol garden cannot target itself as the institutional claimant;
+  both open and approval-gated attempts fail before accepted/pending state. CeloSettlement
+  declarations require zero source/token sentinels; SettlementModule derives its configured G$
+  token and immutable payer-garden Safe, and separately freezes an external beneficiary Safe for
+  a Garden-claimed Request.
 - Maintain eligible-contributor/verified-credit totals and expose
   `validateRecognitionSnapshot`; Settlement must always use its on-chain recomputation rather
   than trust a caller-selected vector/hash. Hypercert composition uses it only for commitments

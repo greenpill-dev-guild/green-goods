@@ -31,6 +31,402 @@ enum PoolType {
   ACTION
 }
 
+enum DisbursementState {
+  UNKNOWN
+  QUEUED
+  DISPATCHED
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum DisbursementKind {
+  UNKNOWN
+  CONTRIBUTOR_CONSIDERATION
+  FUNDING
+  LOAN_PRINCIPAL
+  GARDEN_BENEFICIARY
+}
+
+enum FundingRoute {
+  UNKNOWN
+  NONE
+  PROTOCOL_TO_GARDEN
+}
+
+enum CommitmentSettlementFlow {
+  UNKNOWN
+  INTERNAL
+  PROTOCOL_TO_GARDEN
+  GARDEN_TO_PROTOCOL
+  GARDEN_TO_GARDEN
+}
+
+enum CommitmentPayoutPlanStatus {
+  DRAFT
+  PENDING
+  PARTIAL
+  COMPLETE
+  FAILED
+}
+
+enum SettlementExecutionStatus {
+  UNKNOWN
+  SUCCESS
+  FAILED
+}
+
+enum AcknowledgmentDeferralCode {
+  NONE
+  QUOTE_FAILED
+  FEE_RESERVE_LOW
+  SEND_FAILED
+  UNKNOWN
+}
+
+enum SettlementMessageDirection {
+  COMMAND
+  ACKNOWLEDGMENT
+}
+
+enum SettlementMessageStatus {
+  SENT
+  RETRIED
+  ACKNOWLEDGED
+  DUPLICATE
+  STALE
+  DEFERRED
+}
+
+type SettlementConfiguration {
+  id: ID!
+  chainId: Int!
+  role: String!
+  gardenerDeliveryEnabled: Boolean
+  protocolGarden: String
+  gDollarToken: String!
+  hatsModule: String
+  commitmentPoolingModule: String
+  localContract: String!
+  localRouter: String!
+  localChainSelector: BigInt!
+  remoteChainSelector: BigInt
+  remoteEvmChainId: Int
+  destinationGasLimit: Int
+  activePeer: String
+  previousPeer: String
+  previousPeerExpiresAt: BigInt
+  protocolVersion: Int!
+  dispatcher: String
+  batchSizeLimit: Int!
+  maxTransferAmount: BigInt
+  maxBatchAmount: BigInt
+  maxFeeBps: Int
+  maxFeeAmount: BigInt
+  periodDuration: Int
+  maxPeriodAmount: BigInt
+  feeReserveMinimum: BigInt!
+  nativeFeeBalance: BigInt!
+  feeReserveLow: Boolean!
+  peerConfigured: Boolean!
+  paused: Boolean!
+  pendingPayoutPlanEntityIds: [String!]!
+  updatedAt: Int!
+}
+
+type CommitmentPayoutPlan {
+  id: ID!
+  chainId: Int!
+  payoutPlanId: BigInt!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  providerGarden: String!
+  providerGardenId: String!
+  payerGarden: String!
+  payerGardenId: String!
+  settlementFlow: CommitmentSettlementFlow!
+  source: String!
+  token: String!
+  payoutKind: DisbursementKind!
+  declaredAmount: BigInt!
+  gardenRetainedAmount: BigInt!
+  contributorPayoutTotal: BigInt!
+  beneficiaryGarden: String
+  beneficiaryGardenId: String
+  beneficiaryRecipient: String
+  beneficiaryAmount: BigInt!
+  beneficiaryDisbursementId: BigInt
+  beneficiaryDisbursementEntityId: String
+  recognitionContributorCount: Int!
+  payablePayoutCount: Int!
+  preparedPayoutCount: Int!
+  confirmedPayoutCount: Int!
+  failedPayoutCount: Int!
+  cancelledPayoutCount: Int!
+  recognitionSnapshotHash: String!
+  paymentSnapshotHash: String!
+  paymentSnapshotVersion: Int!
+  latestEditReasonCID: String
+  finalized: Boolean!
+  status: CommitmentPayoutPlanStatus!
+  contributorPayoutEntityIds: [String!]!
+  disbursementEntityIds: [String!]!
+  createdBy: String!
+  createdAt: Int!
+  finalizedAt: Int
+  updatedAt: Int!
+}
+
+type SettlementAccount {
+  id: ID! # sourceChainId-garden
+  chainId: Int!
+  garden: String!
+  gardenId: String!
+  accountChainId: BigInt!
+  account: String!
+  active: Boolean!
+  recoveryOwners: [String!]!
+  rolesModifier: String!
+  roleKey: String!
+  allowanceKey: String!
+  permissionsConfigHash: String!
+  recoveryConfigHash: String!
+  recoveryThreshold: Int!
+  updatedAt: Int!
+}
+
+type ContributorPayout {
+  id: ID! # chainId-payoutPlanId-contributor
+  chainId: Int!
+  payoutPlanId: BigInt!
+  payoutPlanEntityId: String!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  contributorEntityId: String!
+  recipient: String!
+  paymentSnapshotVersion: Int!
+  recognitionWeightBps: Int!
+  paymentWeightBps: Int!
+  amount: BigInt!
+  disbursementId: BigInt
+  disbursementEntityId: String
+  latestEditReasonCID: String
+  editedBy: String!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# Durable staging rows let the trailing commit marker publish a full payout vector atomically.
+type PayoutSnapshotBuffer {
+  id: ID! # chainId-payoutPlanId-version
+  chainId: Int!
+  payoutPlanId: BigInt!
+  paymentSnapshotVersion: Int!
+  rowEntityIds: [String!]!
+  updatedAt: Int!
+}
+
+type PayoutSnapshotRow {
+  id: ID! # chainId-payoutPlanId-version-contributor
+  chainId: Int!
+  payoutPlanId: BigInt!
+  paymentSnapshotVersion: Int!
+  contributor: String!
+  recipient: String!
+  recognitionWeightBps: Int!
+  paymentWeightBps: Int!
+  amount: BigInt!
+  reasonCID: String
+  editedBy: String!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type PayoutSnapshotCommit {
+  id: ID! # chainId-payoutPlanId-version
+  chainId: Int!
+  payoutPlanId: BigInt!
+  paymentSnapshotVersion: Int!
+  rowCount: Int!
+  gardenRetainedAmount: BigInt!
+  contributorPayoutTotal: BigInt!
+  paymentSnapshotHash: String!
+  reasonCID: String
+  editedBy: String!
+  committedAt: Int!
+  updatedAt: Int!
+}
+
+type Disbursement {
+  id: ID!
+  chainId: Int!
+  disbursementId: BigInt!
+  garden: String!
+  gardenId: String!
+  executorGarden: String!
+  executorGardenId: String!
+  commitmentId: BigInt
+  commitmentEntityId: String
+  payoutPlanId: BigInt
+  payoutPlanEntityId: String
+  contributor: String
+  contributorEntityId: String
+  settlementFlow: CommitmentSettlementFlow
+  kind: DisbursementKind!
+  fundingRoute: FundingRoute!
+  source: String!
+  recipient: String!
+  token: String!
+  amount: BigInt!
+  state: DisbursementState!
+  batchId: BigInt
+  batchEntityId: String
+  reasonCID: String
+  attempt: Int!
+  executionKey: String
+  commandMessageId: String
+  dispatchedAt: Int
+  celoExecutionTx: String
+  acknowledgmentMessageId: String
+  confirmedAt: Int
+  failureCode: Int
+  cancelledFromState: DisbursementState
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type SettlementBatch {
+  id: ID! # chainId-batchId
+  chainId: Int!
+  batchId: BigInt!
+  executorGarden: String!
+  executorGardenId: String!
+  source: String!
+  token: String!
+  kind: DisbursementKind!
+  fundingRoute: FundingRoute!
+  disbursementIds: [BigInt!]!
+  disbursementEntityIds: [String!]!
+  state: DisbursementState!
+  attempt: Int!
+  executionKey: String
+  commandMessageId: String
+  dispatchedAt: Int
+  celoExecutionTx: String
+  acknowledgmentMessageId: String
+  confirmedAt: Int
+  reasonCID: String
+  failureCode: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type SettlementBatchMembership {
+  id: ID! # chainId-disbursementId
+  chainId: Int!
+  disbursementId: BigInt!
+  batchId: BigInt!
+  batchEntityId: String!
+  updatedAt: Int!
+}
+
+type SettlementSubjectState {
+  id: ID! # chainId-D-or-B-subjectId
+  chainId: Int!
+  isBatch: Boolean!
+  subjectId: BigInt!
+  state: DisbursementState!
+  attempt: Int!
+  executionKey: String
+  commandMessageId: String
+  acknowledgmentMessageId: String
+  failureCode: Int
+  dispatchedAt: Int
+  confirmedAt: Int
+  reasonCID: String
+  updatedAt: Int!
+}
+
+type SettlementCommandIndex {
+  id: ID! # sourceChainId-executionKey
+  chainId: Int!
+  executionKey: String!
+  isBatch: Boolean!
+  subjectId: BigInt!
+  attempt: Int!
+  protocolVersion: Int!
+  commandMessageId: String!
+  updatedAt: Int!
+}
+
+type SettlementMessage {
+  id: ID! # localChainId-messageId
+  chainId: Int!
+  messageId: String!
+  executionKey: String!
+  direction: SettlementMessageDirection!
+  status: SettlementMessageStatus!
+  isBatch: Boolean!
+  subjectId: BigInt!
+  attempt: Int
+  destinationPeer: String
+  destinationGasLimit: Int
+  protocolVersion: Int!
+  commandPayloadHash: String
+  sourceChainId: Int!
+  destinationChainId: Int!
+  sourceChainSelector: BigInt
+  destinationChainSelector: BigInt
+  fee: BigInt
+  reserveFunded: Boolean
+  failureCode: Int
+  txHash: String!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type SettlementExecution {
+  id: ID! # executorChainId-executionKey
+  chainId: Int!
+  sourceChainId: Int!
+  executionKey: String!
+  commandMessageId: String!
+  acknowledgmentReceiver: String!
+  protocolVersion: Int!
+  executorGarden: String!
+  executorGardenId: String!
+  isBatch: Boolean!
+  settlementId: BigInt!
+  attempt: Int!
+  status: SettlementExecutionStatus!
+  failureCode: Int!
+  txHash: String!
+  acknowledgmentMessageId: String
+  acknowledgmentSent: Boolean!
+  acknowledgmentDeferralCode: AcknowledgmentDeferralCode!
+  duplicateMessageIds: [String!]!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type SettlementGardenRoute {
+  id: ID! # executorChainId-garden
+  chainId: Int!
+  sourceChainId: Int!
+  garden: String!
+  gardenId: String!
+  settlementAccountId: String!
+  safe: String!
+  rolesModifier: String!
+  roleKey: String!
+  allowanceKey: String!
+  permissionsConfigHash: String!
+  active: Boolean!
+  configuredAt: Int!
+  updatedAt: Int!
+}
+
 type Action {
   id: ID!
   chainId: Int!

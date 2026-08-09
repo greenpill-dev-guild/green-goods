@@ -14,7 +14,6 @@ on:
       - "scripts/quality/check-source-structure.js"
       - ".github/workflows/indexer.yml"
   pull_request:
-    branches: [main, develop]
     paths:
       - "package.json"
       - "bun.lock"
