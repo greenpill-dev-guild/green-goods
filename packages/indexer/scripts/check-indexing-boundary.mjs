@@ -40,6 +40,18 @@ const ALLOWED_CONTRACT_EVENTS = {
   HypercertMinter: new Set(["TransferSingle", "ClaimStored"]),
   GreenWill: new Set(["BadgeClassConfigured", "BadgeIssued"]),
   CookieJarFactory: new Set(["JarCreated", "MetadataUpdated"]),
+  // Green Goods' own Arbitrum settlement command state (registers #90/#91). The boundary this
+  // gate protects — no EAS re-indexing, no raw Celo/G$ transfer indexing — is unchanged: these
+  // events are the module's command/acknowledgment lifecycle, not token movement observation.
+  SettlementModule: new Set([
+    "FundingConfigurationLocked",
+    "CommitmentPayoutPlanCreated",
+    "CommitmentPayoutPlanFinalized",
+    "DisbursementQueued",
+    "SettlementAcknowledged",
+    "DisbursementRequeued",
+    "DisbursementCancelled",
+  ]),
 };
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
