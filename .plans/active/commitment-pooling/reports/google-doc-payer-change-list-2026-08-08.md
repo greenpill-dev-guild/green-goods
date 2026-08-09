@@ -1,8 +1,8 @@
 # Google Doc change list: payer identity, recipient rule, and circulation
 
-Date: 2026-08-08  
-Document: [Green Goods Commitment Pooling](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit)  
-Application owner: human editor  
+Date: 2026-08-08
+Document: [Green Goods Commitment Pooling](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit)
+Application owner: human editor
 Status: not applied by Codex
 
 This is a narrow additive correction list. Preserve the six-tab structure, the document's plain
