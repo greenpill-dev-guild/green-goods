@@ -1390,9 +1390,9 @@
       "mappings": []
     },
     {
-      "id": "reward-rail",
+      "id": "consideration-rail",
       "status": "live",
-      "definition": "Reward reference rail: ArbitrumExternal records operator-paid jar/treasury rewards; CeloSettlement is consumed only by the SettlementModule.",
+      "definition": "Consideration reference rail: ArbitrumExternal records operator-paid jar/treasury payments; CeloSettlement is consumed only by the SettlementModule. Direction is carried by Commitment.payerGarden, not by the rail.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
         "ordered": true,
@@ -1404,7 +1404,7 @@
           "id": "solidity",
           "layer": "solidity",
           "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "symbol": "RewardRail",
+          "symbol": "ConsiderationRail",
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "ArbitrumExternal", "CeloSettlement"]
@@ -1437,7 +1437,7 @@
     },
     {
       "id": "commitment-payout-plan-status",
-      "status": "spec",
+      "status": "live",
       "definition": "Derived progress of a frozen commitment payout plan across its contributor child disbursements.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1445,11 +1445,26 @@
         "value_scheme": "index",
         "members": ["Draft", "Pending", "Partial", "Complete", "Failed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
-        "symbol": "PayoutPlanStatus"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+          "symbol": "PayoutPlanStatus",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["Draft", "Pending", "Partial", "Complete", "Failed"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentPayoutPlanStatus",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["DRAFT", "PENDING", "PARTIAL", "COMPLETE", "FAILED"]
+        }
+      ],
       "mappings": []
     },
     {
@@ -1477,7 +1492,7 @@
     },
     {
       "id": "disbursement-state",
-      "status": "spec",
+      "status": "live",
       "definition": "Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and otherwise preserves the Solidity states.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1485,33 +1500,71 @@
         "value_scheme": "index",
         "members": ["None", "Queued", "Dispatched", "Confirmed", "Failed", "Cancelled"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
-        "symbol": "DisbursementState"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+          "symbol": "DisbursementState",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "Queued", "Dispatched", "Confirmed", "Failed", "Cancelled"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "DisbursementState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "QUEUED", "DISPATCHED", "CONFIRMED", "FAILED", "CANCELLED"],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
+        }
+      ],
       "mappings": []
     },
     {
       "id": "disbursement-kind",
-      "status": "spec",
-      "definition": "Purpose of an outbound settlement entry. LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.",
+      "status": "live",
+      "definition": "Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
-        "members": ["ContributorReward", "Funding", "LoanPrincipal"]
+        "members": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
-        "symbol": "DisbursementKind"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+          "symbol": "DisbursementKind",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "DisbursementKind",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "CONTRIBUTOR_CONSIDERATION",
+            "FUNDING",
+            "LOAN_PRINCIPAL",
+            "GARDEN_BENEFICIARY"
+          ],
+          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
+        }
+      ],
       "mappings": []
     },
     {
       "id": "funding-route",
-      "status": "spec",
+      "status": "live",
       "definition": "Typed funding route for non-commitment settlement entries; ProtocolToGarden is the only initial route.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1519,16 +1572,62 @@
         "value_scheme": "index",
         "members": ["None", "ProtocolToGarden"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
-        "symbol": "FundingRoute"
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+          "symbol": "FundingRoute",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "ProtocolToGarden"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "FundingRoute",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "NONE", "PROTOCOL_TO_GARDEN"],
+          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "commitment-settlement-flow",
+      "status": "live",
+      "definition": "Read-model direction derived from immutable payer and provider gardens plus the write-once protocol garden. It describes Green Goods settlement intent, not observation of later Celo token circulation.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": false,
+        "value_scheme": "string",
+        "members": ["Internal", "ProtocolToGarden", "GardenToProtocol", "GardenToGarden"]
       },
-      "representations": [],
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentSettlementFlow",
+          "extract": "graphql-enum",
+          "ordered": false,
+          "members": [
+            "UNKNOWN",
+            "INTERNAL",
+            "PROTOCOL_TO_GARDEN",
+            "GARDEN_TO_PROTOCOL",
+            "GARDEN_TO_GARDEN"
+          ],
+          "note": "UNKNOWN is retained until the protocol garden configuration is observed."
+        }
+      ],
       "mappings": []
     },
     {
       "id": "failure-code",
-      "status": "spec",
+      "status": "live",
       "definition": "Stored settlement failure taxonomy used for deterministic recovery and operator rendering.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1549,11 +1648,52 @@
           "BalanceDeltaMismatch"
         ]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
-        "symbol": "FailureCode"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "source-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+          "symbol": "FailureCode",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": [
+            "None",
+            "GardenRouteUnavailable",
+            "InvalidRecipient",
+            "BatchSizeExceeded",
+            "TransferAmountExceeded",
+            "BatchAmountExceeded",
+            "PeriodCapExceeded",
+            "RouteRejected",
+            "RouteReverted",
+            "UnsupportedReceiverPaysFee",
+            "FeeQuoteExceeded",
+            "BalanceDeltaMismatch"
+          ]
+        },
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "FailureCode",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": [
+            "None",
+            "GardenRouteUnavailable",
+            "InvalidRecipient",
+            "BatchSizeExceeded",
+            "TransferAmountExceeded",
+            "BatchAmountExceeded",
+            "PeriodCapExceeded",
+            "RouteRejected",
+            "RouteReverted",
+            "UnsupportedReceiverPaysFee",
+            "FeeQuoteExceeded",
+            "BalanceDeltaMismatch"
+          ]
+        }
+      ],
       "mappings": []
     },
     {
@@ -1654,7 +1794,7 @@
           "CYCLE_COMPOSTED",
           "CYCLE_CANCELLED",
           "CREATED",
-          "REWARD_DECLARED",
+          "CONSIDERATION_DECLARED",
           "VALUE_DECLARED",
           "CONFIRMER_RULE_SET",
           "CLAIM_REQUESTED",
@@ -1683,7 +1823,7 @@
           "EXPIRED",
           "DISPUTED",
           "DISPUTE_RESOLVED",
-          "REWARD_PAID",
+          "CONSIDERATION_PAID",
           "UNITS_COMMITTED",
           "UNITS_RELEASED",
           "UNITS_FULFILLED"

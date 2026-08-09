@@ -373,15 +373,15 @@ Steward-only dispute outcomes; RestorePrevious replays the stored pre-dispute st
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · DisputeResolution</code> | <code>RestorePrevious, Fulfilled, Cancelled, Expired</code> |  |
 
-### `reward-rail`
+### `consideration-rail`
 
-Reward reference rail: ArbitrumExternal records operator-paid jar/treasury rewards; CeloSettlement is consumed only by the SettlementModule.
+Consideration reference rail: ArbitrumExternal records operator-paid jar/treasury payments; CeloSettlement is consumed only by the SettlementModule. Direction is carried by Commitment.payerGarden, not by the rail.
 
 **Canonical members:** None (0) · ArbitrumExternal (1) · CeloSettlement (2)
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
-| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · RewardRail</code> | <code>None, ArbitrumExternal, CeloSettlement</code> |  |
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ConsiderationRail</code> | <code>None, ArbitrumExternal, CeloSettlement</code> |  |
 
 ### `accounting-state`
 
@@ -393,6 +393,17 @@ CommitmentRegistry unit-class accounting states (non-transferable, ERC-1155-styl
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentRegistry.sol · AccountingState</code> | <code>Registered, Committed, Released, Fulfilled</code> |  |
 
+### `commitment-payout-plan-status`
+
+Derived progress of a frozen commitment payout plan across its contributor child disbursements.
+
+**Canonical members:** Draft (0) · Pending (1) · Partial (2) · Complete (3) · Failed (4)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · PayoutPlanStatus</code> | <code>Draft, Pending, Partial, Complete, Failed</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentPayoutPlanStatus</code> | <code>DRAFT, PENDING, PARTIAL, COMPLETE, FAILED</code> |  |
+
 ### `confirmation-path`
 
 The authority path that produced fulfillment provenance. PoolFallback is local-garden authority; ProtocolFallback is an explicitly selected Green Goods protocol-garden authority.
@@ -402,6 +413,60 @@ The authority path that produced fulfillment provenance. PoolFallback is local-g
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ConfirmationPath</code> | <code>Ordinary, PoolFallback, ProtocolFallback</code> |  |
+
+### `disbursement-state`
+
+Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and otherwise preserves the Solidity states.
+
+**Canonical members:** None (0) · Queued (1) · Dispatched (2) · Confirmed (3) · Failed (4) · Cancelled (5)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · DisbursementState</code> | <code>None, Queued, Dispatched, Confirmed, Failed, Cancelled</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementState</code> | <code>UNKNOWN, QUEUED, DISPATCHED, CONFIRMED, FAILED, CANCELLED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
+
+### `disbursement-kind`
+
+Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.
+
+**Canonical members:** ContributorConsideration (0) · Funding (1) · LoanPrincipal (2) · GardenBeneficiary (3)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · DisbursementKind</code> | <code>ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. |
+
+### `funding-route`
+
+Typed funding route for non-commitment settlement entries; ProtocolToGarden is the only initial route.
+
+**Canonical members:** None (0) · ProtocolToGarden (1)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FundingRoute</code> | <code>None, ProtocolToGarden</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · FundingRoute</code> | <code>UNKNOWN, NONE, PROTOCOL_TO_GARDEN</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. |
+
+### `commitment-settlement-flow`
+
+Read-model direction derived from immutable payer and provider gardens plus the write-once protocol garden. It describes Green Goods settlement intent, not observation of later Celo token circulation.
+
+**Canonical members:** Internal · ProtocolToGarden · GardenToProtocol · GardenToGarden
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> | UNKNOWN is retained until the protocol garden configuration is observed. |
+
+### `failure-code`
+
+Stored settlement failure taxonomy used for deterministic recovery and operator rendering.
+
+**Canonical members:** None (0) · GardenRouteUnavailable (1) · InvalidRecipient (2) · BatchSizeExceeded (3) · TransferAmountExceeded (4) · BatchAmountExceeded (5) · PeriodCapExceeded (6) · RouteRejected (7) · RouteReverted (8) · UnsupportedReceiverPaysFee (9) · FeeQuoteExceeded (10) · BalanceDeltaMismatch (11)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| source-solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch</code> |  |
+| executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch</code> |  |
 
 ### `commitment-series-state`
 
@@ -416,46 +481,6 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 ## Commitment Pooling Vocabularies (spec — not deployed)
 
 Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live.
-
-### `commitment-payout-plan-status`
-
-Derived progress of a frozen commitment payout plan across its contributor child disbursements.
-
-**Canonical members:** Draft (0) · Pending (1) · Partial (2) · Complete (3) · Failed (4)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `PayoutPlanStatus`. The drift gate flags arrival so the status flips to live with declared representations._
-
-### `disbursement-state`
-
-Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and otherwise preserves the Solidity states.
-
-**Canonical members:** None (0) · Queued (1) · Dispatched (2) · Confirmed (3) · Failed (4) · Cancelled (5)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `DisbursementState`. The drift gate flags arrival so the status flips to live with declared representations._
-
-### `disbursement-kind`
-
-Purpose of an outbound settlement entry. LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.
-
-**Canonical members:** ContributorReward (0) · Funding (1) · LoanPrincipal (2)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `DisbursementKind`. The drift gate flags arrival so the status flips to live with declared representations._
-
-### `funding-route`
-
-Typed funding route for non-commitment settlement entries; ProtocolToGarden is the only initial route.
-
-**Canonical members:** None (0) · ProtocolToGarden (1)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `FundingRoute`. The drift gate flags arrival so the status flips to live with declared representations._
-
-### `failure-code`
-
-Stored settlement failure taxonomy used for deterministic recovery and operator rendering.
-
-**Canonical members:** None (0) · GardenRouteUnavailable (1) · InvalidRecipient (2) · BatchSizeExceeded (3) · TransferAmountExceeded (4) · BatchAmountExceeded (5) · PeriodCapExceeded (6) · RouteRejected (7) · RouteReverted (8) · UnsupportedReceiverPaysFee (9) · FeeQuoteExceeded (10) · BalanceDeltaMismatch (11)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementModule.sol` · `FailureCode`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ### `result-status`
 
@@ -493,7 +518,7 @@ _Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentCl
 
 Normalized event vocabulary for commitment-pooling history and read-model aggregation.
 
-**Canonical members:** MODULE_UPDATED · MODULE_DEPENDENCY_UPDATED · MODULE_SCHEMA_UID_UPDATED · MODULE_PAUSE_STATUS_CHANGED · POOL_REGISTERED · POOL_CHARTER_UPDATED · POOL_READY · POOL_OPENED · POOL_PAUSED · POOL_RESUMED · POOL_CLOSED · POOL_COMPOSTED · POOL_REOPENED · CLASS_REGISTERED · PROVIDER_OPEN_COMMITMENT_CAP_UPDATED · CYCLE_SEEDED · CYCLE_OPENED · CYCLE_CLOSED · CYCLE_COMPOSTED · CYCLE_CANCELLED · CREATED · REWARD_DECLARED · VALUE_DECLARED · CONFIRMER_RULE_SET · CLAIM_REQUESTED · CLAIM_DECLINED · ACCEPTED · EXCHANGE_ACCEPTED · COMMITMENT_SERIES_CREATED · COMMITMENT_SERIES_METADATA_UPDATED · COMMITMENT_SERIES_RESTED · COMMITMENT_SERIES_RESUMED · COMMITMENT_SERIES_RETIRED · CONTRIBUTOR_ADDED · CONTRIBUTOR_REMOVED · CONTRIBUTOR_REQUIREMENT_ASSIGNED · CONTRIBUTOR_ROSTER_FROZEN · WORK_LINKED · WORK_UNLINKED · APPROVED_WORK_COUNTED · APPROVED_WORK_REVERSED · EVIDENCE_ATTACHED · ASSESSMENT_ATTACHED · READY_FOR_CONFIRMATION · CONFIRMATION_RECORDED · FULFILLED · CANCELLED · EXPIRED · DISPUTED · DISPUTE_RESOLVED · REWARD_PAID · UNITS_COMMITTED · UNITS_RELEASED · UNITS_FULFILLED
+**Canonical members:** MODULE_UPDATED · MODULE_DEPENDENCY_UPDATED · MODULE_SCHEMA_UID_UPDATED · MODULE_PAUSE_STATUS_CHANGED · POOL_REGISTERED · POOL_CHARTER_UPDATED · POOL_READY · POOL_OPENED · POOL_PAUSED · POOL_RESUMED · POOL_CLOSED · POOL_COMPOSTED · POOL_REOPENED · CLASS_REGISTERED · PROVIDER_OPEN_COMMITMENT_CAP_UPDATED · CYCLE_SEEDED · CYCLE_OPENED · CYCLE_CLOSED · CYCLE_COMPOSTED · CYCLE_CANCELLED · CREATED · CONSIDERATION_DECLARED · VALUE_DECLARED · CONFIRMER_RULE_SET · CLAIM_REQUESTED · CLAIM_DECLINED · ACCEPTED · EXCHANGE_ACCEPTED · COMMITMENT_SERIES_CREATED · COMMITMENT_SERIES_METADATA_UPDATED · COMMITMENT_SERIES_RESTED · COMMITMENT_SERIES_RESUMED · COMMITMENT_SERIES_RETIRED · CONTRIBUTOR_ADDED · CONTRIBUTOR_REMOVED · CONTRIBUTOR_REQUIREMENT_ASSIGNED · CONTRIBUTOR_ROSTER_FROZEN · WORK_LINKED · WORK_UNLINKED · APPROVED_WORK_COUNTED · APPROVED_WORK_REVERSED · EVIDENCE_ATTACHED · ASSESSMENT_ATTACHED · READY_FOR_CONFIRMATION · CONFIRMATION_RECORDED · FULFILLED · CANCELLED · EXPIRED · DISPUTED · DISPUTE_RESOLVED · CONSIDERATION_PAID · UNITS_COMMITTED · UNITS_RELEASED · UNITS_FULFILLED
 
 _Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentEventType`. The drift gate flags arrival so the status flips to live with declared representations._
 
