@@ -23,8 +23,6 @@ const ZERO_UID = `0x${"0".repeat(64)}`;
 const UNCONFIGURED_STATE: PoolingConfigurationState = {
   assessmentSchemaUID: ZERO_UID,
   assessmentV3SchemaUID: ZERO_UID,
-  testimonySchemaUID: ZERO_UID,
-  testimonyCommitmentModule: ZERO_ADDRESS,
   workApprovalCommitmentModule: ZERO_ADDRESS,
 };
 
@@ -34,19 +32,20 @@ interface ObservedState {
   live: boolean;
 }
 
-/** Live reads, in the order the plan reports them. */
+/**
+ * Live reads, in the order the plan reports them.
+ *
+ * One read per planned step, and no more. The testimony resolver's `schemaUID` and
+ * `commitmentModule` used to be read here; both moved to the schema lane
+ * (`deploy.ts commitment-schemas`), which pins the UID and performs the activation as its own
+ * final action. Reading them here was two RPC round trips per run whose results nothing consumed.
+ */
 const STATE_READS = [
   { field: "assessmentSchemaUID", target: "assessmentResolver", selector: "schemaUID()(bytes32)" },
   {
     field: "assessmentV3SchemaUID",
     target: "assessmentResolver",
     selector: "assessmentV3SchemaUID()(bytes32)",
-  },
-  { field: "testimonySchemaUID", target: "testimonyResolver", selector: "schemaUID()(bytes32)" },
-  {
-    field: "testimonyCommitmentModule",
-    target: "testimonyResolver",
-    selector: "commitmentModule()(address)",
   },
   {
     field: "workApprovalCommitmentModule",
@@ -60,7 +59,7 @@ const STATE_READS = [
 }>;
 
 /**
- * Final step of the Commitment Pooling release lane: the five resolver calls that connect the
+ * Final step of the Commitment Pooling release lane: the three resolver calls that connect the
  * deployed contracts to each other.
  *
  * Nothing here deploys. Until `workApprovalResolver.setCommitmentModule` lands, the resolver never
@@ -108,7 +107,7 @@ export class PoolingConfigureDeployer {
   }
 
   /**
-   * Read what the three proxies currently hold. A pure simulation, or an unreachable RPC, plans
+   * Read what the two proxies currently hold. A pure simulation, or an unreachable RPC, plans
    * against an unconfigured chain: that is the maximal plan, so it can never under-report work.
    * The broadcast re-reads on chain through `PoolingConfiguration`, which is what actually decides
    * each step, so an optimistic plan here cannot cause a wrong write.
@@ -143,8 +142,8 @@ export class PoolingConfigureDeployer {
   }
 
   /**
-   * All five calls are `onlyOwner` across three separate proxies, so the run only works if one
-   * account owns all three. On Arbitrum One the resolvers are owned by the deployer rather than
+   * All three calls are `onlyOwner` across two separate proxies, so the run only works if one
+   * account owns both. On Arbitrum One the resolvers are owned by the deployer rather than
    * the artifact's `guardian`, which is exactly the kind of divergence that burns a nonce halfway
    * through a broadcast.
    *
@@ -214,7 +213,7 @@ export class PoolingConfigureDeployer {
     if (options.broadcast) {
       throw new Error(
         `Owner preflight could not run (${reason}), so this broadcast is refused. Every configuration ` +
-          "call is onlyOwner across three proxies; sending blind risks applying some steps and reverting " +
+          "call is onlyOwner across both proxies; sending blind risks applying some steps and reverting " +
           "on the rest. Provide a reachable RPC and --sender, then retry.",
       );
     }

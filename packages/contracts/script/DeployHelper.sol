@@ -66,7 +66,7 @@ abstract contract DeployHelper is Script {
         address gardenerAccountLogic; // DEPRECATED: kept for JSON backward compatibility
         address gardenerRegistry; // DEPRECATED: replaced by GreenGoodsENS (CCIP), kept for JSON compat
         // Commitment Pooling lane. Never populated here: each is deployed by its own later,
-        // separately gated target (`deploy.ts testimony-resolver` and `deploy.ts pooling`), which
+        // separately gated target (`deploy.ts commitment-schemas` and `deploy.ts pooling`), which
         // merges the real address into the artifact. A fresh core deploy emits them as zero, which
         // is the documented "pending broadcast" state rather than a missing key.
         address commitmentPoolingModule;

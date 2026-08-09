@@ -29,6 +29,8 @@ CONTRACTS=(
   "ActionRegistry:src/registries/Action.sol"
   "CommitmentRegistry:src/registries/Commitment.sol"
   "CommitmentPoolingModule:src/modules/CommitmentPooling.sol"
+  "SettlementModule:src/modules/SettlementModule.sol"
+  "CeloSettlementExecutor:src/modules/CeloSettlementExecutor.sol"
   "WorkResolver:src/resolvers/Work.sol"
   "WorkApprovalResolver:src/resolvers/WorkApproval.sol"
   "AssessmentResolver:src/resolvers/Assessment.sol"

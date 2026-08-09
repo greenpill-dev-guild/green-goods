@@ -31,10 +31,13 @@ export const COMMITMENT_SCHEMA_KEYS = ["assessmentV3", "communityTestimony"] as 
 
 /**
  * The resolver configuration a deployed module needs before it is anything but inert, in
- * dependency order. Order is load-bearing twice over: `setAssessmentV3SchemaUID` reverts
- * `AssessmentV2SchemaUIDRequired` while the v2 UID is zero — which is the live Arbitrum state —
- * and `TestimonyResolver.setCommitmentModule` reverts `SchemaUIDRequired` before its schema is
- * pinned.
+ * dependency order. Order is load-bearing: `setAssessmentV3SchemaUID` reverts
+ * `AssessmentV2SchemaUIDRequired` while the v2 UID is zero — which is the live Arbitrum state — so
+ * the v2 pin has to land first.
+ *
+ * The testimony resolver is deliberately not configured here. Its schema pin and module activation
+ * belong to the ordered recovery lane in `DeployCommitmentSchemas` (contract-spec §6.4.4), which
+ * must pin before any record exists and activate only after the record is proven exact.
  *
  * `workApprovalBridge` is the one that decides whether the release means anything: without it the
  * resolver never calls `onWorkDecision`, so approved work never earns commitment credit.
@@ -97,7 +100,7 @@ export interface PoolingConfigurationTargets {
   assessmentV3SchemaUID: string;
 }
 
-/** What the three resolver proxies currently hold on chain. */
+/** What the two configured resolver proxies currently hold on chain. */
 export interface PoolingConfigurationState {
   assessmentSchemaUID: string;
   assessmentV3SchemaUID: string;
@@ -208,7 +211,7 @@ const CONFIGURATION_SCHEMA_KEYS = ["assessmentSchemaUID", "assessmentV3SchemaUID
  * Pull the configuration inputs out of a deployment artifact, naming every missing key at once.
  *
  * Reported together rather than one at a time because they are produced by three different
- * earlier steps — core deploy, `deploy.ts testimony-resolver`, `deploy.ts commitment-schemas`,
+ * earlier steps — core deploy, `deploy.ts commitment-schemas`,
  * `deploy.ts pooling` — and an operator holding the whole list can tell which one to re-run.
  */
 export function readPoolingConfigurationTargets(deployment: Record<string, unknown>): PoolingConfigurationTargets {
@@ -222,7 +225,8 @@ export function readPoolingConfigurationTargets(deployment: Record<string, unkno
   if (missing.length > 0) {
     throw new Error(
       `Pooling configuration cannot run until these deployment keys are non-zero: ${missing.join(", ")}. ` +
-        "Deploy the testimony resolver, register the commitment schemas, deploy pooling, then retry.",
+        "Run deploy.ts commitment-schemas (which deploys the testimony resolver and registers " +
+        "AssessmentV3), then deploy.ts pooling, then retry.",
     );
   }
 
@@ -233,7 +237,6 @@ export function readPoolingConfigurationTargets(deployment: Record<string, unkno
     commitmentPoolingModule: deployment.commitmentPoolingModule as string,
     assessmentSchemaUID: schemas.assessmentSchemaUID as string,
     assessmentV3SchemaUID: schemas.assessmentV3SchemaUID as string,
-    communityTestimonySchemaUID: schemas.communityTestimonySchemaUID as string,
   };
 }
 
@@ -257,8 +260,8 @@ function planStep(
 }
 
 /**
- * Decide what a configuration run should do about each of the five resolver calls, given what the
- * three proxies currently hold. Returns every step in dependency order, each marked `set` or
+ * Decide what a configuration run should do about each of the three resolver calls, given what the
+ * two proxies currently hold. Returns every step in dependency order, each marked `set` or
  * `satisfied`, so a dry run reads the same as a broadcast and an interrupted run resumes exactly
  * where it stopped.
  *

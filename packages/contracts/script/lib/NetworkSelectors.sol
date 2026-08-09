@@ -44,7 +44,14 @@ library NetworkSelectors {
         string memory decoded = abi.decode(raw, (string));
         if (bytes(decoded).length == 0) revert MalformedChainSelector(key);
 
-        return uint64(VM.parseUint(decoded));
+        // Range-checked before narrowing: an unchecked `uint64` cast turns a value that does not
+        // fit into a different, valid-looking selector rather than an error — 2^64+1 becomes 1.
+        // That contradicts this library's whole contract of failing loud on a malformed entry, and
+        // the TypeScript round-trip cannot catch it because the string itself round-trips fine.
+        uint256 parsed = VM.parseUint(decoded);
+        if (parsed > type(uint64).max) revert MalformedChainSelector(key);
+
+        return uint64(parsed);
     }
 }
 

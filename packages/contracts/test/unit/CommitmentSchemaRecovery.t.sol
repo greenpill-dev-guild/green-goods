@@ -176,37 +176,114 @@ contract CommitmentSchemaRecoveryTest is Test {
         );
     }
 
-    /// @notice A record that exists before any UID is pinned.
-    /// @dev Reachable without us: registration is permissionless. It is still not `Unprepared`,
-    ///      because preparation would then pin a UID whose record it never verified.
-    function testARecordBeforeAnyPinIsInvalid() public {
+    /// @notice An exact record that exists before any UID is pinned is preparable, not `Invalid`.
+    /// @dev Reachable without us, and cheaply: registration is permissionless and the UID is
+    ///      deterministic from public inputs (schema constant, versioned salt, checked-in factory),
+    ///      so anyone watching this repo can register the byte-identical record before our first
+    ///      broadcast. §6.4.4 requires preparation to accept it. Classifying it `Invalid` would
+    ///      turn a zero-risk registration into a lane-bricking grief whose only escape is a
+    ///      `DEPLOY_VERSION` bump the same watcher can chase.
+    ///
+    ///      Safe because the record is exact by construction — the UID commits to
+    ///      (schema, resolver, revocable) — and the pin never consults the registry.
+    function testAnExactRecordBeforeAnyPinIsPreparable() public {
         CommitmentSchemaRecovery.Observation memory observation = _observation();
         observation.recordExists = true;
         observation.recordMatches = true;
 
         assertEq(
             uint256(CommitmentSchemaRecovery.classify(observation)),
-            uint256(CommitmentSchemaRecovery.State.Invalid),
-            "a record with no pin is not a prepared state"
+            uint256(CommitmentSchemaRecovery.State.RecordAheadOfPin),
+            "a permissionless exact record ahead of the pin is a preparable state"
         );
+        assertEq(
+            uint256(this.preparable(observation)),
+            uint256(CommitmentSchemaRecovery.State.RecordAheadOfPin),
+            "preparation pins from here exactly as it would from Unprepared"
+        );
+    }
+
+    /// @notice A FOREIGN record before any pin stays terminal.
+    /// @dev The half of the pre-pin case that must not widen. EAS schemas are immutable, so a
+    ///      non-matching record under our deterministic UID can never be reconciled.
+    function testAForeignRecordBeforeAnyPinIsStillInvalid() public {
+        CommitmentSchemaRecovery.Observation memory observation = _observation();
+        observation.recordExists = true;
+        observation.recordMatches = false;
+
+        assertEq(
+            uint256(CommitmentSchemaRecovery.classify(observation)),
+            uint256(CommitmentSchemaRecovery.State.Invalid),
+            "an immutable foreign record is terminal at every pin position"
+        );
+    }
+
+    /// @notice Finalization still refuses the pre-pin record: the pin comes first.
+    function testFinalizationRefusesARecordAheadOfThePin() public {
+        CommitmentSchemaRecovery.Observation memory observation = _observation();
+        observation.recordExists = true;
+        observation.recordMatches = true;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaRecovery.UnexpectedRecoveryState.selector,
+                CommitmentSchemaRecovery.State.RecordAheadOfPin,
+                "finalization"
+            )
+        );
+        this.finalizable(observation);
     }
 
     // ───────────────────────── Phase gates ─────────────────────────
 
-    function testPreparationAcceptsOnlyUnpreparedAndPrepared() public {
+    /// @notice Preparation accepts exactly the four module-zero states, and refuses the two others.
+    /// @dev The record's presence is deliberately not a gate. Registration is permissionless, so
+    ///      gating on it would let any observer block preparation — including the artifact
+    ///      reconstruction retry §6.4.4 requires to stay available after a persistence failure.
+    ///      What preparation must never run behind is a LIVE MODULE, and that is what is refused.
+    function testPreparationAcceptsEveryInertState() public {
         CommitmentSchemaRecovery.Observation memory observation = _observation();
         assertEq(uint256(this.preparable(observation)), uint256(CommitmentSchemaRecovery.State.Unprepared));
 
-        observation.pinnedUID = EXPECTED_UID;
-        assertEq(uint256(this.preparable(observation)), uint256(CommitmentSchemaRecovery.State.Prepared));
-
-        // Once a record exists, finalization owns the lane.
         observation.recordExists = true;
         observation.recordMatches = true;
+        assertEq(uint256(this.preparable(observation)), uint256(CommitmentSchemaRecovery.State.RecordAheadOfPin));
+
+        observation.pinnedUID = EXPECTED_UID;
+        assertEq(uint256(this.preparable(observation)), uint256(CommitmentSchemaRecovery.State.RecordRegistered));
+
+        observation.recordExists = false;
+        observation.recordMatches = false;
+        assertEq(uint256(this.preparable(observation)), uint256(CommitmentSchemaRecovery.State.Prepared));
+    }
+
+    /// @notice Preparation refuses to run behind a live module.
+    function testPreparationRefusesAFinalizedResolver() public {
+        CommitmentSchemaRecovery.Observation memory observation = _observation();
+        observation.pinnedUID = EXPECTED_UID;
+        observation.recordExists = true;
+        observation.recordMatches = true;
+        observation.module = MODULE;
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 CommitmentSchemaRecovery.UnexpectedRecoveryState.selector,
-                CommitmentSchemaRecovery.State.RecordRegistered,
+                CommitmentSchemaRecovery.State.Finalized,
+                "preparation"
+            )
+        );
+        this.preparable(observation);
+    }
+
+    /// @notice Preparation refuses an out-of-order chain rather than repairing it.
+    function testPreparationRefusesAnInvalidState() public {
+        CommitmentSchemaRecovery.Observation memory observation = _observation();
+        observation.pinnedUID = FOREIGN_UID;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaRecovery.UnexpectedRecoveryState.selector,
+                CommitmentSchemaRecovery.State.Invalid,
                 "preparation"
             )
         );
@@ -261,9 +338,11 @@ contract CommitmentSchemaRecoveryTest is Test {
 
     // ───────────────────────── Whole input space ─────────────────────────
 
-    /// @notice Every combination classifies, and exactly four are not `Invalid`.
-    /// @dev The count is the point. A classifier that quietly widened its accepting set — the
-    ///      dangerous direction — changes this number even if every named case above still passes.
+    /// @notice Every combination classifies, and the accepting sets are exactly the expected size.
+    /// @dev The counts are the point. A classifier or gate that quietly widened its accepting set —
+    ///      the dangerous direction — changes a number here even if every named case above passes.
+    ///      `expectedModule` is held non-zero throughout; preparation's `expectedModule == 0` path
+    ///      is covered by the phase-gate cases above, which is where that input actually varies.
     function testEveryCombinationClassifies() public {
         bytes32[3] memory uids = [bytes32(0), EXPECTED_UID, FOREIGN_UID];
         address[3] memory modules = [address(0), MODULE, FOREIGN_MODULE];
@@ -273,6 +352,8 @@ contract CommitmentSchemaRecoveryTest is Test {
 
         uint256 legal;
         uint256 total;
+        uint256 preparable_;
+        uint256 finalizable_;
         for (uint256 u = 0; u < uids.length; u++) {
             for (uint256 m = 0; m < modules.length; m++) {
                 for (uint256 e = 0; e < existsOptions.length; e++) {
@@ -287,6 +368,14 @@ contract CommitmentSchemaRecoveryTest is Test {
                         if (CommitmentSchemaRecovery.classify(observation) != CommitmentSchemaRecovery.State.Invalid) {
                             legal++;
                         }
+                        // The gates, not just the classifier: a state can be legal yet refused by
+                        // one phase, and it is the phase gates a deploy run actually hits.
+                        try this.preparable(observation) returns (CommitmentSchemaRecovery.State) {
+                            preparable_++;
+                        } catch { }
+                        try this.finalizable(observation) returns (CommitmentSchemaRecovery.State) {
+                            finalizable_++;
+                        } catch { }
                     }
                 }
             }
@@ -294,7 +383,11 @@ contract CommitmentSchemaRecoveryTest is Test {
 
         assertEq(total, 36, "input space changed shape");
         // Unprepared and Prepared each appear twice (recordMatches is irrelevant when no record
-        // exists); RecordRegistered and Finalized once each.
-        assertEq(legal, 6, "exactly six of the 36 combinations are recoverable");
+        // exists); RecordAheadOfPin, RecordRegistered, and Finalized once each.
+        assertEq(legal, 7, "exactly seven of the 36 combinations are recoverable");
+        // The accepting set split by phase, which is what the two gates actually enforce. Widening
+        // either one is the dangerous direction and moves a number here.
+        assertEq(preparable_, 6, "six combinations are preparable: every inert state");
+        assertEq(finalizable_, 4, "four are finalizable: Prepared x2, RecordRegistered, Finalized");
     }
 }

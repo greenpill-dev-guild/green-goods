@@ -14,15 +14,28 @@ pragma solidity ^0.8.25;
 ///      record has been proven to match exactly. An exact record may therefore exist briefly while
 ///      the resolver is deliberately inert; no attestation can succeed in that window.
 ///
-///      Finalization accepts exactly three states, and preparation exactly two. Everything else is
-///      an out-of-order chain that a retry must not paper over: module-nonzero with a zero UID, or
-///      module-nonzero with an absent or mismatched record, means something activated the resolver
-///      against a schema this lane cannot vouch for.
+///      Preparation accepts every state in which the resolver is still inert. §6.4.4: it "accepts
+///      only an empty record or the already-exact deterministic record and rejects anything else" —
+///      both record positions count, before the pin and after it. Rejecting the pre-pin exact
+///      record would hand anyone a lane-bricking grief: the UID is deterministic from public
+///      inputs, so a byte-identical record is cheap to front-run, and the only escape would be a
+///      `DEPLOY_VERSION` bump the same watcher could chase again. Accepting it costs nothing — the
+///      pin does not consult the registry, and the resulting state is the legal `RecordRegistered`.
+///
+///      Finalization accepts exactly the three ordered states. Everything else is an out-of-order
+///      chain that a retry must not paper over: module-nonzero with a zero UID, or module-nonzero
+///      with an absent or mismatched record, means something activated the resolver against a
+///      schema this lane cannot vouch for.
 library CommitmentSchemaRecovery {
     /// @notice Where the Community Testimony lane currently stands on chain.
     enum State {
         /// @dev No UID pinned, module zero. Preparation may pin. Finalization must not run.
         Unprepared,
+        /// @dev Exact registry record, nothing pinned yet, module zero. Registration is
+        ///      permissionless and the UID is deterministic from public inputs, so a third party
+        ///      can reach this before our first broadcast. Preparation pins from here exactly as it
+        ///      would from `Unprepared`; finalization still refuses, because the pin comes first.
+        RecordAheadOfPin,
         /// @dev Expected UID pinned, no registry record yet, module zero. The prepared state.
         Prepared,
         /// @dev Expected UID pinned, exact registry record, module still zero. Registration landed
@@ -71,8 +84,10 @@ library CommitmentSchemaRecovery {
         // is one-way, so no run can recover it.
         if (!uidPinned && !uidUnset) return State.Invalid;
 
+        // Module zero: the resolver is inert, so every combination here is still preparable. Any
+        // record reaching this point matched exactly — the mismatch check above is terminal.
         if (observation.module == address(0)) {
-            if (uidUnset) return observation.recordExists ? State.Invalid : State.Unprepared;
+            if (uidUnset) return observation.recordExists ? State.RecordAheadOfPin : State.Unprepared;
             return observation.recordExists ? State.RecordRegistered : State.Prepared;
         }
 
@@ -82,21 +97,33 @@ library CommitmentSchemaRecovery {
         return observation.module == observation.expectedModule ? State.Finalized : State.Invalid;
     }
 
-    /// @notice States preparation may run from.
-    /// @dev `Unprepared` pins the UID; `Prepared` is already pinned and re-runs as a no-op. Anything
-    ///      later means the module is live or a record exists, and preparation must not touch a
-    ///      resolver that finalization has already moved past.
+    /// @notice States preparation may run from — every one in which the resolver is still inert.
+    /// @dev `Unprepared` and `RecordAheadOfPin` pin the UID; `Prepared` and `RecordRegistered` are
+    ///      already pinned and re-run as a no-op. The record's presence is deliberately not a gate:
+    ///      registration is permissionless, so treating it as one would let any observer block
+    ///      preparation — including the artifact-reconstruction retry §6.4.4 requires to stay
+    ///      available after a persistence failure. `Finalized` is excluded because its module is
+    ///      live, which is the one thing preparation must never run behind, and `Invalid` is never
+    ///      repaired automatically.
+    ///
+    ///      Listed as an allow-list rather than `!= Finalized && != Invalid` so that adding a state
+    ///      to the enum forces a decision here instead of silently widening what preparation runs on.
     function assertPreparable(Observation memory observation) internal pure returns (State state) {
         state = classify(observation);
-        if (state != State.Unprepared && state != State.Prepared) {
+        if (
+            state != State.Unprepared && state != State.RecordAheadOfPin && state != State.Prepared
+                && state != State.RecordRegistered
+        ) {
             revert UnexpectedRecoveryState(state, "preparation");
         }
     }
 
     /// @notice States finalization may run from — the three ordered ones.
-    /// @dev `Unprepared` is rejected on purpose: finalizing without a pinned UID would register a
-    ///      record and activate a module against a resolver whose schema was never fixed, which is
-    ///      the out-of-order case the whole lane exists to prevent. Run preparation first.
+    /// @dev `Unprepared` and `RecordAheadOfPin` are rejected on purpose: finalizing without a
+    ///      pinned UID would activate a module against a resolver whose schema was never fixed,
+    ///      which is the out-of-order case the whole lane exists to prevent. That an exact record
+    ///      already exists does not substitute for the pin — the pin is the value this operator
+    ///      controls, and the value the activation commits to. Run preparation first.
     function assertFinalizable(Observation memory observation) internal pure returns (State state) {
         state = classify(observation);
         if (state != State.Prepared && state != State.RecordRegistered && state != State.Finalized) {

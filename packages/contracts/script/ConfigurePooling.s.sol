@@ -8,9 +8,11 @@ import { console } from "forge-std/console.sol";
 import { PoolingConfiguration } from "./lib/PoolingConfiguration.sol";
 
 /// @title ConfigurePooling
-/// @notice Runs the five resolver calls that make a deployed Commitment Pooling module live.
-/// @dev The last step of the pooling lane, after `testimony-resolver`, `commitment-schemas`, and
-///      `pooling`. Everything before this deploys contracts; this is what connects them.
+/// @notice Runs the three resolver calls that make a deployed Commitment Pooling module live.
+/// @dev Runs after `commitment-schemas` (which deploys the testimony resolver and registers
+///      AssessmentV3) and `pooling`. Everything before this deploys contracts; this connects them.
+///      NOT the last step of the lane: `commitment-schemas --finalize-community-testimony` is,
+///      because activating the testimony resolver must happen after its record is proven exact.
 ///
 ///      Until `workApprovalResolver.setCommitmentModule` lands, the resolver never calls
 ///      `onWorkDecision`, so approved work earns no commitment credit and the module — deployed,
@@ -43,7 +45,7 @@ contract ConfigurePooling is Script {
         // satisfied on chain.
         console.log("Configuration calls sent:", written);
         require(targets.isConfigured(), "pooling configuration did not reach the configured state");
-        console.log("All five configuration steps satisfied; the work-approval bridge is live");
+        console.log("All configuration steps satisfied; the work-approval bridge is live");
     }
 
     function _readTargets() private view returns (PoolingConfiguration.Targets memory targets) {

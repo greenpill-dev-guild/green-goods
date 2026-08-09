@@ -4,25 +4,9 @@ pragma solidity ^0.8.25;
 
 import { DeployHelper } from "./DeployHelper.sol";
 import { console } from "forge-std/console.sol";
-import { ISchemaRegistry } from "@eas/ISchemaRegistry.sol";
-import { ISchemaResolver } from "@eas/resolver/ISchemaResolver.sol";
-import { SchemaRecord } from "@eas/ISchemaRegistry.sol";
 
 import { CommitmentSchemaLane } from "./lib/CommitmentSchemaLane.sol";
 import { TestimonyResolverDeployment } from "./lib/TestimonyResolverDeployment.sol";
-
-interface ITestimonyResolverLifecycle {
-    function schemaUID() external view returns (bytes32);
-    function commitmentModule() external view returns (address);
-    function owner() external view returns (address);
-    function setSchemaUID(bytes32 uid) external;
-    function setCommitmentModule(address module) external;
-}
-
-interface IModuleBoundary {
-    function owner() external view returns (address);
-    function paused() external view returns (bool);
-}
 
 /// @title DeployCommitmentSchemas
 /// @notice Registers the two additive Commitment Pooling EAS schemas, resumably.
@@ -32,13 +16,11 @@ interface IModuleBoundary {
 ///      same UID back and reconciles instead of re-registering. A UID that already holds a
 ///      different record fails closed: EAS schemas are immutable, so that is an operator conflict.
 contract DeployCommitmentSchemas is DeployHelper {
+    // Only what this contract still raises. The ordering, boundary, and reconciliation errors moved
+    // to `CommitmentSchemaLane` with the logic that raises them; duplicating the declarations here
+    // left five selectors a caller could catch but nothing could ever throw.
     error MissingSchemaRegistry();
-    error ModuleNotDeployed(address module);
-    error ModuleOwnerMismatch(address resolverOwner, address moduleOwner);
-    error PinnedUIDMismatch(bytes32 pinned, bytes32 expected);
-    error ResolverOwnerMismatch(address assessmentOwner, address workApprovalOwner);
     error MissingResolver(string name);
-    error SchemaRecordConflict(bytes32 uid);
 
     string internal constant ASSESSMENT_V3_SCHEMA = "string title,string description,string assessmentConfigCID,"
         "uint8 domain,uint256 startDate,uint256 endDate,string location,uint8 assessmentKind,uint256 cycleId,"
@@ -65,7 +47,8 @@ contract DeployCommitmentSchemas is DeployHelper {
             eas: _requireAddress(json, ".eas.address", "eas.address"),
             create2Factory: _create2Factory(),
             assessmentV3Schema: ASSESSMENT_V3_SCHEMA,
-            communityTestimonySchema: COMMUNITY_TESTIMONY_SCHEMA
+            communityTestimonySchema: COMMUNITY_TESTIMONY_SCHEMA,
+            assessmentEvidence: _assessmentEvidence(json)
         });
 
         // Predicted before anything is sent so an operator can compare against the runbook.
@@ -88,6 +71,36 @@ contract DeployCommitmentSchemas is DeployHelper {
         console.logBytes32(result.communityTestimonyUID);
 
         _savePreparation(result);
+    }
+
+    /// @notice PREDICT-ONLY. Prints what preparation would deploy, and sends nothing.
+    /// @dev Exists so the dry run can show an operator the CREATE2 pair *before* they authorize a
+    ///      broadcast — the comparison against the runbook is the whole point of predicting, and it
+    ///      is worthless if the first sighting is mid-broadcast.
+    ///
+    ///      A `view` function rather than a no-broadcast simulation of `run()`: every setter in the
+    ///      lane is `onlyOwner`, so simulating the real thing without `--sender` reverts partway and
+    ///      the operator gets a failure instead of an answer. This reuses the same derivation the
+    ///      broadcast uses, so the two cannot drift.
+    function predict() public view {
+        string memory json = _readDeployment();
+        address assessmentResolver = _requireAddress(json, ".assessmentResolver", "assessmentResolver");
+        address workApproval = _requireAddress(json, ".workApprovalResolver", "workApprovalResolver");
+        address eas = _requireAddress(json, ".eas.address", "eas.address");
+
+        address owner = CommitmentSchemaLane.resolverOwner(assessmentResolver, workApproval);
+        (address predictedImpl, address predictedProxy) =
+            TestimonyResolverDeployment.predictAddresses(eas, owner, _create2Factory());
+
+        // The same preflight preparation runs, so a dry run refuses before an operator schedules a
+        // broadcast that would fail on an un-upgraded assessment proxy.
+        CommitmentSchemaLane.assertAssessmentProxyReady(assessmentResolver, owner, _assessmentEvidence(json));
+
+        console.log("TestimonyResolver predicted implementation:", predictedImpl);
+        console.log("TestimonyResolver predicted proxy:", predictedProxy);
+        console.log("TestimonyResolver owner (from sibling resolvers):", owner);
+        console.log("Community Testimony UID that preparation would pin:");
+        console.logBytes32(keccak256(abi.encodePacked(COMMUNITY_TESTIMONY_SCHEMA, predictedProxy, REVOCABLE)));
     }
 
     /// @notice FINALIZATION. Registers the exact Community Testimony record, then activates the
@@ -124,6 +137,33 @@ contract DeployCommitmentSchemas is DeployHelper {
         (, factory,) = getDeploymentDefaults();
     }
 
+    /// @dev The post-upgrade evidence §6.4.4 has preparation check the live Assessment proxy
+    ///      against. Read from the canonical artifact, which is what the upgrade run wrote.
+    ///
+    ///      `recorded` is false when the artifact has no `schemas.assessmentSchemaUID` — a chain
+    ///      that has not pinned v2 yet, which is the fork rehearsal's starting state. The
+    ///      capability and owner halves of the preflight are unconditional either way; only the
+    ///      state comparison needs evidence to compare against. KarmaGAP is read separately because
+    ///      `address(0)` there means "deliberately disabled", not "absent".
+    function _assessmentEvidence(string memory json)
+        private
+        view
+        returns (CommitmentSchemaLane.AssessmentEvidence memory evidence)
+    {
+        try vm.parseJson(json, ".schemas.assessmentSchemaUID") returns (bytes memory data) {
+            evidence.assessmentSchemaUID = abi.decode(data, (bytes32));
+            evidence.recorded = true;
+        } catch {
+            return evidence;
+        }
+
+        try vm.parseJson(json, ".karmaGAPModule") returns (bytes memory data) {
+            evidence.karmaGAPModule = abi.decode(data, (address));
+        } catch {
+            evidence.karmaGAPModule = address(0);
+        }
+    }
+
     function _schemaRegistry(string memory json) private pure returns (address) {
         address schemaRegistry = abi.decode(vm.parseJson(json, ".eas.schemaRegistry"), (address));
         if (schemaRegistry == address(0)) revert MissingSchemaRegistry();
@@ -152,8 +192,8 @@ contract DeployCommitmentSchemas is DeployHelper {
     /// @dev Preparation exposes the AssessmentV3 UID (its record IS registered here) and the
     ///      Community Testimony UID only as recovery metadata under a distinct key. Per §6.4.4 the
     ///      canonical artifact must not carry the Community Testimony schema keys until the record
-    ///      is reconciled and the resolver activated, so the CLI promotes them from the
-    ///      finalization side file, never this one.
+    ///      is reconciled and the resolver activated, so the CLI writes them only on a finalization
+    ///      run — and cross-checks the value against the finalization side file, never this one.
     function _savePreparation(CommitmentSchemaLane.PreparationResult memory result) private {
         string memory output = "commitmentSchemasPreparation";
         vm.serializeAddress(output, "testimonyResolver", result.testimonyResolver);

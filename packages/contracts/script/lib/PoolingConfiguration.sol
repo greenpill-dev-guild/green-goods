@@ -20,16 +20,16 @@ interface IOwnableConfig {
 }
 
 /// @title PoolingConfiguration
-/// @notice The five resolver calls that turn a deployed, wired Commitment Pooling module from
+/// @notice The three resolver calls that turn a deployed, wired Commitment Pooling module from
 ///         inert into live — as one ordered, re-runnable sequence.
 /// @dev Owned here rather than inline in the deploy script so the Arbitrum fork rehearsal drives
 ///      the *same* code an operator will broadcast. A rehearsal of a hand-copied sequence proves
 ///      only that the copy works.
 ///
-///      Order is load-bearing twice. `setAssessmentV3SchemaUID` reverts
-///      `AssessmentV2SchemaUIDRequired` while the v2 UID is zero, which is the live Arbitrum
-///      state. `TestimonyResolver.setCommitmentModule` reverts `SchemaUIDRequired` before its
-///      schema is pinned.
+///      Order is load-bearing: `setAssessmentV3SchemaUID` reverts `AssessmentV2SchemaUIDRequired`
+///      while the v2 UID is zero, which is the live Arbitrum state, so the v2 pin lands first.
+///      The testimony resolver is deliberately absent — its pin and activation belong to the
+///      ordered recovery lane in `DeployCommitmentSchemas` (§6.4.4), not to this step.
 ///
 ///      `workApprovalBridge` is the step that decides whether the release means anything: without
 ///      it the resolver never calls `onWorkDecision`, so approved work never earns commitment
@@ -44,7 +44,7 @@ library PoolingConfiguration {
     error MissingConfiguration(string name);
     error AssessmentSchemaUIDCollision(bytes32 uid);
     /// @notice A proxy this run must write to is not owned by the caller.
-    /// @dev Checked for ALL THREE proxies before the first write **within a single simulation**.
+    /// @dev Checked for BOTH proxies before the first write **within a single simulation**.
     ///      That is a weaker guarantee than it looks: `forge script` submits each setter as its own
     ///      transaction, so ownership verified here is ownership at simulation time, not a
     ///      precondition attached to each submitted call. If ownership moves mid-broadcast — to a
@@ -105,14 +105,14 @@ library PoolingConfiguration {
             && IWorkApprovalResolverConfig(targets.workApprovalResolver).commitmentModule() == targets.commitmentPoolingModule;
     }
 
-    /// @dev All three proxies must be owned by the SAME declared account, proven before the first
+    /// @dev Both proxies must be owned by the SAME declared account, proven before the first
     ///      write. The owner is passed in rather than read from `msg.sender`: this is an internal
     ///      library function, so it inlines into its caller, where `msg.sender` is that caller's
     ///      own caller and not the address the outgoing setter calls will carry. Under
     ///      `vm.startBroadcast` the two differ again. Making the expectation explicit is the only
     ///      reading that is correct in a script, in a test, and on chain.
     ///
-    ///      What this proves: the three proxies agree on one owner, and it is the one the operator
+    ///      What this proves: both proxies agree on one owner, and it is the one the operator
     ///      declared. What it cannot prove: that the broadcasting key is that owner — forge sends
     ///      each call as its own transaction, so a wrong signer would revert partway with earlier
     ///      steps applied. `pooling-configure.ts` closes that gap by refusing to broadcast unless

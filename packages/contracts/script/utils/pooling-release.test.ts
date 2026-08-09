@@ -174,8 +174,27 @@ describe("pooling configuration targets", () => {
     const targets = readPoolingConfigurationTargets(artifact);
 
     expect(targets.commitmentPoolingModule).toBe(artifact.commitmentPoolingModule);
+    expect(targets.assessmentSchemaUID).toBe(artifact.schemas.assessmentSchemaUID);
     expect(targets.assessmentV3SchemaUID).toBe(artifact.schemas.assessmentV3SchemaUID);
-    expect(targets.communityTestimonySchemaUID).toBe(artifact.schemas.communityTestimonySchemaUID);
+  });
+
+  // The Community Testimony UID is deliberately NOT a configuration target: the schema lane pins
+  // it and activates its resolver (contract-spec §6.4.4). Reading it here would advertise a step
+  // this run does not perform.
+  it("does not read the community testimony UID, which the schema lane owns", () => {
+    const targets = readPoolingConfigurationTargets(artifact) as unknown as Record<string, unknown>;
+
+    expect(targets.communityTestimonySchemaUID).toBeUndefined();
+    expect(Object.keys(targets).sort()).toEqual(
+      [
+        "assessmentResolver",
+        "assessmentSchemaUID",
+        "assessmentV3SchemaUID",
+        "commitmentPoolingModule",
+        "testimonyResolver",
+        "workApprovalResolver",
+      ].sort(),
+    );
   });
 
   it("names the missing key rather than configuring against a zero address", () => {
@@ -264,14 +283,16 @@ describe("pooling configuration planning", () => {
   it("ignores checksum casing when comparing a live module address", () => {
     const configured = {
       ...unconfigured,
-      testimonyCommitmentModule: targets.commitmentPoolingModule.toLowerCase(),
       workApprovalCommitmentModule: targets.commitmentPoolingModule.toUpperCase().replace("0X", "0x"),
     };
 
     const plan = planPoolingConfiguration(targets, configured);
-    const bridges = plan.filter((step) => step.key === "testimonyModule" || step.key === "workApprovalBridge");
+    const bridge = plan.find((step) => step.key === "workApprovalBridge");
 
-    expect(bridges.every((step) => step.action === "satisfied")).toBe(true);
+    // Found, not just filtered: a `filter` on a key that no longer exists yields an empty array
+    // and `every` on an empty array is vacuously true — the shape this test used to have.
+    expect(bridge).toBeDefined();
+    expect(bridge?.action).toBe("satisfied");
   });
 
   it("fails closed when the assessment resolver already holds a different v3 schema UID", () => {

@@ -19,6 +19,13 @@ interface IModuleBoundary {
     function owner() external view returns (address);
 }
 
+/// @dev The post-upgrade state preparation compares against the artifact's evidence. Separate from
+///      the capability probe, which must observe a MISSING function and so cannot be typed.
+interface IAssessmentResolverState {
+    function schemaUID() external view returns (bytes32);
+    function karmaGAPModule() external view returns (address);
+}
+
 /// @title CommitmentSchemaLane
 /// @notice The two ordered modes of `contract-spec.md` §6.4.4, as callable logic.
 /// @dev Extracted from `DeployCommitmentSchemas.s.sol` so the Arbitrum fork rehearsal drives the
@@ -42,8 +49,23 @@ library CommitmentSchemaLane {
     error ResolverOwnerMismatch(address assessmentOwner, address workApprovalOwner);
     error ResolverOwnerRequired();
     error SchemaRecordConflict(bytes32 uid);
+    error AssessmentResolverNotDeployed(address resolver);
+    error AssessmentResolverNotV3Capable(address resolver);
+    error AssessmentOwnerMismatch(address laneOwner, address assessmentOwner);
+    error AssessmentEvidenceMismatch(string field, bytes32 expected, bytes32 actual);
+    error PreparationDidNotPin(bytes32 expected, bytes32 actual);
     error PreparationLeftResolverActive(address module);
     error FinalizationDidNotActivate(address expected, address actual);
+
+    /// @notice The post-upgrade evidence §6.4.4 requires preparation to check the live proxy against.
+    /// @dev `recorded` is an explicit flag rather than a zero sentinel because `address(0)` is a
+    ///      legitimate KarmaGAP state — `setKarmaGAPModule(0)` deliberately disables the module — so
+    ///      zero cannot distinguish "the artifact does not record this" from "recorded as disabled".
+    struct AssessmentEvidence {
+        bool recorded;
+        bytes32 assessmentSchemaUID;
+        address karmaGAPModule;
+    }
 
     struct PreparationInputs {
         address schemaRegistry;
@@ -53,6 +75,7 @@ library CommitmentSchemaLane {
         address create2Factory;
         string assessmentV3Schema;
         string communityTestimonySchema;
+        AssessmentEvidence assessmentEvidence;
     }
 
     struct PreparationResult {
@@ -89,6 +112,12 @@ library CommitmentSchemaLane {
         ISchemaRegistry registry = ISchemaRegistry(inputs.schemaRegistry);
         result.owner = resolverOwner(inputs.assessmentResolver, inputs.workApprovalResolver);
 
+        // §6.4.4 puts this gate at preparation, before anything is deployed or registered. Running
+        // this lane before the assessment-resolver upgrade is the ordering mistake it catches, and
+        // without it the violation only surfaces two broadcasts later, when `pooling-configure`
+        // calls `setAssessmentV3SchemaUID` on an implementation that does not have it.
+        assertAssessmentProxyReady(inputs.assessmentResolver, result.owner, inputs.assessmentEvidence);
+
         TestimonyResolverDeployment.Deployment memory resolver =
             TestimonyResolverDeployment.deployOrReuse(inputs.eas, result.owner, inputs.create2Factory);
         result.testimonyResolver = resolver.testimonyResolver;
@@ -118,6 +147,17 @@ library CommitmentSchemaLane {
             ITestimonyResolverLifecycle(result.testimonyResolver).setSchemaUID(result.communityTestimonyUID);
         }
 
+        // Preparation's whole product is the pin, so it proves the pin stuck — the mirror of
+        // finalization proving its activation stuck. A setter that silently no-ops (a proxy moved
+        // to an implementation whose `setSchemaUID` does nothing) would otherwise report a
+        // successful preparation and leave finalization to fail two broadcasts later.
+        bytes32 pinned = ITestimonyResolverLifecycle(result.testimonyResolver).schemaUID();
+        if (pinned != result.communityTestimonyUID) revert PreparationDidNotPin(result.communityTestimonyUID, pinned);
+
+        // Classifier-dominated: `assertPreparable` already refused every module-nonzero state, and
+        // nothing between there and here can activate a resolver. Kept as the cheapest statement of
+        // preparation's contract, which is why it has no negative test — the state it guards is
+        // unreachable rather than untested.
         address module = ITestimonyResolverLifecycle(result.testimonyResolver).commitmentModule();
         if (module != address(0)) revert PreparationLeftResolverActive(module);
     }
@@ -171,6 +211,51 @@ library CommitmentSchemaLane {
         if (owner != workApprovalOwner) revert ResolverOwnerMismatch(owner, workApprovalOwner);
         if (owner == address(0)) revert ResolverOwnerRequired();
         return owner;
+    }
+
+    /// @notice Prove the live Assessment proxy is already the upgraded one this lane assumes.
+    /// @dev Three separate claims, in the order that fails most usefully:
+    ///
+    ///      1. **Deployed.** A zero-code address means the artifact points at nothing.
+    ///      2. **v3-capable.** `assessmentV3SchemaUID()` exists only on the upgraded implementation,
+    ///         so a successful staticcall IS the capability proof — this is the check that refuses
+    ///         to run the lane before `upgrade.ts assessment-resolver`. Probed by low-level call
+    ///         rather than a typed one because a v2 implementation has no such function, and the
+    ///         point is to observe that absence rather than revert on it.
+    ///      3. **Matches the post-upgrade evidence.** The owner must be the same account the whole
+    ///         lane runs as, and the v2 UID and KarmaGAP module must still read what the artifact
+    ///         recorded after the upgrade — the observable half of "the upgrade preserved state".
+    function assertAssessmentProxyReady(
+        address assessmentResolver,
+        address laneOwner,
+        AssessmentEvidence memory evidence
+    )
+        internal
+        view
+    {
+        if (assessmentResolver.code.length == 0) revert AssessmentResolverNotDeployed(assessmentResolver);
+
+        (bool ok, bytes memory data) = assessmentResolver.staticcall(abi.encodeWithSignature("assessmentV3SchemaUID()"));
+        if (!ok || data.length != 32) revert AssessmentResolverNotV3Capable(assessmentResolver);
+
+        address assessmentOwner = IModuleBoundary(assessmentResolver).owner();
+        if (assessmentOwner != laneOwner) revert AssessmentOwnerMismatch(laneOwner, assessmentOwner);
+
+        if (!evidence.recorded) return;
+
+        bytes32 liveAssessmentUID = IAssessmentResolverState(assessmentResolver).schemaUID();
+        if (liveAssessmentUID != evidence.assessmentSchemaUID) {
+            revert AssessmentEvidenceMismatch("assessmentSchemaUID", evidence.assessmentSchemaUID, liveAssessmentUID);
+        }
+
+        address liveKarmaGAP = IAssessmentResolverState(assessmentResolver).karmaGAPModule();
+        if (liveKarmaGAP != evidence.karmaGAPModule) {
+            revert AssessmentEvidenceMismatch(
+                "karmaGAPModule",
+                bytes32(uint256(uint160(evidence.karmaGAPModule))),
+                bytes32(uint256(uint160(liveKarmaGAP)))
+            );
+        }
     }
 
     /// @dev The module must exist, be a real contract, and share the resolver's owner. A module

@@ -89,6 +89,7 @@ export class CommitmentSchemasDeployer {
 
     if (!options.broadcast) {
       this.printPlan(definitions, plans, chainId);
+      if (!options.finalizeCommunityTestimony) this.printPredictedResolver(options);
       return;
     }
 
@@ -183,6 +184,63 @@ export class CommitmentSchemasDeployer {
     console.log("\nCommitment schema dry-run plan complete.");
   }
 
+  /**
+   * Show the CREATE2 pair preparation would deploy, before anything is authorized.
+   *
+   * Runs the forge script's `predict()` view, which reuses the same derivation the broadcast does —
+   * recomputing it here in TypeScript would create a second source of truth for an address that
+   * must not drift. Needs an RPC because the owner comes from the live sibling resolvers, so
+   * `--pure-simulation` and an unreachable node both degrade to a printed note rather than a
+   * failure: a dry run's job is to stay usable before a signer or a node exists.
+   */
+  private printPredictedResolver(options: ParsedOptions): void {
+    if (options.pureSimulation) {
+      console.log("\nPredicted resolver addresses unavailable: --pure-simulation makes no RPC calls.");
+      console.log("Re-run without it to see the CREATE2 pair before broadcasting.");
+      return;
+    }
+
+    let rpcUrl: string;
+    try {
+      rpcUrl = this.networkManager.getRpcUrl(options.network);
+    } catch {
+      console.log(`\nPredicted resolver addresses unavailable: no RPC configured for ${options.network}.`);
+      return;
+    }
+
+    try {
+      const output = execFileSync(
+        "forge",
+        [
+          "script",
+          "script/DeployCommitmentSchemas.s.sol:DeployCommitmentSchemas",
+          "--sig",
+          "predict()",
+          "--rpc-url",
+          rpcUrl,
+        ],
+        { cwd: CONTRACTS_ROOT, env: { ...process.env, FOUNDRY_PROFILE: "production" }, encoding: "utf8" },
+      );
+      console.log("\nTestimonyResolver deployment preview (no transactions sent):");
+      // forge wraps script logs in its own banner; the console.log lines are what an operator
+      // compares against the runbook.
+      output
+        .split("\n")
+        .filter(
+          (line) =>
+            line.includes("TestimonyResolver") ||
+            line.includes("Community Testimony") ||
+            /^0x[0-9a-f]{64}$/i.test(line.trim()),
+        )
+        .forEach((line) => console.log(`  ${line.trim()}`));
+    } catch (error) {
+      // Not fatal: the prediction is operator information, and the broadcast recomputes it anyway.
+      // Loud, though — a failing preflight here is exactly what a dry run is meant to surface.
+      console.log("\nCould not preview the resolver addresses. The preparation preflight may be failing:");
+      console.log(`  ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+    }
+  }
+
   private broadcast(
     options: ParsedOptions,
     chainId: string,
@@ -248,16 +306,62 @@ export class CommitmentSchemasDeployer {
     definitions.forEach((definition, index) => {
       schemas[ARTIFACT_KEYS[definition.key]] = plans[index].uid;
       schemas[`${definition.key}Schema`] = schemaString(definition.fields);
+      // §6.4.4 lists `*Name` and `*Description` beside the UID and schema string, and every schema
+      // already in the artifact carries all four. Omitting them left these two the only entries an
+      // operator could not identify without reading config/schemas.json.
+      schemas[`${definition.key}Name`] = definition.name;
+      schemas[`${definition.key}Description`] = definition.description;
     });
     deployment.schemas = schemas;
 
-    if (!options.finalizeCommunityTestimony) {
+    if (options.finalizeCommunityTestimony) {
+      this.assertFinalizationSideFileAgrees(chainId, plans);
+    } else {
       this.mergePreparedResolver(chainId, deployment);
     }
 
     fs.writeFileSync(mainDeploymentPath, `${JSON.stringify(deployment, null, 2)}\n`);
     console.log(`\nMerged commitment schema UIDs into ${path.basename(mainDeploymentPath)}`);
     plans.forEach((plan) => console.log(`  ${plan.key}: ${plan.uid}`));
+  }
+
+  /**
+   * Cross-check the canonical Community Testimony UID against the one the broadcast itself wrote.
+   *
+   * The finalization side file is written by the forge script only after the record is reconciled
+   * and the resolver activated, so it is the on-chain truth; the UID merged here is recomputed in
+   * TypeScript from the schema config. They agree today by construction — the schema string is
+   * conformance-pinned and the resolver address comes from the artifact — but "agree by
+   * construction" is exactly the claim worth checking at the point where a divergence would be
+   * written into the canonical artifact and become the value every consumer trusts.
+   *
+   * Previously this file was written and never read, while the script's own comment claimed the
+   * CLI promoted the key from it.
+   */
+  private assertFinalizationSideFileAgrees(chainId: string, plans: SchemaRegistrationPlan[]): void {
+    const finalPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-commitment-schemas-final.json`);
+    if (!fs.existsSync(finalPath)) {
+      throw new Error(
+        `Finalization side file not found: ${finalPath}. The broadcast writes it as its last action, ` +
+          "so its absence means finalization did not complete — refusing to record the canonical " +
+          "communityTestimonySchemaUID.",
+      );
+    }
+
+    const side = JSON.parse(fs.readFileSync(finalPath, "utf8")) as Record<string, unknown>;
+    const broadcastUID = side.communityTestimonySchemaUID;
+    const plannedUID = plans.find((plan) => plan.key === "communityTestimony")?.uid;
+
+    if (typeof broadcastUID !== "string" || !plannedUID) {
+      throw new Error(`Finalization side file ${finalPath} is missing communityTestimonySchemaUID`);
+    }
+    if (broadcastUID.toLowerCase() !== plannedUID.toLowerCase()) {
+      throw new Error(
+        `Community Testimony UID mismatch: the broadcast recorded ${broadcastUID} but this run planned ` +
+          `${plannedUID}. The resolver is live against the broadcast's UID; do not overwrite the ` +
+          "artifact until the divergence is explained.",
+      );
+    }
   }
 
   /** Promote the resolver addresses preparation deployed, from its side file. */

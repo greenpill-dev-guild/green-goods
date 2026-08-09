@@ -5,6 +5,9 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 
 import { ForkTestBase } from "./helpers/ForkTestBase.sol";
 import { ISchemaRegistry } from "../helpers/DeploymentBase.sol";
+// The lane's own registry type. Distinct declaration from the one DeploymentBase re-exports, so
+// the helpers that hand a registry to `CommitmentSchemaLane` need this one specifically.
+import { ISchemaRegistry as ILaneSchemaRegistry } from "@eas/ISchemaRegistry.sol";
 import { CommitmentPoolingModule } from "../../src/modules/CommitmentPooling.sol";
 import { CommitmentRegistry } from "../../src/registries/Commitment.sol";
 import { TestimonyResolver } from "../../src/resolvers/Testimony.sol";
@@ -184,6 +187,18 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
             "proxy salt moved"
         );
         assertTrue(implSalt != proxySalt, "the two deployments must not share a salt");
+    }
+
+    /// @notice The factory this rehearsal deploys through is the one the deploy script will use.
+    /// @dev The last unpinned input to the lane's identity. Every other one — namespace, version,
+    ///      salt labels, schema strings — is now pinned against its source, but the factory was
+    ///      hardcoded here while the script reads `networks.json#deploymentDefaults.factory`. They
+    ///      agree today and nothing failed if they diverged, yet a divergence moves BOTH predicted
+    ///      addresses away from everything this rehearsal proved about them.
+    function testRehearsalFactoryMatchesTheConfiguredDeploymentFactory() public {
+        (, address configuredFactory,) = getDeploymentDefaults();
+
+        assertEq(_create2Factory(), configuredFactory, "the rehearsal factory drifted from networks.json");
     }
 
     /// @notice The predicted pair does not move when the shared deploy salt is set.
@@ -439,6 +454,54 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertTrue(CommitmentSchemaRecovery.needsActivation(state), "only activation remains");
     }
 
+    /// @notice A third party registering BEFORE the pin must not brick the lane.
+    /// @dev The dangerous half of the front-run window, and the one the sibling test above cannot
+    ///      reach: it pins first, so it only covers a registration that lands after preparation has
+    ///      already run. This repo is public and every input to the UID is public with it — the
+    ///      schema constant, the versioned salt, the checked-in factory — so a watcher can register
+    ///      the byte-identical record for pennies before our first broadcast ever mines.
+    ///
+    ///      Classifying that `Invalid` would block preparation with no escape but a
+    ///      `DEPLOY_VERSION` bump the same watcher could chase. §6.4.4 requires the opposite, and
+    ///      it is safe: the record is exact by construction, and pinning never reads the registry.
+    function testARegistrationBeforeThePinStillPreparesAndReachesRecordRegistered() public {
+        (TestimonyResolver fresh, string memory schema) = _deployTestimonyResolverWithSchema("prepin", false);
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+
+        vm.prank(address(0xF00DF00D));
+        ISchemaRegistry(schemaRegistry).register(schema, address(fresh), false);
+
+        CommitmentSchemaRecovery.Observation memory observation = _recoveryObservation(fresh, address(pooling));
+        assertEq(
+            uint256(CommitmentSchemaRecovery.classify(observation)),
+            uint256(CommitmentSchemaRecovery.State.RecordAheadOfPin),
+            "an exact record ahead of the pin is its own state, not a failure"
+        );
+        // The gate preparation actually hits. Before this fix it reverted UnexpectedRecoveryState.
+        assertEq(
+            uint256(this.preparableExternally(observation)),
+            uint256(CommitmentSchemaRecovery.State.RecordAheadOfPin),
+            "preparation accepts it"
+        );
+
+        // And preparation's pin still lands, leaving the lane in the ordinary resumable state.
+        fresh.setSchemaUID(observation.expectedUID);
+        assertEq(
+            uint256(CommitmentSchemaRecovery.classify(_recoveryObservation(fresh, address(pooling)))),
+            uint256(CommitmentSchemaRecovery.State.RecordRegistered),
+            "pinning over a pre-existing exact record reaches the normal resumable state"
+        );
+        assertEq(fresh.commitmentModule(), address(0), "and the resolver is still inert");
+    }
+
+    function preparableExternally(CommitmentSchemaRecovery.Observation memory observation)
+        external
+        pure
+        returns (CommitmentSchemaRecovery.State)
+    {
+        return CommitmentSchemaRecovery.assertPreparable(observation);
+    }
+
     /// @dev `deployOrReuse` is an internal library function, so it inlines into this contract and
     ///      reverts at the cheatcode's own depth. The hop restores the frame expectRevert needs.
     function deployOrReuseExternally(
@@ -469,6 +532,228 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
                 communityTestimonySchema: communityTestimonySchema
             })
         );
+    }
+
+    /// @notice Finalization refuses a module the resolver's owner cannot govern.
+    /// @dev The owner boundary is the check that stops the lane bridging to a module this operator
+    ///      does not control. Removing it survived the whole suite — the fork stack's module and
+    ///      resolver always share an owner, so the happy path never exercises the comparison.
+    ///      Spec §6.4.4 names the owner boundary as a finalization verification.
+    function testFinalizationRefusesAModuleTheResolverOwnerCannotGovern() public {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+        address resolverOwner = testimonyResolver.owner();
+
+        pooling.transferOwnership(address(0xBEEFBEEF));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(CommitmentSchemaLane.ModuleOwnerMismatch.selector, resolverOwner, address(0xBEEFBEEF))
+        );
+        this.finalizeExternally(
+            CommitmentSchemaLane.FinalizationInputs({
+                schemaRegistry: schemaRegistry,
+                testimonyResolver: address(testimonyResolver),
+                module: address(pooling),
+                communityTestimonySchema: communityTestimonySchema
+            })
+        );
+    }
+
+    /// @notice Finalization refuses to report success if its activation did not stick.
+    /// @dev The postcondition is what separates "the setter was called" from "the resolver is
+    ///      live". A resolver proxy pointing at an implementation whose `setCommitmentModule` is a
+    ///      no-op would otherwise finish the lane, write the canonical artifact key, and leave a
+    ///      resolver that rejects every attestation. Mocking the view is the only way to reach it:
+    ///      the real setter always sticks, which is exactly why deleting the check survived.
+    function testFinalizationRefusesWhenTheActivationDoesNotStick() public {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+
+        // Reads zero forever: entry classifies as RecordRegistered (pin and record are real), so
+        // finalization proceeds to activate — and then cannot prove it worked.
+        vm.mockCall(address(testimonyResolver), abi.encodeWithSignature("commitmentModule()"), abi.encode(address(0)));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(CommitmentSchemaLane.FinalizationDidNotActivate.selector, address(pooling), address(0))
+        );
+        this.finalizeExternally(
+            CommitmentSchemaLane.FinalizationInputs({
+                schemaRegistry: schemaRegistry,
+                testimonyResolver: address(testimonyResolver),
+                module: address(pooling),
+                communityTestimonySchema: communityTestimonySchema
+            })
+        );
+    }
+
+    /// @notice Preparation refuses to report success if its pin did not stick.
+    /// @dev The mirror of the activation postcondition, and the reason preparation has one at all:
+    ///      the pin is preparation's entire product. Without this, a no-op `setSchemaUID` would
+    ///      report a clean preparation, write the resolver addresses into the artifact, and only
+    ///      surface two broadcasts later when finalization found nothing pinned.
+    function testPreparationRefusesWhenThePinDoesNotStick() public {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+
+        // Preparation always reuses the deterministic resolver, so the mocks go on that one. Both
+        // views read zero: entry classifies RecordAheadOfPin (the record is real, the pin appears
+        // absent), the read-before-set fires the real setter, and the postcondition still sees
+        // nothing pinned. `deployOrReuse` reads only the ERC-1967 slot and `owner()`, so neither
+        // mock disturbs the reuse path.
+        vm.mockCall(address(testimonyResolver), abi.encodeWithSignature("schemaUID()"), abi.encode(bytes32(0)));
+        vm.mockCall(address(testimonyResolver), abi.encodeWithSignature("commitmentModule()"), abi.encode(address(0)));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaLane.PreparationDidNotPin.selector, communityTestimonySchemaUID, bytes32(0)
+            )
+        );
+        this.prepareExternally(schemaRegistry, communityTestimonySchema);
+    }
+
+    /// @notice Re-registering an existing schema reconciles instead of reverting `AlreadyExists`.
+    /// @dev The retry contract §6.4.4 requires: a broadcast that mined but whose artifact merge
+    ///      failed must be re-runnable. Preparation calls `registerOrReconcile` for AssessmentV3 on
+    ///      every run, so without the early return the SECOND preparation of any chain reverts
+    ///      inside EAS. Removing it survived the suite because `setUp` only ever runs preparation
+    ///      once.
+    function testRegisterOrReconcileRerunsInsteadOfRevertingAlreadyExists() public {
+        (, address schemaRegistry) = _getEASForChain(block.chainid);
+
+        // Exactly the call preparation makes, against the record preparation already registered.
+        bytes32 reconciled =
+            this.registerOrReconcileExternally(schemaRegistry, assessmentV3Schema, address(assessmentResolver));
+        assertEq(reconciled, assessmentV3SchemaUID, "a rerun must reconcile to the UID preparation registered");
+
+        // And the same holds for a UID this lane has never seen: register once, reconcile after.
+        string memory probe = "uint256 laneRerunProbe";
+        bytes32 first = this.registerOrReconcileExternally(schemaRegistry, probe, address(testimonyResolver));
+        bytes32 second = this.registerOrReconcileExternally(schemaRegistry, probe, address(testimonyResolver));
+        assertEq(second, first, "the second call must reconcile rather than register again");
+    }
+
+    function registerOrReconcileExternally(
+        address schemaRegistry,
+        string memory schema,
+        address resolver
+    )
+        external
+        returns (bytes32)
+    {
+        return CommitmentSchemaLane.registerOrReconcile(ILaneSchemaRegistry(schemaRegistry), schema, resolver);
+    }
+
+    /// @dev Preparation through the same library the script broadcasts, one frame deeper so
+    ///      `expectRevert` latches onto the lane rather than the cheatcode's own depth.
+    function prepareExternally(
+        address schemaRegistry,
+        string memory schema
+    )
+        external
+        returns (CommitmentSchemaLane.PreparationResult memory)
+    {
+        return CommitmentSchemaLane.prepare(
+            CommitmentSchemaLane.PreparationInputs({
+                schemaRegistry: schemaRegistry,
+                assessmentResolver: address(assessmentResolver),
+                workApprovalResolver: address(workApprovalResolver),
+                eas: _easAddress(),
+                create2Factory: _create2Factory(),
+                assessmentV3Schema: assessmentV3Schema,
+                communityTestimonySchema: schema,
+                assessmentEvidence: _assessmentEvidence()
+            })
+        );
+    }
+
+    /// @notice Preparation refuses to run before the assessment-resolver upgrade.
+    /// @dev The ordering gate §6.4.4 puts at preparation. A v2 implementation has no
+    ///      `assessmentV3SchemaUID()`, so the failed staticcall IS the capability proof. Without
+    ///      it the whole lane succeeds against an un-upgraded proxy and the violation only appears
+    ///      two broadcasts later, when `pooling-configure` calls a selector that does not exist.
+    function testPreparationRefusesAnAssessmentProxyThatIsNotV3Capable() public {
+        // A real v2-shaped contract rather than a mock: this is exactly what the live Arbitrum
+        // proxy is before `upgrade.ts assessment-resolver` runs — same owner and v2 state, no v3
+        // function at all.
+        AssessmentV2Stub v2 = new AssessmentV2Stub(address(this), assessmentSchemaUID, address(0));
+        // Built before arming the cheatcode: gathering evidence makes live reads, and expectRevert
+        // would otherwise latch onto the first of those instead of the preflight.
+        CommitmentSchemaLane.AssessmentEvidence memory evidence = _assessmentEvidence();
+
+        vm.expectRevert(abi.encodeWithSelector(CommitmentSchemaLane.AssessmentResolverNotV3Capable.selector, address(v2)));
+        this.assessmentPreflightAt(address(v2), evidence);
+    }
+
+    /// @notice An artifact pointing at an address with no code is named, not dereferenced.
+    function testPreparationRefusesAnAssessmentProxyWithNoCode() public {
+        CommitmentSchemaLane.AssessmentEvidence memory evidence = _assessmentEvidence();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(CommitmentSchemaLane.AssessmentResolverNotDeployed.selector, address(0xD15EA5E))
+        );
+        this.assessmentPreflightAt(address(0xD15EA5E), evidence);
+    }
+
+    /// @notice Preparation refuses when the live v2 UID is not what the artifact recorded.
+    /// @dev "Match the post-upgrade evidence": a v2 UID that moved means either the artifact is
+    ///      stale or the upgrade did not preserve state, and neither is safe to build v3 on top of.
+    function testPreparationRefusesAssessmentStateThatDivergedFromTheArtifact() public {
+        CommitmentSchemaLane.AssessmentEvidence memory stale = _assessmentEvidence();
+        bytes32 live = stale.assessmentSchemaUID;
+        stale.assessmentSchemaUID = keccak256("some-other-v2-uid");
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaLane.AssessmentEvidenceMismatch.selector,
+                "assessmentSchemaUID",
+                stale.assessmentSchemaUID,
+                live
+            )
+        );
+        this.assessmentPreflightAt(address(assessmentResolver), stale);
+    }
+
+    /// @notice A KarmaGAP module that moved under the upgrade is caught too.
+    /// @dev Zero is a legitimate KarmaGAP state (`setKarmaGAPModule(0)` disables it), which is why
+    ///      the evidence carries an explicit `recorded` flag instead of treating zero as absent —
+    ///      otherwise a module silently zeroed by a bad upgrade would read as "nothing recorded".
+    function testPreparationRefusesAKarmaGapModuleThatMoved() public {
+        CommitmentSchemaLane.AssessmentEvidence memory stale = _assessmentEvidence();
+        address live = stale.karmaGAPModule;
+        stale.karmaGAPModule = address(0xCAFEBABE);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommitmentSchemaLane.AssessmentEvidenceMismatch.selector,
+                "karmaGAPModule",
+                bytes32(uint256(uint160(address(0xCAFEBABE)))),
+                bytes32(uint256(uint160(live)))
+            )
+        );
+        this.assessmentPreflightAt(address(assessmentResolver), stale);
+    }
+
+    /// @notice With no recorded evidence, the capability and owner halves still run.
+    /// @dev The skip must be narrow: a chain that has not pinned v2 yet still cannot be allowed to
+    ///      prepare against an un-upgraded proxy.
+    function testPreparationStillChecksCapabilityWithoutRecordedEvidence() public {
+        CommitmentSchemaLane.AssessmentEvidence memory none;
+        assertFalse(none.recorded, "the unrecorded case is the default-constructed one");
+
+        // Unrecorded evidence skips only the comparison it has nothing to compare against...
+        this.assessmentPreflightAt(address(assessmentResolver), none);
+
+        // ...and never the capability probe.
+        AssessmentV2Stub v2 = new AssessmentV2Stub(address(this), bytes32(0), address(0));
+        vm.expectRevert(abi.encodeWithSelector(CommitmentSchemaLane.AssessmentResolverNotV3Capable.selector, address(v2)));
+        this.assessmentPreflightAt(address(v2), none);
+    }
+
+    function assessmentPreflightAt(
+        address resolver,
+        CommitmentSchemaLane.AssessmentEvidence memory evidence
+    )
+        external
+        view
+    {
+        CommitmentSchemaLane.assertAssessmentProxyReady(resolver, assessmentResolver.owner(), evidence);
     }
 
     /// @notice Preparation refuses when the sibling resolvers no longer share an owner.
@@ -615,7 +900,7 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
 
     // ───────────────────────────── Rehearsal setup ─────────────────────────────
 
-    /// @dev Mirrors `deploy.ts testimony-resolver`: a UUPS proxy over an implementation whose
+    /// @dev Mirrors what `commitment-schemas` preparation deploys: a UUPS proxy over an implementation whose
     ///      constructor bakes in the EAS address. Returns the schema registered against it, whose
     ///      UID is derived from this proxy's address — the ordering cycle that makes the resolver
     ///      its own deploy step.
@@ -675,7 +960,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
                 eas: _easAddress(),
                 create2Factory: _create2Factory(),
                 assessmentV3Schema: assessmentV3Schema,
-                communityTestimonySchema: communityTestimonySchema
+                communityTestimonySchema: communityTestimonySchema,
+                assessmentEvidence: _assessmentEvidence()
             })
         );
 
@@ -771,6 +1057,16 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         pooling.openPool(poolId);
     }
 
+    /// @dev The post-upgrade evidence the deploy script reads out of the artifact. Live-sourced
+    ///      here for the same reason the script reads the artifact: the rehearsal's stack is
+    ///      deployed fresh, so its v2 UID and KarmaGAP module are whatever `_deployFullStackOnFork`
+    ///      left. The mismatch paths are covered by their own negative tests below.
+    function _assessmentEvidence() private view returns (CommitmentSchemaLane.AssessmentEvidence memory evidence) {
+        evidence.recorded = true;
+        evidence.assessmentSchemaUID = assessmentResolver.schemaUID();
+        evidence.karmaGAPModule = address(assessmentResolver.karmaGAPModule());
+    }
+
     /// @dev The canonical deterministic-deployment factory, which is what `getDeploymentDefaults()`
     ///      hands the deploy script. Reading it from the network config would drag the whole
     ///      DeployHelper into this test for one address.
@@ -830,5 +1126,22 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         _submitWorkApproval(forkOperator, gardenAccount, actionUID, workUID);
         vm.prank(recipient);
         pooling.confirmFulfillment(commitmentId);
+    }
+}
+
+/// @title AssessmentV2Stub
+/// @notice The Assessment proxy as it exists BEFORE `upgrade.ts assessment-resolver` runs.
+/// @dev A real contract rather than a mock, because the property under test is the ABSENCE of
+///      `assessmentV3SchemaUID()` — the thing a mock cannot faithfully represent. Carries the v2
+///      state the preflight reads so the capability probe is what fails, not an earlier check.
+contract AssessmentV2Stub {
+    address public owner;
+    bytes32 public schemaUID;
+    address public karmaGAPModule;
+
+    constructor(address owner_, bytes32 schemaUID_, address karmaGAPModule_) {
+        owner = owner_;
+        schemaUID = schemaUID_;
+        karmaGAPModule = karmaGAPModule_;
     }
 }
