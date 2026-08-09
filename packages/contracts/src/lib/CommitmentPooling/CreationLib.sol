@@ -14,6 +14,43 @@ import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 ///      The commitment counter arrives by value — the shell increments it exactly when the
 ///      returned id is the fresh one, so the idempotent replay return never burns an id.
 library CommitmentPoolingCreationLib {
+    /// @dev Mirrors the non-indexed `CommitmentCreated` fields in their frozen ABI order.
+    ///      Encoding one tuple keeps coverage's minimum-IR compiler from materializing all
+    ///      24 event values on the Yul stack at once. `_emitCommitmentCreated` removes the
+    ///      tuple's leading ABI offset before emitting, so the resulting log data is byte-for-byte
+    ///      identical to a Solidity `emit CommitmentCreated(...)` statement.
+    struct CommitmentCreatedData {
+        uint256 commitmentSeriesId;
+        bytes32 creationRequestKey;
+        bytes32 creationPayloadHash;
+        address creator;
+        address recordedBy;
+        ICommitmentPoolingModule.CommitmentDirection direction;
+        ICommitmentPoolingModule.CommitmentType commitmentType;
+        ICommitmentPoolingModule.ClaimType claimType;
+        ICommitmentPoolingModule.ClaimMode claimMode;
+        ICommitmentPoolingModule.ContributorPolicy contributorPolicy;
+        uint8[] domains;
+        uint256[] requirementActionUIDs;
+        uint8[] requirementDomains;
+        uint32[] requirementRequiredCounts;
+        string unitLabel;
+        uint256 targetUnits;
+        bool requiresAssessment;
+        uint64 dueDate;
+        string metadataCID;
+        bytes32 needUID;
+        uint256 counterCommitmentId;
+        uint256 declaredUnitValue;
+        string declaredValueBasis;
+        address payerGarden;
+    }
+
+    bytes32 private constant COMMITMENT_CREATED_TOPIC = keccak256(
+        // solhint-disable-next-line max-line-length
+        "CommitmentCreated(uint256,uint256,uint256,uint256,bytes32,bytes32,address,address,uint8,uint8,uint8,uint8,uint8,uint8[],uint256[],uint8[],uint32[],string,uint256,bool,uint64,string,bytes32,uint256,uint256,string,address)"
+    );
+
     // solhint-disable-next-line code-complexity
     function createCommitment(
         CommitmentPoolingCommonLib.Env memory env,
@@ -171,34 +208,40 @@ library CommitmentPoolingCreationLib {
     )
         private
     {
-        emit ICommitmentPoolingModule.CommitmentCreated(
-            commitmentId,
-            params.poolId,
-            params.cycleId,
-            params.commitmentSeriesId,
-            params.creationRequestKey,
-            creationPayloadHash,
-            creator,
-            msg.sender,
-            params.direction,
-            params.commitmentType,
-            params.claimType,
-            params.claimMode,
-            params.contributorPolicy,
-            domains,
-            requirementActionUIDs,
-            requirementDomains,
-            requirementRequiredCounts,
-            params.unitLabel,
-            params.targetUnits,
-            params.requiresAssessment,
-            params.dueDate,
-            params.metadataCID,
-            params.needUID,
-            params.counterCommitmentId,
-            params.declaredUnitValue,
-            params.declaredValueBasis,
-            payerGarden
-        );
+        CommitmentCreatedData memory data;
+        data.commitmentSeriesId = params.commitmentSeriesId;
+        data.creationRequestKey = params.creationRequestKey;
+        data.creationPayloadHash = creationPayloadHash;
+        data.creator = creator;
+        data.recordedBy = msg.sender;
+        data.direction = params.direction;
+        data.commitmentType = params.commitmentType;
+        data.claimType = params.claimType;
+        data.claimMode = params.claimMode;
+        data.contributorPolicy = params.contributorPolicy;
+        data.domains = domains;
+        data.requirementActionUIDs = requirementActionUIDs;
+        data.requirementDomains = requirementDomains;
+        data.requirementRequiredCounts = requirementRequiredCounts;
+        data.unitLabel = params.unitLabel;
+        data.targetUnits = params.targetUnits;
+        data.requiresAssessment = params.requiresAssessment;
+        data.dueDate = params.dueDate;
+        data.metadataCID = params.metadataCID;
+        data.needUID = params.needUID;
+        data.counterCommitmentId = params.counterCommitmentId;
+        data.declaredUnitValue = params.declaredUnitValue;
+        data.declaredValueBasis = params.declaredValueBasis;
+        data.payerGarden = payerGarden;
+
+        bytes memory encoded = abi.encode(data);
+        bytes32 topic = COMMITMENT_CREATED_TOPIC;
+        uint256 poolId = params.poolId;
+        uint256 cycleId = params.cycleId;
+        assembly ("memory-safe") {
+            // `abi.encode(data)` is an encoding of one dynamic tuple: a leading 32-byte
+            // offset followed by the tuple body. Event data is that tuple body itself.
+            log4(add(encoded, 0x40), sub(mload(encoded), 0x20), topic, commitmentId, poolId, cycleId)
+        }
     }
 }

@@ -208,11 +208,7 @@ abstract contract CommitmentPoolingLifecycle is CommitmentPoolingAdmin {
             workCreditActive,
             workRequirementIndexPlusOne,
             commitmentConfirmers,
-            workUID,
-            approvalUID,
-            decisionSequence,
-            garden,
-            approved
+            abi.encode(workUID, approvalUID, decisionSequence, garden, approved)
         );
     }
 }

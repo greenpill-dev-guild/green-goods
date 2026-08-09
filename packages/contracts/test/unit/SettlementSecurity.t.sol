@@ -43,6 +43,90 @@ contract SettlementSecurityTest is SettlementPayerTest {
         settlement.updateSettlementRecovery(PROVIDER_GARDEN, invalidOwners);
     }
 
+    function testPausedConfigurationRejectsInvalidRoutesAndAccounts() public {
+        vm.prank(OWNER);
+        settlement.setPaused(true);
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(ISettlementModule.FundingConfigurationIncomplete.selector);
+        settlement.setCcipRoute(0, address(0x8000), 500_000, 1, 0);
+        vm.expectRevert(ISettlementModule.FundingConfigurationIncomplete.selector);
+        settlement.setCcipRoute(2, address(0x8100), 500_000, 1, 1 days);
+        vm.expectRevert(ISettlementModule.FundingConfigurationIncomplete.selector);
+        settlement.setCcipRoute(1, address(0x8100), 500_000, 1, 0);
+
+        settlement.setCcipRoute(1, address(0x8100), 500_000, 1, 2 days);
+        vm.expectRevert(ISettlementModule.FundingConfigurationIncomplete.selector);
+        settlement.setCcipRoute(1, address(0x8100), 500_000, 1, 1 days);
+
+        vm.expectRevert(ISettlementModule.ZeroAddress.selector);
+        settlement.registerSettlementAccount(
+            address(0),
+            CELO_CHAIN_ID,
+            address(0x4200),
+            _owners(0x50),
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.InvalidSettlementChain.selector, CELO_CHAIN_ID + 1));
+        settlement.registerSettlementAccount(
+            SECOND_GARDEN,
+            CELO_CHAIN_ID + 1,
+            SECOND_SAFE,
+            _owners(0x50),
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+
+        vm.expectRevert(ISettlementModule.InvalidRecoveryConfiguration.selector);
+        settlement.registerSettlementAccount(
+            SECOND_GARDEN,
+            CELO_CHAIN_ID,
+            SECOND_SAFE,
+            _owners(0x50),
+            address(0x7200),
+            bytes32(0),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+
+        vm.expectRevert(ISettlementModule.InvalidRecoveryConfiguration.selector);
+        settlement.registerSettlementAccount(
+            PROVIDER_GARDEN,
+            CELO_CHAIN_ID,
+            SECOND_SAFE,
+            _owners(0x50),
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+
+        address[3] memory unorderedOwners = [address(0x53), address(0x52), address(0x51)];
+        vm.expectRevert(ISettlementModule.InvalidRecoveryConfiguration.selector);
+        settlement.registerSettlementAccount(
+            SECOND_GARDEN,
+            CELO_CHAIN_ID,
+            SECOND_SAFE,
+            unorderedOwners,
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.UnknownSettlementAccount.selector, SECOND_GARDEN));
+        settlement.updateSettlementRecovery(SECOND_GARDEN, _owners(0x50));
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.UnknownSettlementAccount.selector, SECOND_GARDEN));
+        settlement.setAccountActive(SECOND_GARDEN, false);
+        vm.stopPrank();
+    }
+
     function testDispatcherCanDispatchButCannotCancel() public {
         vm.startPrank(OWNER);
         settlement.setPaused(true);

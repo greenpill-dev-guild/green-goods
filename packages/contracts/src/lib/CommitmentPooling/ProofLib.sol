@@ -204,14 +204,12 @@ library CommitmentPoolingProofLib {
         mapping(bytes32 workUID => bool active) storage workCreditActive,
         mapping(bytes32 workUID => uint16 requirementIndexPlusOne) storage workRequirementIndexPlusOne,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        bytes32 workUID,
-        bytes32 approvalUID,
-        uint64 decisionSequence,
-        address garden,
-        bool approved
+        bytes calldata encodedDecision
     )
         external
     {
+        (bytes32 workUID, bytes32 approvalUID, uint64 decisionSequence, address garden, bool approved) =
+            abi.decode(encodedDecision, (bytes32, bytes32, uint64, address, bool));
         if (msg.sender != env.workApprovalResolver) revert ICommitmentPoolingModule.UnauthorizedCaller(msg.sender);
         uint256 commitmentId = workCommitment[workUID];
         if (commitmentId == 0) return;

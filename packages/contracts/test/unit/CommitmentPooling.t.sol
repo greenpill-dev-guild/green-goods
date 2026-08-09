@@ -150,6 +150,66 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         assertEq(module.nextCommitmentId(), nextIdAfterFirst);
     }
 
+    function testCreationEmitsTheFrozenCommitmentCreatedAbi() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("created-event"));
+        bytes32 expectedHash = _creationPayloadHash(params);
+        bytes32 eventTopic = keccak256(
+            "CommitmentCreated(uint256,uint256,uint256,uint256,bytes32,bytes32,address,address,uint8,uint8,uint8,uint8,uint8,uint8[],uint256[],uint8[],uint32[],string,uint256,bool,uint64,string,bytes32,uint256,uint256,string,address)"
+        );
+
+        vm.recordLogs();
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        bool found;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] != eventTopic) continue;
+            assertEq(logs[i].topics.length, 4);
+            assertEq(logs[i].topics[1], bytes32(commitmentId));
+            assertEq(logs[i].topics[2], bytes32(params.poolId));
+            assertEq(logs[i].topics[3], bytes32(params.cycleId));
+
+            bytes memory data = logs[i].data;
+            assertEq(_eventWord(data, 0), bytes32(params.commitmentSeriesId));
+            assertEq(_eventWord(data, 1), params.creationRequestKey);
+            assertEq(_eventWord(data, 2), expectedHash);
+            assertEq(_eventWord(data, 3), bytes32(uint256(uint160(CREATOR))));
+            assertEq(_eventWord(data, 4), bytes32(uint256(uint160(CREATOR))));
+            assertEq(_eventWord(data, 5), bytes32(uint256(params.direction)));
+            assertEq(_eventWord(data, 6), bytes32(uint256(params.commitmentType)));
+            assertEq(_eventWord(data, 7), bytes32(uint256(params.claimType)));
+            assertEq(_eventWord(data, 8), bytes32(uint256(params.claimMode)));
+            assertEq(_eventWord(data, 9), bytes32(uint256(params.contributorPolicy)));
+            assertEq(_eventWord(data, 10), bytes32(uint256(768)));
+            assertEq(_eventWord(data, 11), bytes32(uint256(800)));
+            assertEq(_eventWord(data, 12), bytes32(uint256(832)));
+            assertEq(_eventWord(data, 13), bytes32(uint256(864)));
+            assertEq(_eventWord(data, 14), bytes32(uint256(896)));
+            assertEq(_eventWord(data, 15), bytes32(params.targetUnits));
+            assertEq(_eventWord(data, 16), bytes32(uint256(params.requiresAssessment ? 1 : 0)));
+            assertEq(_eventWord(data, 17), bytes32(uint256(params.dueDate)));
+            assertEq(_eventWord(data, 18), bytes32(uint256(960)));
+            assertEq(_eventWord(data, 19), params.needUID);
+            assertEq(_eventWord(data, 20), bytes32(params.counterCommitmentId));
+            assertEq(_eventWord(data, 21), bytes32(params.declaredUnitValue));
+            assertEq(_eventWord(data, 22), bytes32(uint256(1024)));
+            assertEq(_eventWord(data, 23), bytes32(0));
+            assertEq(_dynamicLength(data, 10), 0);
+            assertEq(_dynamicLength(data, 11), 0);
+            assertEq(_dynamicLength(data, 12), 0);
+            assertEq(_dynamicLength(data, 13), 0);
+            assertEq(_dynamicLength(data, 14), bytes(params.unitLabel).length);
+            assertEq(_dynamicHash(data, 14), keccak256(bytes(params.unitLabel)));
+            assertEq(_dynamicLength(data, 18), bytes(params.metadataCID).length);
+            assertEq(_dynamicHash(data, 18), keccak256(bytes(params.metadataCID)));
+            assertEq(_dynamicLength(data, 22), 0);
+            assertEq(data.length, 1056);
+            found = true;
+        }
+        assertTrue(found, "missing CommitmentCreated event");
+    }
+
     function testDistinctEvidenceCidsCreditEachContributorAtMostOnce() public {
         uint256 commitmentId = _createOffer(keccak256("evidence-credit"));
         _acceptOffer(commitmentId);
@@ -362,6 +422,192 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         assertEq(module.nextCommitmentId(), nextCommitmentBefore);
     }
 
+    function testCreationAuthorityAndScopeValidationFailClosed() public {
+        uint256 protocolId = _openProtocolPool();
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("protocol-outsider"));
+        params.poolId = protocolId;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.NotPoolSteward.selector);
+
+        params = _baseParams(keccak256("garden-claim-in-garden-pool"));
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.GardenClaimRequiresProtocolPool.selector);
+
+        address outsider = address(0xBAD1);
+        params = _baseParams(keccak256("captured-by-outsider"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.StewardCaptured;
+        params.onBehalfOf = CREATOR;
+        _expectCreateRevert(params, outsider, ICommitmentPoolingModule.NotPoolSteward.selector);
+
+        params = _baseParams(keccak256("captured-zero-member"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.StewardCaptured;
+        _expectCreateRevert(params, address(this), ICommitmentPoolingModule.ZeroAddress.selector);
+
+        params = _baseParams(keccak256("captured-nonmember"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.StewardCaptured;
+        params.onBehalfOf = outsider;
+        _expectCreateRevert(params, address(this), ICommitmentPoolingModule.NotEligibleContributor.selector);
+
+        params = _baseParams(keccak256("ordinary-on-behalf"));
+        params.onBehalfOf = CLAIMANT;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.UnauthorizedCaller.selector);
+
+        params = _baseParams(keccak256("campaign-by-member"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.SeasonCampaign;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.NotPoolSteward.selector);
+
+        params = _baseParams(keccak256("ordinary-outsider"));
+        _expectCreateRevert(params, outsider, ICommitmentPoolingModule.UnauthorizedCaller.selector);
+    }
+
+    function testCreationCycleAndSeriesValidationFailClosed() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("unknown-cycle"));
+        params.cycleId = 999;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.UnknownCycle.selector);
+
+        uint256 protocolId = _openProtocolPool();
+        uint256 protocolCycleId = module.seedCycle(
+            protocolId,
+            ICommitmentPoolingModule.CycleType.Campaign,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 30 days),
+            "bafy-protocol-cycle"
+        );
+        params = _baseParams(keccak256("cycle-pool-mismatch"));
+        params.cycleId = protocolCycleId;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.CyclePoolMismatch.selector);
+
+        params = _baseParams(keccak256("unknown-series"));
+        params.commitmentSeriesId = 999;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.UnknownCommitmentSeries.selector);
+
+        vm.prank(CREATOR);
+        uint256 gardenSeriesId = module.createCommitmentSeries(poolId, keccak256("garden-series"), "bafy-garden-series");
+
+        hats.setGardener(ROOT_GARDEN, CREATOR, true);
+        hats.setOperator(ROOT_GARDEN, CREATOR, true);
+        params = _baseParams(keccak256("series-pool-mismatch"));
+        params.poolId = protocolId;
+        params.commitmentSeriesId = gardenSeriesId;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.CommitmentSeriesPoolMismatch.selector);
+
+        params = _baseParams(keccak256("series-request"));
+        params.commitmentSeriesId = gardenSeriesId;
+        params.direction = ICommitmentPoolingModule.CommitmentDirection.Request;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.CommitmentSeriesOfferOnly.selector);
+
+        vm.prank(CREATOR);
+        uint256 protocolSeriesId =
+            module.createCommitmentSeries(protocolId, keccak256("protocol-series"), "bafy-protocol-series");
+        params = _baseParams(keccak256("series-garden-claim"));
+        params.poolId = protocolId;
+        params.commitmentSeriesId = protocolSeriesId;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.CommitmentSeriesIndividualOnly.selector);
+    }
+
+    function testCreationCounterValidationFailClosed() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("self-counter-id"));
+        params.counterCommitmentId = module.nextCommitmentId();
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.SelfCounterCommitment.selector);
+
+        params = _baseParams(keccak256("unknown-counter"));
+        params.counterCommitmentId = 999;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.UnknownCounterCommitment.selector);
+
+        uint256 firstOffer = _createOffer(keccak256("counter-first-offer"));
+        uint256 protocolId = _openProtocolPool();
+        hats.setGardener(ROOT_GARDEN, CREATOR, true);
+        hats.setOperator(ROOT_GARDEN, CREATOR, true);
+        params = _baseParams(keccak256("counter-pool-mismatch"));
+        params.poolId = protocolId;
+        params.counterCommitmentId = firstOffer;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.CounterCommitmentPoolMismatch.selector);
+
+        params = _baseParams(keccak256("counter-request"));
+        params.direction = ICommitmentPoolingModule.CommitmentDirection.Request;
+        vm.prank(CLAIMANT);
+        uint256 requestId = module.createCommitment(params);
+        params = _baseParams(keccak256("counter-invalid-state"));
+        params.counterCommitmentId = requestId;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.ExchangeStateInvalid.selector);
+
+        params = _baseParams(keccak256("counter-self-exchange"));
+        params.counterCommitmentId = firstOffer;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.SelfExchange.selector);
+
+        params = _baseParams(keccak256("garden-counter"));
+        params.poolId = protocolId;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        vm.prank(CREATOR);
+        uint256 gardenCounterId = module.createCommitment(params);
+        hats.setGardener(ROOT_GARDEN, CLAIMANT, true);
+        hats.setOperator(ROOT_GARDEN, CLAIMANT, true);
+        params = _baseParams(keccak256("unsupported-counter-claim"));
+        params.poolId = protocolId;
+        params.counterCommitmentId = gardenCounterId;
+        _expectCreateRevert(params, CLAIMANT, ICommitmentPoolingModule.ExchangeClaimTypeUnsupported.selector);
+    }
+
+    function testCreationRequirementAndConsiderationValidationFailClosed() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("requirements-on-support"));
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
+        params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 0, requiredCount: 1 });
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidDomains.selector);
+
+        params = _baseParams(keccak256("domain-without-requirements"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidRequirementCount.selector);
+
+        params = _baseParams(keccak256("too-many-requirements"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](module.MAX_REQUIREMENTS() + 1);
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.TooManyRequirements.selector);
+
+        params = _baseParams(keccak256("zero-required-count"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
+        params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 0, requiredCount: 0 });
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidRequirementCount.selector);
+
+        params = _baseParams(keccak256("unknown-action"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
+        params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 999, requiredCount: 1 });
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.UnknownAction.selector);
+
+        _registerActions(1);
+        params = _baseParams(keccak256("too-many-linked-works"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
+        params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({
+            actionUID: 0,
+            requiredCount: uint32(module.MAX_LINKED_WORKS_PER_COMMITMENT() + 1)
+        });
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.TooManyLinkedWorks.selector);
+
+        params = _baseParams(keccak256("duplicate-domains"));
+        params.domainTags = new uint8[](2);
+        params.domainTags[0] = 1;
+        params.domainTags[1] = 1;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidDomains.selector);
+
+        params = _baseParams(keccak256("free-external-rail"));
+        params.consideration.rail = ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidConsiderationConfiguration.selector);
+
+        params = _baseParams(keccak256("external-missing-source"));
+        params.consideration.rail = ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal;
+        params.consideration.token = address(0x6000);
+        params.consideration.amount = 1;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidConsiderationConfiguration.selector);
+
+        params = _baseParams(keccak256("celo-unexpected-source"));
+        params.consideration.rail = ICommitmentPoolingModule.ConsiderationRail.CeloSettlement;
+        params.consideration.source = address(0x6000);
+        params.consideration.amount = 1;
+        _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.InvalidConsiderationConfiguration.selector);
+    }
+
     // ───────────────────────────────────────────────────────────────────────────
     // Garden-recipient confirmation liveness.
     //
@@ -515,6 +761,46 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         );
     }
 
+    function _expectCreateRevert(
+        ICommitmentPoolingModule.CreateCommitmentParams memory params,
+        address caller,
+        bytes4 selector
+    )
+        private
+    {
+        vm.prank(caller);
+        (bool success, bytes memory returnData) =
+            address(module).call(abi.encodeWithSelector(ICommitmentPoolingModule.createCommitment.selector, params));
+        assertFalse(success, "creation unexpectedly succeeded");
+        assertGe(returnData.length, 4, "creation revert omitted selector");
+        bytes4 actual;
+        assembly ("memory-safe") {
+            actual := mload(add(returnData, 0x20))
+        }
+        assertEq(actual, selector, "unexpected creation revert");
+    }
+
+    function _eventWord(bytes memory data, uint256 wordIndex) private pure returns (bytes32 word) {
+        require(data.length >= (wordIndex + 1) * 32, "event data word out of bounds");
+        assembly ("memory-safe") {
+            word := mload(add(add(data, 0x20), mul(wordIndex, 0x20)))
+        }
+    }
+
+    function _dynamicLength(bytes memory data, uint256 headIndex) private pure returns (uint256) {
+        uint256 offset = uint256(_eventWord(data, headIndex));
+        return uint256(_eventWord(data, offset / 32));
+    }
+
+    function _dynamicHash(bytes memory data, uint256 headIndex) private pure returns (bytes32 digest) {
+        uint256 offset = uint256(_eventWord(data, headIndex));
+        uint256 length = uint256(_eventWord(data, offset / 32));
+        require(data.length >= offset + 32 + length, "event data tail out of bounds");
+        assembly ("memory-safe") {
+            digest := keccak256(add(add(data, 0x40), offset), length)
+        }
+    }
+
     function _creationPayloadHash(ICommitmentPoolingModule.CreateCommitmentParams memory params)
         private
         pure
@@ -522,31 +808,37 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
     {
         uint32 effectiveThreshold = params.confirmers.length == 0 ? 1 : params.confirmationThreshold;
         return keccak256(
-            abi.encode(
-                params.poolId,
-                params.cycleId,
-                params.commitmentSeriesId,
-                params.direction,
-                params.commitmentType,
-                params.claimType,
-                params.claimMode,
-                params.contributorPolicy,
-                params.onBehalfOf,
-                keccak256(abi.encodePacked(params.domainTags)),
-                keccak256(abi.encode(params.requirements)),
-                keccak256(bytes(params.unitLabel)),
-                params.targetUnits,
-                params.requiresAssessment,
-                params.dueDate,
-                keccak256(bytes(params.metadataCID)),
-                params.needUID,
-                params.counterCommitmentId,
-                keccak256(abi.encodePacked(params.confirmers)),
-                effectiveThreshold,
-                params.protocolFallbackEnabled,
-                keccak256(abi.encode(params.consideration)),
-                params.declaredUnitValue,
-                keccak256(bytes(params.declaredValueBasis))
+            bytes.concat(
+                abi.encode(
+                    params.poolId,
+                    params.cycleId,
+                    params.commitmentSeriesId,
+                    params.direction,
+                    params.commitmentType,
+                    params.claimType,
+                    params.claimMode,
+                    params.contributorPolicy
+                ),
+                abi.encode(
+                    params.onBehalfOf,
+                    keccak256(abi.encodePacked(params.domainTags)),
+                    keccak256(abi.encode(params.requirements)),
+                    keccak256(bytes(params.unitLabel)),
+                    params.targetUnits,
+                    params.requiresAssessment,
+                    params.dueDate,
+                    keccak256(bytes(params.metadataCID))
+                ),
+                abi.encode(
+                    params.needUID,
+                    params.counterCommitmentId,
+                    keccak256(abi.encodePacked(params.confirmers)),
+                    effectiveThreshold,
+                    params.protocolFallbackEnabled,
+                    keccak256(abi.encode(params.consideration)),
+                    params.declaredUnitValue,
+                    keccak256(bytes(params.declaredValueBasis))
+                )
             )
         );
     }

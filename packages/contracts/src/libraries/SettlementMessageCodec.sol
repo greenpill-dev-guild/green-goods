@@ -43,16 +43,11 @@ library SettlementMessageCodec {
     }
 
     function decodeCommand(bytes memory data) internal pure returns (Command memory command) {
-        (
-            command.version,
-            command.settlementId,
-            command.isBatch,
-            command.attempt,
-            command.executorGarden,
-            command.disbursementKind,
-            command.recipients,
-            command.amounts
-        ) = abi.decode(data, (uint8, uint256, bool, uint32, address, uint8, address[], uint256[]));
+        // `encodeCommand` writes the tuple body directly. Prefixing the tuple's outer offset lets
+        // Solidity decode one memory struct instead of assigning eight decoded values at once,
+        // avoiding the coverage compiler's minimum-IR stack limit without changing the wire bytes.
+        bytes memory tupleEncoding = bytes.concat(bytes32(uint256(32)), data);
+        command = abi.decode(tupleEncoding, (Command));
     }
 
     function encodeAcknowledgment(

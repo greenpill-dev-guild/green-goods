@@ -229,32 +229,42 @@ library CommitmentPoolingCreationChecksLib {
         pure
         returns (bytes32)
     {
+        // Every dynamic value is represented by its frozen hash before this encoding, so the
+        // preimage is 24 consecutive ABI words. Encoding three ordered groups avoids the
+        // minimum-IR coverage compiler's 24-value Yul stack limit without changing one byte of
+        // the replay identity.
         return keccak256(
-            abi.encode(
-                params.poolId,
-                params.cycleId,
-                params.commitmentSeriesId,
-                params.direction,
-                params.commitmentType,
-                params.claimType,
-                params.claimMode,
-                params.contributorPolicy,
-                params.onBehalfOf,
-                keccak256(abi.encodePacked(params.domainTags)),
-                keccak256(abi.encode(params.requirements)),
-                keccak256(bytes(params.unitLabel)),
-                params.targetUnits,
-                params.requiresAssessment,
-                params.dueDate,
-                keccak256(bytes(params.metadataCID)),
-                params.needUID,
-                params.counterCommitmentId,
-                keccak256(abi.encodePacked(params.confirmers)),
-                effectiveConfirmationThreshold,
-                params.protocolFallbackEnabled,
-                keccak256(abi.encode(params.consideration)),
-                params.declaredUnitValue,
-                keccak256(bytes(params.declaredValueBasis))
+            bytes.concat(
+                abi.encode(
+                    params.poolId,
+                    params.cycleId,
+                    params.commitmentSeriesId,
+                    params.direction,
+                    params.commitmentType,
+                    params.claimType,
+                    params.claimMode,
+                    params.contributorPolicy
+                ),
+                abi.encode(
+                    params.onBehalfOf,
+                    keccak256(abi.encodePacked(params.domainTags)),
+                    keccak256(abi.encode(params.requirements)),
+                    keccak256(bytes(params.unitLabel)),
+                    params.targetUnits,
+                    params.requiresAssessment,
+                    params.dueDate,
+                    keccak256(bytes(params.metadataCID))
+                ),
+                abi.encode(
+                    params.needUID,
+                    params.counterCommitmentId,
+                    keccak256(abi.encodePacked(params.confirmers)),
+                    effectiveConfirmationThreshold,
+                    params.protocolFallbackEnabled,
+                    keccak256(abi.encode(params.consideration)),
+                    params.declaredUnitValue,
+                    keccak256(bytes(params.declaredValueBasis))
+                )
             )
         );
     }

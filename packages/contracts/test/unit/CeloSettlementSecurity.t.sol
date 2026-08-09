@@ -2,8 +2,15 @@
 pragma solidity ^0.8.25;
 
 import { ICeloSettlementExecutor } from "../../src/interfaces/ICeloSettlementExecutor.sol";
+import { SettlementMessageCodec } from "../../src/libraries/SettlementMessageCodec.sol";
 import { CeloSettlementExecutor } from "../../src/modules/CeloSettlementExecutor.sol";
-import { CeloSettlementExecutorTest, ExecutorMockRouter } from "./CeloSettlementExecutor.t.sol";
+import {
+    CeloSettlementExecutorTest,
+    ExecutorMockGoodDollar,
+    ExecutorMockRoles,
+    ExecutorMockRouter,
+    ExecutorMockSafe
+} from "./CeloSettlementExecutor.t.sol";
 
 interface ICeloUUPSUpgradeBoundary {
     function upgradeToAndCall(address newImplementation, bytes calldata data) external payable;
@@ -63,6 +70,177 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         assertEq(peer.previousSourceSettlementModule, address(0));
         assertEq(peer.previousPeerExpiresAt, 0);
         assertEq(peer.protocolVersion, 2);
+    }
+
+    function testAdminConfigurationRejectsEveryUnsafeShape() public {
+        vm.prank(OWNER);
+        executor.setPaused(true);
+
+        vm.startPrank(OWNER);
+        vm.expectRevert(ICeloSettlementExecutor.ZeroAddress.selector);
+        executor.configureGardenRoute(
+            address(0), address(payerSafe), address(payerRoles), ROLE_KEY, ALLOWANCE_KEY, keccak256("zero-garden")
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(ICeloSettlementExecutor.GardenRouteAlreadyConfigured.selector, GARDEN));
+        executor.configureGardenRoute(
+            GARDEN, address(payerSafe), address(payerRoles), ROLE_KEY, ALLOWANCE_KEY, keccak256("duplicate-garden")
+        );
+
+        address anotherGarden = address(0x1001);
+        vm.expectRevert(
+            abi.encodeWithSelector(ICeloSettlementExecutor.SafeAlreadyAssigned.selector, address(payerSafe), GARDEN)
+        );
+        executor.configureGardenRoute(
+            anotherGarden, address(payerSafe), address(payerRoles), ROLE_KEY, ALLOWANCE_KEY, keccak256("duplicate-safe")
+        );
+
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.configureGardenRoute(
+            anotherGarden, address(0x1111), address(0x2222), ROLE_KEY, ALLOWANCE_KEY, keccak256("missing-code")
+        );
+
+        ExecutorMockSafe unconfiguredSafe = new ExecutorMockSafe();
+        ExecutorMockGoodDollar otherToken = new ExecutorMockGoodDollar();
+        ExecutorMockRoles unconfiguredRoles = new ExecutorMockRoles(address(unconfiguredSafe), otherToken);
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.configureGardenRoute(
+            anotherGarden,
+            address(unconfiguredSafe),
+            address(unconfiguredRoles),
+            ROLE_KEY,
+            ALLOWANCE_KEY,
+            keccak256("disabled-role")
+        );
+
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.setGardenRouteActive(address(0x9999), false);
+
+        vm.expectRevert(ICeloSettlementExecutor.ZeroAddress.selector);
+        executor.setSourcePeer(address(0), 1, 0);
+        vm.expectRevert(ICeloSettlementExecutor.UnsupportedMessageVersion.selector);
+        executor.setSourcePeer(SOURCE_MODULE, 0, 0);
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.setSourcePeer(SOURCE_MODULE, 1, 31 days);
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.setSourcePeer(SOURCE_MODULE, 1, 1 days);
+
+        executor.setSourcePeer(REPLACEMENT_SOURCE, 1, 2 days);
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.setSourcePeer(REPLACEMENT_SOURCE, 1, 1 days);
+
+        uint16 overHardBatchSize = uint16(executor.HARD_MAX_BATCH_SIZE() + 1);
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.setCaps(overHardBatchSize, 1000 ether, 4000 ether);
+        vm.expectRevert(ICeloSettlementExecutor.PolicyNotConfigured.selector);
+        executor.setCaps(4, 2 ether, 1 ether);
+        vm.expectRevert(abi.encodeWithSelector(ICeloSettlementExecutor.InvalidFeePolicy.selector, uint16(10_001), 1));
+        executor.setFeePolicy(10_001, 1);
+
+        executor.setCaps(4, 0, 4000 ether);
+        vm.expectRevert(ICeloSettlementExecutor.ExecutorNotReady.selector);
+        executor.setPaused(false);
+        vm.stopPrank();
+    }
+
+    function testAuthenticationAndCommandEnvelopeFailClosed() public {
+        bytes memory valid = _command(false, 40, 0, 0, _one(CONTRIBUTOR), _oneAmount(1 ether));
+
+        vm.prank(OWNER);
+        executor.setPaused(true);
+        vm.expectRevert(ICeloSettlementExecutor.ExecutorMustBePaused.selector);
+        router.deliver(address(executor), keccak256("paused"), SOURCE_SELECTOR, SOURCE_MODULE, valid);
+        vm.prank(OWNER);
+        executor.setPaused(false);
+
+        vm.expectRevert(ICeloSettlementExecutor.InvalidCcipSource.selector);
+        router.deliver(address(executor), keccak256("wrong-source"), SOURCE_SELECTOR + 1, SOURCE_MODULE, valid);
+
+        vm.expectRevert(ICeloSettlementExecutor.CcipTokensNotAllowed.selector);
+        router.deliverWithToken(address(executor), keccak256("tokens"), SOURCE_SELECTOR, SOURCE_MODULE, valid);
+
+        bytes memory wrongVersion =
+            SettlementMessageCodec.encodeCommand(2, 41, false, 0, GARDEN, 0, _one(CONTRIBUTOR), _oneAmount(1 ether));
+        vm.expectRevert(ICeloSettlementExecutor.UnsupportedMessageVersion.selector);
+        router.deliver(address(executor), keccak256("wrong-version"), SOURCE_SELECTOR, SOURCE_MODULE, wrongVersion);
+
+        bytes memory unknownKind =
+            SettlementMessageCodec.encodeCommand(1, 42, false, 0, GARDEN, 2, _one(CONTRIBUTOR), _oneAmount(1 ether));
+        vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
+        router.deliver(address(executor), keccak256("unknown-kind"), SOURCE_SELECTOR, SOURCE_MODULE, unknownKind);
+    }
+
+    function testPreflightAndExecutionFailuresAreStoredWithoutValueLeakage() public {
+        address[] memory emptyRecipients = new address[](0);
+        uint256[] memory emptyAmounts = new uint256[](0);
+        _deliverAndAssertFailure(
+            50, false, _one(CONTRIBUTOR), emptyAmounts, ICeloSettlementExecutor.FailureCode.BatchSizeExceeded
+        );
+        _deliverAndAssertFailure(
+            51, false, emptyRecipients, emptyAmounts, ICeloSettlementExecutor.FailureCode.BatchSizeExceeded
+        );
+        _deliverAndAssertFailure(
+            52, false, _recipients(2), _amounts(2, 1 ether), ICeloSettlementExecutor.FailureCode.BatchSizeExceeded
+        );
+        _deliverAndAssertFailure(
+            53, false, _one(address(0)), _oneAmount(1 ether), ICeloSettlementExecutor.FailureCode.InvalidRecipient
+        );
+        _deliverAndAssertFailure(
+            54, false, _one(address(payerSafe)), _oneAmount(1 ether), ICeloSettlementExecutor.FailureCode.InvalidRecipient
+        );
+
+        address[] memory duplicates = new address[](2);
+        duplicates[0] = CONTRIBUTOR;
+        duplicates[1] = CONTRIBUTOR;
+        _deliverAndAssertFailure(
+            55, true, duplicates, _amounts(2, 1 ether), ICeloSettlementExecutor.FailureCode.InvalidRecipient
+        );
+        _deliverAndAssertFailure(
+            56, false, _one(address(0x3056)), _oneAmount(0), ICeloSettlementExecutor.FailureCode.TransferAmountExceeded
+        );
+
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setCaps(4, 50 ether, 50 ether);
+        executor.setPaused(false);
+        vm.stopPrank();
+        _deliverAndAssertFailure(
+            57, true, _recipients(2), _amounts(2, 30 ether), ICeloSettlementExecutor.FailureCode.BatchAmountExceeded
+        );
+
+        address unreadableRecipient = address(0x3058);
+        token.setBalanceReadFailure(unreadableRecipient, true);
+        _deliverAndAssertFailure(
+            58, false, _one(unreadableRecipient), _oneAmount(1 ether), ICeloSettlementExecutor.FailureCode.RouteReverted
+        );
+        token.setBalanceReadFailure(unreadableRecipient, false);
+
+        payerRoles.setExecutionBehavior(true, false);
+        _deliverAndAssertFailure(
+            59, false, _one(address(0x3059)), _oneAmount(1 ether), ICeloSettlementExecutor.FailureCode.RouteRejected
+        );
+
+        payerRoles.setExecutionBehavior(false, true);
+        _deliverAndAssertFailure(
+            60, false, _one(address(0x3060)), _oneAmount(1 ether), ICeloSettlementExecutor.FailureCode.BalanceDeltaMismatch
+        );
+
+        payerRoles.setExecutionBehavior(false, false);
+        token.setSkipDebit(true);
+        _deliverAndAssertFailure(
+            61, false, _one(address(0x3061)), _oneAmount(1 ether), ICeloSettlementExecutor.FailureCode.BalanceDeltaMismatch
+        );
+    }
+
+    function testDuplicateRetriesPreviouslyDeferredAcknowledgment() public {
+        router.setFee(1);
+        bytes memory payload = _command(false, 62, 0, 0, _one(CONTRIBUTOR), _oneAmount(1 ether));
+        router.deliver(address(executor), keccak256("deferred-first"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
+        bytes32 key = _executionKey(false, 62, 0);
+        assertFalse(executor.executionResultOf(key).acknowledgmentSent);
+
+        router.deliver(address(executor), keccak256("deferred-duplicate"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
+        assertFalse(executor.executionResultOf(key).acknowledgmentSent);
     }
 
     function testCallerFundedAcknowledgmentRetryDoesNotSpendReserve() public {
@@ -360,6 +538,25 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
 
     function _executionKey(bool isBatch, uint256 settlementId, uint32 attempt) internal pure returns (bytes32) {
         return keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, isBatch, settlementId, attempt));
+    }
+
+    function _deliverAndAssertFailure(
+        uint256 settlementId,
+        bool isBatch,
+        address[] memory recipients,
+        uint256[] memory amounts,
+        ICeloSettlementExecutor.FailureCode expected
+    )
+        internal
+    {
+        router.deliver(
+            address(executor),
+            keccak256(abi.encode("failure", settlementId)),
+            SOURCE_SELECTOR,
+            SOURCE_MODULE,
+            _command(isBatch, settlementId, 0, 0, recipients, amounts)
+        );
+        assertEq(uint8(executor.executionResultOf(_executionKey(isBatch, settlementId, 0)).failureCode), uint8(expected));
     }
 
     function _recipients(uint256 count) internal pure returns (address[] memory values) {

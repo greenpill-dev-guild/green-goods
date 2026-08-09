@@ -73,6 +73,28 @@ contract ExecutorMockRouter {
             })
         );
     }
+
+    function deliverWithToken(
+        address receiver,
+        bytes32 messageId,
+        uint64 sourceSelector,
+        address sender,
+        bytes calldata data
+    )
+        external
+    {
+        Client.EVMTokenAmount[] memory tokens = new Client.EVMTokenAmount[](1);
+        tokens[0] = Client.EVMTokenAmount({ token: address(0xDEAD), amount: 1 });
+        ICcipMessageReceiver(receiver).ccipReceive(
+            Client.Any2EVMMessage({
+                messageId: messageId,
+                sourceChainSelector: sourceSelector,
+                sender: abi.encode(sender),
+                data: data,
+                destTokenAmounts: tokens
+            })
+        );
+    }
 }
 
 contract ExecutorMockSafe {
@@ -82,12 +104,27 @@ contract ExecutorMockSafe {
 }
 
 contract ExecutorMockGoodDollar {
-    mapping(address account => uint256 balance) public balanceOf;
+    mapping(address account => uint256 balance) private _balances;
+    mapping(address account => bool fails) public balanceReadFails;
     uint256 public fee;
     bool public senderPays;
+    bool public skipDebit;
 
     function setBalance(address account, uint256 amount) external {
-        balanceOf[account] = amount;
+        _balances[account] = amount;
+    }
+
+    function setBalanceReadFailure(address account, bool fails) external {
+        balanceReadFails[account] = fails;
+    }
+
+    function setSkipDebit(bool skipDebit_) external {
+        skipDebit = skipDebit_;
+    }
+
+    function balanceOf(address account) external view returns (uint256) {
+        require(!balanceReadFails[account], "balance read");
+        return _balances[account];
     }
 
     function setFee(uint256 fee_, bool senderPays_) external {
@@ -101,9 +138,9 @@ contract ExecutorMockGoodDollar {
 
     function executeTransfer(address sender, address recipient, uint256 amount) external returns (bool) {
         uint256 debit = senderPays ? amount + fee : amount;
-        require(balanceOf[sender] >= debit, "balance");
-        balanceOf[sender] -= debit;
-        balanceOf[recipient] += senderPays ? amount : amount - fee;
+        require(_balances[sender] >= debit, "balance");
+        if (!skipDebit) _balances[sender] -= debit;
+        _balances[recipient] += senderPays ? amount : amount - fee;
         return true;
     }
 }
@@ -114,6 +151,8 @@ contract ExecutorMockRoles is IZodiacRoles {
     ExecutorMockGoodDollar public token;
     bytes32 public role;
     mapping(address module => bool enabled) public enabledModules;
+    bool public rejectExecution;
+    bool public skipTransfer;
 
     constructor(address safe_, ExecutorMockGoodDollar token_) {
         avatar = safe_;
@@ -124,6 +163,11 @@ contract ExecutorMockRoles is IZodiacRoles {
     function configureMember(address module, bytes32 role_) external {
         enabledModules[module] = true;
         role = role_;
+    }
+
+    function setExecutionBehavior(bool rejectExecution_, bool skipTransfer_) external {
+        rejectExecution = rejectExecution_;
+        skipTransfer = skipTransfer_;
     }
 
     function isModuleEnabled(address module) external view returns (bool) {
@@ -148,8 +192,9 @@ contract ExecutorMockRoles is IZodiacRoles {
         require(to == address(token) && value == 0 && operation == SafeOperation.Call, "authority");
         require(roleKey == role && shouldRevert && enabledModules[msg.sender], "role");
         require(bytes4(data[:4]) == bytes4(keccak256("transfer(address,uint256)")), "selector");
+        if (rejectExecution) return (false, bytes(""));
         (address recipient, uint256 amount) = abi.decode(data[4:], (address, uint256));
-        success = token.executeTransfer(avatar, recipient, amount);
+        success = skipTransfer || token.executeTransfer(avatar, recipient, amount);
         returnData = abi.encode(success);
     }
 }

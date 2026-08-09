@@ -522,3 +522,101 @@ and indexing fixes. Nevertheless, this checkpoint remains **`REQUEST_CHANGES` an
 because the prompt explicitly requires real coverage measurements. Deployment/courier tooling and
 live Celo activation remain intentionally deferred release blockers. This implementation is
 dormant, pre-deploy, and not authorized for broadcast.
+
+## Blocker resolution and final PR-hardening handoff: 2026-08-09
+
+This section supersedes the stale coverage blocker and verdict immediately above. The historical
+audit findings remain useful review context, but they no longer describe the current working tree.
+
+### Fresh review boundary
+
+- Branch: `feature/build-commitment-pooling-contracts`
+- Fresh `origin/develop` merge base: `4769211dc013026013d8e9cd4fc8a569289257cf`
+- Pre-hardening committed HEAD: `4192ea5ca884b5d966cc260b9d90f56249cd6d6e`
+- The four protected concurrent-session test files listed above remain unmodified.
+- No branch change, deployment, broadcast, transaction, live address activation, or dependency
+  install occurred.
+
+### Coverage blocker resolved
+
+The LCOV build now compiles and measures the branch without weakening any threshold:
+
+- `CommitmentCreated` keeps its frozen ABI and exact indexed/non-indexed log encoding while moving
+  the high-pressure event emission through a tuple-backed, ABI-equivalent `log4` helper. Direct log
+  tests verify the signature topic, indexed topics, every static word, dynamic offsets, lengths,
+  and payload hashes.
+- Creation replay hashing retains the exact ordered 24-word preimage while splitting compiler stack
+  pressure into three encoded groups.
+- The proof-decision library boundary and settlement command decoding were made
+  coverage-compatible without changing the module ABI or frozen settlement wire bytes.
+- Targeted creation, settlement-source, Celo-executor, and ENS tests cover the previously unmeasured
+  validation, authorization, retry, cap, execution-failure, and release-without-name paths.
+- The audit now produces one stronger LCOV input over every local non-fork, non-E2E Solidity test.
+  Fork and E2E suites remain separate pass/fail gates. Core and critical-contract thresholds are
+  unchanged.
+
+The changes to `scripts/contracts/run-coverage-audit.sh` and
+`scripts/contracts/coverage-policy.mjs` are security-sensitive test-policy changes and deserve
+explicit human review. They expand the measured local test surface and preserve the existing
+80% line / 65% branch core gate; they do not waive, lower, or bypass coverage policy.
+
+### Fresh execution evidence
+
+```text
+contracts full suite:       1,892 Solidity + 100 script tests passed
+contract fast verifier:     passed (build, lint, tests; E2E/dry-run intentionally skipped)
+contract coverage audit:    passed
+  local core line:          85.44% (5,165/6,045; target 80%)
+  local core branch:        65.44% (803/1,227; target 65%)
+  raw local LCOV line:      56.26% (7,124/12,663)
+  raw local LCOV branch:    40.03% (939/2,346)
+  critical contract gates:  all passed
+contract sizes:             passed
+  SettlementModule:        23,980 bytes; 596-byte margin
+  CommitmentPoolingModule: 21,227 bytes; 3,349-byte margin
+  Celo executor:           18,867 bytes; 5,709-byte margin
+storage layouts:            all 14 matched
+contract lint:              0 errors; 246 existing warnings
+settlement fork lane:       6/6 passed against pinned Arbitrum/Celo forks, read-only
+
+indexer codegen:            passed
+indexer boundary:           passed; 12 contracts, 2 chains
+indexer full suite:         199/199 passed
+indexer build:              passed
+
+source-structure gate:      passed; 51 changed source files checked
+architecture closure:       passed; 54 events, 26 entities, 86 functions,
+                            57 executable calls, 6 offline kinds
+ontology:                   11 guards passed; 9 existing findings baselined
+format check:               passed; 2,058 files checked
+git diff check:             passed
+hifi validator:             passed
+repo quick gate:            passed
+  shared:                   3,398 passed, 1 skipped
+  client:                   658 passed
+  admin hub:                102 passed
+  agent:                    245 passed, 1 skipped
+full monorepo tests:         passed
+deterministic Sepolia build: passed
+```
+
+The first sandboxed indexer test attempt could not bind its loopback metadata server, and the first
+sandboxed contract fast-verifier attempt hit Foundry's macOS `SystemConfiguration` crash. The exact
+same Bun wrappers passed with the required host access. Neither failure was a product assertion.
+
+### Remaining advisory and verdict
+
+The realism audit exits successfully in advisory mode, and all of its tooling scenarios pass. It
+still reports three `vm.mockCall` uses in
+`packages/contracts/test/fork/ArbitrumCommitmentPooling.t.sol`. That protected concurrent-session
+file remains outside this commit boundary and was not modified. This is a known audit advisory,
+not a failing gate or a newly introduced regression.
+
+Fresh execution and diff review found no unresolved Critical or High defect inside the current
+pooling, payer, recipient, settlement-contract, or code-level read-model scope. The coverage gate
+that forced `REQUEST_CHANGES` now produces real measurements and passes. The current result is
+therefore **merge-ready implementation** for this PR-hardening checkpoint.
+
+It is deliberately **not deployed, broadcast-authorized, or release-ready**. Settlement deployment,
+courier/lifecycle tooling, post-deploy verification, live addresses/start blocks, and actual Celo
+circulation observation remain deferred to the separate deployment/release lane.
