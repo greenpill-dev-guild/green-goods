@@ -567,10 +567,14 @@ contract MockWETHForBench is ERC20 {
 contract CommitmentPoolingGasBenchmarks is CommitmentPoolingFixture {
     // Budgets sit ~1.4x above the measured cost: loose enough to absorb solc and optimizer
     // variance, tight enough that a real regression trips them. A ceiling ten times the actual
-    // measures nothing. Measured 2026-08-06 under the `test` profile:
-    // create 672k, claim 67k, link 136k, decision 136k, confirm 88k, total 1.10M.
+    // measures nothing. Measured 2026-08-08 under the `test` profile:
+    // create 692k, claim 96k, link 137k, decision 135k, confirm 93k, total 1.15M.
+    // Claim moved 67k (2026-08-06) -> 96k in two steps, both deliberate: the deployed-library
+    // refactor (Decision Log #55) added DELEGATECALL overhead, taking it to 75,950; storing
+    // `payerGarden` at Offer acceptance (register #90) added a measured 20,352 — one cold SSTORE.
+    // A Request pays that write at creation instead, so only the Offer path moved here.
     uint256 private constant MAX_CREATE_COMMITMENT_GAS = 940_000;
-    uint256 private constant MAX_CLAIM_COMMITMENT_GAS = 95_000;
+    uint256 private constant MAX_CLAIM_COMMITMENT_GAS = 135_000;
     uint256 private constant MAX_LINK_WORK_GAS = 190_000;
     uint256 private constant MAX_WORK_DECISION_GAS = 190_000;
     uint256 private constant MAX_CONFIRM_FULFILLMENT_GAS = 125_000;

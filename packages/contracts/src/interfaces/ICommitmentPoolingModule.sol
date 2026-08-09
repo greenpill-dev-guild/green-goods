@@ -91,7 +91,7 @@ interface ICommitmentPoolingModule {
         Expired
     }
 
-    enum RewardRail {
+    enum ConsiderationRail {
         None,
         ArbitrumExternal,
         CeloSettlement
@@ -156,12 +156,13 @@ interface ICommitmentPoolingModule {
         uint32 liveCommitmentCount; // non-terminal cycle commitments; must be zero before close
     }
 
-    /// @notice Declared reward is a reference, never custody (register #18).
-    struct DeclaredReward {
-        RewardRail rail;
-        address source; // ArbitrumExternal payer; zero sentinel for CeloSettlement
+    /// @notice Declared consideration is a reference, never custody (register #18). Direction is
+    ///         implied by `Commitment.payerGarden`, never by this struct (register #90).
+    struct DeclaredConsideration {
+        ConsiderationRail rail;
+        address source; // ArbitrumExternal payer; zero sentinel for CeloSettlement (payerGarden's Safe)
         address token; // ArbitrumExternal token; zero sentinel for CeloSettlement
-        uint256 amount; // 0 = no declared reward
+        uint256 amount; // 0 = free; the commitment carries no consideration
     }
 
     struct CommitmentRequirement {
@@ -228,13 +229,17 @@ interface ICommitmentPoolingModule {
         uint256 counterCommitmentId; // same-pool commitment this one is made in exchange for; 0 = none; one-way, immutable
             // (amendment 2026-08-01)
         string metadataCID; // terms/description payload (IPFS)
-        DeclaredReward reward;
+        DeclaredConsideration consideration;
         uint256 declaredUnitValue; // relative value of one unit against declaredValueBasis; 0 = undeclared (amendment
             // 2026-08-01)
         string declaredValueBasis; // exact-label basis ("G$", "USD"); empty = undeclared; pair-bound with declaredUnitValue
-        bool rewardPaid;
+        bool considerationPaid;
         CommitmentState preDisputeState; // exact state captured by raiseDispute
-        address providerGarden; // EAS recipient and provider-role scope
+        address providerGarden; // EAS recipient and provider-role scope; never the settlement payer
+        // The asking side, and the only Safe settlement may spend (register #90). Request: the pool
+        // garden, stored at creation. Offer: the claiming gardenContext, stored at acceptance.
+        // Garden-internal commitments resolve this to providerGarden.
+        address payerGarden;
         // RESERVED post-MVP garden-to-garden (L3); never written in MVP:
         uint256 counterpartyPoolId;
         address counterpartyGardenAccount;
@@ -273,7 +278,7 @@ interface ICommitmentPoolingModule {
         address[] confirmers; // empty = Offer recipient / Request creator default
         uint32 confirmationThreshold; // ignored (forced 1) when confirmers is empty
         bool protocolFallbackEnabled; // explicit structural fallback through registered protocol-pool Hats
-        DeclaredReward reward;
+        DeclaredConsideration consideration; // amount 0 = free
         uint256 declaredUnitValue; // 0 = undeclared; pair-bound with declaredValueBasis (amendment 2026-08-01)
         string declaredValueBasis; // empty = undeclared; exact-label identity like unitLabel
     }
@@ -370,10 +375,16 @@ interface ICommitmentPoolingModule {
         bytes32 needUID,
         uint256 counterCommitmentId,
         uint256 declaredUnitValue,
-        string declaredValueBasis
+        string declaredValueBasis,
+        // Zero for an Offer until acceptance resolves the claiming garden. Emitted rather than
+        // derived because reverse delivery may project this event before PoolRegistered, leaving
+        // no pool garden to read and no bounded reverse index to backfill from (register #90).
+        address payerGarden
     );
-    event RewardDeclared(uint256 indexed commitmentId, RewardRail rail, address source, address token, uint256 amount);
-    /// @notice Pre-acceptance valuation update (amendment 2026-08-01); mirrors RewardDeclared.
+    event ConsiderationDeclared(
+        uint256 indexed commitmentId, ConsiderationRail rail, address source, address token, uint256 amount
+    );
+    /// @notice Pre-acceptance valuation update (amendment 2026-08-01); mirrors ConsiderationDeclared.
     event ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis);
     event ConfirmerRuleSet(
         uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled
@@ -394,7 +405,8 @@ interface ICommitmentPoolingModule {
         ClaimType kind,
         address gardenContext,
         address leadProvider,
-        address providerGarden
+        address providerGarden,
+        address payerGarden
     );
     event ExchangeAccepted(
         uint256 indexed commitmentIdA,
@@ -465,7 +477,7 @@ interface ICommitmentPoolingModule {
         uint256 indexed commitmentId, DisputeResolution resolution, CommitmentState finalState, string reasonCID
     );
     /// @notice Payout executed on existing rails and recorded here (register #18).
-    event RewardPaid(
+    event ConsiderationPaid(
         uint256 indexed commitmentId,
         address indexed source,
         address indexed recipient,
@@ -549,10 +561,10 @@ interface ICommitmentPoolingModule {
     error WorkApprovalRequired(uint256 commitmentId);
     error OpenCommitmentCapRequired(uint256 poolId);
     error NotDue(uint256 commitmentId);
-    error RewardAlreadyRecorded(uint256 commitmentId);
-    error RewardNotDeclared(uint256 commitmentId);
-    error RewardRailMismatch(uint256 commitmentId, RewardRail expected, RewardRail actual);
-    error InvalidRewardConfiguration();
+    error ConsiderationAlreadyRecorded(uint256 commitmentId);
+    error ConsiderationNotDeclared(uint256 commitmentId);
+    error ConsiderationRailMismatch(uint256 commitmentId, ConsiderationRail expected, ConsiderationRail actual);
+    error InvalidConsiderationConfiguration();
     error InvalidValueDeclaration(); // declaredUnitValue/declaredValueBasis pair rule violated (amendment 2026-08-01)
     error UnknownCounterCommitment(uint256 counterCommitmentId);
     error CounterCommitmentPoolMismatch(uint256 poolId, uint256 counterCommitmentId);
@@ -563,7 +575,19 @@ interface ICommitmentPoolingModule {
     );
     error ExchangeStateInvalid(uint256 commitmentId, CommitmentState actual);
     error SelfExchange(address creator);
+    /// @notice A Garden claim resolves the claimant to `gardenContext`, which in a garden pool is
+    ///         forced to that pool's own garden — making payer, provider, and the register #91
+    ///         recipient the same account. Cross-garden reach is a protocol-pool capability.
+    error GardenClaimRequiresProtocolPool(uint256 poolId);
+    /// @notice A protocol-pool Garden claim must name a registered garden other than the
+    ///         protocol garden itself. Otherwise a Garden-scoped Request would settle from the
+    ///         protocol Safe back to that same Safe instead of creating cross-garden circulation.
+    error GardenClaimMustBeExternal(uint256 poolId, address garden);
     error ExchangeClaimTypeUnsupported(uint256 commitmentId, ClaimType actual);
+    /// @notice Paired acceptance is barter: both sides must be free (register #90). One
+    ///         `gardenContext` covers both acceptances, so a priced side would record that single
+    ///         garden as payer for a bilateral trade between two individuals.
+    error ExchangeConsiderationUnsupported(uint256 commitmentId, uint256 amount);
     error ExchangeCreatorConsentRequired(uint256 exchangeCommitmentId);
     error ReasonRequired();
     error UnitLabelRequired();
@@ -706,7 +730,7 @@ interface ICommitmentPoolingModule {
     function setProviderOpenCommitmentCap(uint256 poolId, uint256 cap) external;
 
     /// @notice Gating: pool steward, pre-acceptance only.
-    function setDeclaredReward(uint256 commitmentId, DeclaredReward calldata reward) external;
+    function setDeclaredConsideration(uint256 commitmentId, DeclaredConsideration calldata consideration) external;
     /// @notice Gating: pool steward, pre-acceptance only. Records-only valuation
     ///         term (decision 16); pair rule enforced, nothing derived on-chain.
     function setDeclaredValue(
@@ -930,7 +954,7 @@ interface ICommitmentPoolingModule {
     ///         contributor on both paths.
     function confirmFulfillmentAsFallback(uint256 commitmentId, string calldata reason) external;
 
-    // ─────────────── Exits, disputes, rewards ────────────────────────
+    // ─────────────── Exits, disputes, considerations ────────────────────────
 
     /// @notice Gating: creator from Offered/Requested; pool steward from Accepted.
     function cancelCommitment(uint256 commitmentId, string calldata reasonCID) external;
@@ -950,7 +974,7 @@ interface ICommitmentPoolingModule {
     ///         per commitment in MVP. Source, recipient, token, and amount are
     ///         derived from the commitment and cannot be supplied by the caller.
     ///         Gating: pool steward.
-    function recordRewardPaid(uint256 commitmentId, bytes32 payoutRef) external;
+    function recordConsiderationPaid(uint256 commitmentId, bytes32 payoutRef) external;
 
     // ══════════════════════ Views ════════════════════════════════════
 

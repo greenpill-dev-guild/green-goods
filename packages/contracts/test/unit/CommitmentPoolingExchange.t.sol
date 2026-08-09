@@ -8,10 +8,12 @@ import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.so
 /// @notice Atomic bilateral Offer x Offer acceptance for PRD-721.
 contract CommitmentPoolingExchangeTest is CommitmentPoolingFixture {
     address private constant OUTSIDER = address(0xC001);
+    address private constant POOL_STEWARD = address(0xA001);
 
     function setUp() public {
         _setUpProductionFixture();
         _setMember(OUTSIDER);
+        hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
     }
 
     function testAcceptExchangeAcceptsBothSidesAtomically() public {
@@ -182,6 +184,71 @@ contract CommitmentPoolingExchangeTest is CommitmentPoolingFixture {
     }
 
     // ───────────────────────────── Helpers ─────────────────────────────
+
+    /// @notice A priced side must be rejected before either Offer mutates. `acceptExchange` derives
+    ///         one `gardenContext` from the pool and hands it to both acceptances, so a payable
+    ///         exchange would record that single garden as payer for a trade between two people —
+    ///         and in the protocol pool that garden is the protocol Safe (register #90).
+    function testAcceptExchangeRejectsAPricedOfferOnEitherSide() public {
+        uint256 idA = _createOffer(keccak256("exchange-priced-a"));
+        vm.prank(POOL_STEWARD);
+        module.setDeclaredConsideration(idA, _pricedConsideration(500));
+        uint256 idB = _createExchangeOffer(keccak256("exchange-priced-b"), idA, 0);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ExchangeConsiderationUnsupported.selector, idA, 500)
+        );
+        vm.prank(CREATOR);
+        module.acceptExchange(idB);
+
+        // Nothing moved: both sides stay Offered and unclaimed.
+        assertEq(uint256(module.getCommitment(idA).state), uint256(ICommitmentPoolingModule.CommitmentState.Offered));
+        assertEq(uint256(module.getCommitment(idB).state), uint256(ICommitmentPoolingModule.CommitmentState.Offered));
+        assertEq(module.getCommitment(idA).payerGarden, address(0), "a rejected exchange records no payer");
+        assertEq(module.getCommitment(idB).payerGarden, address(0), "a rejected exchange records no payer");
+    }
+
+    function testAcceptExchangeRejectsAPricedCounterpartOffer() public {
+        uint256 idA = _createOffer(keccak256("exchange-priced-b-a"));
+        uint256 idB = _createExchangeOffer(keccak256("exchange-priced-b-b"), idA, 0);
+        vm.prank(POOL_STEWARD);
+        module.setDeclaredConsideration(idB, _pricedConsideration(700));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ExchangeConsiderationUnsupported.selector, idB, 700)
+        );
+        vm.prank(CREATOR);
+        module.acceptExchange(idB);
+    }
+
+    /// @notice Free exchange still records a payer on both sides — the pool garden, which for a
+    ///         garden pool is also the provider garden. This pins the barter case explicitly.
+    function testFreeExchangeRecordsThePoolGardenAsPayerOnBothSides() public {
+        (uint256 idA, uint256 idB) = _offerPair(keccak256("exchange-free-payer"));
+        vm.prank(CREATOR);
+        module.acceptExchange(idB);
+
+        ICommitmentPoolingModule.Commitment memory offerA = module.getCommitment(idA);
+        ICommitmentPoolingModule.Commitment memory offerB = module.getCommitment(idB);
+        assertEq(offerA.payerGarden, POOL_GARDEN, "barter payer is the pool garden");
+        assertEq(offerB.payerGarden, POOL_GARDEN, "barter payer is the pool garden");
+        assertEq(offerA.payerGarden, offerA.providerGarden, "garden pool keeps payer == provider");
+        assertEq(offerB.payerGarden, offerB.providerGarden, "garden pool keeps payer == provider");
+        assertEq(offerA.consideration.amount, 0, "exchange is barter");
+    }
+
+    function _pricedConsideration(uint256 amount)
+        private
+        pure
+        returns (ICommitmentPoolingModule.DeclaredConsideration memory)
+    {
+        return ICommitmentPoolingModule.DeclaredConsideration({
+            rail: ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal,
+            source: address(0xF00D),
+            token: address(0xBEE5),
+            amount: amount
+        });
+    }
 
     function _offerPair(bytes32 seed) private returns (uint256 idA, uint256 idB) {
         idA = _createOffer(keccak256(abi.encode(seed, "a")));

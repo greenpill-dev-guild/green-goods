@@ -8,30 +8,32 @@ import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 
 /// @title CommitmentPoolingTermsLib
-/// @notice Deployed behavior library: pre-acceptance term edits and the Arbitrum-rail reward
+/// @notice Deployed behavior library: pre-acceptance term edits and the Arbitrum-rail consideration
 ///         record.
 /// @dev Terms are steward-editable only while nobody has accepted them; once a counterparty is
-///      bound, reward, valuation, and confirmer terms are the agreement and stop moving.
+///      bound, consideration, valuation, and confirmer terms are the agreement and stop moving.
 ///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
 library CommitmentPoolingTermsLib {
-    /// @notice Declared reward is a reference to a payment made elsewhere, never custody.
-    function setDeclaredReward(
+    /// @notice Declared consideration is a reference to a payment made elsewhere, never custody.
+    function setDeclaredConsideration(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         uint256 commitmentId,
-        ICommitmentPoolingModule.DeclaredReward calldata reward
+        ICommitmentPoolingModule.DeclaredConsideration calldata consideration
     )
         external
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             _requireEditableTerms(env, pools, commitments, commitmentId);
-        CommitmentPoolingCreationChecksLib.validateReward(reward);
+        CommitmentPoolingCreationChecksLib.validateConsideration(consideration);
 
-        commitment.reward = reward;
-        // Unlike creation, an explicit steward edit always emits: clearing a declared reward is
+        commitment.consideration = consideration;
+        // Unlike creation, an explicit steward edit always emits: clearing a declared consideration is
         // itself a record the indexer and the counterparty need to see.
-        emit ICommitmentPoolingModule.RewardDeclared(commitmentId, reward.rail, reward.source, reward.token, reward.amount);
+        emit ICommitmentPoolingModule.ConsiderationDeclared(
+            commitmentId, consideration.rail, consideration.source, consideration.token, consideration.amount
+        );
     }
 
     /// @notice Records-only valuation term; no protocol arithmetic consumes it.
@@ -95,7 +97,7 @@ library CommitmentPoolingTermsLib {
     /// @notice Records a payout already executed on the Arbitrum rail. Moves no value.
     /// @dev Source, recipient, token, and amount are read from the commitment, never from the
     ///      caller, so the record cannot describe a payment the declared terms never promised.
-    function recordRewardPaid(
+    function recordConsiderationPaid(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
@@ -110,22 +112,37 @@ library CommitmentPoolingTermsLib {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }
         CommitmentPoolingGuardLib.requirePoolSteward(env, commitment.poolId, pools[commitment.poolId]);
-        if (commitment.rewardPaid) revert ICommitmentPoolingModule.RewardAlreadyRecorded(commitmentId);
+        if (commitment.considerationPaid) revert ICommitmentPoolingModule.ConsiderationAlreadyRecorded(commitmentId);
 
-        // `validateReward` gates both writes to this struct, so a zero amount is exactly the
+        // `validateConsideration` gates both writes to this struct, so a zero amount is exactly the
         // None rail and a non-zero ArbitrumExternal amount always carries a source and a token.
-        ICommitmentPoolingModule.DeclaredReward storage reward = commitment.reward;
-        if (reward.amount == 0) revert ICommitmentPoolingModule.RewardNotDeclared(commitmentId);
+        ICommitmentPoolingModule.DeclaredConsideration storage consideration = commitment.consideration;
+        if (consideration.amount == 0) revert ICommitmentPoolingModule.ConsiderationNotDeclared(commitmentId);
         // CeloSettlement payouts are owned end to end by SettlementModule's conserved plan.
-        if (reward.rail != ICommitmentPoolingModule.RewardRail.ArbitrumExternal) {
-            revert ICommitmentPoolingModule.RewardRailMismatch(
-                commitmentId, ICommitmentPoolingModule.RewardRail.ArbitrumExternal, reward.rail
+        if (consideration.rail != ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal) {
+            revert ICommitmentPoolingModule.ConsiderationRailMismatch(
+                commitmentId, ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal, consideration.rail
             );
         }
 
-        commitment.rewardPaid = true;
-        emit ICommitmentPoolingModule.RewardPaid(
-            commitmentId, reward.source, commitment.leadProvider, reward.token, reward.amount, payoutRef, msg.sender
+        commitment.considerationPaid = true;
+        // The recorded beneficiary follows the same rule the Celo rail uses (register #91): a
+        // Request claimed by a garden was taken on by that garden as an institution, and its
+        // `leadProvider` is only the steward who claimed on its behalf. Naming the person here
+        // would record an individual as paid for institutional work on the one rail that is a
+        // durable public record. Every other shape keeps the lead provider.
+        address beneficiary = commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Request
+            && commitment.counterpartyKind == ICommitmentPoolingModule.ClaimType.Garden
+            ? commitment.providerGarden
+            : commitment.leadProvider;
+        emit ICommitmentPoolingModule.ConsiderationPaid(
+            commitmentId,
+            consideration.source,
+            beneficiary,
+            consideration.token,
+            consideration.amount,
+            payoutRef,
+            msg.sender
         );
     }
 

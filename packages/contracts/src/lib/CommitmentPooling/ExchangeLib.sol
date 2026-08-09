@@ -88,6 +88,18 @@ library CommitmentPoolingExchangeLib {
         private
         view
     {
+        // Paired acceptance is barter, and the contract cannot express anything else: one
+        // `gardenContext` is derived from the pool and passed to both acceptances, so a priced
+        // side would store that single garden as payer for a trade between two individuals — in
+        // the protocol pool that would silently bill the protocol Safe for both halves. A person
+        // may belong to several gardens, so the current ABI cannot authenticate a per-side payer.
+        // Free-only is therefore the honest rule until an explicit payer context exists.
+        if (offerA.consideration.amount != 0) {
+            revert ICommitmentPoolingModule.ExchangeConsiderationUnsupported(commitmentIdA, offerA.consideration.amount);
+        }
+        if (offerB.consideration.amount != 0) {
+            revert ICommitmentPoolingModule.ExchangeConsiderationUnsupported(commitmentIdB, offerB.consideration.amount);
+        }
         if (
             offerA.direction != ICommitmentPoolingModule.CommitmentDirection.Offer
                 || offerB.direction != ICommitmentPoolingModule.CommitmentDirection.Offer

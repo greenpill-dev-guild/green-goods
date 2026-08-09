@@ -155,15 +155,15 @@ abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
 
     // ═════════════════════════════ Terms ═════════════════════════════
 
-    /// @notice Declared reward is a reference to a payment made elsewhere, never custody.
-    function setDeclaredReward(
+    /// @notice Declared consideration is a reference to a payment made elsewhere, never custody.
+    function setDeclaredConsideration(
         uint256 commitmentId,
-        ICommitmentPoolingModule.DeclaredReward calldata reward
+        ICommitmentPoolingModule.DeclaredConsideration calldata consideration
     )
         external
         whenOperational
     {
-        CommitmentPoolingTermsLib.setDeclaredReward(_env(), pools, commitments, commitmentId, reward);
+        CommitmentPoolingTermsLib.setDeclaredConsideration(_env(), pools, commitments, commitmentId, consideration);
     }
 
     /// @notice Records-only valuation term; no protocol arithmetic consumes it.
@@ -204,8 +204,8 @@ abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
     }
 
     /// @notice Records a payout already executed on the Arbitrum rail. Moves no value.
-    function recordRewardPaid(uint256 commitmentId, bytes32 payoutRef) external whenOperational {
-        CommitmentPoolingTermsLib.recordRewardPaid(_env(), pools, commitments, commitmentId, payoutRef);
+    function recordConsiderationPaid(uint256 commitmentId, bytes32 payoutRef) external whenOperational {
+        CommitmentPoolingTermsLib.recordConsiderationPaid(_env(), pools, commitments, commitmentId, payoutRef);
     }
 
     // ═════════════════════════════ Sync ═════════════════════════════

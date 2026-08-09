@@ -544,7 +544,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
                 keccak256(abi.encodePacked(params.confirmers)),
                 effectiveThreshold,
                 params.protocolFallbackEnabled,
-                keccak256(abi.encode(params.reward)),
+                keccak256(abi.encode(params.consideration)),
                 params.declaredUnitValue,
                 keccak256(bytes(params.declaredValueBasis))
             )

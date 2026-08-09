@@ -37,7 +37,7 @@ library CommitmentPoolingCreationLib {
         }
         if (bytes(params.unitLabel).length == 0) revert ICommitmentPoolingModule.UnitLabelRequired();
         if (params.targetUnits == 0) revert ICommitmentPoolingModule.TargetUnitsRequired();
-        CommitmentPoolingCreationChecksLib.validateReward(params.reward);
+        CommitmentPoolingCreationChecksLib.validateConsideration(params.consideration);
         CommitmentPoolingCreationChecksLib.validateDeclaredValue(params.declaredUnitValue, params.declaredValueBasis);
         CommitmentPoolingCreationChecksLib.validateConfirmerRule(
             env, params.confirmers, params.confirmationThreshold, params.protocolFallbackEnabled
@@ -93,10 +93,16 @@ library CommitmentPoolingCreationLib {
         commitment.needUID = params.needUID;
         commitment.counterCommitmentId = params.counterCommitmentId;
         commitment.metadataCID = params.metadataCID;
-        commitment.reward = params.reward;
+        commitment.consideration = params.consideration;
         commitment.declaredUnitValue = params.declaredUnitValue;
         commitment.declaredValueBasis = params.declaredValueBasis;
         commitment.providerGarden = pool.garden;
+        // The payer is the asking side (register #90). A Request's asker is the pool itself, so it
+        // is known now and never moves. An Offer's payer is whoever claims it, so it stays zero
+        // until acceptance resolves the claiming garden.
+        if (params.direction == ICommitmentPoolingModule.CommitmentDirection.Request) {
+            commitment.payerGarden = pool.garden;
+        }
 
         for (uint256 i = 0; i < params.requirements.length; i++) {
             commitment.requirements.push(
@@ -132,11 +138,16 @@ library CommitmentPoolingCreationLib {
             domains,
             requirementActionUIDs,
             requirementDomains,
-            requirementRequiredCounts
+            requirementRequiredCounts,
+            commitment.payerGarden
         );
-        if (params.reward.amount != 0) {
-            emit ICommitmentPoolingModule.RewardDeclared(
-                commitmentId, params.reward.rail, params.reward.source, params.reward.token, params.reward.amount
+        if (params.consideration.amount != 0) {
+            emit ICommitmentPoolingModule.ConsiderationDeclared(
+                commitmentId,
+                params.consideration.rail,
+                params.consideration.source,
+                params.consideration.token,
+                params.consideration.amount
             );
         }
         if (params.declaredUnitValue != 0) {
@@ -155,7 +166,8 @@ library CommitmentPoolingCreationLib {
         uint8[] memory domains,
         uint256[] memory requirementActionUIDs,
         uint8[] memory requirementDomains,
-        uint32[] memory requirementRequiredCounts
+        uint32[] memory requirementRequiredCounts,
+        address payerGarden
     )
         private
     {
@@ -185,7 +197,8 @@ library CommitmentPoolingCreationLib {
             params.needUID,
             params.counterCommitmentId,
             params.declaredUnitValue,
-            params.declaredValueBasis
+            params.declaredValueBasis,
+            payerGarden
         );
     }
 }

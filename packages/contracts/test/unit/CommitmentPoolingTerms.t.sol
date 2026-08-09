@@ -5,7 +5,7 @@ import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolin
 import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.sol";
 
 /// @title CommitmentPoolingTermsTest
-/// @notice Pre-acceptance term edits and the Arbitrum-rail reward record for PRD-721.
+/// @notice Pre-acceptance term edits and the Arbitrum-rail consideration record for PRD-721.
 contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
     address private constant POOL_STEWARD = address(0xA001);
     address private constant CONFIRMER_ONE = address(0xC0F1);
@@ -18,18 +18,18 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
     }
 
-    // ─────────────────────────── Declared reward ───────────────────────────
+    // ─────────────────────────── Declared consideration ───────────────────────────
 
-    function testSetDeclaredRewardIsStewardOnlyAndPreAcceptanceOnly() public {
-        uint256 commitmentId = _createOffer(keccak256("reward-gating"));
+    function testSetDeclaredConsiderationIsStewardOnlyAndPreAcceptanceOnly() public {
+        uint256 commitmentId = _createOffer(keccak256("consideration-gating"));
 
         vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotPoolSteward.selector, CREATOR, poolId));
         vm.prank(CREATOR);
-        module.setDeclaredReward(commitmentId, _arbitrumReward(500));
+        module.setDeclaredConsideration(commitmentId, _arbitrumConsideration(500));
 
         vm.prank(POOL_STEWARD);
-        module.setDeclaredReward(commitmentId, _arbitrumReward(500));
-        assertEq(module.getCommitment(commitmentId).reward.amount, 500);
+        module.setDeclaredConsideration(commitmentId, _arbitrumConsideration(500));
+        assertEq(module.getCommitment(commitmentId).consideration.amount, 500);
 
         _acceptOffer(commitmentId);
         vm.expectRevert(
@@ -40,19 +40,19 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
             )
         );
         vm.prank(POOL_STEWARD);
-        module.setDeclaredReward(commitmentId, _arbitrumReward(900));
+        module.setDeclaredConsideration(commitmentId, _arbitrumConsideration(900));
     }
 
-    function testSetDeclaredRewardEnforcesRailBinding() public {
-        uint256 commitmentId = _createOffer(keccak256("reward-rail"));
+    function testSetDeclaredConsiderationEnforcesRailBinding() public {
+        uint256 commitmentId = _createOffer(keccak256("consideration-rail"));
 
         // ArbitrumExternal without a source is not a payable reference.
-        vm.expectRevert(ICommitmentPoolingModule.InvalidRewardConfiguration.selector);
+        vm.expectRevert(ICommitmentPoolingModule.InvalidConsiderationConfiguration.selector);
         vm.prank(POOL_STEWARD);
-        module.setDeclaredReward(
+        module.setDeclaredConsideration(
             commitmentId,
-            ICommitmentPoolingModule.DeclaredReward({
-                rail: ICommitmentPoolingModule.RewardRail.ArbitrumExternal,
+            ICommitmentPoolingModule.DeclaredConsideration({
+                rail: ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal,
                 source: address(0),
                 token: REWARD_TOKEN,
                 amount: 500
@@ -61,18 +61,18 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
 
         // CeloSettlement carries zero source/token sentinels; SettlementModule derives both.
         vm.prank(POOL_STEWARD);
-        module.setDeclaredReward(
+        module.setDeclaredConsideration(
             commitmentId,
-            ICommitmentPoolingModule.DeclaredReward({
-                rail: ICommitmentPoolingModule.RewardRail.CeloSettlement,
+            ICommitmentPoolingModule.DeclaredConsideration({
+                rail: ICommitmentPoolingModule.ConsiderationRail.CeloSettlement,
                 source: address(0),
                 token: address(0),
                 amount: 700
             })
         );
         assertEq(
-            uint256(module.getCommitment(commitmentId).reward.rail),
-            uint256(ICommitmentPoolingModule.RewardRail.CeloSettlement)
+            uint256(module.getCommitment(commitmentId).consideration.rail),
+            uint256(ICommitmentPoolingModule.ConsiderationRail.CeloSettlement)
         );
     }
 
@@ -161,27 +161,30 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         module.setConfirmerRule(commitmentId, confirmers, 0, false);
     }
 
-    // ──────────────────────────── Reward record ────────────────────────────
+    // ──────────────────────────── Consideration record ────────────────────────────
 
-    function testRecordRewardPaidEmitsTheDerivedRecordExactlyOnce() public {
-        uint256 commitmentId = _fulfilledCommitmentWithReward(keccak256("reward-record"), _arbitrumReward(1500));
+    function testRecordConsiderationPaidEmitsTheDerivedRecordExactlyOnce() public {
+        uint256 commitmentId =
+            _fulfilledCommitmentWithConsideration(keccak256("consideration-record"), _arbitrumConsideration(1500));
 
         vm.expectEmit(true, true, true, true);
-        emit ICommitmentPoolingModule.RewardPaid(
+        emit ICommitmentPoolingModule.ConsiderationPaid(
             commitmentId, REWARD_SOURCE, CREATOR, REWARD_TOKEN, 1500, keccak256("payout"), POOL_STEWARD
         );
         vm.prank(POOL_STEWARD);
-        module.recordRewardPaid(commitmentId, keccak256("payout"));
+        module.recordConsiderationPaid(commitmentId, keccak256("payout"));
 
-        assertTrue(module.getCommitment(commitmentId).rewardPaid);
+        assertTrue(module.getCommitment(commitmentId).considerationPaid);
 
-        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.RewardAlreadyRecorded.selector, commitmentId));
+        vm.expectRevert(
+            abi.encodeWithSelector(ICommitmentPoolingModule.ConsiderationAlreadyRecorded.selector, commitmentId)
+        );
         vm.prank(POOL_STEWARD);
-        module.recordRewardPaid(commitmentId, keccak256("payout-again"));
+        module.recordConsiderationPaid(commitmentId, keccak256("payout-again"));
     }
 
-    function testRecordRewardPaidIsStewardOnlyAndFulfilledOnly() public {
-        uint256 commitmentId = _createOfferWithReward(keccak256("reward-state"), _arbitrumReward(1500));
+    function testRecordConsiderationPaidIsStewardOnlyAndFulfilledOnly() public {
+        uint256 commitmentId = _createOfferWithConsideration(keccak256("consideration-state"), _arbitrumConsideration(1500));
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -191,19 +194,19 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
             )
         );
         vm.prank(POOL_STEWARD);
-        module.recordRewardPaid(commitmentId, keccak256("payout"));
+        module.recordConsiderationPaid(commitmentId, keccak256("payout"));
 
         _fulfill(commitmentId);
         vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotPoolSteward.selector, CLAIMANT, poolId));
         vm.prank(CLAIMANT);
-        module.recordRewardPaid(commitmentId, keccak256("payout"));
+        module.recordConsiderationPaid(commitmentId, keccak256("payout"));
     }
 
-    function testRecordRewardPaidRejectsTheCeloSettlementRail() public {
-        uint256 commitmentId = _fulfilledCommitmentWithReward(
-            keccak256("reward-celo"),
-            ICommitmentPoolingModule.DeclaredReward({
-                rail: ICommitmentPoolingModule.RewardRail.CeloSettlement,
+    function testRecordConsiderationPaidRejectsTheCeloSettlementRail() public {
+        uint256 commitmentId = _fulfilledCommitmentWithConsideration(
+            keccak256("consideration-celo"),
+            ICommitmentPoolingModule.DeclaredConsideration({
+                rail: ICommitmentPoolingModule.ConsiderationRail.CeloSettlement,
                 source: address(0),
                 token: address(0),
                 amount: 1500
@@ -212,57 +215,61 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ICommitmentPoolingModule.RewardRailMismatch.selector,
+                ICommitmentPoolingModule.ConsiderationRailMismatch.selector,
                 commitmentId,
-                ICommitmentPoolingModule.RewardRail.ArbitrumExternal,
-                ICommitmentPoolingModule.RewardRail.CeloSettlement
+                ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal,
+                ICommitmentPoolingModule.ConsiderationRail.CeloSettlement
             )
         );
         vm.prank(POOL_STEWARD);
-        module.recordRewardPaid(commitmentId, keccak256("payout"));
+        module.recordConsiderationPaid(commitmentId, keccak256("payout"));
     }
 
-    function testRecordRewardPaidRejectsAnUndeclaredReward() public {
-        uint256 commitmentId = _createOffer(keccak256("reward-undeclared"));
+    function testRecordConsiderationPaidRejectsAnUndeclaredConsideration() public {
+        uint256 commitmentId = _createOffer(keccak256("consideration-undeclared"));
         _fulfill(commitmentId);
 
-        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.RewardNotDeclared.selector, commitmentId));
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.ConsiderationNotDeclared.selector, commitmentId));
         vm.prank(POOL_STEWARD);
-        module.recordRewardPaid(commitmentId, keccak256("payout"));
+        module.recordConsiderationPaid(commitmentId, keccak256("payout"));
     }
 
     // ───────────────────────────── Helpers ─────────────────────────────
 
-    function _arbitrumReward(uint256 amount) private pure returns (ICommitmentPoolingModule.DeclaredReward memory) {
-        return ICommitmentPoolingModule.DeclaredReward({
-            rail: ICommitmentPoolingModule.RewardRail.ArbitrumExternal,
+    function _arbitrumConsideration(uint256 amount)
+        private
+        pure
+        returns (ICommitmentPoolingModule.DeclaredConsideration memory)
+    {
+        return ICommitmentPoolingModule.DeclaredConsideration({
+            rail: ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal,
             source: REWARD_SOURCE,
             token: REWARD_TOKEN,
             amount: amount
         });
     }
 
-    function _createOfferWithReward(
+    function _createOfferWithConsideration(
         bytes32 creationKey,
-        ICommitmentPoolingModule.DeclaredReward memory reward
+        ICommitmentPoolingModule.DeclaredConsideration memory consideration
     )
         private
         returns (uint256 commitmentId)
     {
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(creationKey);
-        params.reward = reward;
+        params.consideration = consideration;
         vm.prank(CREATOR);
         return module.createCommitment(params);
     }
 
-    function _fulfilledCommitmentWithReward(
+    function _fulfilledCommitmentWithConsideration(
         bytes32 creationKey,
-        ICommitmentPoolingModule.DeclaredReward memory reward
+        ICommitmentPoolingModule.DeclaredConsideration memory consideration
     )
         private
         returns (uint256 commitmentId)
     {
-        commitmentId = _createOfferWithReward(creationKey, reward);
+        commitmentId = _createOfferWithConsideration(creationKey, consideration);
         _fulfill(commitmentId);
     }
 
@@ -273,7 +280,7 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         credited[0] = CREATOR;
         vm.prank(CREATOR);
         module.attachEvidence(commitmentId, "bafy-terms-credit", credited);
-        module.markReadyForConfirmation(commitmentId, "ready for reward coverage");
+        module.markReadyForConfirmation(commitmentId, "ready for consideration coverage");
         vm.prank(CLAIMANT);
         module.confirmFulfillment(commitmentId);
     }

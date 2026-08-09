@@ -401,6 +401,12 @@
       "label": "enum ICommitmentPoolingModule.CommitmentType",
       "numberOfBytes": "1"
     },
+    "t_enum(ConsiderationRail)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "ArbitrumExternal", "CeloSettlement"],
+      "label": "enum ICommitmentPoolingModule.ConsiderationRail",
+      "numberOfBytes": "1"
+    },
     "t_enum(ContributorPolicy)": {
       "encoding": "inplace",
       "enumMembers": ["Open", "LeadManaged"],
@@ -429,12 +435,6 @@
       "encoding": "inplace",
       "enumMembers": ["Garden", "Protocol"],
       "label": "enum ICommitmentPoolingModule.PoolType",
-      "numberOfBytes": "1"
-    },
-    "t_enum(RewardRail)": {
-      "encoding": "inplace",
-      "enumMembers": ["None", "ArbitrumExternal", "CeloSettlement"],
-      "label": "enum ICommitmentPoolingModule.RewardRail",
       "numberOfBytes": "1"
     },
     "t_mapping(t_address,t_bool)": {
@@ -849,10 +849,10 @@
           "type": "t_string_storage"
         },
         {
-          "label": "reward",
+          "label": "consideration",
           "offset": 0,
           "slot": "18",
-          "type": "t_struct(DeclaredReward)_storage"
+          "type": "t_struct(DeclaredConsideration)_storage"
         },
         {
           "label": "declaredUnitValue",
@@ -867,7 +867,7 @@
           "type": "t_string_storage"
         },
         {
-          "label": "rewardPaid",
+          "label": "considerationPaid",
           "offset": 0,
           "slot": "23",
           "type": "t_bool"
@@ -885,19 +885,25 @@
           "type": "t_address"
         },
         {
-          "label": "counterpartyPoolId",
+          "label": "payerGarden",
           "offset": 0,
           "slot": "24",
+          "type": "t_address"
+        },
+        {
+          "label": "counterpartyPoolId",
+          "offset": 0,
+          "slot": "25",
           "type": "t_uint256"
         },
         {
           "label": "counterpartyGardenAccount",
           "offset": 0,
-          "slot": "25",
+          "slot": "26",
           "type": "t_address"
         }
       ],
-      "numberOfBytes": "832"
+      "numberOfBytes": "864"
     },
     "t_struct(CommitmentRequirement)_storage": {
       "encoding": "inplace",
@@ -1065,15 +1071,15 @@
       ],
       "numberOfBytes": "192"
     },
-    "t_struct(DeclaredReward)_storage": {
+    "t_struct(DeclaredConsideration)_storage": {
       "encoding": "inplace",
-      "label": "struct ICommitmentPoolingModule.DeclaredReward",
+      "label": "struct ICommitmentPoolingModule.DeclaredConsideration",
       "members": [
         {
           "label": "rail",
           "offset": 0,
           "slot": "0",
-          "type": "t_enum(RewardRail)"
+          "type": "t_enum(ConsiderationRail)"
         },
         {
           "label": "source",

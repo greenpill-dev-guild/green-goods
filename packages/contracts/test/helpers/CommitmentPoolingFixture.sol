@@ -143,8 +143,8 @@ abstract contract CommitmentPoolingFixture is Test {
         params.unitLabel = "hours";
         params.targetUnits = 1;
         params.metadataCID = "bafy-commitment";
-        params.reward = ICommitmentPoolingModule.DeclaredReward({
-            rail: ICommitmentPoolingModule.RewardRail.None,
+        params.consideration = ICommitmentPoolingModule.DeclaredConsideration({
+            rail: ICommitmentPoolingModule.ConsiderationRail.None,
             source: address(0),
             token: address(0),
             amount: 0

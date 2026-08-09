@@ -26,6 +26,15 @@ library CommitmentPoolingCreationChecksLib {
         if (pool.poolType == ICommitmentPoolingModule.PoolType.Protocol && !steward) {
             revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
         }
+        // A Garden claim exists for the protocol pool's cross-garden reach. In a garden pool the
+        // claimant resolves to that pool's own garden, so payer, provider, and the register #91
+        // recipient collapse onto one account and settlement would order a self-transfer.
+        if (
+            pool.poolType == ICommitmentPoolingModule.PoolType.Garden
+                && params.claimType == ICommitmentPoolingModule.ClaimType.Garden
+        ) {
+            revert ICommitmentPoolingModule.GardenClaimRequiresProtocolPool(params.poolId);
+        }
         if (params.commitmentType == ICommitmentPoolingModule.CommitmentType.StewardCaptured) {
             if (!steward) revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, params.poolId);
             if (params.onBehalfOf == address(0)) revert ICommitmentPoolingModule.ZeroAddress();
@@ -243,29 +252,29 @@ library CommitmentPoolingCreationChecksLib {
                 keccak256(abi.encodePacked(params.confirmers)),
                 effectiveConfirmationThreshold,
                 params.protocolFallbackEnabled,
-                keccak256(abi.encode(params.reward)),
+                keccak256(abi.encode(params.consideration)),
                 params.declaredUnitValue,
                 keccak256(bytes(params.declaredValueBasis))
             )
         );
     }
 
-    function validateReward(ICommitmentPoolingModule.DeclaredReward calldata reward) internal pure {
-        if (reward.amount == 0) {
+    function validateConsideration(ICommitmentPoolingModule.DeclaredConsideration calldata consideration) internal pure {
+        if (consideration.amount == 0) {
             if (
-                reward.rail != ICommitmentPoolingModule.RewardRail.None || reward.source != address(0)
-                    || reward.token != address(0)
-            ) revert ICommitmentPoolingModule.InvalidRewardConfiguration();
-        } else if (reward.rail == ICommitmentPoolingModule.RewardRail.ArbitrumExternal) {
-            if (reward.source == address(0) || reward.token == address(0)) {
-                revert ICommitmentPoolingModule.InvalidRewardConfiguration();
+                consideration.rail != ICommitmentPoolingModule.ConsiderationRail.None || consideration.source != address(0)
+                    || consideration.token != address(0)
+            ) revert ICommitmentPoolingModule.InvalidConsiderationConfiguration();
+        } else if (consideration.rail == ICommitmentPoolingModule.ConsiderationRail.ArbitrumExternal) {
+            if (consideration.source == address(0) || consideration.token == address(0)) {
+                revert ICommitmentPoolingModule.InvalidConsiderationConfiguration();
             }
-        } else if (reward.rail == ICommitmentPoolingModule.RewardRail.CeloSettlement) {
-            if (reward.source != address(0) || reward.token != address(0)) {
-                revert ICommitmentPoolingModule.InvalidRewardConfiguration();
+        } else if (consideration.rail == ICommitmentPoolingModule.ConsiderationRail.CeloSettlement) {
+            if (consideration.source != address(0) || consideration.token != address(0)) {
+                revert ICommitmentPoolingModule.InvalidConsiderationConfiguration();
             }
         } else {
-            revert ICommitmentPoolingModule.InvalidRewardConfiguration();
+            revert ICommitmentPoolingModule.InvalidConsiderationConfiguration();
         }
     }
 

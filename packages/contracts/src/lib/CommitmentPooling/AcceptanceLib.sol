@@ -25,12 +25,20 @@ library CommitmentPoolingAcceptanceLib {
     {
         ICommitmentPoolingModule.Pool storage pool = pools[commitment.poolId];
         if (pool.poolType == ICommitmentPoolingModule.PoolType.Garden) {
+            // Creation already refuses a garden-pool Garden claim; this keeps the invariant local
+            // to the branch that would otherwise resolve the claimant to the pool's own garden.
+            if (kind == ICommitmentPoolingModule.ClaimType.Garden) {
+                revert ICommitmentPoolingModule.GardenClaimRequiresProtocolPool(commitment.poolId);
+            }
             if (
                 gardenContext != pool.garden || !CommitmentPoolingGuardLib.isGardenMember(env.hats, pool.garden, msg.sender)
             ) {
                 revert ICommitmentPoolingModule.NotEligibleClaimant(msg.sender);
             }
         } else if (kind == ICommitmentPoolingModule.ClaimType.Garden) {
+            if (gardenContext == pool.garden) {
+                revert ICommitmentPoolingModule.GardenClaimMustBeExternal(commitment.poolId, gardenContext);
+            }
             if (
                 gardenPool[gardenContext] == 0
                     || !CommitmentPoolingGuardLib.isGardenSteward(env.hats, gardenContext, msg.sender)
@@ -65,11 +73,22 @@ library CommitmentPoolingAcceptanceLib {
     )
         internal
     {
+        ICommitmentPoolingModule.Pool storage pool = pools[commitment.poolId];
+        // Keep the recipient invariant at the final acceptance mutation, too. This closes the
+        // approval path for any pre-upgrade/backfilled pending claim that did not pass today's
+        // creation or claim-request checks.
+        if (kind == ICommitmentPoolingModule.ClaimType.Garden && pool.poolType == ICommitmentPoolingModule.PoolType.Garden)
+        {
+            revert ICommitmentPoolingModule.GardenClaimRequiresProtocolPool(commitment.poolId);
+        }
+        if (kind == ICommitmentPoolingModule.ClaimType.Garden && gardenContext == pool.garden) {
+            revert ICommitmentPoolingModule.GardenClaimMustBeExternal(commitment.poolId, gardenContext);
+        }
         address leadProvider;
         address providerGarden;
         if (commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer) {
             leadProvider = commitment.creator;
-            providerGarden = pools[commitment.poolId].garden;
+            providerGarden = pool.garden;
         } else {
             providerGarden = gardenContext;
             leadProvider = kind == ICommitmentPoolingModule.ClaimType.Garden ? requestedBy : claimant;
@@ -92,6 +111,12 @@ library CommitmentPoolingAcceptanceLib {
         commitment.counterpartyKind = kind;
         commitment.leadProvider = leadProvider;
         commitment.providerGarden = providerGarden;
+        // An Offer's payer is the side receiving it, which only exists once someone claims. A
+        // Request already stored its payer at creation, so acceptance must not overwrite it —
+        // the claimant of a Request is the provider, never the payer (register #90).
+        if (commitment.direction == ICommitmentPoolingModule.CommitmentDirection.Offer) {
+            commitment.payerGarden = gardenContext;
+        }
         commitment.state = ICommitmentPoolingModule.CommitmentState.Accepted;
         ICommitmentPoolingModule.ContributorRecord storage lead = contributors[commitmentId][leadProvider];
         lead.active = true;
@@ -99,7 +124,7 @@ library CommitmentPoolingAcceptanceLib {
 
         emit ICommitmentPoolingModule.ContributorAdded(commitmentId, leadProvider, requestedBy);
         emit ICommitmentPoolingModule.CommitmentAccepted(
-            commitmentId, claimant, claimant, kind, gardenContext, leadProvider, providerGarden
+            commitmentId, claimant, claimant, kind, gardenContext, leadProvider, providerGarden, commitment.payerGarden
         );
     }
 
