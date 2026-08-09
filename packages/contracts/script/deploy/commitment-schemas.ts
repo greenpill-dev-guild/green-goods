@@ -410,5 +410,3 @@ export class CommitmentSchemasDeployer {
     );
   }
 }
-
-export default CommitmentSchemasDeployer;

@@ -303,5 +303,3 @@ export class PoolingConfigureDeployer {
     console.log("approved work now earns commitment credit through onWorkDecision.");
   }
 }
-
-export default PoolingConfigureDeployer;

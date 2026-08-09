@@ -6,7 +6,6 @@ import { Attestation } from "@eas/IEAS.sol";
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { IWorkDecisionSequenceResolver } from "../../interfaces/IWorkDecisionSequenceResolver.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
-import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 import { CommitmentPoolingWorkCreditLib } from "./WorkCreditLib.sol";
 

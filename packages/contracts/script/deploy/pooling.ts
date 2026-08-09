@@ -193,5 +193,3 @@ export class PoolingDeployer {
     POOLING_UPGRADE_KEYS.forEach((key) => console.log(`  ${key}: ${deployment[key]}`));
   }
 }
-
-export default PoolingDeployer;
