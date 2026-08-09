@@ -68,6 +68,7 @@ const ALLOWED_CONTRACT_EVENTS = {
     "SettlementAcknowledged",
     "DuplicateAcknowledgmentIgnored",
     "StaleAcknowledgmentIgnored",
+    "StrandedSubjectFailed",
     "DisbursementRequeued",
     "DisbursementCancelled",
     "BatchCancelled",

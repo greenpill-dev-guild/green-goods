@@ -138,7 +138,9 @@ interface ICeloSettlementExecutor {
     error ExecutorMustBePaused();
     error ExecutorNotReady();
     error ImmutableGdollarMismatch(address currentToken, address replacementToken);
+    error ImmutableLocalChainSelectorMismatch(uint64 currentSelector, uint64 replacementSelector);
     error ImmutableRouterMismatch(address currentRouter, address replacementRouter);
+    error ImmutableSourceEvmChainIdMismatch(uint64 currentChainId, uint64 replacementChainId);
 
     function initialize(
         address owner_,

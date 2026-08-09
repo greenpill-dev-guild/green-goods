@@ -62,7 +62,7 @@ library SettlementAcknowledgmentLib {
         // sender must also still be who we trust now: the active peer, or the previous one inside
         // its unexpired window (Decision Log #60; settlement-spec §3.1.3). Subjects left behind
         // when the window closes go through `failStrandedSubject`, not through a retired peer.
-        if (!SettlementLifecycleLib.canStillAcknowledge(route, sender)) {
+        if (!SettlementLifecycleLib.canStillAcknowledge(route, record.destinationChainSelector, sender)) {
             revert ISettlementModule.RetiredPeerAcknowledgment(sender);
         }
         if (executionKeys[acknowledgment.originatingCommandMessageId] != acknowledgment.executionKey) {

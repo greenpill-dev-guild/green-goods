@@ -66,22 +66,35 @@ emits `ExecutorDeploymentPinned(ccipRouter, gDollarToken, remoteChainSelector, l
 sourceEvmChainId)` — the executor carries `LOCAL_CHAIN_SELECTOR` and `SOURCE_EVM_CHAIN_ID` as
 constructor immutables purely so it can state them, since neither is needed to execute a
 settlement. These events are the indexer's only source for those fields. If you add an
-initialization path, it announces its identity the same way.
+initialization path, it announces its identity the same way. The executor upgrade guard pins its
+router, G$ token, local selector, and source EVM chain ID, so an upgrade cannot silently make the
+initialize-time identity event stale.
 
 **Acknowledgments are checked against the live route.** `SettlementLifecycleLib.canStillAcknowledge`
-is the shared predicate: the active peer, or the previous peer inside its unexpired grace window.
-A retired executor's acknowledgment reverts `RetiredPeerAcknowledgment`. Its companion is
+is the shared predicate: the matching active selector/address pair, or the previous address on that
+same selector inside its unexpired grace window. A retired lane or executor's acknowledgment
+reverts `RetiredPeerAcknowledgment`. Its companion is
 `failStrandedSubject(bool isBatch, uint256 subjectId)`, owner-only, which closes out a `Dispatched`
 subject whose executor can no longer answer and refuses with `SubjectNotStranded` while it still
-can. It writes `FailureCode.SourceStranded`, appended last so ordinals 0-11 stay identical to the
-executor's enum. **A loan-principal disbursement is a commitment-bound child like any other, so it
-inherits both of these.** Your tests must cover a stranded loan disbursement.
+can. The command record must match both `isBatch` and `subjectId`; a child cannot consume its
+batch's shared command record. The path writes `FailureCode.SourceStranded`, appended last so
+ordinals 0-11 stay identical to the executor's enum, and emits the indexer-projected
+`StrandedSubjectFailed(executionKey, isBatch, subjectId, retiredExecutor)`. **A loan-principal
+disbursement is a commitment-bound child like any other, so it inherits both of these.** Your tests
+must cover a stranded loan disbursement.
+
+The source contract cannot prove whether a stranded command already paid on Celo. Before any
+requeue, stage-3 tooling must reconcile the executor result and Safe movement on Celo and refuse to
+proceed without that evidence; otherwise an owner mistake can pay twice even though a later
+acknowledgment is ignored.
 
 **Claiming a priced Offer requires a steward.**
 `CommitmentPoolingAcceptanceLib.requirePricedOfferClaimAuthority` gates it, reverting
 `PricedOfferClaimRequiresSteward`. This is the pooling side, not yours, but it is the current
 precedent for "an institutional act needs institutional authority" — the same question arises for
-who may request a loan `onBehalfOf` a pool member.
+who may request a loan `onBehalfOf` a pool member. Approval-gated Offers re-establish the original
+authority at final acceptance: the human `requestedBy` must still steward a Garden claim, a priced
+Individual claimant must still be a steward, and a free Individual claimant must still be a member.
 
 `DisbursementKind` ordinals as built: `ContributorConsideration` 0, `Funding` 1, `LoanPrincipal` 2,
 `GardenBeneficiary` 3. `LoanPrincipal` is still reserved and unqueued — no code path reaches it.

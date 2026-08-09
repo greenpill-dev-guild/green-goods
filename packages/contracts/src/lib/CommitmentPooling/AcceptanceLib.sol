@@ -38,6 +38,37 @@ library CommitmentPoolingAcceptanceLib {
         }
     }
 
+    /// @dev Approval can arrive long after the request. Re-establish the exact authority that made
+    ///      the pending claim eligible before acceptance binds the Offer's payer: Garden claims are
+    ///      institutional acts by `requestedBy`; Individual claims need a current steward when
+    ///      priced and a current member when free.
+    function requireOfferClaimAuthorityAtAcceptance(
+        CommitmentPoolingCommonLib.Env memory env,
+        ICommitmentPoolingModule.Commitment storage commitment,
+        ICommitmentPoolingModule.ClaimType kind,
+        address gardenContext,
+        address claimant,
+        address requestedBy
+    )
+        internal
+        view
+    {
+        if (commitment.direction != ICommitmentPoolingModule.CommitmentDirection.Offer || gardenContext == address(0)) {
+            return;
+        }
+        if (kind == ICommitmentPoolingModule.ClaimType.Garden) {
+            if (!CommitmentPoolingGuardLib.isGardenSteward(env.hats, gardenContext, requestedBy)) {
+                revert ICommitmentPoolingModule.NotEligibleClaimant(requestedBy);
+            }
+            return;
+        }
+        if (commitment.consideration.amount != 0) {
+            requirePricedOfferClaimAuthority(env, commitment, kind, gardenContext, claimant);
+        } else if (!CommitmentPoolingGuardLib.isGardenMember(env.hats, gardenContext, claimant)) {
+            revert ICommitmentPoolingModule.NotEligibleClaimant(claimant);
+        }
+    }
+
     function resolveClaimant(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
@@ -98,7 +129,8 @@ library CommitmentPoolingAcceptanceLib {
         address claimant,
         address requestedBy,
         ICommitmentPoolingModule.ClaimType kind,
-        address gardenContext
+        address gardenContext,
+        bool enforceClaimAuthority
     )
         internal
     {
@@ -129,7 +161,12 @@ library CommitmentPoolingAcceptanceLib {
         // creator, never the claimant, so nothing else here would notice a claimant who lost their
         // steward hat while an approval-gated claim sat pending. Ordered after that check so the
         // provider-side error stays the specific one where both apply.
-        requirePricedOfferClaimAuthority(env, commitment, kind, gardenContext, claimant);
+        // Bilateral exchange passes false because its preflight rechecks both creators as current
+        // providers and does not consume a pending claim. Ordinary Open and ApprovalGated claims
+        // pass true; only the latter can have stale authority between request and acceptance.
+        if (enforceClaimAuthority) {
+            requireOfferClaimAuthorityAtAcceptance(env, commitment, kind, gardenContext, claimant, requestedBy);
+        }
         if (commitment.contributorCount + 1 > CommitmentPoolingCommonLib.MAX_CONTRIBUTORS_PER_COMMITMENT) {
             revert ICommitmentPoolingModule.TooManyContributors(
                 commitment.contributorCount + 1, CommitmentPoolingCommonLib.MAX_CONTRIBUTORS_PER_COMMITMENT

@@ -77,6 +77,20 @@ contract CeloSettlementExecutor is CeloSettlementViews {
         } catch {
             revert ImmutableGdollarMismatch(G_DOLLAR_TOKEN, address(0));
         }
+        try ICeloSettlementExecutor(newImplementation).LOCAL_CHAIN_SELECTOR() returns (uint64 replacementSelector) {
+            if (replacementSelector != LOCAL_CHAIN_SELECTOR) {
+                revert ImmutableLocalChainSelectorMismatch(LOCAL_CHAIN_SELECTOR, replacementSelector);
+            }
+        } catch {
+            revert ImmutableLocalChainSelectorMismatch(LOCAL_CHAIN_SELECTOR, 0);
+        }
+        try ICeloSettlementExecutor(newImplementation).SOURCE_EVM_CHAIN_ID() returns (uint64 replacementChainId) {
+            if (replacementChainId != SOURCE_EVM_CHAIN_ID) {
+                revert ImmutableSourceEvmChainIdMismatch(SOURCE_EVM_CHAIN_ID, replacementChainId);
+            }
+        } catch {
+            revert ImmutableSourceEvmChainIdMismatch(SOURCE_EVM_CHAIN_ID, 0);
+        }
     }
 
     receive() external payable {

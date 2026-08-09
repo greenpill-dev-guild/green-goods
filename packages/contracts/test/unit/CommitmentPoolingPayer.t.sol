@@ -125,6 +125,67 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
         assertEq(commitment.payerGarden, POOL_GARDEN, "a free commitment still names who would pay");
     }
 
+    /// @notice A free approval-gated Offer still requires the claimant to be a current member.
+    function testApprovalGatedFreeOfferRechecksClaimantMembership() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params =
+            _baseParams(keccak256("payer-protocol-free-pending"));
+        params.poolId = protocolPoolId;
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+
+        vm.prank(PROVIDER_MEMBER);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        hats.setGardener(POOL_GARDEN, PROVIDER_MEMBER, false);
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotEligibleClaimant.selector, PROVIDER_MEMBER));
+        vm.prank(CREATOR);
+        module.acceptClaim(commitmentId, PROVIDER_MEMBER);
+    }
+
+    /// @notice A priced Individual claim must still have a steward when approval binds the payer.
+    function testApprovalGatedPricedOfferRechecksIndividualStewardship() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params =
+            _baseParams(keccak256("payer-protocol-priced-individual-pending"));
+        params.poolId = protocolPoolId;
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        params.consideration = _arbitrum(500);
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+
+        vm.prank(GARDEN_STEWARD);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        hats.setOperator(POOL_GARDEN, GARDEN_STEWARD, false);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICommitmentPoolingModule.PricedOfferClaimRequiresSteward.selector, POOL_GARDEN, GARDEN_STEWARD
+            )
+        );
+        vm.prank(CREATOR);
+        module.acceptClaim(commitmentId, GARDEN_STEWARD);
+    }
+
+    /// @notice A Garden claim rechecks the human steward rather than the GardenAccount claimant.
+    function testApprovalGatedPricedOfferRechecksGardenClaimStewardship() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params =
+            _baseParams(keccak256("payer-protocol-priced-garden-pending"));
+        params.poolId = protocolPoolId;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Garden;
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        params.consideration = _arbitrum(500);
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+
+        vm.prank(GARDEN_STEWARD);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Garden, POOL_GARDEN);
+        hats.setOperator(POOL_GARDEN, GARDEN_STEWARD, false);
+
+        vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotEligibleClaimant.selector, GARDEN_STEWARD));
+        vm.prank(CREATOR);
+        module.acceptClaim(commitmentId, POOL_GARDEN);
+    }
+
     /// @notice The payer is a settlement fact, so it must be final once acceptance stores it.
     function testAcceptedPayerIsImmutableAcrossLaterTermEdits() public {
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("payer-immutable"));

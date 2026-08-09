@@ -469,6 +469,28 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
             )
         );
         proxy.upgradeToAndCall(address(wrongToken), bytes(""));
+
+        CeloSettlementExecutor wrongLocalSelector =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR + 1, SOURCE_EVM_CHAIN_ID);
+        vm.prank(OWNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICeloSettlementExecutor.ImmutableLocalChainSelectorMismatch.selector, CELO_SELECTOR, CELO_SELECTOR + 1
+            )
+        );
+        proxy.upgradeToAndCall(address(wrongLocalSelector), bytes(""));
+
+        CeloSettlementExecutor wrongSourceChain =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID + 1);
+        vm.prank(OWNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICeloSettlementExecutor.ImmutableSourceEvmChainIdMismatch.selector,
+                SOURCE_EVM_CHAIN_ID,
+                SOURCE_EVM_CHAIN_ID + 1
+            )
+        );
+        proxy.upgradeToAndCall(address(wrongSourceChain), bytes(""));
     }
 
     function testExecutorUpgradeAndRollbackPreserveState() public {

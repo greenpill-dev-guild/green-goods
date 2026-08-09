@@ -54,7 +54,8 @@ library CommitmentPoolingExchangeLib {
             acceptorOfA,
             acceptorOfA,
             ICommitmentPoolingModule.ClaimType.Individual,
-            gardenContext
+            gardenContext,
+            false
         );
         CommitmentPoolingAcceptanceLib.acceptCommitment(
             env,
@@ -66,7 +67,8 @@ library CommitmentPoolingExchangeLib {
             msg.sender,
             msg.sender,
             ICommitmentPoolingModule.ClaimType.Individual,
-            gardenContext
+            gardenContext,
+            false
         );
         emit ICommitmentPoolingModule.ExchangeAccepted(
             counterCommitmentId, exchangeCommitmentId, offerB.poolId, acceptorOfA, msg.sender

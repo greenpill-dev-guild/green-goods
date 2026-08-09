@@ -51,7 +51,8 @@ library CommitmentPoolingClaimsLib {
                 claimant,
                 requestedBy,
                 kind,
-                gardenContext
+                gardenContext,
+                true
             );
         } else {
             ICommitmentPoolingModule.PendingClaim storage claim = pendingClaim[commitmentId][claimant];
@@ -105,7 +106,8 @@ library CommitmentPoolingClaimsLib {
             acceptedClaim.claimant,
             acceptedClaim.requestedBy,
             acceptedClaim.kind,
-            acceptedClaim.gardenContext
+            acceptedClaim.gardenContext,
+            true
         );
     }
 

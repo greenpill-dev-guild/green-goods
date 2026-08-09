@@ -33,9 +33,6 @@ library SettlementLifecycleLib {
         uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID
     );
     event BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID);
-    event StrandedSubjectFailed(
-        bytes32 indexed executionKey, bool isBatch, uint256 indexed subjectId, address indexed retiredExecutor
-    );
 
     /// @dev Keeps the full batch-homogeneity proof adjacent to the state transition it authorizes.
     // solhint-disable-next-line code-complexity
@@ -357,24 +354,36 @@ library SettlementLifecycleLib {
             ? _knownBatch(batches, subjectId).executionKey
             : _knownDisbursement(disbursements, subjectId).executionKey;
         ISettlementModule.CommandRecord storage record = records[executionKey];
-        if (executionKey == bytes32(0) || record.subjectId == 0) revert ISettlementModule.InvalidExecutionKey();
+        if (
+            executionKey == bytes32(0) || record.subjectId == 0 || record.isBatch != isBatch
+                || record.subjectId != subjectId
+        ) revert ISettlementModule.InvalidExecutionKey();
         if (record.acknowledged) revert ISettlementModule.InvalidExecutionKey();
 
-        if (canStillAcknowledge(route, record.destinationExecutor)) {
+        if (canStillAcknowledge(route, record.destinationChainSelector, record.destinationExecutor)) {
             revert ISettlementModule.SubjectNotStranded(isBatch, subjectId);
         }
 
         record.acknowledged = true;
         if (isBatch) _failStrandedBatch(disbursements, batches, planState, subjectId);
         else _failStrandedDisbursement(disbursements, planState, subjectId);
-        emit StrandedSubjectFailed(executionKey, isBatch, subjectId, record.destinationExecutor);
+        emit ISettlementModule.StrandedSubjectFailed(executionKey, isBatch, subjectId, record.destinationExecutor);
     }
 
-    /// @notice Whether an executor is still trusted to acknowledge: the active peer, or the
-    ///         previous one inside its unexpired grace window.
+    /// @notice Whether a selector/executor pair is still trusted to acknowledge: the active peer,
+    ///         or the previous peer on that same lane inside its unexpired grace window.
     /// @dev Shared with the acknowledgment path so the two can never disagree about who is retired
     ///      — a subject must be closeable exactly when its acknowledgment would be refused.
-    function canStillAcknowledge(ISettlementModule.CcipRoute memory route, address executor) internal view returns (bool) {
+    function canStillAcknowledge(
+        ISettlementModule.CcipRoute memory route,
+        uint64 chainSelector,
+        address executor
+    )
+        internal
+        view
+        returns (bool)
+    {
+        if (chainSelector != route.destinationChainSelector) return false;
         if (executor == route.destinationExecutor) return true;
         return executor == route.previousDestinationExecutor && route.previousPeerExpiresAt != 0
             && block.timestamp <= route.previousPeerExpiresAt;

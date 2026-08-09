@@ -334,6 +334,9 @@ interface ISettlementModule {
     );
     event DuplicateAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId);
     event StaleAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId);
+    event StrandedSubjectFailed(
+        bytes32 indexed executionKey, bool isBatch, uint256 indexed subjectId, address indexed retiredExecutor
+    );
     event DisbursementRequeued(uint256 indexed disbursementId, uint32 attempt);
     event DisbursementCancelled(
         uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID

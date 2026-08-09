@@ -1645,7 +1645,8 @@
           "RouteReverted",
           "UnsupportedReceiverPaysFee",
           "FeeQuoteExceeded",
-          "BalanceDeltaMismatch"
+          "BalanceDeltaMismatch",
+          "SourceStranded"
         ]
       },
       "representations": [
@@ -1668,7 +1669,8 @@
             "RouteReverted",
             "UnsupportedReceiverPaysFee",
             "FeeQuoteExceeded",
-            "BalanceDeltaMismatch"
+            "BalanceDeltaMismatch",
+            "SourceStranded"
           ]
         },
         {
@@ -1694,7 +1696,17 @@
           ]
         }
       ],
-      "mappings": []
+      "mappings": [
+        {
+          "id": "executor-failure-codes-to-source",
+          "from": "executor-solidity",
+          "to": "source-solidity",
+          "kind": "identity",
+          "total_from": true,
+          "unmapped_to": ["SourceStranded"],
+          "note": "SourceStranded is a source-only recovery disposition and is never accepted from the executor over CCIP."
+        }
+      ]
     },
     {
       "id": "result-status",

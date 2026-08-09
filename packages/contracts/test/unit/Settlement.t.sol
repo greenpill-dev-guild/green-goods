@@ -73,6 +73,32 @@ contract SettlementLifecycleTest is SettlementPayerTest {
         assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
     }
 
+    /// @notice Reusing an executor address on another selector does not keep the old lane trusted.
+    /// @dev Deterministic deployments can have the same address on two chains. The live route is
+    ///      therefore the selector/address pair, not the address alone.
+    function testSameExecutorAddressOnANewSelectorCannotAcknowledgeTheOldLane() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCcipRoute(2, ACTIVE_EXECUTOR, 500_000, 1, 0);
+        settlement.setPaused(false);
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerAcknowledgment.selector, ACTIVE_EXECUTOR));
+        router.deliver(
+            address(settlement),
+            keccak256("old-lane-same-address"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Failed));
+    }
+
     /// @notice A subject whose executor has retired can be closed out, and only once it truly has.
     /// @dev Without this the tightened acknowledgment check would trade a security hole for a
     ///      liveness one: requeue needs Failed and cancel accepts only Queued or Failed, so a
@@ -196,6 +222,48 @@ contract SettlementLifecycleTest is SettlementPayerTest {
         bytes32 expectedBatchKey = keccak256(abi.encode(ARBITRUM_SELECTOR, address(settlement), true, batchId, uint32(0)));
         assertEq(batch.executionKey, expectedBatchKey);
         assertTrue(batch.executionKey != unbatchedKey);
+    }
+
+    /// @notice A batch command cannot be consumed through one of the children that shares its key.
+    /// @dev Both id counters start at one, so this also covers a same-numbered batch and child. The
+    ///      rejected call must leave the command usable for the correct batch close-out and keep
+    ///      payout-plan counters balanced through the later child requeue.
+    function testStrandedBatchRejectsAChildDomainCloseOut() public {
+        pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setBatchSizeLimit(1);
+        settlement.setPaused(false);
+        uint256 planId = settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+        settlement.finalizeCommitmentPayoutPlan(planId);
+        uint256 childId = settlement.prepareGardenBeneficiaryPayout(planId);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = childId;
+        uint256 batchId = settlement.createBatch(ids);
+        settlement.dispatchBatch(batchId);
+        vm.stopPrank();
+
+        assertEq(childId, batchId, "the regression needs the colliding-id shape");
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(ISettlementModule.InvalidExecutionKey.selector);
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+        assertEq(uint8(settlement.getBatch(batchId).state), uint8(ISettlementModule.DisbursementState.Dispatched));
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Dispatched));
+        assertEq(settlement.getPayoutPlan(planId).failedPayoutCount, 0);
+
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(true, batchId);
+        assertEq(uint8(settlement.getBatch(batchId).state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(settlement.getPayoutPlan(planId).failedPayoutCount, 1);
+
+        vm.prank(OWNER);
+        settlement.requeue(childId);
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Queued));
+        assertEq(settlement.getPayoutPlan(planId).failedPayoutCount, 0);
     }
 
     function testCrossGardenContributorPlanRejectsRetention() public {

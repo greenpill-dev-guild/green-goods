@@ -163,6 +163,16 @@ function acknowledged(
   });
 }
 
+function stranded(executionKey: string, isBatch: boolean, subjectId: bigint, timestamp: number) {
+  return SettlementModule.StrandedSubjectFailed.createMockEvent({
+    executionKey,
+    isBatch,
+    subjectId,
+    retiredExecutor: addr(80),
+    mockEventData: mockEvent(timestamp),
+  });
+}
+
 describe("settlement lifecycle projections", () => {
   it("projects account, route, dispatcher, pause, and source fee-reserve configuration", async () => {
     let mockDb = createTestIndexer();
@@ -528,6 +538,79 @@ describe("settlement lifecycle projections", () => {
     assert.equal(second?.payoutPlanEntityId, `${CHAIN_ID}-70`);
     assert.equal(plan?.cancelledPayoutCount, 2);
     assert.equal(plan?.status, "FAILED");
+  });
+
+  it("projects a stranded batch failure to every child and payout-plan counter", async () => {
+    const executionKey = bytes32(280);
+    const commandMessageId = bytes32(281);
+    let mockDb = createTestIndexer();
+    seedSourceLane(mockDb);
+    mockDb = await processEvents(mockDb, [
+      payoutPlanCreated(80n, 800n, 1),
+      payoutPlanFinalized(80n, 2n, 2),
+      queued(80n, 800n, 81n, addr(20), 180n, 3),
+      queued(80n, 800n, 82n, addr(22), 120n, 4),
+      SettlementModule.BatchCreated.createMockEvent({
+        batchId: 83n,
+        executorGarden: addr(1),
+        source: addr(4),
+        token: addr(91),
+        kind: 0n,
+        fundingRoute: 0n,
+        disbursementIds: [81n, 82n],
+        mockEventData: mockEvent(5),
+      }),
+      command("SettlementCommandDispatched", executionKey, commandMessageId, true, 83n, 0n, 6),
+      stranded(executionKey, true, 83n, 7),
+    ]);
+
+    const batch = await mockDb.SettlementBatch.get(`${CHAIN_ID}-83`);
+    const first = await mockDb.Disbursement.get(`${CHAIN_ID}-81`);
+    const second = await mockDb.Disbursement.get(`${CHAIN_ID}-82`);
+    const plan = await mockDb.CommitmentPayoutPlan.get(`${CHAIN_ID}-80`);
+    const subject = await mockDb.SettlementSubjectState.get(`${CHAIN_ID}-B-83`);
+    assert.equal(batch?.state, "FAILED");
+    assert.equal(first?.state, "FAILED");
+    assert.equal(second?.state, "FAILED");
+    assert.equal(batch?.failureCode, 12);
+    assert.equal(first?.failureCode, 12);
+    assert.equal(subject?.state, "FAILED");
+    assert.equal(plan?.failedPayoutCount, 2);
+    assert.equal(plan?.status, "FAILED");
+
+    mockDb = await processEvents(mockDb, [
+      SettlementModule.DisbursementRequeued.createMockEvent({
+        disbursementId: 81n,
+        attempt: 1n,
+        mockEventData: mockEvent(8),
+      }),
+    ]);
+    assert.equal((await mockDb.Disbursement.get(`${CHAIN_ID}-81`))?.state, "QUEUED");
+    assert.equal((await mockDb.CommitmentPayoutPlan.get(`${CHAIN_ID}-80`))?.failedPayoutCount, 1);
+  });
+
+  it("projects an unbatched stranded failure without inventing an acknowledgment", async () => {
+    const executionKey = bytes32(290);
+    const commandMessageId = bytes32(291);
+    let mockDb = createTestIndexer();
+    seedSourceLane(mockDb);
+    mockDb = await processEvents(mockDb, [
+      payoutPlanCreated(90n, 900n, 1),
+      payoutPlanFinalized(90n, 1n, 2),
+      queued(90n, 900n, 91n, addr(20), 300n, 3),
+      command("SettlementCommandDispatched", executionKey, commandMessageId, false, 91n, 0n, 4),
+      stranded(executionKey, false, 91n, 5),
+    ]);
+
+    const disbursement = await mockDb.Disbursement.get(`${CHAIN_ID}-91`);
+    const subject = await mockDb.SettlementSubjectState.get(`${CHAIN_ID}-D-91`);
+    const plan = await mockDb.CommitmentPayoutPlan.get(`${CHAIN_ID}-90`);
+    assert.equal(disbursement?.state, "FAILED");
+    assert.equal(disbursement?.failureCode, 12);
+    assert.equal(disbursement?.acknowledgmentMessageId, undefined);
+    assert.equal(subject?.state, "FAILED");
+    assert.equal(subject?.acknowledgmentMessageId, undefined);
+    assert.equal(plan?.failedPayoutCount, 1);
   });
 
   it("projects executor peer, policy, route, execution, deferral, duplicate, and ack reserve", async () => {

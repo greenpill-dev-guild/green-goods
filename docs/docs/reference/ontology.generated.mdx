@@ -461,12 +461,16 @@ Read-model direction derived from immutable payer and provider gardens plus the 
 
 Stored settlement failure taxonomy used for deterministic recovery and operator rendering.
 
-**Canonical members:** None (0) · GardenRouteUnavailable (1) · InvalidRecipient (2) · BatchSizeExceeded (3) · TransferAmountExceeded (4) · BatchAmountExceeded (5) · PeriodCapExceeded (6) · RouteRejected (7) · RouteReverted (8) · UnsupportedReceiverPaysFee (9) · FeeQuoteExceeded (10) · BalanceDeltaMismatch (11)
+**Canonical members:** None (0) · GardenRouteUnavailable (1) · InvalidRecipient (2) · BatchSizeExceeded (3) · TransferAmountExceeded (4) · BatchAmountExceeded (5) · PeriodCapExceeded (6) · RouteRejected (7) · RouteReverted (8) · UnsupportedReceiverPaysFee (9) · FeeQuoteExceeded (10) · BalanceDeltaMismatch (11) · SourceStranded (12)
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
-| source-solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch</code> |  |
+| source-solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch, SourceStranded</code> |  |
 | executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · FailureCode</code> | <code>None, GardenRouteUnavailable, InvalidRecipient, BatchSizeExceeded, TransferAmountExceeded, BatchAmountExceeded, PeriodCapExceeded, RouteRejected, RouteReverted, UnsupportedReceiverPaysFee, FeeQuoteExceeded, BalanceDeltaMismatch</code> |  |
+
+- **Mapping `executor-failure-codes-to-source`** (executor-solidity → source-solidity; identity; total; unmapped on the right: SourceStranded): identity (same spelling on both sides).
+  - Code anchor: none — no runtime mapping function exists yet.
+  - SourceStranded is a source-only recovery disposition and is never accepted from the executor over CCIP.
 
 ### `settlement-execution-status`
 
