@@ -1,13 +1,28 @@
 # Codex session prompt: Commitment Credit contract increment
 
-Date: 2026-08-08
+Date: 2026-08-08. **Revised 2026-08-09** — the gates this prompt used to wait on have cleared, and
+the interfaces it builds against moved. Read the activation gate before anything else.
 
 ## Activation gate
 
-Use this prompt only after a human confirms that the payer/recipient/settlement implementation PR
-has merged into the target base. This is stage 2 of 3. It owns the credit-contract increment only.
-It does not own the earlier pooling PR, downstream indexer/shared/UI work, deployment tooling, live
-configuration, or broadcast.
+This is stage 2 of 3. It owns the credit-contract increment only: not the pooling PR, not the
+downstream indexer/shared/UI work, not deployment tooling, live configuration, or broadcast.
+
+**The three preconditions are met as of 2026-08-09.** Verify each rather than trusting this list.
+
+1. **Stage 1 is merged.** greenpill-dev-guild/green-goods#694 merged to `develop` as merge commit
+   `c60b38dea`, carrying the pooling module, the payer/recipient correction, the settlement module
+   and Celo executor, and the schema recovery lane.
+2. **The human legal/operations review is cleared.** Afo signed off the interest-free,
+   records-only lending posture on 2026-08-09; `.plans/active/commitment-credit-follow-on/status.json`
+   records it. That was dispatch gate 3.
+3. **The branch already exists.** Work on `feature/build-commitment-crediting-contracts`, branched
+   from `c60b38dea`. Do not create another branch, and do not use the older
+   `codex/contracts/commitment-credit-follow-on` name from the Plan Hub signal.
+
+What remains open is gate 2, and it is your first task: **spec revalidation against the interfaces
+as built**. Three decisions landed on this branch after stage 1 merged and they change the
+settlement surface you build against — see "Interface as built" below. `spec.md` predates them.
 
 Repository:
 
@@ -20,25 +35,54 @@ Before changing files:
 1. Read the root `AGENTS.md`, `packages/contracts/AGENTS.md`,
    `.plans/active/commitment-credit-follow-on/{brief.md,spec.md,plan.todo.md,status.json,eval.md}`,
    its `handoffs/codex-contracts.md`, and the implemented pooling/settlement interfaces.
-2. Fetch or otherwise refresh the named target branch, confirm the stage-1 PR is actually merged,
-   and pin the new merge base and HEAD. Do not rely on this dated prompt for live Git state.
-3. Inspect `git status`, recent commits, current worktrees, and file ownership. Preserve unrelated
-   concurrent work; never reset or revert it.
-4. Create or switch to the fresh credit-contract branch only when the human launching this prompt
-   explicitly authorizes that branch action. The current Plan Hub branch signal is
-   `codex/contracts/commitment-credit-follow-on`; re-read it rather than treating the name as
-   permanent.
+2. Pin the actual merge base and HEAD from Git. Do not rely on this dated prompt for live state.
+3. Inspect `git status`, recent commits, and current worktrees. This repository runs concurrent
+   agents: preserve unrelated work, never reset or revert it, and surface anything unexpected
+   rather than fixing it.
+4. Read `.plans/active/commitment-pooling/reports/pre-merge-review-2026-08-09.md`. It records
+   verified open defects in the settlement contracts and the indexer read model. You are not fixing
+   them, but you must not build on top of one and you must not re-report them as new.
 5. Run the Plan Hub Linear preview before implementation:
 
    ```bash
    node scripts/harness/plan-hub.mjs linear-sync --feature commitment-credit-follow-on --json
    ```
 
-   The known records at this dated snapshot are parent PRD-697 and contracts lane PRD-785. Query
-   live Linear before writing; `.plans` remains execution truth.
+   The known records are parent PRD-697 and contracts lane PRD-785. Query live Linear before
+   writing; `.plans` remains execution truth. When you do write to Linear, follow the house style
+   in `AGENTS.md` — plain sentences for a teammate opening the issue cold, no spec citations, no
+   decision numbers, no pasted agent output.
 
-If the stage-1 merge, clean branch base, or human legal/operations gate cannot be proven, stop and
-report the blocker. Do not implement around it.
+If any precondition fails to verify, stop and report the blocker. Do not implement around it.
+
+## Interface as built (2026-08-09)
+
+Three decisions landed after stage 1 merged. They are the reason gate 2 is still open, and each one
+touches something the credit seam sits next to. Read the code, not this summary.
+
+**Deployment identity is emitted.** `SettlementModule.initialize` emits
+`SettlementDeploymentPinned(ccipRouter, localChainSelector, remoteEvmChainId)` and the executor
+emits `ExecutorDeploymentPinned(ccipRouter, gDollarToken, remoteChainSelector)`. These are the
+indexer's only source for those fields. If you add an initialization path, it emits its identity
+the same way.
+
+**Acknowledgments are checked against the live route.** `SettlementLifecycleLib.canStillAcknowledge`
+is the shared predicate: the active peer, or the previous peer inside its unexpired grace window.
+A retired executor's acknowledgment reverts `RetiredPeerAcknowledgment`. Its companion is
+`failStrandedSubject(bool isBatch, uint256 subjectId)`, owner-only, which closes out a `Dispatched`
+subject whose executor can no longer answer and refuses with `SubjectNotStranded` while it still
+can. It writes `FailureCode.SourceStranded`, appended last so ordinals 0-11 stay identical to the
+executor's enum. **A loan-principal disbursement is a commitment-bound child like any other, so it
+inherits both of these.** Your tests must cover a stranded loan disbursement.
+
+**Claiming a priced Offer requires a steward.**
+`CommitmentPoolingAcceptanceLib.requirePricedOfferClaimAuthority` gates it, reverting
+`PricedOfferClaimRequiresSteward`. This is the pooling side, not yours, but it is the current
+precedent for "an institutional act needs institutional authority" — the same question arises for
+who may request a loan `onBehalfOf` a pool member.
+
+`DisbursementKind` ordinals as built: `ContributorConsideration` 0, `Funding` 1, `LoanPrincipal` 2,
+`GardenBeneficiary` 3. `LoanPrincipal` is still reserved and unqueued — no code path reaches it.
 
 ## Mandate
 
@@ -101,8 +145,8 @@ reference; neither system transitions the other.
 
 ## Settlement seam
 
-`ISettlementModule.DisbursementKind.LoanPrincipal` already exists at the 2026-08-08 implementation
-snapshot. The dedicated queue selector and its exact loan relationship do not.
+`ISettlementModule.DisbursementKind.LoanPrincipal` exists and is still reserved: nothing queues it.
+The dedicated queue selector and its exact loan relationship do not exist.
 
 The credit contract stage must add one explicit loan-principal queue path whose preflight derives
 the approved loan, pool garden, source Safe, borrower recipient, canonical G$, principal, and loan
@@ -124,11 +168,25 @@ policy, keep G$ repayment disabled. Jar/Treasury borrow-and-repay is the executa
 
 Verify this against the merged base before relying on it:
 
-- built: pooling and settlement foundations, including the `LoanPrincipal` enum ordinal;
+- built: pooling and settlement foundations, including the `LoanPrincipal` enum ordinal, plus the
+  three 2026-08-09 decisions above;
 - not built: `ICreditRegistry`, `CreditRegistry`, its storage baseline and behavior tests, and the
   dedicated settlement loan-principal queue selector;
 - deliberately not part of this stage: deploy scripts, deployment artifacts, live addresses,
   indexer/shared/UI implementation, Safe/Role configuration, courier operation, and broadcast.
+
+**Known-open and not yours to fix.** The pre-merge review found real defects that are still open,
+all pre-deploy. In the settlement contracts: the Arbitrum account registry does not enforce the 1:1
+Safe-to-garden mapping the Celo side does, registration is write-once at steward tier with no owner
+correction path, and a batch can be griefed into failure by one hostile recipient through a G$
+receive hook. In the indexer: every settlement-to-`Garden` join key is written lowercase while
+`Garden.id` is checksummed, `contributorEntityId` is a bare address against a composite
+`Gardener.id`, and several update handlers bail before writing subject state so reverse-delivered
+events never reconcile. Do not build a credit path that depends on any of these being correct, do
+not fix them here, and do not re-report them as new findings.
+
+Nothing is deployed. No settlement address is registered in `packages/indexer/config.yaml`, and no
+deploy target exists for either settlement contract — that is stage 3.
 
 Do not call the credit lane complete merely because the contracts PR becomes merge-ready. This
 stage completes only the contracts increment.
@@ -137,10 +195,14 @@ stage completes only the contracts increment.
 
 Execute in dependency order with RED/GREEN evidence:
 
-1. Reconcile the Plan Hub dispatch gate with the three-stage branch decision. Preserve the merged
-   pooling foundation requirement, revalidate every spec-cited interface/path, and record the
-   completed human legal/operations review. Remove only the requirement that final deployment
-   plumbing already exist before credit implementation.
+1. **Close gate 2 first: revalidate `spec.md` against the interfaces as built.** This is not a
+   formality — `spec.md` predates the three 2026-08-09 decisions, and stage 1 itself renamed the
+   promise-side `Reward*` vocabulary to `Consideration*` and added `payerGarden`, so any spec
+   sentence naming a settlement type, event, or authority is suspect until you have opened the
+   code. Record what moved, then reconcile the Plan Hub dispatch gate: gate 3 (legal/operations)
+   is cleared and gate 1 (stage-1 merge) is met, so only the deployment-plumbing prerequisite is
+   removed. Do not leave `status.json`, `plan.todo.md`, or the handoff describing a gate that no
+   longer exists.
 2. Produce a selector/requirement coverage ledger for the exact credit ABI, permissions, state
    transitions, storage, events, errors, settlement seam, and upgrade surface.
 3. Record failing focused tests before production implementation. No behavior-changing lane may be
@@ -173,7 +235,10 @@ Execute in dependency order with RED/GREEN evidence:
   replayed `executionRef`;
 - zero/invalid pool, borrower, token, amount, due date, terms, and settlement identity;
 - `LoanPrincipal` accidentally accepted through generic contributor/funding gates;
-- loan relationship lost across dispatch, retry, acknowledgment, cancellation, or upgrade; and
+- loan relationship lost across dispatch, retry, acknowledgment, cancellation, or upgrade;
+- a dispatched loan principal stranded by executor retirement: `failStrandedSubject` must reach it,
+  the loan must not read as disbursed on the back of a source-side failure, and a requeue after
+  close-out must not double-count or double-pay; and
 - storage/ABI/event ordinal drift and EIP-170 regression.
 
 ## Scope boundaries
@@ -217,6 +282,22 @@ cross-package artifacts legitimately change despite the contracts-only boundary,
 ```bash
 node scripts/dev/ci-local.js --quick
 ```
+
+Four things about this loop that cost time if you learn them the hard way:
+
+- `bun run test` in `packages/contracts` now chains typecheck, the Solidity suite, and the script
+  tests. `bun run test:solidity` is the Solidity-only loop while iterating.
+- `bun run build` is the adaptive compile. `bun build` is Bun's own bundler and will fail with
+  "Missing entrypoints" — the two are not the same command.
+- Any new `vm.mockCall` or `vm.store` needs an entry in `test/audit/mock-allowlist.json` with a
+  reason, owner, and expiry, or `test:audit:realism` fails the build. Prefer a real fixture; if the
+  mock is genuinely necessary, say why in the entry.
+- The Arbitrum fork rehearsal needs three reviewed pins that are environment prerequisites, not
+  test data. Verified against live Arbitrum on 2026-08-09 and passing:
+  `HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER=492603739`, `HATS_MODULE_UPGRADE_GARDEN_COUNT=18`,
+  `HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION=0xE5E5CbEDa7dC1139aF2e04bd4A6784b42b4bEcd2`. Re-derive
+  them rather than reusing these if the chain has moved; the count assertion is exact, so it fails
+  the moment a nineteenth garden mints.
 
 ## Completion contract
 
