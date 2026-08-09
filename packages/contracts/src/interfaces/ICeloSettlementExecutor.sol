@@ -69,7 +69,11 @@ interface ICeloSettlementExecutor {
     ///      answers to, which is the field the indexer needs to key cross-chain rows and which no
     ///      other event carries (Decision Log #59).
     event ExecutorDeploymentPinned(
-        address indexed ccipRouter, address indexed gDollarToken, uint64 indexed remoteChainSelector
+        address indexed ccipRouter,
+        address indexed gDollarToken,
+        uint64 indexed remoteChainSelector,
+        uint64 localChainSelector,
+        uint64 sourceEvmChainId
     );
     event SourcePeerUpdated(
         uint64 indexed sourceChainSelector,
@@ -187,4 +191,6 @@ interface ICeloSettlementExecutor {
     function HARD_MAX_BATCH_SIZE() external pure returns (uint256);
     function CCIP_ROUTER() external view returns (address);
     function G_DOLLAR_TOKEN() external view returns (address);
+    function LOCAL_CHAIN_SELECTOR() external view returns (uint64);
+    function SOURCE_EVM_CHAIN_ID() external view returns (uint64);
 }

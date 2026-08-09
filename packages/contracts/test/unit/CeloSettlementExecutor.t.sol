@@ -201,6 +201,8 @@ contract ExecutorMockRoles is IZodiacRoles {
 
 contract CeloSettlementExecutorTest is Test {
     uint64 internal constant SOURCE_SELECTOR = 4_949_039_107_694_359_620;
+    uint64 internal constant CELO_SELECTOR = 1_346_049_177_634_351_622;
+    uint64 internal constant SOURCE_EVM_CHAIN_ID = 42_161;
     address internal constant OWNER = address(0xA11CE);
     address internal constant SOURCE_MODULE = address(0xBEEF);
     address internal constant GARDEN = address(0x1000);
@@ -225,7 +227,8 @@ contract CeloSettlementExecutorTest is Test {
         payerRoles = new ExecutorMockRoles(address(payerSafe), token);
         beneficiaryRoles = new ExecutorMockRoles(address(beneficiarySafe), token);
 
-        CeloSettlementExecutor implementation = new CeloSettlementExecutor(address(router), address(token));
+        CeloSettlementExecutor implementation =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         executor = ICeloSettlementExecutor(
             address(
                 new ERC1967Proxy(

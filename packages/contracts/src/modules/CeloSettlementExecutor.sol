@@ -22,9 +22,11 @@ contract CeloSettlementExecutor is CeloSettlementViews {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         address ccipRouter_,
-        address gDollarToken_
+        address gDollarToken_,
+        uint64 localChainSelector_,
+        uint64 sourceEvmChainId_
     )
-        CeloSettlementStorage(ccipRouter_, gDollarToken_)
+        CeloSettlementStorage(ccipRouter_, gDollarToken_, localChainSelector_, sourceEvmChainId_)
         CCIPReceiver(ccipRouter_)
     { }
 
@@ -54,7 +56,9 @@ contract CeloSettlementExecutor is CeloSettlementViews {
         });
         paused = true;
         // First fact out of this contract: the immutables nothing else emits (Decision Log #59).
-        emit ExecutorDeploymentPinned(CCIP_ROUTER, G_DOLLAR_TOKEN, sourceChainSelector_);
+        emit ExecutorDeploymentPinned(
+            CCIP_ROUTER, G_DOLLAR_TOKEN, sourceChainSelector_, LOCAL_CHAIN_SELECTOR, SOURCE_EVM_CHAIN_ID
+        );
         emit SourcePeerUpdated(sourceChainSelector_, sourceSettlementModule_, address(0), 0, protocolVersion_);
         emit PausedSet(true);
     }

@@ -100,7 +100,7 @@ contracts:
   - name: CeloSettlementExecutor
     handler: src/EventHandlers.ts
     events:
-      - event: ExecutorDeploymentPinned(address indexed ccipRouter, address indexed gDollarToken, uint64 indexed remoteChainSelector)
+      - event: ExecutorDeploymentPinned(address indexed ccipRouter, address indexed gDollarToken, uint64 indexed remoteChainSelector, uint64 localChainSelector, uint64 sourceEvmChainId)
       - event: SourcePeerUpdated(uint64 indexed sourceChainSelector, address indexed sourceSettlementModule, address indexed previousSourceSettlementModule, uint64 previousPeerExpiresAt, uint8 protocolVersion)
       - event: GardenRouteConfigured(address indexed garden, address indexed safe, address indexed rolesModifier, bytes32 roleKey, bytes32 allowanceKey, bytes32 permissionsConfigHash)
       - event: GardenRouteStatusChanged(address indexed garden, bool active)

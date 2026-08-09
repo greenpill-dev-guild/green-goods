@@ -39,6 +39,8 @@ indexer.onEvent(
       localRouter: normalizeAddress(event.params.ccipRouter),
       gDollarToken: normalizeAddress(event.params.gDollarToken),
       remoteChainSelector: event.params.remoteChainSelector,
+      localChainSelector: event.params.localChainSelector,
+      remoteEvmChainId: Number(event.params.sourceEvmChainId),
       updatedAt: event.block.timestamp,
     });
   }

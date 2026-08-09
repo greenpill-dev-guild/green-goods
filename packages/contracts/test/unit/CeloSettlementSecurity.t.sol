@@ -434,7 +434,8 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
     }
 
     function testExecutorUpgradeRequiresOwnerPauseAndImmutableConfiguration() public {
-        CeloSettlementExecutor replacement = new CeloSettlementExecutor(address(router), address(token));
+        CeloSettlementExecutor replacement =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         ICeloUUPSUpgradeBoundary proxy = ICeloUUPSUpgradeBoundary(address(executor));
 
         vm.prank(address(0xBAD));
@@ -449,7 +450,8 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         executor.setPaused(true);
 
         ExecutorMockRouter otherRouter = new ExecutorMockRouter();
-        CeloSettlementExecutor wrongRouter = new CeloSettlementExecutor(address(otherRouter), address(token));
+        CeloSettlementExecutor wrongRouter =
+            new CeloSettlementExecutor(address(otherRouter), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         vm.prank(OWNER);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -458,7 +460,8 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         );
         proxy.upgradeToAndCall(address(wrongRouter), bytes(""));
 
-        CeloSettlementExecutor wrongToken = new CeloSettlementExecutor(address(router), address(0xBAD0));
+        CeloSettlementExecutor wrongToken =
+            new CeloSettlementExecutor(address(router), address(0xBAD0), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         vm.prank(OWNER);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -469,8 +472,10 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
     }
 
     function testExecutorUpgradeAndRollbackPreserveState() public {
-        CeloSettlementExecutor replacement = new CeloSettlementExecutor(address(router), address(token));
-        CeloSettlementExecutor rollback = new CeloSettlementExecutor(address(router), address(token));
+        CeloSettlementExecutor replacement =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
+        CeloSettlementExecutor rollback =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         ICeloUUPSUpgradeBoundary proxy = ICeloUUPSUpgradeBoundary(address(executor));
 
         vm.prank(OWNER);

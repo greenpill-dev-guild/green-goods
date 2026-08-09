@@ -666,4 +666,26 @@ describe("settlement lifecycle projections", () => {
     assert.equal(config?.localChainSelector, 4_949_039_107_694_359_620n);
     assert.equal(config?.remoteEvmChainId, 42_220);
   });
+
+  // The executor half needs the same treatment and for a sharper reason: the executor gates garden
+  // routes and executions on remoteEvmChainId, and it is the source chain's EVM id — a fact the
+  // executor has no other way to state, so it is carried as an implementation immutable.
+  it("learns its own selector and the source chain id on the executor side", async () => {
+    const mockDb = createTestIndexer();
+
+    const pinned = CeloSettlementExecutor.ExecutorDeploymentPinned.createMockEvent({
+      ccipRouter: addr(92),
+      gDollarToken: addr(91),
+      remoteChainSelector: 4_949_039_107_694_359_620n,
+      localChainSelector: 1_346_049_177_634_351_622n,
+      sourceEvmChainId: 42_161n,
+      mockEventData: mockEvent(1_000),
+    });
+    const after = await processEvents(mockDb, [pinned]);
+
+    const config = await after.SettlementConfiguration.get(`${CHAIN_ID}-settlement-config`);
+    assert.equal(config?.role, "EXECUTOR");
+    assert.equal(config?.localChainSelector, 1_346_049_177_634_351_622n);
+    assert.equal(config?.remoteEvmChainId, 42_161);
+  });
 });
