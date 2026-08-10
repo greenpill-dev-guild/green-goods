@@ -358,6 +358,12 @@
           "offset": 0,
           "slot": "1",
           "type": "t_bool"
+        },
+        {
+          "label": "token",
+          "offset": 1,
+          "slot": "1",
+          "type": "t_address"
         }
       ],
       "numberOfBytes": "64"

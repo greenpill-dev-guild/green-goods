@@ -71,8 +71,8 @@ Scaffold conventions copied from `../../active/commitment-pooling/contract-spec.
 | 3 | `settlementModule` | `address` (reads the disbursement id for the G$ leg; 0 until settlement ships) |
 | 4 | `nextLoanId` | `uint256` (starts at 1; 0 = null sentinel) |
 | 5 | `loans` | `mapping(uint256 loanId => Loan)` |
-| 6 | `poolCreditConfig` | `mapping(uint256 poolId => PoolCreditConfig)` (borrower cap + enable flag) |
-| 7 | `borrowerOutstanding` | `mapping(uint256 poolId => mapping(address borrower => uint256))` (live open principal minus repaid) |
+| 6 | `poolCreditConfig` | `mapping(uint256 poolId => PoolCreditConfig)` (immutable denomination token + borrower cap + enable flag) |
+| 7 | `borrowerOutstanding` | `mapping(uint256 poolId => mapping(address borrower => uint256))` (live open principal minus repaid, denominated in the pool's configured token) |
 | 8 | `commitmentLoan` | `mapping(uint256 commitmentId => uint256 loanId)` (0 = none; one live loan per linked commitment) |
 | 9 | `executors` | `mapping(uint256 poolId => mapping(address => bool))` (rail-side identities that record disbursement/repayment) |
 | 10 | `executionRefLoan` | `mapping(bytes32 executionRef => uint256 loanId)` (global replay guard) |
@@ -85,7 +85,7 @@ per-loan reservation bit outside the frozen linear layout. Approval creates the 
 Jar/Treasury or authenticated G$ recording converts it to outstanding; an Approved cancellation
 releases it only after any linked settlement child is itself Cancelled.
 
-`PoolCreditConfig` (packed): `{ uint256 borrowerCap; bool enabled; }`. `borrowerCap == 0` = uncapped (matches the register's `providerExposureCap` "0 = uncapped" convention, `../../active/commitment-pooling/contract-spec.md:714`).
+`PoolCreditConfig` (packed): `{ uint256 borrowerCap; bool enabled; address token; }`. The bool and address share the second mapping-value slot, preserving the linear storage root. Each pool chooses one non-zero token on first configuration and cannot rotate it; that keeps cap, reservation, and outstanding arithmetic in one denomination. `borrowerCap == 0` = uncapped (matches the register's `providerExposureCap` "0 = uncapped" convention, `../../active/commitment-pooling/contract-spec.md:714`).
 
 **Ownership / upgrade:** `OwnableUpgradeable` owner = protocol multisig for `_authorizeUpgrade` (repo-wide UUPS convention, `CookieJar.sol:302-304`; register upgrade-authority note `../../active/commitment-pooling/contract-spec.md:719`).
 
@@ -96,7 +96,7 @@ enum LoanState { None, Requested, Approved, Disbursed, Repaid, Defaulted, Cancel
 // Repaying is DERIVED (0 < repaidAmount < principal); never stored (hybrid-state discipline, decision #6 / ../../active/commitment-pooling/contract-spec.md:49).
 enum LoanRail  { None, Jar, Treasury, GDollarSettlement } // None is the pre-disbursement sentinel
 
-struct PoolCreditConfig { uint256 borrowerCap; bool enabled; }
+struct PoolCreditConfig { uint256 borrowerCap; bool enabled; address token; }
 
 struct Loan {
     uint256 poolId;            // borrowing pool (garden pool or protocol pool)
@@ -137,12 +137,12 @@ struct RequestLoanParams {
 
 | Function | Authorized caller | Gates |
 |---|---|---|
-| `configurePoolCredit(poolId, borrowerCap, enabled)` | steward | per-pool credit enablement + cap; event `PoolCreditConfigured` |
+| `configurePoolCredit(poolId, token, borrowerCap, enabled)` | steward | first call fixes one non-zero denomination token for the pool; later calls may change cap/enabled only; event `PoolCreditConfigured` |
 | `addExecutor(poolId, addr)` / `removeExecutor(poolId, addr)` | steward | rail-side identity that records disbursed/settled; event `ExecutorUpdated` |
-| `requestLoan(params)` | pool member requests for self; steward may name a distinct current member through `onBehalfOf` | pool Open + credit enabled; non-zero token/principal; future non-zero due date; non-empty terms; optional commitment exists in the same pool; requested principal ≤ remaining `borrowerCap`; event `LoanRequested` |
+| `requestLoan(params)` | pool member requests for self; steward may name a distinct current member through `onBehalfOf` | pool Open + credit enabled; token exactly matches the pool's immutable denomination; non-zero principal; future non-zero due date; non-empty terms; optional commitment exists in the same pool; requested principal ≤ remaining `borrowerCap`; event `LoanRequested` |
 | `approveLoan(loanId)` | **steward** (never the borrower) | state Requested with a still-future `dueDate`; revalidates the original self-member or `onBehalfOf` steward authority; re-checks and reserves cap exposure; `SelfApproval` revert when approver == borrower (mirrors `SelfAttestation`, `WorkApproval.sol:153-156`); event `LoanApproved` |
 | `recordDisbursed(loanId, rail, executionRef)` | steward or pool executor | state Approved with its cap reservation; rechecks Open/enabled pool. Jar/Treasury require a still-future `dueDate`, recheck current committed exposure, require a unique steward-attested external execution reference, and fail closed if the loan has ever acquired a settlement child in any state. G$ derives the exact Confirmed settlement child through `loanPrincipalDisbursementOf(address(this), loanId)` and requires `executionRef == keccak256(abi.encode(executionKey, disbursementId))`; queue and dispatch already rechecked the future due date and reserved cap before value moved, while delayed post-confirmation recording remains allowed so transit cannot strand value. Recording converts the reservation to `borrowerOutstanding` exactly once; event `LoanDisbursed` |
-| `recordRepayment(loanId, amount, executionRef)` | steward or pool executor | state Disbursed/Defaulted; Jar/Treasury only; unique non-zero reference; amount is positive and cannot exceed `principal + feeAmount - repaidAmount`; decrements `borrowerOutstanding`; emits `RepaymentRecorded` (+ `LoanRepaid` on exact clearance). G$ reverts `GDollarRepaymentDisabled` |
+| `recordRepayment(loanId, amount, executionRef)` | steward or pool executor, never the borrower | state Disbursed/Defaulted; Jar/Treasury only; unique non-zero reference; amount is positive and cannot exceed `principal + feeAmount - repaidAmount`; decrements `borrowerOutstanding`; emits `RepaymentRecorded` (+ `LoanRepaid` on exact clearance). G$ reverts `GDollarRepaymentDisabled` |
 | `markDefaulted(loanId, reasonCID)` | steward | past `dueDate` (or pool/cycle window when 0), else `NotDue`; reason mandatory (stays visible, mutual-aid tone); event `LoanDefaulted` |
 | `cancelLoan(loanId, reasonCID)` | borrower (from Requested) · steward (from Requested/Approved) | never from Disbursed (principal is out); a linked settlement child must already be Cancelled, so Queued/Dispatched/Confirmed/Failed children cannot be orphaned; releases the Approved cap reservation and frees `commitmentLoan`; allowed while module paused (winddown); event `LoanCancelled` |
 | admin setters (`setHatsModule`, `setCommitmentPoolingModule`, `setSettlementModule`, `setPaused`) | module owner | dependency changes and upgrade require pause; every dependency replacement requires zero Approved-loan cap reservations so it cannot orphan a queued/dispatched/Confirmed principal; pause blocks all mutations except `markDefaulted` and `cancelLoan` |

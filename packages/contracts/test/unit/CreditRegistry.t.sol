@@ -44,7 +44,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         );
         settlementLookup.configure(address(credit), address(hats), address(module));
         credit.setPaused(false);
-        credit.configurePoolCredit(poolId, 100 ether, true);
+        credit.configurePoolCredit(poolId, TOKEN, 100 ether, true);
     }
 
     function testCreditRegistry_requestApproveDisburseAndRepayInInstallments() public {
@@ -94,6 +94,36 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         uint256 loanId = _request(address(this), 10 ether, 0);
         vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.SelfApproval.selector, loanId, address(this)));
         credit.approveLoan(loanId);
+    }
+
+    function testCreditRegistry_borrowerCannotRecordOwnRepaymentWhenAlsoAnAuthorizedRecorder() public {
+        uint256 loanId = _approvedAndDisbursed(CREATOR, 10 ether, keccak256("borrower-recorder-disbursement"));
+        hats.setOperator(POOL_GARDEN, CREATOR, true);
+        credit.addExecutor(poolId, CREATOR);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.BorrowerCannotRecordRepayment.selector, loanId, CREATOR));
+        vm.prank(CREATOR);
+        credit.recordRepayment(loanId, 10 ether, keccak256("borrower-self-attested-repayment"));
+
+        assertEq(credit.amountDue(loanId), 10 ether);
+        assertEq(credit.outstandingOf(poolId, CREATOR), 10 ether);
+    }
+
+    function testCreditRegistry_poolCreditUsesOneImmutableTokenDenomination() public {
+        ICreditRegistry.PoolCreditConfig memory config = credit.poolCreditConfig(poolId);
+        assertEq(config.token, TOKEN);
+
+        ICreditRegistry.RequestLoanParams memory params = _params(10 ether, 0);
+        address otherToken = address(0xDA2);
+        params.token = otherToken;
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.PoolCreditTokenMismatch.selector, poolId, TOKEN, otherToken));
+        vm.prank(CREATOR);
+        credit.requestLoan(params);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.PoolCreditTokenLocked.selector, poolId, TOKEN, otherToken));
+        credit.configurePoolCredit(poolId, otherToken, 100 ether, true);
+        vm.expectRevert(ICreditRegistry.TokenRequired.selector);
+        credit.configurePoolCredit(poolId, address(0), 100 ether, true);
     }
 
     function testCreditRegistry_borrowerStewardCanCancelAnApprovedLoan() public {
@@ -163,13 +193,13 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
     }
 
     function testCreditRegistry_capIsRecheckedAfterInterveningDisbursementAtRecording() public {
-        credit.configurePoolCredit(poolId, 120 ether, true);
+        credit.configurePoolCredit(poolId, TOKEN, 120 ether, true);
         uint256 firstLoanId = _request(CREATOR, 60 ether, 0);
         uint256 secondLoanId = _request(CREATOR, 60 ether, 0);
         credit.approveLoan(firstLoanId);
         credit.approveLoan(secondLoanId);
         credit.recordDisbursed(firstLoanId, ICreditRegistry.LoanRail.Jar, keccak256("first-approved-cap-use"));
-        credit.configurePoolCredit(poolId, 100 ether, true);
+        credit.configurePoolCredit(poolId, TOKEN, 100 ether, true);
 
         vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.BorrowerCapExceeded.selector, poolId, CREATOR, 60 ether, 0));
         credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Jar, keccak256("second-cap-use"));

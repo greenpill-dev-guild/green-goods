@@ -44,7 +44,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         settlement.setPaused(true);
         settlement.setCreditRegistry(address(credit));
         credit.setPaused(false);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, true);
+        credit.configurePoolCredit(CREDIT_POOL_ID, GDOLLAR, 100 ether, true);
         settlement.setPaused(false);
         vm.stopPrank();
     }
@@ -516,7 +516,7 @@ contract CreditSettlementTest is SettlementPayerTest {
 
         _setCreditPoolState(ICommitmentPoolingModule.PoolState.Open);
         vm.prank(OWNER);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, false);
+        credit.configurePoolCredit(CREDIT_POOL_ID, GDOLLAR, 100 ether, false);
         vm.expectRevert(
             abi.encodeWithSelector(ISettlementModule.LoanPrincipalCreditDisabled.selector, loanId, CREDIT_POOL_ID)
         );
@@ -524,7 +524,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         settlement.dispatchDisbursement(disbursementId);
 
         vm.startPrank(OWNER);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, true);
+        credit.configurePoolCredit(CREDIT_POOL_ID, GDOLLAR, 100 ether, true);
         credit.setPaused(true);
         vm.stopPrank();
         vm.expectRevert(abi.encodeWithSelector(ISettlementModule.CreditRegistryPaused.selector, address(credit)));
@@ -539,7 +539,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         vm.prank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
         vm.prank(OWNER);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 30 ether, true);
+        credit.configurePoolCredit(CREDIT_POOL_ID, GDOLLAR, 30 ether, true);
 
         vm.expectRevert(
             abi.encodeWithSelector(ISettlementModule.LoanPrincipalCapExceeded.selector, loanId, 40 ether, uint256(0))
@@ -554,7 +554,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
         bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 30 ether, true);
+        credit.configurePoolCredit(CREDIT_POOL_ID, GDOLLAR, 30 ether, true);
         vm.stopPrank();
 
         ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
@@ -584,7 +584,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         bytes32 firstMessageId = settlement.dispatchDisbursement(firstDisbursementId);
         uint256 secondDisbursementId = settlement.queueLoanPrincipal(secondLoanId);
         bytes32 secondMessageId = settlement.dispatchDisbursement(secondDisbursementId);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, false);
+        credit.configurePoolCredit(CREDIT_POOL_ID, GDOLLAR, 100 ether, false);
         vm.stopPrank();
 
         ISettlementModule.Disbursement memory first = settlement.getDisbursement(firstDisbursementId);

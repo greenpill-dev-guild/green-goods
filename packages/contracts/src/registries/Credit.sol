@@ -27,18 +27,15 @@ contract CreditRegistry is CreditRegistryBase {
             owner_ == address(0) || hatsModule_ == address(0) || commitmentPoolingModule_ == address(0)
                 || settlementModule_ == address(0)
         ) revert ZeroAddress();
-
         __Ownable_init();
         __ReentrancyGuard_init();
         _transferOwnership(owner_);
-
         hatsModule = hatsModule_;
         commitmentPoolingModule = commitmentPoolingModule_;
         settlementModule = settlementModule_;
         _validateSettlementModule(settlementModule_, SettlementBindingRequirement.Any);
         nextLoanId = 1;
         paused = true;
-
         emit CreditRegistryInitialized(owner_, hatsModule_, commitmentPoolingModule_, settlementModule_);
         emit HatsModuleUpdated(address(0), hatsModule_);
         emit CommitmentPoolingModuleUpdated(address(0), commitmentPoolingModule_);
@@ -48,6 +45,7 @@ contract CreditRegistry is CreditRegistryBase {
 
     function configurePoolCredit(
         uint256 poolId,
+        address token,
         uint256 borrowerCap,
         bool enabled
     )
@@ -56,12 +54,16 @@ contract CreditRegistry is CreditRegistryBase {
         whenOperational
         nonReentrant
     {
+        if (token == address(0)) revert TokenRequired();
         ICommitmentPoolingModule.Pool memory pool = _requirePool(poolId);
         _requirePoolSteward(poolId, pool, msg.sender);
         PoolCreditConfig memory previous = _poolCreditConfig[poolId];
-        _poolCreditConfig[poolId] = PoolCreditConfig({ borrowerCap: borrowerCap, enabled: enabled });
+        if (previous.token != address(0) && previous.token != token) {
+            revert PoolCreditTokenLocked(poolId, previous.token, token);
+        }
+        _poolCreditConfig[poolId] = PoolCreditConfig({ borrowerCap: borrowerCap, enabled: enabled, token: token });
         _lockPoolingIdentity();
-        emit PoolCreditConfigured(poolId, previous.borrowerCap, borrowerCap, previous.enabled, enabled, msg.sender);
+        emit PoolCreditConfigured(poolId, token, previous.borrowerCap, borrowerCap, previous.enabled, enabled, msg.sender);
     }
 
     function addExecutor(uint256 poolId, address executor) external override whenOperational nonReentrant {
@@ -202,6 +204,7 @@ contract CreditRegistry is CreditRegistryBase {
             revert LoanNotInState(loanId, loan.state);
         }
         ICommitmentPoolingModule.Pool memory pool = _requirePool(loan.poolId);
+        if (msg.sender == loan.borrower) revert BorrowerCannotRecordRepayment(loanId, loan.borrower);
         _requireRecorder(loan.poolId, pool, msg.sender);
         if (loan.rail == LoanRail.GDollarSettlement) revert GDollarRepaymentDisabled(loanId);
         if (amount == 0) revert RepaymentAmountRequired();

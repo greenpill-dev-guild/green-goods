@@ -14,12 +14,17 @@ import { CreditRegistry } from "../../src/registries/Credit.sol";
 ///      read every custom slot after a UUPS upgrade. It intentionally contains no behavior beyond
 ///      seeding and exposes the exact eleven-entry plus 39-slot layout.
 contract CreditRegistryFrozenLayoutV1 is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+    struct FrozenPoolCreditConfigV1 {
+        uint256 borrowerCap;
+        bool enabled;
+    }
+
     address public hatsModule;
     address public commitmentPoolingModule;
     address public settlementModule;
     uint256 public nextLoanId;
     mapping(uint256 loanId => ICreditRegistry.Loan loan) private _loans;
-    mapping(uint256 poolId => ICreditRegistry.PoolCreditConfig config) private _poolCreditConfig;
+    mapping(uint256 poolId => FrozenPoolCreditConfigV1 config) private _poolCreditConfig;
     mapping(uint256 poolId => mapping(address borrower => uint256 amount)) private _borrowerOutstanding;
     mapping(uint256 commitmentId => uint256 loanId) private _commitmentLoan;
     mapping(uint256 poolId => mapping(address executor => bool enabled)) private _executors;
@@ -52,7 +57,7 @@ contract CreditRegistryFrozenLayoutV1 is OwnableUpgradeable, ReentrancyGuardUpgr
         onlyOwner
     {
         _loans[loanId] = loan;
-        _poolCreditConfig[loan.poolId] = ICreditRegistry.PoolCreditConfig({ borrowerCap: borrowerCap, enabled: true });
+        _poolCreditConfig[loan.poolId] = FrozenPoolCreditConfigV1({ borrowerCap: borrowerCap, enabled: true });
         _borrowerOutstanding[loan.poolId][loan.borrower] = loan.principal - loan.repaidAmount;
         _commitmentLoan[loan.commitmentId] = loanId;
         _executors[loan.poolId][executor] = true;
@@ -114,6 +119,7 @@ contract CreditRegistryUpgradeTest is Test {
         ICreditRegistry.PoolCreditConfig memory config = upgraded.poolCreditConfig(9);
         assertTrue(config.enabled);
         assertEq(config.borrowerCap, 100 ether);
+        assertEq(config.token, address(0), "the new packed denomination field starts unset after a legacy upgrade");
         assertEq(upgraded.outstandingOf(9, BORROWER), 40 ether);
         assertEq(upgraded.loanOfCommitment(77), 1);
         assertTrue(upgraded.isExecutor(9, EXECUTOR));

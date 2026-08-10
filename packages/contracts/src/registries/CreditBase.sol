@@ -76,6 +76,10 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
 
     function _validateRequestFacts(RequestLoanParams calldata params, address borrower) internal view {
         if (params.token == address(0)) revert TokenRequired();
+        address configuredToken = _poolCreditConfig[params.poolId].token;
+        if (params.token != configuredToken) {
+            revert PoolCreditTokenMismatch(params.poolId, configuredToken, params.token);
+        }
         if (params.principal == 0) revert PrincipalRequired();
         if (params.dueDate <= block.timestamp) revert InvalidDueDate(params.dueDate);
         if (bytes(params.termsCID).length == 0) revert TermsRequired();

@@ -55,6 +55,37 @@ contract SettlementLifecycleTest is SettlementPayerTest {
         );
     }
 
+    function testSettlementModule_retiredExecutorCannotReceiveASingleRetry() public {
+        (uint256 childId,,) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerRetry.selector, ACTIVE_EXECUTOR));
+        vm.prank(OWNER);
+        settlement.retryCommand(childId);
+    }
+
+    function testSettlementModule_retiredExecutorCannotReceiveABatchRetry() public {
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setBatchSizeLimit(1);
+        settlement.setPaused(false);
+        uint256 childId = settlement.queueFunding(PROVIDER_GARDEN, 10 ether);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = childId;
+        uint256 batchId = settlement.createBatch(ids);
+        settlement.dispatchBatch(batchId);
+        vm.stopPrank();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerRetry.selector, ACTIVE_EXECUTOR));
+        vm.prank(OWNER);
+        settlement.retryBatchCommand(batchId);
+    }
+
     /// @notice The previous peer keeps acknowledging while its grace window is open.
     /// @dev The point of a grace window is to drain in-flight commands, so a cutover that grants
     ///      one must not break the acknowledgments it exists to allow.

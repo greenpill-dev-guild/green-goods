@@ -247,6 +247,11 @@ library SettlementLifecycleLib {
         public
         returns (bytes32 messageId)
     {
+        ISettlementModule.CommandRecord storage record = records[key];
+        if (record.subjectId == 0 || record.acknowledged) revert ISettlementModule.InvalidExecutionKey();
+        if (!canStillAcknowledge(config.route, record.destinationChainSelector, record.destinationExecutor)) {
+            revert ISettlementModule.RetiredPeerRetry(record.destinationExecutor);
+        }
         return SettlementCommandLib.retry(
             records,
             payloads,

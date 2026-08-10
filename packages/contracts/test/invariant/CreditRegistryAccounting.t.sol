@@ -58,7 +58,7 @@ contract CreditRegistryAccountingInvariant is Test, CommitmentPoolingFixture {
         );
         settlementLookup.configure(address(credit), address(hats), address(module));
         credit.setPaused(false);
-        credit.configurePoolCredit(poolId, PRINCIPAL, true);
+        credit.configurePoolCredit(poolId, address(0xDA1), PRINCIPAL, true);
 
         ICreditRegistry.RequestLoanParams memory params = ICreditRegistry.RequestLoanParams({
             poolId: poolId,

@@ -403,6 +403,8 @@ interface ISettlementModule {
     error PreviousPeerGraceActive(address previousPeer, uint64 expiresAt);
     /// @notice An acknowledgment arrived from an executor we no longer trust (Decision Log #60).
     error RetiredPeerAcknowledgment(address sender);
+    /// @notice A retry targeted an executor whose acknowledgment authority has expired.
+    error RetiredPeerRetry(address executor);
     /// @notice The subject's executor can still acknowledge, so there is nothing to close out.
     error SubjectNotStranded(bool isBatch, uint256 subjectId);
     error CreditRegistryRequired();

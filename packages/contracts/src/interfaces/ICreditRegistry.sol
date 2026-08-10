@@ -24,6 +24,7 @@ interface ICreditRegistry {
     struct PoolCreditConfig {
         uint256 borrowerCap;
         bool enabled;
+        address token;
     }
 
     struct Loan {
@@ -63,6 +64,7 @@ interface ICreditRegistry {
     );
     event PoolCreditConfigured(
         uint256 indexed poolId,
+        address indexed token,
         uint256 previousBorrowerCap,
         uint256 borrowerCap,
         bool previouslyEnabled,
@@ -123,7 +125,10 @@ interface ICreditRegistry {
     error UnknownLoan(uint256 loanId);
     error LoanNotInState(uint256 loanId, LoanState actual);
     error SelfApproval(uint256 loanId, address borrower);
+    error BorrowerCannotRecordRepayment(uint256 loanId, address borrower);
     error BorrowerCapExceeded(uint256 poolId, address borrower, uint256 requested, uint256 available);
+    error PoolCreditTokenMismatch(uint256 poolId, address expectedToken, address actualToken);
+    error PoolCreditTokenLocked(uint256 poolId, address currentToken, address requestedToken);
     error CapReservationMissing(uint256 loanId);
     error ActiveLoanReservations(uint256 count);
     error CommitmentPoolingModuleLocked();
@@ -160,7 +165,7 @@ interface ICreditRegistry {
         address settlementModule_
     )
         external;
-    function configurePoolCredit(uint256 poolId, uint256 borrowerCap, bool enabled) external;
+    function configurePoolCredit(uint256 poolId, address token, uint256 borrowerCap, bool enabled) external;
     function addExecutor(uint256 poolId, address executor) external;
     function removeExecutor(uint256 poolId, address executor) external;
     function requestLoan(RequestLoanParams calldata params) external returns (uint256 loanId);
