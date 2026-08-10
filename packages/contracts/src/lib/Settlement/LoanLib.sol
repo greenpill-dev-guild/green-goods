@@ -49,8 +49,13 @@ library SettlementLoanLib {
         State storage state = _state();
         address previous = state.creditRegistry;
         if (previous == registry) return;
+        _requireNoActiveReservations(previous);
         state.creditRegistry = registry;
         emit CreditRegistryUpdated(previous, registry);
+    }
+
+    function requireNoActiveReservations() public view {
+        _requireNoActiveReservations(_state().creditRegistry);
     }
 
     function queueLoanPrincipal(
@@ -232,11 +237,12 @@ library SettlementLoanLib {
         ICreditRegistry.PoolCreditConfig memory creditConfig
     )
         private
-        pure
+        view
     {
         if (loan.state != ICreditRegistry.LoanState.Approved) {
             revert ISettlementModule.LoanPrincipalNotApproved(loanId, uint8(loan.state));
         }
+        if (loan.dueDate <= block.timestamp) revert ISettlementModule.LoanPrincipalExpired(loanId, loan.dueDate);
         if (
             loan.borrower == address(0) || loan.token != config.gDollarToken || loan.principal == 0 || loan.feeAmount != 0
                 || loan.rail != ICreditRegistry.LoanRail.None || loan.disbursementId != 0
@@ -302,5 +308,11 @@ library SettlementLoanLib {
 
     function _isSteward(address hatsModule, address garden, address account) private view returns (bool) {
         return IHatsModule(hatsModule).isStewardOf(garden, account) || IHatsModule(hatsModule).isOwnerOf(garden, account);
+    }
+
+    function _requireNoActiveReservations(address registry) private view {
+        if (registry == address(0)) return;
+        uint256 count = ICreditRegistry(registry).activeReservationCount();
+        if (count != 0) revert ISettlementModule.CreditRegistryHasActiveReservations(registry, count);
     }
 }

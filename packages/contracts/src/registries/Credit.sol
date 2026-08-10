@@ -128,6 +128,7 @@ contract CreditRegistry is CreditRegistryBase {
     function approveLoan(uint256 loanId) external override whenOperational nonReentrant {
         Loan storage loan = _requireLoan(loanId);
         if (loan.state != LoanState.Requested) revert LoanNotInState(loanId, loan.state);
+        _requireFutureDueDate(loan);
         ICommitmentPoolingModule.Pool memory pool = _requireOpenEnabledPool(loan.poolId);
         _requirePoolSteward(loan.poolId, pool, msg.sender);
         if (msg.sender == loan.borrower) revert SelfApproval(loanId, loan.borrower);
@@ -153,6 +154,9 @@ contract CreditRegistry is CreditRegistryBase {
         ICommitmentPoolingModule.Pool memory pool = _requireOpenEnabledPool(loan.poolId);
         _requireRecorder(loan.poolId, pool, msg.sender);
         if (rail == LoanRail.None) revert InvalidRail(rail);
+        // A confirmed G$ child passed the due-date gate before dispatch; recording may legitimately
+        // arrive after cross-chain transit and must not strand value that already moved.
+        if (rail != LoanRail.GDollarSettlement) _requireFutureDueDate(loan);
         _requireCapReservation(loanId);
         if (rail != LoanRail.GDollarSettlement) {
             _requireNoSettlementChild(loanId);
@@ -251,6 +255,7 @@ contract CreditRegistry is CreditRegistryBase {
 
     function setHatsModule(address module) external override onlyOwner onlyWhilePaused {
         if (module == address(0)) revert ZeroAddress();
+        _requireNoActiveReservations();
         address previous = hatsModule;
         hatsModule = module;
         emit HatsModuleUpdated(previous, module);
@@ -258,6 +263,7 @@ contract CreditRegistry is CreditRegistryBase {
 
     function setCommitmentPoolingModule(address module) external override onlyOwner onlyWhilePaused {
         if (module == address(0)) revert ZeroAddress();
+        _requireNoActiveReservations();
         address previous = commitmentPoolingModule;
         commitmentPoolingModule = module;
         emit CommitmentPoolingModuleUpdated(previous, module);
@@ -265,8 +271,7 @@ contract CreditRegistry is CreditRegistryBase {
 
     function setSettlementModule(address module) external override onlyOwner onlyWhilePaused {
         if (module == address(0)) revert ZeroAddress();
-        uint256 activeReservations = _capReservationState().activeReservations;
-        if (activeReservations != 0) revert ActiveLoanReservations(activeReservations);
+        _requireNoActiveReservations();
         address previous = settlementModule;
         settlementModule = module;
         emit SettlementModuleUpdated(previous, module);
@@ -304,9 +309,14 @@ contract CreditRegistry is CreditRegistryBase {
         return _capReservationState().loanReserved[loanId];
     }
 
+    function activeReservationCount() external view override returns (uint256) {
+        return _capReservationState().activeReservations;
+    }
+
     function amountDue(uint256 loanId) external view override returns (uint256) {
         Loan memory loan = _loans[loanId];
         if (loan.state == LoanState.None) revert UnknownLoan(loanId);
+        if (loan.state != LoanState.Disbursed && loan.state != LoanState.Defaulted) return 0;
         return loan.principal + loan.feeAmount - loan.repaidAmount;
     }
 

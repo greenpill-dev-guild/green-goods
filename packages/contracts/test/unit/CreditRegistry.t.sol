@@ -201,6 +201,62 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.outstandingOf(poolId, CREATOR), 60 ether, "aggregate exposure remains separately readable");
     }
 
+    function testCreditRegistry_amountDueIsZeroUntilValueIsDisbursedAndAfterCancellation() public {
+        uint256 approvedLoanId = _request(CREATOR, 20 ether, 0);
+        assertEq(credit.amountDue(approvedLoanId), 0);
+
+        credit.approveLoan(approvedLoanId);
+        assertEq(credit.amountDue(approvedLoanId), 0);
+        credit.cancelLoan(approvedLoanId, "bafy-approved-cancelled");
+        assertEq(credit.amountDue(approvedLoanId), 0);
+
+        uint256 requestedLoanId = _request(CREATOR, 15 ether, 0);
+        vm.prank(CREATOR);
+        credit.cancelLoan(requestedLoanId, "bafy-requested-cancelled");
+        assertEq(credit.amountDue(requestedLoanId), 0);
+    }
+
+    function testCreditRegistry_revertsWhenExpiredTermsAreApproved() public {
+        ICreditRegistry.RequestLoanParams memory params = _params(20 ether, 0);
+        params.dueDate = uint64(block.timestamp + 1 days);
+        vm.prank(CREATOR);
+        uint256 expiredRequestId = credit.requestLoan(params);
+        vm.warp(uint256(params.dueDate) + 1);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidDueDate.selector, params.dueDate));
+        credit.approveLoan(expiredRequestId);
+    }
+
+    function testCreditRegistry_revertsWhenExpiredTermsAreRecorded() public {
+        ICreditRegistry.RequestLoanParams memory params = _params(20 ether, 0);
+        params.dueDate = uint64(block.timestamp + 1 days);
+        vm.prank(CREATOR);
+        uint256 expiredApprovedId = credit.requestLoan(params);
+        credit.approveLoan(expiredApprovedId);
+        vm.warp(uint256(params.dueDate) + 1);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidDueDate.selector, params.dueDate));
+        credit.recordDisbursed(
+            expiredApprovedId, ICreditRegistry.LoanRail.Treasury, keccak256("expired-treasury-disbursement")
+        );
+        assertEq(credit.amountDue(expiredApprovedId), 0);
+        assertEq(credit.activeReservationCount(), 1);
+    }
+
+    function testCreditRegistry_revertsWhenDependenciesRotateWithActiveReservations() public {
+        uint256 loanId = _request(CREATOR, 20 ether, 0);
+        credit.approveLoan(loanId);
+        assertEq(credit.activeReservationCount(), 1);
+        credit.setPaused(true);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.ActiveLoanReservations.selector, uint256(1)));
+        credit.setHatsModule(address(0xA11CE));
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.ActiveLoanReservations.selector, uint256(1)));
+        credit.setCommitmentPoolingModule(address(0xB0B));
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.ActiveLoanReservations.selector, uint256(1)));
+        credit.setSettlementModule(address(0xCE10));
+    }
+
     function testCreditRegistry_defaultIsDueGatedAndRecoverableAcrossInstallments() public {
         uint256 loanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("default-disbursement"));
         ICreditRegistry.Loan memory loan = credit.getLoan(loanId);

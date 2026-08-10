@@ -47,6 +47,16 @@ indexer.onEvent(
       reasonCID: currentSubject?.reasonCID,
       updatedAt: event.block.timestamp,
     });
+    if (commandIndex) {
+      context.SettlementCommandIndex.set({
+        ...commandIndex,
+        state: nextState,
+        acknowledgmentMessageId,
+        failureCode: Number(event.params.failureCode),
+        resolvedAt: event.block.timestamp,
+        updatedAt: event.block.timestamp,
+      });
+    }
     if (configuration?.remoteEvmChainId !== undefined) {
       context.SettlementMessage.set({
         id: settlementMessageId(event.chainId, acknowledgmentMessageId),
@@ -233,6 +243,16 @@ indexer.onEvent(
       reasonCID: currentSubject?.reasonCID,
       updatedAt: event.block.timestamp,
     });
+    if (commandIndex) {
+      context.SettlementCommandIndex.set({
+        ...commandIndex,
+        state: "FAILED",
+        acknowledgmentMessageId: undefined,
+        failureCode: SOURCE_STRANDED_FAILURE_CODE,
+        resolvedAt: event.block.timestamp,
+        updatedAt: event.block.timestamp,
+      });
+    }
 
     const planDeltas = new Map<string, { confirmed: number; failed: number }>();
     const failChild = (existing: Disbursement) => {

@@ -68,6 +68,11 @@ async function recordCommand(
     attempt: Number(event.params.attempt),
     protocolVersion: Number(event.params.protocolVersion),
     commandMessageId,
+    state: "DISPATCHED",
+    acknowledgmentMessageId: undefined,
+    failureCode: undefined,
+    resolvedAt: undefined,
+    createdAt: event.block.timestamp,
     updatedAt: event.block.timestamp,
   });
   const config = await sourceConfig(

@@ -6,7 +6,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-CODEX="$($SCRIPT_DIR/resolve-codex-binary.sh 2>/dev/null || true)"
+CODEX="$("$SCRIPT_DIR/resolve-codex-binary.sh" 2>/dev/null || true)"
 SCHEMA="${CODEX_SCHEMA:-$REPO_ROOT/.codex/output-schema.json}"
 WORKTREE_PARENT="${CODEX_WORKTREE_PARENT:-/tmp}"
 

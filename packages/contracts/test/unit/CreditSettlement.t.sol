@@ -323,19 +323,146 @@ contract CreditSettlementTest is SettlementPayerTest {
         credit.cancelLoan(loanId, "bafy-confirmed-cancel");
     }
 
-    function testCreditSettlement_dispatchRechecksRegistryIdentityAndLoanFacts() public {
+    function testCreditSettlement_dependencyRotationWaitsUntilConfirmedPrincipalIsRecorded() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.prank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
 
         vm.startPrank(OWNER);
         settlement.setPaused(true);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.CreditRegistryHasActiveReservations.selector, address(credit), uint256(1)
+            )
+        );
         settlement.setCreditRegistry(address(0xBADC0DE));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.CreditRegistryHasActiveReservations.selector, address(credit), uint256(1)
+            )
+        );
+        settlement.setHatsModule(address(0xA11CE));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.CreditRegistryHasActiveReservations.selector, address(credit), uint256(1)
+            )
+        );
+        settlement.setCommitmentPoolingModule(address(0xB0B));
         settlement.setPaused(false);
-        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.LoanPrincipalMismatch.selector, loanId, disbursementId));
+        bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("rotation-guard-confirmed"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, messageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.CreditRegistryHasActiveReservations.selector, address(credit), uint256(1)
+            )
+        );
+        settlement.setCreditRegistry(address(0xBADC0DE));
+        vm.stopPrank();
+
+        bytes32 executionRef = keccak256(abi.encode(dispatched.executionKey, disbursementId));
+        vm.prank(OWNER);
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.GDollarSettlement, executionRef);
+        assertEq(credit.activeReservationCount(), 0);
+
+        vm.prank(OWNER);
+        settlement.setCreditRegistry(address(0xBADC0DE));
+        assertEq(settlement.creditRegistry(), address(0xBADC0DE));
+    }
+
+    function testCreditSettlement_revertsWhenExpiredPrincipalQueuesOrDispatches() public {
+        vm.warp(1);
+        uint64 queueDueDate = uint64(block.timestamp + 1 days);
+        uint256 expiredBeforeQueueId = _approvedLoanWithDueDate(BORROWER, 20 ether, queueDueDate);
+        vm.warp(uint256(queueDueDate) + 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(ISettlementModule.LoanPrincipalExpired.selector, expiredBeforeQueueId, queueDueDate)
+        );
+        vm.prank(OWNER);
+        settlement.queueLoanPrincipal(expiredBeforeQueueId);
+
+        uint64 dispatchDueDate = queueDueDate + 1 days + 1;
+        uint256 expiredBeforeDispatchId = _approvedLoanWithDueDate(SECOND_BORROWER, 20 ether, dispatchDueDate);
+        vm.prank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(expiredBeforeDispatchId);
+        vm.warp(uint256(dispatchDueDate) + 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.LoanPrincipalExpired.selector, expiredBeforeDispatchId, dispatchDueDate
+            )
+        );
+        vm.prank(OWNER);
+        settlement.dispatchDisbursement(disbursementId);
+        assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    function testCreditSettlement_revertsWhenExpiredPrincipalDispatchesARequeuedAttempt() public {
+        uint64 dueDate = uint64(block.timestamp + 1 days);
+        uint256 loanId = _approvedLoanWithDueDate(BORROWER, 20 ether, dueDate);
+        vm.startPrank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("expired-requeue-failure"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, messageId, false, uint8(ISettlementModule.FailureCode.RouteRejected)
+            )
+        );
+        vm.warp(uint256(dueDate) + 1);
+
+        vm.startPrank(OWNER);
+        settlement.requeue(disbursementId);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.LoanPrincipalExpired.selector, loanId, dueDate));
         settlement.dispatchDisbursement(disbursementId);
         vm.stopPrank();
-        assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    function testCreditSettlement_confirmedPrincipalRemainsRecordableAfterDueDate() public {
+        uint64 dueDate = uint64(block.timestamp + 1 days);
+        uint256 loanId = _approvedLoanWithDueDate(BORROWER, 20 ether, dueDate);
+        vm.startPrank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        vm.warp(uint256(dueDate) + 1);
+        router.deliver(
+            address(settlement),
+            keccak256("confirmed-after-due-date"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, messageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+
+        vm.prank(OWNER);
+        credit.recordDisbursed(
+            loanId,
+            ICreditRegistry.LoanRail.GDollarSettlement,
+            keccak256(abi.encode(dispatched.executionKey, disbursementId))
+        );
+        assertEq(uint8(credit.getLoan(loanId).state), uint8(ICreditRegistry.LoanState.Disbursed));
     }
 
     function testCreditSettlement_dispatchRechecksPoolCreditAndRegistryPause() public {
@@ -477,12 +604,23 @@ contract CreditSettlementTest is SettlementPayerTest {
     }
 
     function _approvedLoan(address borrower, uint256 principal) private returns (uint256 loanId) {
+        return _approvedLoanWithDueDate(borrower, principal, uint64(block.timestamp + 30 days));
+    }
+
+    function _approvedLoanWithDueDate(
+        address borrower,
+        uint256 principal,
+        uint64 dueDate
+    )
+        private
+        returns (uint256 loanId)
+    {
         ICreditRegistry.RequestLoanParams memory params = ICreditRegistry.RequestLoanParams({
             poolId: CREDIT_POOL_ID,
             commitmentId: 0,
             token: GDOLLAR,
             principal: principal,
-            dueDate: uint64(block.timestamp + 30 days),
+            dueDate: dueDate,
             installmentsTotal: 1,
             termsCID: "bafy-gdollar-credit",
             onBehalfOf: address(0)

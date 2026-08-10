@@ -174,6 +174,7 @@ interface ICreditRegistry {
     function outstandingOf(uint256 poolId, address borrower) external view returns (uint256);
     function reservedOutstandingOf(uint256 poolId, address borrower) external view returns (uint256);
     function isCapReserved(uint256 loanId) external view returns (bool);
+    function activeReservationCount() external view returns (uint256);
     function amountDue(uint256 loanId) external view returns (uint256);
     function loanOfCommitment(uint256 commitmentId) external view returns (uint256);
     function isExecutor(uint256 poolId, address executor) external view returns (bool);

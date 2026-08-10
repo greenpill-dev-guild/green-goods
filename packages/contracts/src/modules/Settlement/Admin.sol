@@ -57,6 +57,7 @@ abstract contract SettlementAdmin is SettlementBase {
         if (module == address(0)) revert ZeroAddress();
         address previous = hatsModule;
         if (previous == module) return;
+        SettlementLoanLib.requireNoActiveReservations();
         hatsModule = module;
         emit HatsModuleUpdated(previous, module);
     }
@@ -66,6 +67,7 @@ abstract contract SettlementAdmin is SettlementBase {
         if (module == address(0)) revert ZeroAddress();
         address previous = commitmentPoolingModule;
         if (previous == module) return;
+        SettlementLoanLib.requireNoActiveReservations();
         commitmentPoolingModule = module;
         emit CommitmentPoolingModuleUpdated(previous, module);
     }

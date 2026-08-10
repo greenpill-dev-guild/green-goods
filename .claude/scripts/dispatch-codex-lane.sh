@@ -15,7 +15,7 @@ PROMPT=""
 PROMPT_FILE=""
 SCHEMA=""
 WORKTREE_PARENT="${CODEX_WORKTREE_PARENT:-/tmp}"
-CODEX="$($SCRIPT_DIR/resolve-codex-binary.sh)" || exit 1
+CODEX="$("$SCRIPT_DIR/resolve-codex-binary.sh")" || exit 1
 
 usage() {
   cat >&2 <<EOF

@@ -80,6 +80,15 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         if (loan.state == LoanState.None) revert UnknownLoan(loanId);
     }
 
+    function _requireFutureDueDate(Loan storage loan) internal view {
+        if (loan.dueDate <= block.timestamp) revert InvalidDueDate(loan.dueDate);
+    }
+
+    function _requireNoActiveReservations() internal view {
+        uint256 activeReservations = _capReservationState().activeReservations;
+        if (activeReservations != 0) revert ActiveLoanReservations(activeReservations);
+    }
+
     function _requirePool(uint256 poolId) internal view returns (ICommitmentPoolingModule.Pool memory pool) {
         pool = ICommitmentPoolingModule(commitmentPoolingModule).getPool(poolId);
         if (pool.state == ICommitmentPoolingModule.PoolState.None) revert UnknownPool(poolId);

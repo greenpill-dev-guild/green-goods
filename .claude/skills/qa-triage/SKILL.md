@@ -34,7 +34,7 @@ Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for
   - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../../CLAUDE.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
 - **Vercel MCP** — used for deploy correlation in Phase 3a-bis, gated on PostHog matches. Optional but recommended; without it, items lose the "this bug appeared with commit X by author Y" context.
-- **Codex CLI** resolved by `.claude/scripts/resolve-codex-binary.sh` from a valid `CODEX` override, the installed ChatGPT.app/Codex.app bundle, or `PATH` — automatic background dispatch on every run unless `--no-codex` is set.
+- **Codex CLI** resolved by `.claude/scripts/resolve-codex-binary.sh` from a valid `CODEX` override, the installed ChatGPT.app/Codex.app bundle, or `PATH` — automatic background dispatch on real runs unless `--no-codex` or `--fixture` is set.
 
 ## Workspace
 
@@ -152,7 +152,7 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
 
    Item types: `bug` → eligible for a main `activity:qa` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
 
-3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that doesn't carry the `--no-codex` flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, `codex exec` invocation, prompt/schema rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md). The root `.env` is never linked because this pass needs only the rendered notes and schema. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately — Phase 3 merges Codex's additions into `cross-ref.md` once its result file lands (background-completion notification).
+3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, `codex exec` invocation, prompt/schema rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md). The root `.env` is never linked because this pass needs only the rendered notes and schema. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately — Phase 3 merges Codex's additions into `cross-ref.md` once its result file lands (background-completion notification).
 
    Fallbacks, in order:
    - `--no-codex`: skip dispatch; still write `codex-prompt.md` to the workspace as an optional manual run.

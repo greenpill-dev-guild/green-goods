@@ -611,6 +611,27 @@ describe("settlement lifecycle projections", () => {
     assert.equal(subject?.state, "FAILED");
     assert.equal(subject?.acknowledgmentMessageId, undefined);
     assert.equal(plan?.failedPayoutCount, 1);
+
+    const attemptId = `${CHAIN_ID}-${executionKey.toLowerCase()}`;
+    const failedAttempt = await mockDb.SettlementCommandIndex.get(attemptId);
+    assert.equal(failedAttempt?.state, "FAILED");
+    assert.equal(failedAttempt?.failureCode, 12);
+    assert.equal(failedAttempt?.resolvedAt, 5);
+
+    mockDb = await processEvents(mockDb, [
+      SettlementModule.DisbursementRequeued.createMockEvent({
+        disbursementId: 91n,
+        attempt: 1n,
+        mockEventData: mockEvent(6),
+      }),
+    ]);
+    const requeued = await mockDb.Disbursement.get(`${CHAIN_ID}-91`);
+    const retainedAttempt = await mockDb.SettlementCommandIndex.get(attemptId);
+    assert.equal(requeued?.state, "QUEUED");
+    assert.equal(requeued?.failureCode, undefined);
+    assert.equal(retainedAttempt?.state, "FAILED");
+    assert.equal(retainedAttempt?.failureCode, 12);
+    assert.equal(retainedAttempt?.resolvedAt, 5);
   });
 
   it("projects executor peer, policy, route, execution, deferral, duplicate, and ack reserve", async () => {

@@ -407,7 +407,9 @@ interface ISettlementModule {
     error SubjectNotStranded(bool isBatch, uint256 subjectId);
     error CreditRegistryRequired();
     error CreditRegistryPaused(address creditRegistry);
+    error CreditRegistryHasActiveReservations(address creditRegistry, uint256 count);
     error LoanPrincipalNotApproved(uint256 loanId, uint8 state);
+    error LoanPrincipalExpired(uint256 loanId, uint64 dueDate);
     error LoanPrincipalPoolNotOpen(uint256 loanId, uint256 poolId, uint8 state);
     error LoanPrincipalCreditDisabled(uint256 loanId, uint256 poolId);
     error LoanPrincipalMismatch(uint256 loanId, uint256 disbursementId);
