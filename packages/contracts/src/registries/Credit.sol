@@ -223,6 +223,7 @@ contract CreditRegistry is CreditRegistryBase {
         );
         if (loan.repaidAmount == loan.principal + loan.feeAmount) {
             loan.state = LoanState.Repaid;
+            _releaseCommitmentLink(loanId, loan);
             emit LoanRepaid(loanId, recoveredFromDefault, msg.sender);
         }
     }
@@ -258,9 +259,7 @@ contract CreditRegistry is CreditRegistryBase {
         }
         loan.state = LoanState.Cancelled;
         loan.reasonCID = reasonCID;
-        if (loan.commitmentId != 0 && _commitmentLoan[loan.commitmentId] == loanId) {
-            delete _commitmentLoan[loan.commitmentId];
-        }
+        _releaseCommitmentLink(loanId, loan);
         emit LoanCancelled(loanId, reasonCID, msg.sender);
     }
 

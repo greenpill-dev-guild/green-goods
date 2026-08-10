@@ -294,6 +294,12 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         revert SettlementChildExists(loanId, disbursementId, uint8(state));
     }
 
+    function _releaseCommitmentLink(uint256 loanId, Loan storage loan) internal {
+        if (loan.commitmentId != 0 && _commitmentLoan[loan.commitmentId] == loanId) {
+            delete _commitmentLoan[loan.commitmentId];
+        }
+    }
+
     function _validateConfirmedSettlement(
         uint256 loanId,
         Loan storage loan,

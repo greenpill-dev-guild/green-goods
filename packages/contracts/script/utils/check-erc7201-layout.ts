@@ -10,6 +10,13 @@ interface NamespaceBaseline {
   constant: string;
   slot: `0x${string}`;
   members: string[];
+  referencedStructs?: StructBaseline[];
+}
+
+interface StructBaseline {
+  source: string;
+  struct: string;
+  members: string[];
 }
 
 interface NamespaceManifest {
@@ -39,7 +46,7 @@ function derivedSlot(namespace: string): `0x${string}` {
   return toHex(outer & mask, { size: 32 });
 }
 
-function extractStructMembers(source: string, baseline: NamespaceBaseline): string[] {
+function extractNamespaceMembers(source: string, baseline: NamespaceBaseline): string[] {
   const annotation = new RegExp(
     `@custom:storage-location\\s+erc7201:${escapeRegExp(baseline.namespace)}[\\s\\S]{0,240}?struct\\s+${escapeRegExp(baseline.struct)}\\s*\\{`,
   );
@@ -47,10 +54,25 @@ function extractStructMembers(source: string, baseline: NamespaceBaseline): stri
     throw new Error(`${baseline.source}: ${baseline.struct} is not bound to erc7201:${baseline.namespace}`);
   }
 
-  const struct = new RegExp(`struct\\s+${escapeRegExp(baseline.struct)}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`);
+  return extractStructMembers(source, baseline.source, baseline.struct);
+}
+
+function extractStructMembers(source: string, sourceName: string, structName: string): string[] {
+  const struct = new RegExp(`struct\\s+${escapeRegExp(structName)}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`);
   const match = source.match(struct);
-  if (!match) throw new Error(`${baseline.source}: could not find struct ${baseline.struct}`);
+  if (!match) throw new Error(`${sourceName}: could not find struct ${structName}`);
   return (match[1] ?? "").split(";").map(normalizeDeclaration).filter(Boolean);
+}
+
+function verifyMembers(sourceName: string, structName: string, actual: string[], committed: string[]): void {
+  const expected = committed.map(normalizeDeclaration);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(
+      `${sourceName}: ${structName} member order changed\n` +
+        `  committed: ${JSON.stringify(expected)}\n` +
+        `  current:   ${JSON.stringify(actual)}`,
+    );
+  }
 }
 
 function verifyNamespace(baseline: NamespaceBaseline): void {
@@ -68,13 +90,16 @@ function verifyNamespace(baseline: NamespaceBaseline): void {
     throw new Error(`${baseline.source}: ${baseline.constant} does not match ERC-7201 ${expectedSlot}`);
   }
 
-  const actualMembers = extractStructMembers(source, baseline);
-  const expectedMembers = baseline.members.map(normalizeDeclaration);
-  if (JSON.stringify(actualMembers) !== JSON.stringify(expectedMembers)) {
-    throw new Error(
-      `${baseline.source}: ${baseline.struct} member order changed\n` +
-        `  committed: ${JSON.stringify(expectedMembers)}\n` +
-        `  current:   ${JSON.stringify(actualMembers)}`,
+  verifyMembers(baseline.source, baseline.struct, extractNamespaceMembers(source, baseline), baseline.members);
+
+  for (const referenced of baseline.referencedStructs ?? []) {
+    const referencedPath = path.join(projectRoot, referenced.source);
+    const referencedSource = fs.readFileSync(referencedPath, "utf8");
+    verifyMembers(
+      referenced.source,
+      referenced.struct,
+      extractStructMembers(referencedSource, referenced.source, referenced.struct),
+      referenced.members,
     );
   }
 

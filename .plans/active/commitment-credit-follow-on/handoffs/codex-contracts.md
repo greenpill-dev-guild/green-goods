@@ -76,7 +76,7 @@ GREEN on the hardened range:
 - Credit accounting invariants: 384,000 calls, zero reverts.
 - Full contracts target: 1,957 Solidity tests and 100 script tests passed.
 
-## Fresh validation evidence
+## Prior full validation evidence (2026-08-10)
 
 - `cd packages/contracts && bun run test`: 1,957 Solidity tests and 100 script tests passed.
 - `cd packages/contracts && bun run build:full`: passed.
@@ -106,6 +106,28 @@ GREEN on the hardened range:
   sources with no oversized source.
 - `bun run check:ontology`, `bun run format:check`, and `git diff --check c60b38dea`: passed.
 - Root `bun lint`: passed.
+
+## Latest review-follow-up validation (2026-08-10 23:29 UTC)
+
+The next review sweep found two valid P2 gaps. `recordRepayment` retained a terminal loan's
+commitment link after exact clearance, and the ERC-7201 namespace manifest froze the settlement
+relationship mapping declaration without freezing its nested value schema. The implementation now
+uses one terminal-link release helper from both Repaid and Cancelled transitions; partial and
+Defaulted loans retain their live link. The namespace manifest and Bun checker also snapshot the
+ordered `ISettlementModule.LoanPrincipalRelationship` members. No other ERC-7201 namespace in the
+package stores a user-defined value type.
+
+Fresh proof with those fixes present:
+
+- `CreditRegistry.t.sol`: 31/31 passed after the new test first failed with
+  `CommitmentLoanExists(1, 1)`.
+- `bun run test`: 1,975 Solidity tests and 100 script tests passed.
+- `bun run build:full`, `bun run check:storage-layout`, package typecheck, root format check, and
+  contracts lint check passed. Lint reported zero errors and the repository's 254 existing
+  warnings.
+- `bun run check:sizes`: `CreditRegistry` is 22,093 bytes with 2,483 bytes of EIP-170 margin;
+  `SettlementModule` remains 22,944 bytes with 1,632 bytes of margin.
+- The realism audit reported zero must-fix, should-fix, or nice-to-have findings.
 
 ## Final adversarial review
 

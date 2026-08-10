@@ -220,6 +220,22 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.loanOfCommitment(commitmentId), replacementLoanId);
     }
 
+    function testCreditRegistry_fullRepaymentClearsTheLiveCommitmentLink() public {
+        uint256 commitmentId = _createOffer(keccak256("credit-repaid-linked-offer"));
+        uint256 loanId = _request(CREATOR, 20 ether, commitmentId);
+        credit.approveLoan(loanId);
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.Jar, keccak256("linked-disbursement"));
+
+        credit.recordRepayment(loanId, 5 ether, keccak256("linked-partial-repayment"));
+        assertEq(credit.loanOfCommitment(commitmentId), loanId);
+
+        credit.recordRepayment(loanId, 15 ether, keccak256("linked-final-repayment"));
+        assertEq(credit.loanOfCommitment(commitmentId), 0);
+
+        uint256 replacementLoanId = _request(CREATOR, 20 ether, commitmentId);
+        assertEq(credit.loanOfCommitment(commitmentId), replacementLoanId);
+    }
+
     function testCreditRegistry_repaymentRejectsZeroOverpaymentAndReplayAcrossLoans() public {
         uint256 firstLoanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("first-disbursement"));
         uint256 secondLoanId = _request(CLAIMANT, 20 ether, 0);

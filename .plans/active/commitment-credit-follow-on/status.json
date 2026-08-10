@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-10T23:05:00.000Z"
+    "updated_at": "2026-08-10T23:29:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -127,13 +127,13 @@
         },
         "green": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "Fresh 2026-08-10 review proof: CreditRegistry.t.sol passed 30 of 30; CreditSettlement.t.sol passed 25 of 25; Settlement.t.sol passed 21 of 21; SettlementSecurity.t.sol passed 22 of 22; the full contracts gate passed 1974 Solidity tests and 100 script tests; the read-only settlement fork lane passed 7 of 7."
+          "evidence": "Fresh 2026-08-10 review proof: CreditRegistry.t.sol passed 31 of 31; the full contracts gate passed 1975 Solidity tests and 100 script tests. The follow-up also passed full build, EIP-170 size, linear plus ERC-7201 storage, format, lint, typecheck, and realism gates. The preceding same-day sweep passed CreditSettlement.t.sol 25 of 25, Settlement.t.sol 21 of 21, SettlementSecurity.t.sol 22 of 22, and the read-only settlement fork lane 7 of 7."
         },
         "note": "RED preceded implementation and each adversarial behavior fix. GREEN was refreshed with the review fixes present: targeted lifecycle tests, the full contracts and script suites, linear and ERC-7201 namespace storage gates, size and source-structure gates, test realism, agentic checks, and the 7-test read-only fork lane. Coverage percentages remain historical evidence from the earlier audit run and are not restated as fresh proof here."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
-      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after the independent findings and follow-up dependency guards. The predeploy ABI now binds each pool's cap and exposure ledger to one immutable token denomination, rejects borrower self-repayment, and refuses retries once the snapshotted executor can no longer acknowledge. The Credit range starts after pre-credit pooling hardening at 238e4e218; the integration PR includes that bounded AcceptanceLib, ClaimsLib, ExchangeLib, and PricedOfferClaimRequiresSteward ABI dependency. Human review and merge remain pending; deployment stays deferred to stage 3."
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after the independent findings and follow-up dependency guards. The predeploy ABI binds each pool's cap and exposure ledger to one immutable token denomination, rejects borrower self-repayment, refuses retries once the snapshotted executor can no longer acknowledge, releases a commitment link only when its loan becomes Repaid or Cancelled, and freezes the nested LoanPrincipalRelationship schema in the ERC-7201 baseline. The Credit range starts after pre-credit pooling hardening at 238e4e218; the integration PR includes that bounded AcceptanceLib, ClaimsLib, ExchangeLib, and PricedOfferClaimRequiresSteward ABI dependency. Human review and merge remain pending; deployment stays deferred to stage 3."
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -261,6 +261,14 @@
       "status": "passed",
       "branch": "feature/build-commitment-crediting-contracts",
       "note": "Closed the late P1 review sweep: retired peers cannot receive unacknowledgeable retries, borrowers cannot record their own repayments even with recorder roles, and every pool's cap, reservations, and outstanding balance share one immutable token denomination. Fresh proof passed 30 CreditRegistry, 25 CreditSettlement, 21 Settlement lifecycle, 22 SettlementSecurity, 1974 Solidity, 100 script, and 7 fork tests, plus build, lint, storage, size, realism, and source-structure gates."
+    },
+    {
+      "timestamp": "2026-08-10T23:29:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Closed the next P2 review sweep: full repayment now releases the matching live commitment link while partial repayment retains it, and ERC7201Namespaces.json freezes the nested LoanPrincipalRelationship value schema as well as the namespace's top-level members. Fresh proof passed 31 CreditRegistry, 1975 Solidity, and 100 script tests, plus build, typecheck, format, lint, storage, EIP-170 size, and realism gates."
     }
   ]
 }

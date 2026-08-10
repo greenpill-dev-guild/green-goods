@@ -24,6 +24,13 @@
         "address creditRegistry",
         "mapping(bytes32 loanKey => uint256 disbursementId) disbursements",
         "mapping(uint256 disbursementId => ISettlementModule.LoanPrincipalRelationship relationship) relationships"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ISettlementModule.sol",
+          "struct": "LoanPrincipalRelationship",
+          "members": ["address creditRegistry", "uint256 loanId"]
+        }
       ]
     }
   ]

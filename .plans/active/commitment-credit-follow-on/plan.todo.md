@@ -23,10 +23,10 @@
 4. [x] Conduct a final adversarial review of the committed stage-2 range and stop for human review/merge.
 5. [x] Resolve the independent review's cross-rail double-payment finding and source Safe identity dependency; rerun the focused, full, audit, size, storage, and read-only fork gates.
 6. [x] Resolve the follow-up review comments, sweep the same defect classes, and rerun fresh proof:
-	   `CreditSettlement.t.sol` 20/20, `SettlementSecurity.t.sol` 21/21,
-	   `CreditRegistry.t.sol` 21/21, source route tests 19/19, executor security tests 24/24,
-	   1,957 Solidity tests, 100 script tests, 7/7 fork tests, full audit, build, lint, size,
-	   linear storage, and both ERC-7201 namespace layouts.
+	   `CreditSettlement.t.sol` 25/25, `SettlementSecurity.t.sol` 22/22,
+	   `CreditRegistry.t.sol` 31/31, source route tests 21/21, executor security tests 24/24,
+	   1,975 Solidity tests, 100 script tests, 7/7 fork tests, build, lint, size, linear storage,
+	   both ERC-7201 namespace layouts, and the nested loan-relationship value schema.
 
 The prompt-mandated contracts gates are green. The former indexer helper blocker is resolved in
 `1fbb6c1cd`: the three settlement event helpers and lifecycle fixture now pass the indexer boundary,
