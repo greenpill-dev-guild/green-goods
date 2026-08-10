@@ -7,7 +7,7 @@ owner: docs
 last_verified: 2026-03-01
 feature_status: Live
 source_of_truth:
-  - .claude/context/intent.md
+  - .claude/context/product.md
   - .plans/README.md
   - .plans/_templates/feature/brief.md
   - .plans/_templates/feature/status.json
@@ -20,9 +20,9 @@ import {NextBestAction} from "@site/src/components/docs";
 
 Intent engineering translates user goals into structured agent tasks. In the Green Goods workflow, this means decomposing a request like "add cookie jar support" into scoped, verifiable work items that agents can execute independently.
 
-## The Intent File
+## Product Intent Context
 
-The `.claude/context/intent.md` file provides organizational context for decisions that require business judgment:
+The `.claude/context/product.md` file provides product and organizational context for decisions that require business judgment:
 
 - **Decision heuristics** -- How to resolve conflicts between features, communities, and goals
 - **UX personas** -- How different users perceive the platform (Gardener sees "a helpful WhatsApp contact"; Funder sees "a high-yield savings account")
@@ -30,7 +30,7 @@ The `.claude/context/intent.md` file provides organizational context for decisio
 - **Economic context** -- Target metrics, cost structure, break-even thresholds
 - **Grant mapping** -- Which features map to which funding sources
 
-This file is loaded when agents make prioritization or UX decisions, ensuring they align with organizational intent.
+This context is loaded when agents make prioritization or UX decisions, ensuring they align with organizational intent.
 
 ## Task Decomposition
 

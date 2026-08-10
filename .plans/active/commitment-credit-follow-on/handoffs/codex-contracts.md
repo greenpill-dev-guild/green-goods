@@ -71,17 +71,20 @@ GREEN on the hardened range:
 - `SettlementSecurity.t.sol`: 21/21 passed, including owner-only paused registration and duplicate
   Safe rejection.
 - `CreditRegistryUpgrade.t.sol`: 1/1 passed.
+- `Settlement.t.sol`: 19/19 passed, including the source-side consecutive peer-rotation guard.
+- `CeloSettlementSecurity.t.sol`: 24/24 passed, including the symmetric executor-side guard.
 - Credit accounting invariants: 384,000 calls, zero reverts.
-- Full contracts target: 1,955 Solidity tests and 100 script tests passed.
+- Full contracts target: 1,957 Solidity tests and 100 script tests passed.
 
 ## Fresh validation evidence
 
-- `cd packages/contracts && bun run test`: 1,955 Solidity tests and 100 script tests passed.
+- `cd packages/contracts && bun run test`: 1,957 Solidity tests and 100 script tests passed.
 - `cd packages/contracts && bun run build:full`: passed.
 - `cd packages/contracts && bun run check:sizes`: passed.
   - `SettlementModule`: 22,457 bytes, 2,119-byte EIP-170 margin.
   - `CreditRegistry`: 18,730 bytes, 5,846-byte margin.
-  - `CeloSettlementExecutor`: 20,040 bytes, 4,536-byte margin.
+  - `CeloSettlementExecutor`: 20,225 bytes, 4,351-byte margin.
+  - `SettlementConfigurationLib`: 4,402 bytes.
   - `SettlementLoanLib`: 6,285 bytes.
 - `cd packages/contracts && bun run check:storage-layout`: passed. The 11 named credit entries plus
   the 39-slot gap remain the exact linear 50-slot allocation. The gate also recomputes and verifies
@@ -91,14 +94,14 @@ GREEN on the hardened range:
   without shifting an existing field.
 - `cd packages/contracts && bun run lint`: passed with zero errors and 257 warnings.
 - `cd packages/contracts && bun run test:audit:full`: passed.
-  - Core coverage: 86.47% lines (5,681/6,570) and 65.56% branches (885/1,350).
+  - Core coverage: 86.49% lines (5,693/6,582) and 65.61% branches (887/1,352).
   - Every critical-contract threshold passed.
   - Realism audit: zero must-fix, should-fix, or nice-to-have findings.
 - `cd packages/contracts && bun run test:fork:settlement-lane`: 7/7 passed. This includes the local
   fork-only Cookie Jar/Treasury record round trip and six pinned read-only Arbitrum/Celo checks. No
   transaction was submitted.
-- `bun run verify:contracts:fast`: passed all build, formatting, lint, 1,955 Solidity, and 100
-  script-test phases in 80 seconds; E2E and deploy dry runs were deliberately excluded.
+- `bun run verify:contracts:fast`: passed all build, formatting, lint, 1,957 Solidity, and 100
+  script-test phases in 145 seconds; E2E and deploy dry runs were deliberately excluded.
 - `node scripts/quality/check-source-structure.js --base c60b38dea`: passed for 18 changed non-test
   sources with no oversized source.
 - `bun run check:ontology`, `bun run format:check`, and `git diff --check c60b38dea`: passed.
@@ -119,24 +122,25 @@ source-side stranded failure never makes the credit loan read as Disbursed.
 
 Known lower-severity or deliberately deferred constraints:
 
-- G$ repayment is disabled until an authenticated receipt policy is separately approved.
+- G$ repayment is disabled until an authenticated receipt policy is separately approved. Stage 3
+  must leave the SettlementModule's CreditRegistry dependency unset until then, preventing G$
+  principal from queuing or disbursing while Jar/Treasury records-only loans remain available.
 - Stage-3 tooling must reconcile the Celo executor result and Safe movement before retrying a
   source-stranded principal command.
 - The remaining already-recorded settlement and indexer defects from the stage-1 pre-merge review
   remain in their owning lanes. This increment now resolves the source Safe identity defect it
   directly depends on; it does not depend on the remaining defects.
 
-## Whole-branch blockers outside this increment
+## Whole-branch follow-up outside this increment
 
-The deterministic root build reaches the indexer package and fails because
-`packages/indexer/test/settlement-lifecycle.test.ts` references generated test API helpers that do
-not yet expose `StrandedSubjectFailed`, `SettlementDeploymentPinned`, and
-`ExecutorDeploymentPinned` at lines 167, 739, and 759. The contracts increment has no indexer diff.
+The former indexer helper blocker is resolved in `1fbb6c1cd`. The lifecycle fixture now exposes
+`StrandedSubjectFailed`, `SettlementDeploymentPinned`, and `ExecutorDeploymentPinned`; the indexer
+boundary, lint, all 203 tests, code generation, TypeScript build, and refreshed remote Indexer job
+are green.
 
-A final concurrent root `bun run test` rerun was also inconclusive because Foundry aborted in its
-macOS system-proxy initialization (`SCDynamicStore`) while packages ran in parallel. The exact
-package-level `cd packages/contracts && bun run test` target is independently fresh and green.
-These prevent a whole-branch Ship Gate claim, not the stage-2 contracts verdict.
+The root `bun run test` target was rerun outside the restricted sandbox so Foundry could read macOS
+proxy state; it passed across the monorepo, including the 1,957-contract-test and 203-indexer-test
+suites. The prior proxy initialization abort is no longer an active Ship Gate gap.
 
 ## Stop point
 

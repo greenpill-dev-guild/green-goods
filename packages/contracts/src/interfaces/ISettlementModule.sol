@@ -399,6 +399,8 @@ interface ISettlementModule {
     error SourceMustBePaused();
     error SourceNotReady();
     error ImmutableConfigurationMismatch();
+    /// @notice A route replacement cannot discard a still-authorized previous peer.
+    error PreviousPeerGraceActive(address previousPeer, uint64 expiresAt);
     /// @notice An acknowledgment arrived from an executor we no longer trust (Decision Log #60).
     error RetiredPeerAcknowledgment(address sender);
     /// @notice The subject's executor can still acknowledge, so there is nothing to close out.

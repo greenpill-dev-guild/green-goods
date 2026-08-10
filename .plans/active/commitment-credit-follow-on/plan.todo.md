@@ -23,16 +23,17 @@
 4. [x] Conduct a final adversarial review of the committed stage-2 range and stop for human review/merge.
 5. [x] Resolve the independent review's cross-rail double-payment finding and source Safe identity dependency; rerun the focused, full, audit, size, storage, and read-only fork gates.
 6. [x] Resolve the follow-up review comments, sweep the same defect classes, and rerun fresh proof:
-   `CreditSettlement.t.sol` 20/20, `SettlementSecurity.t.sol` 21/21,
-   `CreditRegistry.t.sol` 21/21, 1,955 Solidity tests, 100 script tests, 7/7 fork tests,
-   full audit, build, lint, size, linear storage, and both ERC-7201 namespace layouts.
+	   `CreditSettlement.t.sol` 20/20, `SettlementSecurity.t.sol` 21/21,
+	   `CreditRegistry.t.sol` 21/21, source route tests 19/19, executor security tests 24/24,
+	   1,957 Solidity tests, 100 script tests, 7/7 fork tests, full audit, build, lint, size,
+	   linear storage, and both ERC-7201 namespace layouts.
 
-The prompt-mandated contracts gates are green. The deterministic root build separately exposes an
-indexer test-helper type error in `packages/indexer/test/settlement-lifecycle.test.ts`: the generated
-test API does not expose three settlement event helpers used by the test. This contracts-only stage
-does not edit that indexer surface. A final concurrent root-test rerun was also interrupted by a
-Foundry macOS system-proxy crash; the independent contracts target is fresh and green. These block
-a whole-branch Ship Gate claim, not the stage-2 contracts verdict.
+The prompt-mandated contracts gates are green. The former indexer helper blocker is resolved in
+`1fbb6c1cd`: the three settlement event helpers and lifecycle fixture now pass the indexer boundary,
+lint, all 203 indexer tests, code generation, and TypeScript build locally, and the refreshed remote
+Indexer Lint And Build job is green. The root `bun run test` target was then rerun outside the
+restricted sandbox so Foundry could read macOS proxy state; it passed across the monorepo. The prior
+proxy initialization abort and indexer helper drift are no longer active Ship Gate gaps.
 
 ## Stage-3 boundary
 

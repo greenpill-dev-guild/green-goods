@@ -55,6 +55,38 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         assertEq(token.balanceOf(address(0x3001)), 100 ether);
     }
 
+    function testCeloSettlementExecutor_secondRotationCannotDiscardLivePreviousPeer() public {
+        address secondReplacement = address(0xD00D);
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setSourcePeer(REPLACEMENT_SOURCE, 1, 1 days);
+        ICeloSettlementExecutor.SourcePeer memory rotated = executor.sourcePeer();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICeloSettlementExecutor.PreviousPeerGraceActive.selector, SOURCE_MODULE, rotated.previousPeerExpiresAt
+            )
+        );
+        executor.setSourcePeer(secondReplacement, 1, 1 days);
+        executor.setPaused(false);
+        vm.stopPrank();
+
+        router.deliver(
+            address(executor),
+            keccak256("first-source-still-graced"),
+            SOURCE_SELECTOR,
+            SOURCE_MODULE,
+            _command(false, 14, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether))
+        );
+        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+
+        vm.warp(rotated.previousPeerExpiresAt + 1);
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setSourcePeer(secondReplacement, 1, 1 days);
+        vm.stopPrank();
+        assertEq(executor.sourcePeer().previousSourceSettlementModule, REPLACEMENT_SOURCE);
+    }
+
     function testPeerVersionRotationCannotCarryGrace() public {
         vm.prank(OWNER);
         executor.setPaused(true);

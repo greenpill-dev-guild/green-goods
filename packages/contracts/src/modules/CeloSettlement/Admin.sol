@@ -70,6 +70,14 @@ abstract contract CeloSettlementAdmin is CeloSettlementBase {
         if (previousPeerGraceSeconds > _MAX_PREVIOUS_PEER_GRACE) revert PolicyNotConfigured();
 
         SourcePeer memory prior = _sourcePeer;
+        bool unchangedActivePeer =
+            sourceSettlementModule == prior.sourceSettlementModule && protocolVersion == prior.protocolVersion;
+        if (
+            !unchangedActivePeer && prior.previousSourceSettlementModule != address(0)
+                && block.timestamp <= prior.previousPeerExpiresAt
+        ) {
+            revert PreviousPeerGraceActive(prior.previousSourceSettlementModule, prior.previousPeerExpiresAt);
+        }
         address previousModule;
         uint64 previousExpiresAt;
         if (sourceSettlementModule == prior.sourceSettlementModule && protocolVersion == prior.protocolVersion) {

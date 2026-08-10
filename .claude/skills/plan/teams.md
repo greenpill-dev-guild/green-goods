@@ -31,6 +31,10 @@ Before spawning, run preflight:
 bash .claude/scripts/check-agent-teams-readiness.sh
 ```
 
+Codex-driving teammates must also run `bash .claude/scripts/check-codex-lane-readiness.sh`. The
+preflight uses the shared Codex binary resolver and verifies that delegated lanes receive only the
+fixed non-secret environment allowlist; it never links the root `.env` into a worktree.
+
 If preflight fails, fall back to subagents (Task tool) with the same ownership model.
 
 ---
@@ -313,7 +317,7 @@ If a lane's nature is ambiguous, give it to a Claude teammate — it can decide 
 
 ### Spawning a Codex-Driving Teammate
 
-The teammate's spawn prompt tells it to use the dispatch script. It does NOT need to know the dispatch mechanics — the script handles worktree + env symlink + output schema.
+The teammate's spawn prompt tells it to use the dispatch script. It does NOT need to know the dispatch mechanics — the script handles the worktree, fixed non-secret child environment, and output schema.
 
 Good spawn prompt:
 
@@ -353,7 +357,7 @@ Spawn a teammate to run codex on the factory task.
 
 - Required args: `--lane`, `--base`, and either `--prompt` or `--prompt-file`
 - Optional: `--phase` (default `main`), `--schema` (default `.codex/output-schema.json`)
-- Side effects: creates `/tmp/gg-codex-<lane>` worktree on branch `codex/<lane>/<phase>`, symlinks root `.env`, runs `codex exec --full-auto`
+- Side effects: creates `/tmp/gg-codex-<lane>` worktree on branch `codex/<lane>/<phase>` and runs `codex exec --full-auto` with a fixed non-secret environment; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
 - Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
 - Does NOT clean up — that is the teammate's job after review and merge
 - Env overrides: `CODEX` (binary path), `CODEX_WORKTREE_PARENT` (default `/tmp`)

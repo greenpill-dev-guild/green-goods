@@ -263,7 +263,12 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 
 ## Codex Dispatch
 
-Codex CLI ships inside the Mac app — there is no globally installed `codex` binary; use `CODEX=/Applications/Codex.app/Contents/Resources/codex`. Common forms: `"$CODEX" exec review --uncommitted - < prompt.md` (review uncommitted diff), `"$CODEX" exec --full-auto -C <worktree> -o <result-file> "<prompt>"` (non-interactive task), `"$CODEX" exec review --commit <sha>`. Don't reach for `which codex` or install it globally. Worktree + dispatch protocol details: memory note `feedback_claude_orchestrated_codex.md`.
+Set `CODEX="$(.claude/scripts/resolve-codex-binary.sh)"` before direct Codex CLI calls. The resolver
+honors a valid `CODEX` override, checks the installed ChatGPT.app and Codex.app bundles, then falls
+back to `codex` on `PATH`. Common forms: `"$CODEX" exec review --uncommitted - < prompt.md` (review uncommitted diff),
+`"$CODEX" exec --full-auto -C <worktree> -o <result-file> "<prompt>"` (non-interactive task), and
+`"$CODEX" exec review --commit <sha>`. Worktree + dispatch protocol details live in
+`.claude/scripts/dispatch-codex-lane.sh` and `.claude/skills/plan/teams.md`.
 
 ## Repo Health Ritual
 

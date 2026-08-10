@@ -106,6 +106,31 @@ if ! enum_catalog=$(bun script/utils/storage-layout-enums.ts src); then
   exit 1
 fi
 
+echo ""
+echo "Checking ERC-7201 namespace layouts..."
+namespace_manifest="$BASELINE_DIR/ERC7201Namespaces.json"
+if ! jq -e '.namespaces | type == "array"' "$namespace_manifest" >/dev/null; then
+  echo -e "${RED}Invalid ERC-7201 namespace manifest: ${namespace_manifest}${NC}"
+  exit 1
+fi
+
+namespace_check=()
+if [[ -n "$contract_filter" ]]; then
+  if jq -e --arg contract "$contract_filter" 'any(.namespaces[]; .contract == $contract)' \
+    "$namespace_manifest" >/dev/null; then
+    namespace_check=(bun script/utils/check-erc7201-layout.ts --contract "$contract_filter")
+  else
+    echo -e "${YELLOW}No ERC-7201 namespace baseline registered for ${contract_filter}; skipping namespace check.${NC}"
+  fi
+else
+  namespace_check=(bun script/utils/check-erc7201-layout.ts)
+fi
+
+if [[ "${#namespace_check[@]}" -gt 0 ]] && ! "${namespace_check[@]}"; then
+  echo -e "${RED}ERC-7201 namespace layout validation failed.${NC}"
+  exit 1
+fi
+
 failures=0
 updates=0
 
@@ -262,18 +287,6 @@ print(json.dumps({'storage': slots, 'types': types}, indent=2, sort_keys=True))
     echo -e "${GREEN}OK: ${contract_name}${NC}"
   fi
 done
-
-echo ""
-echo "Checking ERC-7201 namespace layouts..."
-if [[ -n "$contract_filter" ]]; then
-  namespace_check=(bun script/utils/check-erc7201-layout.ts --contract "$contract_filter")
-else
-  namespace_check=(bun script/utils/check-erc7201-layout.ts)
-fi
-if ! "${namespace_check[@]}"; then
-  echo -e "${RED}ERC-7201 namespace layout validation failed.${NC}"
-  failures=$((failures + 1))
-fi
 
 echo ""
 if $update_mode; then

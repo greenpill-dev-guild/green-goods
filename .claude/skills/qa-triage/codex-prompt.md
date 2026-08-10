@@ -11,20 +11,30 @@ When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this ren
 Pattern source: this repository's QA-triage skill and the rendered prompt below. Do not depend on maintainer-specific paths or private memory files.
 
 ```bash
-CODEX="${CODEX:-codex}"
+CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
 WORKTREE=/tmp/gg-codex-qa-<slug>
 BRANCH=codex/qa-triage/<slug>
 
 git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
 
 # Render the template below + schema.json into the worktree, then:
-"$CODEX" exec --full-auto -C "$WORKTREE" \
+env -i \
+  HOME="$HOME" \
+  PATH="$PATH" \
+  TMPDIR="${TMPDIR:-/tmp}" \
+  SHELL="${SHELL:-/bin/zsh}" \
+  LANG="${LANG:-C.UTF-8}" \
+  "$CODEX" exec --full-auto -C "$WORKTREE" \
   -o "$WORKTREE/codex-result.md" \
   --output-schema "$WORKTREE/schema.json" \
-  "$(cat $WORKTREE/qa-prompt.md)"
+  "$(cat "$WORKTREE/qa-prompt.md")"
 ```
 
-Fire via `Bash` with `run_in_background: true`. Fallbacks and Phase 7 cleanup rules stay in `SKILL.md`.
+Fire via `Bash` with `run_in_background: true`. The clean environment intentionally excludes
+parent credentials and any root `.env`; this extraction pass needs only the rendered notes and
+schema. Fallbacks and Phase 7 cleanup rules stay in `SKILL.md`.
+The shared resolver honors a valid `CODEX` override, then checks the installed ChatGPT.app and
+Codex.app bundles before falling back to `codex` on `PATH`.
 
 ### Orphan worktree sweep (Phase 0 step 3a)
 

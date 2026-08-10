@@ -68,6 +68,14 @@ library SettlementConfigurationLib {
         ) revert ISettlementModule.FundingConfigurationIncomplete();
 
         ISettlementModule.CcipRoute memory prior = current;
+        bool unchangedActiveRoute = prior.destinationChainSelector == destinationChainSelector
+            && prior.destinationExecutor == destinationExecutor && prior.protocolVersion == protocolVersion;
+        if (
+            !unchangedActiveRoute && prior.previousDestinationExecutor != address(0)
+                && block.timestamp <= prior.previousPeerExpiresAt
+        ) {
+            revert ISettlementModule.PreviousPeerGraceActive(prior.previousDestinationExecutor, prior.previousPeerExpiresAt);
+        }
         address previousExecutor;
         uint64 previousExpiresAt;
         if (prior.destinationExecutor != address(0)) {

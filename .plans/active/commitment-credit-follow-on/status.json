@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-10T03:31:44.000Z"
+    "updated_at": "2026-08-10T19:03:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -63,7 +63,7 @@
     "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved.",
     "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
     "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
-    "Stage-2 contracts are merge-ready at commits 1df10469bc0e6f554bf9edd3b467f325615d1a20, 0b50c9205, and 89fffc97241d527b3dad337f335a3fc7b69f0a67. The independent review's cross-rail double-payment finding and inherited source Safe identity dependency are resolved with focused RED/GREEN proof. Whole-branch proof remains blocked outside the contracts increment by indexer generated-helper drift and a Foundry macOS system-proxy crash during the final concurrent root-test rerun.",
+    "Stage-2 contracts are merge-ready after the independent review's cross-rail double-payment finding and inherited source Safe identity dependency were resolved with focused RED/GREEN proof. The former indexer generated-helper drift is resolved at 1fbb6c1cd with local boundary, lint, 203-test, codegen, and TypeScript-build proof plus a green refreshed remote Indexer job. The root test target was rerun outside the restricted sandbox and passed, so the prior Foundry macOS system-proxy abort is no longer an active whole-branch proof gap.",
     "Live Linear was re-read at closeout. PRD-785 is In Review and carries the final contracts proof comment."
   ],
   "lanes": {
@@ -127,9 +127,9 @@
         },
         "green": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 20 of 20; SettlementSecurity.t.sol passed 21 of 21; the full contracts gate passed 1955 Solidity tests and 100 script tests."
+          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 20 of 20; SettlementSecurity.t.sol passed 21 of 21; Settlement.t.sol passed 19 of 19; CeloSettlementSecurity.t.sol passed 24 of 24; the full contracts gate passed 1957 Solidity tests and 100 script tests."
         },
-        "note": "RED preceded implementation and each adversarial behavior fix. GREEN was refreshed on checkout fafd79d20 with the follow-up review fixes present: 86.47% core line coverage, 65.56% core branch coverage, linear and ERC-7201 namespace storage gates, size gates, and the 7-test read-only fork lane."
+        "note": "RED preceded implementation and each adversarial behavior fix. GREEN was refreshed with the review fixes present: 86.49% core line coverage, 65.61% core branch coverage, linear and ERC-7201 namespace storage gates, size gates, the 7-test read-only fork lane, and a passing root monorepo test target."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
@@ -237,6 +237,14 @@
       "status": "passed",
       "branch": "feature/build-commitment-crediting-contracts",
       "note": "Validated and resolved the follow-up review comments on checkout fafd79d20. Fresh proof passed 20 CreditSettlement, 21 CreditRegistry, 21 SettlementSecurity, 1955 Solidity, 100 script, and 7 fork tests, plus build, audit, size, lint, linear storage, and both ERC-7201 namespace layout checks."
+    },
+    {
+      "timestamp": "2026-08-10T19:03:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Closed the next review sweep with symmetric consecutive peer-rotation guards and storage-check hardening. Fresh proof passed 19 source route, 24 executor security, 1957 Solidity, 100 script, and 7 fork tests; the full root test target also passed outside the restricted sandbox."
     }
   ]
 }

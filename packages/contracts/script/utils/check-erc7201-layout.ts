@@ -82,11 +82,11 @@ function verifyNamespace(baseline: NamespaceBaseline): void {
 }
 
 function contractFilter(): string | undefined {
-  const contractIndex = process.argv.indexOf("--contract");
-  if (contractIndex === -1) return undefined;
-  const contract = process.argv[contractIndex + 1];
-  if (!contract) throw new Error("--contract requires a contract name");
-  return contract;
+  const args = process.argv.slice(2);
+  if (args.length === 0) return undefined;
+  if (args[0] !== "--contract") throw new Error(`Unknown argument: ${args[0]}`);
+  if (args.length !== 2 || !args[1]) throw new Error("--contract requires exactly one contract name");
+  return args[1];
 }
 
 try {
@@ -95,6 +95,9 @@ try {
   const baselines = filter
     ? manifest.namespaces.filter((baseline) => baseline.contract === filter)
     : manifest.namespaces;
+  if (filter && baselines.length === 0) {
+    throw new Error(`No ERC-7201 namespace baseline found for contract ${filter}`);
+  }
   for (const baseline of baselines) verifyNamespace(baseline);
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

@@ -89,6 +89,42 @@ contract SettlementLifecycleTest is SettlementPayerTest {
         assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
     }
 
+    /// @notice A second rotation cannot erase the grace promised to the first retired executor.
+    function testSettlementModule_secondRotationCannotDiscardLivePreviousPeer() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        ISettlementModule.CcipRoute memory rotated = settlement.ccipRoute();
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.PreviousPeerGraceActive.selector, ACTIVE_EXECUTOR, rotated.previousPeerExpiresAt
+            )
+        );
+        settlement.setCcipRoute(1, address(0x8002), 500_000, 1, 7 days);
+        settlement.setPaused(false);
+        vm.stopPrank();
+
+        router.deliver(
+            address(settlement),
+            keccak256("first-peer-still-graced"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
+
+        vm.warp(rotated.previousPeerExpiresAt + 1);
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCcipRoute(1, address(0x8002), 500_000, 1, 7 days);
+        vm.stopPrank();
+        ISettlementModule.CcipRoute memory secondRotation = settlement.ccipRoute();
+        assertEq(secondRotation.previousDestinationExecutor, REPLACEMENT_EXECUTOR);
+    }
+
     /// @notice Reusing an executor address on another selector does not keep the old lane trusted.
     /// @dev Deterministic deployments can have the same address on two chains. The live route is
     ///      therefore the selector/address pair, not the address alone.

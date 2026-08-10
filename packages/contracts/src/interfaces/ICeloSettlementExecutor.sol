@@ -137,6 +137,8 @@ interface ICeloSettlementExecutor {
     error AcknowledgmentFeeReserveFloorViolated(uint256 requiredMinimum, uint256 remainingBalance);
     error ExecutorMustBePaused();
     error ExecutorNotReady();
+    /// @notice A source-peer replacement cannot discard a still-authorized previous peer.
+    error PreviousPeerGraceActive(address previousPeer, uint64 expiresAt);
     error ImmutableGdollarMismatch(address currentToken, address replacementToken);
     error ImmutableLocalChainSelectorMismatch(uint64 currentSelector, uint64 replacementSelector);
     error ImmutableRouterMismatch(address currentRouter, address replacementRouter);
