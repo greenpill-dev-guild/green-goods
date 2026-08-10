@@ -581,41 +581,71 @@ Public-safe-default. Aggregates only — never names a single user.
 
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
-- **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`). Surfaces product breakages that vanish from a success-only funnel. Empirically (2026-05-09, App project) the strongest growth signal in the dataset: `garden_join` ~75% failure rate, `work_submission` ~70%, `work_approval` 100% (zero successes), `auth_passkey_register` ~27%.
+- **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
+- **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
 - **HogQL**:
   ```sql
   SELECT
-    multiIf(
-      event LIKE 'garden_join_%', 'garden_join',
-      event LIKE 'work_submission_%', 'work_submission',
-      event LIKE 'work_approval_%', 'work_approval',
-      event LIKE 'auth_passkey_register_%', 'auth_passkey_register',
-      NULL
-    ) AS step,
-    countIf(event LIKE '%_success') AS success_count,
-    countIf(event LIKE '%_failed') AS failed_count,
-    countIf(event LIKE '%_success' OR event LIKE '%_failed') AS total_attempts,
+    step,
+    countIf(outcome = 'success') AS success_count,
+    countIf(outcome = 'failed') AS failed_count,
+    countIf(outcome = 'cancelled') AS cancelled_count,
+    countIf(outcome IN ('success', 'failed')) AS total_attempts,
+    uniqIf(person_id, outcome = 'failed') AS failing_persons,
     if(
-      countIf(event LIKE '%_success' OR event LIKE '%_failed') > 0,
-      countIf(event LIKE '%_failed') * 100.0 / countIf(event LIKE '%_success' OR event LIKE '%_failed'),
+      countIf(outcome IN ('success', 'failed')) > 0,
+      countIf(outcome = 'failed') * 100.0 / countIf(outcome IN ('success', 'failed')),
       0
     ) AS failure_pct
-  FROM events
-  WHERE timestamp > now() - interval {window:String}
-    AND event IN (
-      'garden_join_success', 'garden_join_failed',
-      'work_submission_success', 'work_submission_failed',
-      'work_approval_success', 'work_approval_failed',
-      'auth_passkey_register_success', 'auth_passkey_register_failed'
-    )
+  FROM (
+    SELECT
+      person_id,
+      multiIf(
+        event LIKE 'garden_join_%', 'garden_join',
+        event LIKE 'work_submission_%', 'work_submission',
+        event LIKE 'work_approval_%', 'work_approval',
+        event LIKE 'auth_passkey_register_%', 'auth_passkey_register',
+        NULL
+      ) AS step,
+      -- Cancellation is emitted differently per step, so detect all four shapes.
+      -- The literal list mirrors CANCELLED_PATTERNS in
+      -- packages/shared/src/utils/errors/tx-error-classifier.ts — keep them in sync.
+      multiIf(
+        event LIKE '%_success', 'success',
+        event LIKE '%_cancelled'
+          OR properties.parsed_error_family = 'UserRejected'
+          OR properties.reason = 'cancelled'
+          OR match(
+               lower(coalesce(toString(properties.error), '')),
+               'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'
+             ),
+        'cancelled',
+        'failed'
+      ) AS outcome
+    FROM events
+    WHERE timestamp > now() - interval {window:String}
+      AND event IN (
+        'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
+        'work_submission_success', 'work_submission_failed',
+        'work_approval_success', 'work_approval_failed',
+        'auth_passkey_register_success', 'auth_passkey_register_failed'
+      )
+  )
+  WHERE step IS NOT NULL
   GROUP BY step
-  HAVING step IS NOT NULL
   ORDER BY failure_pct DESC
   ```
 - **Bind variables**: `{ window: "7d" }` (default; `30d` for monthly digest, `1d` for hot triage).
-- **Output schema**: every field public.
-- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
-- **Anomaly thresholds (consumer)**: failure rate > 50% AND absolute failed count ≥ 5 over the window → file a Linear anomaly Issue. 100% failure with absolute count ≥ 5 → P2/urgent. The thresholds catch real product breakage rather than tiny-N noise.
+- **Output schema**: every field public. `failing_persons` is a distinct count, never an identifier — it stays public-safe.
+- **Cancellation-detection coverage** (verified against 120d of App data, 2026-08-10). Detection is only as good as the emit side, so treat `cancelled_count` as a floor, not a complete count:
+  | Step | Signal | Reliable? |
+  |---|---|---|
+  | `garden_join` | dedicated `garden_join_cancelled` event | ✅ from 2026-08-10 |
+  | `work_submission` | `parsed_error_family` / parsed message | ⚠️ `parsed_error_family` only on recent events; older ones fall back to message text |
+  | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
+  | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Anomaly thresholds (consumer)**: failure rate > 50% AND `failed_count` ≥ 5 AND `failing_persons` ≥ 3 over the window → file a Linear anomaly Issue. 100% failure meeting the same floors → P2/urgent. The person floor is what separates real product breakage from one or two people retrying a broken session — without it, a two-person retry loop reads as a cohort-wide conversion kill (PRD-717).
 - **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
 
 ### `web.acquisition-summary`
@@ -683,7 +713,12 @@ A routine wiring this library should:
 
 ## Versioning
 
-Bump the file's `version:` in front matter when:
+Versions are recorded **inline on the question entry** as a dated `vX.Y.Z` bullet (see
+`failures.conversion-kill` v1.3.0). The `version:` front-matter field this section used to
+reference did not survive the move out of `.claude/skills/posthog-questions/SKILL.md`, and no
+routine doc carries one — don't reintroduce it, record the bump on the question instead.
+
+Bump a question's inline version when:
 
 - Adding or removing a question (consumers may break).
 - Changing a question's HogQL in a way that alters the output schema (consumers must re-validate).
