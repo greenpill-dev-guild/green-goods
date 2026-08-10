@@ -2,108 +2,115 @@
 
 ## Status
 
-- Feature: commitment-credit-follow-on
+- Feature: `commitment-credit-follow-on`
 - Owner: Codex
 - Branch: `feature/build-commitment-crediting-contracts`
-- Base: `c60b38dea`
-- Revalidation HEAD: `238e4e218`
-- Current state: stage-2 implementation and contracts proof complete; committed-range review pending
-- Linear context: PRD-697 is the parent and PRD-785 is the contracts lane
+- Stage-1 merge base: `c60b38dea7e26378f414b81aa3bee20380cefd8e`
+- Revalidated interface head: `238e4e218`
+- Contracts commits: `1df10469bc0e6f554bf9edd3b467f325615d1a20`, `0b50c9205`
+- Verdict: **APPROVE for the stage-2 contracts increment**. Human review and merge remain pending.
+- Linear context: PRD-697 is the parent and PRD-785 is the contracts lane.
+- Linear mirror: a fresh re-read found PRD-785 still in Todo. The attempted In Review transition
+  and completion comment were rejected because the Linear workspace is out of automation credits;
+  that mirror update remains pending.
 
-## Inputs
+## Delivered boundary
 
-The 2026-08-01 scope lock is granted. Dispatch verification completed on 2026-08-09:
+This stage implements the records-only `ICreditRegistry`/`CreditRegistry`, its frozen 50-slot
+linear storage baseline, the dedicated `queueLoanPrincipal(uint256 loanId)` settlement seam, and
+the contract tests and review evidence. It does not add deployment targets, artifacts, recovery or
+courier tooling, Safe/Zodiac setup, live configuration, indexer/shared/UI/agent consumers, or a
+broadcast path.
 
-- Stage 1 merged in PR #694 at `c60b38dea`.
-- Afo approved the interest-free records-only posture.
-- `../spec.md` and `../coverage-ledger.md` freeze the exact credit ABI and the scoped settlement addition against `238e4e218`.
-
-The contracts increment does not wait on indexer/shared/UI implementation. Those consumers follow the frozen ABI after this stage merges.
-
-## Outputs
-
-- `ICreditRegistry`, `CreditRegistry`, storage baseline, unit/adversarial/fuzz/invariant/fork tests, and upgrade proof.
-- Settlement-side `queueLoanPrincipal(uint256 loanId)` plus explicit loan relationship and lifecycle proof without weakening consideration, beneficiary, or funding gates.
-- Updated handoff with exact RED/GREEN, size, coverage, storage, and committed-range review evidence.
-
-## Acceptance
-
-- No transferable voucher, score, ranking, or debt behavior is inferred from commitment or settlement records.
-- Borrow/repay authorization, caps, failure/recovery, privacy, indexer, shared, and UI contracts are explicit before implementation.
-- The companion chain remains additive: no pooling-module/register ABI or lifecycle change.
-- `DisbursementKind.LoanPrincipal` is the only settlement seam; `commitmentId == 0` never becomes a generic member-disbursement bypass.
+The pooling module and `CommitmentRegistry` remain read-only dependencies. Their ABI and lifecycle
+have no diff in the committed range. G$ repayment remains disabled because no authenticated upward
+receipt policy is frozen; Jar and Treasury are the executable record-only repayment rails.
 
 ## RED / GREEN
 
-RED recorded before production implementation:
+Initial RED was recorded before production implementation:
 
-- Command: `cd packages/contracts && bun run test:match -- test/unit/CreditRegistry.t.sol`
-- Evidence: compilation failed because `src/interfaces/ICreditRegistry.sol` and `src/registries/Credit.sol` did not exist. The focused test already required the request → approve → Treasury record → two-installment repayment path and exact outstanding conservation.
+- `cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'`
+- Compilation failed because `ICreditRegistry.sol` and `Credit.sol` did not exist. The test already
+  required request, approval, Treasury recording, two installments, and outstanding conservation.
 
-GREEN on that same target:
+Adversarial review then produced focused REDs for five High-severity defects before they were fixed:
 
-- Command: `cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'`
-- Evidence: 15/15 passed, including the 1,000-run fuzz case. The settlement seam passed 11/11,
-  the frozen credit-layout upgrade passed 1/1, and three credit accounting invariants completed
-  384,000 calls with zero reverts.
+1. An Approved G$ loan could be cancelled in the registry after its settlement child had dispatched
+   or confirmed.
+2. `RepaymentRecorded.newOutstanding` reported the borrower's aggregate balance instead of the
+   remaining balance of the loan named by the event.
+3. Approval did not revalidate the original self/on-behalf request authority.
+4. Concurrent Approved G$ loans could pass the cap independently before either acknowledgment
+   became recordable.
+5. Replacing the registry's settlement dependency could orphan Approved exposure.
+
+GREEN on the hardened range:
+
+- `CreditRegistry.t.sol`: 21/21 passed, including the 1,000-run fuzz case.
+- `CreditSettlement.t.sol`: 16/16 passed, including a stranded loan-principal child, route
+  retirement, retry/cancellation behavior, relationship preservation, and dependency mismatch.
+- `CreditRegistryUpgrade.t.sol`: 1/1 passed.
+- Credit accounting invariants: 384,000 calls, zero reverts.
+- Full contracts target: 1,947 Solidity tests and 100 script tests passed.
 
 ## Fresh validation evidence
 
-- `cd packages/contracts && bun run test`: 1,936 Solidity tests and 100 script tests passed.
+- `cd packages/contracts && bun run test`: 1,947 Solidity tests and 100 script tests passed.
 - `cd packages/contracts && bun run build:full`: passed.
-- `cd packages/contracts && bun run check:sizes`: passed. `SettlementModule` is 22,369 bytes
-  (2,207-byte margin); `CreditRegistry` is 17,209 bytes (7,367-byte margin);
-  `CeloSettlementExecutor` is 20,040 bytes (4,536-byte margin).
-- `cd packages/contracts && bun run check:storage-layout`: passed, including the new frozen
-  `CreditRegistry` baseline and unchanged stage-1 settlement linear layout.
-- `cd packages/contracts && bun run lint`: passed with zero errors and the repository's existing
-  Solidity warnings.
-- `cd packages/contracts && bun run test:audit:full`: passed. Core coverage is 86.37% lines
-  (5,619/6,506) and 65.30% branches (873/1,337); every critical-contract threshold passed;
-  realism reported zero must-fix, should-fix, or nice-to-have findings.
-- `cd packages/contracts && bun run test:fork:settlement-lane`: 7/7 passed, including the local
-  fork-only Cookie Jar/Treasury record round trip and six pinned Arbitrum/Celo lane checks. No live
-  transaction was sent.
-- `node scripts/quality/check-source-structure.js --base c60b38dea`, `bun run check:ontology`,
-  `bun run format:check`, and `git diff --check c60b38dea`: passed.
-- Root `bun format`, `bun lint`, and `bun run test` passed. The read-only
-  `bun run verify:contracts:fast` wrapper also passed outside the sandbox after the sandboxed run
-  hit Foundry's macOS system-proxy crash.
+- `cd packages/contracts && bun run check:sizes`: passed.
+  - `SettlementModule`: 22,369 bytes, 2,207-byte EIP-170 margin.
+  - `CreditRegistry`: 18,475 bytes, 6,101-byte margin.
+  - `CeloSettlementExecutor`: 20,040 bytes, 4,536-byte margin.
+  - `SettlementLoanLib`: 6,163 bytes.
+- `cd packages/contracts && bun run check:storage-layout`: passed. The 11 named credit entries plus
+  the 39-slot gap remain the exact linear 50-slot allocation; cap reservations use a separate
+  ERC-7201 namespace and survive upgrade proof.
+- `cd packages/contracts && bun run lint`: passed with zero errors and 256 existing warnings.
+- `cd packages/contracts && bun run test:audit:full`: passed.
+  - Core coverage: 86.44% lines (5,668/6,557) and 65.28% branches (880/1,348).
+  - Every critical-contract threshold passed.
+  - Realism audit: zero must-fix, should-fix, or nice-to-have findings.
+- `cd packages/contracts && bun run test:fork:settlement-lane`: 7/7 passed. This includes the local
+  fork-only Cookie Jar/Treasury record round trip and six pinned read-only Arbitrum/Celo checks. No
+  transaction was submitted.
+- `node scripts/quality/check-source-structure.js --base c60b38dea`: passed for 16 changed non-test
+  sources with no oversized source.
+- `bun run check:ontology`, `bun run format:check`, and `git diff --check c60b38dea`: passed.
+- Root `bun lint`: passed.
 
-## Branch-level blocker outside this increment
+## Final adversarial review
 
-`VITE_CHAIN_ID=11155111 bun run build` reaches the indexer build and fails because the committed
-`packages/indexer/test/v3.ts` event helper omits `SettlementDeploymentPinned`,
-`StrandedSubjectFailed`, and `ExecutorDeploymentPinned`. Those events are already declared in
-`packages/indexer/config.yaml`, Envio codegen emits them, and this contracts increment has no
-indexer diff. The all-forks convenience target also requires separate Sepolia Hats upgrade pins;
-the prompt's exact settlement-lane fork target is green. Neither issue changes the stage-2
-contract proof, but the root build helper mismatch must be repaired in its owning lane before a
-whole-branch ship claim.
+Reviewed the clean committed range `238e4e218..0b50c9205` after the final tests. There are no
+unresolved Critical or High findings in the credit registry or loan-principal settlement seam.
+The five High findings above were fixed and retested. The exact `DisbursementKind` ordinals remain
+0–3, settlement loan storage uses the frozen ERC-7201 slot, retry/acknowledgment keys remain
+subject-specific, and a source-side stranded failure never makes the credit loan read as
+Disbursed.
 
-## Exact Bun commands
+Known lower-severity or deliberately deferred constraints:
 
-- `cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'`
-- `cd packages/contracts && bun run build:full`
-- `cd packages/contracts && bun run check:sizes`
-- `cd packages/contracts && bun run check:storage-layout`
-- `cd packages/contracts && bun run lint`
-- `cd packages/contracts && bun run test:audit:full`
-- `cd packages/contracts && bun run test:fork:settlement-lane`
+- G$ repayment is disabled until an authenticated receipt policy is separately approved.
+- Stage-3 tooling must reconcile the Celo executor result and Safe movement before retrying a
+  source-stranded principal command.
+- The already-recorded settlement and indexer defects from the stage-1 pre-merge review remain in
+  their owning lanes and were neither depended on nor changed here.
 
-## Out of scope
+## Whole-branch blockers outside this increment
 
-- Deploy targets, deployment artifacts, recovery/courier tooling, Safe/Zodiac setup, live configuration, broadcast, indexer/shared/UI/agent implementation, credit scores, rankings, transferable settlement vouchers, arbitrary borrowing, implicit G$ repayment settlement, or pooling lifecycle coupling.
+The deterministic root build reaches the indexer package and fails because
+`packages/indexer/test/settlement-lifecycle.test.ts` references generated test API helpers that do
+not yet expose `StrandedSubjectFailed`, `SettlementDeploymentPinned`, and
+`ExecutorDeploymentPinned` at lines 167, 739, and 759. The contracts increment has no indexer diff.
 
-## Unblock evidence
+A final concurrent root `bun run test` rerun was also inconclusive because Foundry aborted in its
+macOS system-proxy initialization (`SCDynamicStore`) while packages ran in parallel. The exact
+package-level `cd packages/contracts && bun run test` target is independently fresh and green.
+These prevent a whole-branch Ship Gate claim, not the stage-2 contracts verdict.
 
-- The granted 2026-08-01 scope lock remains recorded in pooling Decision Log #39/register #73.
-- Pooling/settlement foundations and the three post-merge interface decisions are verified in code and focused tests.
-- Human legal/operations review is recorded.
-- `status.json`'s manual blocker is cleared; RED/GREEN evidence is recorded before the lane is marked passed.
+## Stop point
 
-## Final review checkpoint
-
-The implementation will be committed, then reviewed from a clean committed range. The contracts
-lane remains `in_progress` until that review confirms no unresolved Critical/High finding in the
-credit registry or settlement seam.
+No deployment, broadcast, live configuration, authority transfer, indexer activation, or value
+movement occurred. The next action is human review and merge of this contracts increment. After it
+merges, stage 3 owns every deployment and release operation, and the downstream state/API lane may
+build against the frozen ABI.

@@ -2,7 +2,7 @@
 
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `active`
-**Status**: `CONTRACTS IMPLEMENTED — committed-range review pending`
+**Status**: `CONTRACTS MERGE-READY — human review and merge pending`
 **Last Updated**: `2026-08-09`
 
 ## Promotion record and remaining dispatch gates
@@ -20,13 +20,14 @@
 1. [x] Record focused RED proof for the exact credit interface and settlement seam.
 2. [x] Implement `ICreditRegistry`, `CreditRegistry`, and the library-weighted `queueLoanPrincipal(uint256)` seam.
 3. [x] Prove storage/upgrade safety, adversarial behavior, fuzz/invariants, size, full contracts tests, and the read-only fork lane.
-4. [ ] Conduct a final adversarial review of the committed stage-2 range and stop for human review/merge.
+4. [x] Conduct a final adversarial review of the committed stage-2 range and stop for human review/merge.
 
-The prompt-mandated contracts gates are green. The deterministic root build separately exposes a
-pre-existing indexer test-helper type error: `packages/indexer/test/v3.ts` omits three settlement
-events that are already present in `packages/indexer/config.yaml`. This contracts-only stage does
-not edit that indexer helper; it is a branch-level ship blocker outside this increment, not a
-credit-contract failure.
+The prompt-mandated contracts gates are green. The deterministic root build separately exposes an
+indexer test-helper type error in `packages/indexer/test/settlement-lifecycle.test.ts`: the generated
+test API does not expose three settlement event helpers used by the test. This contracts-only stage
+does not edit that indexer surface. A final concurrent root-test rerun was also interrupted by a
+Foundry macOS system-proxy crash; the independent contracts target is fresh and green. These block
+a whole-branch Ship Gate claim, not the stage-2 contracts verdict.
 
 ## Stage-3 boundary
 

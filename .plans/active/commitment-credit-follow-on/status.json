@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-10T00:30:18.313Z"
+    "updated_at": "2026-08-10T02:08:37.596Z"
   },
   "links": {
     "brief": "brief.md",
@@ -62,7 +62,9 @@
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
     "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved.",
     "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
-    "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation."
+    "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
+    "Stage-2 contracts are merge-ready at commits 1df10469bc0e6f554bf9edd3b467f325615d1a20 and 0b50c9205. The final committed-range review found no unresolved Critical or High issue in scope. Whole-branch proof remains blocked outside the contracts increment by indexer generated-helper drift and a Foundry macOS system-proxy crash during the final concurrent root-test rerun.",
+    "Live Linear was re-read at closeout, but the PRD-785 In Review transition and completion comment were rejected because the workspace is out of automation credits. The Linear mirror remains Todo until that external limit is restored."
   ],
   "lanes": {
     "ui": {
@@ -111,7 +113,7 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "codex/contracts/commitment-credit-follow-on",
       "execution_branch": "feature/build-commitment-crediting-contracts",
       "depends_on": [],
@@ -121,17 +123,17 @@
         "status": "green_recorded",
         "red": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "Compilation failed before production code because ICreditRegistry.sol and Credit.sol did not exist; the focused test had already frozen request, approval, Treasury disbursement recording, installment repayment, and outstanding conservation."
+          "evidence": "Initial RED: compilation failed because ICreditRegistry.sol and Credit.sol did not exist. Adversarial REDs later isolated approval authority drift, asynchronous cap races, unsafe settlement cancellation, incorrect per-loan repayment event balances, and dependency replacement with approved exposure."
         },
         "green": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "CreditRegistry.t.sol passed 15 of 15 tests, including 1000-run fuzz coverage; full contracts verification then passed 1936 Solidity tests and 100 script tests."
+          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 16 of 16; the full contracts gate passed 1947 Solidity tests and 100 script tests."
         },
-        "note": "RED was recorded before implementation. GREEN includes the exact focused target and fresh full-suite confirmation on 2026-08-09."
+        "note": "RED preceded implementation and each adversarial behavior fix. GREEN is fresh on the final committed contracts range."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
-      "note": "Dispatch gates cleared and exact interface freeze recorded 2026-08-09. RED/GREEN proof remains required before this lane can pass."
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts. Human review and merge remain pending; deployment stays deferred to stage 3."
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -203,6 +205,22 @@
       "status": "tdd_recorded",
       "branch": "codex/contracts/commitment-credit-follow-on",
       "note": "RED was recorded before implementation. GREEN includes the exact focused target and fresh full-suite confirmation on 2026-08-09."
+    },
+    {
+      "timestamp": "2026-08-10T02:08:28.836Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-10T02:08:37.597Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts at 1df10469b and 0b50c9205. Fresh contracts proof is green, committed-range review found no unresolved Critical or High issue in scope, and deployment remains deferred to stage 3."
     }
   ]
 }
