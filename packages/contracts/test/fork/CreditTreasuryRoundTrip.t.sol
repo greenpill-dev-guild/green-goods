@@ -122,7 +122,7 @@ contract CreditTreasuryRoundTripForkTest is AaveOctantForkBase {
         credit.configurePoolCredit(POOL_ID, PRINCIPAL, true);
     }
 
-    function testForkJarRoundTripIsRecordedWithoutRegistryCustody() public {
+    function testIntegration_creditTreasuryRoundTripRecordsWithoutRegistryCustody() public {
         vm.deal(address(this), PRINCIPAL);
         IWETH9(WETH).deposit{ value: PRINCIPAL }();
         IERC20(WETH).approve(jar, PRINCIPAL);

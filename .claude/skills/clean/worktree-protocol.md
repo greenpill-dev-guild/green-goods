@@ -4,13 +4,19 @@ Load this file only when the human has explicitly approved isolated worktrees fo
 
 ## Base invariant
 
-Every implementation worktree bases on the checkpoint SHA recorded in pre-flight — never `main`, `origin/main`, or the tool's default branch. Verify from the orchestrator before accepting any lane's result:
+Every implementation worktree bases on the checkpoint SHA recorded in pre-flight — never `main`, `origin/main`, or the tool's default branch. Record the worktree's `implementation_base_sha` before dispatch. Before accepting any lane result, first verify that recorded base exactly matches the checkpoint:
+
+```bash
+test "$IMPLEMENTATION_BASE_SHA" = "$CHECKPOINT_SHA"
+```
+
+Then independently verify after the run that the implementation head still descends from the checkpoint:
 
 ```bash
 test "$(git -C "$WORKTREE" merge-base "$CHECKPOINT_SHA" HEAD)" = "$CHECKPOINT_SHA"
 ```
 
-If a worktree fails this check, stop and re-dispatch that agent from the checkpoint. Never continue a stale-base run by default.
+If either check fails, stop and re-dispatch that agent from the checkpoint. Never continue a stale-base run by default.
 
 ## Stale-base salvage (explicit approval only)
 

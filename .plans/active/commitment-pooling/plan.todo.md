@@ -73,19 +73,19 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 
 ## How to read decision citations
 
-⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–54, and this has caused real mis-resolutions. Until a full renumber lands:
+⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–61, and this has caused real mis-resolutions. Until a full renumber lands:
 
 | List | Range | What it is |
 |---|---|---|
 | **Decision Log** (the table below) | 1–61 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–89 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–89 |
+| **Full decision register** (further below) | 1–92 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–92 |
 
-- **Every `#1`–`#55` citation is potentially ambiguous** because both lists now occupy that range (the Decision Log gained `#55` on 2026-08-08). Always write “Decision Log #N” or “register #N”.
-- **`#56`–`#89` are unambiguous register numbers**, but naming the list is still preferred.
+- **Every `#1`–`#61` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
+- **`#62`–`#92` are unambiguous register numbers**, but naming the list is still preferred.
 - **`#39`–`#40` became ambiguous on 2026-08-01**, when the Decision Log gained its CPP-alignment scope lock and staged-product narrative while the full register already carried different entries at those numbers. Name the list explicitly for both.
 - **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
-- **`#1`–`#54` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
+- **`#1`–`#61` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
 - **Sub-letters do not disambiguate** — both `#28` (Decision Log, a–f) and `#34` (register, a–h) carry them.
 - **When writing a new citation, name the list**: "Decision Log #17" or "register #17", never a bare `#17`.
 

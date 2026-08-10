@@ -126,7 +126,7 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
     }
 
     /// @notice A free approval-gated Offer still requires the claimant to be a current member.
-    function testApprovalGatedFreeOfferRechecksClaimantMembership() public {
+    function testCommitmentPoolingPayer_approvalGatedFreeOfferRechecksClaimantMembership() public {
         ICommitmentPoolingModule.CreateCommitmentParams memory params =
             _baseParams(keccak256("payer-protocol-free-pending"));
         params.poolId = protocolPoolId;
@@ -144,7 +144,7 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
     }
 
     /// @notice A priced Individual claim must still have a steward when approval binds the payer.
-    function testApprovalGatedPricedOfferRechecksIndividualStewardship() public {
+    function testCommitmentPoolingPayer_approvalGatedPricedOfferRechecksIndividualStewardship() public {
         ICommitmentPoolingModule.CreateCommitmentParams memory params =
             _baseParams(keccak256("payer-protocol-priced-individual-pending"));
         params.poolId = protocolPoolId;
@@ -167,7 +167,7 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
     }
 
     /// @notice A Garden claim rechecks the human steward rather than the GardenAccount claimant.
-    function testApprovalGatedPricedOfferRechecksGardenClaimStewardship() public {
+    function testCommitmentPoolingPayer_approvalGatedPricedOfferRechecksGardenClaimStewardship() public {
         ICommitmentPoolingModule.CreateCommitmentParams memory params =
             _baseParams(keccak256("payer-protocol-priced-garden-pending"));
         params.poolId = protocolPoolId;

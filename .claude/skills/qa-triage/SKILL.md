@@ -92,7 +92,7 @@ All deviations from a real run, in one place:
 
    The known file id is `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo` (owner `afo@greenpill.builders`). On first run, confirm and cache to `~/.config/qa-triage/cache.json`. If zero hits remain after the chain, continue with `--no-sheet` semantics.
 
-5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state and require `proceed anyway` to continue (default: abort and recommend tightening access). (Skipped in fixture mode.)
+5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state, abort the run, and recommend tightening access. There is no override for a public or link-accessible Sheet. (Skipped in fixture mode.)
 
 6. **Read Sheet structure** via `read_file_content` (skipped in fixture mode):
    - Confirm tab names match `Public Website`, `PWA iOS`, `PWA Android`, `Admin Dashboard`, `Cross Surface`, `Defects` plus auxiliary `Guide`, `Summary`.

@@ -39,7 +39,7 @@ contract SettlementLifecycleTest is SettlementPayerTest {
     ///      negotiates was never actually enforced against an acknowledgment. A retired executor
     ///      kept authority over everything in flight to it forever, and could report success with
     ///      nothing having left the Safe.
-    function testARetiredExecutorCannotAcknowledgeOnceItsGraceExpires() public {
+    function testSettlementModule_retiredExecutorCannotAcknowledgeOnceItsGraceExpires() public {
         (, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
 
         _retireActiveExecutor(7 days);
@@ -58,7 +58,7 @@ contract SettlementLifecycleTest is SettlementPayerTest {
     /// @notice The previous peer keeps acknowledging while its grace window is open.
     /// @dev The point of a grace window is to drain in-flight commands, so a cutover that grants
     ///      one must not break the acknowledgments it exists to allow.
-    function testThePreviousPeerCanAcknowledgeInsideItsGraceWindow() public {
+    function testSettlementModule_previousPeerCanAcknowledgeInsideItsGraceWindow() public {
         (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
 
         _retireActiveExecutor(7 days);
@@ -73,10 +73,26 @@ contract SettlementLifecycleTest is SettlementPayerTest {
         assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
     }
 
+    function testSettlementModule_previousPeerCanAcknowledgeAtGraceExpiry() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(settlement.ccipRoute().previousPeerExpiresAt);
+
+        router.deliver(
+            address(settlement),
+            keccak256("grace-boundary-ack"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
+    }
+
     /// @notice Reusing an executor address on another selector does not keep the old lane trusted.
     /// @dev Deterministic deployments can have the same address on two chains. The live route is
     ///      therefore the selector/address pair, not the address alone.
-    function testSameExecutorAddressOnANewSelectorCannotAcknowledgeTheOldLane() public {
+    function testSettlementModule_sameExecutorAddressOnANewSelectorCannotAcknowledgeTheOldLane() public {
         (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
 
         vm.startPrank(OWNER);
@@ -104,7 +120,7 @@ contract SettlementLifecycleTest is SettlementPayerTest {
     ///      liveness one: requeue needs Failed and cancel accepts only Queued or Failed, so a
     ///      Dispatched subject nobody can acknowledge would sit there forever, and the payout plan
     ///      counting it would never resolve.
-    function testAStrandedSubjectCanBeFailedOnlyOnceItIsGenuinelyStranded() public {
+    function testSettlementModule_strandedSubjectCanBeFailedOnlyOnceItIsGenuinelyStranded() public {
         (uint256 childId,,) = _dispatchedSubject();
 
         // Still the active peer, so an acknowledgment could yet arrive — refuse to pre-empt it.
@@ -134,13 +150,13 @@ contract SettlementLifecycleTest is SettlementPayerTest {
     }
 
     /// @notice Closing out a stranded subject is the owner's call, not a steward's.
-    function testStrandedSubjectCloseOutIsOwnerOnly() public {
+    function testSettlementModule_strandedSubjectCloseOutIsOwnerOnly() public {
         (uint256 childId,,) = _dispatchedSubject();
 
         _retireActiveExecutor(7 days);
         vm.warp(block.timestamp + 8 days);
 
-        vm.expectRevert();
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
         vm.prank(CONTRIBUTOR);
         settlement.failStrandedSubject(false, childId);
     }
@@ -228,7 +244,7 @@ contract SettlementLifecycleTest is SettlementPayerTest {
     /// @dev Both id counters start at one, so this also covers a same-numbered batch and child. The
     ///      rejected call must leave the command usable for the correct batch close-out and keep
     ///      payout-plan counters balanced through the later child requeue.
-    function testStrandedBatchRejectsAChildDomainCloseOut() public {
+    function testSettlementModule_strandedBatchRejectsAChildDomainCloseOut() public {
         pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
         vm.startPrank(OWNER);
         settlement.setPaused(true);

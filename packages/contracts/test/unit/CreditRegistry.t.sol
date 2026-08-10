@@ -45,7 +45,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.configurePoolCredit(poolId, 100 ether, true);
     }
 
-    function testRequestApproveDisburseAndRepayInInstallments() public {
+    function testCreditRegistry_requestApproveDisburseAndRepayInInstallments() public {
         uint256 loanId = _request(CREATOR, 80 ether, 0);
         credit.approveLoan(loanId);
         credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.Treasury, keccak256("treasury-disbursement"));
@@ -64,7 +64,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.amountDue(loanId), 0);
     }
 
-    function testStewardOnBehalfIsExplicitAndCurrentMemberOnly() public {
+    function testCreditRegistry_stewardOnBehalfIsExplicitAndCurrentMemberOnly() public {
         ICreditRegistry.RequestLoanParams memory params = _params(25 ether, 0);
         params.onBehalfOf = CREATOR;
         uint256 loanId = credit.requestLoan(params);
@@ -87,14 +87,14 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.requestLoan(params);
     }
 
-    function testBorrowerCannotApproveOwnLoanEvenWhenAlsoAuthorizedAsSteward() public {
+    function testCreditRegistry_borrowerCannotApproveOwnLoanEvenWhenAlsoAuthorizedAsSteward() public {
         _setMember(address(this));
         uint256 loanId = _request(address(this), 10 ether, 0);
         vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.SelfApproval.selector, loanId, address(this)));
         credit.approveLoan(loanId);
     }
 
-    function testApprovalRevalidatesTheOriginalRequesterAuthority() public {
+    function testCreditRegistry_approvalRevalidatesTheOriginalRequesterAuthority() public {
         uint256 selfRequestedLoanId = _request(CREATOR, 10 ether, 0);
         hats.setGardener(POOL_GARDEN, CREATOR, false);
         vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.NotPoolMember.selector, CREATOR, poolId));
@@ -112,7 +112,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.approveLoan(stewardRequestedLoanId);
     }
 
-    function testCapIsRecheckedAfterInterveningDisbursementAtApproval() public {
+    function testCreditRegistry_capIsRecheckedAfterInterveningDisbursementAtApproval() public {
         uint256 firstLoanId = _request(CREATOR, 60 ether, 0);
         uint256 secondLoanId = _request(CREATOR, 60 ether, 0);
         credit.approveLoan(firstLoanId);
@@ -124,7 +124,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.approveLoan(secondLoanId);
     }
 
-    function testApprovedLoansReserveCapBeforeAnyRailCanDisburse() public {
+    function testCreditRegistry_approvedLoansReserveCapBeforeAnyRailCanDisburse() public {
         uint256 firstLoanId = _request(CREATOR, 60 ether, 0);
         uint256 secondLoanId = _request(CREATOR, 60 ether, 0);
         credit.approveLoan(firstLoanId);
@@ -137,7 +137,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.approveLoan(secondLoanId);
     }
 
-    function testCapIsRecheckedAfterInterveningDisbursementAtRecording() public {
+    function testCreditRegistry_capIsRecheckedAfterInterveningDisbursementAtRecording() public {
         credit.configurePoolCredit(poolId, 120 ether, true);
         uint256 firstLoanId = _request(CREATOR, 60 ether, 0);
         uint256 secondLoanId = _request(CREATOR, 60 ether, 0);
@@ -150,7 +150,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Jar, keccak256("second-cap-use"));
     }
 
-    function testCommitmentLinkIsUniqueAndCancellationClearsOnlyTheLiveLink() public {
+    function testCreditRegistry_commitmentLinkIsUniqueAndCancellationClearsOnlyTheLiveLink() public {
         uint256 commitmentId = _createOffer(keccak256("credit-linked-offer"));
         uint256 loanId = _request(CREATOR, 20 ether, commitmentId);
         assertEq(credit.loanOfCommitment(commitmentId), loanId);
@@ -165,7 +165,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.loanOfCommitment(commitmentId), replacementLoanId);
     }
 
-    function testRepaymentRejectsZeroOverpaymentAndReplayAcrossLoans() public {
+    function testCreditRegistry_repaymentRejectsZeroOverpaymentAndReplayAcrossLoans() public {
         uint256 firstLoanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("first-disbursement"));
         uint256 secondLoanId = _request(CLAIMANT, 20 ether, 0);
         credit.approveLoan(secondLoanId);
@@ -188,7 +188,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.loanOfExecutionRef(keccak256("shared-ref")), firstLoanId);
     }
 
-    function testRepaymentEventCarriesTheLoansRemainingBalance() public {
+    function testCreditRegistry_repaymentEventCarriesTheLoansRemainingBalance() public {
         uint256 firstLoanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("event-first-disbursement"));
         _approvedAndDisbursed(CREATOR, 30 ether, keccak256("event-second-disbursement"));
         bytes32 repaymentRef = keccak256("event-first-repayment");
@@ -201,7 +201,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.outstandingOf(poolId, CREATOR), 60 ether, "aggregate exposure remains separately readable");
     }
 
-    function testDefaultIsDueGatedAndRecoverableAcrossInstallments() public {
+    function testCreditRegistry_defaultIsDueGatedAndRecoverableAcrossInstallments() public {
         uint256 loanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("default-disbursement"));
         ICreditRegistry.Loan memory loan = credit.getLoan(loanId);
         vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.NotDue.selector, loanId, loan.dueDate));
@@ -220,7 +220,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.outstandingOf(poolId, CREATOR), 0);
     }
 
-    function testExecutorRemovalImmediatelyRevokesRecordAuthority() public {
+    function testCreditRegistry_executorRemovalImmediatelyRevokesRecordAuthority() public {
         credit.addExecutor(poolId, EXECUTOR);
         uint256 firstLoanId = _request(CREATOR, 20 ether, 0);
         credit.approveLoan(firstLoanId);
@@ -235,7 +235,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Jar, keccak256("executor-removed"));
     }
 
-    function testPauseBlocksOrdinaryMutationsButPreservesCancelAndDefault() public {
+    function testCreditRegistry_pauseBlocksOrdinaryMutationsButPreservesCancelAndDefault() public {
         uint256 requestedLoanId = _request(CREATOR, 20 ether, 0);
         uint256 disbursedLoanId = _approvedAndDisbursed(CLAIMANT, 20 ether, keccak256("pause-default"));
         uint64 dueDate = credit.getLoan(disbursedLoanId).dueDate;
@@ -254,13 +254,13 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(uint8(credit.getLoan(disbursedLoanId).state), uint8(ICreditRegistry.LoanState.Defaulted));
     }
 
-    function testDependenciesAndUpgradeAreOwnerAndPauseGated() public {
+    function testCreditRegistry_dependenciesAndUpgradeAreOwnerAndPauseGated() public {
         address replacementSettlement = address(0x5E771F);
         vm.expectRevert(ICreditRegistry.ModuleMustBePaused.selector);
         credit.setSettlementModule(replacementSettlement);
 
         credit.setPaused(true);
-        vm.expectRevert();
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
         vm.prank(CREATOR);
         credit.setSettlementModule(replacementSettlement);
         vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
@@ -269,7 +269,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
 
         CreditRegistry nextImplementation = new CreditRegistry();
         bytes memory keepPaused = abi.encodeCall(CreditRegistry.setPaused, (true));
-        vm.expectRevert();
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
         vm.prank(CREATOR);
         credit.upgradeToAndCall(address(nextImplementation), keepPaused);
         credit.upgradeToAndCall(address(nextImplementation), keepPaused);
@@ -278,7 +278,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.nextLoanId(), 1);
     }
 
-    function testSettlementReplacementCannotOrphanApprovedExposure() public {
+    function testCreditRegistry_settlementReplacementCannotOrphanApprovedExposure() public {
         uint256 loanId = _request(CREATOR, 40 ether, 0);
         credit.approveLoan(loanId);
         credit.setPaused(true);
@@ -293,7 +293,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.settlementModule(), address(0x5E771F));
     }
 
-    function testUpgradePreservesNamespacedCapReservations() public {
+    function testCreditRegistry_upgradePreservesNamespacedCapReservations() public {
         uint256 loanId = _request(CREATOR, 40 ether, 0);
         credit.approveLoan(loanId);
         assertEq(credit.reservedOutstandingOf(poolId, CREATOR), 40 ether);
@@ -310,7 +310,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.outstandingOf(poolId, CREATOR), 40 ether);
     }
 
-    function testFrozenCreditOrdinalsRemainExact() public {
+    function testCreditRegistry_frozenCreditOrdinalsRemainExact() public {
         assertEq(uint8(ICreditRegistry.LoanState.None), 0);
         assertEq(uint8(ICreditRegistry.LoanState.Requested), 1);
         assertEq(uint8(ICreditRegistry.LoanState.Approved), 2);
@@ -324,7 +324,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(uint8(ICreditRegistry.LoanRail.GDollarSettlement), 3);
     }
 
-    function testInvalidRequestAndConfigurationInputsFailClosed() public {
+    function testCreditRegistry_invalidRequestAndConfigurationInputsFailClosed() public {
         ICreditRegistry.RequestLoanParams memory params = _params(10 ether, 0);
         params.poolId = 0;
         vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.UnknownPool.selector, uint256(0)));
@@ -359,7 +359,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.None, keccak256("none-rail"));
     }
 
-    function testCancellationNeverAppliesAfterValueWasRecorded() public {
+    function testRevert_CreditRegistryCancellationAfterValueWasRecorded() public {
         uint256 loanId = _approvedAndDisbursed(CREATOR, 10 ether, keccak256("cancel-after-value"));
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -369,7 +369,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.cancelLoan(loanId, "bafy-too-late");
     }
 
-    function testAdministrativeAndLifecycleFailureBranchesStayClosed() public {
+    function testRevert_CreditRegistryAdministrativeAndLifecycleFailureBranchesStayClosed() public {
         vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
         credit.addExecutor(poolId, address(0));
         vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
@@ -416,7 +416,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.setCommitmentPoolingModule(address(0));
     }
 
-    function testFuzzRepaymentConservesOutstanding(uint96 rawPrincipal, uint96 rawFirstPayment) public {
+    function testFuzz_CreditRegistryRepaymentConservesOutstanding(uint96 rawPrincipal, uint96 rawFirstPayment) public {
         uint256 principal = bound(uint256(rawPrincipal), 2, 100 ether);
         uint256 firstPayment = bound(uint256(rawFirstPayment), 1, principal - 1);
         uint256 loanId = _approvedAndDisbursed(CREATOR, principal, keccak256(abi.encode("fuzz", principal)));

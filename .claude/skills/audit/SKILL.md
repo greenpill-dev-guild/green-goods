@@ -55,7 +55,7 @@ These are mandatory:
 
 ## Drift Mode
 
-`/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run Parts 0-10.
+`/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run the numbered full-audit parts.
 
 1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `ontology`, `cleanup`, `quality`; add `--json` for machine output). The `ontology` scope reports a distinct infra-fault status when the checker itself cannot run — treat that as a tooling failure to fix, not ontology drift.
 2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.

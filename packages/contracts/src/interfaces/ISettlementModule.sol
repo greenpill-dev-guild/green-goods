@@ -404,7 +404,10 @@ interface ISettlementModule {
     /// @notice The subject's executor can still acknowledge, so there is nothing to close out.
     error SubjectNotStranded(bool isBatch, uint256 subjectId);
     error CreditRegistryRequired();
+    error CreditRegistryPaused(address creditRegistry);
     error LoanPrincipalNotApproved(uint256 loanId, uint8 state);
+    error LoanPrincipalPoolNotOpen(uint256 loanId, uint256 poolId, uint8 state);
+    error LoanPrincipalCreditDisabled(uint256 loanId, uint256 poolId);
     error LoanPrincipalMismatch(uint256 loanId, uint256 disbursementId);
     error LoanPrincipalCapExceeded(uint256 loanId, uint256 requested, uint256 available);
 

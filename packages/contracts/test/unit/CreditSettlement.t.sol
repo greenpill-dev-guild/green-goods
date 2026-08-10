@@ -25,21 +25,7 @@ contract CreditSettlementTest is SettlementPayerTest {
 
     function setUp() public override {
         super.setUp();
-        pooling.setPool(
-            CREDIT_POOL_ID,
-            ICommitmentPoolingModule.Pool({
-                garden: PROTOCOL_GARDEN,
-                poolType: ICommitmentPoolingModule.PoolType.Garden,
-                state: ICommitmentPoolingModule.PoolState.Open,
-                proofEnabled: true,
-                settlementEnabled: false,
-                charterCID: "bafy-credit-pool",
-                openSeasonCycleId: 0,
-                settlementAdapter: address(0),
-                liveCommitmentCount: 0,
-                nonTerminalCycleCount: 0
-            })
-        );
+        _setCreditPoolState(ICommitmentPoolingModule.PoolState.Open);
         hats.setMember(PROTOCOL_GARDEN, BORROWER, true);
         hats.setMember(PROTOCOL_GARDEN, SECOND_BORROWER, true);
 
@@ -62,7 +48,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         vm.stopPrank();
     }
 
-    function testLoanPrincipalQueueDerivesAndPersistsTheFrozenRelationship() public {
+    function testCreditSettlement_loanPrincipalQueueDerivesAndPersistsTheFrozenRelationship() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
 
         vm.prank(OWNER);
@@ -90,7 +76,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(settlement.queueLoanPrincipal(loanId), disbursementId, "queue must be idempotent");
     }
 
-    function testFrozenSettlementOrdinalsRemainExact() public {
+    function testCreditSettlement_frozenSettlementOrdinalsRemainExact() public {
         assertEq(uint8(ISettlementModule.DisbursementKind.ContributorConsideration), 0);
         assertEq(uint8(ISettlementModule.DisbursementKind.Funding), 1);
         assertEq(uint8(ISettlementModule.DisbursementKind.LoanPrincipal), 2);
@@ -98,7 +84,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(uint8(ISettlementModule.FailureCode.SourceStranded), 12);
     }
 
-    function testConfirmedLoanPrincipalCanBeRecordedExactlyOnce() public {
+    function testCreditSettlement_confirmedLoanPrincipalCanBeRecordedExactlyOnce() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -135,7 +121,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         credit.recordRepayment(loanId, 1 ether, keccak256("human-entered-gdollar-hash"));
     }
 
-    function testNonGdollarRecordingRejectsQueuedAndBatchedPrincipalChildren() public {
+    function testCreditSettlement_nonGdollarRecordingRejectsQueuedAndBatchedPrincipalChildren() public {
         uint256 queuedLoanId = _approvedLoan(BORROWER, 30 ether);
         uint256 batchedLoanId = _approvedLoan(SECOND_BORROWER, 20 ether);
         uint256[] memory ids = new uint256[](2);
@@ -157,7 +143,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         _expectNonGdollarRecordingBlocked(batchedLoanId, ICreditRegistry.LoanRail.Treasury, "batched-cross-rail");
     }
 
-    function testNonGdollarRecordingRejectsDispatchedAndConfirmedPrincipalChild() public {
+    function testCreditSettlement_nonGdollarRecordingRejectsDispatchedAndConfirmedPrincipalChild() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -180,7 +166,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         _expectNonGdollarRecordingBlocked(loanId, ICreditRegistry.LoanRail.Treasury, "confirmed-cross-rail");
     }
 
-    function testNonGdollarRecordingRejectsFailedAndRetriedPrincipalChild() public {
+    function testCreditSettlement_nonGdollarRecordingRejectsFailedAndRetriedPrincipalChild() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -208,7 +194,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         _expectNonGdollarRecordingBlocked(loanId, ICreditRegistry.LoanRail.Treasury, "retried-cross-rail");
     }
 
-    function testStrandedLoanFailureDoesNotRecordDisbursementAndRequeueIsIsolated() public {
+    function testCreditSettlement_strandedLoanFailureDoesNotRecordDisbursementAndRequeueIsIsolated() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -261,7 +247,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(credit.getLoan(loanId).attempts, 1);
     }
 
-    function testCreditCancellationRequiresTheQueuedSettlementChildToBeCancelledFirst() public {
+    function testCreditSettlement_creditCancellationRequiresTheQueuedSettlementChildToBeCancelledFirst() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.prank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -291,7 +277,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(relationship.loanId, loanId);
     }
 
-    function testDispatchedLoanCannotBeCancelledAndRelationshipSurvivesRetryAndAcknowledgment() public {
+    function testCreditSettlement_dispatchedLoanCannotBeCancelledAndRelationshipSurvivesRetryAndAcknowledgment() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -337,7 +323,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         credit.cancelLoan(loanId, "bafy-confirmed-cancel");
     }
 
-    function testDispatchRechecksRegistryIdentityAndLoanFacts() public {
+    function testCreditSettlement_dispatchRechecksRegistryIdentityAndLoanFacts() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.prank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -352,7 +338,44 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
     }
 
-    function testDispatchRechecksReservedExposureBeforeValueCanMove() public {
+    function testCreditSettlement_dispatchRechecksPoolCreditAndRegistryPause() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.prank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+
+        _setCreditPoolState(ICommitmentPoolingModule.PoolState.Paused);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.LoanPrincipalPoolNotOpen.selector,
+                loanId,
+                CREDIT_POOL_ID,
+                uint8(ICommitmentPoolingModule.PoolState.Paused)
+            )
+        );
+        vm.prank(OWNER);
+        settlement.dispatchDisbursement(disbursementId);
+
+        _setCreditPoolState(ICommitmentPoolingModule.PoolState.Open);
+        vm.prank(OWNER);
+        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, false);
+        vm.expectRevert(
+            abi.encodeWithSelector(ISettlementModule.LoanPrincipalCreditDisabled.selector, loanId, CREDIT_POOL_ID)
+        );
+        vm.prank(OWNER);
+        settlement.dispatchDisbursement(disbursementId);
+
+        vm.startPrank(OWNER);
+        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, true);
+        credit.setPaused(true);
+        vm.stopPrank();
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.CreditRegistryPaused.selector, address(credit)));
+        vm.prank(OWNER);
+        settlement.dispatchDisbursement(disbursementId);
+
+        assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    function testCreditSettlement_dispatchRechecksReservedExposureBeforeValueCanMove() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.prank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -367,7 +390,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
     }
 
-    function testConfirmedPrincipalStillRecordsAfterAPostDispatchCapReduction() public {
+    function testCreditSettlement_confirmedPrincipalStillRecordsAfterAPostDispatchCapReduction() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -393,7 +416,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(credit.reservedOutstandingOf(CREDIT_POOL_ID, BORROWER), 0);
     }
 
-    function testBatchKeepsPerLoanRelationshipAndDomainSeparatedReceipt() public {
+    function testCreditSettlement_batchKeepsPerLoanRelationshipAndDomainSeparatedReceipt() public {
         uint256 firstLoanId = _approvedLoan(BORROWER, 30 ether);
         uint256 secondLoanId = _approvedLoan(SECOND_BORROWER, 20 ether);
         uint256[] memory ids = new uint256[](2);
@@ -430,7 +453,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(credit.outstandingOf(CREDIT_POOL_ID, SECOND_BORROWER), 20 ether);
     }
 
-    function testSettlementUpgradePreservesNamespacedLoanRelationship() public {
+    function testCreditSettlement_settlementUpgradePreservesNamespacedLoanRelationship() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
@@ -468,6 +491,24 @@ contract CreditSettlementTest is SettlementPayerTest {
         loanId = credit.requestLoan(params);
         vm.prank(OWNER);
         credit.approveLoan(loanId);
+    }
+
+    function _setCreditPoolState(ICommitmentPoolingModule.PoolState state) private {
+        pooling.setPool(
+            CREDIT_POOL_ID,
+            ICommitmentPoolingModule.Pool({
+                garden: PROTOCOL_GARDEN,
+                poolType: ICommitmentPoolingModule.PoolType.Garden,
+                state: state,
+                proofEnabled: true,
+                settlementEnabled: false,
+                charterCID: "bafy-credit-pool",
+                openSeasonCycleId: 0,
+                settlementAdapter: address(0),
+                liveCommitmentCount: 0,
+                nonTerminalCycleCount: 0
+            })
+        );
     }
 
     function _expectNonGdollarRecordingBlocked(

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Dispatch a codex lane: create worktree, symlink env, run codex, exit when done.
+# Dispatch a codex lane: create a worktree, run codex, and exit when done.
 # Intended to be called by a Claude teammate (or the lead) via the Bash tool with
 # run_in_background=true. Prints a JSON summary to stdout on completion so the
 # teammate can parse result path + worktree path and review codex output.
@@ -112,11 +112,6 @@ git worktree add "$WORKTREE" -b "$BRANCH" "$BASE" >&2 || {
   echo "Worktree creation failed" >&2
   exit 1
 }
-
-if [ -f "$REPO_ROOT/.env" ]; then
-  ln -s "$REPO_ROOT/.env" "$WORKTREE/.env"
-  echo "Symlinked .env into worktree" >&2
-fi
 
 echo "Dispatching codex (full-auto) in $WORKTREE..." >&2
 EXIT=0

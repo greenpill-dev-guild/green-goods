@@ -29,14 +29,14 @@ Stage: 2 of 3, contracts only
 
 | Selector/change | Frozen requirement |
 |---|---|
-| `queueLoanPrincipal(uint256 loanId)` → `uint256 disbursementId` | Current pool steward; configured `creditRegistry`; exact registry↔settlement and pooling identity; Approved loan; Open/enabled pool; cap; active pool-garden Safe; canonical G$; borrower recipient; principal; idempotent relationship |
+| `queueLoanPrincipal(uint256 loanId)` → `uint256 disbursementId` | Current pool steward; configured and unpaused `creditRegistry`; exact registry↔settlement and pooling identity; Approved loan; Open/enabled pool with distinct rejection errors for pool state and disabled credit; cap; active pool-garden Safe; canonical G$; borrower recipient; principal; idempotent relationship; batch and dispatch repeat the operational and loan-fact proof |
 | `loanPrincipalDisbursementOf(address registry, uint256 loanId)` | Explicit registry domain avoids collisions across a paused dependency replacement |
 | `loanPrincipalRelationshipOf(uint256 disbursementId)` | Exact registry+loan relationship for authenticated credit recording; survives batch, dispatch, retry, acknowledgment, stranded failure, requeue, cancellation, and upgrade |
 | `setCreditRegistry(address registry)` | Owner, source paused, non-zero, exact old/new event |
 | `registerSettlementAccount(...)` | Owner-only while the source module is paused; a garden remains write-once and a Safe may belong to exactly one garden; duplicate reverse assignment reverts with the already-assigned garden |
 | `settlementGardenOf(address account)` | Reverse source identity lookup for the unique Safe-to-garden assignment |
 | `LoanPrincipalQueued(uint256 disbursementId, address creditRegistry, uint256 loanId)` | Dedicated relationship marker; existing `DisbursementQueued` signature stays unchanged |
-| storage | Keep existing stage-1 fields and the generic `Disbursement` tuple unchanged; append the Safe-to-garden reverse mapping by consuming one reserved gap slot (29 to 28); use the derived ERC-7201 `green.goods.settlement.loan` namespace for registry configuration, registry+loan reverse lookup, and disbursement relationship; prove continuity through a real UUPS upgrade |
+| storage | Keep existing stage-1 fields and the generic `Disbursement` tuple unchanged; append the Safe-to-garden reverse mapping by consuming one reserved gap slot (29 to 28); use the derived ERC-7201 `green.goods.settlement.loan` namespace for registry configuration, registry+loan reverse lookup, and disbursement relationship; commit and check the exact namespace slot and member order; prove continuity through a real UUPS upgrade |
 | executor | Accept exact `DisbursementKind` ordinal 2 through the existing bounded G$ path; beneficiary/funding Safe-recipient gates remain unchanged |
 
 ## Frozen types and ordinals
@@ -49,18 +49,18 @@ Stage: 2 of 3, contracts only
 
 ## Storage ledger
 
-`CreditRegistry` declares 11 custom entries and a 39-slot gap: three dependencies, `nextLoanId`, five domain mappings (`loans`, pool configuration, borrower outstanding, commitment link, executors), the execution-reference replay mapping, and `paused`. The total is exactly 50 custom entries; inherited upgradeable layouts remain independent. ERC-7201 namespace `green.goods.credit.cap-reservation` stores Approved exposure by borrower, a per-loan reservation bit, and an aggregate active-reservation count without consuming or shifting a linear slot. The aggregate locks settlement replacement until every Approved exposure is either recorded or safely cancelled.
+`CreditRegistry` declares 11 custom entries and a 39-slot gap: three dependencies, `nextLoanId`, five domain mappings (`loans`, pool configuration, borrower outstanding, commitment link, executors), the execution-reference replay mapping, and `paused`. The total is exactly 50 custom entries; inherited upgradeable layouts remain independent. ERC-7201 namespace `green.goods.credit.cap-reservation` stores Approved exposure by borrower, a per-loan reservation bit, and an aggregate active-reservation count without consuming or shifting a linear slot. The aggregate locks settlement replacement until every Approved exposure is either recorded or safely cancelled. `ERC7201Namespaces.json` and the Bun-owned storage checker freeze this namespace and `green.goods.settlement.loan` by derived slot plus ordered member declarations, alongside the ordinary compiler layout baselines.
 
 ## Event and error coverage
 
-Events cover initialization identity; dependency and pause changes; pool configuration; executor changes; request, approval, disbursement, installment, exact repayment, default, and cancellation; and the settlement loan relationship. `RepaymentRecorded.newOutstanding` is the loan's remaining balance. Custom errors cover zero/unknown identities, pause/readiness, membership/steward/recorder authority, on-behalf confusion, self-approval, pool/open/enabled state, cap, missing or active reservations, commitment mismatch/duplicate, terms/token/principal/due-date validity, loan state, rail, any cross-rail settlement child, settlement relationship/confirmation/cancellation, G$ repayment disablement, duplicate Safe assignment, zero/replayed reference, zero/overpayment, due date, cancellation state, and reason requirements.
+Events cover initialization identity; dependency and pause changes; pool configuration; executor changes; request, approval, disbursement, installment, exact repayment, default, and cancellation; and the settlement loan relationship. `RepaymentRecorded.newOutstanding` is the loan's remaining balance. Custom errors cover zero/unknown identities, CreditRegistry pause at settlement validation, membership/steward/recorder authority, on-behalf confusion, self-approval, distinct non-Open-pool and disabled-credit causes, cap, missing or active reservations, commitment mismatch/duplicate, terms/token/principal/due-date validity, loan state, rail, any cross-rail settlement child, settlement relationship/confirmation/cancellation, G$ repayment disablement, duplicate Safe assignment, zero/replayed reference, zero/overpayment, due date, cancellation state, and reason requirements.
 
 ## Adversarial coverage map
 
 | Risk | Proof target |
 |---|---|
 | Self approval / on-behalf confusion | self path, steward distinct-member path, non-steward and self-valued `onBehalfOf` reverts |
-| Intervening cap use | request and approval rechecks; approval-time namespaced reservation; settlement queue/dispatch proof; Jar/Treasury record proof; conversion/release conservation |
+| Intervening cap or administrative stop | request and approval rechecks; approval-time namespaced reservation; settlement queue/dispatch proof; queued-child dispatch rejection while the registry is paused; Jar/Treasury record proof; conversion/release conservation |
 | Commitment uniqueness | duplicate request reverts; matching cancellation clears; unrelated link cannot be cleared |
 | Repayment conservation | zero, overpay, replay, installments, exact clearance, default then recovery, sum of borrower outstanding |
 | Wrong rail / unexecuted movement | Jar/Treasury exact rail record and permanent absence of a settlement child; G$ must be exact Confirmed settlement child; repayment against G$ disabled |
@@ -69,7 +69,7 @@ Events cover initialization identity; dependency and pause changes; pool configu
 | Generic-kind bypass | only dedicated selector writes ordinal 2; contributor, beneficiary, and funding gates keep exact branches |
 | Relationship lifecycle | queue, batch, dispatch, retry, acknowledgment, stranded failure, requeue, cancellation, and upgrade retain the namespaced registry+loan relationship; credit cancellation requires source cancellation first |
 | Stranded loan | source failure cannot make the loan Disbursed; requeue reuses the same child and new attempt; stage-3 Celo/Safe reconciliation remains mandatory before requeue |
-| Drift / size | ABI ordinal assertions, storage baselines, old-layout upgrade, event topics, EIP-170 size gate |
+| Drift / size | ABI ordinal assertions, linear and ERC-7201 namespace storage baselines, old-layout upgrade, event topics, EIP-170 size gate |
 
 ## Deliberate limits
 

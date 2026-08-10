@@ -235,7 +235,7 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
     /// @dev The garden that claims a priced Offer becomes its payer, so claiming one is the garden
     ///      promising to pay. Before this rule any gardener could bind their garden to that
     ///      obligation and reserve the provider's capacity against it, with no steward involved.
-    function testAPricedOfferIsClaimableOnlyByASteward() public {
+    function testCommitmentPoolingTerms_pricedOfferIsClaimableOnlyByASteward() public {
         uint256 commitmentId = _createOfferWithConsideration(keccak256("priced-claim"), _arbitrumConsideration(500));
 
         vm.expectRevert(
@@ -251,7 +251,7 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
 
     /// @notice A free Offer stays claimable by any member — the gate is the price, not the shape.
     /// @dev Ordinary peer-to-peer mutual aid is the common pilot case and must not need a steward.
-    function testAFreeOfferStaysClaimableByAnyMember() public {
+    function testCommitmentPoolingTerms_freeOfferStaysClaimableByAnyMember() public {
         uint256 commitmentId = _createOffer(keccak256("free-claim"));
 
         vm.prank(CLAIMANT);

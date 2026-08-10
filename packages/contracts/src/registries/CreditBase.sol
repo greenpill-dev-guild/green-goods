@@ -19,6 +19,7 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         uint256 activeReservations;
     }
 
+    /// @dev ERC-7201: keccak256(abi.encode(uint256(keccak256("green.goods.credit.cap-reservation")) - 1)) & ~0xff.
     bytes32 private constant _CAP_RESERVATION_SLOT = 0x23b460fdce5e0dec5ddb0329bbb3aa6365c3b9ea9e5fe3b44684a4371c4a6400;
 
     address public override hatsModule;

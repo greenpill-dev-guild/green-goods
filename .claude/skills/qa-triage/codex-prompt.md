@@ -8,15 +8,14 @@ When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this ren
 
 ## Dispatch mechanics (Phase 2)
 
-Pattern source: the user-level memory `feedback_claude_orchestrated_codex.md` (under `~/.claude/projects/-Users-afo-Code-greenpill-green-goods/memory/`, outside the repo).
+Pattern source: this repository's QA-triage skill and the rendered prompt below. Do not depend on maintainer-specific paths or private memory files.
 
 ```bash
-CODEX=/Applications/Codex.app/Contents/Resources/codex
+CODEX="${CODEX:-codex}"
 WORKTREE=/tmp/gg-codex-qa-<slug>
 BRANCH=codex/qa-triage/<slug>
 
 git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
-ln -s "$(pwd)/.env" "$WORKTREE/.env"
 
 # Render the template below + schema.json into the worktree, then:
 "$CODEX" exec --full-auto -C "$WORKTREE" \

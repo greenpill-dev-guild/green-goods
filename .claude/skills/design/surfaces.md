@@ -10,7 +10,7 @@ Canonical token values live in root `DESIGN.md` front matter and [language.md](.
 
 Every element has a Z-axis position — a "distance" from the user. Depth creates hierarchy without borders or heavy color contrast.
 
-```
+```text
 Z4: Overlay      → Modals, command palettes, critical alerts (thick/solid material, shadow-2xl)
 Z3: Floating     → Tooltips, popovers, FABs (backdrop-blur-lg, shadow-lg)
 Z2: Surface      → Cards, panels, primary content (backdrop-blur-sm, shadow-sm)
@@ -51,7 +51,7 @@ Tokens are shipped in `packages/shared/src/styles/theme.css` — use `var(--colo
 
 | Paradigm (SKILL.md) | Primary material | Focus behavior |
 |---------------------|------------------|----------------|
-| Command Surface | Thick or Solid | Stays thick; canvas recedes on sheet open |
+| Command Surface | Thick or Solid | Admin uses a scrim plus elevation with a centered `AdminDialog` or solid `AdminSideSheet`; lower layers become inert without receding |
 | Ambient Display | Thin or Ultrathin | Peripheral; promotes to thick only on autonomic actor failure |
 | Data Landscape | Regular | Thickens on drill-in, thins on zoom-out |
 | Conversational | Regular or Thick | Thickens during active conversation |
@@ -90,7 +90,7 @@ const pane = tv({
       overlay: "shadow-2xl dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]",
     },
     interactive: {
-      true: "cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.98] active:shadow-sm",
+      true: "cursor-pointer hover:shadow-lg active:scale-[0.98] active:shadow-sm",
       false: "",
     },
   },

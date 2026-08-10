@@ -427,7 +427,7 @@ Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and other
 
 ### `disbursement-kind`
 
-Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.
+Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is the records-only Commitment Credit companion shape queued from approved CreditRegistry loans for G$ settlement.
 
 **Canonical members:** ContributorConsideration (0) · Funding (1) · LoanPrincipal (2) · GardenBeneficiary (3)
 

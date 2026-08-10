@@ -331,7 +331,7 @@ contract CeloSettlementExecutorTest is Test {
         assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
     }
 
-    function testLoanPrincipalUsesTheBoundedGDollarTransferPath() public {
+    function testCeloSettlementExecutor_loanPrincipalUsesTheBoundedGDollarTransferPath() public {
         router.deliver(
             address(executor),
             keccak256("loan-principal"),

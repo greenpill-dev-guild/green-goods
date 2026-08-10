@@ -127,9 +127,9 @@
         },
         "green": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 19 of 19; SettlementSecurity.t.sol passed 21 of 21; the full contracts gate passed 1953 Solidity tests and 100 script tests."
+          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 20 of 20; SettlementSecurity.t.sol passed 21 of 21; the full contracts gate passed 1955 Solidity tests and 100 script tests."
         },
-        "note": "RED preceded implementation and each adversarial behavior fix. GREEN is fresh through fix commit 89fffc972, including 86.48% core line coverage, 65.46% core branch coverage, storage/size gates, and the 7-test read-only fork lane."
+        "note": "RED preceded implementation and each adversarial behavior fix. GREEN was refreshed on checkout fafd79d20 with the follow-up review fixes present: 86.47% core line coverage, 65.56% core branch coverage, linear and ERC-7201 namespace storage gates, size gates, and the 7-test read-only fork lane."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
@@ -229,6 +229,14 @@
       "status": "passed",
       "branch": "feature/build-commitment-crediting-contracts",
       "note": "Resolved the independent review's cross-rail double-payment finding and source Safe identity dependency at 89fffc972. Fresh focused, full, coverage, storage, size, lint, and read-only fork evidence is green; deployment remains deferred to stage 3."
+    },
+    {
+      "timestamp": "2026-08-10T17:35:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Validated and resolved the follow-up review comments on checkout fafd79d20. Fresh proof passed 20 CreditSettlement, 21 CreditRegistry, 21 SettlementSecurity, 1955 Solidity, 100 script, and 7 fork tests, plus build, audit, size, lint, linear storage, and both ERC-7201 namespace layout checks."
     }
   ]
 }

@@ -127,7 +127,7 @@ contract SettlementSecurityTest is SettlementPayerTest {
         vm.stopPrank();
     }
 
-    function testSettlementAccountRegistrationRequiresOwner() public {
+    function testSettlementModule_settlementAccountRegistrationRequiresOwner() public {
         hats.setSteward(SECOND_GARDEN, DISPATCHER, true);
 
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
@@ -144,7 +144,7 @@ contract SettlementSecurityTest is SettlementPayerTest {
         );
     }
 
-    function testSettlementAccountRegistrationRequiresPause() public {
+    function testSettlementModule_settlementAccountRegistrationRequiresPause() public {
         vm.expectRevert(ISettlementModule.SourceMustBePaused.selector);
         vm.prank(OWNER);
         settlement.registerSettlementAccount(
@@ -159,7 +159,7 @@ contract SettlementSecurityTest is SettlementPayerTest {
         );
     }
 
-    function testSettlementAccountRegistrationRejectsAnAssignedSafe() public {
+    function testSettlementModule_settlementAccountRegistrationRejectsAnAssignedSafe() public {
         vm.prank(OWNER);
         settlement.setPaused(true);
 

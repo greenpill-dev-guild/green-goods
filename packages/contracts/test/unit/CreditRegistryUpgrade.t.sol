@@ -70,7 +70,7 @@ contract CreditRegistryUpgradeTest is Test {
     address internal constant EXECUTOR = address(0xE7);
     bytes32 internal constant EXECUTION_REF = keccak256("layout-disbursement");
 
-    function testUpgradeFromFrozenLayoutPreservesEveryCustomStorageEntry() public {
+    function testUpgrade_CreditRegistryPreservesEveryFrozenCustomStorageEntry() public {
         CreditRegistryFrozenLayoutV1 frozen = new CreditRegistryFrozenLayoutV1();
         CreditRegistryFrozenLayoutV1 proxy = CreditRegistryFrozenLayoutV1(
             address(

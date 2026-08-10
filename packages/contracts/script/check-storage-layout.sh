@@ -264,6 +264,18 @@ print(json.dumps({'storage': slots, 'types': types}, indent=2, sort_keys=True))
 done
 
 echo ""
+echo "Checking ERC-7201 namespace layouts..."
+if [[ -n "$contract_filter" ]]; then
+  namespace_check=(bun script/utils/check-erc7201-layout.ts --contract "$contract_filter")
+else
+  namespace_check=(bun script/utils/check-erc7201-layout.ts)
+fi
+if ! "${namespace_check[@]}"; then
+  echo -e "${RED}ERC-7201 namespace layout validation failed.${NC}"
+  failures=$((failures + 1))
+fi
+
+echo ""
 if $update_mode; then
   if [[ "$failures" -gt 0 ]]; then
     echo -e "${RED}${failures} storage layout baseline update(s) failed.${NC}"

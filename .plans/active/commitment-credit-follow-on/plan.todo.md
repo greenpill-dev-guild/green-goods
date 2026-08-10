@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `active`
 **Status**: `CONTRACTS MERGE-READY — human review and merge pending`
-**Last Updated**: `2026-08-09`
+**Last Updated**: `2026-08-10`
 
 ## Promotion record and remaining dispatch gates
 
@@ -22,6 +22,10 @@
 3. [x] Prove storage/upgrade safety, adversarial behavior, fuzz/invariants, size, full contracts tests, and the read-only fork lane.
 4. [x] Conduct a final adversarial review of the committed stage-2 range and stop for human review/merge.
 5. [x] Resolve the independent review's cross-rail double-payment finding and source Safe identity dependency; rerun the focused, full, audit, size, storage, and read-only fork gates.
+6. [x] Resolve the follow-up review comments, sweep the same defect classes, and rerun fresh proof:
+   `CreditSettlement.t.sol` 20/20, `SettlementSecurity.t.sol` 21/21,
+   `CreditRegistry.t.sol` 21/21, 1,955 Solidity tests, 100 script tests, 7/7 fork tests,
+   full audit, build, lint, size, linear storage, and both ERC-7201 namespace layouts.
 
 The prompt-mandated contracts gates are green. The deterministic root build separately exposes an
 indexer test-helper type error in `packages/indexer/test/settlement-lifecycle.test.ts`: the generated

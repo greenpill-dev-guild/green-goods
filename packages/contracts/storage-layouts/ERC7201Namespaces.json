@@ -1,0 +1,30 @@
+{
+  "namespaces": [
+    {
+      "contract": "CreditRegistry",
+      "source": "src/registries/CreditBase.sol",
+      "namespace": "green.goods.credit.cap-reservation",
+      "struct": "CapReservationState",
+      "constant": "_CAP_RESERVATION_SLOT",
+      "slot": "0x23b460fdce5e0dec5ddb0329bbb3aa6365c3b9ea9e5fe3b44684a4371c4a6400",
+      "members": [
+        "mapping(uint256 poolId => mapping(address borrower => uint256 amount)) borrowerReserved",
+        "mapping(uint256 loanId => bool reserved) loanReserved",
+        "uint256 activeReservations"
+      ]
+    },
+    {
+      "contract": "SettlementModule",
+      "source": "src/lib/Settlement/LoanLib.sol",
+      "namespace": "green.goods.settlement.loan",
+      "struct": "State",
+      "constant": "_STATE_SLOT",
+      "slot": "0x2aef4a87d3aface1caef72fa48982eb32bb7507678ff5765bb7bf02a13c0f400",
+      "members": [
+        "address creditRegistry",
+        "mapping(bytes32 loanKey => uint256 disbursementId) disbursements",
+        "mapping(uint256 disbursementId => ISettlementModule.LoanPrincipalRelationship relationship) relationships"
+      ]
+    }
+  ]
+}

@@ -16,6 +16,7 @@ library SettlementLoanLib {
         mapping(uint256 disbursementId => ISettlementModule.LoanPrincipalRelationship relationship) relationships;
     }
 
+    /// @dev ERC-7201: keccak256(abi.encode(uint256(keccak256("green.goods.settlement.loan")) - 1)) & ~0xff.
     bytes32 private constant _STATE_SLOT = 0x2aef4a87d3aface1caef72fa48982eb32bb7507678ff5765bb7bf02a13c0f400;
 
     struct RuntimeConfig {
@@ -202,8 +203,10 @@ library SettlementLoanLib {
     {
         ICreditRegistry registry = ICreditRegistry(config.creditRegistry);
         _validateRegistryIdentity(config, loanId, registry);
-        _validateLoanRecord(config, loanId, loan, pool, registry);
-        _validateBorrowerCap(loanId, loan, registry);
+        if (registry.paused()) revert ISettlementModule.CreditRegistryPaused(config.creditRegistry);
+        ICreditRegistry.PoolCreditConfig memory creditConfig = registry.poolCreditConfig(loan.poolId);
+        _validateLoanRecord(config, loanId, loan, pool, creditConfig);
+        _validateBorrowerCap(loanId, loan, registry, creditConfig);
         account = _validatedSourceAccount(config, pool.garden, loan.borrower);
     }
 
@@ -226,10 +229,10 @@ library SettlementLoanLib {
         uint256 loanId,
         ICreditRegistry.Loan memory loan,
         ICommitmentPoolingModule.Pool memory pool,
-        ICreditRegistry registry
+        ICreditRegistry.PoolCreditConfig memory creditConfig
     )
         private
-        view
+        pure
     {
         if (loan.state != ICreditRegistry.LoanState.Approved) {
             revert ISettlementModule.LoanPrincipalNotApproved(loanId, uint8(loan.state));
@@ -239,21 +242,20 @@ library SettlementLoanLib {
                 || loan.rail != ICreditRegistry.LoanRail.None || loan.disbursementId != 0
         ) revert ISettlementModule.LoanPrincipalMismatch(loanId, 0);
         if (pool.state != ICommitmentPoolingModule.PoolState.Open) {
-            revert ISettlementModule.LoanPrincipalNotApproved(loanId, uint8(loan.state));
+            revert ISettlementModule.LoanPrincipalPoolNotOpen(loanId, loan.poolId, uint8(pool.state));
         }
-        ICreditRegistry.PoolCreditConfig memory creditConfig = registry.poolCreditConfig(loan.poolId);
-        if (!creditConfig.enabled) revert ISettlementModule.LoanPrincipalNotApproved(loanId, uint8(loan.state));
+        if (!creditConfig.enabled) revert ISettlementModule.LoanPrincipalCreditDisabled(loanId, loan.poolId);
     }
 
     function _validateBorrowerCap(
         uint256 loanId,
         ICreditRegistry.Loan memory loan,
-        ICreditRegistry registry
+        ICreditRegistry registry,
+        ICreditRegistry.PoolCreditConfig memory creditConfig
     )
         private
         view
     {
-        ICreditRegistry.PoolCreditConfig memory creditConfig = registry.poolCreditConfig(loan.poolId);
         if (!registry.isCapReserved(loanId)) revert ISettlementModule.LoanPrincipalMismatch(loanId, 0);
         if (creditConfig.borrowerCap != 0) {
             uint256 outstanding = registry.outstandingOf(loan.poolId, loan.borrower);
