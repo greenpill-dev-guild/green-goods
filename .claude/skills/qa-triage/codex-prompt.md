@@ -6,6 +6,41 @@ When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this ren
 
 ---
 
+## Dispatch mechanics (Phase 2)
+
+Pattern source: the user-level memory `feedback_claude_orchestrated_codex.md` (under `~/.claude/projects/-Users-afo-Code-greenpill-green-goods/memory/`, outside the repo).
+
+```bash
+CODEX=/Applications/Codex.app/Contents/Resources/codex
+WORKTREE=/tmp/gg-codex-qa-<slug>
+BRANCH=codex/qa-triage/<slug>
+
+git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
+ln -s "$(pwd)/.env" "$WORKTREE/.env"
+
+# Render the template below + schema.json into the worktree, then:
+"$CODEX" exec --full-auto -C "$WORKTREE" \
+  -o "$WORKTREE/codex-result.md" \
+  --output-schema "$WORKTREE/schema.json" \
+  "$(cat $WORKTREE/qa-prompt.md)"
+```
+
+Fire via `Bash` with `run_in_background: true`. Fallbacks and Phase 7 cleanup rules stay in `SKILL.md`.
+
+### Orphan worktree sweep (Phase 0 step 3a)
+
+```bash
+for wt in /tmp/gg-codex-qa-*; do
+  [ -d "$wt" ] || continue
+  slug=$(basename "$wt" | sed 's/^gg-codex-qa-//')
+  # Skip the current run's own worktree
+  [ "$slug" = "<current-slug>" ] && continue
+  printf '%s\n' "$wt"
+done
+```
+
+---
+
 ## Template (render this into the worktree)
 
 ```markdown

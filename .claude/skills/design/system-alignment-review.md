@@ -49,7 +49,7 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 **In scope:**
 
 1. **DesignMD sources** — root `DESIGN.md` front matter vs surface dialects (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`).
-2. **Warm Earth design language** — `.claude/skills/design/language.md`, `ai-ui-brief.md`, `quick-reference.md`, `materials.md`, `spatial.md`, prompt contracts.
+2. **Warm Earth design language** — `.claude/skills/design/language.md`, `ai-ui-brief.md`, `quick-reference.md`, `surfaces.md`, prompt contracts.
 3. **Runtime tokens** — `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
 4. **Storybook** — `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
 5. **Admin surface** — `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
@@ -61,7 +61,7 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 
 **Out of scope — do not produce findings here:**
 
-- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `status`, etc.) — not this review.
+- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, etc.) — not this review.
 - Per-component correctness / a11y / i18n bugs — route to [review-checklist.md](./review-checklist.md).
 - General repo-health (dead code, dependency drift, circular imports) — route to `/audit`.
 - Narrow meta-review of `design/` files only — use § Stack-only mode above.

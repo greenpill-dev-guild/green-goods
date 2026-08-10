@@ -37,8 +37,8 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
 | 2.1 | **Paradigm declared?** Surface type chosen (Command / Ambient / Data Landscape / Conversational) | | Choose paradigm using the Decision Matrix below. Add comment to component: `// Paradigm: Command Surface` |
-| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `materials.md` |
-| 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `spatial.md` |
+| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `surfaces.md` |
+| 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `surfaces.md` |
 | 2.4 | **Hit targets ≥ 44px?** All interactive elements large enough for touch/gaze | | Increase padding. Use `min-h-11 min-w-11` (44px) on clickable areas |
 | 2.5 | **Rounded corners scale?** Larger elements have larger radii | | Small badge: `rounded-lg` (8px). Card: `rounded-xl` (12px). Modal: `rounded-2xl` (16px). Full pane: `rounded-3xl` (24px) |
 | 2.6 | **Progressive disclosure?** Information layers: glance → scan → engage → deep dive | | Surface summary first. Details on click/expand. Full data behind navigation |
@@ -183,7 +183,7 @@ A checklist agents run once per PR catches what we remember. Automated checks ca
 ## Related
 
 - Regenerative principles: [regenerative.md](./regenerative.md)
-- Spatial patterns: [spatial.md](./spatial.md)
+- Spatial patterns: [surfaces.md](./surfaces.md)
 - Ecosystem archetypes: [ecosystem.md](./ecosystem.md)
 - Implementation details: [implementation.md](./implementation.md)
 - Green Goods personas: `docs/docs/reference/design-research.md`

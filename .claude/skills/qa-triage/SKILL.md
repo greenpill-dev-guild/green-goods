@@ -22,7 +22,7 @@ Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
 | `/qa-triage … --no-sheet` | Skip the QA-sheet write branch entirely |
-| `/qa-triage … --fixture` | Use the synthetic fixture at `.claude/skills/qa-triage/fixtures/example-product-sync.md` as the source notes; pairs with `--dry-run` to validate the full phase flow without a real sync. **Never promote a `--fixture` run to a real write** — the fixture's Drive URL is synthetic and would leak the placeholder into Linear bodies. Fixture mode is validation-only. |
+| `/qa-triage … --fixture` | Validation-only run against the synthetic fixture — see § Fixture mode |
 
 ## Required surfaces
 
@@ -60,9 +60,18 @@ The durable result is the accepted Linear record plus the QA Sheet row. On a ful
 successful Phase 7, remove only the current run's scratch workspace after printing the
 summary. Keep scratch for dry runs, failures, or incomplete runs so they can be resumed.
 
+## Fixture mode (`--fixture`)
+
+Validation-only: runs the full phase flow against the synthetic fixture at [`fixtures/example-product-sync.md`](./fixtures/example-product-sync.md), usually paired with `--dry-run`. **Never promote a fixture run to a real write** — the fixture's Drive URL is synthetic and would leak the placeholder into Linear bodies.
+
+All deviations from a real run, in one place:
+
+- **Phase 0** — skip the live-MCP probes: PostHog reachability (step 3), the Sheet permission check (step 5), and the full Sheet structure read (step 6). Treat Sheet permissions as tight (the cached `last_permission_check` is authoritative) and reuse the cached `qa_sheet` block in `~/.config/qa-triage/cache.json`. Do NOT populate `test_catalog` — a stale catalog from a real run is more useful than a fixture-derived one. Steps 1, 2, 3a (orphan sweep), and 4 (Sheet file-id resolve from cache) still run.
+- **Phase 2** — skip the Codex parallel pass: the fixture is trivially verifiable against its source markdown, so the pass adds no signal but burns ~30s and a worktree per dry run.
+
 ## Phase 0 — Setup (read-only)
 
-> **Fixture-mode short-circuit.** When `--fixture` is set, skip the live-MCP probes in steps 3, 5, and 6 (PostHog reachability, Sheet permission check, full Sheet structure read). Treat the Sheet permissions as tight (already verified), reuse the cached `qa_sheet` block in `~/.config/qa-triage/cache.json`, and DO NOT populate `test_catalog` on fixture runs — the fixture is synthetic and a stale catalog from a real run would be more useful than a fixture-derived one. Steps 1, 2, 3a (orphan worktree sweep), and 4 (Sheet file-id resolve from cache) still run.
+> `--fixture` runs skip several Phase 0 steps — see § Fixture mode.
 
 1. **Resolve workspace slug** from the input file's title or filename stem (lowercase-hyphenated, e.g., `Build Sync — 2026-06-10` → `build-sync-2026-06-10`).
 2. **Resolve Linear handles by name** at the start of every run:
@@ -70,21 +79,9 @@ summary. Keep scratch for dry runs, failures, or incomplete runs so they can be 
    - Workflow states: expect `Backlog`, `Todo`.
    - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `ai:claude`, `ai:codex`, `ai:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
-3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. **Skipped in `--fixture` mode.**
+3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. (Skipped in fixture mode.)
 
-3a. **Report orphan Codex worktrees** from prior failed runs:
-
-   ```bash
-   for wt in /tmp/gg-codex-qa-*; do
-     [ -d "$wt" ] || continue
-     slug=$(basename "$wt" | sed 's/^gg-codex-qa-//')
-     # Skip if the worktree corresponds to the current run's slug
-     [ "$slug" = "<current-slug>" ] && continue
-     printf '%s\n' "$wt"
-   done
-   ```
-
-   Phase 2 dispatches `$CODEX exec --full-auto` into a worktree that gets cleaned up in Phase 7. If a prior run died (kill -9, crash, OS reboot), the worktree and branch persist and the next run's `git worktree add` can collide. Do **not** remove orphaned worktrees or branches during Phase 0. Surface the orphan paths in `report.md` and ask for an explicit cleanup command if the current run is blocked. Automatic cleanup is allowed only for the current run's recorded `WORKTREE` / `BRANCH` in Phase 7.
+3a. **Report orphan Codex worktrees** from prior failed runs: list `/tmp/gg-codex-qa-*` directories whose slug differs from the current run (sweep snippet in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md)). A prior run that died (kill -9, crash, OS reboot) leaves its worktree and branch behind, and the next run's `git worktree add` can collide. Do **not** remove orphans during Phase 0 — surface the paths in `report.md` and ask for an explicit cleanup command if the current run is blocked. Automatic cleanup is allowed only for the current run's recorded `WORKTREE` / `BRANCH` in Phase 7.
 4. **Resolve the QA Sheet** via Drive MCP `search_files`. Title-pattern chain:
 
    ```
@@ -95,9 +92,9 @@ summary. Keep scratch for dry runs, failures, or incomplete runs so they can be 
 
    The known file id is `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo` (owner `afo@greenpill.builders`). On first run, confirm and cache to `~/.config/qa-triage/cache.json`. If zero hits remain after the chain, continue with `--no-sheet` semantics.
 
-5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state and require `proceed anyway` to continue (default: abort and recommend tightening access). **Skipped in `--fixture` mode** (treat the cached `last_permission_check` in `~/.config/qa-triage/cache.json` as authoritative).
+5. **Verify Sheet access mode** via `get_file_permissions`. **Hard stop** if the Sheet is `anyoneWithLink` or `public` — the row payload includes session IDs and replay URLs, which only belong in a fully-private internal surface. Surface the permission state and require `proceed anyway` to continue (default: abort and recommend tightening access). (Skipped in fixture mode.)
 
-6. **Read Sheet structure** via `read_file_content` (**skipped in `--fixture` mode** — rely on the cached `qa_sheet` block in `~/.config/qa-triage/cache.json`):
+6. **Read Sheet structure** via `read_file_content` (skipped in fixture mode):
    - Confirm tab names match `Public Website`, `PWA iOS`, `PWA Android`, `Admin Dashboard`, `Cross Surface`, `Defects` plus auxiliary `Guide`, `Summary`.
    - Read the `Defects` tab's header row. Detect whether the 6 added columns exist (`PostHog Hash`, `PostHog Sessions 7d`, `PostHog Users 7d`, `PostHog Session ID`, `PostHog Replay URL`, `Linear URL`). If absent, emit `schema-bootstrap.csv` (a single-row CSV with the new column names) to the workspace.
    - Read the `Defects` body and the 5 Test tabs into private context.
@@ -155,26 +152,7 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
 
    Item types: `bug` → eligible for a main `activity:qa` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
 
-3. **Dispatch Codex automatically (required unless `--no-codex` OR `--fixture` is set).** The assistant MUST fire the worktree dispatch on every real run that doesn't carry the `--no-codex` flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses. Skipping defeats the dual-extraction design. **`--fixture` mode is exempt**: the fixture is synthetic and trivially verifiable against the source markdown, so the parallel pass adds no signal but burns ~30s + a worktree per dry-run. Pattern source: the user-level memory `feedback_claude_orchestrated_codex.md` (under `~/.claude/projects/-Users-afo-Code-greenpill-green-goods/memory/`, outside the repo):
-
-   ```bash
-   CODEX=/Applications/Codex.app/Contents/Resources/codex
-   WORKTREE=/tmp/gg-codex-qa-<slug>
-   BRANCH=codex/qa-triage/<slug>
-
-   git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
-   ln -s "$(pwd)/.env" "$WORKTREE/.env"
-
-   # Render the prompt + schema into the worktree
-   # (see ./codex-prompt.md for the template)
-
-   "$CODEX" exec --full-auto -C "$WORKTREE" \
-     -o "$WORKTREE/codex-result.md" \
-     --output-schema "$WORKTREE/schema.json" \
-     "$(cat $WORKTREE/qa-prompt.md)"
-   ```
-
-   Fire via `Bash` with `run_in_background: true`. Continue to Phase 3 immediately. Phase 3 merges Codex's additions into `cross-ref.md` once its result file lands (background-completion notification).
+3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that doesn't carry the `--no-codex` flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, `.env` symlink, `codex exec` invocation, prompt/schema rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md). Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately — Phase 3 merges Codex's additions into `cross-ref.md` once its result file lands (background-completion notification).
 
    Fallbacks, in order:
    - `--no-codex`: skip dispatch; still write `codex-prompt.md` to the workspace as an optional manual run.
@@ -188,7 +166,7 @@ For each item in `extraction.md`, organized in surface buckets:
 
 ### 3a. PostHog enrichment
 
-Call `switch-project` to the matching project (App for PWA/website, Admin for admin; skip for docs/unknown), then run named questions from [`posthog-questions/SKILL.md`](../../../docs/routines/posthog-questions.md):
+Call `switch-project` to the matching project (App for PWA/website, Admin for admin; skip for docs/unknown), then run named questions from [`posthog-questions.md`](../../../docs/routines/posthog-questions.md):
 
 - `errors.match-bug-report` with the verbatim quote as `snippet`.
 - `errors.recurring` over 30 days — does the matched error hash cross the ≥50-session threshold?
@@ -274,15 +252,13 @@ Hard rules:
 
 For each locked item, draft payloads using [`linear-templates.md`](./linear-templates.md).
 
-### Linear API constraints (codified from the 2026-05-13 first-run findings)
+### Linear API constraints
 
-Linear enforces three constraints the skill's older design didn't account for. Apply these before drafting labels and Customer Needs:
+Three hard constraints shape every payload — full detail, including the Codex-ready and autonomous-confident delegation bars, lives in [linear-templates.md § Linear API constraints](./linear-templates.md):
 
-1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
-
-2. **`package:*` is single-value-per-Issue.** Only ONE `package:*` may be applied. When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the body's `## Surface` section with a one-line note explaining the constraint.
-
-3. **Customer Needs cannot be standalone.** Linear's API requires `Exactly one of projectId or issueId must be defined`. Every Customer Need this skill creates must link to an Issue via the `issue` parameter. There is no standalone Need disposition; use `track-only` for Customer Need + lightweight Backlog tracking Issue.
+1. **`ai:*` is single-value-per-Issue** — the delegate-to agent wins the label; the originating agent goes in the body's `## Provenance` section.
+2. **`package:*` is single-value-per-Issue** — the primary surface wins; secondary packages go in the body's `## Surface` section.
+3. **Customer Needs cannot be standalone** — every Need links to an Issue via the `issue` parameter; `track-only` = Need + lightweight Backlog tracking Issue.
 
 ### Disposition rules (no standalone Need path)
 
@@ -348,7 +324,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
    **Linear writes** (via Linear MCP):
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
-   - **`save_issue` `labels` is REPLACE, not append** (verified 2026-05-14). When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
+   - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
    - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "client", "qa", "drive", "claude"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
@@ -421,7 +397,7 @@ surface the resume path.
 
 ## Privacy boundary — one explicit exception
 
-The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../../../docs/routines/posthog-questions.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
+The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions.md`](../../../docs/routines/posthog-questions.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
 
 This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
 

@@ -4,7 +4,7 @@
 
 **Warm Earth** is Green Goods' design language — a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm, Z-layer model, and material system. Those foundations remain — the Warm Earth language adds the visual/interaction identity.
 
-This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` YAML front matter is the canonical DesignMD token source; this file, sibling sub-files (`spatial.md`, `interaction.md`, `materials.md`), generated artifacts, and runtime CSS are projections that explain or consume that source for implementation.
+This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` YAML front matter is the canonical DesignMD token source; this file, sibling sub-files (`surfaces.md`), generated artifacts, and runtime CSS are projections that explain or consume that source for implementation.
 
 ---
 
@@ -433,7 +433,7 @@ Wavy progress makes the indicator feel alive and active — the progress isn't j
 
 ## Material Behaviors
 
-New behavioral patterns for glass materials, synthesized from Liquid Glass. These extend the existing material system ([materials.md](./materials.md)) with dynamic responses.
+New behavioral patterns for glass materials, synthesized from Liquid Glass. These extend the existing material system ([surfaces.md](./surfaces.md)) with dynamic responses.
 
 ### Focus Variation
 
@@ -646,9 +646,7 @@ Decisions made during the Warm Earth synthesis (2026-04-07):
 ## Related
 
 - [SKILL.md](./SKILL.md) — Adaptive Surface paradigm, material metaphors, decision tree
-- [spatial.md](./spatial.md) — Z-layer model, concentricity details, scroll-linked depth
-- [interaction.md](./interaction.md) — Spring motion details, shape morphing, adaptive density, progressive disclosure
-- [materials.md](./materials.md) — Material thickness system, focus variation, tokens
+- [surfaces.md](./surfaces.md) — Z-layer model, material thickness system, glass pane, adaptive density, progressive disclosure, scroll-linked depth
 - [regenerative.md](./regenerative.md) — Seven principles, succession stages, growth-agnostic design
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
 - Warm Earth's sources are recorded in § Philosophy above; the former SKILL.md reading-list appendix (books, designers, studios) was removed in the 2026-07 round-2 consolidation

@@ -46,7 +46,7 @@ Concentricity formula, shape hierarchy, and pitfalls: language.md § Concentrici
 
 **Never hardcode** `cubic-bezier` or `duration` in component code. Motion schemes: Standard (admin) vs Expressive (hero moments) — language.md § Motion Schemes.
 
-## 5 Material Thicknesses → [materials.md](./materials.md)
+## 5 Material Thicknesses → [surfaces.md](./surfaces.md)
 
 Ultrathin (decorative, no text) · Thin (glanceable status) · Regular (default surfaces) ·
 Thick (text-dense, forms) · Solid (fallback, max readability). Tokens:
@@ -59,7 +59,7 @@ Command Surface (admin review queue) · Ambient Display (sync status) · Data La
 (assessment history) · Conversational (agent, onboarding) · Ritual (first work, hypercert
 mint). **One paradigm per surface**; declare in a one-line comment at the top of the component.
 
-## 4 Disclosure Layers → [interaction.md](./interaction.md)
+## 4 Disclosure Layers → [surfaces.md](./surfaces.md)
 
 Glance (<1s, always visible) → Scan (hover/focus reveals) → Engage (click/expand) →
 Deep dive (separate surface). Screen-reader requirement: Scan-layer content must also
@@ -71,7 +71,7 @@ Garden creation (Full) · First work submission (High) · Hypercert minting (Ful
 Vault deposit (High) · Seasonal transitions / Assessment completion / Role milestone
 (Medium). **Succession-aware**: pioneer gardens = simple, climax = full.
 
-## 5-Level Z-Layer Stack → [spatial.md](./spatial.md)
+## 5-Level Z-Layer Stack → [surfaces.md](./surfaces.md)
 
 ```
 Z4 Overlay (modals, palettes) · Z3 Floating (tooltips, FABs) · Z2 Surface (cards)

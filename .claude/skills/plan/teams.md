@@ -25,8 +25,6 @@ Fires when the plan skill routes to teams. Plan detects orchestration intent (se
 | `teams-review` | Orchestration + review framing ("parallel review", "team review") |
 | `teams-investigate` | Orchestration + investigation framing ("competing hypotheses", "test theories in parallel") |
 
-Legacy slash forms (`/plan --mode teams-*`, `/teams`) still work if typed explicitly but are not advertised.
-
 Before spawning, run preflight:
 
 ```bash
