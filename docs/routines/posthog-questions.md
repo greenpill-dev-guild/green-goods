@@ -590,7 +590,10 @@ Public-safe-default. Aggregates only — never names a single user.
     countIf(outcome = 'success') AS success_count,
     countIf(outcome = 'failed') AS failed_count,
     countIf(outcome = 'cancelled') AS cancelled_count,
-    countIf(outcome IN ('success', 'failed')) AS total_attempts,
+    -- Every attempt the user actually started, cancellations included.
+    count() AS total_attempts,
+    -- Denominator for failure_pct: cancellations are neither a success nor a break.
+    countIf(outcome IN ('success', 'failed')) AS resolved_attempts,
     uniqIf(person_id, outcome = 'failed') AS failing_persons,
     if(
       countIf(outcome IN ('success', 'failed')) > 0,
@@ -636,16 +639,19 @@ Public-safe-default. Aggregates only — never names a single user.
   ORDER BY failure_pct DESC
   ```
 - **Bind variables**: `{ window: "7d" }` (default; `30d` for monthly digest, `1d` for hot triage).
-- **Output schema**: every field public. `failing_persons` is a distinct count, never an identifier — it stays public-safe.
+- **Output schema**: all count fields public. **`failing_persons` is private-only below 5** — it is a threshold input, not a publishable figure. The privacy boundary above makes aggregations public-safe only over ≥ 5 users, and the anomaly floor of 3 guarantees sub-5 values occur. Use it to decide whether to file; never print it into a digest, Discord post, or Linear body unless it is ≥ 5.
 - **Cancellation-detection coverage** (verified against 120d of App data, 2026-08-10). Detection is only as good as the emit side, so treat `cancelled_count` as a floor, not a complete count:
+
   | Step | Signal | Reliable? |
   |---|---|---|
   | `garden_join` | dedicated `garden_join_cancelled` event | ✅ from 2026-08-10 |
   | `work_submission` | `parsed_error_family` / parsed message | ⚠️ `parsed_error_family` only on recent events; older ones fall back to message text |
   | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
   | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
+
 - **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
 - **Anomaly thresholds (consumer)**: failure rate > 50% AND `failed_count` ≥ 5 AND `failing_persons` ≥ 3 over the window → file a Linear anomaly Issue. 100% failure meeting the same floors → P2/urgent. The person floor is what separates real product breakage from one or two people retrying a broken session — without it, a two-person retry loop reads as a cohort-wide conversion kill (PRD-717).
+  - **`failing_persons` does not merge across projects.** It is a distinct count, so the App and Admin rows for `work_approval` can neither be summed (double-counts an operator active on both) nor maxed (undercounts distinct operators). Apply the person floor **per project** and file if either side crosses on its own; only `success_count` / `failed_count` / `cancelled_count` may be merged into a combined row.
 - **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
 
 ### `web.acquisition-summary`
