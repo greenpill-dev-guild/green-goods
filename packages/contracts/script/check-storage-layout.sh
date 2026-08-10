@@ -28,6 +28,7 @@ CONTRACTS=(
   "KarmaGAPModule:src/modules/Karma.sol"
   "ActionRegistry:src/registries/Action.sol"
   "CommitmentRegistry:src/registries/Commitment.sol"
+  "CreditRegistry:src/registries/Credit.sol"
   "CommitmentPoolingModule:src/modules/CommitmentPooling.sol"
   "SettlementModule:src/modules/SettlementModule.sol"
   "CeloSettlementExecutor:src/modules/CeloSettlementExecutor.sol"

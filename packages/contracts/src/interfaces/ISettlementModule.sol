@@ -98,6 +98,11 @@ interface ISettlementModule {
         DisbursementState cancelledFromState;
     }
 
+    struct LoanPrincipalRelationship {
+        address creditRegistry;
+        uint256 loanId;
+    }
+
     struct CommitmentPayoutPlan {
         uint256 commitmentId;
         address providerGarden;
@@ -224,6 +229,7 @@ interface ISettlementModule {
     event FeeReserveMinimumUpdated(uint256 previousMinimum, uint256 minimum);
     event HatsModuleUpdated(address indexed previousModule, address indexed newModule);
     event CommitmentPoolingModuleUpdated(address indexed previousModule, address indexed newModule);
+    event CreditRegistryUpdated(address indexed previousRegistry, address indexed newRegistry);
     event PausedSet(bool paused);
     event CommitmentPayoutPlanCreated(
         uint256 indexed payoutPlanId,
@@ -288,6 +294,7 @@ interface ISettlementModule {
         address token,
         uint256 amount
     );
+    event LoanPrincipalQueued(uint256 indexed disbursementId, address indexed creditRegistry, uint256 indexed loanId);
     event BatchCreated(
         uint256 indexed batchId,
         address indexed executorGarden,
@@ -395,6 +402,10 @@ interface ISettlementModule {
     error RetiredPeerAcknowledgment(address sender);
     /// @notice The subject's executor can still acknowledge, so there is nothing to close out.
     error SubjectNotStranded(bool isBatch, uint256 subjectId);
+    error CreditRegistryRequired();
+    error LoanPrincipalNotApproved(uint256 loanId, uint8 state);
+    error LoanPrincipalMismatch(uint256 loanId, uint256 disbursementId);
+    error LoanPrincipalCapExceeded(uint256 loanId, uint256 requested, uint256 available);
 
     function initialize(
         address owner_,
@@ -452,6 +463,7 @@ interface ISettlementModule {
         returns (uint256 disbursementId);
     function prepareGardenBeneficiaryPayout(uint256 payoutPlanId) external returns (uint256 disbursementId);
     function queueFunding(address garden, uint256 amount) external returns (uint256 disbursementId);
+    function queueLoanPrincipal(uint256 loanId) external returns (uint256 disbursementId);
     function createBatch(uint256[] calldata disbursementIds) external returns (uint256 batchId);
     function dispatchDisbursement(uint256 disbursementId) external returns (bytes32 messageId);
     function dispatchBatch(uint256 batchId) external returns (bytes32 messageId);
@@ -477,6 +489,8 @@ interface ISettlementModule {
         returns (ContributorPayout memory);
     function payoutContributors(uint256 payoutPlanId) external view returns (address[] memory);
     function payoutPlanOfCommitment(uint256 commitmentId) external view returns (uint256);
+    function loanPrincipalDisbursementOf(address registry, uint256 loanId) external view returns (uint256);
+    function loanPrincipalRelationshipOf(uint256 disbursementId) external view returns (LoanPrincipalRelationship memory);
     function payoutPlanStatus(uint256 payoutPlanId) external view returns (PayoutPlanStatus);
     function MAX_PAYOUT_CONTRIBUTORS() external pure returns (uint256);
     function isAcknowledgmentPending(bool isBatch, uint256 subjectId) external view returns (bool);
@@ -494,6 +508,7 @@ interface ISettlementModule {
     function gDollarToken() external view returns (address);
     function hatsModule() external view returns (address);
     function commitmentPoolingModule() external view returns (address);
+    function creditRegistry() external view returns (address);
     function paused() external view returns (bool);
     function CCIP_ROUTER() external view returns (address);
     function SOURCE_CHAIN_SELECTOR() external view returns (uint64);
@@ -502,5 +517,6 @@ interface ISettlementModule {
     function withdrawExcessFees(address payable recipient, uint256 amount) external;
     function setHatsModule(address module) external;
     function setCommitmentPoolingModule(address module) external;
+    function setCreditRegistry(address registry) external;
     function setPaused(bool paused_) external;
 }

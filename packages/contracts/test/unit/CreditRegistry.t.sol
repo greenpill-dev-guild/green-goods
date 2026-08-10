@@ -1,0 +1,370 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.25;
+
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import { ICreditRegistry } from "../../src/interfaces/ICreditRegistry.sol";
+import { CreditRegistry } from "../../src/registries/Credit.sol";
+import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.sol";
+
+contract CreditRegistryTest is CommitmentPoolingFixture {
+    address internal constant TOKEN = address(0xDA1);
+    address internal constant EXECUTOR = address(0xE0EC);
+
+    CreditRegistry internal credit;
+
+    function setUp() public {
+        _setUpProductionFixture();
+        CreditRegistry implementation = new CreditRegistry();
+        credit = CreditRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(implementation),
+                    abi.encodeCall(
+                        CreditRegistry.initialize, (address(this), address(hats), address(module), address(0x5E771E))
+                    )
+                )
+            )
+        );
+        credit.setPaused(false);
+        credit.configurePoolCredit(poolId, 100 ether, true);
+    }
+
+    function testRequestApproveDisburseAndRepayInInstallments() public {
+        uint256 loanId = _request(CREATOR, 80 ether, 0);
+        credit.approveLoan(loanId);
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.Treasury, keccak256("treasury-disbursement"));
+        credit.recordRepayment(loanId, 30 ether, keccak256("repayment-one"));
+
+        ICreditRegistry.Loan memory partiallyRepaid = credit.getLoan(loanId);
+        assertEq(uint8(partiallyRepaid.state), uint8(ICreditRegistry.LoanState.Disbursed));
+        assertEq(partiallyRepaid.repaidAmount, 30 ether);
+        assertEq(credit.outstandingOf(poolId, CREATOR), 50 ether);
+
+        credit.recordRepayment(loanId, 50 ether, keccak256("repayment-two"));
+        ICreditRegistry.Loan memory repaid = credit.getLoan(loanId);
+        assertEq(uint8(repaid.state), uint8(ICreditRegistry.LoanState.Repaid));
+        assertEq(repaid.installmentsPaid, 2);
+        assertEq(credit.outstandingOf(poolId, CREATOR), 0);
+        assertEq(credit.amountDue(loanId), 0);
+    }
+
+    function testStewardOnBehalfIsExplicitAndCurrentMemberOnly() public {
+        ICreditRegistry.RequestLoanParams memory params = _params(25 ether, 0);
+        params.onBehalfOf = CREATOR;
+        uint256 loanId = credit.requestLoan(params);
+        ICreditRegistry.Loan memory loan = credit.getLoan(loanId);
+        assertEq(loan.borrower, CREATOR);
+        assertEq(loan.requestedBy, address(this));
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.NotPoolSteward.selector, CLAIMANT, poolId));
+        vm.prank(CLAIMANT);
+        credit.requestLoan(params);
+
+        params.onBehalfOf = CLAIMANT;
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidOnBehalfOf.selector, CLAIMANT));
+        vm.prank(CLAIMANT);
+        credit.requestLoan(params);
+
+        address nonMember = address(0xBAD);
+        params.onBehalfOf = nonMember;
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.NotPoolMember.selector, nonMember, poolId));
+        credit.requestLoan(params);
+    }
+
+    function testBorrowerCannotApproveOwnLoanEvenWhenAlsoAuthorizedAsSteward() public {
+        _setMember(address(this));
+        uint256 loanId = _request(address(this), 10 ether, 0);
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.SelfApproval.selector, loanId, address(this)));
+        credit.approveLoan(loanId);
+    }
+
+    function testCapIsRecheckedAfterInterveningDisbursementAtApproval() public {
+        uint256 firstLoanId = _request(CREATOR, 60 ether, 0);
+        uint256 secondLoanId = _request(CREATOR, 60 ether, 0);
+        credit.approveLoan(firstLoanId);
+        credit.recordDisbursed(firstLoanId, ICreditRegistry.LoanRail.Jar, keccak256("first-cap-use"));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICreditRegistry.BorrowerCapExceeded.selector, poolId, CREATOR, 60 ether, 40 ether)
+        );
+        credit.approveLoan(secondLoanId);
+    }
+
+    function testCapIsRecheckedAfterInterveningDisbursementAtRecording() public {
+        uint256 firstLoanId = _request(CREATOR, 60 ether, 0);
+        uint256 secondLoanId = _request(CREATOR, 60 ether, 0);
+        credit.approveLoan(firstLoanId);
+        credit.approveLoan(secondLoanId);
+        credit.recordDisbursed(firstLoanId, ICreditRegistry.LoanRail.Jar, keccak256("first-approved-cap-use"));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ICreditRegistry.BorrowerCapExceeded.selector, poolId, CREATOR, 60 ether, 40 ether)
+        );
+        credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Jar, keccak256("second-cap-use"));
+    }
+
+    function testCommitmentLinkIsUniqueAndCancellationClearsOnlyTheLiveLink() public {
+        uint256 commitmentId = _createOffer(keccak256("credit-linked-offer"));
+        uint256 loanId = _request(CREATOR, 20 ether, commitmentId);
+        assertEq(credit.loanOfCommitment(commitmentId), loanId);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.CommitmentLoanExists.selector, commitmentId, loanId));
+        _request(CREATOR, 20 ether, commitmentId);
+
+        vm.prank(CREATOR);
+        credit.cancelLoan(loanId, "bafy-borrower-cancelled");
+        assertEq(credit.loanOfCommitment(commitmentId), 0);
+        uint256 replacementLoanId = _request(CREATOR, 20 ether, commitmentId);
+        assertEq(credit.loanOfCommitment(commitmentId), replacementLoanId);
+    }
+
+    function testRepaymentRejectsZeroOverpaymentAndReplayAcrossLoans() public {
+        uint256 firstLoanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("first-disbursement"));
+        uint256 secondLoanId = _request(CLAIMANT, 20 ether, 0);
+        credit.approveLoan(secondLoanId);
+
+        vm.expectRevert(ICreditRegistry.RepaymentAmountRequired.selector);
+        credit.recordRepayment(firstLoanId, 0, keccak256("zero-repayment"));
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.RepaymentExceedsBalance.selector, 41 ether, 40 ether));
+        credit.recordRepayment(firstLoanId, 41 ether, keccak256("overpayment"));
+        vm.expectRevert(
+            abi.encodeWithSelector(ICreditRegistry.ExecutionRefUsed.selector, keccak256("first-disbursement"), firstLoanId)
+        );
+        credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Treasury, keccak256("first-disbursement"));
+
+        credit.recordRepayment(firstLoanId, 10 ether, keccak256("shared-ref"));
+        credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Treasury, keccak256("second-disbursement"));
+        vm.expectRevert(
+            abi.encodeWithSelector(ICreditRegistry.ExecutionRefUsed.selector, keccak256("shared-ref"), firstLoanId)
+        );
+        credit.recordRepayment(secondLoanId, 5 ether, keccak256("shared-ref"));
+        assertEq(credit.loanOfExecutionRef(keccak256("shared-ref")), firstLoanId);
+    }
+
+    function testDefaultIsDueGatedAndRecoverableAcrossInstallments() public {
+        uint256 loanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("default-disbursement"));
+        ICreditRegistry.Loan memory loan = credit.getLoan(loanId);
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.NotDue.selector, loanId, loan.dueDate));
+        credit.markDefaulted(loanId, "bafy-too-early");
+
+        vm.warp(uint256(loan.dueDate) + 1);
+        credit.markDefaulted(loanId, "bafy-default-record");
+        credit.recordRepayment(loanId, 15 ether, keccak256("default-partial"));
+        assertEq(uint8(credit.getLoan(loanId).state), uint8(ICreditRegistry.LoanState.Defaulted));
+        credit.recordRepayment(loanId, 25 ether, keccak256("default-cleared"));
+
+        ICreditRegistry.Loan memory recovered = credit.getLoan(loanId);
+        assertEq(uint8(recovered.state), uint8(ICreditRegistry.LoanState.Repaid));
+        assertEq(recovered.repaidAmount, 40 ether);
+        assertEq(recovered.reasonCID, "bafy-default-record");
+        assertEq(credit.outstandingOf(poolId, CREATOR), 0);
+    }
+
+    function testExecutorRemovalImmediatelyRevokesRecordAuthority() public {
+        credit.addExecutor(poolId, EXECUTOR);
+        uint256 firstLoanId = _request(CREATOR, 20 ether, 0);
+        credit.approveLoan(firstLoanId);
+        vm.prank(EXECUTOR);
+        credit.recordDisbursed(firstLoanId, ICreditRegistry.LoanRail.Jar, keccak256("executor-first"));
+
+        credit.removeExecutor(poolId, EXECUTOR);
+        uint256 secondLoanId = _request(CLAIMANT, 20 ether, 0);
+        credit.approveLoan(secondLoanId);
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.UnauthorizedRecorder.selector, EXECUTOR, poolId));
+        vm.prank(EXECUTOR);
+        credit.recordDisbursed(secondLoanId, ICreditRegistry.LoanRail.Jar, keccak256("executor-removed"));
+    }
+
+    function testPauseBlocksOrdinaryMutationsButPreservesCancelAndDefault() public {
+        uint256 requestedLoanId = _request(CREATOR, 20 ether, 0);
+        uint256 disbursedLoanId = _approvedAndDisbursed(CLAIMANT, 20 ether, keccak256("pause-default"));
+        uint64 dueDate = credit.getLoan(disbursedLoanId).dueDate;
+        credit.setPaused(true);
+
+        vm.expectRevert(ICreditRegistry.ModulePaused.selector);
+        credit.approveLoan(requestedLoanId);
+        vm.expectRevert(ICreditRegistry.ModulePaused.selector);
+        credit.recordRepayment(disbursedLoanId, 1 ether, keccak256("paused-repayment"));
+
+        vm.prank(CREATOR);
+        credit.cancelLoan(requestedLoanId, "bafy-wind-down");
+        vm.warp(uint256(dueDate) + 1);
+        credit.markDefaulted(disbursedLoanId, "bafy-paused-default");
+        assertEq(uint8(credit.getLoan(requestedLoanId).state), uint8(ICreditRegistry.LoanState.Cancelled));
+        assertEq(uint8(credit.getLoan(disbursedLoanId).state), uint8(ICreditRegistry.LoanState.Defaulted));
+    }
+
+    function testDependenciesAndUpgradeAreOwnerAndPauseGated() public {
+        address replacementSettlement = address(0x5E771F);
+        vm.expectRevert(ICreditRegistry.ModuleMustBePaused.selector);
+        credit.setSettlementModule(replacementSettlement);
+
+        credit.setPaused(true);
+        vm.expectRevert();
+        vm.prank(CREATOR);
+        credit.setSettlementModule(replacementSettlement);
+        vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
+        credit.setSettlementModule(address(0));
+        credit.setSettlementModule(replacementSettlement);
+
+        CreditRegistry nextImplementation = new CreditRegistry();
+        bytes memory keepPaused = abi.encodeCall(CreditRegistry.setPaused, (true));
+        vm.expectRevert();
+        vm.prank(CREATOR);
+        credit.upgradeToAndCall(address(nextImplementation), keepPaused);
+        credit.upgradeToAndCall(address(nextImplementation), keepPaused);
+        assertEq(credit.settlementModule(), replacementSettlement);
+        assertTrue(credit.paused());
+        assertEq(credit.nextLoanId(), 1);
+    }
+
+    function testInvalidRequestAndConfigurationInputsFailClosed() public {
+        ICreditRegistry.RequestLoanParams memory params = _params(10 ether, 0);
+        params.poolId = 0;
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.UnknownPool.selector, uint256(0)));
+        vm.prank(CREATOR);
+        credit.requestLoan(params);
+
+        params = _params(10 ether, 0);
+        params.token = address(0);
+        vm.expectRevert(ICreditRegistry.TokenRequired.selector);
+        vm.prank(CREATOR);
+        credit.requestLoan(params);
+        params = _params(0, 0);
+        vm.expectRevert(ICreditRegistry.PrincipalRequired.selector);
+        vm.prank(CREATOR);
+        credit.requestLoan(params);
+        params = _params(10 ether, 0);
+        params.dueDate = uint64(block.timestamp);
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidDueDate.selector, params.dueDate));
+        vm.prank(CREATOR);
+        credit.requestLoan(params);
+        params = _params(10 ether, 0);
+        params.termsCID = "";
+        vm.expectRevert(ICreditRegistry.TermsRequired.selector);
+        vm.prank(CREATOR);
+        credit.requestLoan(params);
+
+        uint256 loanId = _request(CREATOR, 10 ether, 0);
+        credit.approveLoan(loanId);
+        vm.expectRevert(ICreditRegistry.ExecutionRefRequired.selector);
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.Jar, bytes32(0));
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidRail.selector, ICreditRegistry.LoanRail.None));
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.None, keccak256("none-rail"));
+    }
+
+    function testCancellationNeverAppliesAfterValueWasRecorded() public {
+        uint256 loanId = _approvedAndDisbursed(CREATOR, 10 ether, keccak256("cancel-after-value"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.CancellationNotAllowed.selector, loanId, ICreditRegistry.LoanState.Disbursed
+            )
+        );
+        credit.cancelLoan(loanId, "bafy-too-late");
+    }
+
+    function testAdministrativeAndLifecycleFailureBranchesStayClosed() public {
+        vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
+        credit.addExecutor(poolId, address(0));
+        vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
+        credit.removeExecutor(poolId, address(0));
+
+        uint256 requestedLoanId = _request(CREATOR, 10 ether, 0);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.LoanNotInState.selector, requestedLoanId, ICreditRegistry.LoanState.Requested
+            )
+        );
+        credit.recordRepayment(requestedLoanId, 1 ether, keccak256("requested-repayment"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.LoanNotInState.selector, requestedLoanId, ICreditRegistry.LoanState.Requested
+            )
+        );
+        credit.markDefaulted(requestedLoanId, "bafy-not-disbursed");
+        vm.expectRevert(ICreditRegistry.ReasonRequired.selector);
+        credit.cancelLoan(requestedLoanId, "");
+
+        credit.approveLoan(requestedLoanId);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.LoanNotInState.selector, requestedLoanId, ICreditRegistry.LoanState.Approved
+            )
+        );
+        credit.approveLoan(requestedLoanId);
+        credit.recordDisbursed(requestedLoanId, ICreditRegistry.LoanRail.Treasury, keccak256("default-reason"));
+        ICreditRegistry.Loan memory disbursed = credit.getLoan(requestedLoanId);
+        vm.warp(uint256(disbursed.dueDate) + 1);
+        vm.expectRevert(ICreditRegistry.ReasonRequired.selector);
+        credit.markDefaulted(requestedLoanId, "");
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.UnknownLoan.selector, uint256(999)));
+        credit.getLoan(999);
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.UnknownLoan.selector, uint256(999)));
+        credit.amountDue(999);
+
+        credit.setPaused(true);
+        vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
+        credit.setHatsModule(address(0));
+        vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
+        credit.setCommitmentPoolingModule(address(0));
+    }
+
+    function testFuzzRepaymentConservesOutstanding(uint96 rawPrincipal, uint96 rawFirstPayment) public {
+        uint256 principal = bound(uint256(rawPrincipal), 2, 100 ether);
+        uint256 firstPayment = bound(uint256(rawFirstPayment), 1, principal - 1);
+        uint256 loanId = _approvedAndDisbursed(CREATOR, principal, keccak256(abi.encode("fuzz", principal)));
+
+        credit.recordRepayment(loanId, firstPayment, keccak256(abi.encode("fuzz-first", firstPayment)));
+        ICreditRegistry.Loan memory partialLoan = credit.getLoan(loanId);
+        assertEq(partialLoan.repaidAmount + credit.amountDue(loanId), principal);
+        assertEq(credit.outstandingOf(poolId, CREATOR), credit.amountDue(loanId));
+
+        credit.recordRepayment(
+            loanId, principal - firstPayment, keccak256(abi.encode("fuzz-final", principal, firstPayment))
+        );
+        assertEq(credit.outstandingOf(poolId, CREATOR), 0);
+        assertEq(credit.amountDue(loanId), 0);
+        assertEq(uint8(credit.getLoan(loanId).state), uint8(ICreditRegistry.LoanState.Repaid));
+    }
+
+    function _approvedAndDisbursed(
+        address borrower,
+        uint256 principal,
+        bytes32 executionRef
+    )
+        private
+        returns (uint256 loanId)
+    {
+        loanId = _request(borrower, principal, 0);
+        credit.approveLoan(loanId);
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.Treasury, executionRef);
+    }
+
+    function _request(address borrower, uint256 principal, uint256 commitmentId) private returns (uint256 loanId) {
+        ICreditRegistry.RequestLoanParams memory params = _params(principal, commitmentId);
+        vm.prank(borrower);
+        loanId = credit.requestLoan(params);
+    }
+
+    function _params(
+        uint256 principal,
+        uint256 commitmentId
+    )
+        private
+        view
+        returns (ICreditRegistry.RequestLoanParams memory params)
+    {
+        params = ICreditRegistry.RequestLoanParams({
+            poolId: poolId,
+            commitmentId: commitmentId,
+            token: TOKEN,
+            principal: principal,
+            dueDate: uint64(block.timestamp + 30 days),
+            installmentsTotal: 2,
+            termsCID: "bafy-credit-terms",
+            onBehalfOf: address(0)
+        });
+    }
+}

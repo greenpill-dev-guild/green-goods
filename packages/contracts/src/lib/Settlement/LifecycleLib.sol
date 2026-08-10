@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { ISettlementModule } from "../../interfaces/ISettlementModule.sol";
 import { SettlementCommandLib } from "./CommandLib.sol";
+import { SettlementLoanLib } from "./LoanLib.sol";
 import { SettlementPlanLib } from "./PlanLib.sol";
 
 /// @notice Batch and child lifecycle behavior for the Arbitrum settlement source.
@@ -33,6 +34,19 @@ library SettlementLifecycleLib {
         uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID
     );
     event BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID);
+    event ExcessFeesWithdrawn(address indexed recipient, uint256 amount);
+
+    function withdrawExcessFees(uint256 feeReserveMinimum, address payable recipient, uint256 amount) public {
+        if (recipient == address(0)) revert ISettlementModule.ZeroAddress();
+        if (amount > address(this).balance) revert ISettlementModule.InsufficientNativeFee();
+        uint256 remaining = address(this).balance - amount;
+        if (remaining < feeReserveMinimum) {
+            revert ISettlementModule.FeeReserveFloorViolated(feeReserveMinimum, remaining);
+        }
+        (bool success,) = recipient.call{ value: amount }("");
+        if (!success) revert ISettlementModule.InsufficientNativeFee();
+        emit ExcessFeesWithdrawn(recipient, amount);
+    }
 
     /// @dev Keeps the full batch-homogeneity proof adjacent to the state transition it authorizes.
     // solhint-disable-next-line code-complexity
@@ -69,7 +83,7 @@ library SettlementLifecycleLib {
                 entry.batchId != 0 || entry.executorGarden != first.executorGarden || entry.source != first.source
                     || entry.token != first.token || entry.kind != first.kind || entry.fundingRoute != first.fundingRoute
             ) revert ISettlementModule.BatchEntryMismatch(disbursementIds[index]);
-            _recheckDisbursement(accounts, planState, config, entry);
+            _recheckDisbursement(accounts, planState, config, disbursementIds[index], entry);
             for (uint256 prior; prior < index; ++prior) {
                 if (disbursementIds[prior] == disbursementIds[index]) {
                     revert ISettlementModule.DuplicateBatchEntry(disbursementIds[index]);
@@ -123,7 +137,7 @@ library SettlementLifecycleLib {
         if (disbursement.batchId != 0) {
             revert ISettlementModule.BatchedDisbursementCannotBeCancelled(disbursementId, disbursement.batchId);
         }
-        _recheckDisbursement(accounts, planState, config, disbursement);
+        _recheckDisbursement(accounts, planState, config, disbursementId, disbursement);
 
         address[] memory recipients = new address[](1);
         recipients[0] = disbursement.recipient;
@@ -217,7 +231,7 @@ library SettlementLifecycleLib {
         amounts = new uint256[](length);
         for (uint256 index; index < length; ++index) {
             ISettlementModule.Disbursement storage entry = disbursements[batch.disbursementIds[index]];
-            _recheckDisbursement(accounts, planState, config, entry);
+            _recheckDisbursement(accounts, planState, config, batch.disbursementIds[index], entry);
             recipients[index] = entry.recipient;
             amounts[index] = entry.amount;
         }
@@ -460,6 +474,7 @@ library SettlementLifecycleLib {
         mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
         SettlementPlanLib.State storage planState,
         RuntimeConfig memory config,
+        uint256 disbursementId,
         ISettlementModule.Disbursement storage disbursement
     )
         private
@@ -479,6 +494,8 @@ library SettlementLifecycleLib {
         } else if (disbursement.kind == ISettlementModule.DisbursementKind.Funding) {
             _activeAccountMatches(accounts, config.protocolGarden, disbursement.source, config.destinationEvmChainId);
             _activeAccountMatches(accounts, disbursement.garden, disbursement.recipient, config.destinationEvmChainId);
+        } else if (disbursement.kind == ISettlementModule.DisbursementKind.LoanPrincipal) {
+            SettlementLoanLib.recheckLoanPrincipal(disbursement, disbursementId);
         } else {
             revert ISettlementModule.InvalidPayoutVector();
         }

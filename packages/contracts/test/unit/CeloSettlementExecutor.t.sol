@@ -331,6 +331,22 @@ contract CeloSettlementExecutorTest is Test {
         assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
     }
 
+    function testLoanPrincipalUsesTheBoundedGDollarTransferPath() public {
+        router.deliver(
+            address(executor),
+            keccak256("loan-principal"),
+            SOURCE_SELECTOR,
+            SOURCE_MODULE,
+            _command(false, 11, 0, 2, _one(CONTRIBUTOR), _oneAmount(100 ether))
+        );
+
+        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(11), uint32(0)));
+        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+        assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
+    }
+
     function testMalformedCommandUsesFrozenFailureSelector() public {
         vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
         router.deliver(address(executor), keccak256("malformed-command"), SOURCE_SELECTOR, SOURCE_MODULE, hex"01");

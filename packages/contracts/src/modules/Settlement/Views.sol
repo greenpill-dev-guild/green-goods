@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { SettlementCommandLib } from "../../lib/Settlement/CommandLib.sol";
+import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementPlanLib } from "../../lib/Settlement/PlanLib.sol";
 import { SettlementLifecycle } from "./Lifecycle.sol";
 
@@ -50,18 +51,25 @@ abstract contract SettlementViews is SettlementLifecycle {
         return _planState.payoutPlanOfCommitment[commitmentId];
     }
 
+    function loanPrincipalDisbursementOf(address registry, uint256 loanId) external view override returns (uint256) {
+        return SettlementLoanLib.loanPrincipalDisbursementOf(registry, loanId);
+    }
+
+    function loanPrincipalRelationshipOf(uint256 disbursementId)
+        external
+        view
+        override
+        returns (LoanPrincipalRelationship memory)
+    {
+        return SettlementLoanLib.loanPrincipalRelationshipOf(disbursementId);
+    }
+
+    function creditRegistry() external view override returns (address) {
+        return SettlementLoanLib.configuredCreditRegistry();
+    }
+
     function payoutPlanStatus(uint256 payoutPlanId) public view override returns (PayoutPlanStatus) {
-        CommitmentPayoutPlan storage plan = _planState.payoutPlans[payoutPlanId];
-        if (plan.commitmentId == 0) revert UnknownPayoutPlan(payoutPlanId);
-        if (!plan.finalized) return PayoutPlanStatus.Draft;
-        if (plan.payablePayoutCount == 0 || plan.confirmedPayoutCount == plan.payablePayoutCount) {
-            return PayoutPlanStatus.Complete;
-        }
-        if (plan.confirmedPayoutCount != 0) return PayoutPlanStatus.Partial;
-        if (plan.failedPayoutCount + plan.cancelledPayoutCount == plan.payablePayoutCount) {
-            return PayoutPlanStatus.Failed;
-        }
-        return PayoutPlanStatus.Pending;
+        return SettlementPlanLib.payoutPlanStatus(_planState, payoutPlanId);
     }
 
     function isAcknowledgmentPending(bool isBatch, uint256 subjectId) external view override returns (bool) {

@@ -2,7 +2,7 @@
   "version": 1,
   "feature": {
     "slug": "commitment-credit-follow-on",
-    "title": "Commitment Credit \u2014 August Companion",
+    "title": "Commitment Credit — August Companion",
     "kind": "feature",
     "stage": "active"
   },
@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-01T19:58:33.443Z"
+    "updated_at": "2026-08-10T00:30:18.313Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,7 +52,7 @@
   },
   "notes": [
     "Explicitly unblocked into the August Commitment Pooling wave on 2026-08-01 (pooling plan register #73). Additive companion chain: zero changes to the pooling module, register, or their frozen ABIs.",
-    "Dispatch gates before the contracts lane starts: (1) pooling + settlement interfaces frozen in code (pooling PR chains 2/2.5 merged); (2) every interface and path spec.md cites revalidated against the implemented code; (3) human-owned legal/operations review of the interest-free, records-only lending posture. Gate 3 starts immediately and runs in parallel with the pooling build.",
+    "All three contracts dispatch gates cleared 2026-08-09: PR #694 merged at c60b38dea, Afo approved the interest-free records-only posture, and spec.md plus coverage-ledger.md freeze the exact ABI against branch HEAD 238e4e218.",
     "Settlement seam locked 2026-08-01: option (a), DisbursementKind.LoanPrincipal on the SettlementModule (settlement-spec 2026-08-01 amendment). The (b) commitmentId==0 path was preferred only when credit was a post-deploy addition; building both modules in one wave makes the explicit kind the cleaner invariant.",
     "PRD-697 tracks this August companion in Linear; updated 2026-08-01 to Todo with the three dispatch gates in the body (write verified by re-read).",
     "The Celo G$ repayment verifier is an explicit interface-revalidation item: Chainlink Functions is retired, an unverified human-entered hash cannot count, and the G$ repayment path stays disabled unless a bounded authenticated receipt policy passes the revalidation plus legal/operations gates. Jar/Treasury borrow-and-repay remains the executable baseline.",
@@ -60,7 +60,9 @@
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
-    "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved, closing dispatch gate 3. Gates 1 and 2 remain \u2014 the settlement interface is not frozen because Decision Log #59-#61 (deployment identity emitted from initialize, live-peer acknowledgment plus an owner-only exit for a stranded subject, and steward-gated claiming of a priced Offer) change it, and spec.md must be revalidated against the implemented interfaces afterwards."
+    "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved.",
+    "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
+    "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation."
   ],
   "lanes": {
     "ui": {
@@ -109,26 +111,27 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "in_progress",
       "branch": "codex/contracts/commitment-credit-follow-on",
+      "execution_branch": "feature/build-commitment-crediting-contracts",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
+          "evidence": "Compilation failed before production code because ICreditRegistry.sol and Credit.sol did not exist; the focused test had already frozen request, approval, Treasury disbursement recording, installment repayment, and outstanding conservation."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
+          "evidence": "CreditRegistry.t.sol passed 15 of 15 tests, including 1000-run fuzz coverage; full contracts verification then passed 1936 Solidity tests and 100 script tests."
         },
-        "note": ""
+        "note": "RED was recorded before implementation. GREEN includes the exact focused target and fresh full-suite confirmation on 2026-08-09."
       },
       "skill_tags": ["contracts"],
-      "manual_blocked": true,
-      "blocked_reason": "Gate 3 (human legal/operations review of the interest-free, records-only lending posture) was cleared by Afo on 2026-08-09. Remaining: (1) the pooling/settlement in-code interface freeze, which now waits on Decision Log #59-#61 landing in the settlement interface, and (2) spec revalidation against the implemented interfaces."
+      "manual_blocked": false,
+      "note": "Dispatch gates cleared and exact interface freeze recorded 2026-08-09. RED/GREEN proof remains required before this lane can pass."
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -184,6 +187,22 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-09T15:40:00.000-07:00",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Verified all dispatch gates and froze the exact CreditRegistry and LoanPrincipal settlement interfaces against c60b38dea..238e4e218. Deployment plumbing moved to stage 3."
+    },
+    {
+      "timestamp": "2026-08-10T00:30:18.314Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "note": "RED was recorded before implementation. GREEN includes the exact focused target and fresh full-suite confirmation on 2026-08-09."
     }
   ]
 }

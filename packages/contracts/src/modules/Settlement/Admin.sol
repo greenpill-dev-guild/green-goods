@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { SettlementConfigurationLib } from "../../lib/Settlement/ConfigurationLib.sol";
+import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementBase } from "./Base.sol";
 
 /// @title SettlementAdmin
@@ -67,6 +68,11 @@ abstract contract SettlementAdmin is SettlementBase {
         if (previous == module) return;
         commitmentPoolingModule = module;
         emit CommitmentPoolingModuleUpdated(previous, module);
+    }
+
+    function setCreditRegistry(address registry) external override onlyOwner {
+        _requirePaused();
+        SettlementLoanLib.setCreditRegistry(registry);
     }
 
     function setPaused(bool paused_) external override onlyOwner {

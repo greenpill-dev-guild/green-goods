@@ -48,8 +48,8 @@ const SHARDS = {
   "settlement-lane": {
     chain: "ARBITRUM",
     description:
-      "Read-only proof that the Arbitrum One <-> Celo Mainnet CCIP lane is live, against real routers on both forks",
-    glob: "test/fork/CrossChainSettlementLane.t.sol",
+      "Read-only proof of the live Arbitrum <-> Celo CCIP lane and a fork-local Cookie Jar credit round trip",
+    glob: "test/fork/{CrossChainSettlementLane,CreditTreasuryRoundTrip}.t.sol",
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",

@@ -30,6 +30,26 @@ library SettlementConfigurationLib {
         uint8 protocolVersion
     );
 
+    function validateUpgrade(
+        address newImplementation,
+        bool paused,
+        address ccipRouter,
+        uint64 sourceChainSelector,
+        uint64 destinationEvmChainId
+    )
+        public
+        view
+    {
+        if (!paused) revert ISettlementModule.SourceMustBePaused();
+        if (
+            _replacementImmutable(newImplementation, ISettlementModule.CCIP_ROUTER.selector) != uint256(uint160(ccipRouter))
+                || _replacementImmutable(newImplementation, ISettlementModule.SOURCE_CHAIN_SELECTOR.selector)
+                    != sourceChainSelector
+                || _replacementImmutable(newImplementation, ISettlementModule.DESTINATION_EVM_CHAIN_ID.selector)
+                    != destinationEvmChainId
+        ) revert ISettlementModule.ImmutableConfigurationMismatch();
+    }
+
     /// @dev Keeps route replacement and grace-window derivation atomic and visibly ordered.
     // solhint-disable-next-line code-complexity
     function setCcipRoute(
@@ -187,5 +207,11 @@ library SettlementConfigurationLib {
             destinationExecutor != address(0)
                 && (owners[0] == destinationExecutor || owners[1] == destinationExecutor || owners[2] == destinationExecutor)
         ) revert ISettlementModule.InvalidRecoveryConfiguration();
+    }
+
+    function _replacementImmutable(address implementation, bytes4 selector) private view returns (uint256 value) {
+        (bool success, bytes memory result) = implementation.staticcall(abi.encodeWithSelector(selector));
+        if (!success || result.length != 32) revert ISettlementModule.ImmutableConfigurationMismatch();
+        value = abi.decode(result, (uint256));
     }
 }

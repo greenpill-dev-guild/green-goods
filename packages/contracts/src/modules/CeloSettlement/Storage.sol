@@ -27,6 +27,7 @@ abstract contract CeloSettlementStorage is
     uint256 internal constant _ACKNOWLEDGMENT_GAS_LIMIT = 300_000;
     uint8 internal constant _CONTRIBUTOR_CONSIDERATION = 0;
     uint8 internal constant _FUNDING = 1;
+    uint8 internal constant _LOAN_PRINCIPAL = 2;
     uint8 internal constant _GARDEN_BENEFICIARY = 3;
 
     address public immutable override CCIP_ROUTER;

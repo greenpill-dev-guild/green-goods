@@ -1,0 +1,380 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_status",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "hatsModule",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_address"
+    },
+    {
+      "label": "commitmentPoolingModule",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "label": "settlementModule",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "label": "nextLoanId",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_uint256"
+    },
+    {
+      "label": "_loans",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_mapping(t_uint256,t_struct(Loan)_storage)"
+    },
+    {
+      "label": "_poolCreditConfig",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_mapping(t_uint256,t_struct(PoolCreditConfig)_storage)"
+    },
+    {
+      "label": "_borrowerOutstanding",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))"
+    },
+    {
+      "label": "_commitmentLoan",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_mapping(t_uint256,t_uint256)"
+    },
+    {
+      "label": "_executors",
+      "offset": 0,
+      "slot": "159",
+      "type": "t_mapping(t_uint256,t_mapping(t_address,t_bool))"
+    },
+    {
+      "label": "_executionRefLoan",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_mapping(t_bytes32,t_uint256)"
+    },
+    {
+      "label": "paused",
+      "offset": 0,
+      "slot": "161",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "162",
+      "type": "t_array(t_uint256)39_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_uint256)39_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[39]",
+      "numberOfBytes": "1248"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_enum(LoanRail)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "Jar", "Treasury", "GDollarSettlement"],
+      "label": "enum ICreditRegistry.LoanRail",
+      "numberOfBytes": "1"
+    },
+    "t_enum(LoanState)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "Requested", "Approved", "Disbursed", "Repaid", "Defaulted", "Cancelled"],
+      "label": "enum ICreditRegistry.LoanState",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_bool)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => bool)",
+      "numberOfBytes": "32",
+      "value": "t_bool"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_bytes32,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_bool))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => bool))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_bool)"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => uint256))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_uint256)"
+    },
+    "t_mapping(t_uint256,t_struct(Loan)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ICreditRegistry.Loan)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Loan)_storage"
+    },
+    "t_mapping(t_uint256,t_struct(PoolCreditConfig)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ICreditRegistry.PoolCreditConfig)",
+      "numberOfBytes": "32",
+      "value": "t_struct(PoolCreditConfig)_storage"
+    },
+    "t_mapping(t_uint256,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(Loan)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICreditRegistry.Loan",
+      "members": [
+        {
+          "label": "poolId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "borrower",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "requestedBy",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "commitmentId",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        },
+        {
+          "label": "token",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "label": "principal",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        },
+        {
+          "label": "repaidAmount",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_uint256"
+        },
+        {
+          "label": "feeAmount",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_uint256"
+        },
+        {
+          "label": "rail",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_enum(LoanRail)"
+        },
+        {
+          "label": "disbursementId",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint256"
+        },
+        {
+          "label": "state",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_enum(LoanState)"
+        },
+        {
+          "label": "dueDate",
+          "offset": 1,
+          "slot": "10",
+          "type": "t_uint64"
+        },
+        {
+          "label": "installmentsTotal",
+          "offset": 9,
+          "slot": "10",
+          "type": "t_uint32"
+        },
+        {
+          "label": "installmentsPaid",
+          "offset": 13,
+          "slot": "10",
+          "type": "t_uint32"
+        },
+        {
+          "label": "attempts",
+          "offset": 17,
+          "slot": "10",
+          "type": "t_uint32"
+        },
+        {
+          "label": "executionRef",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "termsCID",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "reasonCID",
+          "offset": 0,
+          "slot": "13",
+          "type": "t_string_storage"
+        }
+      ],
+      "numberOfBytes": "448"
+    },
+    "t_struct(PoolCreditConfig)_storage": {
+      "encoding": "inplace",
+      "label": "struct ICreditRegistry.PoolCreditConfig",
+      "members": [
+        {
+          "label": "borrowerCap",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "enabled",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "64"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint32": {
+      "encoding": "inplace",
+      "label": "uint32",
+      "numberOfBytes": "4"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}
