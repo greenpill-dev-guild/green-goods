@@ -127,6 +127,10 @@ interface ICreditRegistry {
     error CapReservationMissing(uint256 loanId);
     error ActiveLoanReservations(uint256 count);
     error CommitmentPoolingModuleLocked();
+    error InvalidSettlementModule(address settlementModule);
+    error SettlementModuleConfigurationMismatch(
+        address settlementModule, address creditRegistry, address commitmentPoolingModule, address hatsModule
+    );
     error UnknownCommitment(uint256 commitmentId);
     error CommitmentPoolMismatch(uint256 commitmentId, uint256 expectedPoolId, uint256 actualPoolId);
     error CommitmentLoanExists(uint256 commitmentId, uint256 loanId);

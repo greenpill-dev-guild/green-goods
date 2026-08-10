@@ -14,10 +14,17 @@ Pattern source: this repository's QA-triage skill and the rendered prompt below.
 CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
 WORKTREE=/tmp/gg-codex-qa-<slug>
 BRANCH=codex/qa-triage/<slug>
+NOTES_SOURCE="$(pwd)/tmp/qa-triage/<slug>/notes.md"
 
 git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
 
-# Render the template below + schema.json into the worktree, then:
+# Keep every delegated input inside the checkout passed to `-C`. `notes.md` may be a
+# symlink in the primary workspace, so copy its contents rather than recreating the link.
+NOTES_COPY="$WORKTREE/qa-notes.md"
+cp -- "$NOTES_SOURCE" "$NOTES_COPY"
+
+# Render the template below with {notes_path} set to the absolute $NOTES_COPY path,
+# and copy schema.json into the worktree, then:
 CODEX_ENV=(
   "HOME=$HOME"
   "PATH=$PATH"

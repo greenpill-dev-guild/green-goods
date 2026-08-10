@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-10T19:03:00.000Z"
+    "updated_at": "2026-08-10T22:44:33.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -51,7 +51,7 @@
     "depends_on_features": ["commitment-pooling"]
   },
   "notes": [
-    "Explicitly unblocked into the August Commitment Pooling wave on 2026-08-01 (pooling plan register #73). Additive companion chain: zero changes to the pooling module, register, or their frozen ABIs.",
+    "Explicitly unblocked into the August Commitment Pooling wave on 2026-08-01 (pooling plan register #73). The Credit implementation range after pre-credit head 238e4e218 remains an additive companion with no pooling storage or lifecycle changes. The same integration PR also carries the pre-credit pooling hardening at 238e4e218: AcceptanceLib, ClaimsLib, and ExchangeLib enforce current claim authority, and ICommitmentPoolingModule adds PricedOfferClaimRequiresSteward. Those trust-boundary and ABI changes are an explicit upstream dependency, not unrecorded Credit work.",
     "All three contracts dispatch gates cleared 2026-08-09: PR #694 merged at c60b38dea, Afo approved the interest-free records-only posture, and spec.md plus coverage-ledger.md freeze the initial ABI against pre-credit HEAD 238e4e218 and the post-review additions at implementation commit 89fffc972.",
     "Settlement seam locked 2026-08-01: option (a), DisbursementKind.LoanPrincipal on the SettlementModule (settlement-spec 2026-08-01 amendment). The (b) commitmentId==0 path was preferred only when credit was a post-deploy addition; building both modules in one wave makes the explicit kind the cleaner invariant.",
     "PRD-697 tracks this August companion in Linear; updated 2026-08-01 to Todo with the three dispatch gates in the body (write verified by re-read).",
@@ -127,13 +127,13 @@
         },
         "green": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 20 of 20; SettlementSecurity.t.sol passed 21 of 21; Settlement.t.sol passed 19 of 19; CeloSettlementSecurity.t.sol passed 24 of 24; the full contracts gate passed 1957 Solidity tests and 100 script tests."
+          "evidence": "Fresh 2026-08-10 review proof: CreditRegistry.t.sol passed 28 of 28; CreditSettlement.t.sol passed 25 of 25; SettlementSecurity.t.sol passed 22 of 22; the full fast contracts gate passed 1970 Solidity tests and 100 script tests; the read-only settlement fork lane passed 7 of 7."
         },
         "note": "RED preceded implementation and each adversarial behavior fix. GREEN was refreshed with the review fixes present: 86.49% core line coverage, 65.61% core branch coverage, linear and ERC-7201 namespace storage gates, size gates, the 7-test read-only fork lane, and a passing root monorepo test target."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
-      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after resolving the independent review findings at 89fffc972. Human review and merge remain pending; deployment stays deferred to stage 3."
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after the independent findings and follow-up dependency guards. The Credit range starts after pre-credit pooling hardening at 238e4e218; the integration PR includes that bounded AcceptanceLib, ClaimsLib, ExchangeLib, and PricedOfferClaimRequiresSteward ABI dependency. Human review and merge remain pending; deployment stays deferred to stage 3."
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -245,6 +245,14 @@
       "status": "passed",
       "branch": "feature/build-commitment-crediting-contracts",
       "note": "Closed the next review sweep with symmetric consecutive peer-rotation guards and storage-check hardening. Fresh proof passed 19 source route, 24 executor security, 1957 Solidity, 100 script, and 7 fork tests; the full root test target also passed outside the restricted sandbox."
+    },
+    {
+      "timestamp": "2026-08-10T22:44:33.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "scope_corrected",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Recorded the integration PR's pre-credit pooling trust-boundary and ABI hardening at 238e4e218 separately from the additive Credit implementation range. Fresh review proof passed 28 CreditRegistry, 25 CreditSettlement, 22 SettlementSecurity, 1970 Solidity, 100 script, and 7 fork tests, plus build, lint, storage, size, and agentic checks."
     }
   ]
 }

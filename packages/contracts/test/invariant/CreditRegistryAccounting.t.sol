@@ -43,6 +43,7 @@ contract CreditRegistryAccountingInvariant is Test, CommitmentPoolingFixture {
     function setUp() public {
         _setUpProductionFixture();
         CreditSettlementLookupMock settlementLookup = new CreditSettlementLookupMock();
+        settlementLookup.configure(address(0), address(hats), address(module));
         CreditRegistry implementation = new CreditRegistry();
         credit = CreditRegistry(
             address(
@@ -55,6 +56,7 @@ contract CreditRegistryAccountingInvariant is Test, CommitmentPoolingFixture {
                 )
             )
         );
+        settlementLookup.configure(address(credit), address(hats), address(module));
         credit.setPaused(false);
         credit.configurePoolCredit(poolId, PRINCIPAL, true);
 

@@ -9,6 +9,7 @@ import { ISettlementModule } from "../../src/interfaces/ISettlementModule.sol";
 import { SettlementMessageCodec } from "../../src/libraries/SettlementMessageCodec.sol";
 import { SettlementModule } from "../../src/modules/SettlementModule.sol";
 import { CreditRegistry } from "../../src/registries/Credit.sol";
+import { CreditSettlementLookupMock } from "../helpers/CreditSettlementLookupMock.sol";
 import { SettlementPayerTest } from "./SettlementPayer.t.sol";
 
 interface ICreditSettlementUpgrade {
@@ -40,10 +41,10 @@ contract CreditSettlementTest is SettlementPayerTest {
         );
 
         vm.startPrank(OWNER);
-        credit.setPaused(false);
-        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, true);
         settlement.setPaused(true);
         settlement.setCreditRegistry(address(credit));
+        credit.setPaused(false);
+        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, true);
         settlement.setPaused(false);
         vm.stopPrank();
     }
@@ -389,7 +390,9 @@ contract CreditSettlementTest is SettlementPayerTest {
     }
 
     function testCreditSettlement_creditRegistryCandidateMustImplementTheReciprocalInterface() public {
-        CreditRegistry mismatched = _newCreditRegistry(address(0xBADC0DE));
+        CreditSettlementLookupMock mismatchedSettlement = new CreditSettlementLookupMock();
+        mismatchedSettlement.configure(address(0), address(hats), address(pooling));
+        CreditRegistry mismatched = _newCreditRegistry(address(mismatchedSettlement));
 
         vm.startPrank(OWNER);
         settlement.setPaused(true);
@@ -401,7 +404,7 @@ contract CreditSettlementTest is SettlementPayerTest {
             abi.encodeWithSelector(
                 ISettlementModule.CreditRegistryConfigurationMismatch.selector,
                 address(mismatched),
-                address(0xBADC0DE),
+                address(mismatchedSettlement),
                 address(pooling),
                 address(hats)
             )

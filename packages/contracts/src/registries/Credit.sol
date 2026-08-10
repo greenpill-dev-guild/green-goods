@@ -35,6 +35,7 @@ contract CreditRegistry is CreditRegistryBase {
         hatsModule = hatsModule_;
         commitmentPoolingModule = commitmentPoolingModule_;
         settlementModule = settlementModule_;
+        _validateSettlementModule(settlementModule_, SettlementBindingRequirement.Any);
         nextLoanId = 1;
         paused = true;
 
@@ -282,6 +283,8 @@ contract CreditRegistry is CreditRegistryBase {
         if (module == address(0)) revert ZeroAddress();
         _requireNoActiveReservations();
         address previous = settlementModule;
+        if (previous == module) return;
+        _validateSettlementModule(module, SettlementBindingRequirement.UnboundOrSelf);
         settlementModule = module;
         emit SettlementModuleUpdated(previous, module);
     }
@@ -291,6 +294,7 @@ contract CreditRegistry is CreditRegistryBase {
             if (hatsModule == address(0) || commitmentPoolingModule == address(0) || settlementModule == address(0)) {
                 revert ModuleNotReady();
             }
+            _validateSettlementModule(settlementModule, SettlementBindingRequirement.Self);
         }
         paused = paused_;
         emit PausedSet(paused_);

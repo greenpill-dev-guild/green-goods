@@ -29,6 +29,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
     function setUp() public {
         _setUpProductionFixture();
         settlementLookup = new CreditSettlementLookupMock();
+        settlementLookup.configure(address(0), address(hats), address(module));
         CreditRegistry implementation = new CreditRegistry();
         credit = CreditRegistry(
             address(
@@ -41,6 +42,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
                 )
             )
         );
+        settlementLookup.configure(address(credit), address(hats), address(module));
         credit.setPaused(false);
         credit.configurePoolCredit(poolId, 100 ether, true);
     }
@@ -302,6 +304,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         fresh.setCommitmentPoolingModule(address(0xB0B));
         assertEq(fresh.commitmentPoolingModule(), address(0xB0B));
         fresh.setCommitmentPoolingModule(address(module));
+        settlementLookup.configure(address(fresh), address(hats), address(module));
         fresh.setPaused(false);
         fresh.addExecutor(poolId, EXECUTOR);
         assertTrue(fresh.poolingStateInitialized());
@@ -364,17 +367,17 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
     }
 
     function testCreditRegistry_dependenciesAndUpgradeAreOwnerAndPauseGated() public {
-        address replacementSettlement = address(0x5E771F);
+        CreditSettlementLookupMock replacementSettlement = _newSettlementLookup(address(credit));
         vm.expectRevert(ICreditRegistry.ModuleMustBePaused.selector);
-        credit.setSettlementModule(replacementSettlement);
+        credit.setSettlementModule(address(replacementSettlement));
 
         credit.setPaused(true);
         vm.expectRevert(bytes("Ownable: caller is not the owner"));
         vm.prank(CREATOR);
-        credit.setSettlementModule(replacementSettlement);
+        credit.setSettlementModule(address(replacementSettlement));
         vm.expectRevert(ICreditRegistry.ZeroAddress.selector);
         credit.setSettlementModule(address(0));
-        credit.setSettlementModule(replacementSettlement);
+        credit.setSettlementModule(address(replacementSettlement));
 
         CreditRegistry nextImplementation = new CreditRegistry();
         bytes memory keepPaused = abi.encodeCall(CreditRegistry.setPaused, (true));
@@ -382,7 +385,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         vm.prank(CREATOR);
         credit.upgradeToAndCall(address(nextImplementation), keepPaused);
         credit.upgradeToAndCall(address(nextImplementation), keepPaused);
-        assertEq(credit.settlementModule(), replacementSettlement);
+        assertEq(credit.settlementModule(), address(replacementSettlement));
         assertTrue(credit.paused());
         assertEq(credit.nextLoanId(), 1);
     }
@@ -398,8 +401,48 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.setPaused(false);
         credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.Jar, keccak256("release-settlement-lock"));
         credit.setPaused(true);
+        CreditSettlementLookupMock replacementSettlement = _newSettlementLookup(address(credit));
+        credit.setSettlementModule(address(replacementSettlement));
+        assertEq(credit.settlementModule(), address(replacementSettlement));
+    }
+
+    function testCreditRegistry_settlementCandidateMustImplementTheReciprocalInterface() public {
+        credit.setPaused(true);
+
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidSettlementModule.selector, address(0x5E771F)));
         credit.setSettlementModule(address(0x5E771F));
-        assertEq(credit.settlementModule(), address(0x5E771F));
+        vm.expectRevert(abi.encodeWithSelector(ICreditRegistry.InvalidSettlementModule.selector, address(module)));
+        credit.setSettlementModule(address(module));
+
+        CreditSettlementLookupMock mismatched = new CreditSettlementLookupMock();
+        mismatched.configure(address(credit), address(hats), address(0xB0B));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.SettlementModuleConfigurationMismatch.selector,
+                address(mismatched),
+                address(credit),
+                address(0xB0B),
+                address(hats)
+            )
+        );
+        credit.setSettlementModule(address(mismatched));
+
+        CreditSettlementLookupMock unbound = _newSettlementLookup(address(0));
+        credit.setSettlementModule(address(unbound));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.SettlementModuleConfigurationMismatch.selector,
+                address(unbound),
+                address(0),
+                address(module),
+                address(hats)
+            )
+        );
+        credit.setPaused(false);
+
+        unbound.configure(address(credit), address(hats), address(module));
+        credit.setPaused(false);
+        assertFalse(credit.paused());
     }
 
     function testCreditRegistry_upgradePreservesNamespacedCapReservations() public {
@@ -541,6 +584,11 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         assertEq(credit.outstandingOf(poolId, CREATOR), 0);
         assertEq(credit.amountDue(loanId), 0);
         assertEq(uint8(credit.getLoan(loanId).state), uint8(ICreditRegistry.LoanState.Repaid));
+    }
+
+    function _newSettlementLookup(address boundCredit) private returns (CreditSettlementLookupMock lookup) {
+        lookup = new CreditSettlementLookupMock();
+        lookup.configure(boundCredit, address(hats), address(module));
     }
 
     function _approvedAndDisbursed(

@@ -12,6 +12,12 @@ import { ISettlementModule } from "../interfaces/ISettlementModule.sol";
 
 /// @notice Frozen storage and shared validation for the records-only credit registry.
 abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+    enum SettlementBindingRequirement {
+        Any,
+        UnboundOrSelf,
+        Self
+    }
+
     /// @custom:storage-location erc7201:green.goods.credit.cap-reservation
     struct CapReservationState {
         mapping(uint256 poolId => mapping(address borrower => uint256 amount)) borrowerReserved;
@@ -217,6 +223,53 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         if (executionRef == bytes32(0)) revert ExecutionRefRequired();
         uint256 existing = _executionRefLoan[executionRef];
         if (existing != 0) revert ExecutionRefUsed(executionRef, existing);
+    }
+
+    function _validateSettlementModule(address module, SettlementBindingRequirement binding) internal view {
+        if (module.code.length == 0) revert InvalidSettlementModule(module);
+
+        ISettlementModule candidate = ISettlementModule(module);
+        address candidateCredit;
+        address candidatePooling;
+        address candidateHats;
+        uint256 disbursementProbe;
+        ISettlementModule.LoanPrincipalRelationship memory relationshipProbe;
+
+        try candidate.creditRegistry() returns (address configured) {
+            candidateCredit = configured;
+        } catch {
+            revert InvalidSettlementModule(module);
+        }
+        try candidate.commitmentPoolingModule() returns (address configured) {
+            candidatePooling = configured;
+        } catch {
+            revert InvalidSettlementModule(module);
+        }
+        try candidate.hatsModule() returns (address configured) {
+            candidateHats = configured;
+        } catch {
+            revert InvalidSettlementModule(module);
+        }
+        try candidate.loanPrincipalDisbursementOf(address(this), 0) returns (uint256 configured) {
+            disbursementProbe = configured;
+        } catch {
+            revert InvalidSettlementModule(module);
+        }
+        try candidate.loanPrincipalRelationshipOf(0) returns (ISettlementModule.LoanPrincipalRelationship memory configured)
+        {
+            relationshipProbe = configured;
+        } catch {
+            revert InvalidSettlementModule(module);
+        }
+        if (disbursementProbe != 0 || relationshipProbe.creditRegistry != address(0) || relationshipProbe.loanId != 0) {
+            revert InvalidSettlementModule(module);
+        }
+
+        bool bindingMatches = binding == SettlementBindingRequirement.Any || candidateCredit == address(this)
+            || (binding == SettlementBindingRequirement.UnboundOrSelf && candidateCredit == address(0));
+        if (candidatePooling != commitmentPoolingModule || candidateHats != hatsModule || !bindingMatches) {
+            revert SettlementModuleConfigurationMismatch(module, candidateCredit, candidatePooling, candidateHats);
+        }
     }
 
     function _requireSettlementCancelled(uint256 loanId) internal view {

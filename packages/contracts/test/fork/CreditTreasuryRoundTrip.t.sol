@@ -107,6 +107,7 @@ contract CreditTreasuryRoundTripForkTest is AaveOctantForkBase {
         CreditForkPooling pooling = new CreditForkPooling(garden);
         CreditForkHats hats = new CreditForkHats(address(this), forkGardener);
         CreditSettlementLookupMock settlement = new CreditSettlementLookupMock();
+        settlement.configure(address(0), address(hats), address(pooling));
         CreditRegistry implementation = new CreditRegistry();
         credit = CreditRegistry(
             address(
@@ -118,6 +119,7 @@ contract CreditTreasuryRoundTripForkTest is AaveOctantForkBase {
                 )
             )
         );
+        settlement.configure(address(credit), address(hats), address(pooling));
         credit.setPaused(false);
         credit.configurePoolCredit(POOL_ID, PRINCIPAL, true);
     }
