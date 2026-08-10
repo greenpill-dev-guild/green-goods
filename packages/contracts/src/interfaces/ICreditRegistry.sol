@@ -126,6 +126,7 @@ interface ICreditRegistry {
     error BorrowerCapExceeded(uint256 poolId, address borrower, uint256 requested, uint256 available);
     error CapReservationMissing(uint256 loanId);
     error ActiveLoanReservations(uint256 count);
+    error CommitmentPoolingModuleLocked();
     error UnknownCommitment(uint256 commitmentId);
     error CommitmentPoolMismatch(uint256 commitmentId, uint256 expectedPoolId, uint256 actualPoolId);
     error CommitmentLoanExists(uint256 commitmentId, uint256 loanId);
@@ -175,6 +176,7 @@ interface ICreditRegistry {
     function reservedOutstandingOf(uint256 poolId, address borrower) external view returns (uint256);
     function isCapReserved(uint256 loanId) external view returns (bool);
     function activeReservationCount() external view returns (uint256);
+    function poolingStateInitialized() external view returns (bool);
     function amountDue(uint256 loanId) external view returns (uint256);
     function loanOfCommitment(uint256 commitmentId) external view returns (uint256);
     function isExecutor(uint256 poolId, address executor) external view returns (bool);

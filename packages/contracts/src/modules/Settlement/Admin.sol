@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { SettlementConfigurationLib } from "../../lib/Settlement/ConfigurationLib.sol";
 import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
+import { ICreditRegistry } from "../../interfaces/ICreditRegistry.sol";
 import { SettlementBase } from "./Base.sol";
 
 /// @title SettlementAdmin
@@ -68,6 +69,12 @@ abstract contract SettlementAdmin is SettlementBase {
         address previous = commitmentPoolingModule;
         if (previous == module) return;
         SettlementLoanLib.requireNoActiveReservations();
+        if (_planState.nextPayoutPlanId > 1) revert CommitmentPoolingModuleLocked();
+        address registry = SettlementLoanLib.configuredCreditRegistry();
+        if (
+            registry != address(0)
+                && (ICreditRegistry(registry).poolingStateInitialized() || ICreditRegistry(registry).nextLoanId() != 1)
+        ) revert CommitmentPoolingModuleLocked();
         commitmentPoolingModule = module;
         emit CommitmentPoolingModuleUpdated(previous, module);
     }

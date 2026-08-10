@@ -257,6 +257,36 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.setSettlementModule(address(0xCE10));
     }
 
+    function testCreditRegistry_poolingIdentityLocksOnFirstPoolScopedMutation() public {
+        assertTrue(credit.poolingStateInitialized());
+        credit.setPaused(true);
+        vm.expectRevert(ICreditRegistry.CommitmentPoolingModuleLocked.selector);
+        credit.setCommitmentPoolingModule(address(0xB0B));
+
+        CreditRegistry implementation = new CreditRegistry();
+        CreditRegistry fresh = CreditRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(implementation),
+                    abi.encodeCall(
+                        CreditRegistry.initialize,
+                        (address(this), address(hats), address(module), address(settlementLookup))
+                    )
+                )
+            )
+        );
+        assertFalse(fresh.poolingStateInitialized());
+        fresh.setCommitmentPoolingModule(address(0xB0B));
+        assertEq(fresh.commitmentPoolingModule(), address(0xB0B));
+        fresh.setCommitmentPoolingModule(address(module));
+        fresh.setPaused(false);
+        fresh.addExecutor(poolId, EXECUTOR);
+        assertTrue(fresh.poolingStateInitialized());
+        fresh.setPaused(true);
+        vm.expectRevert(ICreditRegistry.CommitmentPoolingModuleLocked.selector);
+        fresh.setCommitmentPoolingModule(address(0xB0B));
+    }
+
     function testCreditRegistry_defaultIsDueGatedAndRecoverableAcrossInstallments() public {
         uint256 loanId = _approvedAndDisbursed(CREATOR, 40 ether, keccak256("default-disbursement"));
         ICreditRegistry.Loan memory loan = credit.getLoan(loanId);

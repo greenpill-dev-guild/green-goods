@@ -33,8 +33,10 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
     mapping(uint256 poolId => mapping(address executor => bool enabled)) internal _executors;
     mapping(bytes32 executionRef => uint256 loanId) internal _executionRefLoan;
     bool public override paused;
+    bool public override poolingStateInitialized;
 
-    /// @dev Eleven named storage entries above plus this 39-slot gap equals 50 custom entries.
+    /// @dev Twelve named storage entries above plus this 39-slot gap preserve the 50-slot allocation;
+    ///      the two trailing booleans share one slot.
     ///      Inherited upgradeable contracts maintain their own layouts independently.
     uint256[39] private __gap;
 
@@ -87,6 +89,10 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
     function _requireNoActiveReservations() internal view {
         uint256 activeReservations = _capReservationState().activeReservations;
         if (activeReservations != 0) revert ActiveLoanReservations(activeReservations);
+    }
+
+    function _lockPoolingIdentity() internal {
+        poolingStateInitialized = true;
     }
 
     function _requirePool(uint256 poolId) internal view returns (ICommitmentPoolingModule.Pool memory pool) {

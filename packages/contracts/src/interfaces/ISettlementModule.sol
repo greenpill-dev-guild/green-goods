@@ -408,6 +408,7 @@ interface ISettlementModule {
     error CreditRegistryRequired();
     error CreditRegistryPaused(address creditRegistry);
     error CreditRegistryHasActiveReservations(address creditRegistry, uint256 count);
+    error CommitmentPoolingModuleLocked();
     error LoanPrincipalNotApproved(uint256 loanId, uint8 state);
     error LoanPrincipalExpired(uint256 loanId, uint64 dueDate);
     error LoanPrincipalPoolNotOpen(uint256 loanId, uint256 poolId, uint8 state);

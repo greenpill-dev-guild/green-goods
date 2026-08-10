@@ -19,6 +19,26 @@ contract SettlementSecurityTest is SettlementPayerTest {
     address internal constant SECOND_GARDEN = address(0x2100);
     address internal constant SECOND_SAFE = address(0x4100);
 
+    function testCommitmentPoolingIdentityLocksAfterPayoutPlanCreation() public {
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCommitmentPoolingModule(address(0xB0B));
+        assertEq(settlement.commitmentPoolingModule(), address(0xB0B));
+        settlement.setCommitmentPoolingModule(address(pooling));
+        settlement.setPaused(false);
+        vm.stopPrank();
+
+        pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
+        vm.prank(OWNER);
+        settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        vm.expectRevert(ISettlementModule.CommitmentPoolingModuleLocked.selector);
+        settlement.setCommitmentPoolingModule(address(0xB0B));
+        vm.stopPrank();
+    }
+
     function testRecoveryOwnerRotationUpdatesFrozenHash() public {
         address[3] memory replacementOwners = _owners(0x30);
 

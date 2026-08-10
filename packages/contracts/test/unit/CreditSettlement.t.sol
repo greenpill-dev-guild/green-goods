@@ -378,6 +378,10 @@ contract CreditSettlementTest is SettlementPayerTest {
         credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.GDollarSettlement, executionRef);
         assertEq(credit.activeReservationCount(), 0);
 
+        vm.expectRevert(ISettlementModule.CommitmentPoolingModuleLocked.selector);
+        vm.prank(OWNER);
+        settlement.setCommitmentPoolingModule(address(0xB0B));
+
         vm.prank(OWNER);
         settlement.setCreditRegistry(address(0xBADC0DE));
         assertEq(settlement.creditRegistry(), address(0xBADC0DE));

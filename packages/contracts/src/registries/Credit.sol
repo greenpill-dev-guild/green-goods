@@ -59,6 +59,7 @@ contract CreditRegistry is CreditRegistryBase {
         _requirePoolSteward(poolId, pool, msg.sender);
         PoolCreditConfig memory previous = _poolCreditConfig[poolId];
         _poolCreditConfig[poolId] = PoolCreditConfig({ borrowerCap: borrowerCap, enabled: enabled });
+        _lockPoolingIdentity();
         emit PoolCreditConfigured(poolId, previous.borrowerCap, borrowerCap, previous.enabled, enabled, msg.sender);
     }
 
@@ -67,6 +68,7 @@ contract CreditRegistry is CreditRegistryBase {
         ICommitmentPoolingModule.Pool memory pool = _requirePool(poolId);
         _requirePoolSteward(poolId, pool, msg.sender);
         _executors[poolId][executor] = true;
+        _lockPoolingIdentity();
         emit ExecutorUpdated(poolId, executor, true, msg.sender);
     }
 
@@ -88,6 +90,7 @@ contract CreditRegistry is CreditRegistryBase {
         ICommitmentPoolingModule.Pool memory pool = _requireOpenEnabledPool(params.poolId);
         address borrower = _resolveBorrower(params.poolId, pool, params.onBehalfOf);
         _validateRequestFacts(params, borrower);
+        _lockPoolingIdentity();
 
         loanId = nextLoanId++;
         _loans[loanId] = Loan({
@@ -263,8 +266,10 @@ contract CreditRegistry is CreditRegistryBase {
 
     function setCommitmentPoolingModule(address module) external override onlyOwner onlyWhilePaused {
         if (module == address(0)) revert ZeroAddress();
-        _requireNoActiveReservations();
         address previous = commitmentPoolingModule;
+        if (previous == module) return;
+        _requireNoActiveReservations();
+        if (poolingStateInitialized || nextLoanId != 1) revert CommitmentPoolingModuleLocked();
         commitmentPoolingModule = module;
         emit CommitmentPoolingModuleUpdated(previous, module);
     }
