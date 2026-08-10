@@ -90,6 +90,14 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(settlement.queueLoanPrincipal(loanId), disbursementId, "queue must be idempotent");
     }
 
+    function testFrozenSettlementOrdinalsRemainExact() public {
+        assertEq(uint8(ISettlementModule.DisbursementKind.ContributorConsideration), 0);
+        assertEq(uint8(ISettlementModule.DisbursementKind.Funding), 1);
+        assertEq(uint8(ISettlementModule.DisbursementKind.LoanPrincipal), 2);
+        assertEq(uint8(ISettlementModule.DisbursementKind.GardenBeneficiary), 3);
+        assertEq(uint8(ISettlementModule.FailureCode.SourceStranded), 12);
+    }
+
     function testConfirmedLoanPrincipalCanBeRecordedExactlyOnce() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
@@ -180,19 +188,136 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(credit.getLoan(loanId).attempts, 1);
     }
 
+    function testCreditCancellationRequiresTheQueuedSettlementChildToBeCancelledFirst() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.prank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.SettlementCancellationRequired.selector,
+                loanId,
+                disbursementId,
+                uint8(ISettlementModule.DisbursementState.Queued)
+            )
+        );
+        vm.prank(OWNER);
+        credit.cancelLoan(loanId, "bafy-credit-cancel-too-early");
+
+        vm.prank(OWNER);
+        settlement.cancelDisbursement(disbursementId, "bafy-settlement-cancelled");
+        vm.prank(OWNER);
+        credit.cancelLoan(loanId, "bafy-credit-cancelled");
+
+        assertEq(uint8(credit.getLoan(loanId).state), uint8(ICreditRegistry.LoanState.Cancelled));
+        assertEq(credit.reservedOutstandingOf(CREDIT_POOL_ID, BORROWER), 0);
+        assertFalse(credit.isCapReserved(loanId));
+        ISettlementModule.LoanPrincipalRelationship memory relationship =
+            settlement.loanPrincipalRelationshipOf(disbursementId);
+        assertEq(relationship.creditRegistry, address(credit));
+        assertEq(relationship.loanId, loanId);
+    }
+
+    function testDispatchedLoanCannotBeCancelledAndRelationshipSurvivesRetryAndAcknowledgment() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.startPrank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        settlement.dispatchDisbursement(disbursementId);
+        bytes32 retryMessageId = settlement.retryCommand(disbursementId);
+        vm.stopPrank();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.SettlementCancellationRequired.selector,
+                loanId,
+                disbursementId,
+                uint8(ISettlementModule.DisbursementState.Dispatched)
+            )
+        );
+        vm.prank(OWNER);
+        credit.cancelLoan(loanId, "bafy-dispatched-cancel");
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        ISettlementModule.LoanPrincipalRelationship memory relationship =
+            settlement.loanPrincipalRelationshipOf(disbursementId);
+        assertEq(relationship.creditRegistry, address(credit));
+        assertEq(relationship.loanId, loanId);
+
+        router.deliver(
+            address(settlement),
+            keccak256("loan-retry-acknowledgment"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, retryMessageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.SettlementCancellationRequired.selector,
+                loanId,
+                disbursementId,
+                uint8(ISettlementModule.DisbursementState.Confirmed)
+            )
+        );
+        vm.prank(OWNER);
+        credit.cancelLoan(loanId, "bafy-confirmed-cancel");
+    }
+
     function testDispatchRechecksRegistryIdentityAndLoanFacts() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.prank(OWNER);
         uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
 
         vm.startPrank(OWNER);
-        credit.setPaused(true);
-        credit.setSettlementModule(address(0xBADC0DE));
-        credit.setPaused(false);
-        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.LoanPrincipalMismatch.selector, loanId, uint256(0)));
+        settlement.setPaused(true);
+        settlement.setCreditRegistry(address(0xBADC0DE));
+        settlement.setPaused(false);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.LoanPrincipalMismatch.selector, loanId, disbursementId));
         settlement.dispatchDisbursement(disbursementId);
         vm.stopPrank();
         assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    function testDispatchRechecksReservedExposureBeforeValueCanMove() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.prank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        vm.prank(OWNER);
+        credit.configurePoolCredit(CREDIT_POOL_ID, 30 ether, true);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ISettlementModule.LoanPrincipalCapExceeded.selector, loanId, 40 ether, uint256(0))
+        );
+        vm.prank(OWNER);
+        settlement.dispatchDisbursement(disbursementId);
+        assertEq(uint8(settlement.getDisbursement(disbursementId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    function testConfirmedPrincipalStillRecordsAfterAPostDispatchCapReduction() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.startPrank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
+        credit.configurePoolCredit(CREDIT_POOL_ID, 30 ether, true);
+        vm.stopPrank();
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("post-dispatch-cap-reduction"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, messageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+        bytes32 executionRef = keccak256(abi.encode(dispatched.executionKey, disbursementId));
+        vm.prank(OWNER);
+        credit.recordDisbursed(loanId, ICreditRegistry.LoanRail.GDollarSettlement, executionRef);
+
+        assertEq(credit.outstandingOf(CREDIT_POOL_ID, BORROWER), 40 ether);
+        assertEq(credit.reservedOutstandingOf(CREDIT_POOL_ID, BORROWER), 0);
     }
 
     function testBatchKeepsPerLoanRelationshipAndDomainSeparatedReceipt() public {

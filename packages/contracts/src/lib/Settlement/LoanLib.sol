@@ -254,10 +254,13 @@ library SettlementLoanLib {
         view
     {
         ICreditRegistry.PoolCreditConfig memory creditConfig = registry.poolCreditConfig(loan.poolId);
+        if (!registry.isCapReserved(loanId)) revert ISettlementModule.LoanPrincipalMismatch(loanId, 0);
         if (creditConfig.borrowerCap != 0) {
             uint256 outstanding = registry.outstandingOf(loan.poolId, loan.borrower);
-            uint256 available = outstanding >= creditConfig.borrowerCap ? 0 : creditConfig.borrowerCap - outstanding;
-            if (loan.principal > available) {
+            uint256 reserved = registry.reservedOutstandingOf(loan.poolId, loan.borrower);
+            uint256 committed = outstanding + reserved;
+            uint256 available = committed >= creditConfig.borrowerCap ? 0 : creditConfig.borrowerCap - committed;
+            if (committed > creditConfig.borrowerCap) {
                 revert ISettlementModule.LoanPrincipalCapExceeded(loanId, loan.principal, available);
             }
         }

@@ -124,6 +124,8 @@ interface ICreditRegistry {
     error LoanNotInState(uint256 loanId, LoanState actual);
     error SelfApproval(uint256 loanId, address borrower);
     error BorrowerCapExceeded(uint256 poolId, address borrower, uint256 requested, uint256 available);
+    error CapReservationMissing(uint256 loanId);
+    error ActiveLoanReservations(uint256 count);
     error UnknownCommitment(uint256 commitmentId);
     error CommitmentPoolMismatch(uint256 commitmentId, uint256 expectedPoolId, uint256 actualPoolId);
     error CommitmentLoanExists(uint256 commitmentId, uint256 loanId);
@@ -139,6 +141,7 @@ interface ICreditRegistry {
     error RepaymentExceedsBalance(uint256 amount, uint256 outstanding);
     error NotDue(uint256 loanId, uint64 dueDate);
     error CancellationNotAllowed(uint256 loanId, LoanState state);
+    error SettlementCancellationRequired(uint256 loanId, uint256 disbursementId, uint8 settlementState);
     error SettlementRelationshipMissing(uint256 loanId);
     error SettlementDisbursementMismatch(uint256 loanId, uint256 disbursementId);
     error SettlementNotConfirmed(uint256 loanId, uint256 disbursementId);
@@ -168,6 +171,8 @@ interface ICreditRegistry {
     function getLoan(uint256 loanId) external view returns (Loan memory);
     function poolCreditConfig(uint256 poolId) external view returns (PoolCreditConfig memory);
     function outstandingOf(uint256 poolId, address borrower) external view returns (uint256);
+    function reservedOutstandingOf(uint256 poolId, address borrower) external view returns (uint256);
+    function isCapReserved(uint256 loanId) external view returns (bool);
     function amountDue(uint256 loanId) external view returns (uint256);
     function loanOfCommitment(uint256 commitmentId) external view returns (uint256);
     function isExecutor(uint256 poolId, address executor) external view returns (bool);
