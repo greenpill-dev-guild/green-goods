@@ -7,6 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ICreditRegistry } from "../../src/interfaces/ICreditRegistry.sol";
 import { CreditRegistry } from "../../src/registries/Credit.sol";
 import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.sol";
+import { CreditSettlementLookupMock } from "../helpers/CreditSettlementLookupMock.sol";
 
 contract CreditRepaymentHandler {
     CreditRegistry internal immutable credit;
@@ -41,13 +42,15 @@ contract CreditRegistryAccountingInvariant is Test, CommitmentPoolingFixture {
 
     function setUp() public {
         _setUpProductionFixture();
+        CreditSettlementLookupMock settlementLookup = new CreditSettlementLookupMock();
         CreditRegistry implementation = new CreditRegistry();
         credit = CreditRegistry(
             address(
                 new ERC1967Proxy(
                     address(implementation),
                     abi.encodeCall(
-                        CreditRegistry.initialize, (address(this), address(hats), address(module), address(0x5E771E))
+                        CreditRegistry.initialize,
+                        (address(this), address(hats), address(module), address(settlementLookup))
                     )
                 )
             )

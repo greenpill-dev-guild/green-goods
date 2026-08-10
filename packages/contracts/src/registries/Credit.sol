@@ -155,6 +155,7 @@ contract CreditRegistry is CreditRegistryBase {
         if (rail == LoanRail.None) revert InvalidRail(rail);
         _requireCapReservation(loanId);
         if (rail != LoanRail.GDollarSettlement) {
+            _requireNoSettlementChild(loanId);
             _requireReservedExposureWithinCap(loan);
         }
         _requireFreshExecutionRef(executionRef);

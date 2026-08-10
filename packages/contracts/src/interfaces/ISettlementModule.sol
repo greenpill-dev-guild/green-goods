@@ -358,6 +358,7 @@ interface ISettlementModule {
     error NotSettlementSteward(address caller, address garden);
     error UnknownSettlementAccount(address garden);
     error SettlementAccountInactive(address garden);
+    error SettlementAccountAlreadyAssigned(address account, address assignedGarden);
     error InvalidSettlementChain(uint64 chainId);
     error InvalidRecoveryConfiguration();
     error UnknownDisbursement(uint256 disbursementId);
@@ -479,6 +480,7 @@ interface ISettlementModule {
     function getDisbursement(uint256 disbursementId) external view returns (Disbursement memory);
     function getBatch(uint256 batchId) external view returns (Batch memory);
     function settlementAccountOf(address garden) external view returns (SettlementAccount memory);
+    function settlementGardenOf(address account) external view returns (address garden);
     function getPayoutPlan(uint256 payoutPlanId) external view returns (CommitmentPayoutPlan memory);
     function contributorPayoutOf(
         uint256 payoutPlanId,

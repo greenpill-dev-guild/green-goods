@@ -101,10 +101,12 @@ abstract contract SettlementAdmin is SettlementBase {
     )
         external
         override
+        onlyOwner
     {
-        _requireAccountAdministrator(garden);
+        _requirePaused();
         SettlementConfigurationLib.registerSettlementAccount(
             _settlementAccounts,
+            _settlementAccountGardens,
             DESTINATION_EVM_CHAIN_ID,
             _ccipRoute.destinationExecutor,
             garden,

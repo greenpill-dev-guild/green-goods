@@ -135,6 +135,79 @@ contract CreditSettlementTest is SettlementPayerTest {
         credit.recordRepayment(loanId, 1 ether, keccak256("human-entered-gdollar-hash"));
     }
 
+    function testNonGdollarRecordingRejectsQueuedAndBatchedPrincipalChildren() public {
+        uint256 queuedLoanId = _approvedLoan(BORROWER, 30 ether);
+        uint256 batchedLoanId = _approvedLoan(SECOND_BORROWER, 20 ether);
+        uint256[] memory ids = new uint256[](2);
+
+        vm.startPrank(OWNER);
+        ids[0] = settlement.queueLoanPrincipal(queuedLoanId);
+        ids[1] = settlement.queueLoanPrincipal(batchedLoanId);
+        vm.stopPrank();
+
+        _expectNonGdollarRecordingBlocked(queuedLoanId, ICreditRegistry.LoanRail.Jar, "queued-cross-rail");
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setBatchSizeLimit(2);
+        settlement.setPaused(false);
+        settlement.createBatch(ids);
+        vm.stopPrank();
+
+        _expectNonGdollarRecordingBlocked(batchedLoanId, ICreditRegistry.LoanRail.Treasury, "batched-cross-rail");
+    }
+
+    function testNonGdollarRecordingRejectsDispatchedAndConfirmedPrincipalChild() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.startPrank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+
+        _expectNonGdollarRecordingBlocked(loanId, ICreditRegistry.LoanRail.Jar, "dispatched-cross-rail");
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("cross-rail-confirmed"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, messageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+
+        _expectNonGdollarRecordingBlocked(loanId, ICreditRegistry.LoanRail.Treasury, "confirmed-cross-rail");
+    }
+
+    function testNonGdollarRecordingRejectsFailedAndRetriedPrincipalChild() public {
+        uint256 loanId = _approvedLoan(BORROWER, 40 ether);
+        vm.startPrank(OWNER);
+        uint256 disbursementId = settlement.queueLoanPrincipal(loanId);
+        bytes32 messageId = settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+
+        ISettlementModule.Disbursement memory dispatched = settlement.getDisbursement(disbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("cross-rail-failed"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, dispatched.executionKey, messageId, false, uint8(ISettlementModule.FailureCode.RouteRejected)
+            )
+        );
+        _expectNonGdollarRecordingBlocked(loanId, ICreditRegistry.LoanRail.Jar, "failed-cross-rail");
+
+        vm.startPrank(OWNER);
+        settlement.requeue(disbursementId);
+        settlement.dispatchDisbursement(disbursementId);
+        vm.stopPrank();
+        assertEq(settlement.getDisbursement(disbursementId).attempt, 1);
+
+        _expectNonGdollarRecordingBlocked(loanId, ICreditRegistry.LoanRail.Treasury, "retried-cross-rail");
+    }
+
     function testStrandedLoanFailureDoesNotRecordDisbursementAndRequeueIsIsolated() public {
         uint256 loanId = _approvedLoan(BORROWER, 40 ether);
         vm.startPrank(OWNER);
@@ -395,5 +468,23 @@ contract CreditSettlementTest is SettlementPayerTest {
         loanId = credit.requestLoan(params);
         vm.prank(OWNER);
         credit.approveLoan(loanId);
+    }
+
+    function _expectNonGdollarRecordingBlocked(
+        uint256 loanId,
+        ICreditRegistry.LoanRail rail,
+        string memory refLabel
+    )
+        private
+    {
+        uint256 disbursementId = settlement.loanPrincipalDisbursementOf(address(credit), loanId);
+        ISettlementModule.DisbursementState state = settlement.getDisbursement(disbursementId).state;
+        vm.expectRevert(
+            abi.encodeWithSelector(ICreditRegistry.SettlementChildExists.selector, loanId, disbursementId, uint8(state))
+        );
+        vm.prank(OWNER);
+        credit.recordDisbursed(loanId, rail, keccak256(bytes(refLabel)));
+        assertEq(uint8(credit.getLoan(loanId).state), uint8(ICreditRegistry.LoanState.Approved));
+        assertTrue(credit.isCapReserved(loanId));
     }
 }

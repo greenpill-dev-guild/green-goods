@@ -8,6 +8,7 @@ import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolin
 import { ICreditRegistry } from "../../src/interfaces/ICreditRegistry.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { CreditRegistry } from "../../src/registries/Credit.sol";
+import { CreditSettlementLookupMock } from "../helpers/CreditSettlementLookupMock.sol";
 import { AaveOctantForkBase, IWETH9 } from "./helpers/AaveOctantForkBase.sol";
 
 interface ICreditForkCookieJar {
@@ -105,13 +106,14 @@ contract CreditTreasuryRoundTripForkTest is AaveOctantForkBase {
 
         CreditForkPooling pooling = new CreditForkPooling(garden);
         CreditForkHats hats = new CreditForkHats(address(this), forkGardener);
+        CreditSettlementLookupMock settlement = new CreditSettlementLookupMock();
         CreditRegistry implementation = new CreditRegistry();
         credit = CreditRegistry(
             address(
                 new ERC1967Proxy(
                     address(implementation),
                     abi.encodeCall(
-                        CreditRegistry.initialize, (address(this), address(hats), address(pooling), address(0x5E771E))
+                        CreditRegistry.initialize, (address(this), address(hats), address(pooling), address(settlement))
                     )
                 )
             )

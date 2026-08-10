@@ -127,6 +127,59 @@ contract SettlementSecurityTest is SettlementPayerTest {
         vm.stopPrank();
     }
 
+    function testSettlementAccountRegistrationRequiresOwner() public {
+        hats.setSteward(SECOND_GARDEN, DISPATCHER, true);
+
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.prank(DISPATCHER);
+        settlement.registerSettlementAccount(
+            SECOND_GARDEN,
+            CELO_CHAIN_ID,
+            SECOND_SAFE,
+            _owners(0x50),
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+    }
+
+    function testSettlementAccountRegistrationRequiresPause() public {
+        vm.expectRevert(ISettlementModule.SourceMustBePaused.selector);
+        vm.prank(OWNER);
+        settlement.registerSettlementAccount(
+            SECOND_GARDEN,
+            CELO_CHAIN_ID,
+            SECOND_SAFE,
+            _owners(0x50),
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+    }
+
+    function testSettlementAccountRegistrationRejectsAnAssignedSafe() public {
+        vm.prank(OWNER);
+        settlement.setPaused(true);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ISettlementModule.SettlementAccountAlreadyAssigned.selector, PAYER_SAFE, PROTOCOL_GARDEN)
+        );
+        vm.prank(OWNER);
+        settlement.registerSettlementAccount(
+            SECOND_GARDEN,
+            CELO_CHAIN_ID,
+            PAYER_SAFE,
+            _owners(0x50),
+            address(0x7200),
+            bytes32(uint256(10)),
+            bytes32(uint256(11)),
+            bytes32(uint256(12))
+        );
+        assertEq(settlement.settlementGardenOf(PAYER_SAFE), PROTOCOL_GARDEN);
+    }
+
     function testDispatcherCanDispatchButCannotCancel() public {
         vm.startPrank(OWNER);
         settlement.setPaused(true);
@@ -202,6 +255,7 @@ contract SettlementSecurityTest is SettlementPayerTest {
     function testQueuedBatchCancellationIsAtomic() public {
         hats.setSteward(SECOND_GARDEN, OWNER, true);
         vm.startPrank(OWNER);
+        settlement.setPaused(true);
         settlement.registerSettlementAccount(
             SECOND_GARDEN,
             CELO_CHAIN_ID,
@@ -212,7 +266,6 @@ contract SettlementSecurityTest is SettlementPayerTest {
             bytes32(uint256(8)),
             bytes32(uint256(9))
         );
-        settlement.setPaused(true);
         settlement.setBatchSizeLimit(2);
         settlement.setPaused(false);
         uint256 first = settlement.queueFunding(PROVIDER_GARDEN, 10 ether);

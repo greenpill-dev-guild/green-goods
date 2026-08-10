@@ -6,6 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ICreditRegistry } from "../../src/interfaces/ICreditRegistry.sol";
 import { CreditRegistry } from "../../src/registries/Credit.sol";
 import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.sol";
+import { CreditSettlementLookupMock } from "../helpers/CreditSettlementLookupMock.sol";
 
 contract CreditRegistryTest is CommitmentPoolingFixture {
     address internal constant TOKEN = address(0xDA1);
@@ -13,6 +14,7 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
     address internal constant REQUESTING_STEWARD = address(0x57E0A4D);
 
     CreditRegistry internal credit;
+    CreditSettlementLookupMock internal settlementLookup;
 
     event RepaymentRecorded(
         uint256 indexed loanId,
@@ -26,13 +28,15 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
 
     function setUp() public {
         _setUpProductionFixture();
+        settlementLookup = new CreditSettlementLookupMock();
         CreditRegistry implementation = new CreditRegistry();
         credit = CreditRegistry(
             address(
                 new ERC1967Proxy(
                     address(implementation),
                     abi.encodeCall(
-                        CreditRegistry.initialize, (address(this), address(hats), address(module), address(0x5E771E))
+                        CreditRegistry.initialize,
+                        (address(this), address(hats), address(module), address(settlementLookup))
                     )
                 )
             )

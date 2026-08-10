@@ -25,6 +25,10 @@ abstract contract SettlementViews is SettlementLifecycle {
         return _settlementAccounts[garden];
     }
 
+    function settlementGardenOf(address account) external view override returns (address garden) {
+        return _settlementAccountGardens[account];
+    }
+
     function getPayoutPlan(uint256 payoutPlanId) external view override returns (CommitmentPayoutPlan memory) {
         if (_planState.payoutPlans[payoutPlanId].commitmentId == 0) revert UnknownPayoutPlan(payoutPlanId);
         return _planState.payoutPlans[payoutPlanId];

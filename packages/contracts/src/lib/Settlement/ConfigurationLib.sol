@@ -116,6 +116,7 @@ library SettlementConfigurationLib {
 
     function registerSettlementAccount(
         mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
+        mapping(address account => address garden) storage accountGardens,
         uint64 destinationEvmChainId,
         address destinationExecutor,
         address garden,
@@ -139,6 +140,10 @@ library SettlementConfigurationLib {
         if (accounts[garden].account != address(0)) {
             revert ISettlementModule.InvalidRecoveryConfiguration();
         }
+        address assignedGarden = accountGardens[account];
+        if (assignedGarden != address(0)) {
+            revert ISettlementModule.SettlementAccountAlreadyAssigned(account, assignedGarden);
+        }
         _validateRecoveryOwners(recoveryOwners, destinationExecutor);
         bytes32 recoveryConfigHash = keccak256(abi.encode(chainId, account, recoveryOwners, uint8(2)));
         accounts[garden] = ISettlementModule.SettlementAccount({
@@ -153,6 +158,7 @@ library SettlementConfigurationLib {
             recoveryConfigHash: recoveryConfigHash,
             recoveryThreshold: 2
         });
+        accountGardens[account] = garden;
         emit SettlementAccountRegistered(
             garden,
             chainId,

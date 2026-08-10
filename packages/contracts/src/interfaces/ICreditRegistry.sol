@@ -141,6 +141,7 @@ interface ICreditRegistry {
     error RepaymentExceedsBalance(uint256 amount, uint256 outstanding);
     error NotDue(uint256 loanId, uint64 dueDate);
     error CancellationNotAllowed(uint256 loanId, LoanState state);
+    error SettlementChildExists(uint256 loanId, uint256 disbursementId, uint8 settlementState);
     error SettlementCancellationRequired(uint256 loanId, uint256 disbursementId, uint8 settlementState);
     error SettlementRelationshipMissing(uint256 loanId);
     error SettlementDisbursementMismatch(uint256 loanId, uint256 disbursementId);

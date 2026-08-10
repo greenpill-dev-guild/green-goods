@@ -202,6 +202,14 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         }
     }
 
+    function _requireNoSettlementChild(uint256 loanId) internal view {
+        ISettlementModule settlement = ISettlementModule(settlementModule);
+        uint256 disbursementId = settlement.loanPrincipalDisbursementOf(address(this), loanId);
+        if (disbursementId == 0) return;
+        ISettlementModule.DisbursementState state = settlement.getDisbursement(disbursementId).state;
+        revert SettlementChildExists(loanId, disbursementId, uint8(state));
+    }
+
     function _validateConfirmedSettlement(
         uint256 loanId,
         Loan storage loan,
