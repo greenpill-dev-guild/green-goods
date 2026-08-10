@@ -25,7 +25,7 @@
 6. [x] Resolve the follow-up review comments, sweep the same defect classes, and rerun fresh proof:
 	   `CreditSettlement.t.sol` 25/25, `SettlementSecurity.t.sol` 22/22,
 	   `CreditRegistry.t.sol` 31/31, source route tests 21/21, executor security tests 24/24,
-	   1,975 Solidity tests, 100 script tests, 7/7 fork tests, build, lint, size, linear storage,
+	   1,975 Solidity tests, 104 script tests, 7/7 fork tests, build, lint, size, linear storage,
 	   both ERC-7201 namespace layouts, and the nested loan-relationship value schema.
 
 The prompt-mandated contracts gates are green. The former indexer helper blocker is resolved in

@@ -121,13 +121,20 @@ Fresh proof with those fixes present:
 
 - `CreditRegistry.t.sol`: 31/31 passed after the new test first failed with
   `CommitmentLoanExists(1, 1)`.
-- `bun run test`: 1,975 Solidity tests and 100 script tests passed.
+- `bun run test`: 1,975 Solidity tests passed; the subsequent checker hardening brings the script
+  suite to 104/104.
 - `bun run build:full`, `bun run check:storage-layout`, package typecheck, root format check, and
   contracts lint check passed. Lint reported zero errors and the repository's 254 existing
   warnings.
 - `bun run check:sizes`: `CreditRegistry` is 22,093 bytes with 2,483 bytes of EIP-170 margin;
   `SettlementModule` remains 22,944 bytes with 1,632 bytes of margin.
 - The realism audit reported zero must-fix, should-fix, or nice-to-have findings.
+
+The checker follow-up binds an ERC-7201 annotation to its immediately associated declaration,
+rejects duplicate referenced-struct names, accepts long intervening NatSpec comments, and rejects
+lexical or symlink source paths outside `packages/contracts`. Four focused fixtures cover duplicate
+names, intervening declarations, long comments, and path confinement; typecheck and the complete
+storage gate pass with them present.
 
 ## Final adversarial review
 
