@@ -36,6 +36,7 @@ Optional:
 Env overrides:
   CODEX                     Optional codex binary override. Otherwise resolves ChatGPT.app,
                             Codex.app, then PATH.
+  CODEX_HOME                Optional configured Codex state directory; forwarded when set.
   CODEX_WORKTREE_PARENT     Parent dir for worktrees (default: /tmp).
 
 Delegated environment:
@@ -100,6 +101,7 @@ CODEX_ENV=(
 [ -n "${LOGNAME:-}" ] && CODEX_ENV+=("LOGNAME=$LOGNAME")
 [ -n "${TERM:-}" ] && CODEX_ENV+=("TERM=$TERM")
 [ -n "${COLORTERM:-}" ] && CODEX_ENV+=("COLORTERM=$COLORTERM")
+[ -n "${CODEX_HOME:-}" ] && CODEX_ENV+=("CODEX_HOME=$CODEX_HOME")
 [ -n "${VITE_CHAIN_ID:-}" ] && CODEX_ENV+=("VITE_CHAIN_ID=$VITE_CHAIN_ID")
 [ -n "${CI:-}" ] && CODEX_ENV+=("CI=$CI")
 [ -n "${NO_COLOR:-}" ] && CODEX_ENV+=("NO_COLOR=$NO_COLOR")

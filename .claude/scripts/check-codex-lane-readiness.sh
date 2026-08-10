@@ -48,7 +48,7 @@ else
   INFO+=("worktree parent: $WORKTREE_PARENT")
 fi
 
-INFO+=("delegated env: fixed non-secret allowlist; root .env is never linked")
+INFO+=("delegated env: fixed non-secret allowlist; configured CODEX_HOME is preserved; root .env is never linked")
 
 DISPATCH="$SCRIPT_DIR/dispatch-codex-lane.sh"
 if [ -x "$DISPATCH" ]; then

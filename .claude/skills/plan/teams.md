@@ -360,7 +360,8 @@ Spawn a teammate to run codex on the factory task.
 - Side effects: creates `/tmp/gg-codex-<lane>` worktree on branch `codex/<lane>/<phase>` and runs `codex exec --full-auto` with a fixed non-secret environment; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
 - Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
 - Does NOT clean up — that is the teammate's job after review and merge
-- Env overrides: `CODEX` (binary path), `CODEX_WORKTREE_PARENT` (default `/tmp`)
+- Env overrides: `CODEX` (binary path), `CODEX_HOME` (configured Codex state directory),
+  `CODEX_WORKTREE_PARENT` (default `/tmp`)
 
 ### File Ownership With Codex Lanes
 

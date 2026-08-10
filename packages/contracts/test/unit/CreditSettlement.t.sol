@@ -547,6 +547,60 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(credit.reservedOutstandingOf(CREDIT_POOL_ID, BORROWER), 0);
     }
 
+    function testCreditSettlement_confirmedPrincipalsStillRecordAfterCreditDisableAndPoolShutdown() public {
+        uint256 firstLoanId = _approvedLoan(BORROWER, 20 ether);
+        uint256 secondLoanId = _approvedLoan(SECOND_BORROWER, 20 ether);
+
+        vm.startPrank(OWNER);
+        uint256 firstDisbursementId = settlement.queueLoanPrincipal(firstLoanId);
+        bytes32 firstMessageId = settlement.dispatchDisbursement(firstDisbursementId);
+        uint256 secondDisbursementId = settlement.queueLoanPrincipal(secondLoanId);
+        bytes32 secondMessageId = settlement.dispatchDisbursement(secondDisbursementId);
+        credit.configurePoolCredit(CREDIT_POOL_ID, 100 ether, false);
+        vm.stopPrank();
+
+        ISettlementModule.Disbursement memory first = settlement.getDisbursement(firstDisbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("confirmed-after-credit-disable"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, first.executionKey, firstMessageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+        vm.prank(OWNER);
+        credit.recordDisbursed(
+            firstLoanId,
+            ICreditRegistry.LoanRail.GDollarSettlement,
+            keccak256(abi.encode(first.executionKey, firstDisbursementId))
+        );
+
+        _setCreditPoolState(ICommitmentPoolingModule.PoolState.Closed);
+        ISettlementModule.Disbursement memory second = settlement.getDisbursement(secondDisbursementId);
+        router.deliver(
+            address(settlement),
+            keccak256("confirmed-after-pool-shutdown"),
+            1,
+            address(0x8000),
+            SettlementMessageCodec.encodeAcknowledgment(
+                1, second.executionKey, secondMessageId, true, uint8(ISettlementModule.FailureCode.None)
+            )
+        );
+        vm.prank(OWNER);
+        credit.recordDisbursed(
+            secondLoanId,
+            ICreditRegistry.LoanRail.GDollarSettlement,
+            keccak256(abi.encode(second.executionKey, secondDisbursementId))
+        );
+
+        assertEq(uint8(credit.getLoan(firstLoanId).state), uint8(ICreditRegistry.LoanState.Disbursed));
+        assertEq(uint8(credit.getLoan(secondLoanId).state), uint8(ICreditRegistry.LoanState.Disbursed));
+        assertEq(credit.activeReservationCount(), 0);
+        assertEq(credit.outstandingOf(CREDIT_POOL_ID, BORROWER), 20 ether);
+        assertEq(credit.outstandingOf(CREDIT_POOL_ID, SECOND_BORROWER), 20 ether);
+    }
+
     function testCreditSettlement_batchKeepsPerLoanRelationshipAndDomainSeparatedReceipt() public {
         uint256 firstLoanId = _approvedLoan(BORROWER, 30 ether);
         uint256 secondLoanId = _approvedLoan(SECOND_BORROWER, 20 ether);

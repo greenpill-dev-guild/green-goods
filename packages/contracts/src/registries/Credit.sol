@@ -154,11 +154,13 @@ contract CreditRegistry is CreditRegistryBase {
     {
         Loan storage loan = _requireLoan(loanId);
         if (loan.state != LoanState.Approved) revert LoanNotInState(loanId, loan.state);
-        ICommitmentPoolingModule.Pool memory pool = _requireOpenEnabledPool(loan.poolId);
-        _requireRecorder(loan.poolId, pool, msg.sender);
         if (rail == LoanRail.None) revert InvalidRail(rail);
+        ICommitmentPoolingModule.Pool memory pool =
+            rail == LoanRail.GDollarSettlement ? _requirePool(loan.poolId) : _requireOpenEnabledPool(loan.poolId);
+        _requireRecorder(loan.poolId, pool, msg.sender);
         // A confirmed G$ child passed the due-date gate before dispatch; recording may legitimately
-        // arrive after cross-chain transit and must not strand value that already moved.
+        // arrive after cross-chain transit, pool shutdown, or credit disablement and must not strand
+        // value that already moved.
         if (rail != LoanRail.GDollarSettlement) _requireFutureDueDate(loan);
         _requireCapReservation(loanId);
         if (rail != LoanRail.GDollarSettlement) {

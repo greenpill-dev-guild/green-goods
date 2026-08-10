@@ -502,6 +502,36 @@ describe("settlement lifecycle projections", () => {
     );
   });
 
+  it("preserves attempt timestamps across same-key transport retries", async () => {
+    const executionKey = bytes32(220);
+    const initialMessageId = bytes32(221);
+    const retryMessageId = bytes32(222);
+    let mockDb = createTestIndexer();
+    seedSourceLane(mockDb);
+    mockDb = await processEvents(mockDb, [
+      payoutPlanCreated(62n, 620n, 1),
+      payoutPlanFinalized(62n, 1n, 2),
+      queued(62n, 620n, 63n, addr(20), 300n, 3),
+      command("SettlementCommandDispatched", executionKey, initialMessageId, false, 63n, 0n, 4),
+      command("SettlementCommandRetried", executionKey, retryMessageId, false, 63n, 0n, 9),
+    ]);
+
+    const commandIndex = await mockDb.SettlementCommandIndex.get(
+      `${CHAIN_ID}-${executionKey.toLowerCase()}`
+    );
+    const subject = await mockDb.SettlementSubjectState.get(`${CHAIN_ID}-D-63`);
+    const disbursement = await mockDb.Disbursement.get(`${CHAIN_ID}-63`);
+    assert.equal(commandIndex?.commandMessageId, retryMessageId.toLowerCase());
+    assert.equal(commandIndex?.createdAt, 4);
+    assert.equal(commandIndex?.updatedAt, 9);
+    assert.equal(subject?.commandMessageId, retryMessageId.toLowerCase());
+    assert.equal(subject?.dispatchedAt, 4);
+    assert.equal(subject?.updatedAt, 9);
+    assert.equal(disbursement?.commandMessageId, retryMessageId.toLowerCase());
+    assert.equal(disbursement?.dispatchedAt, 4);
+    assert.equal(disbursement?.updatedAt, 9);
+  });
+
   it("cancels a batch and every child without clearing stable payout pointers", async () => {
     let mockDb = createTestIndexer();
     mockDb = await processEvents(mockDb, [

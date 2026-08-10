@@ -18,12 +18,16 @@ BRANCH=codex/qa-triage/<slug>
 git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
 
 # Render the template below + schema.json into the worktree, then:
-env -i \
-  HOME="$HOME" \
-  PATH="$PATH" \
-  TMPDIR="${TMPDIR:-/tmp}" \
-  SHELL="${SHELL:-/bin/zsh}" \
-  LANG="${LANG:-C.UTF-8}" \
+CODEX_ENV=(
+  "HOME=$HOME"
+  "PATH=$PATH"
+  "TMPDIR=${TMPDIR:-/tmp}"
+  "SHELL=${SHELL:-/bin/zsh}"
+  "LANG=${LANG:-C.UTF-8}"
+)
+[ -n "${CODEX_HOME:-}" ] && CODEX_ENV+=("CODEX_HOME=$CODEX_HOME")
+
+env -i "${CODEX_ENV[@]}" \
   "$CODEX" exec --full-auto -C "$WORKTREE" \
   -o "$WORKTREE/codex-result.md" \
   --output-schema "$WORKTREE/schema.json" \
@@ -31,8 +35,9 @@ env -i \
 ```
 
 Fire via `Bash` with `run_in_background: true`. The clean environment intentionally excludes
-parent credentials and any root `.env`; this extraction pass needs only the rendered notes and
-schema. Fallbacks and Phase 7 cleanup rules stay in `SKILL.md`.
+parent service credentials and any root `.env`, while preserving a configured `CODEX_HOME` so the
+CLI retains its own authentication, configuration, and installed skills. This extraction pass needs
+only the rendered notes and schema. Fallbacks and Phase 7 cleanup rules stay in `SKILL.md`.
 The shared resolver honors a valid `CODEX` override, then checks the installed ChatGPT.app and
 Codex.app bundles before falling back to `codex` on `PATH`.
 
