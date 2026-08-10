@@ -50,6 +50,7 @@ Contents:
 - `sheet-rows.csv` — Phase 5 Defects-tab rows for guided paste
 - `sheet-test-backfill.csv` — Phase 5 Test-tab `Defect Link` backfills
 - `schema-bootstrap.csv` — emitted only when the Defects tab needs the 6 new PostHog/Linear columns
+- `codex-merge.json` — idempotency ledger for the background Codex result (result digest, stable item keys, assigned item numbers, and merge status)
 - `report.md` — Phase 7 final summary
 
 Skill-wide cache: `~/.config/qa-triage/cache.json` — stores the resolved Sheet file
@@ -152,7 +153,7 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
 
    Item types: `bug` → eligible for a main `activity:qa` Issue. `idea` / `feedback` → track-only by default, meaning Customer Need + lightweight Backlog tracking Issue.
 
-3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, `codex exec` invocation, prompt/schema rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md). The root `.env` is never linked because this pass needs only the rendered notes and schema; a configured `CODEX_HOME` is preserved so the CLI keeps its own authentication and installed skills. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately — Phase 3 merges Codex's additions into `cross-ref.md` once its result file lands (background-completion notification).
+3. **Dispatch Codex automatically (required unless `--no-codex` or `--fixture` is set).** Fire the worktree dispatch on every real run that carries neither flag — no judgment override, no "skipped to keep the flow tight". The parallel extraction pass exists specifically to catch what a single-agent extraction misses; skipping defeats the dual-extraction design. Dispatch mechanics (worktree add, fixed non-secret child environment, `codex exec` invocation, prompt/schema rendering) live in [codex-prompt.md § Dispatch mechanics](./codex-prompt.md). The root `.env` is never linked because this pass needs only the rendered notes and schema; a configured `CODEX_HOME` is preserved so the CLI keeps its own authentication and installed skills. Fire via `Bash` with `run_in_background: true` and continue to Phase 3 immediately. When the result lands, process it through the idempotent completion handler below; never merge the file ad hoc.
 
    Fallbacks, in order:
    - `--no-codex`: skip dispatch; still write `codex-prompt.md` to the workspace as an optional manual run.
@@ -161,6 +162,20 @@ Show the candidate list (max 5, last 14 days) with title + modified date. Confir
    Cleanup at Phase 7: if this run successfully recorded `WORKTREE` and `BRANCH`, remove only that current-run worktree/branch with `git worktree remove --force "$WORKTREE" && git branch -D "$BRANCH"`. Skip cleanup on `--dry-run` so the worktree can be inspected. Do not clean older `/tmp/gg-codex-qa-*` paths automatically.
 
 ## Phase 3 — Cross-reference (read-only)
+
+### Codex completion handler (required)
+
+Use the merge contract in [codex-prompt.md § Idempotent completion handler](./codex-prompt.md) whenever `codex-result.md` may be ready. Invoke it at all three checkpoints:
+
+1. on the background-completion notification;
+2. after Phase 3 enrichment, before first presenting the Phase 4 triage gate; and
+3. immediately before Phase 7 finalization and current-run worktree cleanup.
+
+The handler validates the result, computes its digest and stable item keys, and records them in `codex-merge.json`. A digest already recorded as handled is a no-op. Net-new items are added once to `extraction.md`, then enriched or replaced by item key in `cross-ref.md`; never append a second copy of an existing item or block.
+
+If completion arrives after Phase 3, reopen Phase 3 only for net-new Codex items. If the Phase 4 list was already shown or `triage.md` already contains a scope lock, present an additive triage gate for only those new item numbers and append the response to `triage.md`; preserve every earlier disposition. Do not let late Codex output silently enter Phase 5 payloads.
+
+At the Phase 7 checkpoint, do not spin or poll indefinitely. If the background job is still running, keep the workspace and worktree, report the run as pending, and resume this handler on its completion notification instead of finalizing or cleaning up early. A completed dispatch with a missing, malformed, or empty result follows the existing failure fallback and may finalize without Codex additions.
 
 For each item in `extraction.md`, organized in surface buckets:
 
