@@ -12,11 +12,26 @@
 
 ## 0. 2026-08-09 interface revalidation and stage boundary
 
-Revalidated against merge-base `c60b38dea` and branch HEAD `238e4e218`. Stage 1 renamed every promise-side `Reward*` concept to `Consideration*`, added immutable `payerGarden`, emitted both settlement deployment identities, restricted acknowledgments to the live route with `failStrandedSubject` as the owner-only stranded exit, and steward-gated priced Offer claims. This spec therefore uses the implemented `ContributorConsideration`/`GardenBeneficiary` vocabulary and treats a loan principal as its own commitment-independent child.
+Initially revalidated against merge-base `c60b38dea` and pre-credit branch HEAD `238e4e218`; the
+post-review interface additions are frozen at implementation commit `89fffc972`. Stage 1 renamed
+every promise-side `Reward*` concept to `Consideration*`, added immutable `payerGarden`, emitted both
+settlement deployment identities, restricted acknowledgments to the live route with
+`failStrandedSubject` as the owner-only stranded exit, and steward-gated priced Offer claims. This
+spec therefore uses the implemented `ContributorConsideration`/`GardenBeneficiary` vocabulary and
+treats a loan principal as its own commitment-independent child.
 
 The exact settlement addition is `queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId)` on `ISettlementModule`. It reads the single paused-configured `creditRegistry`, derives the Approved loan and current pool, requires a current pool steward, and derives every value-moving fact: pool garden and executor garden, active garden Safe source, borrower recipient, canonical G$, principal, `FundingRoute.None`, and the loan relationship. The generic `Disbursement` row stays ABI- and storage-identical to stage 1. ERC-7201 namespaced loan state holds the configured registry, registry+loan reverse lookup, and disbursement relationship; `loanPrincipalDisbursementOf(creditRegistry, loanId)` makes queueing idempotent and `loanPrincipalRelationshipOf(disbursementId)` gives `CreditRegistry` the authenticated relationship. `LoanPrincipalQueued(disbursementId, creditRegistry, loanId)` is the indexable relationship marker; the existing generic queue event and the four `DisbursementKind` ordinals do not change.
 
 `createBatch` and dispatch revalidate the snapshotted credit registry, Approved loan, Open/enabled pool, reserved cap exposure, garden, borrower, canonical token, principal, and current dependency identity. Approval reserves the loan's exposure in ERC-7201 namespaced credit state, so two in-flight G$ principals cannot independently consume the same cap headroom; recording converts that reservation to outstanding exactly once. Retry, acknowledgment, stranded close-out, cancellation, and upgrade preserve the stored relationship. The Celo executor accepts ordinal 2 through its existing bounded G$ transfer path; it does not gain a caller-controlled target, token, or calldata surface.
+
+The post-implementation review froze two additional pre-deploy safety rules. Once a loan has any
+settlement child, Jar/Treasury recording is permanently refused with `SettlementChildExists`; a
+Cancelled or failed child is not permission to attest that the same approved loan moved on another
+rail. The source settlement account registry now maintains the reverse Safe-to-garden assignment,
+rejects a Safe already assigned to any garden, exposes `settlementGardenOf(account)`, and permits
+initial registration only by the owner while the module is paused. Because nothing is deployed,
+this owner-only paused registration policy replaces steward write-once registration instead of
+adding a post-deploy rotation surface.
 
 This stage implements and proves contracts only. Every deploy target, `DeploymentResult`/artifact and recovery path, courier, Safe/Zodiac setup, live configuration, post-deploy command, and broadcast ceremony is stage 3 after this contracts increment merges.
 
@@ -126,7 +141,7 @@ struct RequestLoanParams {
 | `addExecutor(poolId, addr)` / `removeExecutor(poolId, addr)` | steward | rail-side identity that records disbursed/settled; event `ExecutorUpdated` |
 | `requestLoan(params)` | pool member requests for self; steward may name a distinct current member through `onBehalfOf` | pool Open + credit enabled; non-zero token/principal; future non-zero due date; non-empty terms; optional commitment exists in the same pool; requested principal ≤ remaining `borrowerCap`; event `LoanRequested` |
 | `approveLoan(loanId)` | **steward** (never the borrower) | state Requested; revalidates the original self-member or `onBehalfOf` steward authority; re-checks and reserves cap exposure; `SelfApproval` revert when approver == borrower (mirrors `SelfAttestation`, `WorkApproval.sol:153-156`); event `LoanApproved` |
-| `recordDisbursed(loanId, rail, executionRef)` | steward or pool executor | state Approved with its cap reservation; rechecks Open/enabled pool. Jar/Treasury recheck current committed exposure and require a unique steward-attested external execution reference. G$ derives the exact Confirmed settlement child through `loanPrincipalDisbursementOf(address(this), loanId)` and requires `executionRef == keccak256(abi.encode(executionKey, disbursementId))`; the settlement dispatch already rechecked the reserved cap before value moved. Recording converts the reservation to `borrowerOutstanding` exactly once; event `LoanDisbursed` |
+| `recordDisbursed(loanId, rail, executionRef)` | steward or pool executor | state Approved with its cap reservation; rechecks Open/enabled pool. Jar/Treasury recheck current committed exposure, require a unique steward-attested external execution reference, and fail closed if the loan has ever acquired a settlement child in any state. G$ derives the exact Confirmed settlement child through `loanPrincipalDisbursementOf(address(this), loanId)` and requires `executionRef == keccak256(abi.encode(executionKey, disbursementId))`; the settlement dispatch already rechecked the reserved cap before value moved. Recording converts the reservation to `borrowerOutstanding` exactly once; event `LoanDisbursed` |
 | `recordRepayment(loanId, amount, executionRef)` | steward or pool executor | state Disbursed/Defaulted; Jar/Treasury only; unique non-zero reference; amount is positive and cannot exceed `principal + feeAmount - repaidAmount`; decrements `borrowerOutstanding`; emits `RepaymentRecorded` (+ `LoanRepaid` on exact clearance). G$ reverts `GDollarRepaymentDisabled` |
 | `markDefaulted(loanId, reasonCID)` | steward | past `dueDate` (or pool/cycle window when 0), else `NotDue`; reason mandatory (stays visible, mutual-aid tone); event `LoanDefaulted` |
 | `cancelLoan(loanId, reasonCID)` | borrower (from Requested) · steward (from Requested/Approved) | never from Disbursed (principal is out); a linked settlement child must already be Cancelled, so Queued/Dispatched/Confirmed/Failed children cannot be orphaned; releases the Approved cap reservation and frees `commitmentLoan`; allowed while module paused (winddown); event `LoanCancelled` |

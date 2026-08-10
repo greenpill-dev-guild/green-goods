@@ -7,8 +7,11 @@
 - Branch: `feature/build-commitment-crediting-contracts`
 - Stage-1 merge base: `c60b38dea7e26378f414b81aa3bee20380cefd8e`
 - Revalidated interface head: `238e4e218`
-- Contracts commits: `1df10469bc0e6f554bf9edd3b467f325615d1a20`, `0b50c9205`
-- Verdict: **APPROVE for the stage-2 contracts increment**. Human review and merge remain pending.
+- Post-review implementation head: `89fffc97241d527b3dad337f335a3fc7b69f0a67`
+- Contracts commits: `1df10469bc0e6f554bf9edd3b467f325615d1a20`, `0b50c9205`, and
+  `89fffc97241d527b3dad337f335a3fc7b69f0a67`.
+- Verdict: **APPROVE for the stage-2 contracts increment after post-review fixes**. Human review
+  and merge remain pending.
 - Linear context: PRD-697 is the parent and PRD-785 is the contracts lane.
 - Linear mirror: PRD-785 was re-read, moved to In Review, and updated with the final contracts proof.
 
@@ -43,56 +46,78 @@ Adversarial review then produced focused REDs for five High-severity defects bef
    became recordable.
 5. Replacing the registry's settlement dependency could orphan Approved exposure.
 
+The next independent review produced two further focused RED groups before production changes:
+
+1. `CreditSettlement.t.sol` failed 3/3 new cases because Jar/Treasury recording did not revert when
+   the same loan already had a queued/batched, dispatched/confirmed, or failed/retried settlement
+   child.
+2. `SettlementSecurity.t.sol` failed 3/3 new cases because a steward could register a source
+   account while unpaused and the same Safe could be assigned to a second garden.
+
+The resolved policy is fail-closed and pre-deploy bounded: any existing settlement child permanently
+blocks a non-G$ record for that loan, and source account registration is owner-only while paused
+with an on-chain reverse Safe-to-garden uniqueness check. No correction/rotation surface was added
+because no instance is deployed; stage 3 must register the initial mapping under the paused owner.
+
 GREEN on the hardened range:
 
 - `CreditRegistry.t.sol`: 21/21 passed, including the 1,000-run fuzz case.
-- `CreditSettlement.t.sol`: 16/16 passed, including a stranded loan-principal child, route
-  retirement, retry/cancellation behavior, relationship preservation, and dependency mismatch.
+- `CreditSettlement.t.sol`: 19/19 passed, including every reviewed cross-rail child state, a
+  stranded loan-principal child, route retirement, retry/cancellation behavior, relationship
+  preservation, and dependency mismatch.
+- `SettlementSecurity.t.sol`: 21/21 passed, including owner-only paused registration and duplicate
+  Safe rejection.
 - `CreditRegistryUpgrade.t.sol`: 1/1 passed.
 - Credit accounting invariants: 384,000 calls, zero reverts.
-- Full contracts target: 1,947 Solidity tests and 100 script tests passed.
+- Full contracts target: 1,953 Solidity tests and 100 script tests passed.
 
 ## Fresh validation evidence
 
-- `cd packages/contracts && bun run test`: 1,947 Solidity tests and 100 script tests passed.
+- `cd packages/contracts && bun run test`: 1,953 Solidity tests and 100 script tests passed.
 - `cd packages/contracts && bun run build:full`: passed.
 - `cd packages/contracts && bun run check:sizes`: passed.
-  - `SettlementModule`: 22,369 bytes, 2,207-byte EIP-170 margin.
-  - `CreditRegistry`: 18,475 bytes, 6,101-byte margin.
+  - `SettlementModule`: 22,457 bytes, 2,119-byte EIP-170 margin.
+  - `CreditRegistry`: 18,730 bytes, 5,846-byte margin.
   - `CeloSettlementExecutor`: 20,040 bytes, 4,536-byte margin.
   - `SettlementLoanLib`: 6,163 bytes.
 - `cd packages/contracts && bun run check:storage-layout`: passed. The 11 named credit entries plus
   the 39-slot gap remain the exact linear 50-slot allocation; cap reservations use a separate
-  ERC-7201 namespace and survive upgrade proof.
-- `cd packages/contracts && bun run lint`: passed with zero errors and 256 existing warnings.
+  ERC-7201 namespace and survive upgrade proof. Settlement appends the source reverse-identity
+  mapping into one reserved slot and reduces its gap from 29 to 28 without shifting an existing
+  field.
+- `cd packages/contracts && bun run lint`: passed with zero errors and 257 warnings.
 - `cd packages/contracts && bun run test:audit:full`: passed.
-  - Core coverage: 86.44% lines (5,668/6,557) and 65.28% branches (880/1,348).
+  - Core coverage: 86.48% lines (5,682/6,570) and 65.46% branches (883/1,349).
   - Every critical-contract threshold passed.
   - Realism audit: zero must-fix, should-fix, or nice-to-have findings.
 - `cd packages/contracts && bun run test:fork:settlement-lane`: 7/7 passed. This includes the local
   fork-only Cookie Jar/Treasury record round trip and six pinned read-only Arbitrum/Celo checks. No
   transaction was submitted.
-- `node scripts/quality/check-source-structure.js --base c60b38dea`: passed for 16 changed non-test
+- `bun run verify:contracts:fast`: passed all build, formatting, lint, 1,953 Solidity, and 100
+  script-test phases in 182 seconds; E2E and deploy dry runs were deliberately excluded.
+- `node scripts/quality/check-source-structure.js --base c60b38dea`: passed for 17 changed non-test
   sources with no oversized source.
 - `bun run check:ontology`, `bun run format:check`, and `git diff --check c60b38dea`: passed.
 - Root `bun lint`: passed.
 
 ## Final adversarial review
 
-Reviewed the clean committed range `238e4e218..0b50c9205` after the final tests. There are no
-unresolved Critical or High findings in the credit registry or loan-principal settlement seam.
-The five High findings above were fixed and retested. The exact `DisbursementKind` ordinals remain
-0–3, settlement loan storage uses the frozen ERC-7201 slot, retry/acknowledgment keys remain
-subject-specific, and a source-side stranded failure never makes the credit loan read as
-Disbursed.
+Reviewed the committed range `238e4e218..89fffc972` after the final tests. It includes the two
+independent-review fixes. There are no unresolved Critical or High findings in the credit registry
+or loan-principal settlement seam.
+The prior five High findings, cross-rail double-pay path, and source Safe identity weakness were
+fixed and retested. The exact `DisbursementKind` ordinals remain 0–3, settlement loan storage uses
+the frozen ERC-7201 slot, retry/acknowledgment keys remain subject-specific, and a source-side
+stranded failure never makes the credit loan read as Disbursed.
 
 Known lower-severity or deliberately deferred constraints:
 
 - G$ repayment is disabled until an authenticated receipt policy is separately approved.
 - Stage-3 tooling must reconcile the Celo executor result and Safe movement before retrying a
   source-stranded principal command.
-- The already-recorded settlement and indexer defects from the stage-1 pre-merge review remain in
-  their owning lanes and were neither depended on nor changed here.
+- The remaining already-recorded settlement and indexer defects from the stage-1 pre-merge review
+  remain in their owning lanes. This increment now resolves the source Safe identity defect it
+  directly depends on; it does not depend on the remaining defects.
 
 ## Whole-branch blockers outside this increment
 

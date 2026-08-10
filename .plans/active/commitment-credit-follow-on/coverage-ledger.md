@@ -2,7 +2,8 @@
 
 Revalidated: 2026-08-09
 Merge base: `c60b38dea`
-Interface HEAD: `238e4e218`
+Pre-credit interface HEAD: `238e4e218`
+Post-review implementation HEAD: `89fffc972`
 Stage: 2 of 3, contracts only
 
 ## Frozen selectors
@@ -16,7 +17,7 @@ Stage: 2 of 3, contracts only
 | `addExecutor(uint256 poolId, address executor)` / `removeExecutor(uint256 poolId, address executor)` | current pool steward or module owner | known pool; non-zero add; idempotent exact bool event; removed executor immediately loses record authority |
 | `requestLoan(RequestLoanParams params)` → `uint256 loanId` | self member, or current steward using distinct non-zero `onBehalfOf` | Open/enabled pool; current borrower membership; non-zero token/principal; future non-zero due date; non-empty terms; zero fee; optional commitment exists in same pool; cap; one linked loan; event carries borrower and human requester |
 | `approveLoan(uint256 loanId)` | current pool steward or module owner | Requested; approver is not borrower; original self-member or `onBehalfOf` steward authority is still current; Open/enabled pool; cap recheck and Approved-exposure reservation |
-| `recordDisbursed(uint256 loanId, LoanRail rail, bytes32 executionRef)` | current steward or registered pool executor | Approved with a cap reservation; Open/enabled pool; `rail != None`; Jar/Treasury rechecks current committed exposure and uses a unique non-zero steward-attested reference with no settlement child; G$ derives a Confirmed exact loan child and exact domain-separated reference after dispatch-time cap proof; converts reservation to outstanding once |
+| `recordDisbursed(uint256 loanId, LoanRail rail, bytes32 executionRef)` | current steward or registered pool executor | Approved with a cap reservation; Open/enabled pool; `rail != None`; Jar/Treasury rechecks current committed exposure and uses a unique non-zero steward-attested reference only when no settlement child has ever existed for the loan; any child state fails closed with `SettlementChildExists`; G$ derives a Confirmed exact loan child and exact domain-separated reference after dispatch-time cap proof; converts reservation to outstanding once |
 | `recordRepayment(uint256 loanId, uint256 amount, bytes32 executionRef)` | current steward or registered pool executor | Disbursed or Defaulted; Jar/Treasury only; positive non-overpayment; unique non-zero reference; exact outstanding conservation; installment count; exact clearance emits Repaid; recovered default stays visible in prior event history |
 | `markDefaulted(uint256 loanId, string reasonCID)` | current pool steward or module owner | Disbursed; strictly past due; reason required; allowed while paused |
 | `cancelLoan(uint256 loanId, string reasonCID)` | borrower from Requested; steward from Requested or Approved | reason required; never after disbursement; a linked settlement child must already be Cancelled; releases Approved cap reservation; allowed while paused; clears matching commitment link only |
@@ -32,8 +33,10 @@ Stage: 2 of 3, contracts only
 | `loanPrincipalDisbursementOf(address registry, uint256 loanId)` | Explicit registry domain avoids collisions across a paused dependency replacement |
 | `loanPrincipalRelationshipOf(uint256 disbursementId)` | Exact registry+loan relationship for authenticated credit recording; survives batch, dispatch, retry, acknowledgment, stranded failure, requeue, cancellation, and upgrade |
 | `setCreditRegistry(address registry)` | Owner, source paused, non-zero, exact old/new event |
+| `registerSettlementAccount(...)` | Owner-only while the source module is paused; a garden remains write-once and a Safe may belong to exactly one garden; duplicate reverse assignment reverts with the already-assigned garden |
+| `settlementGardenOf(address account)` | Reverse source identity lookup for the unique Safe-to-garden assignment |
 | `LoanPrincipalQueued(uint256 disbursementId, address creditRegistry, uint256 loanId)` | Dedicated relationship marker; existing `DisbursementQueued` signature stays unchanged |
-| storage | Keep the stage-1 linear layout and generic `Disbursement` tuple unchanged; use the derived ERC-7201 `green.goods.settlement.loan` namespace for registry configuration, registry+loan reverse lookup, and disbursement relationship; prove namespace continuity through a real UUPS upgrade |
+| storage | Keep existing stage-1 fields and the generic `Disbursement` tuple unchanged; append the Safe-to-garden reverse mapping by consuming one reserved gap slot (29 to 28); use the derived ERC-7201 `green.goods.settlement.loan` namespace for registry configuration, registry+loan reverse lookup, and disbursement relationship; prove continuity through a real UUPS upgrade |
 | executor | Accept exact `DisbursementKind` ordinal 2 through the existing bounded G$ path; beneficiary/funding Safe-recipient gates remain unchanged |
 
 ## Frozen types and ordinals
@@ -50,7 +53,7 @@ Stage: 2 of 3, contracts only
 
 ## Event and error coverage
 
-Events cover initialization identity; dependency and pause changes; pool configuration; executor changes; request, approval, disbursement, installment, exact repayment, default, and cancellation; and the settlement loan relationship. `RepaymentRecorded.newOutstanding` is the loan's remaining balance. Custom errors cover zero/unknown identities, pause/readiness, membership/steward/recorder authority, on-behalf confusion, self-approval, pool/open/enabled state, cap, missing or active reservations, commitment mismatch/duplicate, terms/token/principal/due-date validity, loan state, rail, settlement relationship/confirmation/cancellation, G$ repayment disablement, zero/replayed reference, zero/overpayment, due date, cancellation state, and reason requirements.
+Events cover initialization identity; dependency and pause changes; pool configuration; executor changes; request, approval, disbursement, installment, exact repayment, default, and cancellation; and the settlement loan relationship. `RepaymentRecorded.newOutstanding` is the loan's remaining balance. Custom errors cover zero/unknown identities, pause/readiness, membership/steward/recorder authority, on-behalf confusion, self-approval, pool/open/enabled state, cap, missing or active reservations, commitment mismatch/duplicate, terms/token/principal/due-date validity, loan state, rail, any cross-rail settlement child, settlement relationship/confirmation/cancellation, G$ repayment disablement, duplicate Safe assignment, zero/replayed reference, zero/overpayment, due date, cancellation state, and reason requirements.
 
 ## Adversarial coverage map
 
@@ -60,7 +63,8 @@ Events cover initialization identity; dependency and pause changes; pool configu
 | Intervening cap use | request and approval rechecks; approval-time namespaced reservation; settlement queue/dispatch proof; Jar/Treasury record proof; conversion/release conservation |
 | Commitment uniqueness | duplicate request reverts; matching cancellation clears; unrelated link cannot be cleared |
 | Repayment conservation | zero, overpay, replay, installments, exact clearance, default then recovery, sum of borrower outstanding |
-| Wrong rail / unexecuted movement | Jar/Treasury exact rail record; G$ must be exact Confirmed settlement child; repayment against G$ disabled |
+| Wrong rail / unexecuted movement | Jar/Treasury exact rail record and permanent absence of a settlement child; G$ must be exact Confirmed settlement child; repayment against G$ disabled |
+| Source settlement identity | owner-only paused registration; reverse Safe-to-garden uniqueness; duplicate garden and duplicate Safe rejection |
 | Executor/dependency/reentrancy | forged and removed executor; paused replacement; settlement replacement blocked while Approved exposure exists; read-only external calls under non-reentrancy; no custody call |
 | Generic-kind bypass | only dedicated selector writes ordinal 2; contributor, beneficiary, and funding gates keep exact branches |
 | Relationship lifecycle | queue, batch, dispatch, retry, acknowledgment, stranded failure, requeue, cancellation, and upgrade retain the namespaced registry+loan relationship; credit cancellation requires source cancellation first |
@@ -72,5 +76,5 @@ Events cover initialization identity; dependency and pause changes; pool configu
 - Jar/Treasury references are steward or registered-executor attestations to an existing movement; this contract does not call those rails.
 - G$ repayment remains disabled. A human-entered hash is not an authenticated receipt.
 - Source-side stranded failure cannot prove whether Celo already paid. Stage-3 tooling must reconcile executor state and Safe movement before any requeue.
-- The stage-1 settlement and indexer defects in `commitment-pooling/reports/pre-merge-review-2026-08-09.md` remain separately owned and are not dependencies of this credit increment.
+- The source settlement account defects this increment began to depend on are fixed before deployment. The remaining stage-1 settlement and indexer defects in `commitment-pooling/reports/pre-merge-review-2026-08-09.md` remain separately owned and are not dependencies of this credit increment.
 - No deploy, artifact, recovery, courier, configuration, broadcast, indexer, shared, UI, or agent work belongs to stage 2.

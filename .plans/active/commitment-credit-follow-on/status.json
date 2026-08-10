@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-10T02:08:37.596Z"
+    "updated_at": "2026-08-10T03:31:44.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,7 +52,7 @@
   },
   "notes": [
     "Explicitly unblocked into the August Commitment Pooling wave on 2026-08-01 (pooling plan register #73). Additive companion chain: zero changes to the pooling module, register, or their frozen ABIs.",
-    "All three contracts dispatch gates cleared 2026-08-09: PR #694 merged at c60b38dea, Afo approved the interest-free records-only posture, and spec.md plus coverage-ledger.md freeze the exact ABI against branch HEAD 238e4e218.",
+    "All three contracts dispatch gates cleared 2026-08-09: PR #694 merged at c60b38dea, Afo approved the interest-free records-only posture, and spec.md plus coverage-ledger.md freeze the initial ABI against pre-credit HEAD 238e4e218 and the post-review additions at implementation commit 89fffc972.",
     "Settlement seam locked 2026-08-01: option (a), DisbursementKind.LoanPrincipal on the SettlementModule (settlement-spec 2026-08-01 amendment). The (b) commitmentId==0 path was preferred only when credit was a post-deploy addition; building both modules in one wave makes the explicit kind the cleaner invariant.",
     "PRD-697 tracks this August companion in Linear; updated 2026-08-01 to Todo with the three dispatch gates in the body (write verified by re-read).",
     "The Celo G$ repayment verifier is an explicit interface-revalidation item: Chainlink Functions is retired, an unverified human-entered hash cannot count, and the G$ repayment path stays disabled unless a bounded authenticated receipt policy passes the revalidation plus legal/operations gates. Jar/Treasury borrow-and-repay remains the executable baseline.",
@@ -63,7 +63,7 @@
     "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved.",
     "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
     "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
-    "Stage-2 contracts are merge-ready at commits 1df10469bc0e6f554bf9edd3b467f325615d1a20 and 0b50c9205. The final committed-range review found no unresolved Critical or High issue in scope. Whole-branch proof remains blocked outside the contracts increment by indexer generated-helper drift and a Foundry macOS system-proxy crash during the final concurrent root-test rerun.",
+    "Stage-2 contracts are merge-ready at commits 1df10469bc0e6f554bf9edd3b467f325615d1a20, 0b50c9205, and 89fffc97241d527b3dad337f335a3fc7b69f0a67. The independent review's cross-rail double-payment finding and inherited source Safe identity dependency are resolved with focused RED/GREEN proof. Whole-branch proof remains blocked outside the contracts increment by indexer generated-helper drift and a Foundry macOS system-proxy crash during the final concurrent root-test rerun.",
     "Live Linear was re-read at closeout. PRD-785 is In Review and carries the final contracts proof comment."
   ],
   "lanes": {
@@ -123,17 +123,17 @@
         "status": "green_recorded",
         "red": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "Initial RED: compilation failed because ICreditRegistry.sol and Credit.sol did not exist. Adversarial REDs later isolated approval authority drift, asynchronous cap races, unsafe settlement cancellation, incorrect per-loan repayment event balances, and dependency replacement with approved exposure."
+          "evidence": "Initial RED: compilation failed because ICreditRegistry.sol and Credit.sol did not exist. Adversarial REDs later isolated approval authority drift, asynchronous cap races, unsafe settlement cancellation, incorrect per-loan repayment event balances, dependency replacement with approved exposure, three cross-rail settlement-child cases, and three source account authority/identity cases."
         },
         "green": {
           "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
-          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 16 of 16; the full contracts gate passed 1947 Solidity tests and 100 script tests."
+          "evidence": "CreditRegistry.t.sol passed 21 of 21; CreditSettlement.t.sol passed 19 of 19; SettlementSecurity.t.sol passed 21 of 21; the full contracts gate passed 1953 Solidity tests and 100 script tests."
         },
-        "note": "RED preceded implementation and each adversarial behavior fix. GREEN is fresh on the final committed contracts range."
+        "note": "RED preceded implementation and each adversarial behavior fix. GREEN is fresh through fix commit 89fffc972, including 86.48% core line coverage, 65.46% core branch coverage, storage/size gates, and the 7-test read-only fork lane."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
-      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts. Human review and merge remain pending; deployment stays deferred to stage 3."
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after resolving the independent review findings at 89fffc972. Human review and merge remain pending; deployment stays deferred to stage 3."
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -221,6 +221,14 @@
       "status": "passed",
       "branch": "codex/contracts/commitment-credit-follow-on",
       "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts at 1df10469b and 0b50c9205. Fresh contracts proof is green, committed-range review found no unresolved Critical or High issue in scope, and deployment remains deferred to stage 3."
+    },
+    {
+      "timestamp": "2026-08-10T03:31:44.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Resolved the independent review's cross-rail double-payment finding and source Safe identity dependency at 89fffc972. Fresh focused, full, coverage, storage, size, lint, and read-only fork evidence is green; deployment remains deferred to stage 3."
     }
   ]
 }
