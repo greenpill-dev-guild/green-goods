@@ -94,6 +94,29 @@ contract CreditRegistryTest is CommitmentPoolingFixture {
         credit.approveLoan(loanId);
     }
 
+    function testCreditRegistry_borrowerStewardCanCancelAnApprovedLoan() public {
+        uint256 loanId = _request(CREATOR, 10 ether, 0);
+        credit.approveLoan(loanId);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICreditRegistry.CancellationNotAllowed.selector, loanId, ICreditRegistry.LoanState.Approved
+            )
+        );
+        vm.prank(CREATOR);
+        credit.cancelLoan(loanId, "bafy-borrower-not-yet-steward");
+
+        hats.setOperator(POOL_GARDEN, CREATOR, true);
+        vm.prank(CREATOR);
+        credit.cancelLoan(loanId, "bafy-borrower-steward-cancelled");
+
+        ICreditRegistry.Loan memory cancelled = credit.getLoan(loanId);
+        assertEq(uint8(cancelled.state), uint8(ICreditRegistry.LoanState.Cancelled));
+        assertEq(cancelled.reasonCID, "bafy-borrower-steward-cancelled");
+        assertFalse(credit.isCapReserved(loanId));
+        assertEq(credit.activeReservationCount(), 0);
+    }
+
     function testCreditRegistry_approvalRevalidatesTheOriginalRequesterAuthority() public {
         uint256 selfRequestedLoanId = _request(CREATOR, 10 ether, 0);
         hats.setGardener(POOL_GARDEN, CREATOR, false);

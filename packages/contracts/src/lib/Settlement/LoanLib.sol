@@ -50,6 +50,7 @@ library SettlementLoanLib {
         address previous = state.creditRegistry;
         if (previous == registry) return;
         _requireNoActiveReservations(previous);
+        _validateCreditRegistry(registry);
         state.creditRegistry = registry;
         emit CreditRegistryUpdated(previous, registry);
     }
@@ -314,5 +315,44 @@ library SettlementLoanLib {
         if (registry == address(0)) return;
         uint256 count = ICreditRegistry(registry).activeReservationCount();
         if (count != 0) revert ISettlementModule.CreditRegistryHasActiveReservations(registry, count);
+    }
+
+    function _validateCreditRegistry(address registry) private view {
+        if (registry.code.length == 0) revert ISettlementModule.InvalidCreditRegistry(registry);
+
+        ICreditRegistry candidate = ICreditRegistry(registry);
+        try candidate.activeReservationCount() returns (uint256) { }
+        catch {
+            revert ISettlementModule.InvalidCreditRegistry(registry);
+        }
+
+        address candidateSettlement;
+        address candidatePooling;
+        address candidateHats;
+        try candidate.settlementModule() returns (address configured) {
+            candidateSettlement = configured;
+        } catch {
+            revert ISettlementModule.InvalidCreditRegistry(registry);
+        }
+        try candidate.commitmentPoolingModule() returns (address configured) {
+            candidatePooling = configured;
+        } catch {
+            revert ISettlementModule.InvalidCreditRegistry(registry);
+        }
+        try candidate.hatsModule() returns (address configured) {
+            candidateHats = configured;
+        } catch {
+            revert ISettlementModule.InvalidCreditRegistry(registry);
+        }
+
+        ISettlementModule source = ISettlementModule(address(this));
+        if (
+            candidateSettlement != address(this) || candidatePooling != source.commitmentPoolingModule()
+                || candidateHats != source.hatsModule()
+        ) {
+            revert ISettlementModule.CreditRegistryConfigurationMismatch(
+                registry, candidateSettlement, candidatePooling, candidateHats
+            );
+        }
     }
 }

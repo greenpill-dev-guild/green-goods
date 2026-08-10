@@ -382,9 +382,34 @@ contract CreditSettlementTest is SettlementPayerTest {
         vm.prank(OWNER);
         settlement.setCommitmentPoolingModule(address(0xB0B));
 
+        CreditRegistry replacement = _newCreditRegistry(address(settlement));
         vm.prank(OWNER);
+        settlement.setCreditRegistry(address(replacement));
+        assertEq(settlement.creditRegistry(), address(replacement));
+    }
+
+    function testCreditSettlement_creditRegistryCandidateMustImplementTheReciprocalInterface() public {
+        CreditRegistry mismatched = _newCreditRegistry(address(0xBADC0DE));
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.InvalidCreditRegistry.selector, address(0xBADC0DE)));
         settlement.setCreditRegistry(address(0xBADC0DE));
-        assertEq(settlement.creditRegistry(), address(0xBADC0DE));
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.InvalidCreditRegistry.selector, address(pooling)));
+        settlement.setCreditRegistry(address(pooling));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.CreditRegistryConfigurationMismatch.selector,
+                address(mismatched),
+                address(0xBADC0DE),
+                address(pooling),
+                address(hats)
+            )
+        );
+        settlement.setCreditRegistry(address(mismatched));
+        vm.stopPrank();
+
+        assertEq(settlement.creditRegistry(), address(credit));
     }
 
     function testCreditSettlement_revertsWhenExpiredPrincipalQueuesOrDispatches() public {
@@ -663,6 +688,18 @@ contract CreditSettlementTest is SettlementPayerTest {
 
     function _approvedLoan(address borrower, uint256 principal) private returns (uint256 loanId) {
         return _approvedLoanWithDueDate(borrower, principal, uint64(block.timestamp + 30 days));
+    }
+
+    function _newCreditRegistry(address settlementModule_) private returns (CreditRegistry registry) {
+        CreditRegistry implementation = new CreditRegistry();
+        registry = CreditRegistry(
+            address(
+                new ERC1967Proxy(
+                    address(implementation),
+                    abi.encodeCall(CreditRegistry.initialize, (OWNER, address(hats), address(pooling), settlementModule_))
+                )
+            )
+        );
     }
 
     function _approvedLoanWithDueDate(

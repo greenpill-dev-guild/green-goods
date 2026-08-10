@@ -239,9 +239,11 @@ contract CreditRegistry is CreditRegistryBase {
         Loan storage loan = _requireLoan(loanId);
         if (bytes(reasonCID).length == 0) revert ReasonRequired();
         ICommitmentPoolingModule.Pool memory pool = _requirePool(loan.poolId);
-        if (msg.sender == loan.borrower) {
-            if (loan.state != LoanState.Requested) revert CancellationNotAllowed(loanId, loan.state);
-        } else {
+        bool borrowerRequested = msg.sender == loan.borrower && loan.state == LoanState.Requested;
+        if (!borrowerRequested) {
+            if (msg.sender == loan.borrower && !_hasPoolStewardAuthority(pool, msg.sender)) {
+                revert CancellationNotAllowed(loanId, loan.state);
+            }
             _requirePoolSteward(loan.poolId, pool, msg.sender);
             if (loan.state == LoanState.Approved) {
                 _requireSettlementCancelled(loanId);

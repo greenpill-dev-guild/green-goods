@@ -11,9 +11,9 @@ Canonical token values live in root `DESIGN.md` front matter and [language.md](.
 Every element has a Z-axis position — a "distance" from the user. Depth creates hierarchy without borders or heavy color contrast.
 
 ```text
-Z4: Overlay      → Modals, command palettes, critical alerts (thick/solid material, shadow-2xl)
-Z3: Floating     → Tooltips, popovers, FABs (backdrop-blur-lg, shadow-lg)
-Z2: Surface      → Cards, panels, primary content (backdrop-blur-sm, shadow-sm)
+Z4: Overlay      → Modals, command palettes, critical alerts (thick/solid material, var(--shadow-float))
+Z3: Floating     → Tooltips, popovers, FABs (regular/thick material, var(--shadow-elevation-3))
+Z2: Surface      → Cards, panels, primary content (regular material, var(--shadow-elevation-2))
 Z1: Ground       → Page background, canvas, ambient texture (no blur, no shadow)
 Z0: Substrate    → The "world" behind the app — never directly styled
 ```
@@ -68,10 +68,9 @@ import { tv } from "tailwind-variants";
 
 const pane = tv({
   base: [
-    "relative overflow-hidden rounded-2xl",
-    "border-[color:var(--border-material)]",
-    "shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_2px_4px_rgba(0,0,0,0.04),0_12px_24px_rgba(0,0,0,0.06)]",
-    "dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_2px_4px_rgba(0,0,0,0.15),0_12px_24px_rgba(0,0,0,0.25)]",
+    "relative overflow-hidden rounded-[var(--radius-2xl)]",
+    "[border:var(--border-material)]",
+    "shadow-[var(--shadow-elevation-2)]",
   ],
   variants: {
     material: {
@@ -86,11 +85,12 @@ const pane = tv({
     elevation: {
       ground: "shadow-none",
       surface: "", // default shadow from base
-      floating: "shadow-xl dark:shadow-2xl",
-      overlay: "shadow-2xl dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]",
+      floating: "shadow-[var(--shadow-elevation-3)]",
+      overlay: "shadow-[var(--shadow-float)]",
     },
     interactive: {
-      true: "cursor-pointer hover:shadow-lg active:scale-[0.98] active:shadow-sm",
+      true:
+        "cursor-pointer hover:shadow-[var(--shadow-elevation-3)] active:scale-[0.98] active:shadow-[var(--shadow-elevation-1)]",
       false: "",
     },
   },
@@ -112,7 +112,7 @@ Every interaction must be reachable through at least two modalities — fallback
 
 ### Hover is a preview, not a gate
 
-Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, delayed reveal (~300ms) for context. Never hide essential information behind hover — touch and gaze cannot hover; primary content must be visible at rest.
+Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. Never hide essential information behind hover — touch and gaze cannot hover; primary content must be visible at rest.
 
 ### Adaptive Density
 

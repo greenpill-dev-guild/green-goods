@@ -407,6 +407,10 @@ interface ISettlementModule {
     error SubjectNotStranded(bool isBatch, uint256 subjectId);
     error CreditRegistryRequired();
     error CreditRegistryPaused(address creditRegistry);
+    error InvalidCreditRegistry(address creditRegistry);
+    error CreditRegistryConfigurationMismatch(
+        address creditRegistry, address settlementModule, address commitmentPoolingModule, address hatsModule
+    );
     error CreditRegistryHasActiveReservations(address creditRegistry, uint256 count);
     error CommitmentPoolingModuleLocked();
     error LoanPrincipalNotApproved(uint256 loanId, uint8 state);

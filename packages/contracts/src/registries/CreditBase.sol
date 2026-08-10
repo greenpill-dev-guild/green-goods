@@ -114,7 +114,18 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         internal
         view
     {
-        if (account != owner() && !_isGardenSteward(pool.garden, account)) revert NotPoolSteward(account, poolId);
+        if (!_hasPoolStewardAuthority(pool, account)) revert NotPoolSteward(account, poolId);
+    }
+
+    function _hasPoolStewardAuthority(
+        ICommitmentPoolingModule.Pool memory pool,
+        address account
+    )
+        internal
+        view
+        returns (bool)
+    {
+        return account == owner() || _isGardenSteward(pool.garden, account);
     }
 
     function _requireRecorder(uint256 poolId, ICommitmentPoolingModule.Pool memory pool, address account) internal view {
