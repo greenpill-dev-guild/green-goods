@@ -64,7 +64,7 @@
     "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
     "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
     "Stage-2 contracts are merge-ready at commits 1df10469bc0e6f554bf9edd3b467f325615d1a20 and 0b50c9205. The final committed-range review found no unresolved Critical or High issue in scope. Whole-branch proof remains blocked outside the contracts increment by indexer generated-helper drift and a Foundry macOS system-proxy crash during the final concurrent root-test rerun.",
-    "Live Linear was re-read at closeout, but the PRD-785 In Review transition and completion comment were rejected because the workspace is out of automation credits. The Linear mirror remains Todo until that external limit is restored."
+    "Live Linear was re-read at closeout. PRD-785 is In Review and carries the final contracts proof comment."
   ],
   "lanes": {
     "ui": {

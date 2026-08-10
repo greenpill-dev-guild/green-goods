@@ -10,9 +10,7 @@
 - Contracts commits: `1df10469bc0e6f554bf9edd3b467f325615d1a20`, `0b50c9205`
 - Verdict: **APPROVE for the stage-2 contracts increment**. Human review and merge remain pending.
 - Linear context: PRD-697 is the parent and PRD-785 is the contracts lane.
-- Linear mirror: a fresh re-read found PRD-785 still in Todo. The attempted In Review transition
-  and completion comment were rejected because the Linear workspace is out of automation credits;
-  that mirror update remains pending.
+- Linear mirror: PRD-785 was re-read, moved to In Review, and updated with the final contracts proof.
 
 ## Delivered boundary
 
