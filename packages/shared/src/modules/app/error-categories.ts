@@ -137,6 +137,19 @@ function generateErrorFingerprint(error: Error, context: ErrorContext): string {
   return parts.join("::");
 }
 
+/**
+ * Free-text properties that can carry an embedded wallet address. `error_fingerprint`
+ * is included because it folds in `contractError.raw`; redacting to a constant keeps
+ * grouping stable rather than fragmenting it per signer.
+ */
+const REDACTED_TEXT_PROPERTIES = [
+  "error_message",
+  "error_stack",
+  "original_error_message",
+  "contract_error_raw",
+  "error_fingerprint",
+] as const;
+
 function redactErrorForTracking(error: Error): Error {
   const redactedError = new Error(redactSentryString(error.message));
   redactedError.name = redactSentryString(error.name || "Error");
@@ -272,8 +285,23 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
   };
 
   const authTelemetry = category === "auth";
+
+  // Wallet errors embed the signer address in their free text — viem prints
+  // `from: 0x…` in the request arguments — and that reaches these fields for
+  // every category, not just auth. Auth telemetry runs the full context
+  // sanitizer; everything else still needs the free-text fields scrubbed, while
+  // keeping the structured `garden_address`/`tx_hash` the sanitizer would drop.
+  if (!authTelemetry) {
+    for (const key of REDACTED_TEXT_PROPERTIES) {
+      const value = rawProperties[key];
+      if (typeof value === "string") {
+        rawProperties[key] = redactSentryString(value);
+      }
+    }
+  }
+
   const properties = authTelemetry ? sanitizeSentryContext(rawProperties) : rawProperties;
-  const capturedError = authTelemetry ? redactErrorForTracking(normalizedError) : normalizedError;
+  const capturedError = redactErrorForTracking(normalizedError);
 
   const fingerprint = String(properties.error_fingerprint);
 

@@ -21,6 +21,7 @@ vi.mock("../../../modules/app/analytics-events", () => ({
   trackGardenJoinStarted: vi.fn(),
   trackGardenJoinSuccess: vi.fn(),
   trackGardenJoinFailed: vi.fn(),
+  trackGardenJoinCancelled: vi.fn(),
   trackGardenJoinAlreadyMember: vi.fn(),
 }));
 
@@ -36,6 +37,7 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
   isAlreadyGardenerError: vi.fn().mockReturnValue(false),
+  parseContractError: vi.fn().mockReturnValue({ name: "UnknownError" }),
 }));
 
 vi.mock("../../../config/appkit", () => ({

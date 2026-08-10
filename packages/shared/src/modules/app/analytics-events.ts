@@ -79,10 +79,8 @@ export const ANALYTICS_EVENTS = {
   GARDEN_JOIN_STARTED: "garden_join_started",
   GARDEN_JOIN_SUCCESS: "garden_join_success",
   GARDEN_JOIN_FAILED: "garden_join_failed",
+  GARDEN_JOIN_CANCELLED: "garden_join_cancelled",
   GARDEN_JOIN_ALREADY_MEMBER: "garden_join_already_member",
-  GARDEN_AUTO_JOIN_STARTED: "garden_auto_join_started",
-  GARDEN_AUTO_JOIN_SUCCESS: "garden_auto_join_success",
-  GARDEN_AUTO_JOIN_FAILED: "garden_auto_join_failed",
 
   // Work Submission
   WORK_SUBMISSION_STARTED: "work_submission_started",
@@ -205,29 +203,26 @@ export const trackGardenJoinSuccess = createTracker<{
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
 
+/**
+ * Genuine failures only — telemetry carries the parsed error family, never the
+ * raw message (viem embeds the signer address). A declined prompt is an abort,
+ * not a breakage: it emits `trackGardenJoinCancelled` and stays out of the
+ * funnel, mirroring the `garden_join_already_member` precedent.
+ */
 export const trackGardenJoinFailed = createTracker<{
   gardenAddress: string;
   error: string;
+  parsedErrorFamily: string;
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
 
+export const trackGardenJoinCancelled = createTracker<{
+  gardenAddress: string;
+  authMode: AuthMode;
+}>(ANALYTICS_EVENTS.GARDEN_JOIN_CANCELLED);
+
 export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: string }>(
   ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
-);
-
-export const trackGardenAutoJoinStarted = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_STARTED);
-
-export const trackGardenAutoJoinSuccess = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  txHash: string;
-}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_SUCCESS);
-
-export const trackGardenAutoJoinFailed = createTracker<{ gardenAddress: string; error: string }>(
-  ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_FAILED
 );
 
 // ============================================================================
