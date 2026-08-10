@@ -33,9 +33,6 @@ export {
   trackAuthWalletConnectFailed,
   trackAuthWalletConnectStarted,
   trackAuthWalletConnectSuccess,
-  trackGardenAutoJoinFailed,
-  trackGardenAutoJoinStarted,
-  trackGardenAutoJoinSuccess,
   trackGardenJoinAlreadyMember,
   trackGardenJoinFailed,
   // Garden join events

@@ -81,9 +81,6 @@ export const ANALYTICS_EVENTS = {
   GARDEN_JOIN_FAILED: "garden_join_failed",
   GARDEN_JOIN_CANCELLED: "garden_join_cancelled",
   GARDEN_JOIN_ALREADY_MEMBER: "garden_join_already_member",
-  GARDEN_AUTO_JOIN_STARTED: "garden_auto_join_started",
-  GARDEN_AUTO_JOIN_SUCCESS: "garden_auto_join_success",
-  GARDEN_AUTO_JOIN_FAILED: "garden_auto_join_failed",
 
   // Work Submission
   WORK_SUBMISSION_STARTED: "work_submission_started",
@@ -207,12 +204,10 @@ export const trackGardenJoinSuccess = createTracker<{
 }>(ANALYTICS_EVENTS.GARDEN_JOIN_SUCCESS);
 
 /**
- * Genuine join failures only. Telemetry carries the parsed error family, never
- * the raw message — viem embeds the signer address in wallet errors, and
- * `failures.conversion-kill` quotes these values into shared surfaces.
- *
- * User cancellations are NOT failures: they emit
- * {@link trackGardenJoinCancelled} instead, so they stay out of the funnel.
+ * Genuine failures only — telemetry carries the parsed error family, never the
+ * raw message (viem embeds the signer address). A declined prompt is an abort,
+ * not a breakage: it emits `trackGardenJoinCancelled` and stays out of the
+ * funnel, mirroring the `garden_join_already_member` precedent.
  */
 export const trackGardenJoinFailed = createTracker<{
   gardenAddress: string;
@@ -221,12 +216,6 @@ export const trackGardenJoinFailed = createTracker<{
   authMode: AuthMode;
 }>(ANALYTICS_EVENTS.GARDEN_JOIN_FAILED);
 
-/**
- * The user declined the wallet/passkey prompt. A deliberate abort, not a
- * product breakage — tracked separately so conversion-failure questions can
- * measure what actually broke. Mirrors the `garden_join_already_member`
- * precedent: a non-failure outcome with its own event.
- */
 export const trackGardenJoinCancelled = createTracker<{
   gardenAddress: string;
   authMode: AuthMode;
@@ -234,21 +223,6 @@ export const trackGardenJoinCancelled = createTracker<{
 
 export const trackGardenJoinAlreadyMember = createTracker<{ gardenAddress: string }>(
   ANALYTICS_EVENTS.GARDEN_JOIN_ALREADY_MEMBER
-);
-
-export const trackGardenAutoJoinStarted = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_STARTED);
-
-export const trackGardenAutoJoinSuccess = createTracker<{
-  gardenAddress: string;
-  gardenName?: string;
-  txHash: string;
-}>(ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_SUCCESS);
-
-export const trackGardenAutoJoinFailed = createTracker<{ gardenAddress: string; error: string }>(
-  ANALYTICS_EVENTS.GARDEN_AUTO_JOIN_FAILED
 );
 
 // ============================================================================
