@@ -44,8 +44,12 @@ Apply this compact contract whenever writing or reviewing production code:
   consumers and sibling surfaces, add negative proof for the triggering boundary, and record what was
   checked but unaffected. Fix the class inside the locked scope, not only the commented line.
 - **Evidence before claims**: write passing, green, or merge-ready status only after fresh proof at
-  the current commit. Record the command, commit SHA, timestamp, and summarized result; historical
-  dated reports stay immutable and receive separate correction artifacts.
+  the current implementation commit. Record the command, tested commit SHA, timestamp, and
+  summarized result; historical dated reports stay immutable and receive separate correction
+  artifacts. A later evidence-only commit may cite that tested parent only when an exact path-scoped
+  `git diff --exit-code <tested>..HEAD -- <validated paths>` proves every validated implementation,
+  dependency, configuration, and validation entrypoint is unchanged. Record that identity command
+  and result; any validation-surface change requires a fresh run.
 - **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
   branching, improve names, and remove comments or abstractions that no longer earn their cost.
 

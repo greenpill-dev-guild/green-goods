@@ -95,7 +95,10 @@ For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Va
 
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
 summarized result. Write green, passed, or merge-ready claims only after those commands finish in the
-current review. If a rung can't run here (env-gated, needs authenticated browser), say
+current review. An evidence-only follow-up may cite the tested parent only with a recorded,
+path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving all validated
+implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged. If a
+rung can't run here (env-gated, needs authenticated browser), say
 "unverified: X" instead of hedging. Visible-UI claims need rendered proof via the authenticated Brave
 QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). Dated reports under
 `.plans/**/reports/` are immutable audit inputs; put corrections or closure evidence in a new report.

@@ -145,9 +145,12 @@ bun run --filter '@green-goods/agent' test -- --coverage --reporter=json
 
 Extract per package: overall coverage %, files with 0% coverage, files below 50% branch coverage. Cross-reference zero-coverage files against god objects in Part 4 (low coverage + god object = higher risk).
 
-For contracts, run `bun run test:audit:coverage` from `packages/contracts`. If it cannot run, record
-"coverage not measured" and the concrete blocker; never bypass the repository wrapper with raw
-Forge.
+Contract coverage is outside the read-only audit phase because the supported wrapper writes generated
+artifacts under `output/contracts-test-audit/`. During audit, inspect any commit-bound coverage
+evidence already supplied and otherwise record "coverage not measured". After the user authorizes a
+validation or remediation phase, run `bun run test:audit:coverage` from `packages/contracts`; never
+bypass the repository wrapper with raw Forge. Do not run concurrent coverage invocations in one
+checkout because the wrapper uses fixed output paths.
 
 ---
 

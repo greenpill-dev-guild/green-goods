@@ -60,10 +60,11 @@
 - [ ] Build succeeds
 
 ### Fresh Evidence Receipt
-- **Commit SHA**: `<full SHA>`
+- **Tested implementation commit SHA**: `<full SHA>`
 - **Run at (UTC)**: `YYYY-MM-DDTHH:MM:SSZ`
 - **Command**: `<exact command>`
 - **Result**: `<counts or concise output summary>`
+- **Evidence-only follow-up (if applicable)**: `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
 ```
 
 ## `status.json` Lane-State Example

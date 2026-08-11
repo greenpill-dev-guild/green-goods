@@ -190,8 +190,10 @@ mechanical changes do not need a ritual matrix.
 
 ### Dependency Identity and Rotation
 
-- Validate a dependency before storing it: nonzero/code checks, reciprocal configuration, chain or
-  domain identity, and the exact interface facts the consumer relies on.
+- Before storing a dependency, validate facts available independently: nonzero/code checks, chain or
+  domain identity, and the exact interface surface the consumer relies on. Mutually referencing
+  contracts may use explicit staged wiring only while paused, accepting the documented unbound or
+  self-bound bootstrap state; require exact reciprocal configuration before activation or unpause.
 - Treat identity as more than an address. A route includes its peer, selector/domain, generation,
   and any grace promise made to in-flight work.
 - Define the rotation policy before adding a setter. If live state cannot migrate safely, block
@@ -284,12 +286,13 @@ invariant_Contract_property
 ```
 
 Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
-`testRevert_` category.
+`testRevert_` category. Enforce this for newly added or renamed tests; existing legacy names are
+grandfathered until their behavior is materially edited.
 
 ### Fuzz Testing (MANDATORY for mainnet)
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0 && bytes(uri).length < 1000);
 
