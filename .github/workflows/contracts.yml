@@ -70,6 +70,20 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Restore the newest Foundry build for this compiler config, then save a
+      # fresh entry per commit; forge recompiles only what changed since the
+      # restored snapshot. Per-job key prefixes keep each job's profile
+      # artifacts in their own cache lineage.
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+          key: foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
+
       - name: Run contract unit tests
         working-directory: packages/contracts
         run: bun run test
@@ -104,6 +118,16 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+          key: foundry-lint-build-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-lint-build-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
       - name: Check source structure
         env:
@@ -303,6 +327,19 @@ jobs:
           echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "::notice::Fork shard=${{ matrix.shard }} blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
 
+      # Also cache Foundry's RPC response cache: fork tests pin block numbers,
+      # so remote chain state is fully reusable across runs.
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+            ~/.foundry/cache
+          key: foundry-fork-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-fork-${{ matrix.shard }}-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
+
       - name: Run ${{ matrix.label }} fork shard
         working-directory: packages/contracts
         run: bun run ${{ matrix.script }}
@@ -394,6 +431,17 @@ jobs:
           echo "ETHEREUM_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
           echo "::notice::Arbitrum sequential fork shards blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
+
+      - name: Cache Foundry build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            packages/contracts/.generated/foundry/cache
+            packages/contracts/.generated/foundry/out
+            ~/.foundry/cache
+          key: foundry-fork-arbitrum-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-${{ github.sha }}
+          restore-keys: |
+            foundry-fork-arbitrum-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
       - name: Run Arbitrum fork shards sequentially
         working-directory: packages/contracts
