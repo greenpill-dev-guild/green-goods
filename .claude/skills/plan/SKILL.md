@@ -54,10 +54,6 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 - "breaking change", schema migrations, deployment-affecting work
 - Create/update the owning feature hub first, then sequence execution in dependency order (contracts → shared → indexer → client/admin → agent) with explicit blast-radius analysis
 
-### Legacy slash (deprecated)
-
-`/plan` and `/plan --mode teams` are no longer advertised. If a user explicitly types one, honor it — but normal flow is passive activation from the signals above.
-
 ---
 
 ## Part 1: Create Plan

@@ -22,9 +22,11 @@ contract CeloSettlementExecutor is CeloSettlementViews {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
         address ccipRouter_,
-        address gDollarToken_
+        address gDollarToken_,
+        uint64 localChainSelector_,
+        uint64 sourceEvmChainId_
     )
-        CeloSettlementStorage(ccipRouter_, gDollarToken_)
+        CeloSettlementStorage(ccipRouter_, gDollarToken_, localChainSelector_, sourceEvmChainId_)
         CCIPReceiver(ccipRouter_)
     { }
 
@@ -53,6 +55,10 @@ contract CeloSettlementExecutor is CeloSettlementViews {
             protocolVersion: protocolVersion_
         });
         paused = true;
+        // First fact out of this contract: the immutables nothing else emits (Decision Log #59).
+        emit ExecutorDeploymentPinned(
+            CCIP_ROUTER, G_DOLLAR_TOKEN, sourceChainSelector_, LOCAL_CHAIN_SELECTOR, SOURCE_EVM_CHAIN_ID
+        );
         emit SourcePeerUpdated(sourceChainSelector_, sourceSettlementModule_, address(0), 0, protocolVersion_);
         emit PausedSet(true);
     }
@@ -70,6 +76,20 @@ contract CeloSettlementExecutor is CeloSettlementViews {
             }
         } catch {
             revert ImmutableGdollarMismatch(G_DOLLAR_TOKEN, address(0));
+        }
+        try ICeloSettlementExecutor(newImplementation).LOCAL_CHAIN_SELECTOR() returns (uint64 replacementSelector) {
+            if (replacementSelector != LOCAL_CHAIN_SELECTOR) {
+                revert ImmutableLocalChainSelectorMismatch(LOCAL_CHAIN_SELECTOR, replacementSelector);
+            }
+        } catch {
+            revert ImmutableLocalChainSelectorMismatch(LOCAL_CHAIN_SELECTOR, 0);
+        }
+        try ICeloSettlementExecutor(newImplementation).SOURCE_EVM_CHAIN_ID() returns (uint64 replacementChainId) {
+            if (replacementChainId != SOURCE_EVM_CHAIN_ID) {
+                revert ImmutableSourceEvmChainIdMismatch(SOURCE_EVM_CHAIN_ID, replacementChainId);
+            }
+        } catch {
+            revert ImmutableSourceEvmChainIdMismatch(SOURCE_EVM_CHAIN_ID, 0);
         }
     }
 

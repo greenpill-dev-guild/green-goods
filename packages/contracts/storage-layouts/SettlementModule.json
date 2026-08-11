@@ -157,10 +157,16 @@
       "type": "t_mapping(t_bytes32,t_bytes32)"
     },
     {
-      "label": "__gap",
+      "label": "_settlementAccountGardens",
       "offset": 0,
       "slot": "172",
-      "type": "t_array(t_uint256)29_storage"
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "173",
+      "type": "t_array(t_uint256)28_storage"
     }
   ],
   "types": {
@@ -181,11 +187,11 @@
       "label": "address[]",
       "numberOfBytes": "32"
     },
-    "t_array(t_uint256)29_storage": {
+    "t_array(t_uint256)28_storage": {
       "base": "t_uint256",
       "encoding": "inplace",
-      "label": "uint256[29]",
-      "numberOfBytes": "928"
+      "label": "uint256[28]",
+      "numberOfBytes": "896"
     },
     "t_array(t_uint256)49_storage": {
       "base": "t_uint256",
@@ -237,6 +243,13 @@
       "enumMembers": ["None", "ProtocolToGarden"],
       "label": "enum ISettlementModule.FundingRoute",
       "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
     },
     "t_mapping(t_address,t_struct(ContributorPayout)_storage)": {
       "encoding": "mapping",

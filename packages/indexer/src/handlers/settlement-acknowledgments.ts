@@ -11,6 +11,8 @@ import {
 } from "./settlement-projections";
 import { normalizeAddress } from "./shared";
 
+const SOURCE_STRANDED_FAILURE_CODE = 12;
+
 indexer.onEvent(
   { contract: "SettlementModule", event: "SettlementAcknowledged" },
   async ({ event, context }) => {
@@ -45,6 +47,16 @@ indexer.onEvent(
       reasonCID: currentSubject?.reasonCID,
       updatedAt: event.block.timestamp,
     });
+    if (commandIndex) {
+      context.SettlementCommandIndex.set({
+        ...commandIndex,
+        state: nextState,
+        acknowledgmentMessageId,
+        failureCode: Number(event.params.failureCode),
+        resolvedAt: event.block.timestamp,
+        updatedAt: event.block.timestamp,
+      });
+    }
     if (configuration?.remoteEvmChainId !== undefined) {
       context.SettlementMessage.set({
         id: settlementMessageId(event.chainId, acknowledgmentMessageId),
@@ -198,4 +210,112 @@ indexer.onEvent(
 indexer.onEvent(
   { contract: "SettlementModule", event: "StaleAcknowledgmentIgnored" },
   ({ event, context }) => recordIgnoredAcknowledgment(event, context, "STALE")
+);
+
+indexer.onEvent(
+  { contract: "SettlementModule", event: "StrandedSubjectFailed" },
+  async ({ event, context }) => {
+    const executionKey = event.params.executionKey.toLowerCase();
+    const subjectEntityId = settlementSubjectId(
+      event.chainId,
+      event.params.isBatch,
+      event.params.subjectId
+    );
+    const [currentSubject, commandIndex] = await Promise.all([
+      context.SettlementSubjectState.get(subjectEntityId),
+      context.SettlementCommandIndex.get(settlementCommandIndexId(event.chainId, executionKey)),
+    ]);
+    const attempt = commandIndex?.attempt ?? currentSubject?.attempt ?? 0;
+    const commandMessageId = commandIndex?.commandMessageId ?? currentSubject?.commandMessageId;
+    context.SettlementSubjectState.set({
+      id: subjectEntityId,
+      chainId: event.chainId,
+      isBatch: event.params.isBatch,
+      subjectId: event.params.subjectId,
+      state: "FAILED",
+      attempt,
+      executionKey,
+      commandMessageId,
+      acknowledgmentMessageId: undefined,
+      failureCode: SOURCE_STRANDED_FAILURE_CODE,
+      dispatchedAt: currentSubject?.dispatchedAt,
+      confirmedAt: undefined,
+      reasonCID: currentSubject?.reasonCID,
+      updatedAt: event.block.timestamp,
+    });
+    if (commandIndex) {
+      context.SettlementCommandIndex.set({
+        ...commandIndex,
+        state: "FAILED",
+        acknowledgmentMessageId: undefined,
+        failureCode: SOURCE_STRANDED_FAILURE_CODE,
+        resolvedAt: event.block.timestamp,
+        updatedAt: event.block.timestamp,
+      });
+    }
+
+    const planDeltas = new Map<string, { confirmed: number; failed: number }>();
+    const failChild = (existing: Disbursement) => {
+      if (existing.payoutPlanEntityId) {
+        const current = planDeltas.get(existing.payoutPlanEntityId) ?? { confirmed: 0, failed: 0 };
+        current.confirmed -= existing.state === "CONFIRMED" ? 1 : 0;
+        current.failed += 1 - (existing.state === "FAILED" ? 1 : 0);
+        planDeltas.set(existing.payoutPlanEntityId, current);
+      }
+      context.Disbursement.set({
+        ...existing,
+        state: "FAILED",
+        attempt,
+        executionKey,
+        commandMessageId,
+        acknowledgmentMessageId: undefined,
+        failureCode: SOURCE_STRANDED_FAILURE_CODE,
+        confirmedAt: undefined,
+        updatedAt: event.block.timestamp,
+      });
+    };
+
+    if (event.params.isBatch) {
+      const batch = await context.SettlementBatch.get(
+        settlementBatchId(event.chainId, event.params.subjectId)
+      );
+      if (batch) {
+        context.SettlementBatch.set({
+          ...batch,
+          state: "FAILED",
+          attempt,
+          executionKey,
+          commandMessageId,
+          acknowledgmentMessageId: undefined,
+          failureCode: SOURCE_STRANDED_FAILURE_CODE,
+          confirmedAt: undefined,
+          updatedAt: event.block.timestamp,
+        });
+        for (const childEntityId of batch.disbursementEntityIds) {
+          const child = await context.Disbursement.get(childEntityId);
+          if (child) failChild(child);
+        }
+      }
+    } else {
+      const child = await context.Disbursement.get(
+        disbursementId(event.chainId, event.params.subjectId)
+      );
+      if (child) failChild(child);
+    }
+
+    for (const [planEntityId, delta] of planDeltas) {
+      const plan = await context.CommitmentPayoutPlan.get(planEntityId);
+      if (!plan) continue;
+      const updatedPlanBase = {
+        ...plan,
+        confirmedPayoutCount: Math.max(0, plan.confirmedPayoutCount + delta.confirmed),
+        failedPayoutCount: Math.max(0, plan.failedPayoutCount + delta.failed),
+        updatedAt: event.block.timestamp,
+      };
+      context.CommitmentPayoutPlan.set({
+        ...updatedPlanBase,
+        status: payoutStatus(updatedPlanBase),
+      });
+    }
+  }
 );

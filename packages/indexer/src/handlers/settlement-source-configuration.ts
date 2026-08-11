@@ -28,6 +28,30 @@ export async function sourceConfig(
   );
 }
 
+// The deployment's own identity, and the only source for these three fields. They are constructor
+// immutables, so before the contract announced them the indexer had nothing to write here — and
+// several projections gate on `remoteEvmChainId`, which meant settlement messages, executions, and
+// garden routes were never created at all in production. The tests hid it by seeding config
+// directly (pre-merge review 2026-08-09).
+indexer.onEvent(
+  { contract: "SettlementModule", event: "SettlementDeploymentPinned" },
+  async ({ event, context }) => {
+    const existing = await sourceConfig(
+      context,
+      event.chainId,
+      event.srcAddress,
+      event.block.timestamp
+    );
+    context.SettlementConfiguration.set({
+      ...existing,
+      localRouter: normalizeAddress(event.params.ccipRouter),
+      localChainSelector: event.params.localChainSelector,
+      remoteEvmChainId: Number(event.params.remoteEvmChainId),
+      updatedAt: event.block.timestamp,
+    });
+  }
+);
+
 indexer.onEvent(
   { contract: "SettlementModule", event: "SettlementAccountRegistered" },
   async ({ event, context }) => {

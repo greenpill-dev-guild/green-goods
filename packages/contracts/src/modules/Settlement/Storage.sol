@@ -51,8 +51,9 @@ abstract contract SettlementModuleStorage is
     mapping(bytes32 executionKey => CommandRecord record) internal _commandRecords;
     mapping(bytes32 executionKey => bytes payload) internal _commandPayloads;
     mapping(bytes32 commandMessageId => bytes32 executionKey) public commandExecutionKeys;
+    mapping(address account => address garden) internal _settlementAccountGardens;
 
-    uint256[29] private __gap;
+    uint256[28] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address ccipRouter_, uint64 sourceChainSelector_, uint64 destinationEvmChainId_) {

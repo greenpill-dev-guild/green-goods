@@ -8,6 +8,225 @@ import { SettlementPayerTest } from "./SettlementPayer.t.sol";
 
 contract SettlementLifecycleTest is SettlementPayerTest {
     address internal constant CONTRIBUTOR = address(0x9000);
+    address internal constant ACTIVE_EXECUTOR = address(0x8000);
+    address internal constant REPLACEMENT_EXECUTOR = address(0x8001);
+
+    /// @dev Dispatch a beneficiary child and hand back what a later acknowledgment needs.
+    function _dispatchedSubject() private returns (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) {
+        pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
+        vm.startPrank(OWNER);
+        uint256 planId = settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+        settlement.finalizeCommitmentPayoutPlan(planId);
+        childId = settlement.prepareGardenBeneficiaryPayout(planId);
+        commandMessageId = settlement.dispatchDisbursement(childId);
+        vm.stopPrank();
+        executionKey = settlement.getDisbursement(childId).executionKey;
+    }
+
+    /// @dev Replacing an executor on the same lane requires a grace window — configuration refuses
+    ///      a zero-grace swap — so a retirement always looks like this: swap, then wait it out.
+    function _retireActiveExecutor(uint64 graceSeconds) private {
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCcipRoute(1, REPLACEMENT_EXECUTOR, 500_000, 1, graceSeconds);
+        settlement.setPaused(false);
+        vm.stopPrank();
+    }
+
+    /// @notice A replaced executor loses acknowledgment authority when its grace window expires.
+    /// @dev Authentication ran only against the snapshot taken when the command was dispatched, and
+    ///      that snapshot never expires — so the grace window the configuration layer carefully
+    ///      negotiates was never actually enforced against an acknowledgment. A retired executor
+    ///      kept authority over everything in flight to it forever, and could report success with
+    ///      nothing having left the Safe.
+    function testSettlementModule_retiredExecutorCannotAcknowledgeOnceItsGraceExpires() public {
+        (, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerAcknowledgment.selector, ACTIVE_EXECUTOR));
+        router.deliver(
+            address(settlement),
+            keccak256("retired-ack"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+    }
+
+    function testSettlementModule_retiredExecutorCannotReceiveASingleRetry() public {
+        (uint256 childId,,) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerRetry.selector, ACTIVE_EXECUTOR));
+        vm.prank(OWNER);
+        settlement.retryCommand(childId);
+    }
+
+    function testSettlementModule_retiredExecutorCannotReceiveABatchRetry() public {
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setBatchSizeLimit(1);
+        settlement.setPaused(false);
+        uint256 childId = settlement.queueFunding(PROVIDER_GARDEN, 10 ether);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = childId;
+        uint256 batchId = settlement.createBatch(ids);
+        settlement.dispatchBatch(batchId);
+        vm.stopPrank();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerRetry.selector, ACTIVE_EXECUTOR));
+        vm.prank(OWNER);
+        settlement.retryBatchCommand(batchId);
+    }
+
+    /// @notice The previous peer keeps acknowledging while its grace window is open.
+    /// @dev The point of a grace window is to drain in-flight commands, so a cutover that grants
+    ///      one must not break the acknowledgments it exists to allow.
+    function testSettlementModule_previousPeerCanAcknowledgeInsideItsGraceWindow() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+
+        router.deliver(
+            address(settlement),
+            keccak256("grace-ack"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
+    }
+
+    function testSettlementModule_previousPeerCanAcknowledgeAtGraceExpiry() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(settlement.ccipRoute().previousPeerExpiresAt);
+
+        router.deliver(
+            address(settlement),
+            keccak256("grace-boundary-ack"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
+    }
+
+    /// @notice A second rotation cannot erase the grace promised to the first retired executor.
+    function testSettlementModule_secondRotationCannotDiscardLivePreviousPeer() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        ISettlementModule.CcipRoute memory rotated = settlement.ccipRoute();
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementModule.PreviousPeerGraceActive.selector, ACTIVE_EXECUTOR, rotated.previousPeerExpiresAt
+            )
+        );
+        settlement.setCcipRoute(1, address(0x8002), 500_000, 1, 7 days);
+        settlement.setPaused(false);
+        vm.stopPrank();
+
+        router.deliver(
+            address(settlement),
+            keccak256("first-peer-still-graced"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
+
+        vm.warp(rotated.previousPeerExpiresAt + 1);
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCcipRoute(1, address(0x8002), 500_000, 1, 7 days);
+        vm.stopPrank();
+        ISettlementModule.CcipRoute memory secondRotation = settlement.ccipRoute();
+        assertEq(secondRotation.previousDestinationExecutor, REPLACEMENT_EXECUTOR);
+    }
+
+    /// @notice Reusing an executor address on another selector does not keep the old lane trusted.
+    /// @dev Deterministic deployments can have the same address on two chains. The live route is
+    ///      therefore the selector/address pair, not the address alone.
+    function testSettlementModule_sameExecutorAddressOnANewSelectorCannotAcknowledgeTheOldLane() public {
+        (uint256 childId, bytes32 executionKey, bytes32 commandMessageId) = _dispatchedSubject();
+
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setCcipRoute(2, ACTIVE_EXECUTOR, 500_000, 1, 0);
+        settlement.setPaused(false);
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RetiredPeerAcknowledgment.selector, ACTIVE_EXECUTOR));
+        router.deliver(
+            address(settlement),
+            keccak256("old-lane-same-address"),
+            1,
+            ACTIVE_EXECUTOR,
+            SettlementMessageCodec.encodeAcknowledgment(1, executionKey, commandMessageId, true, 0)
+        );
+
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Failed));
+    }
+
+    /// @notice A subject whose executor has retired can be closed out, and only once it truly has.
+    /// @dev Without this the tightened acknowledgment check would trade a security hole for a
+    ///      liveness one: requeue needs Failed and cancel accepts only Queued or Failed, so a
+    ///      Dispatched subject nobody can acknowledge would sit there forever, and the payout plan
+    ///      counting it would never resolve.
+    function testSettlementModule_strandedSubjectCanBeFailedOnlyOnceItIsGenuinelyStranded() public {
+        (uint256 childId,,) = _dispatchedSubject();
+
+        // Still the active peer, so an acknowledgment could yet arrive — refuse to pre-empt it.
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.SubjectNotStranded.selector, false, childId));
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+
+        // Retired but still inside its grace window: the acknowledgment is still legitimate, so
+        // closing the subject out here would pre-empt a payment that may well have happened.
+        _retireActiveExecutor(7 days);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.SubjectNotStranded.selector, false, childId));
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+
+        ISettlementModule.Disbursement memory stranded = settlement.getDisbursement(childId);
+        assertEq(uint8(stranded.state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(stranded.failureCode, uint8(ISettlementModule.FailureCode.SourceStranded));
+
+        // Failed is the state the ordinary recovery paths accept, which is the whole point.
+        vm.prank(OWNER);
+        settlement.requeue(childId);
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Queued));
+    }
+
+    /// @notice Closing out a stranded subject is the owner's call, not a steward's.
+    function testSettlementModule_strandedSubjectCloseOutIsOwnerOnly() public {
+        (uint256 childId,,) = _dispatchedSubject();
+
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(bytes("Ownable: caller is not the owner"));
+        vm.prank(CONTRIBUTOR);
+        settlement.failStrandedSubject(false, childId);
+    }
 
     function testBeneficiaryFailureRequeueAndCancelMovesParentCounters() public {
         pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
@@ -86,6 +305,48 @@ contract SettlementLifecycleTest is SettlementPayerTest {
         bytes32 expectedBatchKey = keccak256(abi.encode(ARBITRUM_SELECTOR, address(settlement), true, batchId, uint32(0)));
         assertEq(batch.executionKey, expectedBatchKey);
         assertTrue(batch.executionKey != unbatchedKey);
+    }
+
+    /// @notice A batch command cannot be consumed through one of the children that shares its key.
+    /// @dev Both id counters start at one, so this also covers a same-numbered batch and child. The
+    ///      rejected call must leave the command usable for the correct batch close-out and keep
+    ///      payout-plan counters balanced through the later child requeue.
+    function testSettlementModule_strandedBatchRejectsAChildDomainCloseOut() public {
+        pooling.setCommitment(1, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
+        vm.startPrank(OWNER);
+        settlement.setPaused(true);
+        settlement.setBatchSizeLimit(1);
+        settlement.setPaused(false);
+        uint256 planId = settlement.createCommitmentPayoutPlan(1, new ISettlementModule.RecognitionEntry[](0), bytes32(0));
+        settlement.finalizeCommitmentPayoutPlan(planId);
+        uint256 childId = settlement.prepareGardenBeneficiaryPayout(planId);
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = childId;
+        uint256 batchId = settlement.createBatch(ids);
+        settlement.dispatchBatch(batchId);
+        vm.stopPrank();
+
+        assertEq(childId, batchId, "the regression needs the colliding-id shape");
+        _retireActiveExecutor(7 days);
+        vm.warp(block.timestamp + 8 days);
+
+        vm.expectRevert(ISettlementModule.InvalidExecutionKey.selector);
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(false, childId);
+        assertEq(uint8(settlement.getBatch(batchId).state), uint8(ISettlementModule.DisbursementState.Dispatched));
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Dispatched));
+        assertEq(settlement.getPayoutPlan(planId).failedPayoutCount, 0);
+
+        vm.prank(OWNER);
+        settlement.failStrandedSubject(true, batchId);
+        assertEq(uint8(settlement.getBatch(batchId).state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(settlement.getPayoutPlan(planId).failedPayoutCount, 1);
+
+        vm.prank(OWNER);
+        settlement.requeue(childId);
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Queued));
+        assertEq(settlement.getPayoutPlan(planId).failedPayoutCount, 0);
     }
 
     function testCrossGardenContributorPlanRejectsRetention() public {

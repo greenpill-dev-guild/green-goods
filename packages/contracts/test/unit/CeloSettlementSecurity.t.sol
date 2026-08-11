@@ -55,6 +55,38 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         assertEq(token.balanceOf(address(0x3001)), 100 ether);
     }
 
+    function testCeloSettlementExecutor_secondRotationCannotDiscardLivePreviousPeer() public {
+        address secondReplacement = address(0xD00D);
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setSourcePeer(REPLACEMENT_SOURCE, 1, 1 days);
+        ICeloSettlementExecutor.SourcePeer memory rotated = executor.sourcePeer();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICeloSettlementExecutor.PreviousPeerGraceActive.selector, SOURCE_MODULE, rotated.previousPeerExpiresAt
+            )
+        );
+        executor.setSourcePeer(secondReplacement, 1, 1 days);
+        executor.setPaused(false);
+        vm.stopPrank();
+
+        router.deliver(
+            address(executor),
+            keccak256("first-source-still-graced"),
+            SOURCE_SELECTOR,
+            SOURCE_MODULE,
+            _command(false, 14, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether))
+        );
+        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+
+        vm.warp(rotated.previousPeerExpiresAt + 1);
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setSourcePeer(secondReplacement, 1, 1 days);
+        vm.stopPrank();
+        assertEq(executor.sourcePeer().previousSourceSettlementModule, REPLACEMENT_SOURCE);
+    }
+
     function testPeerVersionRotationCannotCarryGrace() public {
         vm.prank(OWNER);
         executor.setPaused(true);
@@ -165,7 +197,7 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         router.deliver(address(executor), keccak256("wrong-version"), SOURCE_SELECTOR, SOURCE_MODULE, wrongVersion);
 
         bytes memory unknownKind =
-            SettlementMessageCodec.encodeCommand(1, 42, false, 0, GARDEN, 2, _one(CONTRIBUTOR), _oneAmount(1 ether));
+            SettlementMessageCodec.encodeCommand(1, 42, false, 0, GARDEN, 4, _one(CONTRIBUTOR), _oneAmount(1 ether));
         vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
         router.deliver(address(executor), keccak256("unknown-kind"), SOURCE_SELECTOR, SOURCE_MODULE, unknownKind);
     }
@@ -434,7 +466,8 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
     }
 
     function testExecutorUpgradeRequiresOwnerPauseAndImmutableConfiguration() public {
-        CeloSettlementExecutor replacement = new CeloSettlementExecutor(address(router), address(token));
+        CeloSettlementExecutor replacement =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         ICeloUUPSUpgradeBoundary proxy = ICeloUUPSUpgradeBoundary(address(executor));
 
         vm.prank(address(0xBAD));
@@ -449,7 +482,8 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         executor.setPaused(true);
 
         ExecutorMockRouter otherRouter = new ExecutorMockRouter();
-        CeloSettlementExecutor wrongRouter = new CeloSettlementExecutor(address(otherRouter), address(token));
+        CeloSettlementExecutor wrongRouter =
+            new CeloSettlementExecutor(address(otherRouter), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         vm.prank(OWNER);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -458,7 +492,8 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         );
         proxy.upgradeToAndCall(address(wrongRouter), bytes(""));
 
-        CeloSettlementExecutor wrongToken = new CeloSettlementExecutor(address(router), address(0xBAD0));
+        CeloSettlementExecutor wrongToken =
+            new CeloSettlementExecutor(address(router), address(0xBAD0), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         vm.prank(OWNER);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -466,11 +501,35 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
             )
         );
         proxy.upgradeToAndCall(address(wrongToken), bytes(""));
+
+        CeloSettlementExecutor wrongLocalSelector =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR + 1, SOURCE_EVM_CHAIN_ID);
+        vm.prank(OWNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICeloSettlementExecutor.ImmutableLocalChainSelectorMismatch.selector, CELO_SELECTOR, CELO_SELECTOR + 1
+            )
+        );
+        proxy.upgradeToAndCall(address(wrongLocalSelector), bytes(""));
+
+        CeloSettlementExecutor wrongSourceChain =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID + 1);
+        vm.prank(OWNER);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICeloSettlementExecutor.ImmutableSourceEvmChainIdMismatch.selector,
+                SOURCE_EVM_CHAIN_ID,
+                SOURCE_EVM_CHAIN_ID + 1
+            )
+        );
+        proxy.upgradeToAndCall(address(wrongSourceChain), bytes(""));
     }
 
     function testExecutorUpgradeAndRollbackPreserveState() public {
-        CeloSettlementExecutor replacement = new CeloSettlementExecutor(address(router), address(token));
-        CeloSettlementExecutor rollback = new CeloSettlementExecutor(address(router), address(token));
+        CeloSettlementExecutor replacement =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
+        CeloSettlementExecutor rollback =
+            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
         ICeloUUPSUpgradeBoundary proxy = ICeloUUPSUpgradeBoundary(address(executor));
 
         vm.prank(OWNER);

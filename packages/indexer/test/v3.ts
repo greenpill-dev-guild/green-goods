@@ -194,6 +194,7 @@ export const OctantModule = createContract("OctantModule", [
 export const OctantVault = createContract("OctantVault", ["Deposit", "Withdraw"] as const);
 export const YieldSplitter = createContract("YieldSplitter", ["YieldSplit"] as const);
 export const SettlementModule = createContract("SettlementModule", [
+  "SettlementDeploymentPinned",
   "FundingConfigurationLocked",
   "SettlementAccountRegistered",
   "SettlementRecoveryUpdated",
@@ -217,6 +218,7 @@ export const SettlementModule = createContract("SettlementModule", [
   "SettlementAcknowledged",
   "DuplicateAcknowledgmentIgnored",
   "StaleAcknowledgmentIgnored",
+  "StrandedSubjectFailed",
   "DisbursementRequeued",
   "DisbursementCancelled",
   "BatchCancelled",
@@ -224,6 +226,7 @@ export const SettlementModule = createContract("SettlementModule", [
   "ExcessFeesWithdrawn",
 ] as const);
 export const CeloSettlementExecutor = createContract("CeloSettlementExecutor", [
+  "ExecutorDeploymentPinned",
   "SourcePeerUpdated",
   "GardenRouteConfigured",
   "GardenRouteStatusChanged",

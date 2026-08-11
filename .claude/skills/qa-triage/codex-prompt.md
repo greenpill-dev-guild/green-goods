@@ -6,6 +6,62 @@ When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this ren
 
 ---
 
+## Dispatch mechanics (Phase 2)
+
+Pattern source: this repository's QA-triage skill and the rendered prompt below. Do not depend on maintainer-specific paths or private memory files.
+
+```bash
+CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
+WORKTREE=/tmp/gg-codex-qa-<slug>
+BRANCH=codex/qa-triage/<slug>
+NOTES_SOURCE="$(pwd)/tmp/qa-triage/<slug>/notes.md"
+
+git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"
+
+# Keep every delegated input inside the checkout passed to `-C`. `notes.md` may be a
+# symlink in the primary workspace, so copy its contents rather than recreating the link.
+NOTES_COPY="$WORKTREE/qa-notes.md"
+cp -- "$NOTES_SOURCE" "$NOTES_COPY"
+
+# Render the template below with {notes_path} set to the absolute $NOTES_COPY path,
+# and copy schema.json into the worktree, then:
+CODEX_ENV=(
+  "HOME=$HOME"
+  "PATH=$PATH"
+  "TMPDIR=${TMPDIR:-/tmp}"
+  "SHELL=${SHELL:-/bin/zsh}"
+  "LANG=${LANG:-C.UTF-8}"
+)
+[ -n "${CODEX_HOME:-}" ] && CODEX_ENV+=("CODEX_HOME=$CODEX_HOME")
+
+env -i "${CODEX_ENV[@]}" \
+  "$CODEX" exec --full-auto -C "$WORKTREE" \
+  -o "$WORKTREE/codex-result.md" \
+  --output-schema "$WORKTREE/schema.json" \
+  "$(cat "$WORKTREE/qa-prompt.md")"
+```
+
+Fire via `Bash` with `run_in_background: true`. The clean environment intentionally excludes
+parent service credentials and any root `.env`, while preserving a configured `CODEX_HOME` so the
+CLI retains its own authentication, configuration, and installed skills. This extraction pass needs
+only the rendered notes and schema. Fallbacks and Phase 7 cleanup rules stay in `SKILL.md`.
+The shared resolver honors a valid `CODEX` override, then checks the installed ChatGPT.app and
+Codex.app bundles before falling back to `codex` on `PATH`.
+
+### Orphan worktree sweep (Phase 0 step 3a)
+
+```bash
+for wt in /tmp/gg-codex-qa-*; do
+  [ -d "$wt" ] || continue
+  slug=$(basename "$wt" | sed 's/^gg-codex-qa-//')
+  # Skip the current run's own worktree
+  [ "$slug" = "<current-slug>" ] && continue
+  printf '%s\n' "$wt"
+done
+```
+
+---
+
 ## Template (render this into the worktree)
 
 ```markdown
@@ -133,14 +189,17 @@ The skill writes this to the worktree at `/tmp/gg-codex-qa-{slug}/schema.json`:
 
 ---
 
-## Merging Codex's output into Phase 3
+## Idempotent completion handler
 
-When Codex's result file lands at `/tmp/gg-codex-qa-{slug}/codex-result.md`, the main session:
+When Codex's result file lands at `/tmp/gg-codex-qa-{slug}/codex-result.md`, handle it through this contract whether Phase 3 is still running or has already completed:
 
-1. Parses the JSON array.
-2. For each Codex item, dedupes against Claude's `extraction.md` by `verbatim` substring overlap (a 30-char span match is enough — the verbatim quotes are deliberately not paraphrased).
-3. New items get appended to `extraction.md` with a `[codex]` prefix on the item number (e.g., `1c.`, `2c.`).
-4. Phase 3 enrichment runs on the merged set.
-5. The Phase 7 report logs how many Codex items deduped vs added net new.
+1. Parse and validate the JSON array against `schema.json`. If the completed dispatch has no result, malformed JSON, or an empty array, record the failure in `report.md`'s `⚠ Codex failures` block and continue with Claude's extraction only.
+2. Compute a SHA-256 digest of the result file. If `tmp/qa-triage/{slug}/codex-merge.json` already records that digest as `handled`, return without changing any artifact.
+3. Compute a stable key for each record from its canonical `item_type`, `surface`, whitespace-normalized `verbatim`, and `linked_test_id`. Deduplicate first by a stable key already recorded in `codex-merge.json`, then against `extraction.md` by verbatim substring overlap (a 30-character span is enough because quotes are deliberately not paraphrased).
+4. Preserve every prior key-to-item-number assignment in the ledger. Assign each net-new record the next unused `[codex]` item number (for example, `1c.`, `2c.`), add it once to `extraction.md`, and update the ledger atomically after the artifact writes succeed.
+5. Run Phase 3 enrichment only for net-new item keys. In `cross-ref.md`, replace an existing block with the same item number/key or append it when absent; never append a duplicate block.
+6. Record the result digest, key-to-number map, deduped count, net-new count, `handled` status, and handling timestamp in `codex-merge.json`. The Phase 7 report reads these counts instead of recomputing them.
 
-If Codex returns malformed JSON or an empty array, log to `report.md`'s `⚠ Codex failures` block and continue with Claude's extraction only. Never block.
+Invoke the handler on the background-completion notification, before the first Phase 4 triage gate, and immediately before Phase 7 finalization. A result that adds items after Phase 3 reopens enrichment only for those items. If Phase 4 was already presented or locked, present an additive gate for the new numbers and append that decision to `triage.md`; do not rewrite prior choices or silently add the items to Phase 5.
+
+If the finalization checkpoint finds the dispatch still running, do not poll indefinitely and do not clean up its worktree. Keep the run pending and re-enter this handler on the completion notification. Dispatch failure and invalid completed output remain non-blocking fallbacks.

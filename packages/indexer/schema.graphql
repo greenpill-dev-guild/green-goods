@@ -357,6 +357,11 @@ type SettlementCommandIndex {
   attempt: Int!
   protocolVersion: Int!
   commandMessageId: String!
+  state: DisbursementState!
+  acknowledgmentMessageId: String
+  failureCode: Int
+  resolvedAt: Int
+  createdAt: Int!
   updatedAt: Int!
 }
 

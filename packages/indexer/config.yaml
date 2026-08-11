@@ -67,6 +67,7 @@ contracts:
   - name: SettlementModule
     handler: src/EventHandlers.ts
     events:
+      - event: SettlementDeploymentPinned(address indexed ccipRouter, uint64 indexed localChainSelector, uint64 indexed remoteEvmChainId)
       - event: FundingConfigurationLocked(address indexed protocolGarden, address indexed gDollarToken)
       - event: SettlementAccountRegistered(address indexed garden, uint64 chainId, address indexed account, address[3] recoveryOwners, address rolesModifier, bytes32 roleKey, bytes32 allowanceKey, bytes32 permissionsConfigHash, bytes32 recoveryConfigHash, uint8 recoveryThreshold)
       - event: SettlementRecoveryUpdated(address indexed garden, address[3] recoveryOwners, bytes32 recoveryConfigHash)
@@ -90,6 +91,7 @@ contracts:
       - event: SettlementAcknowledged(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId, bytes32 indexed originatingCommandMessageId, bool isBatch, uint256 subjectId, bool success, uint8 failureCode)
       - event: DuplicateAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId)
       - event: StaleAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId)
+      - event: StrandedSubjectFailed(bytes32 indexed executionKey, bool isBatch, uint256 indexed subjectId, address indexed retiredExecutor)
       - event: DisbursementRequeued(uint256 indexed disbursementId, uint32 attempt)
       - event: DisbursementCancelled(uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID)
       - event: BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID)
@@ -99,6 +101,7 @@ contracts:
   - name: CeloSettlementExecutor
     handler: src/EventHandlers.ts
     events:
+      - event: ExecutorDeploymentPinned(address indexed ccipRouter, address indexed gDollarToken, uint64 indexed remoteChainSelector, uint64 localChainSelector, uint64 sourceEvmChainId)
       - event: SourcePeerUpdated(uint64 indexed sourceChainSelector, address indexed sourceSettlementModule, address indexed previousSourceSettlementModule, uint64 previousPeerExpiresAt, uint8 protocolVersion)
       - event: GardenRouteConfigured(address indexed garden, address indexed safe, address indexed rolesModifier, bytes32 roleKey, bytes32 allowanceKey, bytes32 permissionsConfigHash)
       - event: GardenRouteStatusChanged(address indexed garden, bool active)

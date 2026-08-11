@@ -55,10 +55,6 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 - "verify this works", "prove completion", "evidence this is done"
 - Focus: evidence-based checks after implementation
 
-### Legacy slash (deprecated)
-
-`/debug`, `/debug --mode incident_hotfix`, `/debug --mode tdd_bugfix`, and `/debug --panic` are no longer advertised. If explicitly typed, honor them — but normal flow is passive activation.
-
 ---
 
 ## Safety Rules

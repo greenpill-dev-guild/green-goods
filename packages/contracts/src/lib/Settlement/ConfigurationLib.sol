@@ -30,6 +30,26 @@ library SettlementConfigurationLib {
         uint8 protocolVersion
     );
 
+    function validateUpgrade(
+        address newImplementation,
+        bool paused,
+        address ccipRouter,
+        uint64 sourceChainSelector,
+        uint64 destinationEvmChainId
+    )
+        public
+        view
+    {
+        if (!paused) revert ISettlementModule.SourceMustBePaused();
+        if (
+            _replacementImmutable(newImplementation, ISettlementModule.CCIP_ROUTER.selector) != uint256(uint160(ccipRouter))
+                || _replacementImmutable(newImplementation, ISettlementModule.SOURCE_CHAIN_SELECTOR.selector)
+                    != sourceChainSelector
+                || _replacementImmutable(newImplementation, ISettlementModule.DESTINATION_EVM_CHAIN_ID.selector)
+                    != destinationEvmChainId
+        ) revert ISettlementModule.ImmutableConfigurationMismatch();
+    }
+
     /// @dev Keeps route replacement and grace-window derivation atomic and visibly ordered.
     // solhint-disable-next-line code-complexity
     function setCcipRoute(
@@ -48,6 +68,14 @@ library SettlementConfigurationLib {
         ) revert ISettlementModule.FundingConfigurationIncomplete();
 
         ISettlementModule.CcipRoute memory prior = current;
+        bool unchangedActiveRoute = prior.destinationChainSelector == destinationChainSelector
+            && prior.destinationExecutor == destinationExecutor && prior.protocolVersion == protocolVersion;
+        if (
+            !unchangedActiveRoute && prior.previousDestinationExecutor != address(0)
+                && block.timestamp <= prior.previousPeerExpiresAt
+        ) {
+            revert ISettlementModule.PreviousPeerGraceActive(prior.previousDestinationExecutor, prior.previousPeerExpiresAt);
+        }
         address previousExecutor;
         uint64 previousExpiresAt;
         if (prior.destinationExecutor != address(0)) {
@@ -96,6 +124,7 @@ library SettlementConfigurationLib {
 
     function registerSettlementAccount(
         mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
+        mapping(address account => address garden) storage accountGardens,
         uint64 destinationEvmChainId,
         address destinationExecutor,
         address garden,
@@ -119,6 +148,10 @@ library SettlementConfigurationLib {
         if (accounts[garden].account != address(0)) {
             revert ISettlementModule.InvalidRecoveryConfiguration();
         }
+        address assignedGarden = accountGardens[account];
+        if (assignedGarden != address(0)) {
+            revert ISettlementModule.SettlementAccountAlreadyAssigned(account, assignedGarden);
+        }
         _validateRecoveryOwners(recoveryOwners, destinationExecutor);
         bytes32 recoveryConfigHash = keccak256(abi.encode(chainId, account, recoveryOwners, uint8(2)));
         accounts[garden] = ISettlementModule.SettlementAccount({
@@ -133,6 +166,7 @@ library SettlementConfigurationLib {
             recoveryConfigHash: recoveryConfigHash,
             recoveryThreshold: 2
         });
+        accountGardens[account] = garden;
         emit SettlementAccountRegistered(
             garden,
             chainId,
@@ -187,5 +221,11 @@ library SettlementConfigurationLib {
             destinationExecutor != address(0)
                 && (owners[0] == destinationExecutor || owners[1] == destinationExecutor || owners[2] == destinationExecutor)
         ) revert ISettlementModule.InvalidRecoveryConfiguration();
+    }
+
+    function _replacementImmutable(address implementation, bytes4 selector) private view returns (uint256 value) {
+        (bool success, bytes memory result) = implementation.staticcall(abi.encodeWithSelector(selector));
+        if (!success || result.length != 32) revert ISettlementModule.ImmutableConfigurationMismatch();
+        value = abi.decode(result, (uint256));
     }
 }

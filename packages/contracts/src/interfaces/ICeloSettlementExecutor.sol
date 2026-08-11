@@ -63,6 +63,18 @@ interface ICeloSettlementExecutor {
         uint256 amount;
     }
 
+    /// @notice The implementation immutables, announced once so nothing off chain has to guess them.
+    /// @dev The executor twin of `ISettlementModule.SettlementDeploymentPinned`, emitted from
+    ///      `initialize` before any other fact. `sourceEvmChainId` is the EVM chain ID of the source
+    ///      this executor answers to, which is the field the indexer needs to key cross-chain rows
+    ///      and which no other event carries (Decision Log #59).
+    event ExecutorDeploymentPinned(
+        address indexed ccipRouter,
+        address indexed gDollarToken,
+        uint64 indexed remoteChainSelector,
+        uint64 localChainSelector,
+        uint64 sourceEvmChainId
+    );
     event SourcePeerUpdated(
         uint64 indexed sourceChainSelector,
         address indexed sourceSettlementModule,
@@ -125,8 +137,12 @@ interface ICeloSettlementExecutor {
     error AcknowledgmentFeeReserveFloorViolated(uint256 requiredMinimum, uint256 remainingBalance);
     error ExecutorMustBePaused();
     error ExecutorNotReady();
+    /// @notice A source-peer replacement cannot discard a still-authorized previous peer.
+    error PreviousPeerGraceActive(address previousPeer, uint64 expiresAt);
     error ImmutableGdollarMismatch(address currentToken, address replacementToken);
+    error ImmutableLocalChainSelectorMismatch(uint64 currentSelector, uint64 replacementSelector);
     error ImmutableRouterMismatch(address currentRouter, address replacementRouter);
+    error ImmutableSourceEvmChainIdMismatch(uint64 currentChainId, uint64 replacementChainId);
 
     function initialize(
         address owner_,
@@ -179,4 +195,6 @@ interface ICeloSettlementExecutor {
     function HARD_MAX_BATCH_SIZE() external pure returns (uint256);
     function CCIP_ROUTER() external view returns (address);
     function G_DOLLAR_TOKEN() external view returns (address);
+    function LOCAL_CHAIN_SELECTOR() external view returns (uint64);
+    function SOURCE_EVM_CHAIN_ID() external view returns (uint64);
 }

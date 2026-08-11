@@ -44,6 +44,7 @@ const ALLOWED_CONTRACT_EVENTS = {
   // gate protects — no EAS re-indexing, no raw Celo/G$ transfer indexing — is unchanged: these
   // events are the module's command/acknowledgment lifecycle, not token movement observation.
   SettlementModule: new Set([
+    "SettlementDeploymentPinned",
     "FundingConfigurationLocked",
     "SettlementAccountRegistered",
     "SettlementRecoveryUpdated",
@@ -67,6 +68,7 @@ const ALLOWED_CONTRACT_EVENTS = {
     "SettlementAcknowledged",
     "DuplicateAcknowledgmentIgnored",
     "StaleAcknowledgmentIgnored",
+    "StrandedSubjectFailed",
     "DisbursementRequeued",
     "DisbursementCancelled",
     "BatchCancelled",
@@ -76,6 +78,7 @@ const ALLOWED_CONTRACT_EVENTS = {
   // Executor protocol events describe Green Goods command execution and acknowledgment state.
   // The contract is deliberately not attached to a Celo chain block until release authorization.
   CeloSettlementExecutor: new Set([
+    "ExecutorDeploymentPinned",
     "SourcePeerUpdated",
     "GardenRouteConfigured",
     "GardenRouteStatusChanged",

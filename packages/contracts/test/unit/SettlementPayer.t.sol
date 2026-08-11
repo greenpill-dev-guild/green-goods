@@ -69,9 +69,14 @@ contract SettlementPayerMockRouter {
 
 contract SettlementPayerMockHats {
     mapping(address garden => mapping(address account => bool)) public stewards;
+    mapping(address garden => mapping(address account => bool)) public members;
 
     function setSteward(address garden, address account, bool enabled) external {
         stewards[garden][account] = enabled;
+    }
+
+    function setMember(address garden, address account, bool enabled) external {
+        members[garden][account] = enabled;
     }
 
     function isStewardOf(address garden, address account) external view returns (bool) {
@@ -81,10 +86,27 @@ contract SettlementPayerMockHats {
     function isOwnerOf(address garden, address account) external view returns (bool) {
         return stewards[garden][account];
     }
+
+    function isGardenerOf(address garden, address account) external view returns (bool) {
+        return members[garden][account];
+    }
+
+    function isEvaluatorOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isFunderOf(address, address) external pure returns (bool) {
+        return false;
+    }
+
+    function isCommunityOf(address, address) external pure returns (bool) {
+        return false;
+    }
 }
 
 contract SettlementPayerMockPooling {
     mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment) private _commitments;
+    mapping(uint256 poolId => ICommitmentPoolingModule.Pool) private _pools;
     bytes32 public canonicalRecognitionHash;
 
     function setCommitment(uint256 commitmentId, ICommitmentPoolingModule.Commitment memory commitment) external {
@@ -98,12 +120,20 @@ contract SettlementPayerMockPooling {
         stored.consideration = commitment.consideration;
     }
 
+    function setPool(uint256 poolId, ICommitmentPoolingModule.Pool memory pool) external {
+        _pools[poolId] = pool;
+    }
+
     function setCanonicalRecognitionHash(bytes32 hash) external {
         canonicalRecognitionHash = hash;
     }
 
     function getCommitment(uint256 commitmentId) external view returns (ICommitmentPoolingModule.Commitment memory) {
         return _commitments[commitmentId];
+    }
+
+    function getPool(uint256 poolId) external view returns (ICommitmentPoolingModule.Pool memory) {
+        return _pools[poolId];
     }
 
     function validateRecognitionSnapshot(
@@ -135,7 +165,7 @@ contract SettlementPayerTest is Test {
     SettlementPayerMockPooling internal pooling;
     ISettlementModule internal settlement;
 
-    function setUp() public {
+    function setUp() public virtual {
         router = new SettlementPayerMockRouter();
         hats = new SettlementPayerMockHats();
         pooling = new SettlementPayerMockPooling();

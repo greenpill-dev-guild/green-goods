@@ -5,6 +5,7 @@ import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol
 
 import { SettlementAcknowledgmentLib } from "../../lib/Settlement/AcknowledgmentLib.sol";
 import { SettlementLifecycleLib } from "../../lib/Settlement/LifecycleLib.sol";
+import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementPlans } from "./Plans.sol";
 
 /// @title SettlementLifecycle
@@ -30,6 +31,12 @@ abstract contract SettlementLifecycle is SettlementPlans {
             gDollarToken,
             amount
         );
+    }
+
+    function queueLoanPrincipal(uint256 loanId) external override nonReentrant returns (uint256 disbursementId) {
+        bool created;
+        (disbursementId, created) = SettlementLoanLib.queueLoanPrincipal(_disbursements, _nextDisbursementId, loanId);
+        if (created) _nextDisbursementId = disbursementId + 1;
     }
 
     function createBatch(uint256[] calldata disbursementIds) external override nonReentrant returns (uint256 batchId) {
@@ -123,23 +130,23 @@ abstract contract SettlementLifecycle is SettlementPlans {
         SettlementLifecycleLib.cancelBatch(_disbursements, _batches, _planState, batchId, reasonCID);
     }
 
+    function failStrandedSubject(bool isBatch, uint256 subjectId) external override onlyOwner nonReentrant {
+        SettlementLifecycleLib.failStrandedSubject(
+            _disbursements, _batches, _commandRecords, _planState, _ccipRoute, isBatch, subjectId
+        );
+    }
+
     function fundFees() external payable override {
         emit FeeReserveFunded(msg.sender, msg.value);
     }
 
     function withdrawExcessFees(address payable recipient, uint256 amount) external override onlyOwner nonReentrant {
-        if (recipient == address(0)) revert ZeroAddress();
-        if (amount > address(this).balance) revert InsufficientNativeFee();
-        uint256 remaining = address(this).balance - amount;
-        if (remaining < feeReserveMinimum) revert FeeReserveFloorViolated(feeReserveMinimum, remaining);
-        (bool success,) = recipient.call{ value: amount }("");
-        if (!success) revert InsufficientNativeFee();
-        emit ExcessFeesWithdrawn(recipient, amount);
+        SettlementLifecycleLib.withdrawExcessFees(feeReserveMinimum, recipient, amount);
     }
 
     function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
         SettlementAcknowledgmentLib.receiveAcknowledgment(
-            _disbursements, _batches, _commandRecords, commandExecutionKeys, _planState, message
+            _disbursements, _batches, _commandRecords, commandExecutionKeys, _planState, _ccipRoute, message
         );
     }
 }

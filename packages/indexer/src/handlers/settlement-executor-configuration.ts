@@ -22,6 +22,30 @@ export async function executorConfig(
   return executorConfiguration(chainId, localContract, updatedAt, existing);
 }
 
+// The executor twin of SettlementDeploymentPinned. `remoteEvmChainId` is the source chain this
+// executor answers to, and it is what keys the cross-chain rows — without it the garden-route and
+// execution projections below return early and nothing is ever written.
+indexer.onEvent(
+  { contract: "CeloSettlementExecutor", event: "ExecutorDeploymentPinned" },
+  async ({ event, context }) => {
+    const existing = await executorConfig(
+      context,
+      event.chainId,
+      event.srcAddress,
+      event.block.timestamp
+    );
+    context.SettlementConfiguration.set({
+      ...existing,
+      localRouter: normalizeAddress(event.params.ccipRouter),
+      gDollarToken: normalizeAddress(event.params.gDollarToken),
+      remoteChainSelector: event.params.remoteChainSelector,
+      localChainSelector: event.params.localChainSelector,
+      remoteEvmChainId: Number(event.params.sourceEvmChainId),
+      updatedAt: event.block.timestamp,
+    });
+  }
+);
+
 indexer.onEvent(
   { contract: "CeloSettlementExecutor", event: "SourcePeerUpdated" },
   async ({ event, context }) => {

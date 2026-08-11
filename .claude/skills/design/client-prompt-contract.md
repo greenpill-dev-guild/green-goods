@@ -48,7 +48,7 @@ The categories below are contract-specific framing — *why* client output shoul
 ## Materials & Motion (client)
 
 - **Full Warm Earth expression** is permitted — capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
-- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [materials.md](./materials.md)).
+- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [surfaces.md](./surfaces.md)).
 - **Spring motion is the default easing** — never hardcoded cubic-bezier or duration values.
 - **Typography** — Inter across the PWA. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware** — pioneer gardens get simple hero moments, climax gardens get full expression.

@@ -44,6 +44,19 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Linear MCP** is wired into the Codex environment; it is the same Linear MCP that Claude Code uses. No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
+**Writing in Linear — write for the person who opens it cold.** Titles and bodies are read by teammates, not parsed by agents. Say what is wrong or what should exist, in plain sentences, the way you would explain it to a colleague who has not been in your session.
+
+- **Lead with the problem or the outcome**, not the mechanism. "Gardeners can't submit work when offline" beats "JobQueue mutation retry regression".
+- **Prose over structure.** No status tables, no emoji headers, no `P0/P1` prefixes in titles, no restating the same fact in a summary *and* a detail section. Short paragraphs; a list only when the items are genuinely parallel.
+- **Never paste raw agent output** — session transcripts, tool logs, full stack traces, diff dumps, or a wall of file:line anchors. Quote the one line that matters and link the rest.
+- **No internal shorthand**: no screen codes (`W22`), no spec citations (`§6.1`, `register #90`), no plan-hub lane names, no decision-log numbers. Those live in `.plans/`. If context is genuinely needed, link the file.
+- **One issue per issue.** Two unrelated bugs in one title is two issues.
+- **Say what you actually know.** Mark what is verified versus suspected, and never write that something is fixed, passing, or deployed without having seen it — the same evidence bar as everywhere else in this file.
+- **Comments are updates, not changelogs.** Say what changed and what it means for the reader. Don't narrate your process.
+- **Don't rewrite history.** A `Done` issue's description stays as it was; add a comment, or open a successor and link it.
+
+Issue references use native `<issue>` mentions rather than markdown links. Fuller conventions and the routing contract: `.claude/context/linear-routing-rules.md`.
+
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
 
 ## Linear-Spawned Issue Contract

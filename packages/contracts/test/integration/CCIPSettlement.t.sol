@@ -80,6 +80,7 @@ contract AsynchronousSettlementRouter {
 contract CCIPSettlementIntegrationTest is Test {
     uint64 internal constant ARBITRUM_SELECTOR = 4_949_039_107_694_359_620;
     uint64 internal constant CELO_SELECTOR = 13_420;
+    uint64 internal constant ARBITRUM_EVM_CHAIN_ID = 42_161;
     uint64 internal constant CELO_CHAIN_ID = 42_220;
     address internal constant OWNER = address(0xA11CE);
     address internal constant PROTOCOL_GARDEN = address(0x1000);
@@ -125,7 +126,8 @@ contract CCIPSettlementIntegrationTest is Test {
                 )
             )
         );
-        CeloSettlementExecutor executorImplementation = new CeloSettlementExecutor(address(celoRouter), address(token));
+        CeloSettlementExecutor executorImplementation =
+            new CeloSettlementExecutor(address(celoRouter), address(token), CELO_SELECTOR, ARBITRUM_EVM_CHAIN_ID);
         executor = ICeloSettlementExecutor(
             address(
                 new ERC1967Proxy(

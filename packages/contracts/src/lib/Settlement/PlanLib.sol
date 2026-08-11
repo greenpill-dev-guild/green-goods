@@ -27,6 +27,26 @@ library SettlementPlanLib {
         uint64 destinationEvmChainId;
     }
 
+    struct PreparationConfig {
+        address hatsModule;
+        uint64 destinationEvmChainId;
+        bool paused;
+        bool gardenerDeliveryEnabled;
+    }
+
+    struct QueueInput {
+        uint256 commitmentId;
+        uint256 payoutPlanId;
+        address contributor;
+        address garden;
+        address executorGarden;
+        ISettlementModule.DisbursementKind kind;
+        address source;
+        address recipient;
+        address token;
+        uint256 amount;
+    }
+
     event CommitmentPayoutPlanCreated(
         uint256 indexed payoutPlanId,
         uint256 indexed commitmentId,
@@ -76,9 +96,44 @@ library SettlementPlanLib {
         bool completedWithoutDispatch,
         uint64 finalizedAt
     );
+    event DisbursementQueued(
+        uint256 indexed disbursementId,
+        uint256 indexed commitmentId,
+        address indexed garden,
+        uint256 payoutPlanId,
+        address contributor,
+        address executorGarden,
+        uint8 kind,
+        uint8 fundingRoute,
+        address source,
+        address recipient,
+        address token,
+        uint256 amount
+    );
 
     function initialize(State storage self) public {
         if (self.nextPayoutPlanId == 0) self.nextPayoutPlanId = 1;
+    }
+
+    function payoutPlanStatus(
+        State storage self,
+        uint256 payoutPlanId
+    )
+        public
+        view
+        returns (ISettlementModule.PayoutPlanStatus)
+    {
+        ISettlementModule.CommitmentPayoutPlan storage plan = self.payoutPlans[payoutPlanId];
+        if (plan.commitmentId == 0) revert ISettlementModule.UnknownPayoutPlan(payoutPlanId);
+        if (!plan.finalized) return ISettlementModule.PayoutPlanStatus.Draft;
+        if (plan.payablePayoutCount == 0 || plan.confirmedPayoutCount == plan.payablePayoutCount) {
+            return ISettlementModule.PayoutPlanStatus.Complete;
+        }
+        if (plan.confirmedPayoutCount != 0) return ISettlementModule.PayoutPlanStatus.Partial;
+        if (plan.failedPayoutCount + plan.cancelledPayoutCount == plan.payablePayoutCount) {
+            return ISettlementModule.PayoutPlanStatus.Failed;
+        }
+        return ISettlementModule.PayoutPlanStatus.Pending;
     }
 
     function createCommitmentPayoutPlan(
@@ -232,6 +287,150 @@ library SettlementPlanLib {
             completedWithoutDispatch,
             plan.finalizedAt
         );
+    }
+
+    function prepareContributorPayout(
+        State storage self,
+        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
+        mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
+        PreparationConfig memory config,
+        uint256 nextDisbursementId,
+        uint256 payoutPlanId,
+        address contributor
+    )
+        public
+        returns (uint256 disbursementId, bool created)
+    {
+        ISettlementModule.CommitmentPayoutPlan storage plan = _knownPlan(self, payoutPlanId);
+        _requireSteward(config.hatsModule, plan.payerGarden);
+        if (!plan.finalized) revert ISettlementModule.PayoutPlanNotFinalized(payoutPlanId);
+        if (plan.payoutKind != ISettlementModule.DisbursementKind.ContributorConsideration) {
+            revert ISettlementModule.PayoutKindMismatch(
+                payoutPlanId, ISettlementModule.DisbursementKind.ContributorConsideration, plan.payoutKind
+            );
+        }
+        ISettlementModule.ContributorPayout storage payout = self.contributorPayouts[payoutPlanId][contributor];
+        if (payout.contributor == address(0) || payout.amount == 0) {
+            revert ISettlementModule.IneligibleContributor(plan.commitmentId, contributor);
+        }
+        if (payout.disbursementId != 0) return (payout.disbursementId, false);
+
+        if (config.paused) revert ISettlementModule.SourceMustBePaused();
+        _activeAccountMatches(accounts, plan.payerGarden, plan.source, config.destinationEvmChainId);
+        if (!config.gardenerDeliveryEnabled) revert ISettlementModule.GardenerDeliveryDisabled();
+        disbursementId = _queueDisbursement(
+            disbursements,
+            nextDisbursementId,
+            QueueInput({
+                commitmentId: plan.commitmentId,
+                payoutPlanId: payoutPlanId,
+                contributor: contributor,
+                garden: plan.providerGarden,
+                executorGarden: plan.payerGarden,
+                kind: ISettlementModule.DisbursementKind.ContributorConsideration,
+                source: plan.source,
+                recipient: payout.recipient,
+                token: plan.token,
+                amount: payout.amount
+            })
+        );
+        payout.disbursementId = disbursementId;
+        ++plan.preparedPayoutCount;
+        created = true;
+    }
+
+    function prepareGardenBeneficiaryPayout(
+        State storage self,
+        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
+        mapping(address garden => ISettlementModule.SettlementAccount account) storage accounts,
+        PreparationConfig memory config,
+        uint256 nextDisbursementId,
+        uint256 payoutPlanId
+    )
+        public
+        returns (uint256 disbursementId, bool created)
+    {
+        ISettlementModule.CommitmentPayoutPlan storage plan = _knownPlan(self, payoutPlanId);
+        _requireSteward(config.hatsModule, plan.payerGarden);
+        if (!plan.finalized) revert ISettlementModule.PayoutPlanNotFinalized(payoutPlanId);
+        if (plan.payoutKind != ISettlementModule.DisbursementKind.GardenBeneficiary) {
+            revert ISettlementModule.PayoutKindMismatch(
+                payoutPlanId, ISettlementModule.DisbursementKind.GardenBeneficiary, plan.payoutKind
+            );
+        }
+        if (plan.beneficiaryDisbursementId != 0) return (plan.beneficiaryDisbursementId, false);
+
+        if (config.paused) revert ISettlementModule.SourceMustBePaused();
+        _activeAccountMatches(accounts, plan.payerGarden, plan.source, config.destinationEvmChainId);
+        _activeAccountMatches(accounts, plan.beneficiaryGarden, plan.beneficiaryRecipient, config.destinationEvmChainId);
+        disbursementId = _queueDisbursement(
+            disbursements,
+            nextDisbursementId,
+            QueueInput({
+                commitmentId: plan.commitmentId,
+                payoutPlanId: payoutPlanId,
+                contributor: address(0),
+                garden: plan.beneficiaryGarden,
+                executorGarden: plan.payerGarden,
+                kind: ISettlementModule.DisbursementKind.GardenBeneficiary,
+                source: plan.source,
+                recipient: plan.beneficiaryRecipient,
+                token: plan.token,
+                amount: plan.beneficiaryAmount
+            })
+        );
+        plan.beneficiaryDisbursementId = disbursementId;
+        ++plan.preparedPayoutCount;
+        created = true;
+    }
+
+    function _queueDisbursement(
+        mapping(uint256 disbursementId => ISettlementModule.Disbursement disbursement) storage disbursements,
+        uint256 disbursementId,
+        QueueInput memory input
+    )
+        private
+        returns (uint256)
+    {
+        disbursements[disbursementId] = ISettlementModule.Disbursement({
+            commitmentId: input.commitmentId,
+            payoutPlanId: input.payoutPlanId,
+            contributor: input.contributor,
+            garden: input.garden,
+            executorGarden: input.executorGarden,
+            kind: input.kind,
+            fundingRoute: ISettlementModule.FundingRoute.None,
+            source: input.source,
+            recipient: input.recipient,
+            token: input.token,
+            amount: input.amount,
+            state: ISettlementModule.DisbursementState.Queued,
+            batchId: 0,
+            reasonCID: "",
+            attempt: 0,
+            executionKey: bytes32(0),
+            commandMessageId: bytes32(0),
+            dispatchedAt: 0,
+            confirmedAt: 0,
+            acknowledgmentMessageId: bytes32(0),
+            failureCode: 0,
+            cancelledFromState: ISettlementModule.DisbursementState.None
+        });
+        emit DisbursementQueued(
+            disbursementId,
+            input.commitmentId,
+            input.garden,
+            input.payoutPlanId,
+            input.contributor,
+            input.executorGarden,
+            uint8(input.kind),
+            uint8(ISettlementModule.FundingRoute.None),
+            input.source,
+            input.recipient,
+            input.token,
+            input.amount
+        );
+        return disbursementId;
     }
 
     function _createBeneficiarySnapshot(

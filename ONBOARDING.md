@@ -39,8 +39,7 @@ Top Browser MCP Usage:
 
 ### Skills to Know About
 Slash-invokable (type the command):
-- [ ] `/status` — Branch-first orientation when you sit down or return to a branch (read-only, ~30-60s). Start here.
-- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`).
+- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`). Start here for an in-flight branch.
 - [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
 - [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
 - [ ] `/qa-triage` and `/doc-feedback` — Build Sync QA notes → Linear records + QA-sheet rows; Google-Doc review feedback processing.

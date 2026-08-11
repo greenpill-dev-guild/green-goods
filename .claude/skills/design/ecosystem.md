@@ -116,7 +116,7 @@ These meta-frictions explain why design teams systematically miss ecosystem comp
 
 ### 1. Relational Disclosure
 
-Extends the Jarvis Principle ([interaction.md](./interaction.md)) with a relational dimension. At each disclosure layer, surface *whose experience connects to this one*.
+Extends the Jarvis Principle ([surfaces.md](./surfaces.md) § Progressive Disclosure) with a relational dimension. At each disclosure layer, surface *whose experience connects to this one*.
 
 | Layer | Standard (Jarvis) | Ecosystem Extension |
 |-------|-------------------|-------------------|

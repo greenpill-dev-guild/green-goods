@@ -1526,7 +1526,7 @@
     {
       "id": "disbursement-kind",
       "status": "live",
-      "definition": "Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is ABI-reserved for the Commitment Credit companion and remains unqueueable until that lane dispatches.",
+      "definition": "Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is the records-only Commitment Credit companion shape queued from approved CreditRegistry loans for G$ settlement.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
         "ordered": true,
@@ -1645,7 +1645,8 @@
           "RouteReverted",
           "UnsupportedReceiverPaysFee",
           "FeeQuoteExceeded",
-          "BalanceDeltaMismatch"
+          "BalanceDeltaMismatch",
+          "SourceStranded"
         ]
       },
       "representations": [
@@ -1668,7 +1669,8 @@
             "RouteReverted",
             "UnsupportedReceiverPaysFee",
             "FeeQuoteExceeded",
-            "BalanceDeltaMismatch"
+            "BalanceDeltaMismatch",
+            "SourceStranded"
           ]
         },
         {
@@ -1694,7 +1696,17 @@
           ]
         }
       ],
-      "mappings": []
+      "mappings": [
+        {
+          "id": "executor-failure-codes-to-source",
+          "from": "executor-solidity",
+          "to": "source-solidity",
+          "kind": "identity",
+          "total_from": true,
+          "unmapped_to": ["SourceStranded"],
+          "note": "SourceStranded is a source-only recovery disposition and is never accepted from the executor over CCIP."
+        }
+      ]
     },
     {
       "id": "result-status",

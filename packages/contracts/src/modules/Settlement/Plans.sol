@@ -69,36 +69,17 @@ abstract contract SettlementPlans is SettlementAdmin {
         nonReentrant
         returns (uint256 disbursementId)
     {
-        CommitmentPayoutPlan storage plan = _knownPlan(payoutPlanId);
-        _requireSteward(plan.payerGarden);
-        if (!plan.finalized) revert PayoutPlanNotFinalized(payoutPlanId);
-        if (plan.payoutKind != DisbursementKind.ContributorConsideration) {
-            revert PayoutKindMismatch(payoutPlanId, DisbursementKind.ContributorConsideration, plan.payoutKind);
-        }
-        ContributorPayout storage payout = _planState.contributorPayouts[payoutPlanId][contributor];
-        if (payout.contributor == address(0) || payout.amount == 0) {
-            revert IneligibleContributor(plan.commitmentId, contributor);
-        }
-        if (payout.disbursementId != 0) return payout.disbursementId;
-
-        _requireNotPaused();
-        _activeAccountMatches(plan.payerGarden, plan.source);
-        if (!gardenerDeliveryEnabled) revert GardenerDeliveryDisabled();
-        disbursementId = _queueDisbursement(
-            plan.commitmentId,
+        bool created;
+        (disbursementId, created) = SettlementPlanLib.prepareContributorPayout(
+            _planState,
+            _disbursements,
+            _settlementAccounts,
+            _preparationConfig(),
+            _nextDisbursementId,
             payoutPlanId,
-            contributor,
-            plan.providerGarden,
-            plan.payerGarden,
-            DisbursementKind.ContributorConsideration,
-            FundingRoute.None,
-            plan.source,
-            payout.recipient,
-            plan.token,
-            payout.amount
+            contributor
         );
-        payout.disbursementId = disbursementId;
-        ++plan.preparedPayoutCount;
+        if (created) _nextDisbursementId = disbursementId + 1;
     }
 
     function prepareGardenBeneficiaryPayout(uint256 payoutPlanId)
@@ -107,31 +88,19 @@ abstract contract SettlementPlans is SettlementAdmin {
         nonReentrant
         returns (uint256 disbursementId)
     {
-        CommitmentPayoutPlan storage plan = _knownPlan(payoutPlanId);
-        _requireSteward(plan.payerGarden);
-        if (!plan.finalized) revert PayoutPlanNotFinalized(payoutPlanId);
-        if (plan.payoutKind != DisbursementKind.GardenBeneficiary) {
-            revert PayoutKindMismatch(payoutPlanId, DisbursementKind.GardenBeneficiary, plan.payoutKind);
-        }
-        if (plan.beneficiaryDisbursementId != 0) return plan.beneficiaryDisbursementId;
-
-        _requireNotPaused();
-        _activeAccountMatches(plan.payerGarden, plan.source);
-        _activeAccountMatches(plan.beneficiaryGarden, plan.beneficiaryRecipient);
-        disbursementId = _queueDisbursement(
-            plan.commitmentId,
-            payoutPlanId,
-            address(0),
-            plan.beneficiaryGarden,
-            plan.payerGarden,
-            DisbursementKind.GardenBeneficiary,
-            FundingRoute.None,
-            plan.source,
-            plan.beneficiaryRecipient,
-            plan.token,
-            plan.beneficiaryAmount
+        bool created;
+        (disbursementId, created) = SettlementPlanLib.prepareGardenBeneficiaryPayout(
+            _planState, _disbursements, _settlementAccounts, _preparationConfig(), _nextDisbursementId, payoutPlanId
         );
-        plan.beneficiaryDisbursementId = disbursementId;
-        ++plan.preparedPayoutCount;
+        if (created) _nextDisbursementId = disbursementId + 1;
+    }
+
+    function _preparationConfig() private view returns (SettlementPlanLib.PreparationConfig memory) {
+        return SettlementPlanLib.PreparationConfig({
+            hatsModule: hatsModule,
+            destinationEvmChainId: DESTINATION_EVM_CHAIN_ID,
+            paused: paused,
+            gardenerDeliveryEnabled: gardenerDeliveryEnabled
+        });
     }
 }

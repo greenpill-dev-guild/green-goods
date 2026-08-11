@@ -27,10 +27,17 @@ abstract contract CeloSettlementStorage is
     uint256 internal constant _ACKNOWLEDGMENT_GAS_LIMIT = 300_000;
     uint8 internal constant _CONTRIBUTOR_CONSIDERATION = 0;
     uint8 internal constant _FUNDING = 1;
+    uint8 internal constant _LOAN_PRINCIPAL = 2;
     uint8 internal constant _GARDEN_BENEFICIARY = 3;
 
     address public immutable override CCIP_ROUTER;
     address public immutable override G_DOLLAR_TOKEN;
+    /// @dev This executor's own CCIP selector and the EVM chain ID of the source it answers to.
+    ///      Neither is needed to execute — CCIP addressing uses the peer's selector — but nothing
+    ///      else on this chain can state them, so without them the executor half of the read model
+    ///      has no way to key its rows and silently produces none (Decision Log #59).
+    uint64 public immutable override LOCAL_CHAIN_SELECTOR;
+    uint64 public immutable override SOURCE_EVM_CHAIN_ID;
 
     SourcePeer internal _sourcePeer;
     mapping(address garden => GardenRoute route) internal _gardenRoutes;
@@ -49,10 +56,13 @@ abstract contract CeloSettlementStorage is
     uint256[36] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address ccipRouter_, address gDollarToken_) {
+    constructor(address ccipRouter_, address gDollarToken_, uint64 localChainSelector_, uint64 sourceEvmChainId_) {
         if (ccipRouter_ == address(0) || gDollarToken_ == address(0)) revert ZeroAddress();
+        if (localChainSelector_ == 0 || sourceEvmChainId_ == 0) revert PolicyNotConfigured();
         CCIP_ROUTER = ccipRouter_;
         G_DOLLAR_TOKEN = gDollarToken_;
+        LOCAL_CHAIN_SELECTOR = localChainSelector_;
+        SOURCE_EVM_CHAIN_ID = sourceEvmChainId_;
         _disableInitializers();
     }
 }

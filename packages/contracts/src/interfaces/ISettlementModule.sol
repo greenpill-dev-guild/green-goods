@@ -43,7 +43,12 @@ interface ISettlementModule {
         RouteReverted,
         UnsupportedReceiverPaysFee,
         FeeQuoteExceeded,
-        BalanceDeltaMismatch
+        BalanceDeltaMismatch,
+        /// @dev Source-side disposition, never sent by an executor. Appended last so ordinals 0-11
+        ///      stay identical to `ICeloSettlementExecutor.FailureCode`, and the acknowledgment
+        ///      bound still rejects anything above `BalanceDeltaMismatch` arriving over CCIP.
+        ///      Written only by `failStrandedSubject` (Decision Log #60).
+        SourceStranded
     }
 
     struct SettlementAccount {
@@ -91,6 +96,11 @@ interface ISettlementModule {
         bytes32 acknowledgmentMessageId;
         uint8 failureCode;
         DisbursementState cancelledFromState;
+    }
+
+    struct LoanPrincipalRelationship {
+        address creditRegistry;
+        uint256 loanId;
     }
 
     struct CommitmentPayoutPlan {
@@ -193,6 +203,16 @@ interface ISettlementModule {
         bytes32 recoveryConfigHash,
         uint8 recoveryThreshold
     );
+    /// @notice The implementation immutables, announced once so nothing off chain has to guess them.
+    /// @dev Emitted from `initialize` before any other settlement fact. The router, the local chain
+    ///      selector, and the destination EVM chain ID are constructor immutables, so without this
+    ///      the only way to learn them is an RPC read against a known address — which the indexer
+    ///      cannot do, and which a fresh consumer cannot bootstrap from at all. Gating projection on
+    ///      configuration that no event carries is what left four indexed entity types permanently
+    ///      uncreated (pre-merge review 2026-08-09, Decision Log #59).
+    event SettlementDeploymentPinned(
+        address indexed ccipRouter, uint64 indexed localChainSelector, uint64 indexed remoteEvmChainId
+    );
     event SettlementRecoveryUpdated(address indexed garden, address[3] recoveryOwners, bytes32 recoveryConfigHash);
     event SettlementAccountStatusChanged(address indexed garden, bool active);
     event CcipRouteUpdated(
@@ -209,6 +229,7 @@ interface ISettlementModule {
     event FeeReserveMinimumUpdated(uint256 previousMinimum, uint256 minimum);
     event HatsModuleUpdated(address indexed previousModule, address indexed newModule);
     event CommitmentPoolingModuleUpdated(address indexed previousModule, address indexed newModule);
+    event CreditRegistryUpdated(address indexed previousRegistry, address indexed newRegistry);
     event PausedSet(bool paused);
     event CommitmentPayoutPlanCreated(
         uint256 indexed payoutPlanId,
@@ -273,6 +294,7 @@ interface ISettlementModule {
         address token,
         uint256 amount
     );
+    event LoanPrincipalQueued(uint256 indexed disbursementId, address indexed creditRegistry, uint256 indexed loanId);
     event BatchCreated(
         uint256 indexed batchId,
         address indexed executorGarden,
@@ -319,6 +341,9 @@ interface ISettlementModule {
     );
     event DuplicateAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId);
     event StaleAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId);
+    event StrandedSubjectFailed(
+        bytes32 indexed executionKey, bool isBatch, uint256 indexed subjectId, address indexed retiredExecutor
+    );
     event DisbursementRequeued(uint256 indexed disbursementId, uint32 attempt);
     event DisbursementCancelled(
         uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID
@@ -333,6 +358,7 @@ interface ISettlementModule {
     error NotSettlementSteward(address caller, address garden);
     error UnknownSettlementAccount(address garden);
     error SettlementAccountInactive(address garden);
+    error SettlementAccountAlreadyAssigned(address account, address assignedGarden);
     error InvalidSettlementChain(uint64 chainId);
     error InvalidRecoveryConfiguration();
     error UnknownDisbursement(uint256 disbursementId);
@@ -373,6 +399,28 @@ interface ISettlementModule {
     error SourceMustBePaused();
     error SourceNotReady();
     error ImmutableConfigurationMismatch();
+    /// @notice A route replacement cannot discard a still-authorized previous peer.
+    error PreviousPeerGraceActive(address previousPeer, uint64 expiresAt);
+    /// @notice An acknowledgment arrived from an executor we no longer trust (Decision Log #60).
+    error RetiredPeerAcknowledgment(address sender);
+    /// @notice A retry targeted an executor whose acknowledgment authority has expired.
+    error RetiredPeerRetry(address executor);
+    /// @notice The subject's executor can still acknowledge, so there is nothing to close out.
+    error SubjectNotStranded(bool isBatch, uint256 subjectId);
+    error CreditRegistryRequired();
+    error CreditRegistryPaused(address creditRegistry);
+    error InvalidCreditRegistry(address creditRegistry);
+    error CreditRegistryConfigurationMismatch(
+        address creditRegistry, address settlementModule, address commitmentPoolingModule, address hatsModule
+    );
+    error CreditRegistryHasActiveReservations(address creditRegistry, uint256 count);
+    error CommitmentPoolingModuleLocked();
+    error LoanPrincipalNotApproved(uint256 loanId, uint8 state);
+    error LoanPrincipalExpired(uint256 loanId, uint64 dueDate);
+    error LoanPrincipalPoolNotOpen(uint256 loanId, uint256 poolId, uint8 state);
+    error LoanPrincipalCreditDisabled(uint256 loanId, uint256 poolId);
+    error LoanPrincipalMismatch(uint256 loanId, uint256 disbursementId);
+    error LoanPrincipalCapExceeded(uint256 loanId, uint256 requested, uint256 available);
 
     function initialize(
         address owner_,
@@ -430,17 +478,23 @@ interface ISettlementModule {
         returns (uint256 disbursementId);
     function prepareGardenBeneficiaryPayout(uint256 payoutPlanId) external returns (uint256 disbursementId);
     function queueFunding(address garden, uint256 amount) external returns (uint256 disbursementId);
+    function queueLoanPrincipal(uint256 loanId) external returns (uint256 disbursementId);
     function createBatch(uint256[] calldata disbursementIds) external returns (uint256 batchId);
     function dispatchDisbursement(uint256 disbursementId) external returns (bytes32 messageId);
     function dispatchBatch(uint256 batchId) external returns (bytes32 messageId);
     function retryCommand(uint256 disbursementId) external returns (bytes32 messageId);
     function retryBatchCommand(uint256 batchId) external returns (bytes32 messageId);
     function requeue(uint256 disbursementId) external;
+    /// @notice Owner-only close-out for a Dispatched subject whose executor can no longer acknowledge.
+    /// @dev Refuses while the snapshotted executor is still the active or unexpired previous peer.
+    ///      Confirm on Celo whether the payment actually landed before requeuing (Decision Log #60).
+    function failStrandedSubject(bool isBatch, uint256 subjectId) external;
     function cancelDisbursement(uint256 disbursementId, string calldata reasonCID) external;
     function cancelBatch(uint256 batchId, string calldata reasonCID) external;
     function getDisbursement(uint256 disbursementId) external view returns (Disbursement memory);
     function getBatch(uint256 batchId) external view returns (Batch memory);
     function settlementAccountOf(address garden) external view returns (SettlementAccount memory);
+    function settlementGardenOf(address account) external view returns (address garden);
     function getPayoutPlan(uint256 payoutPlanId) external view returns (CommitmentPayoutPlan memory);
     function contributorPayoutOf(
         uint256 payoutPlanId,
@@ -451,6 +505,8 @@ interface ISettlementModule {
         returns (ContributorPayout memory);
     function payoutContributors(uint256 payoutPlanId) external view returns (address[] memory);
     function payoutPlanOfCommitment(uint256 commitmentId) external view returns (uint256);
+    function loanPrincipalDisbursementOf(address registry, uint256 loanId) external view returns (uint256);
+    function loanPrincipalRelationshipOf(uint256 disbursementId) external view returns (LoanPrincipalRelationship memory);
     function payoutPlanStatus(uint256 payoutPlanId) external view returns (PayoutPlanStatus);
     function MAX_PAYOUT_CONTRIBUTORS() external pure returns (uint256);
     function isAcknowledgmentPending(bool isBatch, uint256 subjectId) external view returns (bool);
@@ -468,6 +524,7 @@ interface ISettlementModule {
     function gDollarToken() external view returns (address);
     function hatsModule() external view returns (address);
     function commitmentPoolingModule() external view returns (address);
+    function creditRegistry() external view returns (address);
     function paused() external view returns (bool);
     function CCIP_ROUTER() external view returns (address);
     function SOURCE_CHAIN_SELECTOR() external view returns (uint64);
@@ -476,5 +533,6 @@ interface ISettlementModule {
     function withdrawExcessFees(address payable recipient, uint256 amount) external;
     function setHatsModule(address module) external;
     function setCommitmentPoolingModule(address module) external;
+    function setCreditRegistry(address registry) external;
     function setPaused(bool paused_) external;
 }

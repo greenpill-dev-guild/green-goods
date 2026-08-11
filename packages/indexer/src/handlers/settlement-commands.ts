@@ -42,6 +42,9 @@ async function recordCommand(
     event.params.isBatch,
     event.params.subjectId
   );
+  const commandIndexEntityId = settlementCommandIndexId(event.chainId, executionKey);
+  const currentCommandIndex = await context.SettlementCommandIndex.get(commandIndexEntityId);
+  const dispatchedAt = currentCommandIndex?.createdAt ?? event.block.timestamp;
   const subject: SettlementSubjectState = {
     id: subjectEntityId,
     chainId: event.chainId,
@@ -53,14 +56,14 @@ async function recordCommand(
     commandMessageId,
     acknowledgmentMessageId: undefined,
     failureCode: undefined,
-    dispatchedAt: event.block.timestamp,
+    dispatchedAt,
     confirmedAt: undefined,
     reasonCID: undefined,
     updatedAt: event.block.timestamp,
   };
   context.SettlementSubjectState.set(subject);
   context.SettlementCommandIndex.set({
-    id: settlementCommandIndexId(event.chainId, executionKey),
+    id: commandIndexEntityId,
     chainId: event.chainId,
     executionKey,
     isBatch: event.params.isBatch,
@@ -68,6 +71,11 @@ async function recordCommand(
     attempt: Number(event.params.attempt),
     protocolVersion: Number(event.params.protocolVersion),
     commandMessageId,
+    state: "DISPATCHED",
+    acknowledgmentMessageId: undefined,
+    failureCode: undefined,
+    resolvedAt: undefined,
+    createdAt: currentCommandIndex?.createdAt ?? event.block.timestamp,
     updatedAt: event.block.timestamp,
   });
   const config = await sourceConfig(

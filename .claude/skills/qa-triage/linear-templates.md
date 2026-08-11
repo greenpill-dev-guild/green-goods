@@ -6,6 +6,16 @@ Render every field. Empty fields become `—` rather than the section being drop
 
 ---
 
+## Linear API constraints (apply before drafting)
+
+Three hard constraints Linear enforces on every payload:
+
+1. **`ai:*` is single-value-per-Issue.** Only ONE of `ai:claude`, `ai:codex`, `ai:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `ai:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `ai:routine` / the originating agent.
+2. **`package:*` is single-value-per-Issue.** When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the body's `## Surface` section with a one-line note explaining the constraint.
+3. **Customer Needs cannot be standalone.** Linear's API requires `Exactly one of projectId or issueId must be defined` — every Customer Need must link to an Issue via the `issue` parameter. There is no standalone Need disposition; use `track-only` (Customer Need + lightweight Backlog tracking Issue).
+
+---
+
 ## Customer Need body (terse — source-of-truth raw signal)
 
 The Customer Need is the durable record of what the reporter said. Keep it minimal: verbatim + speaker + link to the Issue. The Issue body holds the actionable detail (Reproduction / Expected / Actual / Suggested fix / PostHog evidence / Deploy correlation). Avoid duplicating Issue content here — the `issue` link is the integration.

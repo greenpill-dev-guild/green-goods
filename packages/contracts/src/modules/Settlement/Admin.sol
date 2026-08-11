@@ -2,6 +2,8 @@
 pragma solidity ^0.8.25;
 
 import { SettlementConfigurationLib } from "../../lib/Settlement/ConfigurationLib.sol";
+import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
+import { ICreditRegistry } from "../../interfaces/ICreditRegistry.sol";
 import { SettlementBase } from "./Base.sol";
 
 /// @title SettlementAdmin
@@ -56,6 +58,7 @@ abstract contract SettlementAdmin is SettlementBase {
         if (module == address(0)) revert ZeroAddress();
         address previous = hatsModule;
         if (previous == module) return;
+        SettlementLoanLib.requireNoActiveReservations();
         hatsModule = module;
         emit HatsModuleUpdated(previous, module);
     }
@@ -65,8 +68,20 @@ abstract contract SettlementAdmin is SettlementBase {
         if (module == address(0)) revert ZeroAddress();
         address previous = commitmentPoolingModule;
         if (previous == module) return;
+        SettlementLoanLib.requireNoActiveReservations();
+        if (_planState.nextPayoutPlanId > 1) revert CommitmentPoolingModuleLocked();
+        address registry = SettlementLoanLib.configuredCreditRegistry();
+        if (
+            registry != address(0)
+                && (ICreditRegistry(registry).poolingStateInitialized() || ICreditRegistry(registry).nextLoanId() != 1)
+        ) revert CommitmentPoolingModuleLocked();
         commitmentPoolingModule = module;
         emit CommitmentPoolingModuleUpdated(previous, module);
+    }
+
+    function setCreditRegistry(address registry) external override onlyOwner {
+        _requirePaused();
+        SettlementLoanLib.setCreditRegistry(registry);
     }
 
     function setPaused(bool paused_) external override onlyOwner {
@@ -95,10 +110,12 @@ abstract contract SettlementAdmin is SettlementBase {
     )
         external
         override
+        onlyOwner
     {
-        _requireAccountAdministrator(garden);
+        _requirePaused();
         SettlementConfigurationLib.registerSettlementAccount(
             _settlementAccounts,
+            _settlementAccountGardens,
             DESTINATION_EVM_CHAIN_ID,
             _ccipRoute.destinationExecutor,
             garden,

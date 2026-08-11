@@ -28,7 +28,7 @@ abstract contract CeloSettlementExecution is CeloSettlementAcknowledgments {
         if (command.version != protocolVersion) revert UnsupportedMessageVersion();
         if (
             command.disbursementKind != _CONTRIBUTOR_CONSIDERATION && command.disbursementKind != _FUNDING
-                && command.disbursementKind != _GARDEN_BENEFICIARY
+                && command.disbursementKind != _LOAN_PRINCIPAL && command.disbursementKind != _GARDEN_BENEFICIARY
         ) revert MalformedSettlementCommand();
 
         bytes32 executionKey = keccak256(
