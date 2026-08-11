@@ -344,6 +344,7 @@ function ensureActiveHandoffFiles(destinationDir, replacements) {
 function archiveEntryNames(status) {
   return new Set([
     "status.json",
+    "reports",
     ...Object.values(status.links || {}).filter((value) => typeof value === "string" && value.length > 0),
   ]);
 }
@@ -373,8 +374,8 @@ function markArchivedDocuments(destinationDir, status) {
       const firstLineEnd = contents.indexOf("\n");
       contents =
         firstLineEnd === -1
-          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.\n`
-          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
+          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n`
+          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
     }
     writeFileSync(documentPath, contents);
   }
@@ -616,7 +617,13 @@ function validateStageStructure(stage, failures) {
       for (const child of readdirSync(entryPath)) {
         const childPath = join(entryPath, child);
         if (!allowedEntries.has(child)) {
-          failures.push(`${childPath}: archived hubs retain only status.json and their four linked plan documents`);
+          failures.push(
+            `${childPath}: archived hubs retain only status.json, reports, and their four linked plan documents`,
+          );
+        } else if (child === "reports") {
+          if (!statSync(childPath).isDirectory()) {
+            failures.push(`${childPath}: archived reports must remain in the reports directory`);
+          }
         } else if (!statSync(childPath).isFile()) {
           failures.push(`${childPath}: archived plan documents must be top-level files`);
         } else if (child !== "status.json" && !readFileSync(childPath, "utf8").includes(ARCHIVE_DOCUMENT_MARKER)) {

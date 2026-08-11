@@ -106,6 +106,9 @@ QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). D
 ## Finding Closure
 
 Treat each confirmed finding as evidence of a possible failure class, not an isolated line edit.
+In a read-only review, these are closure criteria for the author: record missing coverage or proof as
+the finding's next step and do not edit files. Execute steps 3-5 only in explicitly authorized
+`--fix` mode or verify evidence the author has already supplied.
 
 1. Name the root-cause class and the invariant or repository rule it violates.
 2. Search the changed scope and its direct consumers for sibling instances. Record the affected and

@@ -126,11 +126,12 @@ than creating a second plan-history surface.
    `workflow.archive_reason`, and `workflow.resolution`; do not label unfinished
    stale work as completed.
 
-Archive records keep the final plan/spec/eval and a compact status history.
-Intermediate chronology remains available in Git history. Do not create parallel
+Archive records keep the final plan/spec/eval, dated reports, and a compact status history.
+Intermediate chronology remains available in Git history. Dated report contents remain byte-for-byte
+unchanged during archival. Do not create parallel
 audit, review, cleanup, ADR, or meeting-note folders under `.plans/`.
-The archive command removes operational handoffs, reports, scripts, artifacts,
-and lane files after validating the requested resolution. Archived documents are
+The archive command removes operational handoffs, scripts, artifacts, and lane files after validating
+the requested resolution; it preserves `reports/` as immutable audit evidence. Archived documents are
 marked as historical records so old checklist language cannot be mistaken for live work.
 
 ## Backlog Quality Bar

@@ -1009,6 +1009,10 @@ test("validate requires the four canonical plan document roles", () =>
 test("archive moves record explicit closeout metadata and remain valid", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "closed-fixture", "--stage", "active"]).status, 0);
+    const reportDir = join(root, ".plans", "active", "closed-fixture", "reports");
+    const reportContents = "# Review 2026-08-11\n\nImmutable evidence.\n";
+    mkdirSync(reportDir, { recursive: true });
+    writeFileSync(join(reportDir, "review-2026-08-11.md"), reportContents);
 
     const moved = runPlanHub(root, [
       "move",
@@ -1033,6 +1037,13 @@ test("archive moves record explicit closeout metadata and remain valid", () =>
     assert.equal(status.history.length, 1);
     assert.equal(status.notes, undefined);
     assert.equal(existsSync(join(root, ".plans", "archive", "closed-fixture", "handoffs")), false);
+    assert.equal(
+      readFileSync(
+        join(root, ".plans", "archive", "closed-fixture", "reports", "review-2026-08-11.md"),
+        "utf8",
+      ),
+      reportContents,
+    );
     assert.match(
       readFileSync(join(root, ".plans", "archive", "closed-fixture", "brief.md"), "utf8"),
       /> \*\*Archived record:\*\* implementation is closed\./,

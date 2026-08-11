@@ -17,6 +17,20 @@ Each handoff should capture:
 5. Known risks or blockers
 6. Repo-truth references from the active hub or reports, not tool-local memory claims
 
+Before a lane is marked passed or completed, its handoff must include:
+
+```markdown
+## Validation Receipt
+
+- Tested implementation commit SHA: `<full SHA>`
+- Run at (UTC): `YYYY-MM-DDTHH:MM:SSZ`
+- Exact command(s): `<commands>`
+- Result: `<counts or concise output summary>`
+- Evidence-only follow-up (if applicable): `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+```
+
+`status.json` and `record-tdd` do not replace this receipt; they track orchestration and TDD state.
+
 Use this short proof block for implementation lanes:
 
 ```markdown

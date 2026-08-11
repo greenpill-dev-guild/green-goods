@@ -14,6 +14,14 @@
 
 - Pending QA pass.
 
+## Validation Receipt
+
+- Tested implementation commit SHA: pending
+- Run at (UTC): pending
+- Exact command(s): pending
+- Result: pending
+- Evidence-only follow-up (if applicable): not applicable
+
 ## Risks / Blockers
 
 - Record blockers here before changing `status.json`.

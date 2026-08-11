@@ -96,6 +96,10 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
   `git diff --exit-code <tested>..HEAD -- <validated paths>` showing that implementation,
   dependencies, configuration, and validation entrypoints are unchanged. Any change on those
   surfaces invalidates the receipt and requires a fresh run.
+- `status.json` lane state and `record-tdd` prove orchestration/TDD state, not current validation by
+  themselves. Before setting a lane to passed or completed, fill that lane's handoff Validation
+  Receipt. Reviewers treat a missing or stale receipt as pending evidence. This work does not add
+  validation receipts to the Plan Hub machine schema.
 
 Copy-paste shapes — the plan header/body template, the `status.json` lane-state example, and
 the batch-report template — live in [templates.md](./templates.md). Load it when writing the
