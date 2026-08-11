@@ -52,7 +52,7 @@ function w28(state: W28State): string {
       break;
     case "empty":
       content = pagepad(
-        banner("No eligible Offers right now. An exchange can only reference a same-pool Offer that is still open, individually claimable, and made by someone else.", "stone", "information-line"),
+        banner("No eligible Offers right now. An exchange can only reference a same-pool Offer that is still open, individually claimable, free of any price, and made by someone else.", "stone", "information-line"),
       );
       actions = hot("w28.clear", btn("Back to the ordinary offer", { kind: "ghost", full: true }));
       break;
@@ -66,7 +66,7 @@ function w28(state: W28State): string {
       break;
     default:
       content = pagepad(
-        `<div class="t-meta">Offer this in exchange for an existing Offer in this pool. Only eligible rows appear: still open, individually claimable, capacity-backed, and made by someone else.</div>`,
+        `<div class="t-meta">Offer this in exchange for an existing Offer in this pool. Only eligible rows appear: still open, individually claimable, capacity-backed, made by someone else, and free — a priced Offer cannot start an exchange.</div>`,
         card(input("Search offers in this pool…", { placeholder: true, ariaLabel: "Search offers in this pool" }), { cls: "inset" }),
         w28Rows(),
         `<div class="t-meta">Tap an Offer to review the pair — the action below stays off until one is chosen.</div>`,
@@ -77,7 +77,7 @@ function w28(state: W28State): string {
 }
 
 const W28_HOTS: HifiDef["hots"] = {
-  "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId and enables the Use action. Accepted, lapsed, self-owned, non-Individual, and capacity-inconsistent rows never render (WF:1213)." },
+  "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId and enables the Use action. Accepted, lapsed, self-owned, non-Individual, capacity-inconsistent, and priced rows never render — exchange is barter, and a non-zero consideration on either side reverts with ExchangeConsiderationUnsupported (WF:1213 · CS §5.3)." },
   "w28.clear": { l: "Clear the selection", to: "screen:W28", info: "Drops the exchange reference without losing the draft; focus returns to the row (WF:1217)." },
   "w28.submit": { l: "Make this offer in exchange", info: "createCommitment atomically re-checks every eligibility predicate on Ana's Offer before storing counterCommitmentId — if it changed before mining, no promise is created and the picker returns for a clear-or-replace (WF:1219 · CS §5.3).", calls: ["createCommitment"], facts: { pool: "Open" }, pendingSync: true },
   "w28.retry": { l: "Retry loading Offers", to: "screen:W28", info: "Read-only retry; the draft and any prior selection survive." },
@@ -179,11 +179,11 @@ function w31(_state: W31State): string {
   const body = pagepad(
     `<div class="t-meta">Start from an Offer template — a familiar way this pool works together. Choosing one only prefills the ordinary form; every field stays editable and no template adds a contract type.</div>`,
     card(
-      row(null, "refresh-line", "Rotation", "Each member takes a turn receiving the pool's help.") +
+      row("w31.rotation", "refresh-line", "Rotation", "Each member takes a turn receiving the pool's help.") +
         row("w31.work-party", "group-line", "Work party", "A group gathers around one shared piece of work.") +
-        row(null, "seedling-line", "Harvest share", "People promise part of a harvest and how it arrives.") +
-        row(null, "settings-line", "Tool lending", "A tool is offered for a named period and purpose.") +
-        row(null, "sticky-note-line", "Mentorship circle", "People offer time to learn and practice together.") +
+        row("w31.harvest-share", "seedling-line", "Harvest share", "People promise part of a harvest and how it arrives.") +
+        row("w31.tool-lending", "settings-line", "Tool lending", "A tool is offered for a named period and purpose.") +
+        row("w31.mentorship", "sticky-note-line", "Mentorship circle", "People offer time to learn and practice together.") +
         row("w31.exchange-circle", "send-plane-line", "Exchange circle", "Two people prepare linked offers that start together and are kept separately."),
       { cls: "flat" },
     ),
@@ -194,7 +194,11 @@ function w31(_state: W31State): string {
 }
 
 const W31_HOTS: HifiDef["hots"] = {
+  "w31.rotation": { l: "Rotation template", to: "screen:W3@step-what", info: "Prefills existing fields only (recurring receiving turns as ordinary commitments) and lands in the editable creation flow — no template adds a contract type (Appendix E.2)." },
   "w31.work-party": { l: "Work party template", to: "screen:W3@step-what", info: "Prefills existing fields only and always lands in the editable creation flow — the submitted record is indistinguishable from hand-entered fields (WF:1310). Locales may rename templates; the primitives stay stable." },
+  "w31.harvest-share": { l: "Harvest share template", to: "screen:W3@step-what", info: "Prefills existing fields only (a harvest-portion promise with its delivery note) and lands in the editable creation flow (Appendix E.2)." },
+  "w31.tool-lending": { l: "Tool lending template", to: "screen:W3@step-what", info: "Prefills existing fields only (a named tool, period, and purpose) and lands in the editable creation flow (Appendix E.2)." },
+  "w31.mentorship": { l: "Mentorship circle template", to: "screen:W3@step-what", info: "Prefills existing fields only (offered practice time) and lands in the editable creation flow (Appendix E.2)." },
   "w31.exchange-circle": { l: "Exchange circle template", to: "screen:W28", info: "The one template that adds an exchange reference: it routes through the W28 picker before the ordinary review (Appendix E.2)." },
   "w31.start-blank": { l: "Start blank", to: "screen:W3@step-what", info: "Enters the same flow with no hidden defaults (Appendix E.2)." },
 };
