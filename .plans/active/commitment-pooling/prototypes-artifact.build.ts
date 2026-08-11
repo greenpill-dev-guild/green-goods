@@ -1,11 +1,13 @@
 // Builds the "Commitment Pooling — Flow Prototypes" claude.ai artifact from the
-// sibling prototypes.md + the hifi/ module set. Three tabs:
+// hifi/ module set alone (the retired hand-written prototypes.md stays in the
+// repo as history and is no longer an input). Three tabs:
 //   1) Guided flows — click-through prototypes: the canonical control
 //      advances, real decision points are on-frame choices, every other drawn
 //      control answers via the inspector or jumps elsewhere.
 //   2) Screen library — free-roam: browse every review-visible screen, switch its states
 //      (Storybook-style), tap any control, navigate the screen graph.
-//   3) Reference — the full rendered prototypes.md document.
+//   3) Reference — flow and screen indexes generated from the registry on
+//      every build, so the reference cannot drift from the prototypes.
 //
 // Screens are pre-rendered at build time. Hi-fi screens live in hifi/screens/*
 // (Warm Earth kit); not-yet-migrated frames render through the ascii shim from
@@ -98,7 +100,9 @@ const flowCardHtml = (sb: (typeof visibleSbs)[number]) => {
   const lastSteps = sb.steps.slice(-2);
   const continuesIn = [...new Set(lastSteps.flatMap((step) => (step.br ?? [])
     .map((branch) => branch.to.match(/^(sb[a-z0-9]+):/)?.[1])
-    .filter((target): target is string => !!target && target !== sb.id && (target.replace(/\D/g, "") !== sb.id.replace(/\D/g, ""))),
+    // Only true self-links drop out: the split siblings (sb4a→sb4b, sb3a→sb3b)
+    // are exactly the actor-seam handoffs the card must advertise.
+    .filter((target): target is string => !!target && target !== sb.id),
   ))];
   // Continues-in reads as prose right after the description; role chips pin to
   // the card's bottom edge so every card in a row shares the same tag position.

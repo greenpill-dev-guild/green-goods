@@ -135,9 +135,10 @@ Both named client test files do not exist yet; they are intentional to-be-create
 
 ## Binding confirmation amendment — 2026-08-02
 
-- W3 includes a native, off-by-default “Let the Green Goods team confirm if nobody local is
-  eligible” control. The offline creation job persists `protocolFallbackEnabled`; review and retry
-  show the stored choice. If no protocol pool is registered, the control is disabled with an
+- W3 includes a native “Let the Green Goods team confirm if nobody local is eligible” control —
+  **on by default for the pilot** (register #94, 2026-08-10, superseding this amendment's earlier
+  off default; opt-out per promise, usage guard unchanged). The offline creation job persists
+  `protocolFallbackEnabled`; review and retry show the stored choice. If no protocol pool is registered, the control is disabled with an
   explanation rather than accepting a promise with a dead-end confirmer.
 - W2 and W4 consume indexed `fulfilledBy`, `confirmationPath`, and `fallbackReason`. Ordinary
   confirmation names the counterparty. `PoolFallback` reads “confirmed by your garden steward —

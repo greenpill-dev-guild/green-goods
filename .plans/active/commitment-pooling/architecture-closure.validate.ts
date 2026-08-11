@@ -444,6 +444,13 @@ const sourceChecks: Array<[boolean, string]> = [
   [status.includes("38 named plus __gap[12]"), "status still declares the old storage layout"],
   [contractHandoff.includes("38-feature-slot") && contractHandoff.includes("operationKey"), "contract handoff omits closure contract"],
   [
+    clientHandoff.includes("on by default for the pilot") &&
+      adminHandoff.includes("on by default for the pilot") &&
+      !clientHandoff.includes("off-by-default") &&
+      !adminHandoff.includes("off-by-default"),
+    "a dispatch handoff still carries the superseded fallback default (register #94 is pilot-default ON)",
+  ],
+  [
     indexerHandoff.includes("sixteen pooling entities") &&
       indexerHandoff.includes("late `ClaimRequested`") &&
       indexerHandoff.includes("`requestSeen = false`") &&
