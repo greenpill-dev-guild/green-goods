@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   addedLineNumbersFromDiff,
+  filterPresentPaths,
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
@@ -50,6 +51,22 @@ test("finds consumers of a deleted slash command", () => {
   );
   assert.equal(failures.length, 1);
   assert.match(failures[0], /deleted surface -> \/status/);
+});
+
+test("finds source consumers of a deleted slash command", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "scripts/agents/qa-sheet-append.ts", text: "// Resume with /qa-triage." }],
+    [".claude/skills/qa-triage/SKILL.md"],
+  );
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /deleted surface -> \/qa-triage/);
+});
+
+test("filters tracked paths that no longer exist in the worktree", () => {
+  assert.deepEqual(
+    filterPresentPaths(["kept.md", "deleted.md", "kept.md"], (file) => file === "kept.md"),
+    ["kept.md"],
+  );
 });
 
 test("allows explicit retirement notices", () => {

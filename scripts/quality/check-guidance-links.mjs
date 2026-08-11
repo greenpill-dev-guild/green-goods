@@ -44,8 +44,6 @@ const CONSUMER_EXTENSIONS = new Set([
   ".yaml",
   ".yml",
 ]);
-const DOCUMENT_EXTENSIONS = new Set([".json", ".md", ".mdx", ".sh", ".yaml", ".yml"]);
-
 const RETIRED_PATTERNS = [
   "registry/skills.json",
   "skills/index.md",
@@ -136,7 +134,7 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
       );
       rules.push({
         label: `/${name}`,
-        appliesTo: (file) => DOCUMENT_EXTENSIONS.has(path.extname(file)),
+        appliesTo: () => true,
         test: (line) => command.test(line),
       });
       rules.push({
@@ -187,6 +185,10 @@ export function scanDeletedSurfaceReferences(
     }
   }
   return [...new Set(failures)];
+}
+
+export function filterPresentPaths(paths, exists) {
+  return [...new Set(paths)].filter((relativePath) => exists(relativePath));
 }
 
 function isExplicitRetirementNotice(line, label) {
@@ -397,12 +399,15 @@ function main() {
       .filter((entry) => entry.status === "D" || entry.status === "R")
       .map((entry) => entry.oldPath ?? entry.path);
     const trackedPaths = runGit(repoRoot, ["ls-files"]).stdout.split(/\r?\n/).filter(Boolean);
-    const presentPaths = new Set([
-      ...trackedPaths,
-      ...diff
-        .filter((entry) => entry.status !== "D" && fs.existsSync(path.join(repoRoot, entry.path)))
-        .map((entry) => entry.path),
-    ]);
+    const presentPaths = new Set(
+      filterPresentPaths(
+        [
+          ...trackedPaths,
+          ...diff.filter((entry) => entry.status !== "D").map((entry) => entry.path),
+        ],
+        (relativePath) => fs.existsSync(path.join(repoRoot, relativePath)),
+      ),
+    );
     if (deletedPaths.length > 0) {
       const missingTombstones = deletedPaths.filter(
         (deletedPath) =>

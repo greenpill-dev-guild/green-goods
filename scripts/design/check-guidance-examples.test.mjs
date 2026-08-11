@@ -15,12 +15,42 @@ test("accepts shared tokens and token definitions", () => {
     "  --spring-fast: cubic-bezier(0.2, 0, 0, 1) 150ms;",
     "}",
     ".pane { transition: transform var(--spring-fast); box-shadow: var(--shadow-float); }",
+    ".icon { filter: drop-shadow(var(--shadow-float)); color: currentColor; }",
     "```",
     "```tsx",
     'const pane = "rounded-[var(--radius-2xl)] shadow-[var(--shadow-float)]";',
     "```",
   ].join("\n");
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
+});
+
+test("checks declarations after a token definition on the same line", () => {
+  const text = [
+    "```css",
+    ":root { --spring-fast: var(--spring-spatial); color: #fff; transition: opacity 200ms; }",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+  assert.ok(failures.some((failure) => failure.includes("hardcoded transition duration")));
+});
+
+test("does not confuse HTML fragments with colors", () => {
+  const text = ["```html", '<a href="#feed">Feed</a>', "```"].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
+});
+
+test("rejects named color property values", () => {
+  const text = [
+    "```css",
+    ".bad { color: white; background-color: black; }",
+    "```",
+    "```tsx",
+    'const bad = { color: "red" };',
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.equal(failures.filter((failure) => failure.includes("raw named color")).length, 2);
 });
 
 test("accepts pedagogical radius arithmetic and reduced-motion overrides", () => {

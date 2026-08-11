@@ -17,8 +17,12 @@ test("package changes require every package and supply-chain workflow", () => {
   ]);
 });
 
-test("isolated agent changes require only agent and shared workflows", () => {
-  assert.deepEqual(expectedWorkflowNames(["packages/agent/src/index.ts"]), ["Agent", "Shared"]);
+test("guidance-consumer source changes also require supply-chain guardrails", () => {
+  assert.deepEqual(expectedWorkflowNames(["packages/agent/src/index.ts"]), [
+    "Agent",
+    "Shared",
+    "Supply Chain Guardrails",
+  ]);
 });
 
 test("contract source changes include every contract consumer", () => {
@@ -29,6 +33,7 @@ test("contract source changes include every contract consumer", () => {
     "Indexer",
     "Ontology",
     "Shared",
+    "Supply Chain Guardrails",
   ]);
 });
 
@@ -39,24 +44,45 @@ test("ontology-scoped changes require the ontology workflow", () => {
     "Client",
     "Design",
     "Ontology",
+    "Supply Chain Guardrails",
   ]);
-  assert.deepEqual(expectedWorkflowNames(["docs/docs/reference/glossary-community.md"]), ["Docs", "Ontology"]);
-  assert.deepEqual(expectedWorkflowNames(["packages/indexer/schema.graphql"]), ["Indexer", "Ontology"]);
-  assert.deepEqual(expectedWorkflowNames(["scripts/data/ontology-drift-baseline.json"]), ["Ontology"]);
-  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-pooling/contract-spec.md"]), ["Ontology"]);
+  assert.deepEqual(expectedWorkflowNames(["docs/docs/reference/glossary-community.md"]), [
+    "Docs",
+    "Ontology",
+    "Supply Chain Guardrails",
+  ]);
+  assert.deepEqual(expectedWorkflowNames(["packages/indexer/schema.graphql"]), [
+    "Indexer",
+    "Ontology",
+  ]);
+  assert.deepEqual(expectedWorkflowNames(["scripts/data/ontology-drift-baseline.json"]), [
+    "Ontology",
+    "Supply Chain Guardrails",
+  ]);
+  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-pooling/contract-spec.md"]), [
+    "Ontology",
+    "Supply Chain Guardrails",
+  ]);
   assert.deepEqual(
     expectedWorkflowNames([".plans/active/commitment-pooling/standing-commitments-spec.md"]),
-    ["Ontology"]
+    ["Ontology", "Supply Chain Guardrails"],
   );
-  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-pooling/settlement-spec.md"]), ["Ontology"]);
+  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-pooling/settlement-spec.md"]), [
+    "Ontology",
+    "Supply Chain Guardrails",
+  ]);
   assert.deepEqual(expectedWorkflowNames(["packages/contracts/script/DeployBadgeSchema.s.sol"]), [
     "Contracts",
     "Ontology",
+    "Supply Chain Guardrails",
   ]);
 });
 
-test("docs-only changes require docs and no unrelated workflow", () => {
-  assert.deepEqual(expectedWorkflowNames(["docs/docs/intro.md"]), ["Docs"]);
+test("docs-only changes require docs and guidance-consumer checks", () => {
+  assert.deepEqual(expectedWorkflowNames(["docs/docs/intro.md"]), [
+    "Docs",
+    "Supply Chain Guardrails",
+  ]);
 });
 
 test("workflow changes require their workflow plus shared and supply-chain checks", () => {
@@ -67,8 +93,11 @@ test("workflow changes require their workflow plus shared and supply-chain check
   ]);
 });
 
-test("CI Gate script changes require the shared workflow", () => {
-  assert.deepEqual(expectedWorkflowNames(["scripts/quality/ci-gate.mjs"]), ["Shared"]);
+test("CI Gate script changes require shared and supply-chain workflows", () => {
+  assert.deepEqual(expectedWorkflowNames(["scripts/quality/ci-gate.mjs"]), [
+    "Shared",
+    "Supply Chain Guardrails",
+  ]);
 });
 
 test("source-structure changes require every workflow that runs the check", () => {
@@ -79,5 +108,6 @@ test("source-structure changes require every workflow that runs the check", () =
     "Contracts",
     "Indexer",
     "Shared",
+    "Supply Chain Guardrails",
   ]);
 });
