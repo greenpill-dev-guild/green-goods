@@ -244,7 +244,7 @@ invariant_Contract_property
 
 Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
 `testRevert_` category. Enforce this for newly added or renamed tests; existing legacy names are
-grandfathered until their behavior is materially edited.
+grandfathered.
 
 ### Fuzz Testing (MANDATORY for mainnet)
 

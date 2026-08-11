@@ -32,6 +32,7 @@ test("rejects newly introduced legacy and sentence-style names", () => {
   for (const name of [
     "testApprovalGatedFreeOfferRechecksClaimantMembership",
     "testRevert_CreditRegistryPaused",
+    "testRevert_revertsWhenPaused",
     "test_credit_registry",
   ]) {
     assert.equal(isCanonicalSolidityTestName(name), false, name);

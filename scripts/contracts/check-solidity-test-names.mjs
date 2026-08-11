@@ -8,7 +8,7 @@ import { parseBaseArgs, resolveGitBase, runGit } from "../lib/git-guardrails.mjs
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 const acceptedPatterns = [
-  /^test(?!Fuzz_|Integration_|Upgrade_|E2E_)[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
+  /^test(?!Fuzz_|Integration_|Upgrade_|E2E_|Revert_)[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
   /^testFuzz_[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
   /^testIntegration_[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
   /^testUpgrade_[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,

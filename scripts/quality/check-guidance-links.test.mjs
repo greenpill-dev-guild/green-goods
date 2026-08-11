@@ -62,6 +62,14 @@ test("finds source consumers of a deleted slash command", () => {
   assert.match(failures[0], /deleted surface -> \/qa-triage/);
 });
 
+test("does not confuse retired Claude commands with agent product commands", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "packages/agent/README.md", text: "Send /status to the Telegram bot." }],
+    [".claude/skills/status/SKILL.md"],
+  );
+  assert.deepEqual(failures, []);
+});
+
 test("filters tracked paths that no longer exist in the worktree", () => {
   assert.deepEqual(
     filterPresentPaths(["kept.md", "deleted.md", "kept.md"], (file) => file === "kept.md"),

@@ -134,7 +134,7 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
       );
       rules.push({
         label: `/${name}`,
-        appliesTo: () => true,
+        appliesTo: (file) => !file.startsWith("packages/agent/"),
         test: (line) => command.test(line),
       });
       rules.push({

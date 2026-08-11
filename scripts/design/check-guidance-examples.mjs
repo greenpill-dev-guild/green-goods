@@ -16,28 +16,60 @@ const implementationLanguages = new Set([
   "tsx",
   "typescript",
 ]);
-const allowedNamedColorValues = new Set([
-  "currentcolor",
-  "inherit",
-  "initial",
-  "none",
-  "revert",
-  "revert-layer",
-  "transparent",
-  "unset",
-]);
+const cssNamedColors = new Set(
+  "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen".split(
+    " ",
+  ),
+);
+const colorProperty =
+  /\b(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow)\s*:\s*([^;}]+)/gi;
+const multilineGuardedProperty =
+  /\b(?:transition(?:-duration)?|animation(?:-duration)?|transitionDuration|animationDuration|color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow|border-radius|borderRadius)\s*:\s*$/i;
 
 function withoutCustomPropertyDeclarations(line) {
   return line.replace(/(^|[{;]\s*)--[a-z0-9-]+\s*:[^;}]+;?/gi, "$1");
 }
 
+function colorPropertyValues(line) {
+  return [...line.matchAll(colorProperty)].map((match) => match[1]);
+}
+
+function hasRawHexColor(line) {
+  if (/\b(?:bg|text|border|ring|fill|stroke)-\[#[0-9a-f]{3,8}\]/i.test(line)) return true;
+  return colorPropertyValues(line).some((value) => /#[0-9a-f]{3,8}\b/i.test(value));
+}
+
 function hasRawNamedColor(line) {
-  const property =
-    /\b(?:color|background-color|border-color|outline-color|text-decoration-color|fill|stroke|backgroundColor|borderColor|outlineColor|textDecorationColor)\s*:\s*["']?([a-z][a-z-]*)\b(?!\s*\()/gi;
-  for (const match of line.matchAll(property)) {
-    if (!allowedNamedColorValues.has(match[1].toLowerCase())) return true;
+  for (const value of colorPropertyValues(line)) {
+    const withoutTokens = value.replace(/var\([^)]*\)/gi, "");
+    for (const word of withoutTokens.match(/[a-z][a-z0-9-]*/gi) ?? []) {
+      if (cssNamedColors.has(word.toLowerCase())) return true;
+    }
   }
   return false;
+}
+
+function implementationForLine(lines, index) {
+  let implementation = lines[index].text.trim();
+  if (multilineGuardedProperty.test(implementation)) {
+    for (let next = index + 1; next < lines.length; next++) {
+      const continuation = lines[next].text.trim();
+      implementation += ` ${continuation}`;
+      if (/[;,}]\s*$/.test(continuation)) break;
+    }
+  }
+  return withoutCustomPropertyDeclarations(implementation).replace(/\s+\/\/.*$/, "");
+}
+
+function hasOnlyReducedMotionDurations(line) {
+  const durations = [...line.matchAll(/\b([0-9]*\.?[0-9]+)(ms|s)\b/gi)];
+  return (
+    durations.length > 0 &&
+    durations.every((match) => {
+      const value = Number(match[1]);
+      return match[2].toLowerCase() === "ms" ? value <= 0.01 : value === 0;
+    })
+  );
 }
 
 const checks = [
@@ -49,8 +81,7 @@ const checks = [
   { label: "hardcoded easing", pattern: /cubic-bezier\s*\(/i },
   {
     label: "raw hexadecimal color",
-    pattern:
-      /\b(?:color|background-color|border-color|outline-color|text-decoration-color|fill|stroke|backgroundColor|borderColor|outlineColor|textDecorationColor)\s*:\s*["']?#[0-9a-f]{3,8}\b|\b(?:bg|text|border|ring|fill|stroke)-\[#[0-9a-f]{3,8}\]/i,
+    test: hasRawHexColor,
   },
   { label: "raw named color", test: hasRawNamedColor },
   {
@@ -74,10 +105,14 @@ const checks = [
       if (cssProperty && cssProperty !== "none" && !cssProperty.startsWith("var(")) return true;
       const jsProperty = line.match(/\bboxShadow\s*:\s*["']?([^"',;}]+)/)?.[1]?.trim();
       if (jsProperty && jsProperty !== "none" && !jsProperty.startsWith("var(")) return true;
-      const withoutTokenFunctions = line.replace(/drop-shadow\s*\(\s*var\([^)]*\)\s*\)/gi, "");
-      return /(?<!box-)(?<!--)\b(?:drop-)?shadow(?:-(?:sm|md|lg|xl|2xl|inner))?\b(?!-none\b)(?!-\[var\()/i.test(
-        withoutTokenFunctions,
-      );
+      for (const match of line.matchAll(/["'`]([^"'`]*)["'`]/g)) {
+        if (
+          /(?:^|\s)(?:drop-)?shadow(?:-(?:sm|md|lg|xl|2xl|inner))?(?=$|\s)/i.test(match[1])
+        ) {
+          return true;
+        }
+      }
+      return false;
     },
   },
 ];
@@ -124,7 +159,7 @@ export function findDesignGuidanceViolations(text, relativePath) {
     if (!implementationLanguages.has(block.language)) continue;
     let inBlockComment = false;
     let reducedMotionDepth = 0;
-    for (const entry of block.lines) {
+    for (const [entryIndex, entry] of block.lines.entries()) {
       const line = entry.text.trim();
       if (!line) continue;
       if (inBlockComment) {
@@ -139,16 +174,16 @@ export function findDesignGuidanceViolations(text, relativePath) {
       const opensReducedMotion = line.includes("prefers-reduced-motion");
       const inReducedMotion = reducedMotionDepth > 0 || opensReducedMotion;
       const radiusExampleLine = line.includes("design-guard: allow-radius-literal");
+      const implementation = implementationForLine(block.lines, entryIndex);
       for (const check of checks) {
         if (check.label === "arbitrary numeric radius" && radiusExampleLine) continue;
         if (
           check.label === "hardcoded transition duration" &&
           inReducedMotion &&
-          /\b(?:0|0\.0*\d+)(?:ms|s)\b/.test(line)
+          hasOnlyReducedMotionDurations(implementation)
         ) {
           continue;
         }
-        const implementation = withoutCustomPropertyDeclarations(line).replace(/\s+\/\/.*$/, "");
         if ((check.test ?? ((value) => check.pattern.test(value)))(implementation)) {
           failures.push(`${relativePath}:${entry.line}: ${check.label} in implementation example`);
         }

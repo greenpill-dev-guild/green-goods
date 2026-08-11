@@ -69,6 +69,48 @@ test("accepts pedagogical radius arithmetic and reduced-motion overrides", () =>
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
 });
 
+test("rejects slow reduced-motion overrides", () => {
+  const text = [
+    "```css",
+    "@media (prefers-reduced-motion: reduce) {",
+    "  * { transition-duration: 0.9s !important; }",
+    "}",
+    "```",
+  ].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("hardcoded transition duration"),
+    ),
+  );
+});
+
+test("checks multiline CSS declarations", () => {
+  const text = [
+    "```css",
+    ".bad {",
+    "  transition:",
+    "    opacity 200ms ease;",
+    "  color:",
+    "    #fff;",
+    "}",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("hardcoded transition duration")));
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+});
+
+test("checks color-bearing shorthand declarations", () => {
+  const text = [
+    "```css",
+    ".bad { background: #fff; border: 1px solid red; }",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+  assert.ok(failures.some((failure) => failure.includes("raw named color")));
+});
+
 test("does not let reduced-motion or token markers hide unrelated literals", () => {
   const text = [
     "```css",
@@ -142,6 +184,15 @@ test("rejects the non-token shadow utility family", () => {
       failure.includes("raw shadow"),
     ),
   );
+});
+
+test("does not treat JavaScript shadow identifiers as utility classes", () => {
+  const text = [
+    "```ts",
+    'const shadow = "var(--shadow-float)";',
+    "```",
+  ].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
 });
 
 test("rejects hardcoded implementation values", () => {
