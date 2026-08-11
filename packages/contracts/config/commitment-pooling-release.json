@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "commitment-pooling-settlement-credit-v1",
+  "sourceCommit": "7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b",
+  "build": {
+    "profile": "production",
+    "solc": "0.8.28",
+    "evmVersion": "cancun",
+    "viaIr": true,
+    "optimizerRuns": 1,
+    "bytecodeHash": "none"
+  },
+  "create2": {
+    "factory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+    "domain": "green-goods:commitment-release",
+    "version": "v1"
+  },
+  "ownership": {
+    "releaseOwner": "Afolabi Aiyeloja",
+    "deploymentSender": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "deploymentKeystore": "green-goods-deployer",
+    "protocolSafe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "rollbackOwnerBeforeTransfer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "rollbackOwnerAfterTransfer": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "gardenRecoveryOwner": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+    "timelockWaivedForRelease": true
+  },
+  "chains": {
+    "arbitrum": {
+      "evmChainId": "42161",
+      "ccipSelector": "4949039107694359620",
+      "router": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8",
+      "peerNetwork": "celo",
+      "peerSelector": "1346049177634351622",
+      "protocolVersion": 1,
+      "destinationGasLimit": "0",
+      "paused": true,
+      "protocolGarden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
+      "eas": "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
+      "schemaRegistry": "0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB"
+    },
+    "celo": {
+      "evmChainId": "42220",
+      "ccipSelector": "1346049177634351622",
+      "router": "0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62",
+      "peerNetwork": "arbitrum",
+      "peerSelector": "4949039107694359620",
+      "protocolVersion": 1,
+      "paused": true,
+      "gDollar": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A"
+    }
+  },
+  "schemas": [
+    {
+      "identity": "work-v1",
+      "uid": "0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4",
+      "resolver": "0x23F29AF6138F126623bA20b4c051E8a04cC7B9e1",
+      "moduleRelationship": "CommitmentPoolingModule.workSchemaUID"
+    },
+    {
+      "identity": "work-approval-v1",
+      "uid": "0x6f44cac380791858e86c67c75de1f10b186fb6534c00f85b596709a3cd51f381",
+      "resolver": "0x166732eD81Ab200A099215cF33F6A712309B69F7",
+      "moduleRelationship": "CommitmentPoolingModule.workApprovalSchemaUID"
+    },
+    {
+      "identity": "assessment-v2",
+      "uid": "0x97b3a7378bc97e8e455dbf9bd7958e4c149bef5e1f388540852b6d53eb6dbf93",
+      "resolver": "0x0646B09bcf3993F02957651354dC267c450CFE58",
+      "moduleRelationship": "CommitmentPoolingModule.assessmentSchemaUID"
+    },
+    {
+      "identity": "assessment-v3",
+      "uid": "0x9358f3371f9fcf6b3467c524da3ba5f8d43f8f0b9cc3ba12c925e77ecbcf06a0",
+      "resolver": "0x0646B09bcf3993F02957651354dC267c450CFE58",
+      "moduleRelationship": "CommitmentPoolingModule.assessmentV3SchemaUID"
+    },
+    {
+      "identity": "community-testimony-v1",
+      "uid": "0xb9268b8a6096b7fda38a1aa642b66069e40b637f3fe0a846e0600e47e1aadcad",
+      "resolver": "0x2897BcAE282D5d99DaeE535803F531B333Cc2329",
+      "moduleRelationship": "TestimonyResolver.commitmentModule"
+    }
+  ],
+  "schemaPreparation": {
+    "network": "arbitrum",
+    "name": "TestimonyResolver",
+    "implementationArtifact": "Testimony.sol/TestimonyResolver.json",
+    "proxyArtifact": "ERC1967Proxy.sol/ERC1967Proxy.json",
+    "owner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "initializer": "initialize(address)",
+    "constructorEAS": "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
+    "create2": {
+      "factory": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+      "saltNamespace": "green-goods:testimony-resolver",
+      "version": "v1",
+      "implementationSalt": "0x01e7fd88535d5f1226684a6433904df972991f785add08cb6fb42a1c3bdc1c91",
+      "proxySalt": "0xdc5ed332b0ce1129ac1a907a6582fee938a7dfcbe830c10292ace1759fcfb9d1"
+    },
+    "expected": {
+      "implementation": "0xA8283A563244dd002dA814A0C4CF24c29c8F30A7",
+      "proxy": "0x2897BcAE282D5d99DaeE535803F531B333Cc2329",
+      "implementationCreationCodeHash": "0xfd8b6dee91cb334b6606c96539005d8cb29eba0e3a8db0d69dbef7c8943e7c0b",
+      "implementationRuntimeTemplateHash": "0xfc6808ae3b774af9216f77901796212bda3ce5a5582306adc712a1a844f47922",
+      "proxyCreationCodeHash": "0x734a5de93189d7b23cdab20c7d9effac271c207c0799757a57414db4b1f597da",
+      "proxyRuntimeTemplateHash": "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7"
+    }
+  },
+  "existingProxyUpgrades": [
+    {
+      "name": "AssessmentResolver",
+      "stage": "resolver-schema-preparation",
+      "proxy": "0x0646B09bcf3993F02957651354dC267c450CFE58",
+      "currentImplementation": "0x97e91D530935618713184ED59a9b5a858eDc0304",
+      "currentImplementationCodeHash": "0x6ebfa2ad5263514c36dc5aa66230a87d55b752e649ac584d593ec611d4f12eee",
+      "currentOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "targetOwner": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      "finalArtifact": "Assessment.sol/AssessmentResolver.json",
+      "constructorArguments": ["0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458"],
+      "expectedImplementationCreationCodeHash": "0x255a3087feccc16ba39c7c7a5c4e9453c449f327864e1d5e91773494978cd1a2",
+      "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
+      "initializerPolicy": "preserve-existing-initializer-state",
+      "linkedLibraries": {}
+    },
+    {
+      "name": "GardenToken",
+      "stage": "pooling-integration-upgrades",
+      "proxy": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+      "currentImplementation": "0x9Bc05d65e323527A38e5629AA8de53446010f50b",
+      "currentImplementationCodeHash": "0xbf36d4c524ecc261cc4992d4609645b35a95db77ed31ef1bff503b6173a3b2a7",
+      "currentOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "targetOwner": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      "finalArtifact": "Garden.sol/GardenToken.json",
+      "constructorArguments": ["0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692"],
+      "expectedImplementationCreationCodeHash": "0x43a8cc1fa39f9d35595fbe7495fbeba58e1c24c4c0677a69ea14099609409f9c",
+      "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
+      "initializerPolicy": "preserve-existing-initializer-state",
+      "linkedLibraries": {
+        "src/lib/TBA.sol:TBALib": "0xc0B513c1eA2bAe5FC17b26ccc8F7c03e5aDFDAD6"
+      }
+    },
+    {
+      "name": "WorkApprovalResolver",
+      "stage": "pooling-integration-upgrades",
+      "proxy": "0x166732eD81Ab200A099215cF33F6A712309B69F7",
+      "currentImplementation": "0xb7dC6CE4400125183eA20abbB9F42ED907e39CBe",
+      "currentImplementationCodeHash": "0xf20f413d5724f3670286f922e349c8a098b8bca78e3db0323512235d7dab2e10",
+      "currentOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "targetOwner": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      "finalArtifact": "WorkApproval.sol/WorkApprovalResolver.json",
+      "constructorArguments": [
+        "0xbD75f629A22Dc1ceD33dDA0b68c546A1c035c458",
+        "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4"
+      ],
+      "expectedImplementationCreationCodeHash": "0x526eb41dae0a9732131a68fecd3d470d1986b6acb51a72f2a76219c6ce8a6ac0",
+      "implementationAddressPolicy": "sender-and-stage-nonce-bound-transaction-plan",
+      "initializerPolicy": "preserve-existing-initializer-state",
+      "linkedLibraries": {}
+    }
+  ],
+  "targets": [
+    {
+      "name": "CommitmentPoolingModule",
+      "stage": "pooling",
+      "network": "arbitrum",
+      "artifact": "CommitmentPooling.sol/CommitmentPoolingModule.json",
+      "proxy": true,
+      "initializer": "initialize(address,address)",
+      "owner": "deploymentSender",
+      "paused": true
+    },
+    {
+      "name": "CommitmentRegistry",
+      "stage": "pooling",
+      "network": "arbitrum",
+      "artifact": "Commitment.sol/CommitmentRegistry.json",
+      "proxy": true,
+      "initializer": "initialize(address,address)",
+      "owner": "deploymentSender"
+    },
+    {
+      "name": "SettlementModule",
+      "stage": "settlement-module",
+      "network": "arbitrum",
+      "artifact": "SettlementModule.sol/SettlementModule.json",
+      "proxy": true,
+      "initializer": "initialize(address,address,address,address,address)",
+      "owner": "deploymentSender",
+      "paused": true
+    },
+    {
+      "name": "CreditRegistry",
+      "stage": "credit-registry",
+      "network": "arbitrum",
+      "artifact": "Credit.sol/CreditRegistry.json",
+      "proxy": true,
+      "initializer": "initialize(address,address,address,address)",
+      "owner": "deploymentSender",
+      "paused": true
+    },
+    {
+      "name": "CeloSettlementExecutor",
+      "stage": "settlement-executor",
+      "network": "celo",
+      "artifact": "CeloSettlementExecutor.sol/CeloSettlementExecutor.json",
+      "proxy": true,
+      "initializer": "initialize(address,uint64,address,uint8)",
+      "owner": "deploymentSender",
+      "paused": true
+    }
+  ],
+  "safeAuthority": {
+    "enabled": false,
+    "safeSingleton": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+    "safeFactory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+    "gardenSafes": [],
+    "zodiacRoles": {
+      "version": "2",
+      "module": null,
+      "roleKey": null,
+      "conditionsHash": null,
+      "allowanceKey": null,
+      "canonicalTarget": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+      "canonicalSelector": "0xa9059cbb",
+      "recipientPolicy": "registered-garden-safe-only"
+    },
+    "caps": {
+      "maxTransferAmount": null,
+      "maxBatchAmount": null,
+      "maxPeriodAmount": null,
+      "periodDuration": null,
+      "maxBatchSize": null
+    },
+    "feePolicy": {
+      "mode": "disabled-until-authorized",
+      "maxFeeBps": null,
+      "maxFeeAmount": null,
+      "arbitrumReserveFloor": null,
+      "celoReserveFloor": null
+    }
+  },
+  "indexer": {
+    "activationAuthorized": false,
+    "configHash": "0xb3cfc35d0ff1152a7543c5209032ac4b118b08cbd2c916f6d62fdef0bb3b82b0",
+    "networks": [
+      {
+        "evmChainId": "42161",
+        "contract": "SettlementModule",
+        "address": "release:SettlementModule.proxy",
+        "startBlock": "receipt:SettlementModule.blockNumber",
+        "eventBoundary": "green-goods-settlement-only"
+      },
+      {
+        "evmChainId": "42220",
+        "contract": "CeloSettlementExecutor",
+        "address": "release:CeloSettlementExecutor.proxy",
+        "startBlock": "receipt:CeloSettlementExecutor.blockNumber",
+        "eventBoundary": "green-goods-settlement-only"
+      }
+    ],
+    "reindex": "full-from-release-start-block",
+    "cutover": "after-live-contract-verification",
+    "readBack": "execution-key-and-acknowledgment-convergence"
+  }
+}

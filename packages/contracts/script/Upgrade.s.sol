@@ -517,41 +517,27 @@ contract Upgrade is Script {
         wireYieldResolverGardensModule();
     }
 
-    /// @notice Upgrade the Commitment Pooling control plane and its register together
-    /// @dev The module and the register share the unit-accounting invariant: the module is the
-    ///      register's only authorized caller and the register is the module's only capacity
-    ///      ledger. Upgrading one without the other is never a valid intermediate state, so this
-    ///      grouped target is the only supported pooling upgrade path.
-    function upgradePooling() public {
-        address moduleProxy = loadProxyAddress("commitmentPoolingModule");
-        address registryProxy = loadProxyAddress("commitmentRegistry");
-        console.log("Upgrading CommitmentPoolingModule proxy at:", moduleProxy);
-        console.log("Upgrading CommitmentRegistry proxy at:", registryProxy);
+    /// @notice Upgrade the two existing integrations required by Commitment Pooling.
+    /// @dev The net-new CommitmentPoolingModule and CommitmentRegistry are deployed, never
+    ///      "upgraded". This grouped plan proves GardenToken and WorkApprovalResolver share the
+    ///      declared owner before either existing proxy is touched.
+    function upgradeCommitmentPoolingIntegrations() public {
+        upgradeGardenToken();
+        upgradeWorkApprovalResolver();
 
-        validateProxy(moduleProxy, "CommitmentPoolingModule");
-        validateProxy(registryProxy, "CommitmentRegistry");
-
-        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
-        address currentModuleImpl = address(uint160(uint256(vm.load(moduleProxy, implementationSlot))));
-        address currentRegistryImpl = address(uint160(uint256(vm.load(registryProxy, implementationSlot))));
-        console.log("Current CommitmentPoolingModule implementation:", currentModuleImpl);
-        console.log("Current CommitmentRegistry implementation:", currentRegistryImpl);
+        address poolingModule = vm.envAddress("COMMITMENT_POOLING_MODULE");
+        if (poolingModule == address(0)) revert ZeroAddress("CommitmentPoolingModule");
+        if (vm.envBool("UPGRADE_REQUIRE_LIVE_DEPENDENCIES")) {
+            validateAddress(poolingModule, "CommitmentPoolingModule");
+        }
+        address gardenTokenProxy = loadProxyAddress("gardenToken");
+        address workApprovalProxy = loadProxyAddress("workApprovalResolver");
 
         vm.startBroadcast();
-
-        CommitmentPoolingModule newModuleImpl = new CommitmentPoolingModule();
-        console.log("New CommitmentPoolingModule implementation:", address(newModuleImpl));
-        if (address(newModuleImpl) == currentModuleImpl) revert SameImplementation();
-
-        CommitmentRegistry newRegistryImpl = new CommitmentRegistry();
-        console.log("New CommitmentRegistry implementation:", address(newRegistryImpl));
-        if (address(newRegistryImpl) == currentRegistryImpl) revert SameImplementation();
-
-        UUPSUpgradeable(moduleProxy).upgradeTo(address(newModuleImpl));
-        UUPSUpgradeable(registryProxy).upgradeTo(address(newRegistryImpl));
-        console.log("Commitment Pooling upgraded successfully");
-
+        GardenToken(gardenTokenProxy).setCommitmentPoolingModule(poolingModule);
+        WorkApprovalResolver(payable(workApprovalProxy)).setCommitmentModule(poolingModule);
         vm.stopBroadcast();
+        console.log("Commitment Pooling integration reverse wiring completed");
     }
 
     /// @notice Upgrade all contracts

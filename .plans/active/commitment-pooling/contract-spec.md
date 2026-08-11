@@ -1416,15 +1416,17 @@ retry.
 | Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: protocol 3-of-5 Safe before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
 | Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | protocol 3-of-5 Safe | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
-**Ownership and release gate (2026-08-02 correction; supersedes the waiver clause in the
-2026-07-30 owner decision).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
+**Ownership and release gate (amended 2026-08-10; supersedes the 2026-08-02 external-audit,
+timelock, and soak requirements for this wave).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
 proxies currently report deployer EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`.
 That is observed state, not acceptable final authority for this lane. The
-`packages/contracts/AGENTS.md § Mainnet Additional Requirements` gate applies to the pooling tier
-without exception: before any mainnet upgrade, deployment, schema/module activation, or unpause,
-the external audit has no unresolved critical/high finding, protocol UUPS/admin authority is
-verified on the 3-of-5 Gnosis Safe, the 48-hour mainnet timelock is configured, at least two weeks
-of testnet operation are evidenced, and rollback is documented and tested. Deployment tooling may
+August 10 owner decision applies to this release wave: before any mainnet upgrade, deployment,
+schema/module activation, or unpause, the internal committed-range review has no unresolved
+Critical/High finding, protocol UUPS/admin authority is verified on protocol Safe
+`0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`, Safe multisig approval is present, the current
+local/fork/optional Ethereum Sepolia endpoint/Arbitrum One/Celo evidence ladder is satisfied for
+the authorized stage, and rollback is documented and tested. The 48-hour timelock and former
+two-week testnet soak are waived for this wave. Deployment tooling may
 use the verified live owner only for a human-authorized, fail-closed ownership-transfer transaction
 plan whose post-check proves the Safe owns every touched proxy; no later plan step may rely on the
 EOA as upgrade or administrative authority. The same gate covers CommitmentPoolingModule,
@@ -2381,9 +2383,9 @@ Never use `--update-schemas`: that mode reloads the three legacy resolvers and r
   module-before-UID rejection, registered-exact-schema inactivity while module is zero, verified
   non-zero activation/recovery replacement, initializer lock, and owner-only
   upgrade/configuration.
-- Arbitrum Sepolia registration/rehearsal precedes Arbitrum One (release-age gate posture of
-  `assertSepoliaGate`, `packages/contracts/script/deploy/badge-schemas.ts:77-81`, extended for
-  the distinct `421614` target rather than reusing `11155111`).
+- The Arbitrum One fork rehearsal precedes Arbitrum One execution. Ethereum Sepolia may be used
+  only for endpoint evidence where useful; configured `421614` release records and testnet
+  deployment artifacts are withdrawn and must not be re-added.
 - Registered before cycle 1 opens so baselines exist for seeding (register #26).
 
 ### 6.5 WorkApprovalResolver bridge (upgrade)
@@ -2462,6 +2464,13 @@ frozen/reverting-module cases, plus
 ### 7.3 Order of operations for 42161 (August)
 
 Deployment artifacts are the source of truth for addresses; pre-broadcast zero/missing addresses mean pending broadcast, post-broadcast they are blockers (root CLAUDE.md contract deployment rules).
+
+> **Amendment 2026-08-10 (current release ladder).** The Phase A release branch must not re-add
+> configured Arbitrum Sepolia or Celo Sepolia network records or testnet deployment artifacts.
+> Pooling rehearsal remains the Arbitrum One fork. Ethereum Sepolia may be used only as a labeled
+> endpoint rehearsal where useful. Production proceeds, under separate authorization for each
+> stage, to Arbitrum One and then Celo. The former two-week soak is withdrawn. Older `421614`
+> commands below are historical design context and are not operator commands for this release.
 
 > **Amendment 2026-08-06 (approved rehearsal-target change; supersedes the Arbitrum Sepolia
 > rehearsal below).** The pooling rehearsal runs on an **Arbitrum One fork**, not on `421614`.

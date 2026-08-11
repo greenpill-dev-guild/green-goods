@@ -1,10 +1,23 @@
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Interface, ZeroAddress } from "ethers";
-import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import {
+  Contract,
+  getAddress,
+  Interface,
+  isAddress,
+  JsonRpcProvider,
+  keccak256,
+  toUtf8Bytes,
+  ZeroAddress,
+} from "ethers";
+import { type ParsedOptions } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
 import { NetworkManager } from "../utils/network";
+import { mergeReleaseArtifact, writeReleaseJsonAtomic } from "../utils/release-artifacts";
+import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
+import { getFoundryBroadcastPath } from "../utils/paths";
+import { assertSepoliaGate } from "../utils/release-gate";
 import {
   type CommitmentSchemaDefinition,
   type OnChainSchemaRecord,
@@ -16,6 +29,7 @@ import {
 } from "../utils/pooling-release";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
+const GENERATED_SCHEMA_ROOT = path.join(CONTRACTS_ROOT, ".generated/release-schemas");
 
 /**
  * Addresses preparation produces. The resolver is deployed by this target now (contract-spec
@@ -39,6 +53,80 @@ const schemaRegistryInterface = new Interface([
   "function register(string schema,address resolver,bool revocable) returns (bytes32 uid)",
   "function getSchema(bytes32 uid) view returns (tuple(bytes32 uid,address resolver,bool revocable,string schema))",
 ]);
+const testimonyInterface = new Interface([
+  "function owner() view returns (address)",
+  "function schemaUID() view returns (bytes32)",
+  "function commitmentModule() view returns (address)",
+  "function setSchemaUID(bytes32 uid)",
+  "function setCommitmentModule(address module)",
+]);
+
+interface ForgeSchemaArtifact {
+  transactions?: Array<{
+    transactionType?: string;
+    contractName?: string | null;
+    contractAddress?: string | null;
+    function?: string | null;
+    transaction?: {
+      from?: string;
+      to?: string;
+      nonce?: string;
+      input?: string;
+      value?: string;
+    };
+  }>;
+}
+
+interface PersistedSchemaPlan {
+  schemaVersion: 1;
+  releaseId: string;
+  manifestHash: string;
+  sourceCommit: string;
+  mode: "preparation" | "finalization";
+  network: string;
+  chainId: number;
+  sender: string;
+  expectedNonce: number;
+  schemaRegistry: string;
+  testimonyResolver: string;
+  testimonyResolverImpl: string;
+  commitmentPoolingModule: string | null;
+  pinnedCommunityTestimonyUID: string;
+  schemas: Array<{
+    key: string;
+    uid: string;
+    schema: string;
+    resolver: string;
+    revocable: boolean;
+    name: string;
+    description: string;
+  }>;
+  transactions: Array<{
+    index: number;
+    from: string;
+    to: string;
+    nonce: number;
+    data: string;
+    value: string;
+    kind: "CREATE2_IMPLEMENTATION" | "CREATE2_PROXY" | "REGISTER_SCHEMA" | "PIN_UID" | "ACTIVATE_RESOLVER";
+    expectedAddress?: string;
+    expectedUID?: string;
+    resumableState: string;
+  }>;
+  transactionBoundaryRule: string;
+  canonicalArtifactMutation: false;
+}
+
+interface SchemaCheckpoint {
+  schemaVersion: 1;
+  planHash: string;
+  completed: Array<{
+    step: number;
+    transactionHash: string;
+    blockNumber: number;
+    verifiedAt: string;
+  }>;
+}
 
 /**
  * Registers or reconciles the two additive EAS schemas this lane owns: assessment v3 and
@@ -60,10 +148,29 @@ export class CommitmentSchemasDeployer {
   }
 
   async deployCommitmentSchemas(options: ParsedOptions): Promise<void> {
+    if (options.broadcast && options.transactionPlan) {
+      throw new Error("--broadcast and --tx-plan are mutually exclusive");
+    }
+    if (
+      options.broadcast &&
+      (!options.artifactPath ||
+        options.releaseStep === undefined ||
+        options.expectedNonce === undefined ||
+        !options.sender)
+    ) {
+      throw new Error("Schema broadcast requires --artifact <reviewed-plan>, --step, --expected-nonce, and --sender");
+    }
+    if (options.transactionPlan && (!options.sender || options.expectedNonce === undefined)) {
+      throw new Error("Commitment schema transaction planning requires --sender and --expected-nonce");
+    }
     const networkConfig = this.networkManager.getNetwork(options.network);
     const chainId = this.networkManager.getChainIdString(options.network);
     const deployment = this.deploymentAddresses.loadForChain(options.network) as Record<string, unknown>;
     const schemaRegistry = this.resolveSchemaRegistry(options.network, deployment);
+    if (options.broadcast) {
+      await this.executeTransactionBoundary(options, Number(chainId));
+      return;
+    }
     // The two modes own different registrations. Preparation registers AssessmentV3 and only PINS
     // the Community Testimony UID; its record belongs to finalization, after the module exists and
     // has been verified (contract-spec §6.4.4). Planning both here would advertise a registration
@@ -87,13 +194,13 @@ export class CommitmentSchemasDeployer {
 
     const plans = definitions.map((definition) => this.planFor(definition, deployment, schemaRegistry, options));
 
-    if (!options.broadcast) {
-      this.printPlan(definitions, plans, chainId);
-      if (!options.finalizeCommunityTestimony) this.printPredictedResolver(options);
+    if (options.transactionPlan) {
+      await this.persistTransactionPlan(options, Number(chainId), schemaRegistry, definitions, plans, deployment);
       return;
     }
 
-    this.broadcast(options, chainId, schemaRegistry, definitions, plans);
+    this.printPlan(definitions, plans, chainId);
+    if (!options.finalizeCommunityTestimony) this.printPredictedResolver(options);
   }
 
   private planFor(
@@ -115,11 +222,7 @@ export class CommitmentSchemasDeployer {
     return planSchemaRegistration(input, existing);
   }
 
-  /**
-   * Read the live record under the deterministic UID. An unreachable RPC returns null rather than
-   * throwing here: dry runs must stay usable offline, and a broadcast repeats this read through
-   * the registry itself, which reverts `AlreadyExists` on a duplicate.
-   */
+  /** Read the live record under the deterministic UID; only --pure-simulation may skip RPC proof. */
   private readSchemaRecord(
     network: string,
     schemaRegistry: string,
@@ -130,12 +233,16 @@ export class CommitmentSchemasDeployer {
     let rpcUrl: string;
     try {
       rpcUrl = this.networkManager.getRpcUrl(network);
-    } catch {
-      return null;
+    } catch (error) {
+      throw new Error(
+        `Could not read the exact live schema record on ${network}; use --pure-simulation for an RPC-free plan: ` +
+          `${error instanceof Error ? error.message.split("\n")[0] : String(error)}`,
+      );
     }
 
+    let raw: string;
     try {
-      const raw = execFileSync(
+      raw = execFileSync(
         "cast",
         [
           "call",
@@ -145,12 +252,15 @@ export class CommitmentSchemasDeployer {
           "--rpc-url",
           rpcUrl,
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
       ).trim();
-      return this.parseSchemaRecord(raw);
-    } catch {
-      return null;
+    } catch (error) {
+      throw new Error(
+        `Could not read the exact live schema record on ${network}; use --pure-simulation only for an RPC-free preview: ` +
+          `${error instanceof Error ? error.message.split("\n")[0] : String(error)}`,
+      );
     }
+    return this.parseSchemaRecord(raw);
   }
 
   /** `cast call` renders a struct as `(uid, resolver, revocable, "schema")`. */
@@ -194,9 +304,14 @@ export class CommitmentSchemasDeployer {
    * failure: a dry run's job is to stay usable before a signer or a node exists.
    */
   private printPredictedResolver(options: ParsedOptions): void {
+    const preparation = loadReleaseManifest().schemaPreparation;
+    console.log("\nFrozen TestimonyResolver identities (no transactions sent):");
+    console.log(`  implementation: ${preparation.expected.implementation}`);
+    console.log(`  proxy:          ${preparation.expected.proxy}`);
+    console.log(`  implementation salt: ${preparation.create2.implementationSalt}`);
+    console.log(`  proxy salt:          ${preparation.create2.proxySalt}`);
     if (options.pureSimulation) {
-      console.log("\nPredicted resolver addresses unavailable: --pure-simulation makes no RPC calls.");
-      console.log("Re-run without it to see the CREATE2 pair before broadcasting.");
+      console.log("  live compatibility preflight: deferred; --pure-simulation makes no RPC calls");
       return;
     }
 
@@ -233,50 +348,450 @@ export class CommitmentSchemasDeployer {
             /^0x[0-9a-f]{64}$/i.test(line.trim()),
         )
         .forEach((line) => console.log(`  ${line.trim()}`));
-    } catch (error) {
-      // Not fatal: the prediction is operator information, and the broadcast recomputes it anyway.
-      // Loud, though — a failing preflight here is exactly what a dry run is meant to surface.
-      console.log("\nCould not preview the resolver addresses. The preparation preflight may be failing:");
-      console.log(`  ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+    } catch {
+      throw new Error(
+        "Live schema preparation preflight failed. The existing AssessmentResolver must be upgraded and verified " +
+          "before this dependent dry-run can be green.",
+      );
     }
   }
 
-  private broadcast(
+  private async persistTransactionPlan(
     options: ParsedOptions,
-    chainId: string,
+    chainId: number,
     schemaRegistry: string,
     definitions: CommitmentSchemaDefinition[],
     plans: SchemaRegistrationPlan[],
-  ): void {
+    deployment: Record<string, unknown>,
+  ): Promise<void> {
+    if (options.pureSimulation || options.broadcast) {
+      throw new Error("--tx-plan cannot be combined with --pure-simulation or --broadcast");
+    }
+    if (!options.sender || options.expectedNonce === undefined) {
+      throw new Error("Commitment schema transaction planning requires --sender and --expected-nonce");
+    }
+    const manifest = loadReleaseManifest();
+    const lock = buildReleaseLock(manifest);
+    if (getAddress(options.sender) !== getAddress(manifest.ownership.deploymentSender)) {
+      throw new Error(`Schema plan sender must equal ${manifest.ownership.deploymentSender}`);
+    }
     const rpcUrl = this.networkManager.getRpcUrl(options.network);
+    const provider = new JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
+    const pendingNonce = await provider.getTransactionCount(options.sender, "pending");
+    if (pendingNonce !== options.expectedNonce) {
+      throw new Error(`Nonce drift: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`);
+    }
+    const mode = options.finalizeCommunityTestimony ? "finalization" : "preparation";
+    const outputDirectory = path.join(GENERATED_SCHEMA_ROOT, mode, "simulation-output");
+    fs.mkdirSync(outputDirectory, { recursive: true });
+    const artifactPath = getFoundryBroadcastPath(
+      "DeployCommitmentSchemas.s.sol",
+      String(chainId),
+      "dry-run",
+      "run-latest.json",
+    );
+    const startedAt = Date.now();
     const args = [
       "script",
       "script/DeployCommitmentSchemas.s.sol:DeployCommitmentSchemas",
       ...(options.finalizeCommunityTestimony ? ["--sig", "finalizeCommunityTestimony()"] : []),
       "--chain-id",
-      chainId,
+      String(chainId),
       "--rpc-url",
       rpcUrl,
-      "--broadcast",
+      "--sender",
+      options.sender,
     ];
-
-    const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
-    args.push("--account", keystoreName);
-    const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
-    if (senderAddress) args.push("--sender", senderAddress);
-
-    console.log(`\nUsing Foundry keystore: ${keystoreName}`);
-    console.log(`SchemaRegistry: ${schemaRegistry}`);
-    plans.forEach((plan) => console.log(`  ${plan.key}: ${plan.action} -> ${plan.uid}`));
-    console.log("forge", redactSensitiveArgs(args).join(" "));
-
+    console.log(`Building the Bun-wrapped ${mode} transaction plan; no transactions will be broadcast`);
     execFileSync("forge", args, {
-      stdio: "inherit",
       cwd: CONTRACTS_ROOT,
-      env: { ...process.env, FOUNDRY_PROFILE: "production", FORGE_BROADCAST: "true" },
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        FOUNDRY_PROFILE: "production",
+        DEPLOYMENT_OUTPUT_DIR: outputDirectory,
+      },
     });
+    if (!fs.existsSync(artifactPath) || fs.statSync(artifactPath).mtimeMs + 1_000 < startedAt) {
+      throw new Error(`Fresh schema simulation artifact was not produced: ${artifactPath}`);
+    }
+    const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8")) as ForgeSchemaArtifact;
+    const preparation = manifest.schemaPreparation;
+    const testimonyResolver = getAddress(preparation.expected.proxy);
+    const testimonyResolverImpl = getAddress(preparation.expected.implementation);
+    const communityDefinition = loadCommitmentSchemas().find((definition) => definition.key === "communityTestimony");
+    if (!communityDefinition) throw new Error("Community Testimony schema definition is missing");
+    const pinnedCommunityTestimonyUID = computeSchemaUID(
+      schemaString(communityDefinition.fields),
+      testimonyResolver,
+      communityDefinition.revocable,
+    );
+    const commitmentPoolingModule =
+      typeof deployment.commitmentPoolingModule === "string" && isAddress(deployment.commitmentPoolingModule)
+        ? getAddress(deployment.commitmentPoolingModule)
+        : null;
+    if (options.finalizeCommunityTestimony && !commitmentPoolingModule) {
+      throw new Error("Finalization planning requires the verified commitmentPoolingModule artifact");
+    }
 
-    this.mergeIntoDeployment(chainId, definitions, plans, options);
+    const rawTransactions = artifact.transactions ?? [];
+    const transactions: PersistedSchemaPlan["transactions"] = rawTransactions.map((entry, index) => {
+      const from = entry.transaction?.from;
+      const to = entry.transaction?.to;
+      const nonceValue = entry.transaction?.nonce;
+      const data = entry.transaction?.input;
+      if (!from || !isAddress(from) || !to || !isAddress(to) || typeof data !== "string" || !data.startsWith("0x")) {
+        throw new Error(`Schema simulation transaction ${index + 1} is incomplete`);
+      }
+      const nonce =
+        typeof nonceValue === "string" && /^0x[0-9a-f]+$/iu.test(nonceValue)
+          ? Number(BigInt(nonceValue))
+          : Number(nonceValue);
+      if (!Number.isSafeInteger(nonce) || nonce !== options.expectedNonce! + index) {
+        throw new Error(`Schema simulation nonce drift at transaction ${index + 1}`);
+      }
+      let kind: PersistedSchemaPlan["transactions"][number]["kind"];
+      let expectedAddress: string | undefined;
+      let expectedUID: string | undefined;
+      const target = getAddress(to);
+      if (getAddress(from) !== getAddress(options.sender!)) {
+        throw new Error(`Schema simulation sender drift at transaction ${index + 1}`);
+      }
+      if (BigInt(entry.transaction?.value ?? "0x0") !== 0n) {
+        throw new Error(`Schema simulation unexpectedly moves value at transaction ${index + 1}`);
+      }
+      if (target === getAddress(preparation.create2.factory)) {
+        const salt = `0x${data.slice(2, 66)}`.toLowerCase();
+        if (salt === preparation.create2.implementationSalt.toLowerCase()) {
+          kind = "CREATE2_IMPLEMENTATION";
+          expectedAddress = testimonyResolverImpl;
+          if (keccak256(`0x${data.slice(66)}`) !== preparation.expected.implementationCreationCodeHash) {
+            throw new Error("TestimonyResolver implementation creation code differs from the frozen manifest");
+          }
+        } else if (salt === preparation.create2.proxySalt.toLowerCase()) {
+          kind = "CREATE2_PROXY";
+          expectedAddress = testimonyResolver;
+          if (keccak256(`0x${data.slice(66)}`) !== preparation.expected.proxyCreationCodeHash) {
+            throw new Error("TestimonyResolver proxy creation code differs from the frozen manifest");
+          }
+        } else {
+          throw new Error(`Schema simulation uses an unreviewed CREATE2 salt at transaction ${index + 1}`);
+        }
+      } else if (
+        target === getAddress(schemaRegistry) &&
+        data.startsWith(schemaRegistryInterface.getFunction("register")!.selector)
+      ) {
+        kind = "REGISTER_SCHEMA";
+        const decoded = schemaRegistryInterface.decodeFunctionData("register", data);
+        expectedUID = computeSchemaUID(String(decoded[0]), getAddress(decoded[1] as string), Boolean(decoded[2]));
+        const plannedUIDs = new Set(plans.map((plan) => plan.uid.toLowerCase()));
+        if (!plannedUIDs.has(expectedUID.toLowerCase())) {
+          throw new Error(`Schema simulation registers unreviewed UID ${expectedUID}`);
+        }
+      } else if (
+        target === testimonyResolver &&
+        data.startsWith(testimonyInterface.getFunction("setSchemaUID")!.selector)
+      ) {
+        kind = "PIN_UID";
+        expectedUID = String(testimonyInterface.decodeFunctionData("setSchemaUID", data)[0]);
+        if (expectedUID.toLowerCase() !== pinnedCommunityTestimonyUID.toLowerCase()) {
+          throw new Error("Schema simulation pins a Community Testimony UID that differs from the frozen definition");
+        }
+      } else if (
+        target === testimonyResolver &&
+        data.startsWith(testimonyInterface.getFunction("setCommitmentModule")!.selector)
+      ) {
+        kind = "ACTIVATE_RESOLVER";
+        const module = getAddress(testimonyInterface.decodeFunctionData("setCommitmentModule", data)[0] as string);
+        if (!commitmentPoolingModule || module !== commitmentPoolingModule) {
+          throw new Error("Schema simulation activates an unreviewed CommitmentPoolingModule");
+        }
+      } else {
+        throw new Error(`Schema simulation contains an unclassified transaction ${index + 1} to ${target}`);
+      }
+      return {
+        index: index + 1,
+        from: getAddress(from),
+        to: target,
+        nonce,
+        data,
+        value: entry.transaction?.value ?? "0x0",
+        kind,
+        expectedAddress,
+        expectedUID,
+        resumableState:
+          "The exact on-chain postcondition is satisfied or absent; a conflicting record, owner, module, salt, or code identity fails closed.",
+      };
+    });
+    if (transactions.length === 0) {
+      throw new Error(
+        `${mode} is already satisfied; use the post-deploy verifier/recovery path instead of an empty broadcast plan`,
+      );
+    }
+    const schemaEntries = definitions.map((definition, index) => ({
+      key: definition.key,
+      uid: plans[index].uid,
+      schema: schemaString(definition.fields),
+      resolver: this.resolveResolver(definition.key, deployment),
+      revocable: definition.revocable,
+      name: definition.name,
+      description: definition.description,
+    }));
+    const plan: PersistedSchemaPlan = {
+      schemaVersion: 1,
+      releaseId: manifest.releaseId,
+      manifestHash: lock.manifestHash,
+      sourceCommit: lock.sourceCommit,
+      mode,
+      network: options.network,
+      chainId,
+      sender: getAddress(options.sender),
+      expectedNonce: options.expectedNonce,
+      schemaRegistry: getAddress(schemaRegistry),
+      testimonyResolver,
+      testimonyResolverImpl,
+      commitmentPoolingModule,
+      pinnedCommunityTestimonyUID,
+      schemas: schemaEntries,
+      transactions,
+      transactionBoundaryRule:
+        "Execute and verify exactly one nonce-pinned transaction; do not continue until its receipt and live post-state are checkpointed.",
+      canonicalArtifactMutation: false,
+    };
+    const planPath = path.join(GENERATED_SCHEMA_ROOT, mode, `${chainId}-${mode}-transaction-plan.json`);
+    writeReleaseJsonAtomic(planPath, plan);
+    console.log(`${JSON.stringify(plan, null, 2)}\n`);
+    console.log(`Exact schema transaction plan: ${planPath}`);
+    console.log("Canonical deployment artifact was not mutated");
+  }
+
+  private async executeTransactionBoundary(options: ParsedOptions, chainId: number): Promise<void> {
+    if (
+      !options.artifactPath ||
+      options.releaseStep === undefined ||
+      options.expectedNonce === undefined ||
+      !options.sender
+    ) {
+      throw new Error("Schema broadcast requires --artifact <reviewed-plan>, --step, --expected-nonce, and --sender");
+    }
+    assertSepoliaGate({
+      network: options.network,
+      broadcast: true,
+      overrideSepoliaGate: options.overrideSepoliaGate,
+    });
+    const planPath = path.resolve(CONTRACTS_ROOT, options.artifactPath);
+    if (!fs.existsSync(planPath)) throw new Error(`Reviewed schema plan not found: ${planPath}`);
+    const plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as PersistedSchemaPlan;
+    const manifest = loadReleaseManifest();
+    const lock = buildReleaseLock(manifest);
+    if (
+      plan.schemaVersion !== 1 ||
+      plan.releaseId !== manifest.releaseId ||
+      plan.manifestHash !== lock.manifestHash ||
+      plan.network !== options.network ||
+      plan.chainId !== chainId ||
+      plan.mode !== (options.finalizeCommunityTestimony ? "finalization" : "preparation") ||
+      getAddress(plan.sender) !== getAddress(options.sender)
+    ) {
+      throw new Error("Schema plan does not match the frozen release, mode, chain, or sender");
+    }
+    const boundary = plan.transactions[options.releaseStep - 1];
+    if (!boundary || boundary.index !== options.releaseStep) {
+      throw new Error(`Schema plan has no boundary ${options.releaseStep}`);
+    }
+    if (boundary.nonce !== options.expectedNonce) {
+      throw new Error(`Schema boundary nonce is ${boundary.nonce}, not ${options.expectedNonce}`);
+    }
+    const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
+    const planHash = keccak256(toUtf8Bytes(`${JSON.stringify(plan, null, 2)}\n`));
+    const checkpoint: SchemaCheckpoint = fs.existsSync(checkpointPath)
+      ? (JSON.parse(fs.readFileSync(checkpointPath, "utf8")) as SchemaCheckpoint)
+      : { schemaVersion: 1, planHash, completed: [] };
+    if (checkpoint.planHash !== planHash) throw new Error("Schema checkpoint belongs to a different reviewed plan");
+    if (options.releaseStep > 1 && !checkpoint.completed.some((entry) => entry.step === options.releaseStep! - 1)) {
+      throw new Error(`Schema boundary ${options.releaseStep - 1} has no verified checkpoint`);
+    }
+
+    const rpcUrl = this.networkManager.getRpcUrl(options.network);
+    const provider = new JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
+    const prior = checkpoint.completed.find((entry) => entry.step === options.releaseStep);
+    let transactionHash = prior?.transactionHash ?? options.receiptHash;
+    if (!transactionHash) {
+      const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
+      if (pendingNonce !== boundary.nonce) {
+        throw new Error(
+          `Nonce drift: boundary expects ${boundary.nonce}, live pending nonce is ${pendingNonce}; use --receipt only for an exact mined recovery`,
+        );
+      }
+      const result = JSON.parse(
+        execFileSync(
+          "cast",
+          [
+            "send",
+            boundary.to,
+            boundary.data,
+            "--chain",
+            String(chainId),
+            "--nonce",
+            String(boundary.nonce),
+            "--account",
+            manifest.ownership.deploymentKeystore,
+            "--rpc-url",
+            rpcUrl,
+            "--json",
+          ],
+          { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+        ),
+      ) as Record<string, unknown>;
+      if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
+        throw new Error("Bun-wrapped schema boundary returned no transaction hash");
+      }
+      transactionHash = result.transactionHash;
+    }
+    const transaction = await provider.getTransaction(transactionHash);
+    const receipt = await provider.getTransactionReceipt(transactionHash);
+    if (!transaction || !receipt || receipt.status !== 1)
+      throw new Error(`Schema receipt ${transactionHash} is unavailable or failed`);
+    if (
+      getAddress(transaction.from) !== getAddress(plan.sender) ||
+      !transaction.to ||
+      getAddress(transaction.to) !== getAddress(boundary.to) ||
+      transaction.data.toLowerCase() !== boundary.data.toLowerCase() ||
+      transaction.nonce !== boundary.nonce
+    ) {
+      throw new Error(`Schema receipt ${transactionHash} differs from the reviewed boundary`);
+    }
+    await this.verifySchemaBoundary(provider, plan, boundary);
+    if (!prior) {
+      checkpoint.completed.push({
+        step: options.releaseStep,
+        transactionHash,
+        blockNumber: receipt.blockNumber,
+        verifiedAt: new Date().toISOString(),
+      });
+      writeReleaseJsonAtomic(checkpointPath, checkpoint);
+    }
+    if (options.releaseStep === plan.transactions.length) {
+      await this.verifyCompleteSchemaPlan(provider, plan);
+      this.promoteVerifiedSchemaPlan(plan);
+    }
+    console.log(
+      prior
+        ? `Schema boundary ${options.releaseStep} was already verified; no replay transaction was sent`
+        : `Schema boundary ${options.releaseStep} receipt and post-state verified; checkpoint written atomically`,
+    );
+  }
+
+  private async verifySchemaBoundary(
+    provider: JsonRpcProvider,
+    plan: PersistedSchemaPlan,
+    boundary: PersistedSchemaPlan["transactions"][number],
+  ): Promise<void> {
+    if (boundary.kind === "CREATE2_IMPLEMENTATION" || boundary.kind === "CREATE2_PROXY") {
+      if (!boundary.expectedAddress || (await provider.getCode(boundary.expectedAddress)) === "0x") {
+        throw new Error(`No code exists at the predicted ${boundary.kind} address`);
+      }
+      if (boundary.kind === "CREATE2_PROXY") {
+        const implementationSlot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+        const stored = await provider.getStorage(boundary.expectedAddress, implementationSlot);
+        if (getAddress(`0x${stored.slice(-40)}`) !== getAddress(plan.testimonyResolverImpl)) {
+          throw new Error("TestimonyResolver proxy implementation slot mismatch");
+        }
+        const owner = getAddress(await new Contract(boundary.expectedAddress, testimonyInterface, provider).owner());
+        if (owner !== getAddress(plan.sender)) throw new Error("TestimonyResolver proxy owner mismatch");
+      }
+      return;
+    }
+    if (boundary.kind === "REGISTER_SCHEMA") {
+      if (!boundary.expectedUID) throw new Error("Schema registration boundary has no expected UID");
+      const record = await new Contract(plan.schemaRegistry, schemaRegistryInterface, provider).getSchema(
+        boundary.expectedUID,
+      );
+      if (String(record.uid).toLowerCase() !== boundary.expectedUID.toLowerCase()) {
+        throw new Error(`Schema record ${boundary.expectedUID} was not stored`);
+      }
+      return;
+    }
+    const resolver = new Contract(plan.testimonyResolver, testimonyInterface, provider);
+    if (boundary.kind === "PIN_UID") {
+      if (String(await resolver.schemaUID()).toLowerCase() !== plan.pinnedCommunityTestimonyUID.toLowerCase()) {
+        throw new Error("Community Testimony UID pin did not reach the exact frozen value");
+      }
+      if (getAddress(await resolver.commitmentModule()) !== ZeroAddress) {
+        throw new Error("Preparation unexpectedly activated the Community Testimony resolver");
+      }
+      return;
+    }
+    if (!plan.commitmentPoolingModule) throw new Error("Finalization plan has no CommitmentPoolingModule");
+    if (getAddress(await resolver.commitmentModule()) !== getAddress(plan.commitmentPoolingModule)) {
+      throw new Error("Community Testimony resolver activation post-state mismatch");
+    }
+  }
+
+  private async verifyCompleteSchemaPlan(provider: JsonRpcProvider, plan: PersistedSchemaPlan): Promise<void> {
+    if (
+      (await provider.getCode(plan.testimonyResolverImpl)) === "0x" ||
+      (await provider.getCode(plan.testimonyResolver)) === "0x"
+    ) {
+      throw new Error("TestimonyResolver implementation/proxy pair is incomplete");
+    }
+    const implementationSlot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+    const stored = await provider.getStorage(plan.testimonyResolver, implementationSlot);
+    if (getAddress(`0x${stored.slice(-40)}`) !== getAddress(plan.testimonyResolverImpl)) {
+      throw new Error("TestimonyResolver implementation slot differs from the reviewed plan");
+    }
+    const resolver = new Contract(plan.testimonyResolver, testimonyInterface, provider);
+    if (getAddress(await resolver.owner()) !== getAddress(plan.sender))
+      throw new Error("TestimonyResolver owner drift");
+    if (String(await resolver.schemaUID()).toLowerCase() !== plan.pinnedCommunityTestimonyUID.toLowerCase()) {
+      throw new Error("Community Testimony UID pin drift");
+    }
+    const expectedModule = plan.mode === "finalization" ? plan.commitmentPoolingModule : ZeroAddress;
+    if (!expectedModule || getAddress(await resolver.commitmentModule()) !== getAddress(expectedModule)) {
+      throw new Error("Community Testimony activation state differs from the reviewed mode");
+    }
+    const registry = new Contract(plan.schemaRegistry, schemaRegistryInterface, provider);
+    for (const schema of plan.schemas) {
+      const record = await registry.getSchema(schema.uid);
+      if (
+        String(record.uid).toLowerCase() !== schema.uid.toLowerCase() ||
+        getAddress(record.resolver) !== getAddress(schema.resolver) ||
+        Boolean(record.revocable) !== schema.revocable ||
+        String(record.schema) !== schema.schema
+      ) {
+        throw new Error(`Exact schema record verification failed for ${schema.key}`);
+      }
+    }
+  }
+
+  private promoteVerifiedSchemaPlan(plan: PersistedSchemaPlan): void {
+    const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${plan.chainId}-latest.json`);
+    const promotionPath = path.join(GENERATED_SCHEMA_ROOT, plan.mode, `${plan.chainId}-${plan.mode}-promotion.json`);
+    const promotion: Record<string, unknown> = { schemas: {} };
+    const schemas = promotion.schemas as Record<string, unknown>;
+    const ownedKeys: string[] = [];
+    for (const schema of plan.schemas) {
+      const artifactKey = ARTIFACT_KEYS[schema.key];
+      if (!artifactKey) throw new Error(`No canonical artifact key for ${schema.key}`);
+      schemas[artifactKey] = schema.uid;
+      schemas[`${schema.key}Schema`] = schema.schema;
+      schemas[`${schema.key}Name`] = schema.name;
+      schemas[`${schema.key}Description`] = schema.description;
+      ownedKeys.push(
+        `schemas.${artifactKey}`,
+        `schemas.${schema.key}Schema`,
+        `schemas.${schema.key}Name`,
+        `schemas.${schema.key}Description`,
+      );
+    }
+    if (plan.mode === "preparation") {
+      promotion.testimonyResolver = plan.testimonyResolver;
+      promotion.testimonyResolverImpl = plan.testimonyResolverImpl;
+      ownedKeys.push(...PREPARATION_KEYS);
+    }
+    writeReleaseJsonAtomic(promotionPath, promotion);
+    mergeReleaseArtifact({ canonicalPath, sidePath: promotionPath, ownedKeys });
+    console.log(`Verified ${plan.mode} artifact promoted without overwriting historical deployment keys`);
   }
 
   /**
@@ -286,7 +801,7 @@ export class CommitmentSchemasDeployer {
    * now. Its side file is the recovery record: a run whose transaction mined but whose merge
    * failed re-runs to the same CREATE2 addresses and rewrites the same values.
    */
-  private mergeIntoDeployment(
+  mergeIntoDeployment(
     chainId: string,
     definitions: CommitmentSchemaDefinition[],
     plans: SchemaRegistrationPlan[],
@@ -297,30 +812,45 @@ export class CommitmentSchemasDeployer {
       throw new Error(`Main deployment file not found: ${mainDeploymentPath}`);
     }
 
-    const deployment = JSON.parse(fs.readFileSync(mainDeploymentPath, "utf8")) as Record<string, unknown>;
-    const schemas =
-      typeof deployment.schemas === "object" && deployment.schemas !== null
-        ? (deployment.schemas as Record<string, unknown>)
-        : {};
+    const promotionPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-commitment-schema-promotion.json`);
+    const promotion: Record<string, unknown> = { schemas: {} };
+    const schemas = promotion.schemas as Record<string, unknown>;
+    const ownedPaths: string[] = [];
 
     definitions.forEach((definition, index) => {
-      schemas[ARTIFACT_KEYS[definition.key]] = plans[index].uid;
-      schemas[`${definition.key}Schema`] = schemaString(definition.fields);
+      const keys = [
+        ARTIFACT_KEYS[definition.key],
+        `${definition.key}Schema`,
+        `${definition.key}Name`,
+        `${definition.key}Description`,
+      ];
+      schemas[keys[0]] = plans[index].uid;
+      schemas[keys[1]] = schemaString(definition.fields);
       // §6.4.4 lists `*Name` and `*Description` beside the UID and schema string, and every schema
       // already in the artifact carries all four. Omitting them left these two the only entries an
       // operator could not identify without reading config/schemas.json.
-      schemas[`${definition.key}Name`] = definition.name;
-      schemas[`${definition.key}Description`] = definition.description;
+      schemas[keys[2]] = definition.name;
+      schemas[keys[3]] = definition.description;
+      ownedPaths.push(...keys.map((key) => `schemas.${key}`));
     });
-    deployment.schemas = schemas;
 
+    let recoverySidePath: string;
     if (options.finalizeCommunityTestimony) {
-      this.assertFinalizationSideFileAgrees(chainId, plans);
+      recoverySidePath = this.assertFinalizationSideFileAgrees(chainId, plans);
     } else {
-      this.mergePreparedResolver(chainId, deployment);
+      const prepared = this.readPreparedResolver(chainId);
+      Object.assign(promotion, prepared.values);
+      ownedPaths.push(...PREPARATION_KEYS);
+      recoverySidePath = prepared.path;
     }
 
-    fs.writeFileSync(mainDeploymentPath, `${JSON.stringify(deployment, null, 2)}\n`);
+    fs.writeFileSync(promotionPath, `${JSON.stringify(promotion, null, 2)}\n`, { mode: 0o600 });
+    mergeReleaseArtifact({
+      canonicalPath: mainDeploymentPath,
+      sidePath: promotionPath,
+      ownedKeys: ownedPaths,
+    });
+    if (fs.existsSync(recoverySidePath)) fs.unlinkSync(recoverySidePath);
     console.log(`\nMerged commitment schema UIDs into ${path.basename(mainDeploymentPath)}`);
     plans.forEach((plan) => console.log(`  ${plan.key}: ${plan.uid}`));
   }
@@ -338,7 +868,7 @@ export class CommitmentSchemasDeployer {
    * Previously this file was written and never read, while the script's own comment claimed the
    * CLI promoted the key from it.
    */
-  private assertFinalizationSideFileAgrees(chainId: string, plans: SchemaRegistrationPlan[]): void {
+  private assertFinalizationSideFileAgrees(chainId: string, plans: SchemaRegistrationPlan[]): string {
     const finalPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-commitment-schemas-final.json`);
     if (!fs.existsSync(finalPath)) {
       throw new Error(
@@ -362,22 +892,29 @@ export class CommitmentSchemasDeployer {
           "artifact until the divergence is explained.",
       );
     }
+    return finalPath;
   }
 
-  /** Promote the resolver addresses preparation deployed, from its side file. */
-  private mergePreparedResolver(chainId: string, deployment: Record<string, unknown>): void {
+  /** Read and validate resolver addresses preparation deployed, without mutating canonical state. */
+  private readPreparedResolver(chainId: string): { path: string; values: Record<string, unknown> } {
     const preparedPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-commitment-schemas-prepared.json`);
-    if (!fs.existsSync(preparedPath)) return;
+    if (!fs.existsSync(preparedPath)) {
+      throw new Error(
+        `Preparation side file not found: ${preparedPath}. Recover the deterministic on-chain resolver pair before promotion.`,
+      );
+    }
 
     const prepared = JSON.parse(fs.readFileSync(preparedPath, "utf8")) as Record<string, unknown>;
+    const values: Record<string, unknown> = {};
     PREPARATION_KEYS.forEach((key) => {
       const value = prepared[key];
       if (typeof value !== "string" || !value.startsWith("0x") || /^0x0+$/i.test(value)) {
         throw new Error(`Preparation result is missing ${key}; refusing to record a partial deployment`);
       }
-      deployment[key] = value;
+      values[key] = value;
       console.log(`  ${key}: ${value}`);
     });
+    return { path: preparedPath, values };
   }
 
   private resolveResolver(key: string, deployment: Record<string, unknown>): string {

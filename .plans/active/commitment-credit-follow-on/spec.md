@@ -172,7 +172,7 @@ On-chain hard states: `Requested → Approved → Disbursed → Repaid / Default
 Split-state, no bridge (`../../active/commitment-pooling/settlement-spec.md:15`): commitment and loan truth stay on Arbitrum; only value legs move on Celo. The asymmetry is the crux — **G$ disbursement can ride the `SettlementModule`, but G$ repayment cannot** (there is no upward disbursement primitive and no bridge).
 
 - **Disbursement (down, has a rail):** a current pool steward calls `SettlementModule.queueLoanPrincipal(loanId)`. The configured registry and Approved loan determine the pool garden, active garden Safe, borrower, canonical G$, principal, and persistent loan relationship. `commitmentId` and `payoutPlanId` stay zero because this is neither consideration nor a payout-plan child. Only an authenticated `Confirmed` settlement child can later be recorded by `CreditRegistry`; its reference is the domain-separated `keccak256(abi.encode(executionKey, disbursementId))`, which stays unique even when multiple loan children share one batch execution key. The former generic `commitmentId == 0` alternative remains rejected.
-- **Repayment (up, no disbursement primitive):** **record-only on Arbitrum** — the member sends G$ back to the garden Safe on Celo as an explicit online wallet action; the module never moves G$ or calls Celo. The pre-dispatch interface-revalidation gate must freeze a bounded authenticated repayment-receipt policy compatible with the implemented settlement architecture. Chainlink Functions is retired and is not an available verifier. `recordRepayment` cannot count a human-reported hash by itself, and there is no human verification fallback. If no bounded policy passes the revalidation plus legal/operations gates, stage 3 must leave the SettlementModule's CreditRegistry dependency unset so G$ principal cannot queue or disburse; Jar/Treasury borrow-and-repay can still proceed through the registry's records-only paths. **No bridge value authority is introduced.**
+- **Repayment (up, no disbursement primitive):** **record-only on Arbitrum** — the member sends G$ back to the garden Safe on Celo as an explicit online wallet action; the module never moves G$ or calls Celo. The pre-dispatch interface-revalidation gate must freeze a bounded authenticated repayment-receipt policy compatible with the implemented settlement architecture. Chainlink Functions is retired and is not an available verifier. `recordRepayment` cannot count a human-reported hash by itself, and there is no human verification fallback. The August 10 owner decision requires stage 3 to bind SettlementModule and CreditRegistry in both directions because the merged CreditRegistry cannot unpause unless that dependency is exact. G$ credit remains disabled by leaving every G$ pool credit configuration absent or disabled, and G$ repayment continues to revert `GDollarRepaymentDisabled` until a bounded authenticated receipt policy passes the revalidation plus legal/operations gates. Jar/Treasury borrow-and-repay can proceed through the registry's records-only paths. **No bridge value authority is introduced.**
 - **Status precedence:** a loan is not a reward, so credit adds a parallel, non-overlapping axis to the reward-status precedence (`../../active/commitment-pooling/settlement-spec.md:99`); the shared selector presents "loan status" and "reward status" as distinct rows on a commitment that has both.
 
 ## 6. Indexer
@@ -207,14 +207,19 @@ Credit stats use **numerator/denominator only** (no floats, no leaderboards; sam
 
 ## 8. Sequencing — stage 2 contracts, then stage 3 deployment
 
-Runs after stage 1 at `c60b38dea` and the branch interface hardening at `238e4e218`. The three dispatch gates are cleared. **No change to the pooling module, `CommitmentRegistry`, their storage, or their lifecycle.**
+Stage 2 ran after stage 1 at `c60b38dea` and the branch interface hardening at `238e4e218`.
+It merged in PR #695 at `bff3b274d`. **No change to the pooling module,
+`CommitmentRegistry`, their storage, or their lifecycle.**
 
 1. `Credit.sol` + `ICreditRegistry.sol` + unit/fork tests (§3.4).
 2. Storage-layout baseline, old-layout upgrade proof, adversarial/fuzz/invariant/fork coverage, and exact contract ship gates.
 3. The locked §5 `LoanPrincipal` selector in the settlement lane; do not reopen the rejected generic `commitmentId == 0` alternative.
-4. Stop for human review and merge.
+4. Stop for human review and merge. Completed by PR #695.
 
-Stage 3 separately adds deploy targets, artifacts/recovery, courier, Safe/Zodiac and dependency configuration, live addresses, post-deploy verification, and any authorized broadcast. Indexer, shared, admin, client, and agent work remain downstream lanes outside this PR.
+Stage 3 is now active for Phase A release engineering. It separately adds deploy targets,
+artifacts/recovery, courier, Safe/Zodiac and dependency configuration plans, live-address slots,
+and post-deploy verification. It may prepare but may not execute any broadcast. Indexer, shared,
+admin, client, and agent product work remain downstream lanes outside this release-engineering PR.
 
 ## 9. Ripples into siblings (owned elsewhere, noted here)
 

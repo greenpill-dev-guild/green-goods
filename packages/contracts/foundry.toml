@@ -135,6 +135,19 @@ bytecode_hash = "none"
 out = ".generated/foundry/out/production"
 cache_path = ".generated/foundry/cache/production"
 
+# Release simulations receive the exact reviewed production library map, which makes Foundry
+# emit already-linked artifacts. Keep those artifacts out of the unlinked production directory:
+# the manifest builder must continue to see link references when it recomputes the identity lock.
+[profile.release_simulation]
+via_ir = true
+optimizer = true
+optimizer_runs = 1
+gas_reports = ["*"]
+verbosity = 2
+bytecode_hash = "none"
+out = ".generated/foundry/out/release-simulation"
+cache_path = ".generated/foundry/cache/release-simulation"
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # TEST PROFILE — Local Testing (via_ir Required for Full Suite)
 # ═══════════════════════════════════════════════════════════════════════════════

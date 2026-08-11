@@ -10,8 +10,15 @@
 
 This handoff never authorizes an agent broadcast. The core-upgrade/deployment tier and
 value-bearing CCIP settlement tier have separate operational evidence and authorization, but both
-share the repository's blocking external-audit, protocol 3-of-5 Safe ownership, 48-hour mainnet
-timelock, two-week testnet-operation, and tested-rollback requirements.
+share the repository's blocking internal committed-range review, protocol Safe ownership,
+tested-rollback, post-action verification, and per-stage human authorization requirements.
+
+**Owner decision 2026-08-10.** For this release wave, internal review replaces a commissioned
+external audit, the 48-hour timelock is waived in favor of Safe multisig approval, and the former
+two-week testnet soak is withdrawn. The evidence ladder is local/fork confidence, Ethereum Sepolia
+endpoint rehearsal where useful, Arbitrum One, then Celo. These waivers do not authorize a
+broadcast or collapse the separate core-unpause, message-only ping, Safe/Zodiac value-authority,
+minimum-value canary, and cap/unpause decisions.
 
 The approved product sequence treats the verified non-value broadcast plus indexer
 deployment/reindex/live read-back as the handoff into scoped existing-admin fixes and polish.
@@ -43,12 +50,15 @@ not weaken either broadcast gate or make the value tier a prerequisite for the n
 | Evidence | Accountable owner | Producing party |
 |---|---|---|
 | Release authorization and broadcast window | Afolabi Aiyeloja | protocol release operator |
-| External audit disposition | Afolabi Aiyeloja | commissioned auditor + contracts implementer |
+| Internal committed-range review disposition | Afolabi Aiyeloja | contracts implementer + independent reviewer |
 | GoodDollar operating/token confirmation | Afolabi Aiyeloja | GoodDollar/Good Labs contact |
 | CCIP router/peer/gas/fee-reserve health | Afolabi Aiyeloja | settlement implementer |
-| Protocol multisig/timelock | Afolabi Aiyeloja | protocol signers |
-| Garden Safe recovery/Zodiac Roles/caps | Afolabi Aiyeloja | settlement operator + named garden delegate |
-| Direct CCIP lane + dual-chain testnet evidence gate | Afolabi Aiyeloja | QA/release operator + auditor |
+| Protocol Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` | Afolabi Aiyeloja | protocol signers |
+| Pre-transfer rollback owner `green-goods-deployer` | Afolabi Aiyeloja | deployment operator |
+| Post-transfer rollback execution | Afolabi Aiyeloja | protocol Safe; deployment EOA proposes/co-ordinates |
+| Garden Safe recovery owner `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C` | Afolabi Aiyeloja | network council signers; verify live on Celo |
+| Garden Safe Zodiac Roles/caps | Afolabi Aiyeloja | settlement operator + named garden delegate |
+| Direct CCIP lane + local/fork/endpoint evidence ladder | Afolabi Aiyeloja | QA/release operator + reviewer |
 | Commitment Pooling replay/cutover/rollback with bare-address Garden compatibility | Afolabi Aiyeloja | indexer implementer |
 | Message-only ping/ack and capped G$ canary | Afolabi Aiyeloja | settlement operator + QA witness |
 | EntryPoint v0.7; Kernel `0.2.4` dual-testnet mechanics; Kernel `0.3.1` Arbitrum One/Celo Mainnet production derivation; bounded `42220` policy; passkey account; and included sponsored Celo Mainnet user-op evidence | Afolabi Aiyeloja | shared/wallet implementer + QA witness |
@@ -71,21 +81,27 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       dependencies; reconcile the exact Community Testimony registry record; activate its
       verified module only after its UID and record are exact; set the final non-zero,
       pairwise-distinct schema UIDs; verify dependency/schema/proxy state; transfer and verify every
-      touched UUPS/admin owner on the protocol 3-of-5 Safe; and keep the pooling module paused
+      touched UUPS/admin owner on the approved protocol Safe target; and keep the pooling module paused
       through the integration upgrades.
    3. **Integration upgrades and backfill**: upgrade the existing `GardenToken` and
       `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
       `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
-      both-direction wiring, and rollback state while pooling remains paused; unpause only after
-      every stage-2 and stage-3 readiness fact passes; then register the protocol pool on the root
-      garden, enumerate the verified 13-garden set, record the normalized root as
-      `SKIPPED_PROTOCOL_ROOT`, and backfill `registerPool(garden, Garden)` only for the 12 non-root
-      gardens.
-   Rehearse the exact sequence locally and operate it on Arbitrum Sepolia for at least two weeks
-   before separately authorizing Arbitrum One. Ethereum Sepolia remains a legacy regression lane
-   and is not target-chain proof.
+      both-direction wiring, and rollback state while pooling remains paused; register and
+      backfill the verified live pool inventory; and only then pass the separately authorized core
+      unpause gate.
+
+   **Blocked release-order seam (observed 2026-08-11).** The frozen merged ABI gates
+   `registerPool` behind `whenOperational`, so it cannot register or backfill while the module is
+   paused. Unpausing first would violate the authoritative order above and consume the separately
+   gated unpause decision. The Bun backfill target therefore refuses to emit an executable plan.
+   This requires an explicit architecture/release-order resolution; operators must not improvise
+   a temporary unpause or silently change the ABI.
+   Rehearse the exact sequence locally and on pinned forks. Ethereum Sepolia may prove an endpoint
+   rehearsal where useful but is not target-chain proof. Arbitrum One and Celo remain separate,
+   explicitly authorized production stages.
 2. **Value candidate preparation**: deploy both CCIP peers paused and with no Safe role/value authority; verify bytecode, proxy/admin, live official-directory router/selector/lane, peer, version, measured gas, code hashes, source/executor pause state, zero-or-matching batch limits, and fee monitoring.
-3. **Message-only canary**: authorize ping/ack only after audit/timelock review. No G$ authority exists yet.
+3. **Message-only canary**: authorize ping/ack only after the internal review and Safe approval
+   evidence pass. No G$ authority exists yet.
 4. **Safe authority**: verify the deterministic Safe factory/singleton/initializer/salt
    evidence and exact 2-of-3 owners; `CeloSettlementExecutor` is not an owner; install one
    audited Zodiac Roles v2 modifier with the exact `bytes32 roleKey`, native
@@ -96,7 +112,29 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
 5. **Minimum-value canary**: separately authorize one capped Fulfilled-commitment command. Observe Arbitrum dispatch, Celo execution, Celo acknowledgment, Arbitrum Confirmed, indexer convergence, and UI “support arrived.”
 6. **Observation/cap decision**: keep caps unchanged until the recorded observation window passes and the accountable owner explicitly authorizes any increase.
 
-## Direct-lane and dual-chain testnet evidence gate
+## Current rehearsal and activation ladder
+
+The August 10 owner decision supersedes every earlier testnet/soak proposal retained in the dated
+history below:
+
+1. Pure tuple, version, replay, idempotency, persistence, and recovery proof.
+2. Two distinct local processes with only serialized command/acknowledgment tuples and receipts
+   crossing the boundary.
+3. Separate pinned Arbitrum and Celo fork proof, including a freshly re-run read-only official
+   lane/router/selector/code check.
+4. Ethereum Sepolia endpoint rehearsal only where it adds evidence; it is never exact-route or
+   target-chain proof and its artifacts never merge into canonical deployment state.
+5. A separately authorized paused Arbitrum One candidate with no Safe value authority.
+6. A separately authorized paused Celo candidate with no Safe value authority.
+7. Separately authorized message-only ping and authenticated acknowledgment.
+8. Separately authorized Safe/Zodiac value authority, then minimum-value canary, observation, and
+   any later cap or production-unpause decision.
+
+Configured Arbitrum Sepolia/Celo Sepolia network records and testnet deployment artifacts are not
+release deliverables and must not be re-added. Local processes may use chain IDs `421614` and
+`11142220` only as isolated local identities. No item above is broadcast authority by itself.
+
+## Historical direct-lane and dual-chain proposals (superseded 2026-08-10)
 
 > **Amendment 2026-08-06 (rehearsal target).** The **pooling** rehearsal no longer uses a testnet.
 > It runs on an Arbitrum One fork —
@@ -196,7 +234,55 @@ inaccurate. It is replaced, not waived, by:
 
 ## Exact Bun commands
 
-Current package checks:
+All commands below are wrappers implemented and `--help`-checked in Phase A. Plan, dry-run,
+recovery, and verification forms do not broadcast. Commands whose name contains `deploy`, or an
+unqualified Phase B action, still require the exact per-stage authorization record described in
+this handoff.
+
+Manifest and dependency plan:
+
+- `bun run contracts:release:manifest`
+- `bun run contracts:release:core:plan:arbitrum`
+
+Resolver, pooling, and upgrade preparation:
+
+- `bun run contracts:pooling:schemas:preview:arbitrum`
+- `bun run contracts:pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
+- `bun run contracts:assessment:upgrade:dry:arbitrum`
+- `bun run contracts:assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
+- `bun run contracts:pooling:deploy:dry:arbitrum`
+- `bun run contracts:pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
+- `bun run contracts:pooling:upgrade:dry:arbitrum`
+- `bun run contracts:pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
+- `bun run contracts:pooling:backfill:dry:arbitrum`
+
+Settlement and credit preparation:
+
+- `bun run contracts:settlement:module:plan:arbitrum`
+- `bun run contracts:settlement:module:dry:arbitrum`
+- `bun run contracts:credit:registry:plan:arbitrum`
+- `bun run contracts:credit:registry:dry:arbitrum`
+- `bun run contracts:settlement:executor:plan:celo`
+- `bun run contracts:settlement:executor:dry:celo`
+- `bun run contracts:settlement:safe:plan:celo`
+- `bun run contracts:settlement:safe:dry:celo`
+- `bun run contracts:settlement:peer:plan:arbitrum`
+- `bun run contracts:settlement:peer:plan:celo`
+
+Courier, recovery, verification, and indexer handoff:
+
+- `bun run contracts:settlement:dual-chain:up`
+- `bun run contracts:settlement:courier`
+- `bun run contracts:settlement:dual-chain:down`
+- `bun run contracts:release:recover:plan:arbitrum`
+- `bun run contracts:release:recover:plan:celo`
+- `bun run contracts:release:verify:plan:arbitrum`
+- `bun run contracts:release:verify:plan:celo`
+- `bun run contracts:release:verify:arbitrum`
+- `bun run contracts:release:verify:celo`
+- `bun run contracts:release:indexer:handoff`
+
+Validation:
 
 - `bun run --filter @green-goods/contracts lint:check`
 - `bun run --filter @green-goods/contracts test`
@@ -209,15 +295,37 @@ Current package checks:
   immediately before any value authority is granted; a lane that was live in August is not
   evidence that it is live today.
 
-Lane-produced settlement deploy/dry-run targets must be added through the existing Bun deploy wrapper, documented by `--help`, and copied here before use. No command in this handoff authorizes a broadcast.
+The current installed Envio CLI has no hosted `deploy` command. The indexer handoff is therefore
+inert and blocked on a verified operator entrypoint for activation/reindex/cutover/read-back. Do
+not substitute an invented command. No command in this handoff authorizes a broadcast.
+
+## Current live-state blockers
+
+- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was read as **2-of-6**
+  on Arbitrum. The approved **3-of-5** configuration is a target, not current live fact.
+- A finalized Arbitrum inventory read found **18** GardenToken accounts (IDs 0–17), not 13. The
+  root derives as token 0 while the frozen artifact identifies token 1. No backfill plan is valid
+  until the inventory and root decision are reconciled.
+- The live `AssessmentResolver` is not v3-capable. Downstream schema, pooling, SettlementModule,
+  and CreditRegistry dry-runs correctly stop at this prerequisite.
+- Settlement peer wiring is blocked because measured destination gas is not frozen. The manifest
+  value remains `"0"` and cannot be overridden by an environment variable.
+- Garden Safe/owner/recovery and Zodiac Roles/cap/fee/reserve facts are incomplete; value authority
+  is disabled.
+- The hosted Envio activation command is unavailable from the installed CLI.
+
+These are blockers, not Phase B instructions. No operator should use this handoff until a pinned
+candidate report shows their resolution and a new exact stage authorization names the commit,
+chain, signer/owner, artifact diff, rollback checkpoint, and window.
 
 ## Core-tier unblock evidence
 
-- External audit has no unresolved critical/high findings.
-- Every touched protocol UUPS/admin owner is verified on the 3-of-5 Gnosis Safe, and the 48-hour
-  mainnet timelock is configured before any mainnet transaction plan is authorized.
-- At least two weeks of target-chain testnet operation are recorded, and rollback procedures are
-  documented and tested.
+- The internal committed-range review has no unresolved Critical/High finding.
+- Every touched protocol UUPS/admin owner and the exact protocol Safe are verified; Safe multisig
+  approval is required. The 48-hour timelock is waived for this wave by the August 10 owner
+  decision.
+- The current local/fork/optional Ethereum Sepolia endpoint/Arbitrum One/Celo ladder is satisfied
+  for the authorized stage, and rollback procedures are documented and tested.
 - Full relevant tests; resolver/schema, module/register/finalization, integration-upgrade/wiring,
   post-wiring unpause, and pool-backfill dry runs; post-action verifiers;
   storage/upgrade/rollback proof; and named rollback owners pass for all three ordered stages.
@@ -231,8 +339,8 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 
 ## Value-tier unblock evidence
 
-- External audit has no unresolved critical/high findings.
-- Protocol ownership/timelock evidence is current.
+- The internal committed-range review has no unresolved Critical/High finding.
+- Protocol ownership and Safe approval evidence are current; the timelock waiver is recorded.
 - Both CCIP peers are paused, exact-versioned, mutually authenticated, and code-hash verified. The evidence record includes official Chainlink directory URLs, observation time, source/destination blocks, both router/selector pairs, lane status, and code hashes; cached plan values never substitute.
 - Every selector is persisted as a base-10 string and round-trips to the exact official `uint64`/`bigint`; release verification rejects any JavaScript `number`, unsafe integer, rounded value, or numeric deployment artifact.
 - Every dispatched command snapshots destination selector/executor/gas/version/payload hash. A same-key retry is demonstrated to stay on that peer, and a bounded previous peer is demonstrated unable to acknowledge a new-peer command.
@@ -271,7 +379,9 @@ Lane-produced settlement deploy/dry-run targets must be added through the existi
 
 ## Out of scope
 
-- Product implementation, autonomous broadcasts, force operations, bridged G$, CCIP token transfer, arbitrary Safe execution, manual settlement confirmation, or CreditRegistry/transferable-voucher activation.
+- Product implementation, autonomous broadcasts, force operations, bridged G$, CCIP token
+  transfer, arbitrary Safe execution, manual settlement confirmation, transferable-voucher
+  activation, or G$ repayment enablement without an approved authenticated receipt policy.
 
 ## 2026-07-28 release-evidence addition
 

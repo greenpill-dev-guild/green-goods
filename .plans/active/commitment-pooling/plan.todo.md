@@ -44,6 +44,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
 | `architecture-closure.validate.ts` | Machine gate for all 54 events, 26 entities, 86 module functions, eight sparse-event materialization cases, 58 executable calls, six jobs/persistence states, seven lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
+| `backfill-pools.ts` | Bun-wrapped, finalized-block pool-inventory and Safe-receipt verifier; fails closed on inventory/root drift and the frozen backfill-before-unpause ABI conflict | Phase A release tooling only; no broadcast authority |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
 | `external-brief.md` | Pointer to the canonical Google Doc plus the repo's implementation/evidence source map | **Pointer only — never a prose mirror** |
 | `reports/audit-2026-07-20.md` | Original CP-AUD-001–021 dispatch-readiness audit | **IMMUTABLE INPUT — never edit** |

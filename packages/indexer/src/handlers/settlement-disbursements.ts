@@ -28,6 +28,7 @@ indexer.onEvent(
     const executorGarden = normalizeAddress(event.params.executorGarden);
     const contributor = optionalAddress(event.params.contributor);
     const membership = await context.SettlementBatchMembership.get(entityId);
+    const loanRelationship = await context.LoanPrincipalRelationship.get(entityId);
     let entity: Disbursement = {
       id: entityId,
       chainId: event.chainId,
@@ -45,6 +46,8 @@ indexer.onEvent(
       payoutPlanEntityId: planEntityId,
       contributor,
       contributorEntityId: contributor,
+      creditRegistry: loanRelationship?.creditRegistry,
+      loanId: loanRelationship?.loanId,
       settlementFlow: plan?.settlementFlow,
       kind,
       fundingRoute: fundingRoute(event.params.fundingRoute),
@@ -115,6 +118,30 @@ indexer.onEvent(
         status: payoutStatus(nextBase),
       });
     }
+  }
+);
+
+indexer.onEvent(
+  { contract: "SettlementModule", event: "LoanPrincipalQueued" },
+  async ({ event, context }) => {
+    const entityId = disbursementId(event.chainId, event.params.disbursementId);
+    const creditRegistry = normalizeAddress(event.params.creditRegistry);
+    context.LoanPrincipalRelationship.set({
+      id: entityId,
+      chainId: event.chainId,
+      disbursementId: event.params.disbursementId,
+      creditRegistry,
+      loanId: event.params.loanId,
+      updatedAt: event.block.timestamp,
+    });
+    const existing = await context.Disbursement.get(entityId);
+    if (!existing) return;
+    context.Disbursement.set({
+      ...existing,
+      creditRegistry,
+      loanId: event.params.loanId,
+      updatedAt: event.block.timestamp,
+    });
   }
 );
 

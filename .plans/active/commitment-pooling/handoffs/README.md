@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 20 files in this directory. The plan hub's document map points here for the enumeration, so
+All 21 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -15,6 +15,7 @@ order only, and a reader following the map could miss an active dispatch surface
 | `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Depends on frozen pooling events |
 | `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Depends on core indexer GREEN |
 | `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
+| `codex-release-engineering.md` | Phase A manifest, deployment/recovery tooling, courier, and verification | Codex | Active; no broadcast or Linear writes |
 | `claude-contracts-hardening.md` | Resolver wiring, cross-chain approach, and contract hardening follow-ups (PRD-799) | Claude | Runs alongside the contracts lane |
 | `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Blocked behind state/API |
 | `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Blocked behind state/API |
@@ -34,7 +35,7 @@ order only, and a reader following the map could miss an active dispatch surface
 ## Source order
 
 1. status.json is machine truth for owner, lane state, dependencies, and dispatchability. Read `execution_sub_lanes` before trusting a machine-lane status: a ready machine lane can contain a blocked sub-lane (`contracts` ready does not make `settlement` dispatchable), and the blocked aggregate `ui` lane does not imply any sub-lane is dispatchable. Docs remains explicitly blocked through source convergence.
-2. `standing-commitments-spec.md`, `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `diagrams.md`, `wireframes.md`, and `acceptance-matrix.md` define active behavior and final copy/state/public-claim proof. The additive CreditRegistry companion is active in the August wave at `.plans/active/commitment-credit-follow-on/`; its contracts dispatch remains blocked by its three recorded gates.
+2. `standing-commitments-spec.md`, `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `diagrams.md`, `wireframes.md`, and `acceptance-matrix.md` define active behavior and final copy/state/public-claim proof. The additive CreditRegistry companion is active in the August wave at `.plans/active/commitment-credit-follow-on/`; its contracts increment merged in PR #695 and is an input to the Phase A release-engineering lane.
 3. plan.todo.md defines sequencing.
 4. A handoff narrows one lane; it never overrides a blocked status or expands scope.
 5. human-release-ops.md owns separately authorized broadcast, Garden-ID cutover, and live settlement exit evidence; human-settlement-evidence.md owns the September measurement-definition gate; implementation handoffs own only code, tests, artifacts, and dry runs.

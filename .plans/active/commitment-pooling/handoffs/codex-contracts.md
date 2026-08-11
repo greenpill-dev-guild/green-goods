@@ -5,12 +5,26 @@
 - Machine lane: contracts
 - Execution sub-lane: contracts
 - Owner: Codex
-- Branch signal: codex/contracts/commitment-pooling
-- Current state: specification-ready, dispatch-blocked; this handoff does not self-dispatch
+- Implementation branch: `feature/build-commitment-pooling-contracts`
+- Merge: PR #694 at `c60b38dea`, verified as an ancestor of Phase A base `7a9c7ee`
+- Current state: passed and merged; deployment/release engineering is a separate Phase A lane
 - Linear context: PRD-721 (contracts lane) under parent PRD-650; PRD-671/672 are historical labels
 
 Concurrent agents share this repository. Stay inside this lane's named paths, preserve unrelated
 working-tree changes, and do not switch branches from another session's primary tree.
+
+## Validation receipt
+
+- Tested implementation/settlement integration tree: PR #694 merge `c60b38dea` plus the accepted
+  post-merge Credit integration in PR #695 `bff3b274d`.
+- Receipt refreshed: 2026-08-11 on Phase A base `7a9c7ee`.
+- Merge proof: `git merge-base --is-ancestor c60b38dea origin/develop` returned success after a
+  fresh fetch; live PRD-721 was re-read as Done.
+- Accepted behavior proof from the merged range: the full contracts target passed 1,975 Solidity
+  tests and 104 script tests; build, size, storage-layout, lint, audit, source-structure, ontology,
+  format, and read-only settlement-lane gates passed as recorded in the merged handoffs.
+- Proof limit: this receipt closes the implementation lane. It is not fresh Phase A deployment,
+  dry-run, artifact-recovery, or broadcast evidence.
 
 ## Inputs
 

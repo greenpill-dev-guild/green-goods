@@ -2092,6 +2092,17 @@ i18n families extend `app.pool.*`, `cockpit.garden.pool.*`, `cockpit.community.p
 
 Green Goods does **not** deploy its full protocol stack to Celo for Commitment Pooling:
 
+> **Amendment 2026-08-10 (current Phase A contract).** The production roles in the table remain
+> binding, but the configured Arbitrum Sepolia/Celo Sepolia network records and testnet deployment
+> artifacts described below are withdrawn and must not be re-added. The exact two-process local
+> fixture remains mandatory and may use `421614` and `11142220` only as isolated local chain
+> identities; it may not share fork state, RPC handles, contract objects, or storage snapshots.
+> Ethereum Sepolia may provide separately labeled endpoint evidence where useful, never exact-route
+> proof or canonical artifact state. The release ladder is local/fork confidence, optional Ethereum
+> Sepolia endpoint rehearsal, separately authorized Arbitrum One, then separately authorized Celo.
+> This amendment changes deployment tooling and evidence only; it does not reopen the frozen
+> settlement ABI, storage, message tuples, or acknowledgment state machine.
+
 | Chain role | Production | Testnet | Custom Green Goods deployments |
 |---|---|---|---|
 | protocol/control | Arbitrum One `42161` | Arbitrum Sepolia `421614` | CommitmentPoolingModule, CommitmentRegistry, existing resolver/token upgrades, TestimonyResolver, AssessmentV3 schema registration, SettlementModule |
@@ -2368,10 +2379,9 @@ Two buckets, rejected for different reasons; Hyperlane and LayerZero appear in b
 > — their audited infrastructure, not ours. Same reasoning as the pooling fork decision: simulate
 > only what belongs to someone else.
 >
-> A revision to the release evidence ladder — dropping the Celo Sepolia Safe/Zodiac rehearsal and
-> the ephemeral Arbitrum Sepolia↔Ethereum Sepolia endpoint proof — is **proposed, not applied**, in
-> `handoffs/human-release-ops.md` (amendment 2026-08-06) and tracked on PRD-731. This lane's owner
-> decides. The frozen architecture in §3, §4, and §4.1 is untouched.
+> The August 10 owner decision applies the revised release ladder. Celo Sepolia Safe/Zodiac
+> rehearsal is dropped. Ethereum Sepolia endpoint proof is optional where it adds evidence and is
+> never canonical or target-chain proof. The frozen architecture in §3, §4, and §4.1 is untouched.
 
 ### 10.3 Why Architecture 3 is an evolution, not a replacement
 

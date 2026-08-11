@@ -160,4 +160,14 @@ describe("CommitmentSchemasDeployer artifact merge", () => {
 
     expect(() => merge(preparationPlans, false)).toThrow(/Main deployment file not found/);
   });
+
+  it("refuses a release broadcast before RPC when its reviewed boundary evidence is missing", async () => {
+    await expect(
+      deployer.deployCommitmentSchemas({
+        network: "arbitrum",
+        broadcast: true,
+        transactionPlan: false,
+      } as ParsedOptions),
+    ).rejects.toThrow(/requires --artifact <reviewed-plan>, --step, --expected-nonce, and --sender/);
+  });
 });

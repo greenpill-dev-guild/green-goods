@@ -238,6 +238,23 @@ indexer.onEvent(
 );
 
 indexer.onEvent(
+  { contract: "SettlementModule", event: "CreditRegistryUpdated" },
+  async ({ event, context }) => {
+    const existing = await sourceConfig(
+      context,
+      event.chainId,
+      event.srcAddress,
+      event.block.timestamp
+    );
+    context.SettlementConfiguration.set({
+      ...existing,
+      creditRegistry: normalizeAddress(event.params.newRegistry),
+      updatedAt: event.block.timestamp,
+    });
+  }
+);
+
+indexer.onEvent(
   { contract: "SettlementModule", event: "PausedSet" },
   async ({ event, context }) => {
     const existing = await sourceConfig(
