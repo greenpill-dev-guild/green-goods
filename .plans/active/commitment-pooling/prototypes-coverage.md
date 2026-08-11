@@ -4,10 +4,10 @@ Updated 2026-08-10. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 40 registered screens / 397 rendered states in the full source registry
-- 33 presentation-visible hi-fi screens / 390 states: 18 Client PWA (255 states), 13 Admin console (130 states), 2 Editorial website (5 states)
+- 40 registered screens / 399 rendered states in the full source registry
+- 33 presentation-visible hi-fi screens / 392 states: 18 Client PWA (257 states), 13 Admin console (130 states), 2 Editorial website (5 states)
 - 544 registered hotspots
-- 57 validated source flows / 388 scenes; 56 presentation-visible flows / 379 scenes: 29 Client PWA, 25 Admin console, 2 Editorial website
+- 57 validated source flows / 390 scenes; 56 presentation-visible flows / 381 scenes: 29 Client PWA, 25 Admin console, 2 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -90,7 +90,9 @@ to the card foot with continues-in as prose, the theme toggle is icon+text, and
 opening any flow or screen scrolls the page to the top.
 
 **Coverage closure round (2026-08-10 evening, register #96).** The request path is
-a real three-step wizard (`W3@request-what` → `request-howmuch` → `request-variant`)
+a real three-step wizard (`W3@request-what` → `request-howmuch` → `request-variant`;
+the garden-work ask later became its own four-step cast, `request-work-what` →
+`request-work-review`, in the register #97a review round)
 walked by `sb2`; every W3 state now uses the fixed Submit Work chrome — close +
 progress header and bottom action bar as fixed frame, only the form scrolls.
 The old "Decide & review" admin chapter split into Decide on promises / Work
@@ -189,7 +191,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W2 | Client PWA | 70 | accepted, offered, requested, active, evidence-queued, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, fulfilled-pool-fallback, fulfilled-protocol-fallback, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-accepted, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error, request-work-active, request-work-partially-approved, request-work-ready-confirmer |
 | W2a | Client PWA | 7 | compose, compose-request, compose-campaign-request, compose-support, compose-captured, queued, failed |
 | W2b | Client PWA | 9 | forming, add-contributor, remove-contributor, assign-requirement, open-eligible, join-submitted, open-member, frozen, recognition |
-| W3 | Client PWA | 17 | step-what, step-howmuch, step-anchors, step-review, step-advanced, support-howmuch, support-review, request-what, request-howmuch, request-anchors, request-work-review, request-variant, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |
+| W3 | Client PWA | 19 | step-what, step-howmuch, step-anchors, step-review, step-advanced, support-howmuch, support-review, request-what, request-howmuch, request-work-what, request-work-howmuch, request-anchors, request-work-review, request-variant, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |
 | W4 | Client PWA | 26 | confirm-domain, confirm-support, confirm-request, confirm-campaign-request, confirm-captured, not-yet, not-yet-support, not-yet-request, not-yet-campaign-request, not-yet-captured, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, confirmed-pending-campaign-request, confirmed-campaign-request, confirmed-pending-captured, confirmed-captured, not-yet-failed, not-yet-failed-support, not-yet-failed-request, not-yet-failed-campaign-request, not-yet-failed-captured |
 | W5 | Client PWA | 7 | default, queued, waiting-membership, empty, loading, not-found, read-error |
 | W23 | Client PWA | 6 | balance, contributor-receipt, send, send-pending, send-failed, delivery-blocked |

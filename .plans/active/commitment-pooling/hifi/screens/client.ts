@@ -478,7 +478,12 @@ const W2_CAPTURED = new Set<string>([
   "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
   "captured-fulfilled", "captured-disputed",
 ]);
-const W2_WORK = new Set<W2State>(["accepted", "active", "evidence-queued", "evidence-submitted", "partially-approved"]);
+const W2_WORK = new Set<W2State>([
+  "accepted", "active", "evidence-queued", "evidence-submitted", "partially-approved",
+  // The garden-work ask counts approvals, so its work list renders too (its
+  // rows carry no submit controls — the asker watches, the helper submits).
+  "request-work-active", "request-work-partially-approved",
+]);
 // DomainImpact Requests (2026-08-10, register #97): the ask is for garden work,
 // so proof travels through Work approvals — the asker still confirms.
 const W2_REQUEST_WORK = new Set<string>([
@@ -765,6 +770,12 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
           meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
           chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
         })
+      : cast === "request-work"
+        ? listRow({
+            icon: "image-line",
+            primary: "The channel after clearing",
+            meta: "Photo · Jul 12 · attached with the work",
+          })
       : cast === "request" || cast === "campaign-request"
         ? listRow({
             icon: "image-line",
@@ -797,10 +808,12 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     ) +
     disclosure(
       "People",
-      cast === "garden" ? "garden team · 3 credited" : "1 lead · 2 contributors",
+      cast === "garden" ? "garden team · 3 credited" : cast === "request-work" ? "1 provider · asker confirms" : "1 lead · 2 contributors",
       cast === "garden"
         ? `${listRow({ icon: "group-line", primary: "Awka Hub", meta: "Accountable provider garden" })}${listRow({ icon: "user-line", primary: "Leila", meta: "Lead · credited contributor" })}${listRow({ icon: "group-line", primary: "Amara · Chidi", meta: "Contributors · credited from approved work" })}${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}`
-        : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · Kwame", meta: "Contributors · credited from approved work" })}${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}`,
+        : cast === "request-work"
+          ? `${listRow({ icon: "user-line", primary: "João", meta: "Provider — took up the ask" })}${listRow({ icon: "user-line", primary: "Ana", meta: "Asked for this · confirms when it's ready" })}${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}`
+          : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · Kwame", meta: "Contributors · credited from approved work" })}${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}`,
     ) +
     (preAcceptance
       ? ""
@@ -813,9 +826,13 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       ? ""
       : disclosure(
           "Work for this promise",
-          "1 approved",
-          listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8", chipHtml: chip("Approved", "ok") }) +
-            `<div class="brow">${hot("w2.submit-work", btn("Submit work", { kind: "sec" }))}${hot("w2.link-work", btn("Link existing work", { kind: "ghost" }))}</div>`,
+          cast === "request-work" ? "counting toward the ask" : "1 approved",
+          cast === "request-work"
+            ? listRow({ icon: "check-line", primary: "Channel weeding · João", meta: "Approved · Jul 12", chipHtml: chip("Approved", "ok") }) +
+              listRow({ icon: "leaf-line", primary: "Mulching the banks · João", meta: "Submitted · with the stewards" }) +
+              `<div class="t-meta">João submits on the ordinary Work rails and the stewards approve — each approval counts toward Weed × 2 · Mulch × 4.</div>`
+            : listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8", chipHtml: chip("Approved", "ok") }) +
+              `<div class="brow">${hot("w2.submit-work", btn("Submit work", { kind: "sec" }))}${hot("w2.link-work", btn("Link existing work", { kind: "ghost" }))}</div>`,
         )) +
     hot(
       "w2.details",
@@ -1345,13 +1362,17 @@ const W3_STATES = [
   // Default path is four quick steps (decision 2026-08-10): who-confirms moved
   // to an Advanced detour with the Green Goods fallback ON as the pilot default.
   // Request creation is a real three-step wizard (2026-08-10, register #96) —
-  // it was previously compressed into the single review screen.
+  // it was previously compressed into the single review screen. The garden-work
+  // ask (register #97a) is its own four-step cast from the first screen, so the
+  // dot row never grows mid-flow and the drawn ask keeps one fiction.
   ["step-what", "1 · What"], ["step-howmuch", "2 · How much"], ["step-anchors", "3 · Proof"],
   ["step-review", "4 · Review & promise"],
   ["step-advanced", "Advanced · confirmers & team"],
   ["support-howmuch", "Support · amount"],
   ["support-review", "Support · review"],
   ["request-what", "Request · 1 · What"], ["request-howmuch", "Request · 2 · How much"],
+  ["request-work-what", "Request · 1 · What (garden work)"],
+  ["request-work-howmuch", "Request · 2 · How much (garden work)"],
   ["request-anchors", "Request · 3 · Proof (garden work)"],
   ["request-work-review", "Request · 4 · Review (garden work)"],
   ["request-variant", "Request · 3 · Review"],
@@ -1479,7 +1500,34 @@ function w3(state: W3State): string {
         field("Due", ""),
         radio([{ label: "Runs with the season", meta: "through Aug 30", on: true }, { label: "Pick a date", meta: "choose a day that suits you" }]),
       );
-      actions = `${hot("w3.request-continue-howmuch", btn("Continue", { kind: "pri", full: true }))}${hot("w3.request-continue-work", btn("Continue — garden work path", { kind: "ghost", full: true, sm: true }))}`;
+      actions = hot("w3.request-continue-howmuch", btn("Continue", { kind: "pri", full: true }));
+      break;
+    case "request-work-what":
+      head = w3Head("Ask for help", 0);
+      content = pagepad(
+        field("Direction", radio([{ label: "Offer support", meta: "something you can give" }, { label: "Request help", meta: "something you need", on: true }], { interactive: true, name: "request-work-direction" })),
+        field("Kind", radio([{ label: "Support / service", meta: "rides, meals, repairs — evidence-confirmed" }, { label: "Garden work", meta: "counts toward the garden's actions — approved work is the proof", on: true }], { interactive: true, name: "request-work-kind" })),
+        `<div class="t-meta">Garden work adds a proof step — the dots above already count all four.</div>`,
+        field("Season", hot("w3.cycle", input("First Rains · chosen for you", { select: true }))),
+        field("Title", input("Clear the drainage channel")),
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Clear the drainage channel", "ok")}${chip("Weed the north beds")}${chip("Mulch the paths")}</div>`,
+        `<div class="t-meta">Suggestions from this garden's actions — tap one to start, then make it yours.</div>`,
+        field("Note", input("optional", { placeholder: true })),
+      );
+      actions = hot("w3.request-work-continue-what", btn("Continue", { kind: "pri", full: true }));
+      break;
+    case "request-work-howmuch":
+      head = w3Head("Ask for help", 1);
+      content = pagepad(
+        sectionTitle("Unit"),
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("hours", "ok")}${chip("sessions")}${chip("beds")}${chip("other…")}</div>`,
+        sectionTitle("How many"),
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("4")}${chip("8", "ok")}${chip("12")}${chip("custom…")}</div>`,
+        `<div class="t-meta">Tap what fits — the keyboard opens only for a custom unit or amount.</div>`,
+        field("Due", ""),
+        radio([{ label: "Runs with the season", meta: "through Aug 30", on: true }, { label: "Pick a date", meta: "choose a day that suits you" }]),
+      );
+      actions = hot("w3.request-continue-work", btn("Continue", { kind: "pri", full: true }));
       break;
     case "request-anchors":
       head = w3Head("Ask for help", 2);
@@ -1501,7 +1549,7 @@ function w3(state: W3State): string {
         card(`${kv("Title", "Clear the drainage channel")}${kv("How much", "8 hours")}${kv("Due", "Aug 20")}${kv("Season", "First Rains")}${kv("This ask needs", "Weed × 2 · Mulch × 4")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
         `<div class="t-meta">A garden-work ask travels the Work rails: whoever takes it up submits work, the stewards approve it, and you confirm the ask was met.</div>`,
       );
-      actions = hot("w3.submit-work-request", btn("Ask for this work", { kind: "pri", full: true }));
+      actions = `${hot("w3.submit-work-request", btn("Ask for this work", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
       break;
     case "request-variant":
       head = w3Head("Ask for help", 2, 3);
@@ -1509,7 +1557,7 @@ function w3(state: W3State): string {
         card(`${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
       );
-      actions = hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true }));
+      actions = `${hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
       break;
     case "saved-offer-edit":
       head = w3Head("Offer it once", 0, 2);
@@ -1591,12 +1639,13 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.continue-howmuch": { l: "Continue to proof", to: "screen:W3@step-anchors", info: "Amount → action anchors for garden work (UX:150-153). Unit and amount are chip picks with a custom escape; due defaults to the season end (tap-first register #95)." },
   "w3.continue-anchors": { l: "Continue to review", to: "screen:W3@step-review", info: "Action anchors → review. Who-confirms is defaulted (recipient + pilot Green Goods fallback) and adjustable from review's Advanced detour (UX §5.4, amended 2026-08-10)." },
   "w3.protocol-fallback": { l: "Green Goods team fallback", info: "Writes protocolFallbackEnabled — ON by default for the pilot (decision 2026-08-10, supersedes the 2026-08-02 off-by-default closure). The runtime guard is unchanged: usable only while the ordinary path is unreachable, always with a recorded reason, never by a contributor. Turn it off here per promise." },
-  "w3.advanced": { l: "Adjust who confirms / team options", to: "screen:W3@step-advanced", info: "Optional detour from review: named confirmer groups, the pilot-default Green Goods fallback, contributor policy, and assessment requirement live here so the default path stays four quick steps." },
+  "w3.advanced": { l: "Adjust who confirms / team options", to: "screen:W3@step-advanced", info: "Optional detour from every review step — offer and request alike (register #97a): named confirmer groups, the pilot-default Green Goods fallback with its per-promise opt-out, contributor policy, and assessment requirement live here so the default path stays four quick steps. Drawn once in the offer cast." },
   "w3.advanced-done": { l: "Back to review", to: "screen:W3@step-review", info: "Returns to review carrying any adjusted confirmer, team, or assessment choices." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
   "w3.request-continue-what": { l: "Continue to amount", to: "screen:W3@request-howmuch", info: "The ask's what — season bound, title suggested — continues to chip-picked unit and amount (register #96)." },
-  "w3.request-choose-work": { l: "Choose Garden work", info: "A DomainImpact Request — kind and direction are orthogonal on-chain (register #97). The ask gains action requirements and rides the Work-approval rails; the asker remains the confirmer." },
+  "w3.request-choose-work": { l: "Choose Garden work", to: "screen:W3@request-work-what", info: "A DomainImpact Request — kind and direction are orthogonal on-chain (register #97). Choosing it re-renders the wizard as the four-step garden-work cast (register #97a): the ask gains action requirements and rides the Work-approval rails; the asker remains the confirmer." },
+  "w3.request-work-continue-what": { l: "Continue to amount", to: "screen:W3@request-work-howmuch", info: "The garden-work ask's what — title suggested from the garden's actions — continues to chip-picked unit and amount; the dot row reads four steps from the first screen (register #97a)." },
   "w3.request-continue-work": { l: "Continue on the garden work path", to: "screen:W3@request-anchors", info: "The garden-work ask continues to its action requirements before review (register #97)." },
   "w3.request-continue-anchors": { l: "Continue to review", to: "screen:W3@request-work-review", info: "Requirements → review; who-confirms is already the asker with the pilot fallback behind them." },
   "w3.submit-work-request": { l: "Ask for this work", info: "Enqueues the DomainImpact Request with its requirement rows — same commitment job, request direction (register #97).", calls: ["createCommitment"], pendingSync: true },

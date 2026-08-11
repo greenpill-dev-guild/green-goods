@@ -199,7 +199,10 @@ export function screenCardsHtml(): string {
         `<h3 class="chapter-h">${esc(label)}</h3><div class="grid">` +
         clusterIds
           .map((id) => {
-            const s = screenById(id)!;
+            // Total lookup: a chapter id without a registered screen renders
+            // nothing here — the chapter/registry cross-check reports it.
+            const s = screenById(id);
+            if (!s) return "";
             const states = `${s.states.length} ${s.states.length === 1 ? "state" : "states"}`;
             return `<button class="sbcard sc" data-frame="${id}"><span class="screenkey">${esc(id)}</span><span class="sbt">${esc(friendlyTitle(s))}</span><span class="sbm">${states}</span></button>`;
           })

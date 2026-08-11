@@ -734,7 +734,7 @@ ${banner("State and context only — the console never edits a member's ongoing 
 
 const W7_HOTS: HifiDef["hots"] = {
   "w7.series-row": { l: "Active ongoing Offer", info: "Series context is read-only in the console (register #97): instances group under their series, and the available count equals current Offered instances. Lifecycle acts (rest/resume/retire) stay with the holder in the client." },
-  "w7.series-row-resting": { l: "Resting ongoing Offer", info: "A resting series holds no open place; its kept history remains visible." },
+  "w7.series-row-resting": { l: "Resting ongoing Offer", info: "Resting pauses new places only — an existing Offered place stays claimable, so availability derives from current Offered instances, never from series state. Kept history remains visible." },
   "w7.series-row-retired": { l: "Retired ongoing Offer", info: "Read-only terminal context — retirement never erases the series' kept instances." },
   "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@pause-confirm", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
   "w7.confirm-dismiss": { l: "Keep as it is", to: "screen:W7", info: "Closes the confirmation without applying the act." },

@@ -540,7 +540,7 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ consideration rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
 │ external    source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
 ├──────────────────────────────────────────────────────────┤
-│ Step 5 — Review · team: Lead-managed · GG fallback: off  │
+│ Step 5 — Review · team: Lead-managed · GG fallback: on   │
 │          consideration: External                                │
 │                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘

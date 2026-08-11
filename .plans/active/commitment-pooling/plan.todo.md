@@ -757,6 +757,13 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     transferable exchange stay design-only. Audit records: indexer dangling-FK and agent-store
     findings appended to their handoffs, this file's status header re-synced to status.json, and
     CLAUDE.md's indexer-boundary line corrected to defer to check-indexing-boundary.mjs.
+    (g) PR #697 review round (2026-08-10, delegated design calls): the garden-work ask is its own
+    four-step cast from the first screen (`W3@request-work-what`/`request-work-howmuch` — the dot
+    row never grows mid-flow and the drawn fiction never flips), request reviews reach the same
+    Advanced detour as offers so the register #94 per-promise fallback opt-out holds for every
+    direction, the W2 request-work cast draws its work/evidence/people disclosures, and
+    `acceptExchange` routes through `W30@submitting` — Matched renders only from confirmed
+    `ExchangeAccepted`, never optimistically.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

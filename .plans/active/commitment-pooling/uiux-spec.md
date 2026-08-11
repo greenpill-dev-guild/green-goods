@@ -620,9 +620,9 @@ ask may be garden work: choosing Garden work on the ask's first step adds the
 Requirements proof step, so a garden-work ask runs four steps (What → How much
 → Proof → Review) while a service ask keeps three. Requirement rows,
 validation, and the action-card grammar are §5.4 step 3 unchanged; who-confirms
-stays the asker with the pilot fallback behind them; and the drawn ask declares
-no assessment — the request path exposes no Advanced detour — so approved work
-alone carries it to Ready per the contract's conditional gate.
+stays the asker with the pilot fallback behind them; and review reaches the same
+Advanced detour as the offer path — per-promise fallback opt-out and a declarable
+assessment included, drawn once in the offer cast. The drawn ask keeps every Advanced default, so approved work alone carries it to Ready per the contract's conditional gate; choosing Garden work re-renders the wizard as its own four-step cast, so the dot row never grows mid-flow.
 
 ## Appendix C: group commitments, recognition, and payout plans (2026-07-28)
 

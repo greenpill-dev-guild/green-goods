@@ -25,9 +25,9 @@ type W28State = (typeof W28_STATES)[number][0];
 
 const w28Head = `<div class="hdr fixed"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>Offer in exchange</h1></div>`;
 
-const w28Rows = (selected: boolean) => card(
+const w28Rows = () => card(
   listRow({ icon: "seedling-line", primary: "Seedling delivery · 12 trays", meta: "Offer · by Ana · Apr 18" }) +
-    hot("w28.pick-childcare", listRow({ icon: "group-line", primary: "Childcare during the work party · 6 hours", meta: "Offer · by Ana", chipHtml: selected ? chip("Selected", "ok") : chip("Offered", "offer") })) +
+    hot("w28.pick-childcare", listRow({ icon: "group-line", primary: "Childcare during the work party · 6 hours", meta: "Offer · by Ana", chipHtml: chip("Offered", "offer") })) +
     listRow({ icon: "settings-line", primary: "Tool repair · 2 sessions", meta: "Offer · by João · Apr 22" }),
   { cls: "flat" },
 );
@@ -46,7 +46,7 @@ function w28(state: W28State): string {
     case "selection-invalid":
       content = pagepad(
         banner("Ana's Offer changed before yours was recorded — no promise was created. Clear the selection or choose another Offer.", "amber", "error-warning-line"),
-        w28Rows(false),
+        w28Rows(),
       );
       actions = `${hot("w28.clear", btn("Clear and choose again", { kind: "pri", full: true }))}`;
       break;
@@ -68,16 +68,16 @@ function w28(state: W28State): string {
       content = pagepad(
         `<div class="t-meta">Offer this in exchange for an existing Offer in this pool. Only eligible rows appear: still open, individually claimable, capacity-backed, and made by someone else.</div>`,
         card(input("Search offers in this pool…", { placeholder: true, ariaLabel: "Search offers in this pool" }), { cls: "inset" }),
-        w28Rows(false),
+        w28Rows(),
+        `<div class="t-meta">Tap an Offer to review the pair — the action below stays off until one is chosen.</div>`,
       );
-      actions = `${hot("w28.use", btn("Use this offer", { kind: "pri", full: true }))}${hot("w28.clear", btn("Clear", { kind: "ghost", full: true, sm: true }))}`;
+      actions = `${btn("Use this offer", { kind: "pri", full: true, disabled: true })}${hot("w28.clear", btn("Clear", { kind: "ghost", full: true, sm: true }))}`;
   }
   return phoneFrame(content, { header: w28Head, appBar: actionBar(actions) });
 }
 
 const W28_HOTS: HifiDef["hots"] = {
-  "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId. Accepted, lapsed, self-owned, non-Individual, and capacity-inconsistent rows never render (WF:1213)." },
-  "w28.use": { l: "Use this offer", to: "screen:W28@selected", info: "Confirms the highlighted row into the you-give / you-receive review line." },
+  "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId and enables the Use action. Accepted, lapsed, self-owned, non-Individual, and capacity-inconsistent rows never render (WF:1213)." },
   "w28.clear": { l: "Clear the selection", to: "screen:W28", info: "Drops the exchange reference without losing the draft; focus returns to the row (WF:1217)." },
   "w28.submit": { l: "Make this offer in exchange", info: "createCommitment atomically re-checks every eligibility predicate on Ana's Offer before storing counterCommitmentId — if it changed before mining, no promise is created and the picker returns for a clear-or-replace (WF:1219 · CS §5.3).", calls: ["createCommitment"], facts: { pool: "Open" }, pendingSync: true },
   "w28.retry": { l: "Retry loading Offers", to: "screen:W28", info: "Read-only retry; the draft and any prior selection survive." },
@@ -142,7 +142,7 @@ function w30(state: W30State): string {
     );
   if (state === "contract-error")
     return phoneFrame(
-      sheetOver(base, "That didn't go through", `${banner("Ana's Offer is no longer open, so the pair cannot start. Maria can clear or replace the exchange reference; your Offer is untouched.", "amber", "error-warning-line")}${hot("w30.back", btn("Back to the pair", { kind: "pri", full: true }))}`),
+      sheetOver(base, "That didn't go through", `${banner("Ana's Offer is no longer open, so the pair cannot start — nothing changed on either side. Maria can clear or replace the exchange reference; your Offer is untouched.", "amber", "error-warning-line")}${banner("Every failure here arrives as its own named message: it says which side changed and who acts next, and none offers a retry.", "stone", "information-line")}${hot("w30.back", btn("Back to the pair", { kind: "pri", full: true }))}`),
       { appBar: false },
     );
   return phoneFrame(
@@ -159,9 +159,9 @@ ${hot("w30.start", btn("Start both promises", { kind: "pri", full: true }))}${ho
 }
 
 const W30_HOTS: HifiDef["hots"] = {
-  "w30.start": { l: "Start both promises", to: "screen:W29@matched", info: "acceptExchange(B) — one call, every A/B predicate re-checked atomically: two CommitmentAccepted events, one creator-lead ContributorAdded per side, and ExchangeAccepted. Never submits twice from a stale optimistic result (CS §5.3).", calls: ["acceptExchange"], facts: { commitment: "Offered", kind: "SupportService" } },
+  "w30.start": { l: "Start both promises", to: "screen:W30@submitting", info: "acceptExchange(B) — one call, every A/B predicate re-checked atomically: two CommitmentAccepted events, one creator-lead ContributorAdded per side, and ExchangeAccepted. The sheet holds on Submitting until the transaction lands — Matched renders only from confirmed ExchangeAccepted, never optimistically (CS §5.3).", calls: ["acceptExchange"], facts: { commitment: "Offered", kind: "SupportService" }, pendingSync: true },
   "w30.not-now": { l: "Not now", to: "screen:W29", info: "Dismisses without committing anything; focus returns to the trigger." },
-  "w30.back": { l: "Back to the pair", to: "screen:W29", info: "The named contract-family error says who acts next — Ana, Maria, or a steward — per D25; no retry loop is offered here." },
+  "w30.back": { l: "Back to the pair", to: "screen:W29", info: "Drawn case: the referenced Offer left Offered before mining (state-invalid family). The full non-retry taxonomy per acceptance-matrix exchange rows: counterpart-mismatch, direction, claim-type, and self-exchange failures return the creator to the pair with the action removed; a StewardCaptured B requires a fresh direct Offer; closed-cycle and register/cap failures name the steward act needed. Each error names who acts next (D25); none offers a retry loop." },
 };
 
 // ---------------------------------------------------------------------------
@@ -200,8 +200,8 @@ const W31_HOTS: HifiDef["hots"] = {
 };
 
 export const EXCHANGE_DEFS: HifiDef[] = [
-  { screen: { id: "W28", title: "W28 · Offer in exchange", surface: "client", frame: "phone", group: "", reviewVisible: true, states: W28_STATES.map(([id, label]) => ({ id, label, facts: id === "picker" || id === "selected" ? { pool: "Open" } : undefined, html: w28(id) })) } as unknown as HifiDef["screen"], hots: W28_HOTS },
-  { screen: { id: "W29", title: "W29 · Exchange pair", surface: "client", frame: "phone", group: "", reviewVisible: true, states: W29_STATES.map(([id, label]) => ({ id, label, facts: { commitment: id === "proposed" ? "Offered" : "Accepted", kind: "SupportService" }, html: w29(id) })) } as unknown as HifiDef["screen"], hots: W29_HOTS },
-  { screen: { id: "W30", title: "W30 · Start both promises", surface: "client", frame: "phone", group: "", reviewVisible: true, states: W30_STATES.map(([id, label]) => ({ id, label, facts: { commitment: "Offered" as const, kind: "SupportService" as const }, html: w30(id) })) } as unknown as HifiDef["screen"], hots: W30_HOTS },
-  { screen: { id: "W31", title: "W31 · Offer templates", surface: "client", frame: "phone", group: "", reviewVisible: true, states: W31_STATES.map(([id, label]) => ({ id, label, html: w31(id) })) } as unknown as HifiDef["screen"], hots: W31_HOTS },
+  { screen: { id: "W28", title: "W28 · Offer in exchange", surface: "client", frame: "phone", group: "Client PWA", states: W28_STATES.map(([id, label]) => ({ id, label, facts: id === "picker" || id === "selected" ? { pool: "Open" } : undefined, html: w28(id) })) }, hots: W28_HOTS },
+  { screen: { id: "W29", title: "W29 · Exchange pair", surface: "client", frame: "phone", group: "Client PWA", states: W29_STATES.map(([id, label]) => ({ id, label, facts: { commitment: id === "proposed" ? "Offered" : "Accepted", kind: "SupportService" }, html: w29(id) })) }, hots: W29_HOTS },
+  { screen: { id: "W30", title: "W30 · Start both promises", surface: "client", frame: "phone", group: "Client PWA", states: W30_STATES.map(([id, label]) => ({ id, label, facts: { commitment: "Offered", kind: "SupportService" }, html: w30(id) })) }, hots: W30_HOTS },
+  { screen: { id: "W31", title: "W31 · Offer templates", surface: "client", frame: "phone", group: "Client PWA", states: W31_STATES.map(([id, label]) => ({ id, label, html: w31(id) })) }, hots: W31_HOTS },
 ];
