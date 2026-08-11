@@ -1010,7 +1010,8 @@ test("archive moves record explicit closeout metadata and remain valid", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "closed-fixture", "--stage", "active"]).status, 0);
     const reportDir = join(root, ".plans", "active", "closed-fixture", "reports");
-    const reportContents = "# Review 2026-08-11\n\nImmutable evidence.\n";
+    const reportContents =
+      "# Review 2026-08-11\n\nImmutable evidence containing a rejected fixture:\n\n```yaml\nroot:\n  - valid\n    - invalid\n```\n";
     mkdirSync(reportDir, { recursive: true });
     writeFileSync(join(reportDir, "review-2026-08-11.md"), reportContents);
     const activeStatus = readStatus(root, "active", "closed-fixture");
@@ -1094,9 +1095,32 @@ test("archive moves reject a malformed reports entry before mutation", () =>
       "No remaining live scope.",
     ]);
     assert.notEqual(moved.status, 0);
-    assert.match(moved.stderr, /reports must be a directory before archive compaction/);
+    assert.match(moved.stderr, /reports must be a real directory inside the feature hub/);
     assert.equal(existsSync(join(root, ".plans", "active", "malformed-reports")), true);
     assert.equal(existsSync(join(root, ".plans", "archive", "malformed-reports")), false);
+  }));
+
+test("archive moves reject symlinked report directories", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "linked-reports", "--stage", "active"]).status, 0);
+    const externalReports = join(root, "external-reports");
+    mkdirSync(externalReports);
+    symlinkSync(externalReports, join(root, ".plans", "active", "linked-reports", "reports"), "dir");
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "linked-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must be a real directory inside the feature hub/);
+    assert.equal(existsSync(join(root, ".plans", "active", "linked-reports")), true);
   }));
 
 test("compact-archive rejects a malformed reports entry before mutation", () =>
@@ -1120,7 +1144,7 @@ test("compact-archive rejects a malformed reports entry before mutation", () =>
 
     const compacted = runPlanHub(root, ["compact-archive"]);
     assert.notEqual(compacted.status, 0);
-    assert.match(compacted.stderr, /reports must be a directory before archive compaction/);
+    assert.match(compacted.stderr, /reports must be a real directory inside the feature hub/);
     assert.equal(
       readFileSync(join(root, ".plans", "archive", "legacy-archive", "reports"), "utf8"),
       "not a directory\n",

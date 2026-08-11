@@ -46,7 +46,9 @@ Apply this compact contract whenever writing or reviewing production code:
 - **Evidence before claims**: write passing, green, or merge-ready status only after fresh proof at
   the current implementation commit. Record the command, tested commit SHA, timestamp, and
   summarized result; historical dated reports stay immutable and receive separate correction
-  artifacts. A later evidence-only commit may cite that tested parent only when an exact path-scoped
+  artifacts. Every commit-attributed receipt also records an empty
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` so the tested code is exactly
+  reproducible from its SHA. A later evidence-only commit may cite that tested parent only when an exact path-scoped
   `git diff --exit-code <tested>..HEAD -- <validated paths>` proves every validated implementation,
   dependency, configuration, and validation entrypoint is unchanged, and
   `git status --porcelain=v1 --untracked-files=all -- <validated paths>` returns no staged, unstaged,

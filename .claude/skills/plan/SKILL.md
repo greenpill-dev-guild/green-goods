@@ -91,7 +91,10 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 - Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
 - Write validation status last. Every green, passed, completed, or merge-ready handoff claim records
   the tested commit SHA, UTC timestamp, exact command, and summarized output from a fresh run. Do not
-  copy forward an older lane's evidence as current proof. An evidence-only follow-up may retain proof
+  record a commit-attributed receipt until
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` is empty; staged, unstaged, or
+  untracked validated code is not represented by the SHA. Do not copy forward an older lane's
+  evidence as current proof. An evidence-only follow-up may retain proof
   from its tested parent only when it also records a path-scoped
   `git diff --exit-code <tested>..HEAD -- <validated paths>` showing that implementation,
   dependencies, configuration, and validation entrypoints are unchanged, plus an empty

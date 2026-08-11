@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -357,8 +358,15 @@ function isConfinedReportLink(link) {
 
 function reportsEntryError(featureDirPath) {
   const reportsPath = join(featureDirPath, "reports");
-  return existsSync(reportsPath) && !statSync(reportsPath).isDirectory()
-    ? `${reportsPath}: reports must be a directory before archive compaction`
+  let stats;
+  try {
+    stats = lstatSync(reportsPath);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  return stats.isSymbolicLink() || !stats.isDirectory()
+    ? `${reportsPath}: reports must be a real directory inside the feature hub before archive compaction`
     : null;
 }
 
@@ -657,6 +665,7 @@ function markdownFilesUnder(directory) {
     const entryPath = join(directory, entry);
     const stats = statSync(entryPath);
     if (stats.isDirectory()) {
+      if (entry === "reports") return [];
       return markdownFilesUnder(entryPath);
     }
     return stats.isFile() && entry.endsWith(".md") ? [entryPath] : [];

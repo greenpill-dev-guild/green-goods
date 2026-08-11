@@ -95,7 +95,9 @@ For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Va
 
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
 summarized result. Write green, passed, or merge-ready claims only after those commands finish in the
-current review. An evidence-only follow-up may cite the tested parent only with a recorded,
+current review and an empty
+`git status --porcelain=v1 --untracked-files=all -- <validated paths>` proves the tested paths match
+the recorded commit. An evidence-only follow-up may cite the tested parent only with a recorded,
 path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving all validated
 implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
 an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
