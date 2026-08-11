@@ -4,9 +4,9 @@ Updated 2026-08-10. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 40 registered screens / 408 rendered states in the full source registry
-- 33 presentation-visible hi-fi screens / 401 states: 18 Client PWA (265 states), 13 Admin console (131 states), 2 Editorial website (5 states)
-- 554 registered hotspots
+- 40 registered screens / 410 rendered states in the full source registry
+- 33 presentation-visible hi-fi screens / 403 states: 18 Client PWA (267 states), 13 Admin console (131 states), 2 Editorial website (5 states)
+- 556 registered hotspots
 - 57 validated source flows / 389 scenes; 56 presentation-visible flows / 380 scenes: 29 Client PWA, 25 Admin console, 2 Editorial website
 - 0 build warnings
 
@@ -38,7 +38,7 @@ referential integrity only. The Green Goods operations chapter renders
 collapsed. The W3 wizard's default path compressed to four steps (three for
 service/requests) with the pilot-default fallback ON and an Advanced detour;
 `W3@step-confirmers`, `W3@step-confirmers-opted-in`, and
-`W3@support-confirmers` retired in favor of `W3@step-advanced`. Old mid-ribbon
+`W3@support-confirmers` retired in favor of `W3@step-advanced` (the `step-confirmers` name returned in the register #97a review rounds as the Advanced group picker, a different state from the retired numbered step). Old mid-ribbon
 scene hashes (e.g. `#sb1/14`) retire exactly as `#sb9` did.
 
 Community `C*` wireframes and the September Need→triage flow remain registered, validated, and directly addressable, but are hidden from the presentation catalogs until their high-fidelity pass.
@@ -188,7 +188,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
 | W1 | Client PWA | 31 | open, not-ready, ready, seeded, request-open, request-queued, request-work-queued, request-work-open, exchange-queued, reviewing, paused, closed, composted, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
-| W2 | Client PWA | 70 | accepted, offered, requested, active, evidence-queued, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, fulfilled-pool-fallback, fulfilled-protocol-fallback, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-accepted, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error, request-work-active, request-work-partially-approved, request-work-ready-confirmer |
+| W2 | Client PWA | 72 | accepted, offered, requested, active, evidence-queued, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, fulfilled-pool-fallback, fulfilled-protocol-fallback, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-accepted, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error, request-work-active, request-work-partially-approved, request-work-ready-confirmer, request-work-confirmation-pending, request-work-fulfilled |
 | W2a | Client PWA | 7 | compose, compose-request, compose-campaign-request, compose-support, compose-captured, queued, failed |
 | W2b | Client PWA | 9 | forming, add-contributor, remove-contributor, assign-requirement, open-eligible, join-submitted, open-member, frozen, recognition |
 | W3 | Client PWA | 21 | step-what, step-howmuch, step-anchors, step-review, step-advanced, step-advanced-no-protocol, step-confirmers, support-howmuch, support-review, request-what, request-howmuch, request-work-what, request-work-howmuch, request-anchors, request-work-review, request-variant, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |

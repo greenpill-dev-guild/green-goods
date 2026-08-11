@@ -857,7 +857,9 @@ function w8(state: W8State): string {
     );
 
   const order: W8State[] = ["step1", "step2", "step3", "step4", "step5"];
-  const stepIx = order.indexOf(state);
+  // The no-protocol variant is step 3's deployment-conditional twin — it keeps
+  // step 3's slot so the progress row and back-navigation stay valid.
+  const stepIx = order.indexOf(state === "step3-no-protocol" ? "step3" : state);
   let inner: string;
   let next: string;
   switch (state) {

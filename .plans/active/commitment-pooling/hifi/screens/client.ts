@@ -437,6 +437,8 @@ const W2_STATES = [
   ["request-active", "Request — helper working"], ["campaign-request-active", "Campaign request — helper working"],
   ["request-work-active", "Work request — helper working"], ["request-work-partially-approved", "Work request — partly approved"],
   ["request-work-ready-confirmer", "Work request — ready to confirm"],
+  ["request-work-confirmation-pending", "Work request — confirmation queued"],
+  ["request-work-fulfilled", "Work request — done"],
   ["campaign-request-evidence-queued", "Campaign request — evidence queued"],
   ["campaign-request-evidence-submitted", "Campaign request — evidence in"],
   ["campaign-request-ready-pending", "Campaign request — readiness queued"],
@@ -479,6 +481,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   "request-active": "Active", "campaign-request-active": "Active",
   "request-work-active": "Active", "request-work-partially-approved": "Partly approved",
   "request-work-ready-confirmer": "Ready to confirm",
+  "request-work-confirmation-pending": "Ready to confirm",
+  "request-work-fulfilled": "Fulfilled",
   "campaign-request-evidence-queued": "Active", "campaign-request-evidence-submitted": "Evidence in",
   "campaign-request-ready-pending": "Evidence in", "campaign-request-ready-confirmer": "Ready to confirm",
   "campaign-request-confirmation-pending": "Ready to confirm",
@@ -526,6 +530,7 @@ const W2_WORK = new Set<W2State>([
 // so proof travels through Work approvals — the asker still confirms.
 const W2_REQUEST_WORK = new Set<string>([
   "request-work-active", "request-work-partially-approved", "request-work-ready-confirmer",
+  "request-work-confirmation-pending", "request-work-fulfilled",
 ]);
 const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
 type PromiseCast = "offer" | "request" | "request-work" | "campaign-request" | "support" | "captured" | "garden";
@@ -670,6 +675,8 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       return [...askedWork, { label: "Working", meta: "submitted work counts toward the ask's actions", open: true }];
     if (state === "request-work-partially-approved")
       return [...askedWork, { label: "Work approved", meta: "1 of 2 required approvals counted", open: true }];
+    if (state === "request-work-fulfilled")
+      return [...askedWork, { label: "Work approved", meta: "2 of 2 · Jul 14" }, { label: "Done", meta: "confirmed by Ana · Jul 15" }];
     return [...askedWork, { label: "Work approved", meta: "2 of 2 · Jul 14" }, { label: "Ready to confirm", meta: "waiting on Ana — she asked for this", open: true }];
   }
   if (W2_REQUEST.has(state)) {
@@ -934,6 +941,16 @@ function w2(state: W2State): string {
     case "request-work-ready-confirmer":
       band = card(
         `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana asked for this work, so Ana confirms it — every contributor stays excluded.</div>${hot("w2.confirm-request-work-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+      );
+      break;
+    case "request-work-confirmation-pending":
+      band = card(
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's saved confirmation is queued. The ask stays ready and cannot be confirmed twice while it syncs.</div>`,
+      );
+      break;
+    case "request-work-fulfilled":
+      band = card(
+        `<div class="t-title">The work was done</div><div class="t-meta">Ana confirmed on Jul 15 — the ask was met by approved work. The season's count just grew.</div>`,
       );
       break;
     case "campaign-request-active":
@@ -1796,7 +1813,9 @@ function w4(state: W4State): string {
     listRow({ icon: "user-line", primary: "You", chipHtml: chip("Your turn", "warn") });
   const exclusion = hot(
     "w4.provider-note",
-    request || campaignRequest
+    requestWork
+      ? banner("João did the work, so João cannot confirm it — Ana, who asked, does. Not even a steward can confirm their own.", "stone", "shield-check-line")
+      : request || campaignRequest
       ? banner("João gave the ride, so João cannot confirm it — the person who asked does. Not even a steward can confirm their own.", "stone", "shield-check-line")
       : captured
         ? banner("Kwame's named provider cannot confirm their own work — the named counterparty does.", "stone", "shield-check-line")
@@ -1859,6 +1878,7 @@ function w4(state: W4State): string {
       title = "Confirmation saved";
       inner = `${meter(100, { left: "including this device", right: evidenceOnly ? "1 of 1 saved" : "3 of 3 saved" })}${listRow({ icon: "time-line", primary: "Your confirmation", chipHtml: chip("Waiting to send", "queued") })}${banner("Your confirmation is counted on this device. Fulfillment appears only after it syncs on-chain.", "stone", "wifi-off-line")}${hot(
         campaignRequest ? "w4.pending-campaign-request-done"
+        : requestWork ? "w4.pending-request-work-done"
         : request ? "w4.pending-request-done"
         : support ? "w4.pending-support-done"
         : captured ? "w4.pending-captured-done"
@@ -1875,6 +1895,7 @@ function w4(state: W4State): string {
       title = "Promise kept";
       inner = `${hero(request || campaignRequest ? "Help arrived" : "Promise kept", support || campaignRequest ? "Confirmed · the Campaign's count just grew" : captured ? "Confirmed · the recorded promise is fulfilled" : "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot(
         campaignRequest ? "w4.done-campaign-request"
+        : requestWork ? "w4.done-request-work"
         : request ? "w4.done-request"
         : support ? "w4.done-support"
         : captured ? "w4.done-captured"
@@ -1938,6 +1959,8 @@ const W4_HOTS: HifiDef["hots"] = {
   "w4.done": { l: "Back to the pool", to: "screen:W2@fulfilled", info: "The Commitment Fulfilled hero (High) fires on sync completion, not enqueue; reduced-motion shows a static celebratory frame (UX:169,201,204)." },
   "w4.done-support": { l: "Back to the pool", to: "screen:W2@support-fulfilled", info: "Returns to the same SupportService offer after its fulfillment syncs." },
   "w4.done-request": { l: "Back to the pool", to: "screen:W2@request-fulfilled", info: "Returns to the same request record after its fulfillment syncs." },
+  "w4.done-request-work": { l: "Back to the pool", to: "screen:W2@request-work-fulfilled", info: "Returns to the same garden-work ask after its fulfillment syncs — drainage cast to the end (register #97a)." },
+  "w4.pending-request-work-done": { l: "Done", to: "screen:W2@request-work-confirmation-pending", info: "Returns to the garden-work ask with its queued confirmation visible and no duplicate submission action." },
   "w4.done-campaign-request": { l: "Back to the pool", to: "screen:W2@campaign-request-fulfilled", info: "Returns to the same Campaign request record after its fulfillment syncs." },
   "w4.done-captured": { l: "Back to the pool", to: "screen:W2@captured-fulfilled", info: "Returns to the same StewardCaptured record after its fulfillment syncs." },
   "w4.pending-done": { l: "Done", to: "screen:W2@confirmation-pending", info: "Returns to the same promise with its queued confirmation visible and no duplicate confirmation act." },
