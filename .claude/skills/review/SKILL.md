@@ -97,7 +97,9 @@ State what ran with real output. Record the tested commit SHA, UTC timestamp, ex
 summarized result. Write green, passed, or merge-ready claims only after those commands finish in the
 current review. An evidence-only follow-up may cite the tested parent only with a recorded,
 path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving all validated
-implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged. If a
+implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
+an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
+unstaged, or untracked path changes exist. If a
 rung can't run here (env-gated, needs authenticated browser), say
 "unverified: X" instead of hedging. Visible-UI claims need rendered proof via the authenticated Brave
 QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). Dated reports under

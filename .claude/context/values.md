@@ -48,8 +48,10 @@ Apply this compact contract whenever writing or reviewing production code:
   summarized result; historical dated reports stay immutable and receive separate correction
   artifacts. A later evidence-only commit may cite that tested parent only when an exact path-scoped
   `git diff --exit-code <tested>..HEAD -- <validated paths>` proves every validated implementation,
-  dependency, configuration, and validation entrypoint is unchanged. Record that identity command
-  and result; any validation-surface change requires a fresh run.
+  dependency, configuration, and validation entrypoint is unchanged, and
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` returns no staged, unstaged,
+  or untracked changes. Record both identity commands and results; any validation-surface or
+  working-tree change requires a fresh run.
 - **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
   branching, improve names, and remove comments or abstractions that no longer earn their cost.
 

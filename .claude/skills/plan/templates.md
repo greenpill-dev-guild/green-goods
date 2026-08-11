@@ -64,7 +64,9 @@
 - **Run at (UTC)**: `YYYY-MM-DDTHH:MM:SSZ`
 - **Command**: `<exact command>`
 - **Result**: `<counts or concise output summary>`
-- **Evidence-only follow-up (if applicable)**: `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- **Evidence-only follow-up (if applicable)**:
+  - `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+  - `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
 ```
 
 ## `status.json` Lane-State Example
