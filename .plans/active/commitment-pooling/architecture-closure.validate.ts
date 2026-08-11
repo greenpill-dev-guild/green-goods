@@ -435,7 +435,7 @@ const sourceChecks: Array<[boolean, string]> = [
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
   [wireframes.includes("#screens/W7@open") && wireframes.includes("(30 states)"), "wireframe W7 state count is stale"],
   [
-    coverage.includes("407 rendered states") &&
+    coverage.includes("408 rendered states") &&
       coverage.includes("554 registered hotspots") &&
       coverage.includes("389 scenes"),
     "prototype coverage snapshot is stale",

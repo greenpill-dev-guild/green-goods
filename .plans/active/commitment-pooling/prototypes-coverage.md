@@ -4,8 +4,8 @@ Updated 2026-08-10. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 40 registered screens / 407 rendered states in the full source registry
-- 33 presentation-visible hi-fi screens / 400 states: 18 Client PWA (265 states), 13 Admin console (130 states), 2 Editorial website (5 states)
+- 40 registered screens / 408 rendered states in the full source registry
+- 33 presentation-visible hi-fi screens / 401 states: 18 Client PWA (265 states), 13 Admin console (131 states), 2 Editorial website (5 states)
 - 554 registered hotspots
 - 57 validated source flows / 389 scenes; 56 presentation-visible flows / 380 scenes: 29 Client PWA, 25 Admin console, 2 Editorial website
 - 0 build warnings
@@ -206,7 +206,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W30 | Client PWA | 3 | confirm, submitting, contract-error |
 | W31 | Client PWA | 1 | templates |
 | W7 | Admin console | 30 | open, open-no-cycle, not-ready, preflight-complete, ready, paused, paused-cycle-composted, reconciled, cycle-composted, close-blocked-live, pool-closed, compost-pool-confirm, pool-composted, reopen-confirm, manage, claims, claim-declined, claim-outcomes, due-live, expiry-queue, seed-cycle, pause-confirm, close-pool-confirm, paused-close-pool-confirm, cancel-cycle-confirm, paused-cancel-cycle-confirm, decline-claim-confirm, loading, empty, series-view |
-| W8 | Admin console | 7 | step1, step2, step3, step4, step5, captured-for, discard |
+| W8 | Admin console | 8 | step1, step2, step3, step3-no-protocol, step4, step5, captured-for, discard |
 | W9 | Admin console | 3 | pick-member, capture-kind, discard |
 | W10 | Admin console | 19 | detail, detail-fallback-eligible, external-fulfilled, fulfilled, contributor-allocation, edit-declared-value, record-payout, fallback-confirm, protocol-fallback-confirm, raise-dispute, resolve-dispute, attach-assessment, accepted, mark-ready-override, cancel, not-found, garden-ready, garden-fulfilled, queue-settlement-garden |
 | W11 | Admin console | 8 | presets, invalid-sum, guard, recognition-policy, campaign-allocation, campaign-open, discard, campaign-discard |

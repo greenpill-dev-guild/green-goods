@@ -809,6 +809,7 @@ const W7_HOTS: HifiDef["hots"] = {
 
 const W8_STATES = [
   ["step1", "1 · Type & scope"], ["step2", "2 · Requirements"], ["step3", "3 · Who confirms"],
+  ["step3-no-protocol", "3 · Who confirms (no protocol pool)"],
   ["step4", "4 · Reward"], ["step5", "5 · Review"], ["captured-for", "Captured for a member"],
   ["discard", "Discard changes?"],
 ] as const;
@@ -871,6 +872,15 @@ ${banner("Choose up to the current confirmer limit — the console reads MAX_CON
 ${hot("w8.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot · usable only while nobody local can confirm, always with a recorded reason · every contributor remains excluded.</span></span></label>`)}
 ${banner("The ordinary group is always checked first. The Green Goods team can step in only while that group is unreachable; turn the fallback off here for this promise.", "stone", "information-line")}
 ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}`;
+      next = hot("w8.continue-rule", btn("Continue", { kind: "pri" }));
+      break;
+    case "step3-no-protocol":
+      inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>`)}
+${field("Threshold", input("2 of 2", { select: true }))}
+${banner("Choose up to the current confirmer limit — the console reads MAX_CONFIRMERS from the deployed module and blocks the name past it before review.", "stone", "information-line")}
+<label class="arow" style="align-items:flex-start;opacity:.55"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" disabled><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Unavailable on this deployment: no Green Goods protocol pool is registered yet. The review stores the fallback off and blocks until the named rule is reachable locally.</span></span></label>
+${banner("Repair path: register the protocol pool (deployment operation), or name a reachable local confirmer group before seeding.", "amber", "error-warning-line")}
+${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "w8-claim-mode-noproto" })))}`;
       next = hot("w8.continue-rule", btn("Continue", { kind: "pri" }));
       break;
     case "step4":
