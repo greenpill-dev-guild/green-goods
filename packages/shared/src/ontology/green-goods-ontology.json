@@ -1626,6 +1626,68 @@
       "mappings": []
     },
     {
+      "id": "loan-state",
+      "status": "live",
+      "definition": "Records-only pool-credit loan lifecycle: Requested \u2192 Approved \u2192 Disbursed \u2192 Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal \u2014 later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec \u00a76 defines the planned GraphQL mirror.",
+      "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": [
+          "None",
+          "Requested",
+          "Approved",
+          "Disbursed",
+          "Repaid",
+          "Defaulted",
+          "Cancelled"
+        ]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICreditRegistry.sol",
+          "symbol": "LoanState",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": [
+            "None",
+            "Requested",
+            "Approved",
+            "Disbursed",
+            "Repaid",
+            "Defaulted",
+            "Cancelled"
+          ]
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "loan-rail",
+      "status": "live",
+      "definition": "Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only \u2014 the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.",
+      "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": ["None", "Jar", "Treasury", "GDollarSettlement"]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICreditRegistry.sol",
+          "symbol": "LoanRail",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "Jar", "Treasury", "GDollarSettlement"]
+        }
+      ],
+      "mappings": []
+    },
+    {
       "id": "failure-code",
       "status": "live",
       "definition": "Stored settlement failure taxonomy used for deterministic recovery and operator rendering.",
@@ -2788,6 +2850,72 @@
           "to": "previous | Fulfilled | Cancelled | Expired",
           "layer": "on-chain",
           "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved"
+        }
+      ]
+    },
+    {
+      "id": "commitment-loan",
+      "status": "spec",
+      "vocabulary": "loan-state",
+      "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "note": "Records-only pool credit (CreditRegistry). Default is not terminal \u2014 a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.",
+      "states": [
+        { "name": "Requested", "storage": "on-chain" },
+        { "name": "Approved", "storage": "on-chain" },
+        { "name": "Disbursed", "storage": "on-chain" },
+        { "name": "Repaid", "storage": "on-chain" },
+        { "name": "Defaulted", "storage": "on-chain" },
+        { "name": "Cancelled", "storage": "on-chain" },
+        { "name": "Repaying", "storage": "derived" }
+      ],
+      "transitions": [
+        {
+          "from": "None",
+          "to": "Requested",
+          "layer": "on-chain",
+          "mechanism": "requestLoan(params) \u2192 LoanRequested; pool member for self or steward onBehalfOf; pool Open + credit enabled; principal within remaining borrowerCap"
+        },
+        {
+          "from": "Requested",
+          "to": "Approved",
+          "layer": "on-chain",
+          "mechanism": "approveLoan(loanId) \u2192 LoanApproved; steward, never the borrower (SelfApproval); re-checks authority and reserves cap exposure"
+        },
+        {
+          "from": "Requested",
+          "to": "Cancelled",
+          "layer": "on-chain",
+          "mechanism": "cancelLoan(loanId, reasonCID) \u2192 LoanCancelled; borrower or steward"
+        },
+        {
+          "from": "Approved",
+          "to": "Disbursed",
+          "layer": "on-chain",
+          "mechanism": "recordDisbursed(loanId, rail, executionRef) \u2192 LoanDisbursed; steward or pool executor; reservation becomes outstanding; the G$ rail requires the one field-matched Confirmed LoanPrincipal child"
+        },
+        {
+          "from": "Approved",
+          "to": "Cancelled",
+          "layer": "on-chain",
+          "mechanism": "cancelLoan(loanId, reasonCID) \u2192 LoanCancelled; steward; any settlement child must already be Cancelled; releases the cap reservation"
+        },
+        {
+          "from": "Disbursed",
+          "to": "Repaid",
+          "layer": "on-chain",
+          "mechanism": "recordRepayment(loanId, amount, executionRef) clearing principal + fee \u2192 RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only"
+        },
+        {
+          "from": "Disbursed",
+          "to": "Defaulted",
+          "layer": "on-chain",
+          "mechanism": "markDefaulted(loanId, reasonCID) \u2192 LoanDefaulted; steward; past dueDate only (NotDue); callable while paused"
+        },
+        {
+          "from": "Defaulted",
+          "to": "Repaid",
+          "layer": "on-chain",
+          "mechanism": "recordRepayment clearing the balance \u2192 LoanRepaid(recoveredFromDefault = true); default is not terminal"
         }
       ]
     }

@@ -457,6 +457,26 @@ Read-model direction derived from immutable payer and provider gardens plus the 
 |---|---|---|---|---|
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> | UNKNOWN is retained until the protocol garden configuration is observed. |
 
+### `loan-state`
+
+Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec §6 defines the planned GraphQL mirror.
+
+**Canonical members:** None (0) · Requested (1) · Approved (2) · Disbursed (3) · Repaid (4) · Defaulted (5) · Cancelled (6)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICreditRegistry.sol · LoanState</code> | <code>None, Requested, Approved, Disbursed, Repaid, Defaulted, Cancelled</code> |  |
+
+### `loan-rail`
+
+Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.
+
+**Canonical members:** None (0) · Jar (1) · Treasury (2) · GDollarSettlement (3)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ICreditRegistry.sol · LoanRail</code> | <code>None, Jar, Treasury, GDollarSettlement</code> |  |
+
 ### `failure-code`
 
 Stored settlement failure taxonomy used for deterministic recovery and operator rendering.
@@ -799,6 +819,31 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 | … | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
 | Accepted \| ReadyForConfirmation \| Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
 | Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+
+#### `commitment-loan`
+
+Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.
+
+| State | Storage |
+|---|---|
+| Requested | on-chain |
+| Approved | on-chain |
+| Disbursed | on-chain |
+| Repaid | on-chain |
+| Defaulted | on-chain |
+| Cancelled | on-chain |
+| Repaying | derived |
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| None | Requested | on-chain | requestLoan(params) → LoanRequested; pool member for self or steward onBehalfOf; pool Open + credit enabled; principal within remaining borrowerCap |
+| Requested | Approved | on-chain | approveLoan(loanId) → LoanApproved; steward, never the borrower (SelfApproval); re-checks authority and reserves cap exposure |
+| Requested | Cancelled | on-chain | cancelLoan(loanId, reasonCID) → LoanCancelled; borrower or steward |
+| Approved | Disbursed | on-chain | recordDisbursed(loanId, rail, executionRef) → LoanDisbursed; steward or pool executor; reservation becomes outstanding; the G$ rail requires the one field-matched Confirmed LoanPrincipal child |
+| Approved | Cancelled | on-chain | cancelLoan(loanId, reasonCID) → LoanCancelled; steward; any settlement child must already be Cancelled; releases the cap reservation |
+| Disbursed | Repaid | on-chain | recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only |
+| Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
+| Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
 
 ## Known Issues
 
