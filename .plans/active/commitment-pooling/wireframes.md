@@ -100,7 +100,7 @@ Route `/home/:id/pool` — NET-NEW fourth `GardenTab` on the existing garden det
 - Membership-wait variant (register #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
 - Tap card ▸ W2. Offer/Request CTAs ▸ W3 with direction preset.
 
-**Hi-fi**: [`#screens/W1@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W1@open) — canonical state registry for this frame (28 states). Cycle-banner and read-recovery states use the same W1 shell; `composted` remains distinct from Closed and names the steward-owned reopen path:
+**Hi-fi**: [`#screens/W1@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W1@open) — canonical state registry for this frame (31 states). Cycle-banner and read-recovery states use the same W1 shell; `composted` remains distinct from Closed and names the steward-owned reopen path:
 
 ```text
 SEEDED / OPENS SOON                 REVIEWING
@@ -438,7 +438,7 @@ All admin frames: `{CanvasRouteFrame}` + `{CanvasRouteHeader}` + `{CanvasRouteCo
 
 ### W7 — Garden workspace: Pool tab (uiux-spec §6.2)
 
-Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (29 states).
+Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (30 states).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -507,7 +507,7 @@ Adopted 2026-07-11 (register #34; the lifecycle/readiness states above and the h
 
 ### W8 — Steward seeding console (uiux-spec §6.3)
 
-Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/seed`. **Five steps, not four** (Appendix B §6.3, locked 2026-07-24): the old step 3 splits into *Who confirms* and *Consideration*. **Hi-fi**: [`#screens/W8@step1`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W8@step1) (7 states).
+Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/seed`. **Five steps, not four** (Appendix B §6.3, locked 2026-07-24): the old step 3 splits into *Who confirms* and *Consideration*. **Hi-fi**: [`#screens/W8@step1`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W8@step1) (8 states).
 
 ```text
 ┌── Seed a commitment ── ● ● ● ● ○ ────────────────────────┐
@@ -531,16 +531,16 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ confirmers  [ + add address ]  ≡ Maria ✕  ≡ João ✕       │  {AddressGroupField} NET-NEW
 │ threshold   N = [ 2 ] of 2                               │  validates N ≤ group size
 │ Every frozen contributor is excluded from confirmation.  │
-│ □ Let Green Goods team confirm if nobody local is eligible│  protocolFallbackEnabled · off
+│ ☑ Let Green Goods team confirm if nobody local is eligible│  protocolFallbackEnabled · pilot default ON (register #94)
 │ Claim acceptance fails if N becomes unreachable unless   │
-│ that safety path is explicitly selected.                 │
+│ that safety path remains selected (opt-out per promise). │
 │ claim mode  ◉ open   ○ steward-reviewed                  │  prefilled by context (register #19)
 ├──────────────────────────────────────────────────────────┤
 │ Step 4 — Consideration                                          │
 │ consideration rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
 │ external    source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
 ├──────────────────────────────────────────────────────────┤
-│ Step 5 — Review · team: Lead-managed · GG fallback: off  │
+│ Step 5 — Review · team: Lead-managed · GG fallback: on   │
 │          consideration: External                                │
 │                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘
@@ -696,7 +696,7 @@ Pools view inside the existing admin `/community` workspace, reached through tha
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Hi-fi**: [`#screens/W12@protocol`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W12@protocol) (2 states). *Wireframe-only: a "claimable by your gardeners" browse list is not drawn by the hi-fi — gardeners browse protocol commitments in the client (W25); this admin mode carries claims, confirmations, and funding references.*
+**Hi-fi**: [`#screens/W12@protocol`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W12@protocol) (3 states — protocol seeding added by register #96). *Wireframe-only: a "claimable by your gardeners" browse list is not drawn by the hi-fi — gardeners browse protocol commitments in the client (W25); this admin mode carries claims, confirmations, funding references, and protocol seeding.*
 
 ### W13 — Hub: Confirm stage (uiux-spec §6.9)
 

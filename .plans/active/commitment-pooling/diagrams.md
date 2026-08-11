@@ -402,7 +402,7 @@ flowchart LR
 **Hard prohibitions (the red lines)**:
 
 - No contributor — the lead provider included — may confirm their own delivery, including through
-  local or protocol fallback. Protocol fallback is off by default, must be selected before
+  local or protocol fallback. Protocol fallback is ON by default for the pilot (register #94, opt-out per promise), set before
   acceptance, and never converts module-owner/deployer status into confirmation authority.
 - No recovery owner may be a Safe executor, and no executor may be a recovery owner; deployment
   and registration-time verification both reject overlap.
@@ -914,7 +914,7 @@ stateDiagram-v2
 
 Ordinary named/default reachability is evaluated after every contributor is excluded. If it is
 unreachable, the commitment cannot be accepted or reach Ready unless
-`protocolFallbackEnabled` was explicitly selected before acceptance and the write-once
+`protocolFallbackEnabled` was enabled before acceptance (the pilot default ON, opt-out per promise — register #94) and the write-once
 `protocolPoolId` exists. At confirmation, current local-garden Hats classify first as
 `PoolFallback`; otherwise selected current protocol-garden Hats classify as `ProtocolFallback`.
 `CommitmentFulfilled` emits the confirmer, path, and reason, so no surface infers provenance from
@@ -1892,7 +1892,7 @@ sequenceDiagram
     OP->>SM: create plan with empty recognition vector/hash
     SM-->>IDX: PayoutPlanCreated(kind, payer, provider, beneficiary garden/Safe/amount)
     OP->>SM: finalizeCommitmentPayoutPlan
-    Note over OP,SM: payer and beneficiary accounts active; beneficiary Safe still frozen match
+    Note over OP,SM: payer and beneficiary accounts active · beneficiary Safe still frozen match
     OP->>SM: prepareGardenBeneficiaryPayout(planId)
     SM-->>IDX: DisbursementQueued(kind=GardenBeneficiary)
   else Funding — ProtocolToGarden top-up, commitmentId is 0
@@ -1902,7 +1902,7 @@ sequenceDiagram
   end
   opt any supported disbursement is Queued
     DSP->>SM: dispatchDisbursement or dispatchBatch
-    Note over DSP,SM: commitment parent is finalized; payer active;<br/>beneficiary account rechecked when applicable
+    Note over DSP,SM: commitment parent is finalized · payer active<br/>beneficiary account rechecked when applicable
     SM->>AR: ccipSend(command tuple, no tokens, snapshotted peer/version/gas)
     SM-->>IDX: SettlementCommandDispatched (key, messageId, peer, payloadHash)
     AR-->>CR: CCIP delivery

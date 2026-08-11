@@ -166,3 +166,14 @@ Return:
 6. remaining gaps or explicit proof limits;
 7. confirmation that no runtime product package, Linear record, Google Doc, contract, deployment,
    authority, or value state was changed.
+
+
+## Audit note (2026-08-10, prototype-registry drift audit)
+
+The saved-Offer `SAVED_REMOTE` state (uiux-spec Appendix F; standing-commitments-spec
+§ agent store) depends on an authenticated Agent-store — Hono routes,
+wallet-signature verification, short-lived sessions in `packages/agent`. The
+audit found **zero scaffolding** for any of it in `packages/agent/src` (no
+commitment/pool/settlement code at all), and the prototypes never surface the
+dependency. Whoever picks up standing commitments must treat the agent store as
+net-new work with its own estimate, not an extension of an existing surface.

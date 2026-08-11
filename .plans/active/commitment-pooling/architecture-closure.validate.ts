@@ -167,11 +167,11 @@ for (const functionName of new Set(classifiedFunctions)) {
 
 const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n\/\/ Metadata/)?.[1] ?? "";
 const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
-require(contractCalls.length === 57, `expected 57 executable hi-fi call names, found ${contractCalls.length}`);
+require(contractCalls.length === 58, `expected 58 executable hi-fi call names, found ${contractCalls.length}`);
 const executablePoolingCalls = contractCalls.filter((call) => poolingFunctions.includes(call));
 require(
-  executablePoolingCalls.length === 41,
-  `expected 41 executable Commitment Pooling calls, found ${executablePoolingCalls.length}`,
+  executablePoolingCalls.length === 42,
+  `expected 42 executable Commitment Pooling calls, found ${executablePoolingCalls.length}`,
 );
 for (const call of executablePoolingCalls) {
   require(
@@ -433,16 +433,23 @@ const sourceChecks: Array<[boolean, string]> = [
     "prototype spec omits executable expiry or declared-value paths",
   ],
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
-  [wireframes.includes("#screens/W7@open") && wireframes.includes("(29 states)"), "wireframe W7 state count is stale"],
+  [wireframes.includes("#screens/W7@open") && wireframes.includes("(30 states)"), "wireframe W7 state count is stale"],
   [
-    coverage.includes("377 rendered states") &&
-      coverage.includes("518 registered hotspots") &&
-      coverage.includes("366 scenes"),
+    coverage.includes("410 rendered states") &&
+      coverage.includes("556 registered hotspots") &&
+      coverage.includes("389 scenes"),
     "prototype coverage snapshot is stale",
   ],
   [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],
   [status.includes("38 named plus __gap[12]"), "status still declares the old storage layout"],
   [contractHandoff.includes("38-feature-slot") && contractHandoff.includes("operationKey"), "contract handoff omits closure contract"],
+  [
+    clientHandoff.includes("on by default for the pilot") &&
+      adminHandoff.includes("on by default for the pilot") &&
+      !clientHandoff.includes("off-by-default") &&
+      !adminHandoff.includes("off-by-default"),
+    "a dispatch handoff still carries the superseded fallback default (register #94 is pilot-default ON)",
+  ],
   [
     indexerHandoff.includes("sixteen pooling entities") &&
       indexerHandoff.includes("late `ClaimRequested`") &&
