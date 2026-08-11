@@ -43,12 +43,16 @@ type W1State = (typeof W1_STATES)[number][0];
 // incommensurable things (uiux-spec §5.2 "There is no synthetic
 // cross-commitment progress percentage", §12). A seeded or empty season shows
 // no counts line at all rather than a row of zeroes.
-const seasonCard = (opts: { offered?: number; kept?: number; stage?: string } = {}) => {
-  const offered = opts.offered ?? 12;
-  const kept = opts.kept ?? 7;
-  const counts = offered === 0 && kept === 0 ? "" : `<div class="t-meta num">${offered} offered · ${kept} kept</div>`;
+//
+// The card counts promises made and kept, the same pair W5, W12, W15 and W26
+// print for this moment — not open offers, which are a subset of what the
+// season has promised and so can never exceed `made` (PRD-760).
+const seasonCard = (opts: { made?: number; kept?: number; stage?: string } = {}) => {
+  const made = opts.made ?? SEASON_LIVE.made;
+  const kept = opts.kept ?? SEASON_LIVE.kept;
+  const counts = made === 0 && kept === 0 ? "" : `<div class="t-meta num">${made} promises · ${kept} kept</div>`;
   return card(
-    `<div class="cardrow">${hot("w1.season-card", `<div class="grow"><div class="t-title">Season of First Rains</div><div class="t-meta">${opts.stage ?? "Open"} · runs through Aug 30</div></div>`)}${chip("Season", "plain")}</div>` +
+    `<div class="cardrow">${hot("w1.season-card", `<div class="grow"><div class="t-title">${CYCLE}</div><div class="t-meta">${opts.stage ?? "Open"} · runs through Aug 30</div></div>`)}${chip("Season", "plain")}</div>` +
       counts,
   );
 };
@@ -199,7 +203,7 @@ function w1(state: W1State): string {
       break;
     case "empty-open":
       content = pagepad(
-        seasonCard({ offered: 0, kept: 0 }),
+        seasonCard({ made: 0, kept: 0 }),
         card(`<div class="t-title">No promises yet</div><div class="t-meta">Start the first one — offer something you can give, or ask for help you need.</div>`),
         `<div class="brow">${hot("w1.offer", btn("Offer support", { kind: "pri" }))}${hot("w1.request", btn("Request help", { kind: "sec" }))}</div>`,
       );
@@ -262,7 +266,7 @@ function w1(state: W1State): string {
     case "seeded":
       content = pagepad(
         banner("Opens soon — your steward is preparing this season's promises. You can browse what's coming; offering opens when the season does.", "amber", "time-line"),
-        seasonCard({ offered: 0, kept: 0, stage: "Opens soon" }),
+        seasonCard({ made: 0, kept: 0, stage: "Opens soon" }),
         card(`<div class="t-title">A preview of this season</div><div class="t-meta">These promises stay read-only until the season opens.</div>`, { cls: "inset" }),
       );
       break;
