@@ -17,6 +17,8 @@ const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 
 const RETIREMENT_NOTICE_RE =
   /\b(retired?|retirement|folded|removed|removal|replaced|renamed|deleted|deletion|archived|superseded)\b/i;
+const NEGATED_RETIREMENT_RE =
+  /\b(?:not|never)\b(?:\W+\w+){0,3}\W+\b(?:retired?|folded|removed|replaced|renamed|deleted|archived|superseded)\b/i;
 const RETIRED_SCAN_EXEMPT = new Set([
   ".claude/loop.md",
   "scripts/quality/check-guidance-links.mjs",
@@ -130,7 +132,7 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
     if (skillMatch) {
       const name = skillMatch[1];
       const command = new RegExp(
-        `(^|[^A-Za-z0-9_-])/${escapeRegex(name)}(?=$|[\\s\`'\",.)\\\]])`,
+        `(^|[^A-Za-z0-9_-])/${escapeRegex(name)}(?=$|[^A-Za-z0-9_-])`,
       );
       rules.push({
         label: `/${name}`,
@@ -145,7 +147,11 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
       continue;
     }
 
-    if (deletedPath.startsWith(".claude/skills/") && /\.mdx?$/.test(deletedPath)) {
+    if (
+      (deletedPath.startsWith(".claude/skills/") ||
+        deletedPath.startsWith(".claude/context/")) &&
+      /\.mdx?$/.test(deletedPath)
+    ) {
       const basename = path.basename(deletedPath);
       const shortPath = deletedPath.replace(/^\.claude\//, "");
       const basenameCollides = knownPaths.some(
@@ -199,12 +205,35 @@ export function filterPresentPaths(paths, exists) {
 
 function isExplicitRetirementNotice(line, label) {
   if (!RETIREMENT_NOTICE_RE.test(line)) return false;
+  if (NEGATED_RETIREMENT_RE.test(line)) return false;
   const escapedLabel = escapeRegex(label);
   const verb = RETIREMENT_NOTICE_RE.source;
   return (
     new RegExp(`${escapedLabel}.{0,50}${verb}`, "i").test(line) ||
     new RegExp(`${verb}.{0,50}${escapedLabel}`, "i").test(line)
   );
+}
+
+export function scanPersistentRetiredReferences(files, patterns = RETIRED_PATTERNS) {
+  const failures = [];
+  for (const file of files) {
+    for (const [index, line] of file.text.split(/\r?\n/).entries()) {
+      for (const pattern of patterns) {
+        const match = typeof pattern === "string" ? undefined : line.match(pattern);
+        const hit = typeof pattern === "string" ? line.includes(pattern) : Boolean(match);
+        const label =
+          typeof pattern === "string"
+            ? pattern
+            : match?.[0].replace(/^[\s`(]+/, "") ?? pattern.source;
+        if (hit && !isExplicitRetirementNotice(line, label)) {
+          failures.push(
+            `${file.path}:${index + 1}: reference to retired surface -> ${label}`,
+          );
+        }
+      }
+    }
+  }
+  return failures;
 }
 
 export function addedLineNumbersFromDiff(diff) {
@@ -380,17 +409,9 @@ function main() {
     }
 
     if (!RETIRED_SCAN_EXEMPT.has(relativePath)) {
-      for (const [index, line] of text.split("\n").entries()) {
-        for (const pattern of RETIRED_PATTERNS) {
-          const hit = typeof pattern === "string" ? line.includes(pattern) : pattern.test(line);
-          const label = typeof pattern === "string" ? pattern : pattern.source;
-          if (hit && !isExplicitRetirementNotice(line, label)) {
-            failures.push(
-              `${relativePath}:${index + 1}: reference to retired surface -> ${label}`,
-            );
-          }
-        }
-      }
+      failures.push(
+        ...scanPersistentRetiredReferences([{ path: relativePath, text }]),
+      );
     }
   }
 

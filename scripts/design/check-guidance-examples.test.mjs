@@ -62,6 +62,17 @@ test("rejects named-color token fallbacks", () => {
   );
 });
 
+test("rejects raw values hidden behind noncanonical custom properties", () => {
+  const text = [
+    "```css",
+    ":root { --brand: #fff; --card-shadow: var(--shadow-float), 0 4px 8px var(--color-shadow); }",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+  assert.ok(failures.some((failure) => failure.includes("raw shadow")));
+});
+
 test("rejects unterminated implementation fences", () => {
   const text = ["```css", ".pane { color: var(--color-ink); }"].join("\n");
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), [
@@ -217,6 +228,64 @@ test("rejects transition and animation shorthand durations independently", () =>
   assert.equal(
     failures.filter((failure) => failure.includes("hardcoded transition duration")).length,
     2,
+  );
+});
+
+test("rejects numeric durations in JavaScript motion configurations", () => {
+  const text = [
+    "```tsx",
+    "const one = { transition: { duration: 0.2 } };",
+    "const two = { animation: {",
+    "  duration: 1,",
+    "} };",
+    "```",
+  ].join("\n");
+  assert.equal(
+    findDesignGuidanceViolations(text, "design.md").filter((failure) =>
+      failure.includes("hardcoded transition duration"),
+    ).length,
+    2,
+  );
+});
+
+test("checks implementation after a leading block comment", () => {
+  const text = [
+    "```css",
+    "/* example */ .bad { color: #fff; transition: opacity 200ms; }",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+  assert.ok(failures.some((failure) => failure.includes("hardcoded transition duration")));
+});
+
+test("rejects modern raw color functions", () => {
+  const text = [
+    "```css",
+    ".a { color: lab(50% 20 30); }",
+    ".b { color: lch(50% 20 30); }",
+    ".c { color: hwb(90 10% 10%); }",
+    ".d { color: color(display-p3 1 0 0); }",
+    "```",
+  ].join("\n");
+  assert.equal(
+    findDesignGuidanceViolations(text, "design.md").filter((failure) =>
+      failure.includes("raw color function"),
+    ).length,
+    4,
+  );
+});
+
+test("rejects mixed token and raw shadow layers", () => {
+  const text = [
+    "```css",
+    ".bad { box-shadow: var(--shadow-float), 0 4px 8px var(--color-shadow); }",
+    "```",
+  ].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("raw shadow"),
+    ),
   );
 });
 

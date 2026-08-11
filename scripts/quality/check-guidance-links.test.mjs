@@ -10,6 +10,7 @@ import {
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
+  scanPersistentRetiredReferences,
 } from "./check-guidance-links.mjs";
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), "check-guidance-links.mjs");
@@ -62,6 +63,14 @@ test("finds source consumers of a deleted slash command", () => {
   assert.match(failures[0], /deleted surface -> \/qa-triage/);
 });
 
+test("finds deleted slash commands followed by prose punctuation", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "docs/guide.mdx", text: "Run /review: before merging." }],
+    [".claude/skills/review/SKILL.md"],
+  );
+  assert.equal(failures.length, 1);
+});
+
 test("does not confuse retired Claude commands with agent product commands", () => {
   const failures = scanDeletedSurfaceReferences(
     [{ path: "packages/agent/README.md", text: "Send /status to the Telegram bot." }],
@@ -91,6 +100,19 @@ test("allows explicit retirement notices", () => {
   assert.deepEqual(failures, []);
 });
 
+test("rejects negated retirement notices", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [
+      {
+        path: "docs/guide.mdx",
+        text: "The /review command has not been retired; keep using it.",
+      },
+    ],
+    [".claude/skills/review/SKILL.md"],
+  );
+  assert.equal(failures.length, 1);
+});
+
 test("does not treat an unrelated move as a retirement notice", () => {
   const failures = scanDeletedSurfaceReferences(
     [{ path: "docs/guide.mdx", text: "Once the data has moved, run `/status`." }],
@@ -106,6 +128,37 @@ test("finds source comments pointing at a deleted design guide", () => {
   );
   assert.equal(failures.length, 1);
   assert.match(failures[0], /spatial\.md/);
+});
+
+test("finds consumers of a deleted context guide", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [
+      {
+        path: "packages/shared/src/ontology/green-goods-ontology.json",
+        text: '{"source":".claude/context/ontology.md"}',
+      },
+    ],
+    [".claude/context/ontology.md"],
+  );
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /ontology\.md/);
+});
+
+test("allows static regex retirement notices", () => {
+  const failures = scanPersistentRetiredReferences(
+    [{ path: "docs/guide.mdx", text: "The /principles command was retired." }],
+  );
+  assert.deepEqual(failures, []);
+});
+
+test("rejects negated static regex retirement notices", () => {
+  const failures = scanPersistentRetiredReferences([
+    {
+      path: "docs/guide.mdx",
+      text: "The /principles command was never removed; keep using it.",
+    },
+  ]);
+  assert.equal(failures.length, 1);
 });
 
 test("does not confuse a colliding guide basename with an unrelated path", () => {

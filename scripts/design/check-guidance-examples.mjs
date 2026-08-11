@@ -16,20 +16,26 @@ const implementationLanguages = new Set([
   "tsx",
   "typescript",
 ]);
+const javascriptLanguages = new Set(["javascript", "js", "jsx", "ts", "tsx", "typescript"]);
+const canonicalCustomProperty =
+  /^--(?:spring|color|radius|shadow|blur|space|surface|tone|canvas|gg)-|^--e[0-9-]/i;
 const cssNamedColors = new Set(
   "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen".split(
     " ",
   ),
 );
 const colorProperty =
-  /\b(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow)\s*:\s*([^;}]+)/gi;
+  /(?:\b(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow)|--[a-z0-9-]+)\s*:\s*([^;}]+)/gi;
 const colorAttribute =
   /\b(?:color|fill|stroke|background-color|border-color)\s*=\s*["']([^"']+)["']/gi;
 const multilineGuardedProperty =
   /\b(?:transition(?:-duration)?|animation(?:-duration)?|transitionDuration|animationDuration|color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow|border-radius|borderRadius)\s*:\s*$/i;
 
 function withoutCustomPropertyDeclarations(line) {
-  return line.replace(/(^|[{;]\s*)--[a-z0-9-]+\s*:[^;}]+;?/gi, "$1");
+  return line.replace(
+    /(^|[{;]\s*)(--[a-z0-9-]+)\s*:[^;}]+;?/gi,
+    (match, prefix, name) => (canonicalCustomProperty.test(name) ? prefix : match),
+  );
 }
 
 function colorPropertyValues(line) {
@@ -66,7 +72,50 @@ function implementationForLine(lines, index) {
       if (/[;,}]\s*$/.test(continuation)) break;
     }
   }
-  return withoutCustomPropertyDeclarations(implementation).replace(/\s+\/\/.*$/, "");
+  return withoutCustomPropertyDeclarations(implementation);
+}
+
+function withoutImplementationComments(lines) {
+  const visible = [];
+  let inBlockComment = false;
+  for (const entry of lines) {
+    const source = entry.text;
+    let text = "";
+    let quote;
+    let escaped = false;
+    for (let index = 0; index < source.length; index++) {
+      const character = source[index];
+      const next = source[index + 1];
+      if (inBlockComment) {
+        if (character === "*" && next === "/") {
+          inBlockComment = false;
+          index++;
+        }
+        continue;
+      }
+      if (quote) {
+        text += character;
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === quote) quote = undefined;
+        continue;
+      }
+      if (character === '"' || character === "'" || character === "`") {
+        quote = character;
+        text += character;
+        continue;
+      }
+      if (character === "/" && next === "*") {
+        inBlockComment = true;
+        index++;
+        continue;
+      }
+      if (character === "/" && next === "/") break;
+      text += character;
+    }
+    visible.push({ ...entry, rawText: source, text });
+  }
+  return visible;
 }
 
 function hasOnlyReducedMotionDurations(line) {
@@ -94,7 +143,7 @@ const checks = [
   {
     label: "hardcoded transition duration",
     pattern:
-      /\bduration-(?!\[?var)[0-9]+(?:ms|s)?\b|\bduration-\[(?!var\()[^\]]*\b[0-9]*\.?[0-9]+(?:ms|s)\b[^\]]*\]|\b(?:transition|animation)(?:-duration)?\s*:[^;}]*\b[0-9]*\.?[0-9]+(?:ms|s)\b|\b(?:transitionDuration|animationDuration)\s*:\s*["']?(?!var\()[0-9]*\.?[0-9]+(?:ms|s)\b/i,
+      /\bduration-(?!\[?var)[0-9]+(?:ms|s)?\b|\bduration-\[(?!var\()[^\]]*\b[0-9]*\.?[0-9]+(?:ms|s)\b[^\]]*\]|\b(?:transition|animation)(?:-duration)?\s*:[^;}]*\b[0-9]*\.?[0-9]+(?:ms|s)\b|\b(?:transitionDuration|animationDuration|--[a-z0-9-]*(?:duration|transition|animation)[a-z0-9-]*)\s*:\s*["']?(?!var\()[0-9]*\.?[0-9]+(?:ms|s)\b/i,
   },
   { label: "hardcoded easing", pattern: /cubic-bezier\s*\(/i },
   {
@@ -104,7 +153,7 @@ const checks = [
   { label: "raw named color", test: hasRawNamedColor },
   {
     label: "raw color function",
-    pattern: /\b(?:rgba?|hsla?|oklch)\s*\((?!\s*var\()/i,
+    pattern: /\b(?:rgba?|hsla?|oklch|lab|lch|hwb|color)\s*\((?!\s*var\()/i,
   },
   {
     label: "raw palette utility",
@@ -119,9 +168,18 @@ const checks = [
     label: "raw shadow",
     test: (line) => {
       const cssProperty = line.match(/\bbox-shadow\s*:\s*([^;}]+)/i)?.[1]?.trim();
-      if (cssProperty && cssProperty !== "none" && !cssProperty.startsWith("var(")) return true;
-      const jsProperty = line.match(/\bboxShadow\s*:\s*["']?([^"',;}]+)/)?.[1]?.trim();
-      if (jsProperty && jsProperty !== "none" && !jsProperty.startsWith("var(")) return true;
+      const customProperty = line.match(/--[a-z0-9-]*shadow[a-z0-9-]*\s*:\s*([^;}]+)/i)?.[1]?.trim();
+      const jsMatch = line.match(
+        /\bboxShadow\s*:\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`|([^;}]+))/,
+      );
+      const jsProperty = jsMatch?.slice(1).find((value) => value !== undefined)?.trim();
+      const isTokenOnly = (value) =>
+        /^(?:var\(\s*--[a-z0-9-]+\s*\))(?:\s*,\s*var\(\s*--[a-z0-9-]+\s*\))*\s*(?:!important)?$/i.test(
+          value,
+        );
+      for (const value of [cssProperty, customProperty, jsProperty]) {
+        if (value && value !== "none" && !isTokenOnly(value)) return true;
+      }
       const withoutTokenDropShadows = line.replace(
         /drop-shadow\s*\(\s*var\(\s*--[a-z0-9-]+\s*\)\s*\)/gi,
         "",
@@ -187,24 +245,22 @@ export function findDesignGuidanceViolations(text, relativePath) {
     if (block.unterminated) {
       failures.push(`${relativePath}:${block.line}: unterminated implementation fence`);
     }
-    let inBlockComment = false;
+    const implementationLines = withoutImplementationComments(block.lines);
     let reducedMotionDepth = 0;
-    for (const [entryIndex, entry] of block.lines.entries()) {
+    let motionConfigDepth = 0;
+    for (const [entryIndex, entry] of implementationLines.entries()) {
       const line = entry.text.trim();
       if (!line) continue;
-      if (inBlockComment) {
-        if (line.includes("*/")) inBlockComment = false;
-        continue;
-      }
-      if (line.startsWith("//")) continue;
-      if (line.startsWith("/*")) {
-        if (!line.includes("*/")) inBlockComment = true;
-        continue;
-      }
       const opensReducedMotion = line.includes("prefers-reduced-motion");
       const inReducedMotion = reducedMotionDepth > 0 || opensReducedMotion;
-      const radiusExampleLine = line.includes("design-guard: allow-radius-literal");
-      const implementation = implementationForLine(block.lines, entryIndex);
+      const radiusExampleLine = entry.rawText.includes("design-guard: allow-radius-literal");
+      const implementation = implementationForLine(implementationLines, entryIndex);
+      const opensMotionConfig =
+        javascriptLanguages.has(block.language) &&
+        /\b(?:transition|animation)\s*(?::|=)\s*\{\{?/.test(implementation);
+      const inMotionConfig = motionConfigDepth > 0 || opensMotionConfig;
+      const hasNumericMotionDuration =
+        inMotionConfig && /\bduration\s*:\s*["']?[0-9]*\.?[0-9]+\b/.test(implementation);
       for (const check of checks) {
         if (check.label === "arbitrary numeric radius" && radiusExampleLine) continue;
         if (
@@ -214,9 +270,17 @@ export function findDesignGuidanceViolations(text, relativePath) {
         ) {
           continue;
         }
-        if ((check.test ?? ((value) => check.pattern.test(value)))(implementation)) {
+        if (
+          (check.label === "hardcoded transition duration" && hasNumericMotionDuration) ||
+          (check.test ?? ((value) => check.pattern.test(value)))(implementation)
+        ) {
           failures.push(`${relativePath}:${entry.line}: ${check.label} in implementation example`);
         }
+      }
+      if (inMotionConfig) {
+        const opens = (implementation.match(/\{/g) ?? []).length;
+        const closes = (implementation.match(/\}/g) ?? []).length;
+        motionConfigDepth = Math.max(0, motionConfigDepth + opens - closes);
       }
       if (opensReducedMotion) reducedMotionDepth = 1;
       if (reducedMotionDepth > 0) {
