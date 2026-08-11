@@ -32,6 +32,7 @@ const WORKFLOW_MATCHERS = new Map([
       path === ".env.schema" ||
       path.startsWith("packages/contracts/") ||
       path.startsWith("scripts/contracts/") ||
+      path === "scripts/lib/git-guardrails.mjs" ||
       path === "scripts/quality/check-source-structure.js" ||
       path === ".github/workflows/contracts.yml",
   ],
@@ -123,19 +124,43 @@ const WORKFLOW_MATCHERS = new Map([
   ],
   [
     "Supply Chain Guardrails",
-    (path) =>
-      path === "package.json" ||
-      path.endsWith("/package.json") ||
-      ["bun.lock", "bun.lockb", "package-lock.json", "pnpm-lock.yaml", "yarn.lock"].includes(
-        path
-      ) ||
-      ["bunfig.toml", ".npmrc", "pnpm-workspace.yaml", ".yarnrc.yml"].includes(path) ||
-      path.startsWith(".github/workflows/") ||
-      ["AGENTS.md", "CLAUDE.md"].includes(path) ||
-      path.startsWith(".codex/") ||
-      path.startsWith(".claude/"),
+    matchesSupplyChainGuardrails,
   ],
 ]);
+
+function matchesSupplyChainGuardrails(path) {
+  return (
+    path === "package.json" ||
+    path.endsWith("/package.json") ||
+    ["bun.lock", "bun.lockb", "package-lock.json", "pnpm-lock.yaml", "yarn.lock"].includes(path) ||
+    ["bunfig.toml", ".npmrc", "pnpm-workspace.yaml", ".yarnrc.yml"].includes(path) ||
+    path.startsWith(".github/workflows/") ||
+    ["AGENTS.md", "CLAUDE.md", "ONBOARDING.md"].includes(path) ||
+    path.startsWith(".codex/") ||
+    path.startsWith(".claude/") ||
+    path.startsWith(".plans/") ||
+    path.startsWith("docs/routines/") ||
+    path.startsWith("scripts/quality/") ||
+    path.startsWith("scripts/harness/") ||
+    [
+      ".css",
+      ".scss",
+      ".js",
+      ".json",
+      ".jsx",
+      ".mjs",
+      ".cjs",
+      ".md",
+      ".mdx",
+      ".sh",
+      ".sol",
+      ".ts",
+      ".tsx",
+      ".yaml",
+      ".yml",
+    ].some((extension) => path.endsWith(extension))
+  );
+}
 
 function matchesCommonPackage(path) {
   return ["package.json", "bun.lock", "biome.json", ".env.schema"].includes(path);

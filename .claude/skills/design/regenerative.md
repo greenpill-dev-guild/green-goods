@@ -164,7 +164,7 @@ function ValueFlowBreadcrumb({ work }: { work: Work }) {
           {i > 0 && <ChevronRight className="h-3 w-3" />}
           <span className={cn(
             step.status === "complete" && "text-primary font-medium",
-            step.status === "pending" && "text-amber-600 animate-pulse",
+            step.status === "pending" && "text-warning-dark animate-pulse",
             step.status === "future" && "text-muted-foreground/50",
           )}>
             {step.label}

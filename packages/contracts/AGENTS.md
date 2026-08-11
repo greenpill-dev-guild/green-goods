@@ -504,7 +504,7 @@ test/
 ```solidity
 // Pattern: test[ContractName]_[scenario]
 function testGardenToken_mintsNewGarden() public {}
-function testGardenToken_revertsOnUnauthorizedMint() public {}
+function testGardenToken_revertsWhenCallerUnauthorized() public {}
 
 // Categories: test[Contract]_, testFuzz_[Contract]_, testIntegration_[Contract]_,
 //             testUpgrade_[Contract]_, testE2E_[Contract]_, invariant_[Contract]_

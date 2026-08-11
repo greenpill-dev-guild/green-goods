@@ -4,7 +4,7 @@ Repo-level scripts, organized by purpose. Each one has a durable caller — root
 
 ## Layout
 
-```
+```text
 scripts/
 ├── dev/            local dev workflow (setup, doctor, stack, smoke, e2e, seed)
 ├── mcp/            project-scoped MCP server launchers
@@ -54,9 +54,12 @@ scripts/
 | `check-codex-docs.js` | `bun run check:codex-guidance` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
 | `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, ontology, cleanup readiness, and quality guardrails |
 | `drift-check.test.mjs` | `node --test scripts/quality/drift-check.test.mjs` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
-| `check-guidance-links.mjs` | `bun run drift:check` (guidance scope) | Guidance drift guard: relative md links resolve and `bun run` scripts named in `.claude/**`, CLAUDE.md, AGENTS.md, ONBOARDING.md exist |
+| `check-guidance-links.mjs` | `bun run check:guidance-links`, Supply Chain Guardrails | Guidance drift guard: links/scripts resolve, deleted commands and guides have no live consumers, changed fences have language tags, and the command banner remains aligned |
+| `check-guidance-links.test.mjs` | `bun run test:review-guardrails` | Fixture tests for deleted command/guide consumers, retirement notices, renames, and fenced-language checks |
+| `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
+| `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
-| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological `expect(true)`, ungoverned `.skip`, `@ts-nocheck` in tests |
+| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, and newly malformed Solidity test names |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
@@ -73,6 +76,8 @@ scripts/
 | Script | Caller | Purpose |
 |---|---|---|
 | `check-tokens.sh` | `bun run check:design-tokens` | DesignMD ↔ `theme.css` drift + `data/design-token-usage-baseline.tsv` audit |
+| `check-guidance-examples.mjs` | `bun run check:design-tokens`, Design CI | Code-fence-aware guard against hardcoded motion, color, radius, and shadow values in design implementation examples |
+| `check-guidance-examples.test.mjs` | `bun run test:review-guardrails`, Design CI | Fixture tests for design-example token allowances and hardcoded-value failures |
 | `check-vocab.sh` | `bun run lint:vocab` | Banned-vocabulary scan over i18n strings |
 | `md-generate.mjs` | `bun run design:generate` / `check:design-generated` | Regenerate `design-md.generated.css` from DesignMD |
 | `check-css-custom-properties.mjs` | `check-tokens.sh` | Undefined `var(--*)` guard with audited baseline support |
@@ -82,6 +87,8 @@ scripts/
 | Script | Caller | Purpose |
 |---|---|---|
 | `check-test-realism.sh` | `contracts.yml`, `packages/contracts test:audit:realism` | Audit fork/E2E tests for mocks, generic reverts, CI skip-returns |
+| `check-solidity-test-names.mjs` | `bun run check:test-quality`, Contracts CI | Diff-aware naming guard for newly added or renamed Solidity test functions; legacy names are grandfathered |
+| `check-solidity-test-names.test.mjs` | `bun run test:review-guardrails`, Contracts CI | Fixture tests for canonical Solidity test categories and added-function diff parsing |
 | `check-test-realism-worker.cjs` | `check-test-realism.sh` | Node worker for the audit (CommonJS — uses `require`) |
 | `validate-test-realism-tooling.sh` | `contracts.yml`, `packages/contracts test:audit:realism:tooling` | Meta-test that exercises the realism audit script itself |
 | `run-coverage-audit.sh` | `packages/contracts test:audit:coverage` | Run unit + integration coverage and write `output/contracts-test-audit/` reports |
@@ -124,6 +131,7 @@ scripts/
 - `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, and loopback URL probes for local smoke checks.
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs.
+- `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
 
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.

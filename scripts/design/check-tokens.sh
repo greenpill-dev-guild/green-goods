@@ -453,6 +453,7 @@ check_dark_elevation "$ADMIN_M3_TOKENS" "--m3-elevation"
 check_dark_elevation "$ADMIN_INDEX_CSS" "--elevation"
 
 node scripts/design/check-css-custom-properties.mjs
+node scripts/design/check-guidance-examples.mjs
 
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
 echo "✅ dark-mode parity guard: ${DARK_TONE_BLOCKS}/5 dark tone blocks; elevation levels 1–5 have dark overrides."

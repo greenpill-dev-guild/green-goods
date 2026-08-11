@@ -52,7 +52,7 @@ Adapted from Apple's Liquid Glass, these three types create geometric harmony ac
 
 When an element lives inside a container, its corner radius derives from the parent's radius minus the padding between them. This eliminates "pinched" or "flared" corners that create visual tension.
 
-```
+```text
 child_radius = parent_radius - padding
 
 ┌─────────────────────────────────┐  Panel: 20px radius
@@ -119,7 +119,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 ```css
 /* Capsule button — morph on press */
 .btn-primary {
-  border-radius: 9999px; /* capsule at rest */
+  border-radius: var(--radius-full); /* capsule at rest */
   transition: border-radius var(--spring-spatial-fast),
               transform var(--spring-spatial-fast);
 }
@@ -139,7 +139,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 /* Card — complement lift-and-press with radius tighten */
 .card-interactive:active {
   transform: scale(0.985);
-  border-radius: calc(var(--radius-2xl) - 2px);
+  border-radius: var(--radius-xl);
 }
 ```
 
@@ -159,12 +159,12 @@ The rule is `child_radius = parent_radius − padding`. A concrete before/after 
 ```css
 /* ❌ Before — flared corners: the child's 24px radius exceeds what the
    parent's geometry allows (24px parent − 16px padding = 8px budget). */
-.parent { border-radius: 24px; padding: 16px; }   /* --radius-2xl */
-.child  { border-radius: 24px; }                   /* clashes at every corner */
+.parent { border-radius: 24px; padding: 16px; }   /* design-guard: allow-radius-literal — pedagogical arithmetic */
+.child  { border-radius: 24px; }                   /* design-guard: allow-radius-literal — pedagogical arithmetic */
 
 /* ✅ After — concentric: child radius = parent radius − padding. */
-.parent { border-radius: 24px; padding: 16px; }    /* --radius-2xl */
-.child  { border-radius: 8px; }                    /* 24 − 16 = 8 → --radius-md */
+.parent { border-radius: 24px; padding: 16px; }    /* design-guard: allow-radius-literal — pedagogical arithmetic */
+.child  { border-radius: 8px; }                    /* design-guard: allow-radius-literal — pedagogical arithmetic */
 
 /* ✅ Token form — derive instead of hardcoding the arithmetic. */
 .child  { border-radius: calc(var(--radius-2xl) - var(--space-4)); }
@@ -543,7 +543,7 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
 
 The interface has three distinct functional layers. Glass creates a floating control plane above content, replacing the traditional "embedded controls in content" model.
 
-```
+```text
 Layer 3: Glass Controls   — Navigation bars, toolbars, FABs
                             Liquid Glass material, floating above content
                             Interactive, persistent, orientation-giving

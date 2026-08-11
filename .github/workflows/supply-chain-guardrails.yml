@@ -24,6 +24,21 @@ on:
       - "docs/routines/**"
       - "scripts/quality/**"
       - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   push:
     branches: [main, develop]
     paths:
@@ -48,6 +63,21 @@ on:
       - "docs/routines/**"
       - "scripts/quality/**"
       - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   workflow_dispatch:
 
 permissions:
@@ -90,6 +120,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
@@ -109,7 +140,20 @@ jobs:
         run: node scripts/quality/check-codex-docs.js
 
       - name: Check guidance links and retired references
-        run: node scripts/quality/check-guidance-links.mjs
+        env:
+          GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check:guidance-links
+
+      - name: Check immutable dated plan reports
+        env:
+          PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
+        run: bun run check:immutable-plan-reports
+
+      - name: Run guidance guardrail tests
+        run: node --test scripts/quality/check-guidance-links.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
+
+      - name: Check test quality
+        run: bun run check:test-quality
 
       - name: Validate plan hubs
         run: node scripts/harness/plan-hub.mjs validate

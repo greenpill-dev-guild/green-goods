@@ -274,7 +274,7 @@ for (uint256 i = 0; i < items.length; i++) { }
 ```solidity
 // Pattern: test[Contract]_[scenario]
 function testGardenToken_mintsNewGarden() public {}
-function testGardenToken_revertsOnUnauthorized() public {}
+function testGardenToken_revertsWhenCallerUnauthorized() public {}
 
 // Categories
 testContract_scenario
