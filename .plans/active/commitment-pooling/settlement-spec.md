@@ -23,10 +23,12 @@
 > membership, and quoted external (GoodDAO) language.
 
 > **Amendment 2026-07-28 (approved group settlement contract; supersedes singular
-> commitment-beneficiary wording below where it conflicts)**: a fulfilled CeloSettlement
-> commitment creates one garden-managed `CommitmentPayoutPlan`. The provider garden Safe is the
-> payer. Creation asks CommitmentPooling to recompute one complete recognition vector and hash
-> from the frozen on-chain facts; a provider-garden steward may atomically edit the complete amount
+> commitment-beneficiary wording below where it conflicts. Its payer identity is itself
+> superseded by the 2026-08-08 register #90 correction — the payer garden Safe pays, so
+> "provider" in this banner reads "payer" wherever the two differ)**: a fulfilled CeloSettlement
+> commitment creates one garden-managed `CommitmentPayoutPlan`. The payer garden Safe is the
+> payer (register #90; the provider garden pays only when it is also the payer). Creation asks CommitmentPooling to recompute one complete recognition vector and hash
+> from the frozen on-chain facts; a payer-garden steward may atomically edit the complete amount
 > vector before finalization, while payment weights remain
 > derived. The canonical full-consideration base-unit allocation is rounding-equivalent to recognition;
 > any noncanonical amount or retention divergence requires a reason. The plan declares
@@ -56,7 +58,7 @@
 > explicitly so the existing per-kind gates stay intact — `ContributorConsideration` remains bound to a
 > Fulfilled commitment's payout plan, `Funding` remains the garden-level ProtocolToGarden hop,
 > and no `commitmentId == 0` relaxation of the member-disbursement gate is introduced. A
-> `LoanPrincipal` disbursement is queueable only against an Approved `CreditRegister` loan (that
+> `LoanPrincipal` disbursement is queueable only against an Approved `CreditRegistry` loan (that
 > module's own steward/executor gates), carries `fundingRoute = None`, and ties back through
 > `Loan.disbursementId`. G$ **repayment** stays record-only on Arbitrum with no upward
 > disbursement primitive and no bridge, exactly as the §9 follow-on touchpoint states. Until the
@@ -149,9 +151,12 @@ economic approval; none of those actions add a second consideration-approval sta
 ProtocolToGarden funding is entered in the capability-gated Operations form and remains a
 deliberate treasury write rather than a background agent or keeper action.
 
-The source state is `None → Queued → Dispatched → Confirmed | Failed`, with `Cancelled`
-available for an unbatched Queued item, an atomically cancelled whole Queued batch, or an
-authenticated Failed batch entry. Delivery delay is an operational/indexed view over `Dispatched`,
+The source state is `None → Queued → Dispatched → Confirmed | Failed`, where `Failed` arrives by
+the authenticated failure acknowledgment or — for a Dispatched subject whose snapshotted executor
+peer was retired past its grace window — by the owner-only `failStrandedSubject` disposition
+(`FailureCode.SourceStranded`, Decision Log #60; never from delay, never producing Confirmed),
+with `Cancelled` available for an unbatched Queued item, an atomically cancelled whole Queued
+batch, or a Failed batch entry. Delivery delay is an operational/indexed view over `Dispatched`,
 not an authenticated payment failure and never a cancellation gate. A new logical attempt is
 allowed only after an authenticated failure acknowledgment. Each deployed implementation accepts exactly
 one immutable CCIP router through `CCIPReceiver`. Peer replacement may retain one explicitly
@@ -248,7 +253,12 @@ enum FailureCode {
     RouteReverted,
     UnsupportedReceiverPaysFee,
     FeeQuoteExceeded,
-    BalanceDeltaMismatch
+    BalanceDeltaMismatch,
+    // Source-side disposition, never sent by an executor. Appended last so ordinals 0-11 stay
+    // identical to ICeloSettlementExecutor.FailureCode, and the acknowledgment bound still
+    // rejects anything above BalanceDeltaMismatch arriving over CCIP. Written only by
+    // failStrandedSubject (Decision Log #60).
+    SourceStranded
 }
 
 struct SettlementAccount {
@@ -472,7 +482,8 @@ Cancelling a Queued batch closes every immutable batch entry atomically through 
 queued entry with a non-zero `batchId` can be cancelled alone. A delay,
 missing acknowledgment, or manual CCIP execution state never creates a new logical attempt. The target failure contract is the
 `FailureCode` enum above: `None == 0` means success and the source accepts only codes through
-`BalanceDeltaMismatch == 11`. `success == true` requires `failureCode == None`; `success == false`
+`BalanceDeltaMismatch == 11` **over CCIP**; `SourceStranded == 12` is a source-side disposition
+written only by `failStrandedSubject` and never accepted from an executor. `success == true` requires `failureCode == None`; `success == false`
 requires one of the bounded non-zero codes. A contradictory pair is malformed and reverts
 without mutating the subject. Wrong router, selector, sender, version, token-bearing messages, and
 malformed payloads are unauthenticated or structurally invalid inputs and revert without
@@ -486,7 +497,7 @@ Peer grace is a liveness window, not a timeout-based failure oracle. A planned r
 new dispatch, inventories every command bound to the retiring peer, and sets grace longer than
 the measured finality, service, manual-execution, and acknowledgment windows. The retiring peer
 must reach zero unresolved commands before expiry or a later rotation. Otherwise the value lane
-stays paused while the timelocked owner either extends the bounded grace after re-verification or
+stays paused while the owner (an ops-policy timelock target, waived this release) either extends the bounded grace after re-verification or
 escalates an explicit quarantine/upgrade disposition; the implementation never silently
 requeues, cancels, overwrites, or pays a replacement command merely because grace elapsed.
 
@@ -495,10 +506,10 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | Function | Authorized caller | Gates |
 |---|---|---|
 | `registerSettlementAccount(garden, chainId, account, recoveryOwners[3], rolesModifier, roleKey, allowanceKey, permissionsConfigHash)` / `updateSettlementRecovery(garden, recoveryOwners[3])` / `setAccountActive(garden, bool)` | steward or module owner | registration is write-once for garden/account/Roles/role/allowance keys and the immutable permission-tree hash; `chainId == DESTINATION_EVM_CHAIN_ID()` (`42220` production; `11142220` only in isolated, paused component proof and never as lane evidence); account/Roles/keys/hashes non-zero; owners sorted, unique, non-zero and none is a current executor; threshold fixed at 2. Recovery update may change only owners and the recovery hash. The permission hash excludes mutable executor caps, fee policy, period policy, and live allowance balances; their dedicated setters/events remain authoritative. Replacing the immutable target/selector/condition tree requires a paused new executor/route registration and re-verification |
-| `setCcipRoute(selector, executor, gasLimit, version, previousPeerGraceSeconds)` | module owner behind the deployment timelock | requires pause; immutable implementation router is unchanged; non-zero supported route values. Same-selector/same-version executor rotation may store the prior peer with expiry no later than `block.timestamp + 30 days`. While that previous peer remains authorized, a second executor, selector, or version rotation reverts rather than overwriting its grace; the owner must drain it or wait until expiry. Repeating the call with the unchanged active route may only extend that same previous peer's expiry, never shorten it, revive a cleared peer, or reshuffle peers. Selector or protocol-version change requires a drained cutover with zero grace and clears the previous peer |
-| `setBatchSizeLimit(limit)` | module owner behind the deployment timelock | requires pause; 0–24; zero explicitly disables batching; source and destination configured limits must match before any non-zero release |
-| `setDispatcher(dispatcher)` | module owner behind the deployment timelock | requires pause; zero disables delegated dispatch; dispatcher can dispatch/retry only |
-| `setFeeReserveMinimum(minimum)` | module owner behind the deployment timelock | requires pause; the new floor is immediately observable and every dispatch/retry/withdrawal must preserve it |
+| `setCcipRoute(selector, executor, gasLimit, version, previousPeerGraceSeconds)` | module owner — owner-direct in code; timelock ownership is an ops-policy target, waived this release (`timelockWaivedForRelease`) | requires pause; immutable implementation router is unchanged; non-zero supported route values. Same-selector/same-version executor rotation may store the prior peer with expiry no later than `block.timestamp + 30 days`. While that previous peer remains authorized, a second executor, selector, or version rotation reverts rather than overwriting its grace; the owner must drain it or wait until expiry. Repeating the call with the unchanged active route may only extend that same previous peer's expiry, never shorten it, revive a cleared peer, or reshuffle peers. Selector or protocol-version change requires a drained cutover with zero grace and clears the previous peer |
+| `setBatchSizeLimit(limit)` | module owner — owner-direct in code; timelock ownership is an ops-policy target, waived this release (`timelockWaivedForRelease`) | requires pause; 0–24; zero explicitly disables batching; source and destination configured limits must match before any non-zero release |
+| `setDispatcher(dispatcher)` | module owner — owner-direct in code; timelock ownership is an ops-policy target, waived this release (`timelockWaivedForRelease`) | requires pause; zero disables delegated dispatch; dispatcher can dispatch/retry only |
+| `setFeeReserveMinimum(minimum)` | module owner — owner-direct in code; timelock ownership is an ops-policy target, waived this release (`timelockWaivedForRelease`) | requires pause; the new floor is immediately observable and every dispatch/retry/withdrawal must preserve it |
 | `setGardenerDeliveryEnabled(bool)` | module owner | enabling requires the Celo AA/paymaster exit evidence recorded in the settlement handoff; disabling blocks new contributor-payout preparation and gardener sends but never blocks the funding route |
 | `createCommitmentPayoutPlan(commitmentId, recognitionEntries[], recognitionSnapshotHash)` | resolved payer-garden settlement steward | commitment `Fulfilled`; no existing plan; non-zero immutable `payerGarden`; caller is its operator/owner steward; declared consideration is non-zero and uses exactly `CeloSettlement` with zero source/token sentinels. The active payer account freezes `source`; module configuration freezes `token`. Shape derives from the commitment and can never be edited: Request + Garden claim creates `GardenBeneficiary`, requires `providerGarden != payerGarden`, an active registered provider/beneficiary account, an empty recognition vector/hash, and freezes that garden, its Celo Safe, and `beneficiaryAmount = declaredAmount`; it creates no contributor rows. Every other combination creates `ContributorConsideration`, requires zero beneficiary fields, validates the complete recognition vector through `CommitmentPoolingModule.validateRecognitionSnapshot`, persists the ascending contributor order, and creates the deterministic full-consideration default vector. Cross-garden contributor shape starts and remains at zero retention. Both shapes begin Draft with no child; `gardenerDeliveryEnabled` is not a creation gate. The creation event carries the immutable kind and beneficiary fields so reverse indexing needs no RPC read |
 | `setContributorPayouts(planId, gardenRetainedAmount, payouts[], reasonCID)` | resolved payer-garden settlement steward | caller is an operator/owner steward of immutable `payerGarden`; payer account active; Draft `ContributorConsideration` plan only. `GardenBeneficiary` reverts `PayoutKindMismatch` and is never editable into a contributor plan. Replaces the complete payout vector atomically in stored contributor order; recipients derive from approved Celo profiles and weights derive from amounts. `gardenRetainedAmount` must be zero when `payerGarden != providerGarden`. Contributor conservation is always `declaredAmount == gardenRetainedAmount + contributorPayoutTotal`. Zero rows remain visible and create no child. Noncanonical amount/retention divergence requires a reason. After all validation, increment the snapshot version once, emit the complete versioned replacement, and emit its trailing commit marker |
