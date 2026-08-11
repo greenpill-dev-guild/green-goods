@@ -26,7 +26,7 @@ test("accepts shared tokens and token definitions", () => {
 test("accepts pedagogical radius arithmetic and reduced-motion overrides", () => {
   const text = [
     "```css",
-    ".parent { border-radius: 24px; padding: 16px; }",
+    ".parent { border-radius: 24px; padding: 16px; } /* design-guard: allow-radius-literal — pedagogical arithmetic */",
     "/* Token form — derive instead of hardcoding the arithmetic. */",
     ".child { border-radius: calc(var(--radius-2xl) - var(--space-4)); }",
     "```",
@@ -43,6 +43,7 @@ test("does not let reduced-motion or token markers hide unrelated literals", () 
   const text = [
     "```css",
     ".pane { transition-duration: 200ms; border-radius: 18px; }",
+    ".bad { border-radius: 20px; } /* Token form */",
     ".example { border-radius: 24px; }",
     "/* Token form — derive instead of hardcoding the arithmetic. */",
     ".tokenized { border-radius: var(--radius-2xl); }",
@@ -54,6 +55,21 @@ test("does not let reduced-motion or token markers hide unrelated literals", () 
   const failures = findDesignGuidanceViolations(text, "design.md");
   assert.ok(failures.some((failure) => failure.includes("hardcoded transition duration")));
   assert.ok(failures.some((failure) => failure.includes("arbitrary numeric radius")));
+});
+
+test("detects arbitrary utilities and camelCase duration properties", () => {
+  const text = [
+    "```tsx",
+    'const pane = "duration-[200ms]";',
+    'const style = { transitionDuration: "200ms", animationDuration: "0.4s" };',
+    'const tokenized = "duration-[var(--spring-fast)]";',
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.equal(
+    failures.filter((failure) => failure.includes("hardcoded transition duration")).length,
+    2,
+  );
 });
 
 test("checks universal selectors but permits explicit shadow removal", () => {

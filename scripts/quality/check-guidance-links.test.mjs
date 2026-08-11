@@ -27,6 +27,11 @@ test("checks only changed fence openings", () => {
   ]);
 });
 
+test("grandfathers every fence in a pure rename", () => {
+  const text = ["```", "legacy", "```"].join("\n");
+  assert.deepEqual(findUntaggedFenceOpenings(text, "renamed.md", new Set()), []);
+});
+
 test("extracts added line numbers without counting Git markers", () => {
   const diff = [
     "+++ b/guide.md",
@@ -70,6 +75,15 @@ test("finds source comments pointing at a deleted design guide", () => {
   );
   assert.equal(failures.length, 1);
   assert.match(failures[0], /spatial\.md/);
+});
+
+test("does not confuse a colliding guide basename with an unrelated path", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "docs/guide.mdx", text: "See tests/ARCHITECTURE.md." }],
+    [".claude/skills/design/ARCHITECTURE.md"],
+    ["docs/guide.mdx", "tests/ARCHITECTURE.md"],
+  );
+  assert.deepEqual(failures, []);
 });
 
 test("parses deleted and renamed paths", () => {

@@ -24,6 +24,21 @@ on:
       - "docs/routines/**"
       - "scripts/quality/**"
       - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   push:
     branches: [main, develop]
     paths:
@@ -48,6 +63,21 @@ on:
       - "docs/routines/**"
       - "scripts/quality/**"
       - "scripts/harness/**"
+      - "**/*.css"
+      - "**/*.scss"
+      - "**/*.js"
+      - "**/*.json"
+      - "**/*.jsx"
+      - "**/*.mjs"
+      - "**/*.cjs"
+      - "**/*.md"
+      - "**/*.mdx"
+      - "**/*.sh"
+      - "**/*.sol"
+      - "**/*.ts"
+      - "**/*.tsx"
+      - "**/*.yaml"
+      - "**/*.yml"
   workflow_dispatch:
 
 permissions:

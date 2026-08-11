@@ -18,12 +18,14 @@ test("rejects edits, deletions, and renames of dated reports", () => {
   const entries = parseNameStatus(
     [
       "M\t.plans/active/example/reports/review-2026-08-10.md",
+      "M\t.plans/active/example/reports/2026-08-11-audit.md",
       "D\t.plans/active/example/reports/audit-2026-08-09.md",
       "R100\t.plans/active/example/reports/input-2026-08-08.md\t.plans/active/example/reports/moved-2026-08-08.md",
     ].join("\n"),
   );
   assert.deepEqual(immutableReportViolations(entries), [
     "M: .plans/active/example/reports/review-2026-08-10.md",
+    "M: .plans/active/example/reports/2026-08-11-audit.md",
     "D: .plans/active/example/reports/audit-2026-08-09.md",
     "R: .plans/active/example/reports/input-2026-08-08.md",
   ]);

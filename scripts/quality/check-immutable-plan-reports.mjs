@@ -6,7 +6,7 @@ import { parseBaseArgs, resolveGitBase, runGit } from "../lib/git-guardrails.mjs
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
-const datedReportPattern = /^\.plans\/(?:[^/]+\/)*reports\/.+\d{4}-\d{2}-\d{2}.*\.md$/;
+const datedReportPattern = /^\.plans\/(?:[^/]+\/)*reports\/[^/]*\d{4}-\d{2}-\d{2}.*\.md$/;
 
 export function parseNameStatus(output) {
   const entries = [];

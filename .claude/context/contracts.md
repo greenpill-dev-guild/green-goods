@@ -233,18 +233,23 @@ for (uint256 i = 0; i < items.length; i++) { }
 function testGardenToken_mintsNewGarden() public {}
 function testGardenToken_revertsOnUnauthorized() public {}
 
-// Prefixes
-test_           // Happy path
-testRevert_     // Failure cases
-testFuzz_       // Fuzz tests (random inputs)
-testInvariant_  // Invariant tests
-testE2E_        // Multi-contract flows
+// Categories
+testContract_scenario
+testFuzz_Contract_property
+testIntegration_Contract_scenario
+testUpgrade_Contract_scenario
+testE2E_Contract_scenario
+invariant_Contract_property
 ```
+
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category. Enforce this for newly added or renamed tests; existing legacy names are
+grandfathered until their behavior is materially edited.
 
 ### Fuzz Testing (MANDATORY for mainnet)
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0 && bytes(uri).length < 1000);
 

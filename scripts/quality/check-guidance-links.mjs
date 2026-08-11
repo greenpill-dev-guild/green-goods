@@ -125,7 +125,7 @@ export function findUntaggedFenceOpenings(text, relativePath, changedLines) {
   return failures;
 }
 
-export function deriveDeletedSurfaceRules(deletedPaths) {
+export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
   const rules = [];
   for (const deletedPath of deletedPaths) {
     const skillMatch = deletedPath.match(/^\.claude\/skills\/([^/]+)\/SKILL\.md$/);
@@ -150,19 +150,29 @@ export function deriveDeletedSurfaceRules(deletedPaths) {
     if (deletedPath.startsWith(".claude/skills/") && /\.mdx?$/.test(deletedPath)) {
       const basename = path.basename(deletedPath);
       const shortPath = deletedPath.replace(/^\.claude\//, "");
+      const basenameCollides = knownPaths.some(
+        (knownPath) => knownPath !== deletedPath && path.basename(knownPath) === basename,
+      );
       rules.push({
         label: basename,
         appliesTo: () => true,
-        test: (line) => line.includes(basename) || line.includes(deletedPath) || line.includes(shortPath),
+        test: (line) =>
+          line.includes(deletedPath) ||
+          line.includes(shortPath) ||
+          (!basenameCollides && line.includes(basename)),
       });
     }
   }
   return rules;
 }
 
-export function scanDeletedSurfaceReferences(files, deletedPaths) {
+export function scanDeletedSurfaceReferences(
+  files,
+  deletedPaths,
+  knownPaths = files.map((file) => file.path),
+) {
   const failures = [];
-  const rules = deriveDeletedSurfaceRules(deletedPaths);
+  const rules = deriveDeletedSurfaceRules(deletedPaths, knownPaths);
   for (const file of files) {
     for (const [index, line] of file.text.split(/\r?\n/).entries()) {
       for (const rule of rules) {
@@ -421,7 +431,11 @@ function main() {
         text: fs.readFileSync(path.join(repoRoot, relativePath), "utf8"),
       }));
     failures.push(
-      ...scanDeletedSurfaceReferences(changedConsumers, PERSISTENT_RETIRED_PATHS),
+      ...scanDeletedSurfaceReferences(
+        changedConsumers,
+        PERSISTENT_RETIRED_PATHS,
+        [...presentPaths],
+      ),
     );
 
     const addedLines = new Map();
@@ -459,7 +473,8 @@ function main() {
     for (const relativePath of changedMarkdown) {
       const absolutePath = path.join(repoRoot, relativePath);
       if (fs.existsSync(absolutePath)) {
-        if (!addedLines.has(relativePath)) {
+        const entry = [...diff].reverse().find((candidate) => candidate.path === relativePath);
+        if (!addedLines.has(relativePath) && entry?.status === "A") {
           const lineCount = fs.readFileSync(absolutePath, "utf8").split(/\r?\n/).length;
           addedLines.set(
             relativePath,
@@ -470,7 +485,7 @@ function main() {
           ...findUntaggedFenceOpenings(
             fs.readFileSync(absolutePath, "utf8"),
             relativePath,
-            addedLines.get(relativePath),
+            addedLines.get(relativePath) ?? new Set(),
           ),
         );
       }

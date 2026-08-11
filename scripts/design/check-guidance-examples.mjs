@@ -21,7 +21,7 @@ const checks = [
   {
     label: "hardcoded transition duration",
     pattern:
-      /\bduration-(?!\[?var)[0-9]+(?:ms|s)?\b|\b(?:transition|animation)(?:-duration)?\s*:[^;}]*\b[0-9]*\.?[0-9]+(?:ms|s)\b/i,
+      /\bduration-(?!\[?var)[0-9]+(?:ms|s)?\b|\bduration-\[(?!var\()[^\]]*\b[0-9]*\.?[0-9]+(?:ms|s)\b[^\]]*\]|\b(?:transition|animation)(?:-duration)?\s*:[^;}]*\b[0-9]*\.?[0-9]+(?:ms|s)\b|\b(?:transitionDuration|animationDuration)\s*:\s*["']?(?!var\()[0-9]*\.?[0-9]+(?:ms|s)\b/i,
   },
   { label: "hardcoded easing", pattern: /cubic-bezier\s*\(/i },
   { label: "raw hexadecimal color", pattern: /#[0-9a-f]{3,8}\b/i },
@@ -93,12 +93,9 @@ export function findDesignGuidanceViolations(text, relativePath) {
   const failures = [];
   for (const block of extractFencedBlocks(text)) {
     if (!implementationLanguages.has(block.language)) continue;
-    const tokenMarkerIndexes = new Set(
-      block.lines.flatMap((entry, index) => (entry.text.includes("Token form") ? [index] : [])),
-    );
     let inBlockComment = false;
     let reducedMotionDepth = 0;
-    for (const [lineIndex, entry] of block.lines.entries()) {
+    for (const entry of block.lines) {
       const line = entry.text.trim();
       if (!line) continue;
       if (inBlockComment) {
@@ -113,9 +110,7 @@ export function findDesignGuidanceViolations(text, relativePath) {
       if (/^--[a-z0-9-]+\s*:/.test(line)) continue;
       const opensReducedMotion = line.includes("prefers-reduced-motion");
       const inReducedMotion = reducedMotionDepth > 0 || opensReducedMotion;
-      const radiusExampleLine = [...tokenMarkerIndexes].some(
-        (markerIndex) => Math.abs(markerIndex - lineIndex) <= 1,
-      );
+      const radiusExampleLine = line.includes("design-guard: allow-radius-literal");
       for (const check of checks) {
         if (check.label === "arbitrary numeric radius" && radiusExampleLine) continue;
         if (
