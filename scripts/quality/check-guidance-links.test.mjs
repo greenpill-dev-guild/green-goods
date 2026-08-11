@@ -70,6 +70,14 @@ test("finds source consumers of a deleted slash command", () => {
   assert.match(failures[0], /deleted surface -> \/qa-triage/);
 });
 
+test("does not confuse status.json paths with the retired status command", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: ".claude/skills/plan/SKILL.md", text: "Update .plans/active/example/status.json." }],
+    [".claude/skills/status/SKILL.md"],
+  );
+  assert.deepEqual(failures, []);
+});
+
 test("finds deleted slash commands followed by prose punctuation", () => {
   const failures = scanDeletedSurfaceReferences(
     [{ path: "docs/guide.mdx", text: "Run /review: before merging." }],

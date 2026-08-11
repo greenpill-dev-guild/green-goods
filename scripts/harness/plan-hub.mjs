@@ -3,6 +3,7 @@
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -344,8 +345,47 @@ function ensureActiveHandoffFiles(destinationDir, replacements) {
 function archiveEntryNames(status) {
   return new Set([
     "status.json",
+    "reports",
     ...Object.values(status.links || {}).filter((value) => typeof value === "string" && value.length > 0),
   ]);
+}
+
+function isConfinedReportLink(link) {
+  if (typeof link !== "string" || !link.startsWith("reports/") || link.includes("\\")) return false;
+  const segments = link.split("/");
+  return segments.length > 1 && segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
+function reportsEntryError(featureDirPath) {
+  const reportsPath = join(featureDirPath, "reports");
+  let stats;
+  try {
+    stats = lstatSync(reportsPath);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  if (stats.isSymbolicLink() || !stats.isDirectory()) {
+    return `${reportsPath}: reports must be a real directory inside the feature hub before archive compaction`;
+  }
+
+  const directories = [reportsPath];
+  while (directories.length > 0) {
+    const directory = directories.pop();
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = join(directory, entry.name);
+      const entryStats = lstatSync(entryPath);
+      if (entryStats.isSymbolicLink()) {
+        return `${entryPath}: reports must not contain symlinks before archive compaction`;
+      }
+      if (entryStats.isFile() && entryStats.nlink > 1) {
+        return `${entryPath}: reports must not contain hard-linked files before archive compaction`;
+      }
+      if (entryStats.isDirectory()) directories.push(entryPath);
+    }
+  }
+
+  return null;
 }
 
 function compactArchiveFeature(destinationDir, status) {
@@ -360,6 +400,7 @@ function compactArchiveFeature(destinationDir, status) {
 function markArchivedDocuments(destinationDir, status) {
   const slug = status.feature.slug;
   for (const relativePath of Object.values(status.links)) {
+    if (isConfinedReportLink(relativePath)) continue;
     const documentPath = join(destinationDir, relativePath);
     if (!relativePath.endsWith(".md") || !existsSync(documentPath)) {
       continue;
@@ -373,8 +414,8 @@ function markArchivedDocuments(destinationDir, status) {
       const firstLineEnd = contents.indexOf("\n");
       contents =
         firstLineEnd === -1
-          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.\n`
-          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
+          ? `${contents}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n`
+          : `${contents.slice(0, firstLineEnd)}\n\n${ARCHIVE_DOCUMENT_MARKER} Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.\n${contents.slice(firstLineEnd + 1)}`;
     }
     writeFileSync(documentPath, contents);
   }
@@ -444,8 +485,7 @@ function readFeatureStatus(featureDirPath) {
   return { path, status };
 }
 
-function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
-  const lockDir = join(featureDirPath, ".status.lock");
+function withDirectoryLock(lockDir, work, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
 
   while (true) {
@@ -470,6 +510,14 @@ function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
   } finally {
     rmSync(lockDir, { recursive: true, force: true });
   }
+}
+
+function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
+  return withDirectoryLock(join(featureDirPath, ".status.lock"), work, timeoutMs);
+}
+
+function withArchiveLock(work, timeoutMs = 5000) {
+  return withDirectoryLock(join(PLANS_ROOT, "_templates", ".archive.lock"), work, timeoutMs);
 }
 
 function laneDependenciesMet(status, laneName) {
@@ -613,10 +661,18 @@ function validateStageStructure(stage, failures) {
     if (stage === "archive") {
       const { status } = readFeatureStatus(entryPath);
       const allowedEntries = archiveEntryNames(status);
+      const reportsError = reportsEntryError(entryPath);
+      if (reportsError) failures.push(reportsError);
       for (const child of readdirSync(entryPath)) {
         const childPath = join(entryPath, child);
         if (!allowedEntries.has(child)) {
-          failures.push(`${childPath}: archived hubs retain only status.json and their four linked plan documents`);
+          failures.push(
+            `${childPath}: archived hubs retain only status.json, reports, and their four linked plan documents`,
+          );
+        } else if (child === "reports") {
+          if (!reportsError && !statSync(childPath).isDirectory()) {
+            failures.push(`${childPath}: archived reports must remain in the reports directory`);
+          }
         } else if (!statSync(childPath).isFile()) {
           failures.push(`${childPath}: archived plan documents must be top-level files`);
         } else if (child !== "status.json" && !readFileSync(childPath, "utf8").includes(ARCHIVE_DOCUMENT_MARKER)) {
@@ -634,6 +690,7 @@ function markdownFilesUnder(directory) {
 
   return readdirSync(directory).flatMap((entry) => {
     const entryPath = join(directory, entry);
+    if (entry === "reports") return [];
     const stats = statSync(entryPath);
     if (stats.isDirectory()) {
       return markdownFilesUnder(entryPath);
@@ -1603,11 +1660,25 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
     }
 
     if (stage === "archive") {
+      const nestedCanonicalLinks = REQUIRED_LINK_ROLES.filter((role) => {
+        const link = status.links[role];
+        return typeof link === "string" && (link.includes("/") || link.includes("\\"));
+      });
+      if (nestedCanonicalLinks.length > 0) {
+        errors.push(
+          `archive canonical links must reference top-level files: ${nestedCanonicalLinks.join(", ")}`,
+        );
+      }
       const nestedLinks = Object.values(status.links).filter(
-        (link) => typeof link === "string" && (link.includes("/") || link.includes("\\")),
+        (link) =>
+          typeof link === "string" &&
+          (link.includes("/") || link.includes("\\")) &&
+          !isConfinedReportLink(link),
       );
       if (nestedLinks.length > 0) {
-        errors.push(`archive links must reference top-level files: ${nestedLinks.join(", ")}`);
+        errors.push(
+          `archive links must reference top-level files or confined reports/ paths: ${nestedLinks.join(", ")}`,
+        );
       }
     }
   }
@@ -1765,10 +1836,13 @@ function scaffoldFeature(slug, flags) {
   console.log(`Scaffolded ${targetDir}`);
 }
 
-function moveFeature(flags) {
+function moveFeature(flags, archiveLockHeld = false) {
   const slug = requireFlag(flags, "feature");
   const toStage = requireFlag(flags, "to");
   assertMoveStage(toStage);
+  if (toStage === "archive" && !archiveLockHeld) {
+    return withArchiveLock(() => moveFeature(flags, true));
+  }
   if (toStage === "archive" && flags.resolution && !VALID_ARCHIVE_RESOLUTIONS.has(flags.resolution)) {
     fail(
       `Invalid archive resolution "${flags.resolution}". Expected one of: ${Array.from(VALID_ARCHIVE_RESOLUTIONS).join(", ")}`,
@@ -1786,6 +1860,10 @@ function moveFeature(flags) {
   }
 
   const { status } = readFeatureStatus(found.dir);
+  const reportsError = toStage === "archive" ? reportsEntryError(found.dir) : null;
+  if (reportsError) {
+    fail(reportsError);
+  }
   const movedAt = nowIso();
   status.feature.stage = toStage;
   status.workflow.overall_status = STAGE_TO_STATUS[toStage];
@@ -1943,12 +2021,17 @@ function stale(flags) {
   }
 }
 
-function compactArchive() {
+function compactArchive(archiveLockHeld = false) {
+  if (!archiveLockHeld) {
+    return withArchiveLock(() => compactArchive(true));
+  }
   const records = featureRecords("archive");
   const failures = [];
   const knownSlugs = formalFeatureSlugs();
 
   for (const record of records) {
+    const reportsError = reportsEntryError(record.dir);
+    if (reportsError) failures.push(reportsError);
     const errors = validateFeatureStatus(record.status, record.dir, "archive", knownSlugs).filter(
       (error) =>
         !error.startsWith("archive status must fold notes") &&

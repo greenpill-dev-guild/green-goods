@@ -48,6 +48,30 @@ Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in
 - Offline: `fake-indexeddb/auto` + `simulateNetworkConditions` / `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
 - E2E (Playwright): critical journeys only, client PWA + admin with platform-specific auth (passkey / wallet-injection / mock-auth). Scope, helpers, runner: `tests/README.md`. Config + fixtures: `docs/docs/builders/testing/playwright.mdx`.
 
+## Risk-triggered state and invariant matrix
+
+Use a written matrix before implementing tests when behavior depends on a financial state machine,
+mutable dependency, retry/grace window, cross-chain acknowledgment, asynchronous projection, or
+upgradeable storage. Select the relevant axes from:
+
+`action × lifecycle state × actor/role overlap × rail/denomination × pause/pool state × time boundary × dependency generation`
+
+Each material row names the expected effect or revert, cleanup of active indexes/reservations,
+history that must remain immutable, external calls, and proof. Include dual-role actors, terminal
+states, duplicates/retries, and before/after time boundaries when applicable. The contracts-specific
+invariants live in `.claude/context/contracts.md`.
+
+## Regression and tooling closure
+
+- A behavior defect gets a negative test for the original trigger plus a bounded sibling search for
+  the same root-cause class. Record checked-unaffected paths instead of claiming the whole repo is
+  safe.
+- An intentionally unsupported capability gets an explicit rejection test; do not fabricate the
+  missing authority, receipt, secret, or deployment state in order to make a happy path pass.
+- Validation and migration tools need failure-path tests for unknown arguments, malformed input,
+  path confinement, idempotency, atomic updates, partial failure, and accurate summaries where those
+  concerns apply.
+
 ## CI authentication seam
 
 Set up auth **before navigation**: `setupAuthenticatedClient` for client CI and the spec-local `setupAuthenticatedAdmin` pattern for admin CI. Both use the dev `mockAuth` seam read by `AuthGate` and `DevAuthProvider`; the client setup also installs the schema-correct `mock-backend` fixtures for the indexer, EAS, and RPC boundaries. Treat these helpers and fixtures as the canonical CI auth boundary.

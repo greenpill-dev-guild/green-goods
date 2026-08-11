@@ -145,7 +145,12 @@ bun run --filter '@green-goods/agent' test -- --coverage --reporter=json
 
 Extract per package: overall coverage %, files with 0% coverage, files below 50% branch coverage. Cross-reference zero-coverage files against god objects in Part 4 (low coverage + god object = higher risk).
 
-For contracts: `forge coverage` if available, otherwise note "coverage not measured."
+Contract coverage is outside the read-only audit phase because the supported wrapper writes generated
+artifacts under `output/contracts-test-audit/`. During audit, inspect any commit-bound coverage
+evidence already supplied and otherwise record "coverage not measured". After the user authorizes a
+validation or remediation phase, run `bun run test:audit:coverage` from `packages/contracts`; never
+bypass the repository wrapper with raw Forge. Do not run concurrent coverage invocations in one
+checkout because the wrapper uses fixed output paths.
 
 ---
 
@@ -323,7 +328,13 @@ Audit-specific deltas:
 
 ## Part 9: Implementation Handoff
 
-When `--loop` is requested, complete the read-only audit first and present numbered findings. Route the approved set through the scope-lock rhythm (numbered findings → explicit user lock → fix only locked items → re-validate per `.claude/context/validation-pipeline.md`). Do not apply fixes, create branches, write reports, or update registries from the audit phase itself. Fix at most 3 findings per approved iteration, highest severity first, on the current branch.
+When `--loop` is requested, complete the read-only audit first and present numbered findings. Route
+the approved set through the scope-lock rhythm (numbered findings → explicit user lock → fix only
+locked items → re-validate per `.claude/context/validation-pipeline.md`). Do not apply fixes, create
+branches, write reports, or update registries from the audit phase itself. Group approved findings by
+root-cause class and fix at most 3 classes per iteration, highest severity first, on the current
+branch. For each class, search direct consumers and sibling surfaces, record the checked scope, add
+negative coverage when behavior changed, and run one final recurrence sweep before handoff.
 
 ---
 
@@ -340,7 +351,7 @@ When `--loop` is requested, complete the read-only audit first and present numbe
 | Skip current tracked-findings check when trend was requested | A stale local report is not a substitute for live tracking |
 | Report 24+ god object rows | Keep the response to the top 10; offer accepted overflow findings for Linear |
 | Count intentional catch-with-fallback as bare catch | Classify per Part 2; only report dangerous ones |
-| Fix more than 3 findings per loop iteration | Prevents context exhaustion |
+| Fix more than 3 root-cause classes per loop iteration | Prevents context exhaustion without encouraging one-line fixes |
 | Fix design-level problems via `/audit --loop` | Design judgment belongs in `/review`'s coherence lens |
 
 ---

@@ -132,7 +132,7 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
     if (skillMatch) {
       const name = skillMatch[1];
       const command = new RegExp(
-        `(^|[^A-Za-z0-9_-])/${escapeRegex(name)}(?=$|[^A-Za-z0-9_-])`,
+        `(^|[^A-Za-z0-9_-])/${escapeRegex(name)}(?![./][A-Za-z0-9])(?=$|[^A-Za-z0-9_-])`,
       );
       rules.push({
         label: `/${name}`,

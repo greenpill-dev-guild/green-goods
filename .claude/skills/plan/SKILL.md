@@ -89,6 +89,25 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 - If no behavior changed, set the lane TDD mode to `not_applicable` with a concrete note.
 - If TDD cannot honestly apply, set `proof_limit` with fallback validation evidence and a concrete note.
 - Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
+- Write validation status last. Every green, passed, completed, or merge-ready handoff claim records
+  the tested commit SHA, UTC timestamp, exact command, and summarized output from a fresh run. Do not
+  record a commit-attributed receipt until
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` is empty; staged, unstaged, or
+  untracked validated code is not represented by the SHA. Do not copy forward an older lane's
+  evidence as current proof. An evidence-only follow-up may retain proof
+  from its tested parent only when it also records a path-scoped
+  `git diff --exit-code <tested>..HEAD -- <validated paths>` showing that implementation,
+  dependencies, configuration, and validation entrypoints are unchanged, plus an empty
+  `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving the index and
+  worktree are clean on those paths. Any committed, staged, unstaged, or untracked change on those
+  surfaces invalidates the receipt and requires a fresh run.
+- `status.json` lane state and `record-tdd` prove orchestration/TDD state, not current validation by
+  themselves. Before setting a lane to passed or completed, fill that lane's handoff Validation
+  Receipt. Reviewers treat a missing or stale receipt as pending evidence. This work does not add
+  validation receipts to the Plan Hub machine schema.
+- Legacy boundary: lanes already terminal before this receipt policy was adopted on 2026-08-11 keep
+  their existing recorded evidence and status. Any reopened lane or new terminal claim after that
+  date requires the receipt; do not rewrite historical dated reports to retrofit it.
 
 Copy-paste shapes — the plan header/body template, the `status.json` lane-state example, and
 the batch-report template — live in [templates.md](./templates.md). Load it when writing the
@@ -252,7 +271,7 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 ### Lifecycle Rules
 
-1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Delete the old plan immediately.
+1. **Supersedes header**: When a new plan replaces an old one, the new plan MUST include `**Supersedes**: [old-plan-name.md]` in its header. Delete a superseded standalone plan only when it has no immutable report evidence. Move a report-bearing feature hub to `.plans/archive/` so its reports are preserved.
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
@@ -260,13 +279,17 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
-5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
+5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, delete it only when it has no immutable report evidence, or archive its feature hub when reports must survive.
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 
 7. **No generic audit storage in the plan hub**: Point-in-time audit findings stay
    in the response; accepted findings go to Linear after approval. A report belongs
    in an existing feature hub only when it is direct evidence for that feature.
+
+8. **Dated reports are immutable**: Never edit or delete an existing dated Markdown artifact under
+   `.plans/**/reports/`. Add a new correction, closure, or superseding report and link the historical
+   input instead.
 
 ### Scope Discipline
 
