@@ -206,7 +206,7 @@ uint256 result = a.add(b);
 **Use random inputs to find edge cases:**
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0);
 
@@ -506,8 +506,14 @@ test/
 function testGardenToken_mintsNewGarden() public {}
 function testGardenToken_revertsOnUnauthorizedMint() public {}
 
-// Categories: test_, testRevert_, testFuzz_, testIntegration_, testUpgrade_
+// Categories: test[Contract]_, testFuzz_[Contract]_, testIntegration_[Contract]_,
+//             testUpgrade_[Contract]_, testE2E_[Contract]_, invariant_[Contract]_
 ```
+
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category. This convention is diff-aware: existing legacy names are grandfathered, but
+every newly added or renamed test must use a canonical category. Rename a legacy test when its
+behavior is materially edited; do not churn unrelated tests solely for naming cleanup.
 
 ### Coverage Targets
 

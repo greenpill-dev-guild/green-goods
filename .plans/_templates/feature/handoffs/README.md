@@ -17,6 +17,23 @@ Each handoff should capture:
 5. Known risks or blockers
 6. Repo-truth references from the active hub or reports, not tool-local memory claims
 
+Before a handoff claims `green`, `passed`, `completed`, or `merge-ready`, it must include:
+
+```markdown
+## Validation Receipt
+
+- Tested implementation commit SHA: `<full SHA>`
+- Run at (UTC): `YYYY-MM-DDTHH:MM:SSZ`
+- Exact command(s): `<commands>`
+- Result: `<counts or concise output summary>`
+- Validated paths: `<implementation, dependency, configuration, and validation paths>`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
+```
+
+`status.json` and `record-tdd` do not replace this receipt; they track orchestration and TDD state.
+
 Use this short proof block for implementation lanes:
 
 ```markdown

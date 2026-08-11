@@ -30,6 +30,12 @@ After resolving the code scope, establish the requirement baseline in this order
 
 If scope resolves to >800 LOC, split it into declared review batches and keep a coverage ledger of reviewed vs remaining files; never narrow or imply completeness unless the user explicitly changes the scope.
 
+Package, lane, or pinned-range reviews are supporting evidence only. Before a PR-wide verdict, review
+the exact union of changed files from the resolved base through the declared upper bound, including
+trailing commits. If code review is pinned below the checkout HEAD, first prove the relevant tree is
+identical before using checkout lines or validation as evidence. Never silently extend or narrow a
+review range.
+
 ## Pass 1 — Regressions
 
 Correctness of what changed. Prioritize high-signal risk areas:
@@ -46,7 +52,18 @@ Correctness of what changed. Prioritize high-signal risk areas:
 
 - *Boundary/placement*: hook or module landing outside its owning package; first-time cross-package import; layering breaks (`contracts → shared → indexer → client/admin/agent`); a public surface becoming a junk drawer. Prefer the smallest structural fix; never prescribe new layers without a deletion story.
 - *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting. The canonical quality bar is [`values.md § Implementation Quality Contract`](../../context/values.md) — judge against it, don't restate textbook principles.
-- *Critical surfaces* (CLAUDE.md § Criticality Matrix): `packages/contracts/src/**` → **contracts-security** lens (access control, UUPS/storage-gap rules, CEI — Upgrade Safety Checklist + Access Control sections in `.claude/context/contracts.md`); JobQueue/Work/Auth providers and mutation hooks → **mutation-reliability** lens (no log-only failure handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`). Read every touched line on these surfaces.
+- *State and invariant*: financial state machines, mutable dependency identity, retry or grace
+  windows, cross-chain acknowledgments, asynchronous projections, or upgradeable storage → build
+  the risk-triggered matrix from `.claude/context/testing.md` and apply the domain rules in
+  `.claude/context/contracts.md`. Exercise material role overlaps, terminal cleanup, time boundaries,
+  and dependency generations; a prose lifecycle summary is not proof.
+- *Critical surfaces* (CLAUDE.md § Criticality Matrix): contract source plus deploy, upgrade,
+  migration, release, size, and storage-validation tooling → **contracts-security** lens (access
+  control, UUPS/storage rules, CEI, transaction boundaries, and tooling failure safety); JobQueue,
+  Work, and Auth providers and mutation hooks → **mutation-reliability** lens (no log-only failure
+  handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`).
+  Read every touched line on these surfaces. Apply the matrix's sensitive tier to indexer
+  retry/lifecycle handlers, Plan Hub evidence, and agent dispatch scripts.
 
 For large or critical diffs where an adversarial deep pass is warranted, the built-in `/code-review` (effort levels, verify pass) is the engine of choice — say so and use it rather than hand-rolling depth.
 
@@ -76,7 +93,39 @@ For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Va
 - cross-package or shared-surface impact → Repo Quick Gate
 - explicit ship/merge readiness → full Ship Gate + conditional design/vocab/story gates when those surfaces moved
 
-State what ran with real output. **Never claim quality without evidence** — if a rung can't run here (env-gated, needs authenticated browser), say "unverified: X" instead of hedging. Visible-UI claims need rendered proof via the authenticated Brave QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard).
+State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
+summarized result. Write green, passed, or merge-ready claims only after those commands finish in the
+current review and an empty
+`git status --porcelain=v1 --untracked-files=all -- <validated paths>` proves the tested paths match
+the recorded commit. An evidence-only follow-up may cite the tested parent only with a recorded,
+path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving all validated
+implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
+an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
+unstaged, or untracked path changes exist. If a
+rung can't run here (env-gated, needs authenticated browser), say
+"unverified: X" instead of hedging. Visible-UI claims need rendered proof via the authenticated Brave
+QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). Dated reports under
+`.plans/**/reports/` are immutable audit inputs; put corrections or closure evidence in a new report.
+
+## Finding Closure
+
+Treat each confirmed finding as evidence of a possible failure class, not an isolated line edit.
+In a read-only review, these are closure criteria for the author: record missing coverage or proof as
+the finding's next step and do not edit files. Execute steps 3-5 only in explicitly authorized
+`--fix` mode or verify evidence the author has already supplied.
+
+1. Name the root-cause class and the invariant or repository rule it violates.
+2. Search the changed scope and its direct consumers for sibling instances. Record the affected and
+   checked-unaffected paths so absence claims are bounded.
+3. Add negative or boundary coverage that fails for the original trigger when behavior changed. If a
+   test is genuinely inapplicable, state the concrete proof substitute.
+4. Re-run the relevant validation at the current SHA before resolving the finding.
+5. After all targeted fixes, perform one final recurrence sweep for every approved root-cause class.
+
+Do not convert an explicit product or security boundary into implementation scope. An intentionally
+unsupported payment rail, unauthenticated receipt, secret-sharing path, or deployment phase remains a
+boundary unless authoritative requirements change it; test or document the rejection instead of
+inventing a capability.
 
 ## False-Positive Guardrails
 
@@ -101,7 +150,11 @@ Finding format: `[Title] — severity · type · file:line · why it matters · 
 
 ## --fix Mode
 
-Only on explicit request ("fix the findings", `--fix`). Report first, then fix must-fix and should-fix items; leave nice-to-have and all Human Call-Outs alone. Re-run the Pass 3 rung after fixing. Contract-touching fixes also run `bun run verify:contracts:fast`.
+Only on explicit request ("fix the findings", `--fix`). Report first, then group approved must-fix and
+should-fix items by root-cause class and address at most three classes per iteration; leave
+nice-to-have and all Human Call-Outs alone. Complete the sibling and recurrence sweeps from Finding
+Closure, then re-run the Pass 3 rung. Contract-touching fixes also run
+`bun run verify:contracts:fast`.
 
 ## Linear Routing
 
