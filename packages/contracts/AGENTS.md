@@ -506,8 +506,12 @@ test/
 function testGardenToken_mintsNewGarden() public {}
 function testGardenToken_revertsOnUnauthorizedMint() public {}
 
-// Categories: test_, testRevert_, testFuzz_, testIntegration_, testUpgrade_
+// Categories: test[Contract]_, testFuzz_[Contract]_, testIntegration_[Contract]_,
+//             testUpgrade_[Contract]_, testE2E_[Contract]_, invariant_[Contract]_
 ```
+
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category.
 
 ### Coverage Targets
 

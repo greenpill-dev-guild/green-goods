@@ -40,6 +40,12 @@ Apply this compact contract whenever writing or reviewing production code:
   simplification or risk-isolation benefit.
 - **Clean comments**: explain why, constraints, invariants, or non-obvious tradeoffs. Do not narrate
   what the code says, preserve implementation history, or leave stale/generated commentary.
+- **Systemic closure**: when a defect is confirmed, name its root-cause class, search direct
+  consumers and sibling surfaces, add negative proof for the triggering boundary, and record what was
+  checked but unaffected. Fix the class inside the locked scope, not only the commented line.
+- **Evidence before claims**: write passing, green, or merge-ready status only after fresh proof at
+  the current commit. Record the command, commit SHA, timestamp, and summarized result; historical
+  dated reports stay immutable and receive separate correction artifacts.
 - **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
   branching, improve names, and remove comments or abstractions that no longer earn their cost.
 
@@ -106,13 +112,20 @@ Choose review depth from the surface, not from how small the diff feels.
 
 - **`critical`**
   - `packages/contracts/src/**`
+  - contract deploy, upgrade, migration, release, size, and storage-layout tooling and baselines
   - `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx`
   - `packages/shared/src/modules/job-queue/**`
   - `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`
-  - Required behavior: read every touched line, run the matching reviewer flow, and reject log-only failure handling.
+  - Required behavior: read every touched line, run the matching reviewer flow, and reject log-only
+    failure handling. For contract tooling, also prove malformed-input handling, path confinement,
+    idempotency, atomic updates, and accurate failure summaries where applicable.
 
 - **`sensitive`**
   - `packages/agent/src/**`
+  - indexer retry, event-lifecycle, and projection handlers
+  - `.claude/scripts/**` dispatch or environment-boundary tooling
+  - Plan Hub state, validation evidence, and `scripts/harness/plan-hub.mjs`
+  - migration, validation, and repository-policy tooling outside the contract package
   - admin workflow state surfaces
   - client journey views
   - Required behavior: verify failure and recovery states explicitly, keep the blast radius tight, and run targeted validation before claiming the change is safe.
@@ -123,7 +136,9 @@ Choose review depth from the surface, not from how small the diff feels.
   - stories
   - cleanup-only changes
   - test-only refactors that do not alter runtime behavior
-  - Required behavior: use the lightest honest validation loop and keep attention on correctness, not ceremony.
+  - Required behavior: use the lightest honest validation loop and keep attention on correctness,
+    not ceremony. A doc, command, guide, or skill deletion/rename becomes sensitive when it retires a
+    live surface; search all tracked consumers before removing it.
 
 ## Tradeoff Escalation Triggers
 

@@ -65,9 +65,9 @@ When principles conflict, resolve top-down:
 ### Criticality Matrix
 Use criticality to choose review depth before optimizing for speed:
 
-- **`critical`** — `packages/contracts/src/**` · `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx` · `packages/shared/src/modules/job-queue/**` · `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`. Read every touched line, apply `/review`'s matching critical-surface lens (`contracts-security` or `mutation-reliability`), and never accept log-only failure handling.
-- **`sensitive`** — `packages/agent/src/**` · admin workflow state surfaces · client journey views. Keep the diff bounded, inspect failure and recovery states explicitly, run the lightest targeted validation that proves the user-facing path still works.
-- **`routine`** — docs · automation prompts · stories · cleanup-only changes · test-only refactors with no runtime change. Lightest honest check; don't escalate the review footprint unless runtime behavior changes.
+- **`critical`** — `packages/contracts/src/**` plus contract deploy/upgrade/migration/release/size/storage tooling · `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx` · `packages/shared/src/modules/job-queue/**` · `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`. Read every touched line, apply `/review`'s matching critical-surface lens (`contracts-security` or `mutation-reliability`), and never accept log-only failure handling.
+- **`sensitive`** — `packages/agent/src/**` · indexer retry/lifecycle handlers · agent dispatch scripts · Plan Hub state/evidence · migration/validation tooling · admin workflow state surfaces · client journey views. Keep the diff bounded, inspect failure and recovery states explicitly, run the lightest targeted validation that proves the path still works.
+- **`routine`** — docs · automation prompts · stories · cleanup-only changes · test-only refactors with no runtime change. Lightest honest check; don't escalate the review footprint unless runtime behavior changes. Retiring or renaming a live command, guide, or skill makes its docs change sensitive until tracked consumers are checked.
 
 ### Plan Location
 Feature plans live in `.plans/{ideas|backlog|active|archive}/<feature-slug>/` hubs (`plan.todo.md` + `status.json`); the `plan` skill owns the lifecycle.

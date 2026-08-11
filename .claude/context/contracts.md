@@ -174,6 +174,47 @@ try octantModule.onWorkApproved(garden, name) returns (address vault) {
 }
 ```
 
+### Stateful and Financial Change Matrix (MANDATORY when triggered)
+
+Before implementing or approving a financial state machine, mutable dependency, retry or grace
+window, cross-chain acknowledgment, asynchronous projection, or upgradeable storage change, write an
+explicit matrix. Use the axes that can change the result:
+
+`action × lifecycle state × actor/role overlap × payment rail × pause/pool state × time boundary × dependency generation`
+
+For every material row, record the expected effect or revert, accounting/reservation cleanup,
+immutable history that must survive, external calls, and the test or other proof. Include terminal
+states, cancellation, retry, expiry, duplicate delivery, self-dealing/dual-role actors, and the
+boundary immediately before and after a grace window when those axes apply. Stateless or purely
+mechanical changes do not need a ritual matrix.
+
+### Dependency Identity and Rotation
+
+- Validate a dependency before storing it: nonzero/code checks, reciprocal configuration, chain or
+  domain identity, and the exact interface facts the consumer relies on.
+- Treat identity as more than an address. A route includes its peer, selector/domain, generation,
+  and any grace promise made to in-flight work.
+- Define the rotation policy before adding a setter. If live state cannot migrate safely, block
+  rotation while that state exists or freeze the dependency until deployment/reinitialization.
+- Test consecutive rotations and acknowledgments or retries from every still-valid generation; a
+  single previous-peer slot is insufficient when overlapping grace windows are permitted.
+
+### Accounting Completeness
+
+- Keep denomination or rail identity explicit when aggregating principal, reservations, repayments,
+  or outstanding balances. Do not add unlike units into one scalar total.
+- Test overlapping roles, including contributor=funder, beneficiary=source, owner=operator, and
+  caller=recipient where the model permits them.
+- On every terminal transition, clear active reverse indexes and reservations without erasing the
+  immutable historical record needed for audit or replay protection.
+
+### Validation Tooling Is Critical Code
+
+Deployment, upgrade, migration, storage-layout, size, release, and validation scripts can approve or
+mutate protected state. Cover unknown arguments, malformed inputs, path confinement, idempotency,
+atomic update behavior, partial failures, and accurate error summaries. Validate before writing
+baselines or artifacts; stage updates and publish them only after all checks pass.
+
 ### Contract Size — EIP-170 (MANDATORY)
 
 Deployed bytecode is capped at 24,576 bytes on Arbitrum and every Ethereum-equivalent chain.
@@ -233,13 +274,17 @@ for (uint256 i = 0; i < items.length; i++) { }
 function testGardenToken_mintsNewGarden() public {}
 function testGardenToken_revertsOnUnauthorized() public {}
 
-// Prefixes
-test_           // Happy path
-testRevert_     // Failure cases
-testFuzz_       // Fuzz tests (random inputs)
-testInvariant_  // Invariant tests
-testE2E_        // Multi-contract flows
+// Categories
+testContract_scenario
+testFuzz_Contract_property
+testIntegration_Contract_scenario
+testUpgrade_Contract_scenario
+testE2E_Contract_scenario
+invariant_Contract_property
 ```
+
+Describe expected reverts in the scenario (`revertsWhen...`); do not create a separate
+`testRevert_` category.
 
 ### Fuzz Testing (MANDATORY for mainnet)
 
@@ -303,6 +348,7 @@ contract MyModule is UUPSUpgradeable {
 
 Before upgrading:
 - [ ] Storage gap present and correctly sized
+- [ ] Every ERC-7201 namespace slot and ordered member layout is protected by a committed baseline
 - [ ] No storage variable reordering
 - [ ] No storage variable type changes
 - [ ] New variables added at end only

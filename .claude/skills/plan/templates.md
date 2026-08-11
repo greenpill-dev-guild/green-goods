@@ -58,6 +58,12 @@
 - [ ] TypeScript passes
 - [ ] Tests pass
 - [ ] Build succeeds
+
+### Fresh Evidence Receipt
+- **Commit SHA**: `<full SHA>`
+- **Run at (UTC)**: `YYYY-MM-DDTHH:MM:SSZ`
+- **Command**: `<exact command>`
+- **Result**: `<counts or concise output summary>`
 ```
 
 ## `status.json` Lane-State Example

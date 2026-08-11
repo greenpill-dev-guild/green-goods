@@ -89,6 +89,9 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 - If no behavior changed, set the lane TDD mode to `not_applicable` with a concrete note.
 - If TDD cannot honestly apply, set `proof_limit` with fallback validation evidence and a concrete note.
 - Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
+- Write validation status last. Every green, passed, completed, or merge-ready handoff claim records
+  the tested commit SHA, UTC timestamp, exact command, and summarized output from a fresh run. Do not
+  copy forward an older lane's evidence as current proof.
 
 Copy-paste shapes — the plan header/body template, the `status.json` lane-state example, and
 the batch-report template — live in [templates.md](./templates.md). Load it when writing the
@@ -267,6 +270,10 @@ BLOCKED → ACTIVE        (dependency resolved)
 7. **No generic audit storage in the plan hub**: Point-in-time audit findings stay
    in the response; accepted findings go to Linear after approval. A report belongs
    in an existing feature hub only when it is direct evidence for that feature.
+
+8. **Dated reports are immutable**: Never edit or delete an existing dated Markdown artifact under
+   `.plans/**/reports/`. Add a new correction, closure, or superseding report and link the historical
+   input instead.
 
 ### Scope Discipline
 
