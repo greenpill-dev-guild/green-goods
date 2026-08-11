@@ -109,7 +109,7 @@ export function findUntaggedFenceOpenings(text, relativePath, changedLines) {
   const failures = [];
   let openFence;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
-    const match = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
+    const match = line.match(/^\s*(?:>\s*)*(`{3,}|~{3,})(.*)$/);
     if (!match) continue;
     if (openFence) {
       if (match[1][0] === openFence[0] && match[1].length >= openFence.length) {

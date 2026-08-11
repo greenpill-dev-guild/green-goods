@@ -130,13 +130,26 @@ function hasOnlyReducedMotionDurations(line) {
 }
 
 function hasRawRadius(line) {
-  if (/\brounded-\[(?!var\()[^\]]*[0-9][^\]]*\]/i.test(line)) return true;
+  for (const match of line.matchAll(/\brounded-\[([^\]]+)\]/gi)) {
+    const withoutTokens = match[1].replace(/var\([^)]*\)/gi, "");
+    if (/\b(?:0|[0-9]*\.?[0-9]+(?:px|r?em|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc))\b/i.test(withoutTokens)) {
+      return true;
+    }
+  }
   for (const match of line.matchAll(/\b(?:border-radius|borderRadius)\s*:\s*["']?([^"';},]+)/gi)) {
     if (/\b(?:0|[0-9]*\.?[0-9]+(?:px|r?em|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc))\b/i.test(match[1])) {
       return true;
     }
   }
   return false;
+}
+
+function hasRawColorFunction(line) {
+  const colorFunction = /\b(?:rgba?|hsla?|oklch|lab|lch|hwb|color)\s*\((?!\s*var\()/i;
+  if (colorPropertyValues(line).some((value) => colorFunction.test(value))) return true;
+  return /\b(?:bg|text|border|ring|fill|stroke)-\[[^\]]*\b(?:rgba?|hsla?|oklch|lab|lch|hwb|color)\s*\(/i.test(
+    line,
+  );
 }
 
 const checks = [
@@ -153,7 +166,7 @@ const checks = [
   { label: "raw named color", test: hasRawNamedColor },
   {
     label: "raw color function",
-    pattern: /\b(?:rgba?|hsla?|oklch|lab|lch|hwb|color)\s*\((?!\s*var\()/i,
+    test: hasRawColorFunction,
   },
   {
     label: "raw palette utility",
@@ -167,17 +180,16 @@ const checks = [
   {
     label: "raw shadow",
     test: (line) => {
-      const cssProperty = line.match(/\bbox-shadow\s*:\s*([^;}]+)/i)?.[1]?.trim();
       const customProperty = line.match(/--[a-z0-9-]*shadow[a-z0-9-]*\s*:\s*([^;}]+)/i)?.[1]?.trim();
-      const jsMatch = line.match(
-        /\bboxShadow\s*:\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`|([^;}]+))/,
+      const propertyMatch = line.match(
+        /(?:^|[{\s,;])["']?(?:box-shadow|boxShadow)["']?\s*:\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`|([^;}]+))/,
       );
-      const jsProperty = jsMatch?.slice(1).find((value) => value !== undefined)?.trim();
+      const shadowProperty = propertyMatch?.slice(1).find((value) => value !== undefined)?.trim();
       const isTokenOnly = (value) =>
         /^(?:var\(\s*--[a-z0-9-]+\s*\))(?:\s*,\s*var\(\s*--[a-z0-9-]+\s*\))*\s*(?:!important)?$/i.test(
           value,
         );
-      for (const value of [cssProperty, customProperty, jsProperty]) {
+      for (const value of [customProperty, shadowProperty]) {
         if (value && value !== "none" && !isTokenOnly(value)) return true;
       }
       const withoutTokenDropShadows = line.replace(
@@ -213,7 +225,7 @@ export function extractFencedBlocks(text) {
   const blocks = [];
   let current;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
-    const match = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
+    const match = line.match(/^\s*(?:>\s*)*(`{3,}|~{3,})(.*)$/);
     if (!match) {
       if (current) current.lines.push({ line: index + 1, text: line });
       continue;

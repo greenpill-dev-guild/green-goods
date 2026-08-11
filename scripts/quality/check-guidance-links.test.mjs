@@ -29,6 +29,13 @@ test("checks only changed fence openings", () => {
   ]);
 });
 
+test("checks blockquoted fence openings", () => {
+  const text = ["> ```", "> legacy", "> ```"].join("\n");
+  assert.deepEqual(findUntaggedFenceOpenings(text, "guide.md", new Set([1])), [
+    "guide.md:1: fenced code block is missing a language tag",
+  ]);
+});
+
 test("grandfathers every fence in a pure rename", () => {
   const text = ["```", "legacy", "```"].join("\n");
   assert.deepEqual(findUntaggedFenceOpenings(text, "renamed.md", new Set()), []);

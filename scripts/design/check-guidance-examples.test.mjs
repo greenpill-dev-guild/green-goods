@@ -40,6 +40,24 @@ test("does not confuse HTML fragments with colors", () => {
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
 });
 
+test("does not confuse JavaScript color helpers with CSS color functions", () => {
+  const text = [
+    "```ts",
+    'const parsed = color("var(--color-primary)");',
+    "```",
+  ].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
+});
+
+test("accepts color functions parameterized by shared tokens", () => {
+  const text = [
+    "```css",
+    ".tone { background: rgb(var(--tone-action, 26 117 68) / 0.06); }",
+    "```",
+  ].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
+});
+
 test("rejects named color property values", () => {
   const text = [
     "```css",
@@ -169,6 +187,15 @@ test("rejects radius literals nested in CSS functions", () => {
   );
 });
 
+test("accepts token-only arithmetic in arbitrary radius utilities", () => {
+  const text = [
+    "```tsx",
+    'const pane = "rounded-[calc(var(--radius-2xl)-var(--space-4))]";',
+    "```",
+  ].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
+});
+
 test("does not let reduced-motion or token markers hide unrelated literals", () => {
   const text = [
     "```css",
@@ -285,6 +312,30 @@ test("rejects mixed token and raw shadow layers", () => {
   assert.ok(
     findDesignGuidanceViolations(text, "design.md").some((failure) =>
       failure.includes("raw shadow"),
+    ),
+  );
+});
+
+test("rejects raw shadows behind quoted object keys", () => {
+  const text = [
+    "```tsx",
+    'const one = { "boxShadow": "0 4px 8px var(--color-shadow)" };',
+    'const two = { "box-shadow": "0 4px 8px var(--color-shadow)" };',
+    "```",
+  ].join("\n");
+  assert.equal(
+    findDesignGuidanceViolations(text, "design.md").filter((failure) =>
+      failure.includes("raw shadow"),
+    ).length,
+    2,
+  );
+});
+
+test("checks blockquoted implementation fences", () => {
+  const text = ["> ```css", "> .bad { color: #fff; }", "> ```"].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("raw hexadecimal color"),
     ),
   );
 });
