@@ -69,7 +69,7 @@ const messages: Record<string, string> = {
 const baseReceipt = {
   id: "intent-123",
   status: "confirmed_onchain",
-  garden: { id: "0xabc", name: "Aiyeloja Family Garden", location: "Lagos, NG" },
+  garden: { id: "0xabc", name: "AgroforestDAO", location: "Bias Fortes, BR" },
   destination: { type: "vault", address: "0xdef" },
   fundingIntent: "endow",
   amount: {
@@ -125,7 +125,7 @@ describe("PublicFundingReceipt success state", () => {
 
     await waitFor(
       () => {
-        expect(container.textContent).toContain("Aiyeloja Family Garden");
+        expect(container.textContent).toContain("AgroforestDAO");
       },
       { timeout: 3000 }
     );
@@ -187,7 +187,7 @@ describe("PublicFundingReceipt success state", () => {
 
     await waitFor(
       () => {
-        expect(container.textContent).toContain("Aiyeloja Family Garden");
+        expect(container.textContent).toContain("AgroforestDAO");
       },
       { timeout: 3000 }
     );

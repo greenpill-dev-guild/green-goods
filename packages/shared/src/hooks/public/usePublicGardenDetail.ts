@@ -28,6 +28,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
@@ -97,7 +98,10 @@ export function usePublicGardenDetail(
     queryKey: queryKeys.public.gardenDetail(lookup || "none", chainId),
     enabled: lookup.length > 0,
     queryFn: async (): Promise<PublicGardenDetail> => {
-      const gardens = await getGardens();
+      // Resolve against the public set only. Without this, a garden curated
+      // off the archive would still render a full detail page at its own URL,
+      // which is the leak the curation is meant to close.
+      const gardens = (await getGardens()).filter(isGardenPubliclyVisible);
 
       const matched =
         gardens.find((g) => g.id.toLowerCase() === lookup) ??

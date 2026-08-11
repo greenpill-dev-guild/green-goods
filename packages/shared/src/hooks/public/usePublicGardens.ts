@@ -26,6 +26,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
@@ -73,15 +74,10 @@ export function usePublicGardens(
     enabled: options.enabled ?? true,
     queryFn: async (): Promise<PublicGardenSummary[]> => {
       const gardens = await getGardens();
-      // Filter placeholder gardens. The indexer's `Garden.initialized` flag is
-      // not exposed by `getGardens`; we approximate "placeholder" as a garden
-      // with no name AND no location. A garden with a name but no location
-      // (or vice-versa) is still public — it just hasn't filled all metadata.
-      const initializedGardens = gardens.filter((g) => {
-        const hasName = (g.name ?? "").trim().length > 0;
-        const hasLocation = (g.location ?? "").trim().length > 0;
-        return hasName || hasLocation;
-      });
+      // Curated visibility plus the placeholder check, both owned by
+      // config/garden-visibility.ts so the archive, the proof counters, and the
+      // evidence ledger can never disagree about which gardens are public.
+      const initializedGardens = gardens.filter(isGardenPubliclyVisible);
 
       if (initializedGardens.length === 0) return [];
 

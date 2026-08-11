@@ -64,7 +64,7 @@ describe("DraftCard", () => {
         createElement(DraftCard, {
           draft: baseDraft,
           actionTitle: "Plant Trees",
-          gardenName: "Aiyeloja Family Garden",
+          gardenName: "Tech and Sun Hub",
           onResume: vi.fn(),
           onDelete: vi.fn(),
         })
@@ -74,7 +74,7 @@ describe("DraftCard", () => {
     expect(screen.getByText("Plant Trees")).toBeInTheDocument();
     // Garden name + time-ago share a parent with a separator span; match
     // both as substrings of the combined text.
-    expect(screen.getByText(/Aiyeloja Family Garden/)).toBeInTheDocument();
+    expect(screen.getByText(/Tech and Sun Hub/)).toBeInTheDocument();
     expect(screen.getByText(/2 hours ago/)).toBeInTheDocument();
   });
 
