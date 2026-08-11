@@ -22,6 +22,8 @@ import {
     MockOctantVaultForYield
 } from "../src/mocks/YieldDeps.sol";
 import { MockHatsModule as MockHatsModuleForBench } from "./helpers/MockHatsModule.sol";
+import { CommitmentPoolingFixture } from "./helpers/CommitmentPoolingFixture.sol";
+import { ICommitmentPoolingModule } from "../src/interfaces/ICommitmentPoolingModule.sol";
 
 /// @title GasBenchmarks
 /// @notice Gas consumption benchmarks for critical contract operations
@@ -550,5 +552,107 @@ contract MockWETHForBench is ERC20 {
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
+    }
+}
+
+/// @title CommitmentPoolingGasBenchmarks
+/// @notice Gas for the canonical Commitment Pooling lifecycle: the path a real commitment takes.
+/// @dev Its own contract because the pooling fixture stands up a different world than the garden
+///      benchmarks above, and multiplying the two setUps together would measure neither.
+///
+///      Complements `test/CommitmentPoolingBounds.t.sol`, which measures the worst case at the
+///      8/16/24/32/40 contributor bounds. Worst-case numbers say whether the ceiling is
+///      transactable; these say what an ordinary commitment costs, which is the number that
+///      decides whether gardeners can afford to use the thing.
+contract CommitmentPoolingGasBenchmarks is CommitmentPoolingFixture {
+    // Budgets sit ~1.4x above the measured cost: loose enough to absorb solc and optimizer
+    // variance, tight enough that a real regression trips them. A ceiling ten times the actual
+    // measures nothing. Measured 2026-08-08 under the `test` profile:
+    // create 692k, claim 96k, link 137k, decision 135k, confirm 93k, total 1.15M.
+    // Claim moved 67k (2026-08-06) -> 96k in two steps, both deliberate: the deployed-library
+    // refactor (Decision Log #55) added DELEGATECALL overhead, taking it to 75,950; storing
+    // `payerGarden` at Offer acceptance (register #90) added a measured 20,352 — one cold SSTORE.
+    // A Request pays that write at creation instead, so only the Offer path moved here.
+    uint256 private constant MAX_CREATE_COMMITMENT_GAS = 940_000;
+    uint256 private constant MAX_CLAIM_COMMITMENT_GAS = 135_000;
+    uint256 private constant MAX_LINK_WORK_GAS = 190_000;
+    uint256 private constant MAX_WORK_DECISION_GAS = 190_000;
+    uint256 private constant MAX_CONFIRM_FULFILLMENT_GAS = 125_000;
+    /// @dev Ceiling for the whole lifecycle, so a regression spread thinly across five steps —
+    ///      each still under its own budget — is still caught.
+    uint256 private constant MAX_CANONICAL_LIFECYCLE_GAS = 1_540_000;
+
+    function setUp() public {
+        _setUpProductionFixture();
+        _registerActions(1);
+    }
+
+    /// @notice One offer, one claimant, one contributor, one approved Work, one confirmation.
+    function testGas_commitmentPoolingCanonicalLifecycle() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("gas-canonical"));
+        params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
+        params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
+        params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({ actionUID: 0, requiredCount: 1 });
+
+        uint256 gasBefore = gasleft();
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
+        uint256 createGas = gasBefore - gasleft();
+
+        gasBefore = gasleft();
+        vm.prank(CLAIMANT);
+        module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        uint256 claimGas = gasBefore - gasleft();
+
+        bytes32 workUID = keccak256("gas-canonical-work");
+        bytes32 approvalUID = keccak256("gas-canonical-approval");
+        _setWorkAttestation(workUID, CREATOR, 0);
+
+        gasBefore = gasleft();
+        vm.prank(CREATOR);
+        module.linkWork(commitmentId, workUID, 0, keccak256("gas-canonical-link"));
+        uint256 linkGas = gasBefore - gasleft();
+
+        _setApprovalAttestation(approvalUID, workUID, 0, true);
+        decisionResolver.setDecisionSequence(approvalUID, 1);
+        decisionResolver.setLatestDecisionSequence(workUID, 1);
+
+        // The single requirement is met here, so this call also freezes the roster and flips the
+        // commitment to ReadyForConfirmation — the most expensive decision in a normal lifecycle.
+        gasBefore = gasleft();
+        vm.prank(address(decisionResolver));
+        module.onWorkDecision(workUID, approvalUID, 1, POOL_GARDEN, true);
+        uint256 decisionGas = gasBefore - gasleft();
+
+        gasBefore = gasleft();
+        vm.prank(CLAIMANT);
+        module.confirmFulfillment(commitmentId);
+        uint256 confirmGas = gasBefore - gasleft();
+
+        emit log_named_uint("Gas: pooling createCommitment (1 requirement)", createGas);
+        emit log_named_uint("Gas: pooling claimCommitment", claimGas);
+        emit log_named_uint("Gas: pooling linkWork", linkGas);
+        emit log_named_uint("Gas: pooling onWorkDecision (approval + auto-freeze)", decisionGas);
+        emit log_named_uint("Gas: pooling confirmFulfillment", confirmGas);
+        emit log_named_uint(
+            "Gas: pooling canonical lifecycle total", createGas + claimGas + linkGas + decisionGas + confirmGas
+        );
+
+        assertLt(createGas, MAX_CREATE_COMMITMENT_GAS, "Gas budget exceeded for createCommitment");
+        assertLt(claimGas, MAX_CLAIM_COMMITMENT_GAS, "Gas budget exceeded for claimCommitment");
+        assertLt(linkGas, MAX_LINK_WORK_GAS, "Gas budget exceeded for linkWork");
+        assertLt(decisionGas, MAX_WORK_DECISION_GAS, "Gas budget exceeded for onWorkDecision");
+        assertLt(confirmGas, MAX_CONFIRM_FULFILLMENT_GAS, "Gas budget exceeded for confirmFulfillment");
+        assertLt(
+            createGas + claimGas + linkGas + decisionGas + confirmGas,
+            MAX_CANONICAL_LIFECYCLE_GAS,
+            "Gas budget exceeded for the canonical pooling lifecycle"
+        );
+
+        assertEq(
+            uint256(module.getCommitment(commitmentId).state),
+            uint256(ICommitmentPoolingModule.CommitmentState.Fulfilled),
+            "the measured lifecycle must actually complete"
+        );
     }
 }

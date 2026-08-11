@@ -33,7 +33,7 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
   Detail/progress views bind each row by `requirementIndex`, render its approved/required count and
   ActionRegistry-derived domain tag, and use canonical per-commitment `approvedUnits` supplied by
   state/API rather than recomputing contract math in the client.
-- Narrowed dispatch option (status.json `ui_client.blocked_reason`): the core pool views above (W1–W5 — browse, detail, create, confirm, and WalletDrawer panel) may be dispatched by an explicit narrowed handoff once state_api is GREEN, without waiting for settlement. W6 is not active work; it is only the W6→W5 compatibility alias. The settlement slices stay with the settlement gate: W23 WalletDrawer G$ section, distinct reward-status rows (Queued, Dispatched, derived delayed, executed/acknowledgment-pending, Confirmed, authenticated Failed, Cancelled-from-Queued, and Cancelled-from-Failed) on W2, and the online `transfer` flow.
+- Narrowed dispatch option (status.json `ui_client.blocked_reason`): the core pool views above (W1–W5 — browse, detail, create, confirm, and WalletDrawer panel) may be dispatched by an explicit narrowed handoff once state_api is GREEN, without waiting for settlement. W6 is not active work; it is only the W6→W5 compatibility alias. The settlement slices stay with the settlement gate: W23 WalletDrawer G$ section, distinct consideration-status rows (Queued, Dispatched, derived delayed, executed/acknowledgment-pending, Confirmed, authenticated Failed, Cancelled-from-Queued, and Cancelled-from-Failed) on W2, and the online `transfer` flow.
 - Claim-request Pending/Accepted/Declined/Superseded states with indexed canonical `claimant`, authenticated `requestedBy`, `claimType`, `gardenContext`, request time/state/reason/resolution, derived accepted `providerGarden`, and a fresh re-request path after decline.
 - The locked `W25@context-chooser` pre-claim chooser opens from a protocol-pool claim action before submission: Personal submits the connected member as both `claimant` and `requestedBy`; Garden is visible only to eligible Garden Stewards, binds the selected GardenAccount as `claimant`, the authenticated steward as `requestedBy`, and the selected garden as `gardenContext`. The chooser never rewrites a stored claim type after submission.
 - Commitment deep links open `WFLOW@review`, the existing Work Review state with a read-only “Fulfills” row. The row carries the canonical `meta.commitmentId`, shows the linked commitment context without making it editable, and preserves the dependent work link used by evidence/approval review.
@@ -42,10 +42,11 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Direction-aware confirmation UI: Offer receiver or Request creator, a named-group option, and
   distinct `PoolFallback` / `ProtocolFallback` provenance, with every frozen contributor omitted
   from every path.
-- G$ reward status and online send flow gated by authenticated acknowledgment and member delivery readiness.
-- The protocol pool uses the same provider-garden payout-plan read model as other pools. The client
-  never creates a settlement offline job or permissionlessly queues a disbursement after
-  Fulfilled.
+- G$ consideration status and online send flow gated by authenticated acknowledgment and member delivery readiness.
+- The protocol pool uses the same payout-plan lifecycle with explicit payer/provider identities
+  and immutable contributor-or-beneficiary shape. Garden-claimed Requests show one external garden
+  Safe beneficiary; individual Requests and all Offers show contributor consideration. The client
+  never creates a settlement offline job or permissionlessly queues a disbursement after Fulfilled.
 - Accessible mobile/PWA states and en/es/pt copy.
 
 ## Acceptance
@@ -68,9 +69,9 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - `W25@context-chooser` always resolves Personal or an eligible steward-owned Garden before the claim mutation runs; Garden is absent for ineligible members, and back/retry preserves the still-unsubmitted choice without fabricating a request record.
 - `WFLOW@review` opened from a commitment renders the locked read-only “Fulfills” row from `meta.commitmentId`; its commitment and work destinations are navigable, while the relationship itself has no edit control.
 - A G$ transfer remains an explicit online Celo action.
-- Reward presentation follows the declared rail: an external payout record never appears as a
+- Consideration presentation follows the declared rail: an external payout record never appears as a
   Celo settlement, and a `CeloSettlement` declaration never exposes the external
-  `recordRewardPaid` path.
+  `recordConsiderationPaid` path.
 - Gardener settlement rows use exactly three phrases: Queued, Dispatched, derived delay, Celo executed, and acknowledgment-pending all render “support on its way”; only Confirmed renders “support arrived”; authenticated Failed renders “support is being rearranged,” never a success phrase. A calm action explanation may accompany the phrase without exposing the internal state noun. Cancelled renders its separate locked copy for Queued versus Failed origin. Existing settlement history always outranks the member-delivery availability gate.
 - AA failure leaves the fulfilled commitment, payout-plan summary, garden retention, unprepared
   contributor rows, and historical child states visible while disabling only first child
@@ -96,7 +97,7 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 Both named client test files do not exist yet; they are intentional to-be-created RED-first deliverables of this lane.
 
 - bun run --filter @green-goods/client test -- src/__tests__/commitment-pooling.test.tsx
-- bun run --filter @green-goods/client test -- src/__tests__/settlement-reward-status.test.tsx
+- bun run --filter @green-goods/client test -- src/__tests__/settlement-consideration-status.test.tsx
 - bun run --filter @green-goods/client build
 - bun run lint:vocab
 - bun run agentic:check
@@ -111,7 +112,7 @@ Both named client test files do not exist yet; they are intentional to-be-create
 ## Unblock evidence
 
 - Core pooling dispatch requires core state_api GREEN, the verified non-value deployment and live
-  indexer read-back, plus the scoped existing-admin/UI foundation cleanup. W23, reward-status
+  indexer read-back, plus the scoped existing-admin/UI foundation cleanup. W23, consideration-status
   rows, and Celo transfer remain blocked until settlement state_api GREEN.
 - Corrected client wireframes and copy/state matrix are final.
 - RED evidence exists before implementation.

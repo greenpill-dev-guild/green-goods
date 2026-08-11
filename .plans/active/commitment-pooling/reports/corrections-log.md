@@ -1119,3 +1119,349 @@ claims do depend on the answer.
 season-to-season G$ attribution inside the garden Safe. The selected Green Goods service-spend
 return leg does not change that dependency. Celo-side observation and season attribution remain
 outside the current indexer boundary, so reseed rate still cannot be evaluated pass/fail.
+
+---
+
+## 2026-08-04 — Pilot funding amount and receipt-attribution correction
+
+The external document and D19 had incorrectly elevated a transaction-level **6.9M G$** count into
+the House of Alignment pilot funding claim. That is not the funding agreement.
+
+The confirmed operating terms are **$800 per month, paid in G$, for July through September 2026 —
+$2,400 total**, directly into the designated Green Goods protocol Safe on Celo. This upstream
+funding arrangement remains separate from every onward garden or gardener settlement. Individual
+token transfers may be retained for treasury reconciliation, but their token count must never
+replace the dollar-denominated agreement or be treated as evidence of onward distribution.
+
+Applied consequence: current plan/spec/diagram/gallery prose uses the bounded three-month schedule.
+The canonical Google Doc now contains accepted replacement text, not suggestions: `6.9M` returns
+zero across all six tabs after reload, the duplicated Start Here funding passage is removed, and
+G14 appears once with the $800-per-month / $2,400-total terms. Hand-drawn images remain a separate,
+user-managed update.
+
+---
+
+## 2026-08-04 — Accepted full-pool Google Doc reconciliation
+
+The canonical Google Doc was edited directly in authenticated Editing mode without changing any
+image. The accepted prose now:
+
+- orients Start Here around the useful non-transferable base and separately authorized later
+  capabilities;
+- adds `What works first, what can grow later` to the External Brief;
+- adds the two real Deeper Reference sections `How Commitment Pooling can grow in stages` and
+  `What one bounded pool would still need to prove`;
+- keeps Tech and Sun's next-cycle ongoing education Offer separate from any field-evidence-gated
+  voucher possibility, with no claim that the garden agreed to a voucher pilot;
+- gives later voucher/exchange stages no promised date and makes `Not supported` and `Unavailable`
+  valid stopping outcomes; and
+- updates G12 while preserving one current G14 entry.
+
+Google Docs reported `Saved to Drive`. All six tabs were reloaded and re-read in Editing mode.
+The two new Tab 02 image insertion points are blank paragraphs immediately above their captions.
+Image insertion, replacement, upload, and repositioning remain manual user steps.
+
+---
+
+## 2026-08-05 — Pre-code readiness audit dispositions
+
+A read-only contract-implementation readiness audit ran against the closure branch. The
+specification corpus passed: interfaces, storage, lifecycles, events, errors, permissions,
+idempotency, replay, deployment order, and test plans are frozen, and every "today" claim the
+specs make about existing code was re-verified true (`networks.json` has no `421614` record,
+`DeployBadgeSchema.s.sol` reverts `UnsupportedChain(421614)`, `release-gate.ts` pins only
+`11155111`, `upgrade.ts:424` persists `sender: … ?? null` and never reads `owner()`). Three
+repo-side corrections were applied:
+
+- `acceptance-matrix.md` cited `settlement-spec.md` §3.3, which does not exist. The settlement
+  state vocabulary lives in §3.0 and its enum in §3.1.2; the row now cites both.
+- `handoffs/codex-contracts.md` listed the deployer EOA as the `--sender` for both Arbitrum One
+  transaction plans, which `contract-spec.md` §6.1's ownership gate must reject for every plan
+  except the isolated ownership transfer. Both lines are now placeholders with the reason stated.
+- `visual-assets.md`'s settlement-states row read as a global "never as CCIP" rule. It is an
+  asset-scoped drawing constraint; the canonical Google Doc's evidence-label table defines
+  `Dispatched` and `CCIP-confirmed` for readers and is unaffected. The row now says so.
+
+**Outstanding and not fixed by this pass.** The published gallery artifact
+(`007ef090-9e26-4b1d-898c-615155304d9d`) was fetched live and is still the 2026-08-02 build: it
+lacks D28/D29 and the three new Story assets, still draws the retired orbit `synthesis-circular-gd`
+and the retired Google Doc tab titles, and its D19 reading guide still asserts "the on-chain 6.9M
+G$ receipt evidence" — the exact claim the 2026-08-04 funding correction above retires. Repo
+sources are correct; the live URL is not. Republication is the manual step recorded in
+`visual-assets.md`, and until it runs, that URL should not be treated as current or reshared. The
+Google Doc's embedded images lag for the same reason.
+
+---
+
+## 2026-08-05 — PR #692 review dispositions
+
+Automated review of PR #692 raised thirteen findings. Nine were valid and are fixed; four were not.
+
+One was a genuine process violation worth naming: the 2026-08-04 funding correction had been
+applied **inside** `reports/linear/linear-apply-pack.md` §2 and `linear-update-pack.md`, which are
+archives of what was written to Linear on 2026-07-11 and 2026-07-10. Editing an applied payload
+makes a later audit attribute current terms to an old write. Both payloads are restored byte-exact
+and each file now carries a dated `Funding supersession` banner in the pattern it already used for
+the settlement and readiness supersessions. Correction records belong in dated banners and in this
+log — never in the historical payload.
+
+Also fixed: D28's legend claimed its arrows meant only reference or evidence consumption when the
+diagram also draws grouping, creation/versioning, and mint authorization; the Arbitrum One
+`--tx-plan` lines in `handoffs/codex-contracts.md` are now marked future-only, because a
+placeholder sender does not fail closed while `upgrade.ts` still falls back to `SENDER_ADDRESS`;
+the W5 wallet summary presented one garden's open-cycle counts as a total "across your gardens";
+`visual-assets.md`'s regeneration note still said 18 Story assets; the full-pooling handoff pointed
+at the gallery URL without marking it stale; and in `.plans/ideas/capital-offramp-corridors/`, the
+RG-7 accessibility gate dropped conditions its own spec and plan require, the R-2 quote matrix did
+not say whether its test sizes were input USDC or delivered fiat, and the review handoff still
+described the superseded 2026-08-03 section map.
+
+Declined, with reasons: D19's "the ProtocolToGarden route architecture ships in this release's
+build scope" is the plan's own three-tier framing (Decision Log #14) and the next clause gates
+value movement, so weakening it would contradict the plan; the exchange brief's `register #86–#88`
+is deliberate because #89 is delivery-ownership rather than architecture, matching
+`handoffs/codex-contracts.md`; "How can an individual gardener … turn a payout" is correct English
+after the modal `can`; and `reports/codex-review-2026-08-04.md` §4.4 is a dated adversarial-review
+finding about the 2026-08-03 source, scoped by its own header — rewriting it would repeat the
+archive-immutability error described above.
+
+## 2026-08-08 — Payer identity: settlement follows the ask, not the delivery
+
+`settlement-spec.md` bound the commitment payer to `providerGarden` in four places (§2's fund-flow
+bullet, §3.1.2's `executorGarden` comment, §3.1.3's payout-plan binding, and §3.1.4's binding
+tests), and stated the protocol-pool case explicitly: *"For a protocol-pool commitment claimed by a
+garden, the claiming/provider garden Safe pays its contributor team."* That is not an omission —
+it is a decision, recorded in PRD-759 as "the provider garden's steward creates or updates the
+commitment's payout plan," and `synthesis-circular-gd` draws it faithfully, which is why the
+circulation loop read as vague rather than wrong.
+
+The binding assumes the asker and the doer are the same account. That holds in every garden pool
+and fails in the protocol pool, whose entire purpose is that they differ. Both intended protocol-
+pool flows inverted as a result: a Request from the protocol ("run this event", "complete this
+survey") made the *claiming garden* pay its own gardeners, with the protocol reachable only through
+the deliberately commitment-less `queueFunding` top-up; and an Offer from the protocol (technical
+support, onboarding) was unpayable in the other direction, because claiming moves no value,
+`declaredUnitValue` is records-only, `FundingRoute` has no upward member, and `DeclaredReward.source`
+is a forced zero sentinel on the Celo rail.
+
+Corrected per Decision Log #56 / register #90: an immutable `payerGarden` is stored beside
+`providerGarden` — `pools[poolId].garden` for a Request at creation, the claiming `gardenContext`
+for an Offer at acceptance. Settlement derives `source`/`executorGarden` from
+`settlementAccounts[payerGarden]`, and payout-plan authority follows to the payer garden's steward,
+since no garden may spend a Safe it does not steward. `providerGarden` is unchanged in meaning and
+remains the EAS recipient scope and roster boundary.
+
+Four cases, one binding. Garden Request and garden Offer both resolve `payerGarden ==
+providerGarden`, so single-garden pools are behaviourally identical to before. Protocol Request
+pays protocol Safe → the claiming garden's gardeners. Protocol Offer pays the claiming garden's
+Safe → the protocol team. Contributor recipients are same-address smart accounts on Celo and were
+never garden-scoped, so no new recipient machinery is required.
+
+Three consequences worth recording. **No new route enum**: flow direction is derived from
+`payerGarden` vs `providerGarden`, both already carried on the disbursement; adding a
+`FundingRoute` member would duplicate derivable state against the settlement lane's own
+canonical-derivation principle. The `§11` circulation gap is closed by exposing the derived
+direction in the indexer read model, not on-chain. **A scoped freeze exception**: register #86 and
+PRD-796 froze the 86-function ABI with every event byte-identical; this change excepts
+`CommitmentCreated`, `CommitmentAccepted`, and the `DeclaredReward` → `DeclaredConsideration`
+rename, and nothing else. **Storage is unaffected**: `Commitment` lives inside a mapping, so the
+new field consumes none of the frozen 38 top-level entries and does not touch `__gap[12]`; only
+the layout baseline is regenerated.
+
+Decision Log #45's external half is closed the same day: GoodDollar confirmed they want to see
+circulation, so the "awaiting confirmation" label on the G$-for-protocol-services return leg is
+retired from §11.10 and from partner-facing claim rules. PRD-759 keeps its dated record; the payer
+half is superseded, not rewritten.
+
+### Codex review dispositions (2026-08-08, same day)
+
+Six findings; five accepted and fixed, one accepted as a correction to my own claim.
+
+**Payable exchange recorded the wrong payer on both sides (High, fixed).** `acceptExchange` derives
+one `gardenContext` from the pool and passes it to both acceptances, and exchange eligibility never
+inspected consideration, so a priced Offer×Offer pair recorded that single garden as payer for a
+trade between two individuals — in the protocol pool, the protocol Safe for both halves. The 12
+existing exchange tests could not catch it: the fixture defaults to free consideration and no
+assertion inspected `payerGarden`. Paired acceptance is now **barter-only**, rejected before either
+side mutates with `ExchangeConsiderationUnsupported(commitmentId, amount)`. Priced bilateral
+exchange needs an authenticated per-side payer context, which the current ABI cannot express
+because a person may belong to several gardens; it is deliberately out of scope for August. Three
+tests added, including one pinning that free exchange records the pool garden on both sides.
+
+**`CommitmentCreated` now carries `payerGarden` (Medium, fixed).** Omitting it was justified on the
+grounds that a Request's payer is derivable from `poolId`. That holds only if `PoolRegistered` has
+always projected first, and the plan explicitly models otherwise: a pool garden may be null until
+registration, reverse delivery after other pool events is required, and `CommitmentPool` has no
+bounded pool-to-commitment reverse index to backfill from. A reverse-delivered Request could
+therefore strand a null payer permanently. The field is emitted rather than derived; it is zero for
+an Offer until acceptance, which `CommitmentAccepted` supplies.
+
+**Provider-pays survived on active dispatch surfaces (High, fixed).** The amendment was contradicted
+by the material implementers actually read: `acceptance-matrix.md` payout-authority and
+consideration-source rows, `contract-spec.md`'s `recordConsiderationPaid` paragraph,
+`settlement-spec.md`'s implementation event inventory (which omitted `payerGarden` while the
+canonical declaration carried it), and four downstream instructions in `codex-contracts.md`,
+`codex-settlement.md`, `uiux-spec.md`, and `hifi/screens/admin.ts`. All corrected. A related
+internal contradiction is also fixed: the amendment claimed a zero amount is valid on every rail,
+but the pair rule confines free to `ConsiderationRail.None`.
+
+**The rename claim was false and a required gate was failing (Medium, fixed).** `bun run
+check:ontology` failed — the ontology sidecar still anchored `RewardRail` in the Solidity
+interface. The sidecar vocabulary is now `consideration-rail` with symbol `ConsiderationRail`, its
+event-kind members are `CONSIDERATION_DECLARED` / `CONSIDERATION_PAID`, and
+`ontology.generated.mdx` plus the entity matrix were regenerated. The active ERD proposal and the
+indexer/uiux read-model identifiers were renamed too. **Scope call recorded:** hifi prototype *UI
+copy* keeps "reward"/"support" wording. That is presentation vocabulary governed by
+`glossary-community.md` (which says "declared support"), not the ABI; renaming user-facing copy to
+"consideration" would be a product-vocabulary decision, not part of this correction.
+
+**The "format-only collateral" claim was wrong (Medium, accepted).** `ArbitrumCommitmentPooling.t.sol`
+(+315/-2) and `CommitmentSchemaRecovery.t.sol` (+106/-13) carry another session's substantive work,
+including new recovery/finalization behavior and a `RecordAheadOfPin` case. They contain no
+payer/consideration references, but they were not merely reformatted and must be excluded from this
+correction's commit boundary rather than certified as part of it.
+
+**Documentation (Low, fixed).** `handoffs/README.md` said 19 files for a 20-file directory; the
+free-consideration sentence was duplicated in the contract-spec amendment.
+
+Gates after the fixes: 1,808 Solidity + 100 script tests green, size gate 21,205 bytes with 3,371
+margin, storage layouts match baselines, architecture closure passes, `check:ontology` passes,
+`hifi/validate.ts` passes, lint 0 errors.
+
+### Codex review dispositions, round 2 (2026-08-08)
+
+Seven findings, all accepted. Two invalidated claims I had made confidently.
+
+**Garden claims were never protocol-only (High).** I told the user, and wrote into register #91, that
+`ClaimType.Garden` was protocol-pool-only and steward-only. It was not. In a garden pool
+`resolveClaimant` takes the first branch regardless of `kind` — it checks only that
+`gardenContext == pool.garden` and that the caller is any garden member — and the later
+`kind == Garden` branch then sets `claimant = gardenContext`. So any member could make a Garden
+claim in their own pool, and the recipient rule would have resolved payer, provider, and recipient
+all to that one garden: a Safe-to-itself transfer. Creation now rejects a Garden claim type in a
+garden pool, and the acceptance branch rejects it defensively, both with
+`GardenClaimRequiresProtocolPool`. Tested.
+
+**The garden-recipient rule had no implementable payout path (High).** "No new `DisbursementKind`"
+was wrong and is withdrawn. The contributor machinery cannot pay a Safe: plan creation allocates
+across contributor rows, `prepareContributorPayout` only materializes a `ContributorReward` for a
+roster member, and a 100%-retained plan produces no payable row and completes locally — leaving the
+money in the payer Safe rather than paying the garden. `Funding` is deliberately not
+commitment-bound; `ContributorReward` cannot honestly classify a garden Safe. Settlement gains
+`DisbursementKind.GardenBeneficiary` and `prepareGardenBeneficiaryPayout(planId)`, with
+beneficiary-account rechecks at batch and dispatch, and no `gardenerDeliveryEnabled` gate because
+that flag governs individual gardener accounts rather than Safes.
+
+**Retention was still incoherent wherever payer and provider differ (High).** I had claimed the
+recipient rule repaired it; it only repaired the Garden-claimed case. The rule is now explicit:
+`gardenRetainedAmount` must be zero whenever `payerGarden != providerGarden` or the plan carries a
+beneficiary row. Otherwise a protocol Request lets the protocol withhold part of what it
+commissioned, and a protocol Offer lets the paying garden withhold part of what it owes the
+provider's contributors. Retention keeps its original meaning only for garden-internal commitments,
+where payer and provider are the same garden.
+
+**Provider-pays survived in canonical execution truth (High).** `status.json` — the file the
+settlement lane actually reads — still described the provider Safe paying and only contributors
+receiving. Also corrected: the `diagrams.md` permission matrix, `contract-spec.md`'s CeloSettlement
+derivation and `recordConsiderationPaid` paragraph, the settlement handoff's authority line, and a
+stale "Rewards" register entry. The closure validator passing did not prove semantic closure, which
+is worth remembering about that gate.
+
+**The Arbitrum rail named a person for institutional work (Medium).** `recordConsiderationPaid`
+emitted `leadProvider` as recipient, which for a Garden-claimed Request is the steward who claimed
+on the garden's behalf — precisely what register #91 forbids, on the one rail that is a durable
+public record. It now emits `providerGarden` for that shape and `leadProvider` for every other.
+Both directions tested.
+
+**The recipient tests proved inputs, not the eligible set (Medium).** They stopped at acceptance, so
+they never showed that the steward reaches the *frozen eligible set* that settlement actually reads.
+A test now carries a Garden-claimed Request through evidence, freeze, and confirmation to Fulfilled
+and asserts the frozen set contains the steward and not the garden. Genuine settlement behaviour —
+Safe delivery, target-account rejection, retention enforcement — still cannot be tested until
+`SettlementModule` exists, and the binding tests for it are specified rather than written.
+
+**Format gate (Low).** `bun format:check` and `git diff --check` are now clean. Note that the two
+offending script files belong to the other session's in-flight work; formatting them was
+unavoidable to green the gate and changed nothing semantic.
+
+### Codex review dispositions, round 3 (2026-08-08)
+
+Seven findings accepted. This round reviewed the target settlement lifecycle rather than treating
+the presence of `GardenBeneficiary` prose as an implementation.
+
+**The beneficiary child was unrepresentable and completed without payment (High, fixed in the
+canonical target).** `CommitmentPayoutPlan` had no payout kind, beneficiary garden, Safe, amount,
+or child pointer; the interface omitted `prepareGardenBeneficiaryPayout`; and parent status treated
+zero contributors as Complete. The target now freezes one immutable plan shape. Beneficiary plans
+have one payable child, full declared amount, zero retention/contributor total, no contributor
+rows, and cannot complete before authenticated child confirmation.
+
+**Retention and conservation were prose-only (High, fixed in the canonical target).** Contributor
+editing did not enforce the cross-garden zero-retention rule and there was no boundary preventing a
+beneficiary plan from being edited as a contributor plan. `setContributorPayouts` is now
+contributor-shape-only; cross-garden retention is zero; contributor conservation is declared =
+retained + contributor total; beneficiary conservation is declared = beneficiary amount with all
+other value fields zero. `gardenRetainedAmount` is retained because garden-internal individual
+Requests and Offers still use it coherently.
+
+**The protocol garden could claim its own institutional Request (High, fixed in code).** Protocol
+Garden claims checked registration and stewardship but not that the target differed from the
+protocol pool's garden. A second root steward could create the Safe-to-itself payment shape.
+`GardenClaimMustBeExternal(poolId, garden)` now rejects it before either open acceptance or an
+approval-gated pending claim is persisted. The targeted suite passes 16/16.
+
+**Batch, dispatch, recovery, and counters were contributor-specific (High, fixed in the canonical
+target).** Every `payoutPlanId != 0` child now shares the parent counter, acknowledgment,
+cancellation, and requeue rules. Both commitment kinds recheck the payer account at new value
+authorization boundaries; beneficiary children additionally recheck the beneficiary garden and
+frozen Safe at creation, finalization, first preparation, batching, and initial dispatch.
+`gardenerDeliveryEnabled` remains irrelevant to a Safe.
+
+**Missing accounts and a zero payer had no closed outcome (Medium, fixed in the canonical target).**
+Plan creation now rejects `payerGarden == address(0)` before lookup or mutation. Beneficiary shape
+requires an active registered external-garden account and freezes its Celo Safe; there is no
+fallback recipient or contributor fan-out.
+
+**Indexer and diagrams still encoded provider-pays/contributor-only state (Medium, fixed in the
+living target surfaces).** GraphQL now carries `payerGardenId`, beneficiary fields/kind, general
+payable counters, and derived `CommitmentSettlementFlow`. The flow is `INTERNAL`,
+`PROTOCOL_TO_GARDEN`, `GARDEN_TO_PROTOCOL`, or reserved `GARDEN_TO_GARDEN`, derived from immutable
+payer/provider identities plus the write-once protocol garden. This closes intended-flow
+attribution only; actual later Celo token circulation remains outside Envio.
+
+**The remaining disbursement name drift had no deployment reason (Medium, fixed).** Settlement has
+not shipped, so ordinal-zero `ContributorReward` becomes `ContributorConsideration` across the
+ABI/spec/ontology/read model. Human-facing “reward” and “support” copy remains governed by the
+community glossary and was not mechanically rewritten.
+
+Linear convergence for this round is recorded live in successor PRD-800, comments on PRD-759 and
+PRD-796, the amended/re-dated PRD-686, closed PRD-734, and notes on PRD-721 through PRD-725. No
+deployment, broadcast, Safe mutation, or value movement occurred.
+
+### Codex implementation follow-up (2026-08-08)
+
+The round-3 target is now implemented pre-deploy in `SettlementModule`, its public delegatecall
+libraries, `CeloSettlementExecutor`, focused settlement/executor/integration tests, and the core
+Envio settlement projection. One further acceptance path and two validator gaps were found while
+executing the promised gates.
+
+**The approval/backfill acceptance mutation needed its own Garden-claim guard (High, fixed).** The
+creation and request-time checks did not prove that an already-persisted pending claim was valid.
+`AcceptanceLib.acceptCommitment` is now the final shared mutation boundary and repeats both
+`GardenClaimRequiresProtocolPool` and `GardenClaimMustBeExternal`. This covers approval-gated and
+backfilled records without relying on how they were created.
+
+**The executable-call closure ledger omitted the implemented beneficiary selector (Medium,
+fixed).** Matrix B3 named `prepareGardenBeneficiaryPayout`, but the typed hi-fi `ContractCall`
+union and validator count did not. The union, call rule, and expected count now cover 57 calls, and
+the architecture validator proves the selector exactly once.
+
+**The ontology still called six implemented vocabularies speculative (Medium, fixed).** Fresh
+`check:ontology` rejected payout-plan status, disbursement state/kind, funding route, settlement
+flow, and failure code as implemented spec arrivals. Their Solidity/indexer representations are
+now live and the generated ontology and entity-matrix docs were regenerated.
+
+**The fork prerequisite note was incomplete (Low, recorded).** The Bun wrapper stops before any
+fork because both `HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER` and
+`HATS_MODULE_UPGRADE_GARDEN_COUNT` require fresh reviewed positive integers. No values were
+invented, and the environment-only blocker is not attributed to the payer change.

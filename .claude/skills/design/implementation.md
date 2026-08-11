@@ -9,7 +9,7 @@ Linear path from blank file to merge-ready.
 | # | Step | Decide / Do | Source |
 |---|------|-------------|--------|
 | 1 | Paradigm | Command / Ambient / Data Landscape / Conversational / Ritual. One-line comment at top of file. | [SKILL.md § Paradigm Selection](./SKILL.md) |
-| 2 | Material | Thickness by density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense = solid. | [materials.md](./materials.md) |
+| 2 | Material | Thickness by density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense = solid. | [surfaces.md](./surfaces.md) |
 | 3 | Shape | Fixed (badges), Capsule (primary CTA / icon button), Concentric (`child_radius = parent_radius − padding`). Shape alone = hierarchy. | [language.md § Shape System](./language.md) |
 | 4 | Motion | `var(--spring-*)` only; never hardcode `cubic-bezier`/`duration`. Standard for admin; Expressive only for client hero moments. | [language.md § Motion System](./language.md) |
 | 5 | Primitive | Compose Radix + `tv()`. Dialogs → `DialogShell` (client/shared) or `AdminDialog` (admin). | Dialogs below |

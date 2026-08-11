@@ -33,19 +33,22 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
   route. Alphabetical all-garden oversight and batch/CCIP operations live in the capability-gated
   Operations workspace. `showOperations = isDeployer || canQueueFunding || canOperateSettlement`;
   W21/W22 remain garden-scoped detail/recovery exceptions.
-- Fulfilled `CeloSettlement` commitments use the ordinary provider-garden payout-plan actions:
-  create/edit Draft, finalize, then idempotently prepare each frozen non-zero contributor row.
+- Fulfilled priced `CeloSettlement` commitments use payer-garden payout-plan actions. Shape is
+  immutable: contributor plans allow Draft vector edits, then finalize and idempotently prepare
+  non-zero rows; Garden-claimed Requests freeze one external garden Safe, allow no contributor
+  edit, then finalize and idempotently prepare that beneficiary child.
   There is no sixth offline settlement job or per-device arrangement state. Operations Flows
   separately provides **Seed / top up garden** only when onchain `canQueueFunding` resolves to
   protocol steward or SettlementModule owner; deployer alone cannot submit. The review states
-  that it does not fulfill, reward, or alter a commitment, cancel creates no queue entity, and
+  that it does not fulfill, consideration, or alter a commitment, cancel creates no queue entity, and
   success renders a typed `Funding` / `ProtocolToGarden` Queued row with no commitment ID.
 - Immutable batch-membership view with the measured configured 0–24 limit and hard ceiling of 24, whole-batch cancellation while Queued, per-member retry/cancel only after authenticated failure, command/execution/acknowledgment states, native ETH/CELO fee floors and low-balance state, active/previous peer expiry, Safe/Roles/cap health, and disabled-member-delivery disclosure.
 - Operator-visible reasons, blast-radius confirmation, accessible dialogs, and en/es/pt copy.
-- Core seeding emits the full creation payload, including the explicit reward rail. `None` clears
-  reward fields, `ArbitrumExternal` explains the later record-only payout action, and
-  `CeloSettlement` requires provider-garden Safe/canonical-G$ readiness without exposing
-  `recordRewardPaid`. It also enforces cycle/pool and repeatable DomainImpact requirements, shows
+- Core seeding emits the full creation payload, including the explicit consideration rail. `None` clears
+  consideration fields, `ArbitrumExternal` explains the later record-only payout action, and
+  `CeloSettlement` requires payer-garden Safe/canonical-G$ readiness and, for beneficiary shape,
+  the active external receiving Safe, without exposing
+  `recordConsiderationPaid`. It also enforces cycle/pool and repeatable DomainImpact requirements, shows
   the app-preflight Baseline alongside the onchain charter/provider-open-commitment-cap blockers,
   supports evidence/Work/Assessment v3 attachment, and exposes explicit Ready
   submission/authorized override.
@@ -96,10 +99,11 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Opening a second Season is blocked with the existing Season identified; multiple Campaigns remain independently operable and every count or exact-label summary names its cycle scope.
 - A Queued batch exposes one blast-radius-confirmed whole-batch cancel action and never a per-member cancel. A rejected batch cannot be edited or requeued wholesale; only Failed members can be requeued or terminally cancelled. The UI preserves the failed attempt/failure code and distinguishes that closeout from an atomic Queued pre-send batch withdrawal or an unbatched Queued cancellation.
 - Dispatch or Celo execution never marks settlement Confirmed. Same-key command retry, stored acknowledgment retry, authenticated failure/new-attempt, derived delivery delay, CCIP manual-execution guidance, command/destination/acknowledgment IDs with Explorer links, and ignored stale/duplicate acknowledgment behavior are legible.
-- When member delivery is disabled, the fulfilled commitment, provider-garden payout plan,
+- When member delivery is disabled, the fulfilled commitment, payer-garden payout plan,
   retention, unprepared rows, and historical child states remain visible. First contributor-child
-  preparation and member sends are unavailable, and an unprepared row exposes no retry. Separate
-  ProtocolToGarden treasury funding may continue; it is not a Garden-beneficiary reward bypass.
+  preparation and member sends are unavailable, while GardenBeneficiary Safe preparation remains
+  available when both accounts are active. An unprepared row exposes no retry. Separate
+  ProtocolToGarden treasury funding may continue; it is not a GardenBeneficiary alias.
 - Operations route/nav access and every action are tested independently: a protocol steward or
   module owner can reach and submit funding without deployer role; a deployer with neither
   funding authority cannot submit it; settlement operators see only their authorized controls.
@@ -164,9 +168,9 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
   pointer.
 - Protocol Safe to garden Safe value appears only as Funding / ProtocolToGarden created through
   `queueFunding`; the admin queue never labels or routes it as a garden-beneficiary commitment
-  reward.
+  consideration.
 - Payout-plan draft actions render only when the provider-garden settlement account is Active;
-  external-record and Celo allocation actions remain mutually exclusive by reward rail.
+  external-record and Celo allocation actions remain mutually exclusive by consideration rail.
 - W10 filters dispute-resolution outcomes against the connected steward. When that steward is an
   active contributor, Fulfilled is hidden or disabled with a `SelfConfirmation` explanation; only
   an eligible non-contributor steward may submit the separately policy/credit-gated outcome.

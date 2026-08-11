@@ -43,10 +43,28 @@
       "type": "t_bytes32"
     },
     {
-      "label": "__gap",
+      "label": "commitmentModule",
       "offset": 0,
       "slot": "103",
-      "type": "t_array(t_uint256)48_storage"
+      "type": "t_contract(ICommitmentPoolingModule)"
+    },
+    {
+      "label": "latestDecisionSequence",
+      "offset": 0,
+      "slot": "104",
+      "type": "t_mapping(t_bytes32,t_uint64)"
+    },
+    {
+      "label": "decisionSequenceByUID",
+      "offset": 0,
+      "slot": "105",
+      "type": "t_mapping(t_bytes32,t_uint64)"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "106",
+      "type": "t_array(t_uint256)45_storage"
     }
   ],
   "types": {
@@ -55,11 +73,11 @@
       "label": "address",
       "numberOfBytes": "20"
     },
-    "t_array(t_uint256)48_storage": {
+    "t_array(t_uint256)45_storage": {
       "base": "t_uint256",
       "encoding": "inplace",
-      "label": "uint256[48]",
-      "numberOfBytes": "1536"
+      "label": "uint256[45]",
+      "numberOfBytes": "1440"
     },
     "t_array(t_uint256)49_storage": {
       "base": "t_uint256",
@@ -83,15 +101,32 @@
       "label": "bytes32",
       "numberOfBytes": "32"
     },
+    "t_contract(ICommitmentPoolingModule)": {
+      "encoding": "inplace",
+      "label": "contract ICommitmentPoolingModule",
+      "numberOfBytes": "20"
+    },
     "t_contract(IKarmaGAPModule)": {
       "encoding": "inplace",
       "label": "contract IKarmaGAPModule",
       "numberOfBytes": "20"
     },
+    "t_mapping(t_bytes32,t_uint64)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => uint64)",
+      "numberOfBytes": "32",
+      "value": "t_uint64"
+    },
     "t_uint256": {
       "encoding": "inplace",
       "label": "uint256",
       "numberOfBytes": "32"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
     },
     "t_uint8": {
       "encoding": "inplace",

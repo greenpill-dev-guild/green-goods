@@ -1,7 +1,7 @@
 ---
 name: design
 user-invocable: false
-description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
+description: "Green Goods design direction — the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
 token_version: "2.5.0"
 ---
 
@@ -42,10 +42,7 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
 | **Quick Reference** | cheat sheet, radii, springs, colors, materials, paradigms at a glance | [quick-reference.md](./quick-reference.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision, progressive immersion | This file |
-| **Depth & Space** | Z-axis, depth, layers, glass pane, elevation, scroll depth | [spatial.md](./spatial.md) |
-| **Interaction** | adaptive density, progressive disclosure, multimodal, hover-to-gaze | [interaction.md](./interaction.md) |
-| **Materials** | glass, material, blur, surface, frosted, translucent | [materials.md](./materials.md) |
-| **Generative UI** | UI atoms, intent-driven composition, agent-generated surfaces | [generative-ui.md](./generative-ui.md) |
+| **Surfaces** | Z-axis, depth, glass pane, elevation, material, blur, adaptive density, progressive disclosure, multimodal | [surfaces.md](./surfaces.md) |
 | **View Transitions** | view transition API, entity morphing, spatial navigation | [implementation.md § View Transitions](./implementation.md) |
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
@@ -77,7 +74,7 @@ Not everything should be spatial. A simple form is a simple form. The paradigm a
 
 Three principles woven throughout — not a checklist, a lens:
 
-- **Recognize Exclusion** — Spatial interfaces create new forms of exclusion: gorilla arm fatigue, gaze tracking imprecision, depth perception variance, motion sickness. The [Persona Spectrum](./interaction.md) maps these across permanent, temporary, and situational contexts.
+- **Recognize Exclusion** — Spatial interfaces create new forms of exclusion: gorilla arm fatigue, gaze tracking imprecision, depth perception variance, motion sickness. The [Persona Spectrum](./surfaces.md) maps these across permanent, temporary, and situational contexts.
 - **Learn from Diversity** — Adaptive density and progressive disclosure serve cognitive diversity, not just preference. The [Cognition Extension](https://inclusive.microsoft.design/) adds: understand motivation → discern cognitive load → co-create across the neurodiversity spectrum.
 - **Solve for One, Extend to Many** — Every spatial pattern must degrade gracefully to 2D, voice, and keyboard. Closed captions started for the deaf and became universal. Spatial patterns that work only in spatial mode are incomplete.
 
@@ -184,9 +181,9 @@ What kind of design work?
 │   └── Implement per implementation.md (Pane pattern + adaptive density)
 │
 ├─► New component?
-│   ├── What Z-layer? (ground / surface / floating / overlay) → spatial.md
-│   ├── What material? → materials.md
-│   ├── Interactive? (hit targets ≥ 44px, keyboard reachable) → interaction.md
+│   ├── What Z-layer? (ground / surface / floating / overlay) → surfaces.md
+│   ├── What material? → surfaces.md
+│   ├── Interactive? (hit targets ≥ 44px, keyboard reachable) → surfaces.md
 │   └── Run review-checklist.md § Lens 2 (Spatial Readiness)
 │
 ├─► Multi-user or governing surface?
@@ -196,18 +193,15 @@ What kind of design work?
 │   └── Run review-checklist.md § Lens 3 (Ecosystem Awareness)
 │
 ├─► Visual polish pass?
-│   ├── Replace solid backgrounds with materials → materials.md
-│   ├── Add depth via Z-layer model → spatial.md
-│   ├── Add progressive disclosure to dense surfaces → interaction.md
+│   ├── Replace solid backgrounds with materials → surfaces.md
+│   ├── Add depth via Z-layer model → surfaces.md
+│   ├── Add progressive disclosure to dense surfaces → surfaces.md
 │   └── Verify inclusive design checks → review-checklist.md § Lens 2
 │
 ├─► Animation / spatial motion?
 │   ├── View transitions for navigation morph → ./implementation.md § View Transitions
-│   ├── Scroll-linked depth → spatial.md
+│   ├── Scroll-linked depth → surfaces.md
 │   └── Respect prefers-reduced-motion (MANDATORY)
-│
-├─► Generative UI / AI surface?
-│   └── UIAtom composition pattern → generative-ui.md
 │
 └─► Need inspiration or direction?
     └── language.md § Philosophy (Sources) — the model already knows the classic
@@ -239,7 +233,7 @@ Tier 3: Spatial (headsets, AR, large displays)
 
 **The bridge**: Each tier is additive. Tier 2 includes everything from Tier 1. Tier 3 includes everything from Tier 2. **Nothing is spatial-only** — that's a core rule from Inclusive Design (see Quad Foundation above).
 
-This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes ([spatial.md](./spatial.md)), container queries ([interaction.md](./interaction.md)), and view transitions ([implementation.md § View Transitions](./implementation.md)).
+This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes and container queries ([surfaces.md](./surfaces.md)) and view transitions ([implementation.md § View Transitions](./implementation.md)).
 
 ---
 

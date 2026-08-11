@@ -7,6 +7,7 @@
 // W7@ready, MF4 → W7@expiry-queue, W7X → W7@claim-outcomes, MF13 →
 // W10@attach-assessment.
 
+import { POOL_LIFETIME } from "../fixtures";
 import { esc, hot } from "../html";
 import { icon } from "../icons";
 import { banner, btn, chip, disclosure, emptyState, field, input, kv, meter, radio, skeleton } from "../kit";
@@ -587,7 +588,7 @@ function w7(state: W7State): string {
   // console taught one screen for two different contract calls.
   if (state === "seed-cycle")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool",
+      "admin.greengoods.app/garden/pool",
       adminDialogM3(w7Behind("ready"), "garden", {
         title: "Seed a cycle",
         body: `${field("Type", radio([{ label: "Season", meta: "one open Season at a time", on: true }, { label: "Campaign", meta: "any number may run alongside" }], { interactive: true, name: "cycle-type" }))}${field("Name", input("Season of First Rains"))}${field("Runs through", input("Aug 30"))}${banner(
@@ -601,7 +602,7 @@ function w7(state: W7State): string {
   const confirm = W7_CONFIRMS[state];
   if (confirm)
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool",
+      "admin.greengoods.app/garden/pool",
       adminDialogM3(
         w7Behind(state === "compost-pool-confirm" ? "closed" : state.startsWith("paused-") ? "paused" : "open"),
         "garden",
@@ -610,7 +611,7 @@ function w7(state: W7State): string {
     );
   if (state === "reopen-confirm")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool",
+      "admin.greengoods.app/garden/pool",
       adminDialogM3(w7Behind("composted"), "garden", {
         title: "Reopen this pool",
         body: `${banner("Reopening moves the composted pool to Ready. Members still cannot participate until a steward opens it again.", "stone")}${kv("Next state", "Ready")}${kv("History", "preserved")}`,
@@ -652,7 +653,7 @@ function w7(state: W7State): string {
     // follows compost. No cycles/commitments consoles on a closed pool.
     body = acard(
       "Pool",
-      `${kv("History", "1 season · 23 promises · 19 kept")}${banner(
+      `${kv("History", `${POOL_LIFETIME.seasons} season · ${POOL_LIFETIME.made} promises · ${POOL_LIFETIME.kept} kept`)}${banner(
         "The pool is closed — its history stays with the garden. Composting archives it; reopening starts the next era.",
         "stone",
       )}<div class="actrow">${hot("w7.compost-pool", btn("Compost pool…", { kind: "sec", sm: true }))}</div>`,
@@ -661,7 +662,7 @@ function w7(state: W7State): string {
   } else if (state === "pool-composted") {
     body = acard(
       "Pool",
-      `${kv("History", "1 season · 23 promises · 19 kept")}${banner(
+      `${kv("History", `${POOL_LIFETIME.seasons} season · ${POOL_LIFETIME.made} promises · ${POOL_LIFETIME.kept} kept`)}${banner(
         "This pool is archived. Reopening preserves its history and returns it to Ready; member participation stays closed until the pool opens again.",
         "stone",
       )}<div class="actrow">${hot("w7.reopen-pool", btn("Reopen pool…", { kind: "pri", sm: true }))}</div>`,
@@ -706,7 +707,7 @@ function w7(state: W7State): string {
   }
   const header = pageHeader({ title: "Garden", description: W7_DESC[state], actions: seed });
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool",
+    "admin.greengoods.app/garden/pool",
     adminCanvas("garden", "garden", { screenId: "W7", garden: "Rocinha", header, tabRail: rail, body }),
   );
 }
@@ -807,7 +808,7 @@ export const CAPTURE_STEPS: FlowStep[] = [
   { title: "Record", desc: "check it, then record" },
 ];
 
-const SEED_URL = "admin.greengoods.app/dashboard/garden/pool/seed";
+const SEED_URL = "admin.greengoods.app/garden/pool/seed";
 
 function w8(state: W8State): string {
   if (state === "discard")
@@ -818,7 +819,7 @@ function w8(state: W8State): string {
 
   if (state === "captured-for")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool/capture",
+      "admin.greengoods.app/garden/pool/capture",
       flowDialog(w7Behind(), "garden", {
         context: "Rocinha · recording for Kwame",
         title: "Record on a member's behalf",
@@ -916,7 +917,7 @@ type W9State = (typeof W9_STATES)[number][0];
 function w9(state: W9State): string {
   if (state === "discard")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool/capture",
+      "admin.greengoods.app/garden/pool/capture",
       discardDialog(w7Behind(), "garden", "w9.keep-editing", "w9.discard-confirm", "This record hasn't been saved yet"),
     );
   const pick = state === "pick-member";
@@ -925,7 +926,7 @@ function w9(state: W9State): string {
 <div class="arow"><div class="grow"><b>Kwame</b> <span class="t-meta">joined May · 4 promises kept</span></div>${hot("w9.choose", btn("Choose", { kind: "sec", sm: true }))}</div>`
     : hot("w9.kind", field("Capture", radio([{ label: "Their offer", on: true }, { label: "Their request" }, { label: "A confirmation", meta: "names garden or Green Goods team fallback · always carries a reason" }], { interactive: true, name: "capture-kind" })));
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool/capture",
+    "admin.greengoods.app/garden/pool/capture",
     flowDialog(w7Behind(), "garden", {
       context: "Rocinha · on a member's behalf",
       title: "Record on a member's behalf",
@@ -1096,7 +1097,7 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
 ${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
 ${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden) — cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · provider-garden payout plan · unqueued")}`;
+${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · payer-garden payout plan · unqueued")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm — promise kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
@@ -1109,7 +1110,7 @@ ${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-g
       actions = `${dismiss("Close")}${hot("w10.queue-settlement-garden", btn("Create payout draft…", { kind: "pri" }))}`;
       break;
     case "queue-settlement-garden":
-      body = `${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "25 G$")}${kv("Payer", "Awka Hub · provider garden Safe")}${kv("Garden retains", "5 G$")}${kv("Contributor children", "Maria 12 G$ · João 8 G$")}${banner(
+      body = `${kv("Consideration rail", "Celo G$ settlement")}${kv("Declared support", "25 G$")}${kv("Payer", "Awka Hub · payer garden Safe")}${kv("Garden retains", "5 G$")}${kv("Contributor children", "Maria 12 G$ · João 8 G$")}${banner(
         "Saving creates an editable draft and derives payment weights from these amounts. Finalization separately verifies recognition, conservation, and canonical recipients before any child can dispatch.",
         "stone",
       )}`;
@@ -1142,7 +1143,7 @@ ${kv("Maria → João", "6 hours · due Aug 12")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "João · Jul 12 · 2 of 2")}${kv("Provider", "Maria — cannot confirm")}
 ${kv("Team", "Maria · lead; Ana and Kwame · contributors")}${kv("Recognition", "40% · 35% · 25% from approved contribution")}
-${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "500 G$ · provider-garden Safe")}${kv("Payment", "plan not yet saved")}
+${kv("Reward rail", "Celo G$ settlement")}${kv("Declared support", "500 G$ · payer-garden Safe")}${kv("Payment", "plan not yet saved")}
 ${banner("The garden receives the commitment support, retains an explicit amount, then pays contributors through child deliveries.", "stone")}`;
       actions = `${dismiss("Close")}${hot("w10.allocate-contributors", btn("Set recognition and payment…", { kind: "pri" }))}`;
       break;
@@ -1158,7 +1159,7 @@ ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden j
       actions = `${dismiss("Close")}${hot("w10.raise", btn("Raise dispute…", { kind: "sec" }))}`;
   }
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool",
+    "admin.greengoods.app/garden/pool",
     adminDialogM3(w10Behind(), "garden", { title: W10_TITLE[state], body, actions, closeHot: "w10.dismiss" }),
   );
 }
@@ -1173,8 +1174,8 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.allocate-contributors": { l: "Set recognition and payment", to: "screen:W10@contributor-allocation", info: "Opens the steward editor with Hypercert recognition weights as the default payment weights." },
   "w10.save-contributor-allocation": { l: "Create payout draft", to: "screen:W21@payout-plan-edit", info: "Creates the stable recognition-bound Draft with its canonical default, then opens the separate recoverable amount-vector edit. If the edit transaction is rejected, retry only setContributorPayouts; never recreate the parent.", calls: ["createCommitmentPayoutPlan"] },
   "w10.all-retained-preview": { l: "Preview all-retained case", to: "screen:W21@payout-retained", info: "Shows the zero-child path: finalization completes the plan without CCIP or a self-transfer." },
-  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → RewardPaid; no value moves here." },
-  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordRewardPaid → RewardPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordRewardPaid"] },
+  "w10.record-payout": { l: "Record payout", to: "screen:W10@record-payout", info: "ArbitrumExternal only: AdminConfirmDialog captures the executed rail reference → ConsiderationPaid; no value moves here." },
+  "w10.payout-confirm": { l: "Record payout (confirm)", to: "screen:W2@reward-released", info: "ArbitrumExternal only: recordConsiderationPaid → ConsiderationPaid; the dry run rehearses this with a real minimal Cookie Jar withdrawal (register #34h).", calls: ["recordConsiderationPaid"] },
   "w10.fallback": { l: "Confirm as garden fallback", to: "screen:W10@fallback-confirm", info: "Current local-garden Hats only; mandatory reason; every contributor is blocked (CS §6.1)." },
   "w10.fallback-confirm": { l: "Garden fallback (confirm)", to: "screen:W2@fulfilled-pool-fallback", info: "confirmFulfillmentAsFallback emits the caller, PoolFallback, and required reason; the member timeline renders that exact provenance.", calls: ["confirmFulfillmentAsFallback"] },
   "w10.protocol-fallback-confirm": {
@@ -1241,7 +1242,7 @@ const W11_CONTEXT = (state: W11State) =>
 function w11(state: W11State): string {
   if (state === "discard" || state === "campaign-discard")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+      "admin.greengoods.app/garden/pool/open-cycle",
       discardDialog(
         w7Behind(state === "campaign-discard" ? "open" : "ready"),
         "garden",
@@ -1259,7 +1260,7 @@ function w11(state: W11State): string {
       ? ""
       : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation, recognitionPolicy).", "stone");
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+      "admin.greengoods.app/garden/pool/open-cycle",
       flowDialog(w7Behind(campaign ? "open" : "ready"), "garden", {
         context: W11_CONTEXT(state),
         title: "Open cycle",
@@ -1277,7 +1278,7 @@ function w11(state: W11State): string {
 
   if (state === "recognition-policy")
     return deskWin(
-      "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+      "admin.greengoods.app/garden/pool/open-cycle",
       flowDialog(w7Behind("ready"), "garden", {
         context: W11_CONTEXT(state),
         title: "Gardener recognition",
@@ -1310,7 +1311,7 @@ ${hot("w11.recognition", field("Gardener recognition", `<div class="arow"><div c
 ${banner("Treasury is at the 15% guidance floor. This split is locked when the cycle opens and reads back unchanged at close.", "stone")}`;
   const campaign = w11IsCampaign(state);
   return deskWin(
-    "admin.greengoods.app/dashboard/garden/pool/open-cycle",
+    "admin.greengoods.app/garden/pool/open-cycle",
     flowDialog(w7Behind(campaign ? "open" : "ready"), "garden", {
       context: W11_CONTEXT(state),
       title: "Open cycle",
@@ -1397,7 +1398,7 @@ ${banner("Work cards show which promise they fulfil; the approval rails are unch
   }
   const header = pageHeader({ title: "Hub", description: "Review and confirm work flowing through your gardens." });
   return deskWin(
-    "admin.greengoods.app/dashboard/hub",
+    "admin.greengoods.app/hub",
     adminCanvas("hub", "hub", { screenId: "W13", garden: "Rocinha", header, tabRail: rail, body: inner }),
   );
 }
@@ -1441,7 +1442,7 @@ const hubBehind = () =>
 function w14(state: W14State): string {
   if (state === "discard")
     return deskWin(
-      "admin.greengoods.app/dashboard/hub/assess",
+      "admin.greengoods.app/hub/assess",
       discardDialog(hubBehind(), "hub", "w14.keep-editing", "w14.discard-confirm", "This assessment hasn't been recorded yet"),
     );
   const kindRadio = hot(
@@ -1460,7 +1461,7 @@ function w14(state: W14State): string {
   // not a new surface.
   const inner = `${field("Cycle", input("Season of First Rains", { select: true }))}${field("Assessment kind", kindRadio)}${extra}`;
   return deskWin(
-    "admin.greengoods.app/dashboard/hub/assess",
+    "admin.greengoods.app/hub/assess",
     flowDialog(hubBehind(), "hub", {
       context: "Rocinha · assessment",
       title: "Create assessment",
@@ -1494,7 +1495,7 @@ function hubwork(): string {
 ${banner("Existing Work stage — approval rails untouched.", "stone")}`,
   );
   return deskWin(
-    "admin.greengoods.app/dashboard/hub",
+    "admin.greengoods.app/hub",
     adminCanvas("hub", "hub", { screenId: "HUBWORK", garden: "Rocinha", header, tabRail: hubRail(0), body: inner }),
   );
 }

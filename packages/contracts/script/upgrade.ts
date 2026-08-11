@@ -6,6 +6,7 @@ import * as path from "node:path";
 import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
 import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
+import { POOLING_UPGRADE_KEYS, assertProxyOwnership, type ProxyOwnerObservation } from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
 import { redactSensitiveArgs } from "./utils/cli-parser";
 
@@ -25,8 +26,10 @@ type ContractName =
   | "work-resolver"
   | "work-approval-resolver"
   | "assessment-resolver"
+  | "testimony-resolver"
   | "deployment-registry"
   | "greenwill"
+  | "pooling"
   | "all";
 
 const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
@@ -42,8 +45,10 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "work-resolver": "upgradeWorkResolver()",
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
+  "testimony-resolver": "upgradeTestimonyResolver()",
   "deployment-registry": "upgradeDeployment()",
   greenwill: "upgradeGreenWill()",
+  pooling: "upgradePooling()",
   all: "upgradeAll()",
 };
 
@@ -62,6 +67,17 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   // Intentionally exclude HatsModule and GreenWill: both must be upgraded as explicit targets.
 ];
 
+/**
+ * Targets that resolve to more than one proxy. The pooling module and its register share the
+ * unit-accounting invariant, so they are always upgraded as one group; the yield/gardens pair is
+ * grouped for the same reason and additionally cross-wires afterwards.
+ */
+const GROUPED_DEPLOYMENT_KEYS: Partial<Record<ContractName, readonly string[]>> = {
+  "signal-pool-yield-wiring": ["yieldSplitter", "gardensModule"],
+  "yield-gardens-wiring": ["yieldSplitter", "gardensModule"],
+  pooling: POOLING_UPGRADE_KEYS,
+};
+
 const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "action-registry": "actionRegistry",
   "garden-token": "gardenToken",
@@ -73,6 +89,7 @@ const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "work-resolver": "workResolver",
   "work-approval-resolver": "workApprovalResolver",
   "assessment-resolver": "assessmentResolver",
+  "testimony-resolver": "testimonyResolver",
   "deployment-registry": "deploymentRegistry",
   greenwill: "greenWill",
 };
@@ -122,24 +139,23 @@ function resolveDeploymentArtifactPath(fileName: string): string {
   return path.join(resolveDeploymentOutputDir(), fileName);
 }
 
-function resolveUpgradeTargets(contract: ContractName, deployment: Record<string, unknown>) {
+export function resolveUpgradeTargets(contract: ContractName, deployment: Record<string, unknown>) {
   const contractsToResolve = contract === "all" ? ALL_CONTRACTS_FOR_UPGRADE_ALL : [contract];
   const resolved: Array<{ contractName: ContractName; deploymentKey: string; address: string }> = [];
   const missing: Array<{ contractName: ContractName; deploymentKey: string }> = [];
 
   contractsToResolve.forEach((contractName) => {
-    if (contractName === "signal-pool-yield-wiring" || contractName === "yield-gardens-wiring") {
-      const pairs = [
-        { deploymentKey: "yieldSplitter", address: deployment.yieldSplitter },
-        { deploymentKey: "gardensModule", address: deployment.gardensModule },
-      ];
-
-      pairs.forEach((pair) => {
-        if (!isAddress(pair.address)) {
-          missing.push({ contractName, deploymentKey: pair.deploymentKey });
+    // Grouped targets resolve several proxies at once; every half must be present, because a
+    // partial upgrade of a pair that shares an invariant is worse than no upgrade.
+    const groupedKeys = GROUPED_DEPLOYMENT_KEYS[contractName as keyof typeof GROUPED_DEPLOYMENT_KEYS];
+    if (groupedKeys) {
+      groupedKeys.forEach((deploymentKey) => {
+        const address = deployment[deploymentKey];
+        if (!isAddress(address)) {
+          missing.push({ contractName, deploymentKey });
           return;
         }
-        resolved.push({ contractName, deploymentKey: pair.deploymentKey, address: pair.address });
+        resolved.push({ contractName, deploymentKey, address });
       });
       return;
     }
@@ -225,6 +241,44 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
   console.log("\n✅ Pure simulation preflight completed successfully");
 }
 
+/**
+ * Read the live `owner()` of every proxy this run would upgrade and prove the declared sender
+ * owns all of them, before a single transaction is built. Uses `cast call` so it needs nothing
+ * beyond the RPC the run already resolved.
+ */
+function assertLiveProxyOwners(options: UpgradeOptions, rpcUrl: string, networkManager: NetworkManager): void {
+  const chainId = networkManager.getChainIdString(options.network);
+  const deploymentPath = resolveDeploymentArtifactPath(`${chainId}-latest.json`);
+  if (!fs.existsSync(deploymentPath)) {
+    throw new Error(`Deployment artifact not found: ${deploymentPath}`);
+  }
+
+  const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as Record<string, unknown>;
+  const { resolved } = resolveUpgradeTargets(options.contract, deployment);
+
+  const observations: ProxyOwnerObservation[] = resolved.map((target) => {
+    let owner: string | null = null;
+    try {
+      owner = execFileSync("cast", ["call", target.address, "owner()(address)", "--rpc-url", rpcUrl], {
+        cwd: CONTRACTS_ROOT,
+        env: process.env,
+        encoding: "utf8",
+      }).trim();
+    } catch {
+      owner = null;
+    }
+    return { label: target.deploymentKey, address: target.address, owner: isAddress(owner) ? owner : null };
+  });
+
+  console.log("🔑 Live owner preflight:");
+  observations.forEach((observation) => {
+    console.log(`  - ${observation.label} (${observation.address}) owner: ${observation.owner ?? "unreadable"}`);
+  });
+
+  assertProxyOwnership(observations, options.sender ?? process.env.SENDER_ADDRESS);
+  console.log("✅ Every proxy owner matches the declared sender\n");
+}
+
 function showHelp(): void {
   const networkManager = new NetworkManager();
   console.log(`
@@ -245,9 +299,12 @@ Contracts:
   work-resolver           Upgrade WorkResolver
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
+  testimony-resolver      Upgrade TestimonyResolver (explicit target; excluded from all)
   deployment-registry     Upgrade Deployment
   greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
-  all                     Upgrade standard contracts (excludes HatsModule and GreenWill)
+  pooling                 Upgrade CommitmentPoolingModule and CommitmentRegistry as one group
+  all                     Upgrade standard contracts (excludes HatsModule, TestimonyResolver,
+                          GreenWill, and pooling)
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)
@@ -292,6 +349,9 @@ Examples:
 
   # Upgrade and wire the signal-pool/yield lane
   bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --broadcast --sender 0xFBAf...
+
+  # Rehearse the grouped pooling upgrade (fork rehearsal first: bun run test:fork:pooling:arbitrum)
+  bun script/upgrade.ts pooling --network arbitrum --dry-run
   `);
 }
 
@@ -517,6 +577,18 @@ function main(): void {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`❌ Failed to get network config: ${errorMsg}`);
     process.exit(1);
+  }
+
+  // Anything that will produce a real transaction proves the sender owns every target first.
+  // A plain simulation stays runnable without a sender.
+  if (options.broadcast || options.txPlan) {
+    try {
+      assertLiveProxyOwners(options, rpcUrl, networkManager);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`❌ ${errorMsg}`);
+      process.exit(1);
+    }
   }
 
   const forgeArgs = [

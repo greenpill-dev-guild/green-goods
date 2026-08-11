@@ -122,11 +122,6 @@
       "expect": "ship"
     },
     {
-      "id": "status-01",
-      "query": "Just got back to this branch after a week — where were we and what are the next moves?",
-      "expect": "status"
-    },
-    {
       "id": "review-01",
       "query": "Any regressions in the offline queue changes on this branch? Is it production quality?",
       "expect": "review"
@@ -155,6 +150,11 @@
     {
       "id": "none-04",
       "query": "Write a conventional commit message for the staged changes",
+      "expect": "none"
+    },
+    {
+      "id": "none-05",
+      "query": "Just got back to this branch after a week — where were we and what are the next moves?",
       "expect": "none"
     }
   ]

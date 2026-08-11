@@ -23,11 +23,11 @@
 >
 > **Amendment 2026-07-28 (approved group-commitment and allocation contract; supersedes the positional requirement arrays, max-four/unique-domain rule, and singular-provider portions of the 2026-07-09/18 amendments)**: DomainImpact commitments store repeatable `CommitmentRequirement { actionUID, requiredCount }` rows. Actions may share a domain; the module derives domain tags from ActionRegistry. A named `MAX_REQUIREMENTS` replaces the accidental four-domain ceiling. The provisional value is 16, but implementation must benchmark 8/16/24/32 before freezing it. Every accepted commitment stores one accountable `leadProvider` and an event-indexed contributor roster governed by an immutable Open or LeadManaged policy. Solo is a one-contributor roster. Active contributors may receive Work/evidence credit and optional requirement assignments; the roster freezes at ReadyForConfirmation; every frozen contributor is excluded from confirmation. Only `leadProvider` consumes the register count slot. Cycle-open policy snapshots the gardeners-class within-commitment rule (default 20% equal participation + 80% verified contribution). Hypercert allowlists expand to eligible contributors rather than singular providers. Payment remains a separate settlement concern in `settlement-spec.md`.
 >
-> **Amendment 2026-07-30 (approved PRD-759 architecture lock)**: the protocol pool is the root garden's ordinary commitment pool and does not gain a special reward state machine. After the normal claim, work/evidence, confirmation, and Fulfilled transitions, a `CeloSettlement` reward uses the same provider-garden payout-plan contract in `settlement-spec.md` as every other pool. No sixth offline settlement job and no `queueDisbursement(commitmentId)` entrypoint are introduced. The separate `queueFunding(garden, amount)` path remains a discretionary ProtocolToGarden treasury action with no commitment identity.
+> **Amendment 2026-07-30 (approved PRD-759 architecture lock)**: the protocol pool is the root garden's ordinary commitment pool and does not gain a special consideration state machine. After the normal claim, work/evidence, confirmation, and Fulfilled transitions, a `CeloSettlement` consideration uses the same provider-garden payout-plan contract in `settlement-spec.md` as every other pool. No sixth offline settlement job and no `queueDisbursement(commitmentId)` entrypoint are introduced. The separate `queueFunding(garden, amount)` path remains a discretionary ProtocolToGarden treasury action with no commitment identity.
 >
 > **Amendment 2026-08-01 (approved CPP-alignment additions — Grassroots Economics review response; plan decisions #71–#73)**: two additive commitment-record fields land pre-build, both following the `needUID` additive-reference template (no state-machine change, no migration, initial deploy only).
 >
-> **(1) Declared valuation record — the GE "valuing" primitive as a records-only term.** `CreateCommitmentParams` and the commitment record gain `uint256 declaredUnitValue` + `string declaredValueBasis`: an optional statement of one unit's relative value against a named basis (free-text exact-label identity mirroring `unitLabel` discipline — `"G$"` and `"g$"` are distinct). Pair rule: zero value requires empty basis and vice versa (`InvalidValueDeclaration`). Steward-adjustable pre-acceptance only via new `setDeclaredValue` (mirrors the `setDeclaredReward` lock); immutable after acceptance; `ValueDeclared` mirrors `RewardDeclared`; `CommitmentCreated` carries both fields. A commitment may be valued without being rewarded (`RewardRail.None` with a declared value is valid). The 2026-07-22 count-safe lock stands in full: declared value prices a single commitment's units into one named basis; no protocol arithmetic consumes it; cross-commitment aggregation of declared value is permitted only within one exact basis, only at the read-model layer, and only as informational sums; `promiseKeptRate` remains the only cross-commitment percentage. When a reward is declared, the app pre-fills `reward.amount = declaredUnitValue × targetUnits`; the module never enforces that identity.
+> **(1) Declared valuation record — the GE "valuing" primitive as a records-only term.** `CreateCommitmentParams` and the commitment record gain `uint256 declaredUnitValue` + `string declaredValueBasis`: an optional statement of one unit's relative value against a named basis (free-text exact-label identity mirroring `unitLabel` discipline — `"G$"` and `"g$"` are distinct). Pair rule: zero value requires empty basis and vice versa (`InvalidValueDeclaration`). Steward-adjustable pre-acceptance only via new `setDeclaredValue` (mirrors the `setDeclaredConsideration` lock); immutable after acceptance; `ValueDeclared` mirrors `ConsiderationDeclared`; `CommitmentCreated` carries both fields. A commitment may be valued without carrying a consideration (`ConsiderationRail.None` with a declared value is valid). The 2026-07-22 count-safe lock stands in full: declared value prices a single commitment's units into one named basis; no protocol arithmetic consumes it; cross-commitment aggregation of declared value is permitted only within one exact basis, only at the read-model layer, and only as informational sums; `promiseKeptRate` remains the only cross-commitment percentage. When a consideration is declared, the app pre-fills `consideration.amount = declaredUnitValue × targetUnits`; the module never enforces that identity.
 >
 > **(2) Counter-commitment reference — the GE "exchange" step as a social record.** `uint256 counterCommitmentId` (0 = none) records that this commitment is made in exchange for an existing same-pool commitment. Creation-time validation only: referenced commitment must exist (`UnknownCounterCommitment`), live in the same pool (`CounterCommitmentPoolMismatch`), and differ from self (`SelfCounterCommitment` — self-reference is structurally impossible at creation since the id is unassigned, but the error guards the invariant explicitly). Immutable thereafter and strictly one-way: neither commitment's lifecycle ever transitions the other (`needUID` discipline); the app derives pair views and "counterpart lapsed" states from events. Cross-pool references are rejected so exchange memory stays pool-scoped; garden-to-garden exchange remains reserved with `counterpartyPoolId` (decision #13).
 >
@@ -37,7 +37,7 @@
 >
 > **Amendment 2026-08-01 (approved bilateral-exchange addition — second same-day amendment; direct consent hardened 2026-08-03)**: PRD-649's architecture freeze reopens for exactly one additive module function and re-closes with this amendment set (plan Decision Log #41 / register #75). `acceptExchange(uint256 exchangeCommitmentId)` atomically accepts an Offer×Offer pair. Its argument is commitment B, created after A with `B.counterCommitmentId == A`; the immutable one-way reference means A never points back to B. The caller must be A's creator. B must have been created directly by B's creator, never by a steward through `StewardCaptured` / `onBehalfOf`, and A's creator consents by calling. These two direct creator actions are stricter than either claim gate, so this path is valid for Open and ApprovalGated commitments on both sides and never consults the ApprovalGated operator path.
 >
-> Preconditions are fail-closed and named: B must carry a non-zero counterpart that resolves to an existing same-pool A (`ExchangeCounterpartMismatch`); both directions must be Offer (`ExchangeDirectionInvalid`); both on-chain states must be Offered (`ExchangeStateInvalid`); creators must differ (`SelfExchange`); both stored claim types must be Individual (`ExchangeClaimTypeUnsupported`); and B must be direct-created (`ExchangeCreatorConsentRequired`). The Offer-B creation transaction already checks A's direction/state/claim type/creator/reservation before any B mutation, and `acceptExchange` repeats every mutable predicate. Every ordinary acceptance predicate then runs independently for A and B, including the conditional Open-cycle rule when `cycleId != 0`, creator-identity exclusions, and exact class quota/reservation. If either side fails, the entire transaction reverts.
+> Preconditions are fail-closed and named: B must carry a non-zero counterpart that resolves to an existing same-pool A (`ExchangeCounterpartMismatch`); both directions must be Offer (`ExchangeDirectionInvalid`); both on-chain states must be Offered (`ExchangeStateInvalid`); creators must differ (`SelfExchange`); both stored claim types must be Individual (`ExchangeClaimTypeUnsupported`); and B must be direct-created (`ExchangeCreatorConsentRequired`); and both sides must be free, because one pooled `gardenContext` covers both acceptances and a priced side would record a single garden as payer for a two-person trade (`ExchangeConsiderationUnsupported`, register #90). The Offer-B creation transaction already checks A's direction/state/claim type/creator/reservation before any B mutation, and `acceptExchange` repeats every mutable predicate. Every ordinary acceptance predicate then runs independently for A and B, including the conditional Open-cycle rule when `cycleId != 0`, creator-identity exclusions, and exact class quota/reservation. If either side fails, the entire transaction reverts.
 >
 > Effects are one atomic transaction with no exchange-specific storage field or state-machine addition: B's creator becomes A's claimant, A's creator becomes B's claimant, and each Offer keeps its own creator as its lead provider (A creator → A lead; B creator → B lead). Both commitments simply reach `Accepted`. Under the 2026-08-02 honest-capacity correction, both Offer classes are already `Committed` from creation, so acceptance performs no second `CommitmentRegistry.commitUnits` call and consumes no second provider slot. The module emits the two ordinary `CommitmentAccepted` events plus `ExchangeAccepted(A, B, poolId, B.creator, A.creator)`. After acceptance nothing couples: fulfillment, cancellation, expiry, dispute, confirmation, and count-safe exact-label accounting proceed per side. Pair status and “counterpart lapsed” remain app/indexer derivations. Multilateral and transferable exchange remain reserved for `exchange-architecture-brief.md`.
 >
@@ -52,7 +52,7 @@
 > every indexed entity/relationship, all six offline job kinds, every executable retry family,
 > the saved-Offer persistence states, and all pool/cycle/series/commitment/claim/capacity/contributor
 > closure rules. In particular: ordinary Commitment creation gains sender-safe request-key
-> idempotency; claim, contributor, Work-link, pool-charter/cap, reward, and register projections
+> idempotency; claim, contributor, Work-link, pool-charter/cap, consideration, and register projections
 > converge under reverse delivery; Saved is never rendered before authenticated remote
 > persistence; and `closePool` requires both zero live commitments and zero non-terminal cycles.
 > The machine gate is `bun .plans/active/commitment-pooling/architecture-closure.validate.ts`.
@@ -69,6 +69,22 @@
 >
 > **Local and protocol authority remain distinguishable.** `confirmFulfillmentAsFallback` checks the commitment pool's current steward/owner Hats first and records `PoolFallback`; only then may an opted-in protocol-pool steward/owner record `ProtocolFallback`. A dual-role caller is therefore classified by the narrower local authority. The module owner is not a fulfillment confirmer through either path. `CommitmentFulfilled` emits the confirmer and `ConfirmationPath`, and app/indexer surfaces render `ProtocolFallback` as **“confirmed by Green Goods team — fallback”** rather than as an ordinary counterparty or local-garden confirmation. Recorded as plan Decision Log #44 / register #79.
 
+> **Amendment 2026-08-08 (approved payer-identity correction; supersedes the payer half of the 2026-07-30 PRD-759 lock)**: settlement follows the ask, not the delivery. The commitment record gains an immutable `address payerGarden` beside `providerGarden`, and it — never `providerGarden` — is the garden whose registered Celo Safe owes the declared consideration.
+>
+> **Where it is stored.** A **Request** stores `pools[poolId].garden` at creation: the asker is the pool itself, so the payer is known before anyone claims and acceptance must never overwrite it. An **Offer** leaves it zero until acceptance, then stores the claiming `gardenContext`: nobody owes anything until the Offer is taken up. Garden-internal commitments in both directions resolve `payerGarden == providerGarden`, so every existing single-garden pool is behaviourally unchanged — that equality is the backwards-compatibility guard, and `test/unit/CommitmentPoolingPayer.t.sol` asserts it directly.
+>
+> **Why it was wrong.** The provider-pays binding assumed the asker and the doer are the same account. That holds in every garden pool and fails in the protocol pool, whose whole purpose is that they differ, so both intended protocol-pool flows inverted: a protocol Request ("run this event", "complete this survey") made the *claiming garden* pay its own gardeners, and a protocol Offer (technical support, onboarding) was unpayable in the other direction. `providerGarden` keeps its existing meaning — EAS recipient scope and the provider-role/roster boundary — and simply stops being the payer.
+>
+> **The declared-reward struct becomes `DeclaredConsideration`**, with direction implied by `payerGarden` rather than by the struct. Every `Reward*` identifier gains a matching `Consideration*` name: the struct itself, the rail enum, the commitment field and its paid flag, the `*Declared` and `*Paid` events, the pre-acceptance setter, the payout recorder, and the four legacy `RewardAlreadyRecorded` / `RewardNotDeclared` / `RewardRailMismatch` / `InvalidRewardConfiguration` errors. Settlement's undeployed ordinal-zero kind moves with it from `ContributorReward` to `ContributorConsideration`; the sibling institutional kind is `GardenBeneficiary`. Human-facing “reward” and “support” copy remains presentation vocabulary. `amount == 0` means the commitment is **free**, which is the default and remains fully valid — an unpriced Offer still records its payer and creates no settlement plan.
+>
+> **Paired acceptance is barter, and the module now enforces it.** `acceptExchange` derives one `gardenContext` from the pool and passes it to both acceptances, so a priced side would store that single garden as payer for a trade between two individuals — in the protocol pool that would silently bill the protocol Safe for both halves. Because a person may belong to several gardens, the current ABI cannot authenticate a per-side payer, so exchange eligibility rejects a non-zero consideration on either side with `ExchangeConsiderationUnsupported(commitmentId, amount)`, checked before either side mutates. Priced bilateral exchange needs an explicit authenticated payer context and is deliberately out of scope for August.
+>
+> **Who receives follows who claimed (register #91).** The protocol pool asks for two different kinds of thing, and `claimType` separates them: garden-scoped work — running an event, a garden-scoped survey — is claimed by an external garden through `ClaimType.Garden`, while individual work is claimed by a gardener through `ClaimType.Individual`. Settlement follows that: a **Request** claimed by a garden pays one recipient, that garden's registered Celo Safe; a **Request** claimed by an individual pays contributor accounts; and an **Offer** always pays contributors, because its claimant is the payer. The full declared amount goes to the beneficiary Safe, so `gardenRetainedAmount` is zero for that shape; retention remains meaningful only for garden-internal contributor plans. Pooling now enforces both sides of the institutional boundary: garden pools reject Garden claims and a protocol garden cannot claim its own Garden-scoped Request (`GardenClaimMustBeExternal`), which would otherwise create a Safe-to-itself settlement.
+>
+> **Scope of the freeze exception.** This is a deliberate, bounded exception to Decision Log #51 / register #86 / PRD-796's "every event byte-identical" freeze: `CommitmentAccepted` and `CommitmentCreated` each gain one trailing `payerGarden` argument; the consideration rename lands; `ExchangeConsiderationUnsupported`, `GardenClaimRequiresProtocolPool`, and `GardenClaimMustBeExternal` are added; and the undeployed settlement interface gains `GardenBeneficiary` plus `prepareGardenBeneficiaryPayout` while ordinal-zero contributor naming becomes `ContributorConsideration`. `CommitmentCreated` carries payer rather than leaving it derivable because reverse delivery may project a commitment before `PoolRegistered` and there is no bounded backfill index. No new `FundingRoute` is introduced: the read model derives flow from `payerGarden` vs `providerGarden` and the protocol garden. Voucher, custody, backing, federation, and redemption remain untouched.
+>
+> **Verified 2026-08-08.** Top-level storage layout identical across all 46 entries with every `__gap` untouched (the `Commitment` struct lives in a mapping, so the new field consumes no top-level slot; only the generated baseline is regenerated). Module 21,198 → 21,205 bytes against the 24,576 limit, all weight in libraries per Decision Log #55. Offer acceptance costs a measured +20,352 gas for the new cold SSTORE; a Request pays that write at creation instead. 1,805 package tests green. Plan Decision Log #56 / register #90; `reports/corrections-log.md` 2026-08-08.
+
 Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. Format mirrors the house implementation-spec style of `docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md` (Purpose, Scope, Canonical Implementation Decisions, System Components, per-contract Contract Work, Package-Level Backlog, Launch Milestones).
 
 ---
@@ -83,7 +99,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 
 ### In scope
 
-- `CommitmentPoolingModule`: control plane for pools, cycles, commitments, confirmations, disputes, reward records (NET-NEW `packages/contracts/src/modules/CommitmentPooling.sol`).
+- `CommitmentPoolingModule`: control plane for pools, cycles, commitments, confirmations, disputes, consideration records (NET-NEW `packages/contracts/src/modules/CommitmentPooling.sol`).
 - `CommitmentRegistry`: non-transferable ERC-1155-style unit accounting companion, functionally controlled by the module (NET-NEW `packages/contracts/src/registries/Commitment.sol`).
 - GardenToken wiring: one new module field packed after `openMinting` at slot 213 offset 2,
   setter, event, unchanged 37-slot gap, and live 42161 UUPS upgrade
@@ -105,7 +121,7 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 - Bridged G$, bridge custody/unbounded value authority, and GoodDollar rails inside the pooling module. Message-only CCIP settlement lives in the separate `SettlementModule` / `CeloSettlementExecutor` contract pair frozen by `settlement-spec.md`; no operator report or arbitrary bridge executor confirms value.
 - Leaderboards, rankings, comparison views, countdown or streak mechanics of any kind.
 - A separate aggregator contract (PRD-649 locked: aggregates come from events, not an on-chain aggregator).
-- CookieJar contract changes (register #18: rewards are declared references plus operator-executed payouts on existing rails).
+- CookieJar contract changes (register #18: considerations are declared references plus operator-executed payouts on existing rails).
 - Re-indexing EAS attestations (indexer boundary, `packages/indexer/schema.graphql:282-288`).
 
 ## 3. Canonical Implementation Decisions
@@ -114,12 +130,12 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 
 1. **Commitments are NOT EAS attestations** (register #14). Commitment records are module-native storage plus events, shaped by the Grassroots Economics commitment-pooling register grammar. This supersedes Document A and the original PRD-649/650 "commitment schema + FulfillmentConfirmation resolver" language. EAS registrations shrink to exactly two: assessment v3 and community testimony.
 2. **Module-event-driven lifecycle because EAS is not indexed.** Envio indexes only Green Goods core contracts; EAS attestations are queried from easscan directly (`packages/indexer/schema.graphql:282-288`, `reports/corrections-log.md` §2 Envio boundary row). Every commitment state, count stat, provider exposure row, and exact-label unit summary must be derivable from `CommitmentPoolingModule` and `CommitmentRegistry` events alone.
-3. **Hybrid state weight** (register #6). Hard transitions on-chain: pool register/ready/open/pause/close/compost, cycle seed/open/close/compost/cancel, commitment create (offer/request), accept, approved-work count, ReadyForConfirmation, confirm to Fulfilled, cancel, expire, dispute raise/resolve, reward record. Draft states live in app IndexedDB; Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, and Reconciled are derived app/indexer-side from events. Full locked vocabulary is preserved across layers (section 5 table).
-4. **Two-contract shape** (register #15, register #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegistry` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so transferable settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
+3. **Hybrid state weight** (register #6). Hard transitions on-chain: pool register/ready/open/pause/close/compost, cycle seed/open/close/compost/cancel, commitment create (offer/request), accept, approved-work count, ReadyForConfirmation, confirm to Fulfilled, cancel, expire, dispute raise/resolve, consideration record. Draft states live in app IndexedDB; Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, and Reconciled are derived app/indexer-side from events. Full locked vocabulary is preserved across layers (section 5 table).
+4. **Two-contract shape** (register #15, register #16; compatibility-amended by register #86). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegistry` is voucher-shaped, non-transferable, ERC-1155-style promise accounting. A later adapter may consume eligible fulfillment facts on the same `poolId` while issuing a separate `voucherClassId`; it never wraps the registry class as the same identity. Supersedes PRD-649's single-artifact V1 stance (user-approved). `poolId` semantics are unchanged.
 5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkDecision(...)` for both approved and rejected decisions in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Steward-callable `syncWorkDecisions` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: an active contributor, accountable lead, or resolved pool steward links workUID to commitmentId before a roster freeze. The module applies the deterministic latest valid decision and freezes that effective credit at ReadyForConfirmation.
 6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
 7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). Neither identity may equal the commitment creator; ApprovalGated acceptance rechecks the stored requester. The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
-8. **Rewards are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit reward rail and amount. `ArbitrumExternal` also stores its exact source and token for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores zero source/token sentinels because pooling has no canonical-G$ configuration and a protocol-pool Request has no provider garden yet; after acceptance the SettlementModule derives and stores both its write-once `gDollarToken` and the selected provider garden Safe as payer. That rail is ineligible for `recordRewardPaid`; protocol-to-garden support first names the provider garden, then the garden Safe funds a conserved parent plan with an explicit retained amount and contributor child payouts. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
+8. **Considerations are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit consideration rail and amount. `ArbitrumExternal` also stores its exact source and token for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores zero source/token sentinels because pooling has no canonical-G$ configuration; the SettlementModule derives and stores both its write-once `gDollarToken` and the commitment's `payerGarden` Safe as payer (register #90) — known at creation for a Request, at acceptance for an Offer. That rail is ineligible for `recordConsiderationPaid`; the payer garden's Safe funds a conserved parent plan whose shape follows who claimed (register #91) — one `GardenBeneficiary` row for a Garden-claimed Request, otherwise contributor child payouts with an explicit retained amount, and retention forced to zero whenever payer and provider differ. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
 9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
 10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and StewardCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
 11. **Schema registration is the first deployable PR chain of the August track** (register #26), via the standalone badge-schemas-style path (`packages/contracts/script/deploy/badge-schemas.ts`, `packages/contracts/script/DeployBadgeSchema.s.sol`), never via `--update-schemas` (which re-registers and overwrites all existing schema artifact keys, `packages/contracts/script/Deploy.s.sol:122-151`). The same first contracts PR may begin with non-deployable RED ABI/storage/event tests and `CommitmentPoolingBounds.t.sol`; those tests freeze the five bounded constants before any bounded module loop turns GREEN. This ordering does not authorize a deployment or make an unfrozen provisional value part of the ABI.
@@ -127,7 +143,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 13. **Post-MVP garden-to-garden is reserved, not implemented**. `counterpartyPoolId` and `counterpartyGardenAccount` exist as reserved struct fields (always zero in MVP) so the L3 amendment is additive.
 14. **Anti-farming posture from day one**: direction-aware independent confirmation (Offer recipient; Request creator), contributor self-confirmation blocked on both ordinary and steward-fallback paths (mirrors `SelfAttestation`, `packages/contracts/src/resolvers/WorkApproval.sol:153-156`), operator fallback requires a visible reason, concurrent open-commitment caps in the register, and disputes restore an explicitly stored prior state.
 15. **Protocol-pool parity, not a settlement fork** (register #69). Protocol-pool commitments use the same provider-garden payout-plan lifecycle as garden-pool commitments after Fulfilled. The app may expose those existing plan writes from indexed state, but core fulfillment never synchronously moves value or creates a browser-local settlement attempt. Discretionary ProtocolToGarden funding remains an independently authorized settlement action and never changes commitment state.
-16. **Valuation is a recorded term, never protocol arithmetic** (register #71, amendment 2026-08-01). `declaredUnitValue`/`declaredValueBasis` state one unit's relative value against a named basis as commitment terms — settable at creation, steward-adjustable pre-acceptance, immutable after. Valid with `RewardRail.None`. No transition, cap, quota, recognition weight, or settlement amount is derived from it on-chain; the app pre-fills `reward.amount` from it as a suggestion only. Cross-commitment value aggregation exists only per-exact-basis at the read-model layer. This realizes the GE "valuing" primitive as data while relative-pricing execution stays reserved for the transferable-voucher layer (§6.2).
+16. **Valuation is a recorded term, never protocol arithmetic** (register #71, amendment 2026-08-01). `declaredUnitValue`/`declaredValueBasis` state one unit's relative value against a named basis as commitment terms — settable at creation, steward-adjustable pre-acceptance, immutable after. Valid with `ConsiderationRail.None`. No transition, cap, quota, recognition weight, or settlement amount is derived from it on-chain; the app pre-fills `consideration.amount` from it as a suggestion only. Cross-commitment value aggregation exists only per-exact-basis at the read-model layer. This realizes the GE "valuing" primitive as data while relative-pricing execution stays reserved for the transferable-voucher layer (§6.2).
 17. **Exchange-of-commitments is a one-way reference, never a coupling** (register #72, amendment 2026-08-01; creation guard hardened 2026-08-03). `counterCommitmentId` records "made in exchange for" against an existing same-pool commitment at creation and is immutable. Existence, same-pool, and non-self checks run for every reference. When new B is an Offer, `createCommitment` additionally performs the bilateral eligibility check in the same transaction before allocating/storing B or registering its class: B must be Individual and direct (`onBehalfOf == 0`, therefore not `StewardCaptured`); A must still be an Offered Individual Offer with a different creator and its exact full class Committed to A's creator. Afterwards the module never reads the reference except through decision 18's `acceptExchange`; cancellation, expiry, dispute, or fulfillment of either side never transitions the other. Pair views and counterpart-lapsed states are derived app/indexer-side. Atomic swap acceptance remains out of scope with the transferable-voucher layer. (Amended by decision 18, second 2026-08-01 amendment: `acceptExchange` is the sole additive acceptance-time read of the reference and the sole bilateral exception; the post-acceptance no-coupling rule stands unchanged.)
 18. **Bilateral exchange acceptance is atomic; multilateral and transferable exchange stay reserved** (Decision Log #41 / register #75, second amendment 2026-08-01; capacity effects amended 2026-08-02; consent hardened 2026-08-03). `acceptExchange(B)` requires `B.counterCommitmentId == A`, A and B in the same pool, both directions Offer, both states Offered, distinct creators, Individual claim type on both sides, direct creation of B rather than `StewardCaptured` / `onBehalfOf`, and every ordinary per-side cycle and identity predicate. It also verifies that both immutable full-quota classes remain Committed to their creators. Only A's creator calls. B's direct creator consented by creating B and A's creator consents by calling; a steward cannot consent for B's represented gardener, so neither claim mode invokes the ApprovalGated operator path. B's creator accepts A and A's creator accepts B; both ordinary acceptance events, one `ContributorAdded` lead event per side, and the `ExchangeAccepted` marker succeed or revert together. Each ordinary acceptance event independently resolves any matching request and supersedes every other still-Pending indexed request for that commitment, even when no matching request exists. Both classes and lead-provider slots are already committed from Offer creation, so acceptance performs no second registry mutation and does not reapply provider-cap headroom. A later cap reduction constrains only a new `commitUnits` reservation; it cannot strand an already-reserved Offer. Thereafter decision 17's lifecycle-independence rule applies per side; no cross-side arithmetic or transition exists. The transferable and multilateral layer remains design-only in `exchange-architecture-brief.md`.
 19. **An Offer used over time has a module-native series, not an inferred grouping** (Decision Log #46 / register #81, amendment 2026-08-02). `CommitmentSeries` is the internal durable pool-scoped Offer identity with direct-holder authorship, prospective metadata, and Active/Resting/Retired lifecycle. A validated non-zero `commitmentSeriesId` links ordinary immutable instances; zero preserves Offer once. No cross-pool merge, holder transfer, or automatic obligation creation exists.
@@ -138,7 +154,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 
 | Component | Responsibility | Location |
 |---|---|---|
-| `CommitmentPoolingModule` | pool registry, cycle lifecycle, ongoing-Offer series, commitment records and transitions, confirmations, disputes, work linkage, evidence events, reward records | NET-NEW `packages/contracts/src/modules/CommitmentPooling.sol` |
+| `CommitmentPoolingModule` | pool registry, cycle lifecycle, ongoing-Offer series, commitment records and transitions, confirmations, disputes, work linkage, evidence events, consideration records | NET-NEW `packages/contracts/src/modules/CommitmentPooling.sol` |
 | `ICommitmentPoolingModule` | canonical interface, enums, structs, events, errors | NET-NEW `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` |
 | `CommitmentRegistry` | non-transferable unit classes, committed/fulfilled balances, class quotas, concurrent provider-commitment caps | NET-NEW `packages/contracts/src/registries/Commitment.sol` |
 | `ICommitmentRegistry` | register interface | NET-NEW `packages/contracts/src/interfaces/ICommitmentRegistry.sol` |
@@ -233,13 +249,13 @@ Fulfillment posture (locked): the party receiving the delivered work confirms by
 
 #### Objective
 
-One UUPS module that owns the whole commitment-pooling control plane: durable poolId per garden, cycle lifecycle, module-native commitment records, confirmations, disputes, EAS work-approval bridging, evidence and reward events.
+One UUPS module that owns the whole commitment-pooling control plane: durable poolId per garden, cycle lifecycle, module-native commitment records, confirmations, disputes, EAS work-approval bridging, evidence and consideration events.
 
 #### Responsibilities
 
 - Register exactly one pool per garden account (idempotent), including the protocol pool anchored to the root garden.
 - Drive the three state machines exactly as tabled in section 5, emitting one event per hard transition.
-- Hold commitment records: repeatable requirement rows, accountable lead, contributor policy/roster/freeze state, confirmer rule (address[] + threshold N), assessment UID ref, declared reward, claim mode, due date, unit label + target quantity, and reserved counterparty-pool fields.
+- Hold commitment records: repeatable requirement rows, accountable lead, contributor policy/roster/freeze state, confirmer rule (address[] + threshold N), assessment UID ref, declared consideration, claim mode, due date, unit label + target quantity, and reserved counterparty-pool fields.
 - Enforce Hats-based permissions per function (gating table below) via the garden-scoped operator check copied from `packages/contracts/src/modules/Hypercerts.sol:282-287`.
 - Verify EAS attestations (work, approval, assessment) via `_eas.getAttestation` when linking or
   syncing. Operational pooling never inherits the legacy resolver zero-bypass: all four module
@@ -254,6 +270,46 @@ One UUPS module that owns the whole commitment-pooling control plane: durable po
 - `onlyGardenToken`-style authorized-caller modifier for the mint callback: `packages/contracts/src/modules/CookieJar.sol:65-68`.
 - Steward gate `_requirePoolSteward(poolId)` resolves `pools[poolId].garden` and applies `hatsModule.isStewardOf || isOwnerOf`, falling back to module owner: copy of `_requireOperator` in `packages/contracts/src/modules/Hypercerts.sol:282-287`. `IHatsModule.isOperatorOf` is the deprecated alias that forwards to `isStewardOf` (`packages/contracts/src/modules/Hats.sol:294-296`); the frozen form is `isStewardOf` so this lane and the settlement lane name one predicate. For the protocol pool this resolves to root-garden Hats, so the protocol team stewards it by wearing root-garden Steward hats (register #8). Note the deliberate asymmetry with settlement: the module-owner fallback exists here for pool administration, while settlement's value-moving payout writes have no module-owner bypass.
 - Graceful mint integration: GardenToken wraps `onGardenMinted` in try/catch (`packages/contracts/src/tokens/Garden.sol:421-430` pattern); the module itself is idempotent like `packages/contracts/src/modules/CookieJar.sol:138-141`.
+
+#### Deployed-library architecture (EIP-170) — binding since 2026-08-08
+
+The module's behavior exceeds one contract's 24,576-byte EIP-170 budget (it measured 56,601
+bytes assembled monolithically; evidence in `reports/eip170-size-wall-2026-08-08.md`). The
+implementation is therefore split at the **deployed-external-library boundary**, and every
+future selector must follow the same pattern:
+
+1. **Behavior lives in deployed `library` contracts** under
+   `packages/contracts/src/lib/CommitmentPooling/`, DELEGATECALLed by thin shells in the six-link
+   module chain (`Storage -> Base -> Admin -> Lifecycle -> Operations -> Extensions -> module`).
+   `msg.sender`, events, errors, and revert data surface from the proxy unchanged, so the
+   permission matrix, the event contract, and the indexer boundary are unaffected by the
+   split. Each library carries its own 24,576-byte budget.
+2. **Only `CommitmentPoolingStorage` declares state.** Libraries hold none and receive
+   explicit `mapping(...) storage` references plus a value-typed
+   `CommitmentPoolingCommonLib.Env` snapshot built by `CommitmentPoolingBase._env()`.
+   Never introduce a struct-of-mappings "storage handle" — the module's slots are not
+   contiguous and no such struct pointer can alias them.
+3. **Counters increment in the shell**: libraries take `next*Id` by value; the shell
+   increments only when the returned id equals the passed value, which preserves the
+   idempotent replay-return contract without scalar writes from a library.
+4. **Value-typed config writes stay module-side** (the Config section of
+   `CommitmentPoolingAdmin`): measured, the extraction costs more in boundary codecs than the
+   setter bodies weigh (+160 bytes).
+5. **Struct/array views raw-forward** through `CommitmentPoolingBase._forwardView` →
+   `poolingViewDelegate` → `CommitmentPoolingViewsLib`, with compiler-derived `.slot`
+   arguments and an unreachable trailing revert per shell. This keeps the big ABI encoders
+   (led by the 40-field `Commitment`) out of the module. `poolingViewDelegate(bytes)` is the
+   one non-interface ABI member this machinery adds, in the same class as the OZ/UUPS
+   externals.
+6. **Gate**: `bun run check:sizes` (CI-enforced) fails any deployable over 24,576 bytes and
+   warns above 90%. The module currently measures 21,198 bytes; new selectors land their
+   weight in libraries (a shell costs a few hundred bytes), so headroom erodes slowly — but
+   check the gate output in every contracts PR.
+7. **Deploy/upgrade shape**: `new CommitmentPoolingModule()` in a Foundry script
+   auto-deploys and links every library in the same broadcast (~13 extra CREATEs). Etherscan
+   verification of the implementation requires the library address mappings. Foundry links
+   test artifacts automatically, so `deployCode("CommitmentPooling.sol:CommitmentPoolingModule")`
+   keeps working in fixtures and fork rehearsals.
 
 #### Storage layout (slot accounting)
 
@@ -346,7 +402,7 @@ interface ICommitmentPoolingModule {
 
       enum DisputeResolution { RestorePrevious, Fulfilled, Cancelled, Expired }
 
-      enum RewardRail { None, ArbitrumExternal, CeloSettlement }
+      enum ConsiderationRail { None, ArbitrumExternal, CeloSettlement }
 
       enum ModuleDependency {
           GardenToken,
@@ -402,12 +458,12 @@ interface ICommitmentPoolingModule {
         uint32 liveCommitmentCount; // non-terminal cycle commitments; must be zero before close
     }
 
-    /// @notice Declared reward is a reference, never custody (register #18).
-    struct DeclaredReward {
-        RewardRail rail;
+    /// @notice Declared consideration is a reference, never custody (register #18).
+    struct DeclaredConsideration {
+        ConsiderationRail rail;
         address source; // ArbitrumExternal payer; zero sentinel for CeloSettlement
         address token;  // ArbitrumExternal token; zero sentinel for CeloSettlement
-        uint256 amount; // 0 = no declared reward
+        uint256 amount; // 0 = no declared consideration
     }
 
     struct CommitmentRequirement {
@@ -472,12 +528,16 @@ interface ICommitmentPoolingModule {
         bytes32 needUID;                 // community Need this commitment addresses; 0 = none (amendment 2026-07-04)
         uint256 counterCommitmentId;     // same-pool commitment this one is made in exchange for; 0 = none; one-way, immutable (amendment 2026-08-01)
         string metadataCID;              // terms/description payload (IPFS)
-        DeclaredReward reward;
+        DeclaredConsideration consideration;
         uint256 declaredUnitValue;       // relative value of one unit against declaredValueBasis; 0 = undeclared (amendment 2026-08-01)
         string declaredValueBasis;       // exact-label basis ("G$", "USD"); empty = undeclared; pair-bound with declaredUnitValue
-        bool rewardPaid;
+        bool considerationPaid;
         CommitmentState preDisputeState; // exact state captured by raiseDispute
-        address providerGarden;          // EAS recipient and provider-role scope
+        address providerGarden;          // EAS recipient and provider-role scope; never the settlement payer
+        // The asking side, and the only Safe settlement may spend (register #90). Request: the pool
+        // garden, stored at creation. Offer: the claiming gardenContext, stored at acceptance.
+        // Garden-internal commitments resolve this to providerGarden.
+        address payerGarden;
         // RESERVED post-MVP garden-to-garden (L3); never written in MVP:
         uint256 counterpartyPoolId;
         address counterpartyGardenAccount;
@@ -515,7 +575,7 @@ interface ICommitmentPoolingModule {
         address[] confirmers;            // empty = Offer recipient / Request creator default
         uint32 confirmationThreshold;    // ignored (forced 1) when confirmers is empty
         bool protocolFallbackEnabled;    // explicit structural fallback through registered protocol-pool Hats
-        DeclaredReward reward;
+        DeclaredConsideration consideration;
         uint256 declaredUnitValue;       // 0 = undeclared; pair-bound with declaredValueBasis (amendment 2026-08-01)
         string declaredValueBasis;       // empty = undeclared; exact-label identity like unitLabel
     }
@@ -588,6 +648,7 @@ interface ICommitmentPoolingModule {
         uint256 indexed cycleId,
         uint256 commitmentSeriesId,  // 0 = one-shot; non-indexed (3-indexed budget spent)
         bytes32 creationRequestKey,   // creator-scoped sender-safe replay identity
+        bytes32 creationPayloadHash,  // the exact stored §6.1 creation preimage hash (amendment 2026-08-05)
         address creator,
         address recordedBy,          // msg.sender; differs from creator for StewardCaptured
         CommitmentDirection direction,
@@ -607,16 +668,17 @@ interface ICommitmentPoolingModule {
         bytes32 needUID,             // 0 = none; non-indexed (3-indexed budget spent); Envio reads params regardless (amendment 2026-07-04)
         uint256 counterCommitmentId, // 0 = none; same-pool exchange reference (amendment 2026-08-01)
         uint256 declaredUnitValue,   // 0 = undeclared (amendment 2026-08-01)
-        string declaredValueBasis    // empty = undeclared; exact-label basis
+        string declaredValueBasis,   // empty = undeclared; exact-label basis
+        address payerGarden          // zero for an Offer until acceptance; emitted so reverse delivery cannot strand a null payer
     );
-    event RewardDeclared(
+    event ConsiderationDeclared(
         uint256 indexed commitmentId,
-        RewardRail rail,
+        ConsiderationRail rail,
         address source,
         address token,
         uint256 amount
     );
-    /// @notice Pre-acceptance valuation update (amendment 2026-08-01); mirrors RewardDeclared.
+    /// @notice Pre-acceptance valuation update (amendment 2026-08-01); mirrors ConsiderationDeclared.
     event ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis);
     event ConfirmerRuleSet(
         uint256 indexed commitmentId,
@@ -640,7 +702,8 @@ interface ICommitmentPoolingModule {
         ClaimType kind,
         address gardenContext,
         address leadProvider,
-        address providerGarden
+        address providerGarden,
+        address payerGarden
     );
     event ExchangeAccepted(
         uint256 indexed commitmentIdA,
@@ -731,7 +794,7 @@ interface ICommitmentPoolingModule {
         string reasonCID
     );
     /// @notice Payout executed on existing rails and recorded here (register #18).
-      event RewardPaid(
+      event ConsiderationPaid(
           uint256 indexed commitmentId,
         address indexed source,
         address indexed recipient,
@@ -821,10 +884,10 @@ interface ICommitmentPoolingModule {
     error WorkApprovalRequired(uint256 commitmentId);
     error OpenCommitmentCapRequired(uint256 poolId);
     error NotDue(uint256 commitmentId);
-    error RewardAlreadyRecorded(uint256 commitmentId);
-    error RewardNotDeclared(uint256 commitmentId);
-    error RewardRailMismatch(uint256 commitmentId, RewardRail expected, RewardRail actual);
-    error InvalidRewardConfiguration();
+    error ConsiderationAlreadyRecorded(uint256 commitmentId);
+    error ConsiderationNotDeclared(uint256 commitmentId);
+    error ConsiderationRailMismatch(uint256 commitmentId, ConsiderationRail expected, ConsiderationRail actual);
+    error InvalidConsiderationConfiguration();
     error InvalidValueDeclaration(); // declaredUnitValue/declaredValueBasis pair rule violated (amendment 2026-08-01)
     error UnknownCounterCommitment(uint256 counterCommitmentId);
     error CounterCommitmentPoolMismatch(uint256 poolId, uint256 counterCommitmentId);
@@ -839,6 +902,7 @@ interface ICommitmentPoolingModule {
     error ExchangeStateInvalid(uint256 commitmentId, CommitmentState actual);
     error SelfExchange(address creator);
     error ExchangeClaimTypeUnsupported(uint256 commitmentId, ClaimType actual);
+    error ExchangeConsiderationUnsupported(uint256 commitmentId, uint256 amount);
     error ExchangeCreatorConsentRequired(uint256 exchangeCommitmentId);
       error ReasonRequired();
       error UnitLabelRequired();
@@ -952,7 +1016,9 @@ interface ICommitmentPoolingModule {
     ///         same-pool Offered Individual Offer with a distinct creator and an
     ///         exact full reservation still Committed to A's creator.
     ///         creationRequestKey is non-zero and scoped to the direct creator.
-    ///         First use stores the full normalized payload hash. Exact replay
+    ///         First use stores the exact frozen creation preimage hash defined
+    ///         in §6.1 "Creation payload hash (frozen preimage)" and emits it in
+    ///         CommitmentCreated. Exact replay
     ///         returns the original commitmentId without a second event,
     ///         capacity reservation, class commit, or pool-live increment;
     ///         reuse with a different payload reverts.
@@ -970,7 +1036,7 @@ interface ICommitmentPoolingModule {
     function setProviderOpenCommitmentCap(uint256 poolId, uint256 cap) external;
 
     /// @notice Gating: pool steward, pre-acceptance only.
-    function setDeclaredReward(uint256 commitmentId, DeclaredReward calldata reward) external;
+    function setDeclaredConsideration(uint256 commitmentId, DeclaredConsideration calldata consideration) external;
     /// @notice Gating: pool steward, pre-acceptance only. Records-only valuation
     ///         term (decision 16); pair rule enforced, nothing derived on-chain.
     function setDeclaredValue(uint256 commitmentId, uint256 declaredUnitValue, string calldata declaredValueBasis) external;
@@ -1189,7 +1255,7 @@ interface ICommitmentPoolingModule {
     ///         contributor on both paths.
     function confirmFulfillmentAsFallback(uint256 commitmentId, string calldata reason) external;
 
-    // ─────────────── Exits, disputes, rewards ────────────────────────
+    // ─────────────── Exits, disputes, considerations ────────────────────────
 
     /// @notice Gating: creator from Offered/Requested; pool steward from Accepted.
     function cancelCommitment(uint256 commitmentId, string calldata reasonCID) external;
@@ -1209,7 +1275,7 @@ interface ICommitmentPoolingModule {
     ///         per commitment in MVP. Source, recipient, token, and amount are
     ///         derived from the commitment and cannot be supplied by the caller.
     ///         Gating: pool steward.
-    function recordRewardPaid(uint256 commitmentId, bytes32 payoutRef) external;
+    function recordConsiderationPaid(uint256 commitmentId, bytes32 payoutRef) external;
 
     // ══════════════════════ Views ════════════════════════════════════
 
@@ -1315,8 +1381,8 @@ retry.
 | Commitment series | `createCommitmentSeries` | current member of the pool garden, direct holder only | pool Ready or Open; non-zero holder-scoped `creationRequestKey`; non-empty metadata; caller becomes immutable `createdBy` and initial `currentHolder`. First use stores `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))`; exact replay returns the existing `seriesId` without mutation/event, while the same holder/key with a different payload reverts `SeriesCreationRequestConflict`. |
 | Commitment series | `updateCommitmentSeriesMetadata` | current holder | Active or Resting; non-empty metadata; prior and open Commitment instances remain unchanged |
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
-| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the full normalized payload hash and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
-| Commitment | `setDeclaredReward` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `RewardRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule exclusively derives its write-once canonical G$ token and the stored provider-garden payer; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the exact frozen preimage hash from §6.1 "Creation payload hash (frozen preimage)", emits it in `CommitmentCreated`, and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
+| Commitment | `setDeclaredConsideration` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `ConsiderationRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule derives its write-once canonical G$ token and immutable payer-garden Safe; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
 | Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
 | Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
 | Commitment | `acceptExchange` | creator of referenced commitment A | B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; B must be direct-created rather than `StewardCaptured`/`onBehalfOf`; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's direct creation plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Each ordinary acceptance independently sweeps every other still-Pending indexed request for its commitment. Cap headroom is checked only when `commitUnits` reserves a new slot. |
@@ -1340,7 +1406,7 @@ retry.
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
 | Dispute | `resolveDispute` | steward | RestorePrevious or terminal resolution; Expired cannot become Fulfilled; a direct Fulfilled result rejects a resolving steward who is a contributor (`SelfConfirmation`); allowed while module paused |
 | Recognition | `validateRecognitionSnapshot` | public view | commitment Fulfilled with frozen roster; exact sorted vector length equals `eligibleContributorCount`; every unique row is eligible; weights are recomputed from the immutable cycle policy and credit counters; supplied/canonical hashes must match |
-| Reward | `recordRewardPaid` | steward | state Fulfilled; `reward.rail == ArbitrumExternal`; single record per commitment in MVP. `CeloSettlement` reverts and is owned exclusively by SettlementModule |
+| Consideration | `recordConsiderationPaid` | steward | state Fulfilled; `consideration.rail == ArbitrumExternal`; single record per commitment in MVP. `CeloSettlement` reverts and is owned exclusively by SettlementModule |
 | Module dependency/schema admin | `setGardenToken` / `setHatsModule` / `setActionRegistry` / `setCommitmentRegistry` / `setWorkApprovalResolver` / `setEAS` / `setSchemaUIDs` | module owner | module must be paused; dependency addresses reject zero; schema UIDs reject zero and pairwise collision; every accepted change emits old/new configuration facts |
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
@@ -1373,6 +1439,71 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 | Assessment v3 — Delta / Technical | garden evaluator only |
 | Community testimony | Community Hat only (first real attestation gate for that hat) |
 | Work / WorkApproval (existing) | unchanged: gardener-or-operator / operator with no self-attestation |
+
+#### Creation payload hash (frozen preimage)
+
+**Amendment 2026-08-05.** Earlier drafts said only "full normalized payload hash", which left the
+contract implementer free to pick a preimage the client and indexer could not reproduce. The
+preimage below is now frozen, and `CommitmentCreated` **emits** `creationPayloadHash` so the
+indexer can materialize `Commitment.creationPayloadHash` from the event alone, with no RPC
+backfill. Changing either the preimage or the emission is a cross-lane ABI change: it must update
+this block, the event, the §8.1 `config.yaml` signature, Matrix A1 EO-10, and the contracts,
+indexer, and state/API handoffs together.
+
+```solidity
+// Stored by createCommitment on first use of (msg.sender-derived creator, creationRequestKey),
+// emitted in the same CommitmentCreated event, and returned inside getCommitment().
+creationPayloadHash = keccak256(
+    abi.encode(
+        params.poolId,
+        params.cycleId,
+        params.commitmentSeriesId,
+        params.direction,
+        params.commitmentType,
+        params.claimType,
+        params.claimMode,
+        params.contributorPolicy,
+        params.onBehalfOf,
+        keccak256(abi.encodePacked(params.domainTags)),      // as submitted, never as derived
+        keccak256(abi.encode(params.requirements)),
+        keccak256(bytes(params.unitLabel)),                  // exact bytes; never case-normalized
+        params.targetUnits,
+        params.requiresAssessment,
+        params.dueDate,
+        keccak256(bytes(params.metadataCID)),
+        params.needUID,
+        params.counterCommitmentId,
+        keccak256(abi.encodePacked(params.confirmers)),
+        effectiveConfirmationThreshold,                      // 1 when confirmers is empty
+        params.protocolFallbackEnabled,
+        keccak256(abi.encode(params.consideration)),
+        params.declaredUnitValue,
+        keccak256(bytes(params.declaredValueBasis))
+    )
+);
+```
+
+Four rules make this reproducible by three independent implementations:
+
+1. **Every member of `CreateCommitmentParams` appears exactly once, in declaration order**, with
+   each dynamic member (`string`, array, struct) replaced by its own `keccak256`. This mirrors the
+   series rule `keccak256(abi.encode(poolId, keccak256(bytes(metadataCID))))` at the permission
+   matrix's `createCommitmentSeries` row.
+2. **`creator` and `creationRequestKey` are deliberately outside the preimage.** They are the
+   mapping key (`commitmentIdByCreationRequest[creator][key]`), so including them would be
+   redundant — the same exclusion the series rule already makes for holder and key.
+3. **`domainTags` is hashed exactly as submitted, never as the ActionRegistry-derived `domains`.**
+   The hash is therefore a pure function of the caller's payload and can never drift with registry
+   state. Consequence for clients: a DomainImpact retry must resend the identical `domainTags`
+   array even though the module ignores it. The offline runner satisfies this for free because it
+   persists the exact payload before the first send and retries that same payload.
+4. **`confirmationThreshold` is hashed as the effective threshold** — forced to `1` when
+   `confirmers` is empty — so the two payloads the module treats as identical hash identically.
+
+`SeriesCreationRequestConflict` / `CommitmentCreationRequestConflict` compare this stored value
+against the recomputed one. The read-through recovery path is unchanged: clients call
+`getCommitmentIdByCreationRequest`, then `getCommitment` and compare the returned
+`creationPayloadHash` field before binding.
 
 #### Behavior notes an implementer must not miss
 
@@ -1513,18 +1644,31 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   accepted claimant's validated gardenContext) and emits both `leadProvider` and `providerGarden`
   in `CommitmentAccepted`. DomainImpact Work must use a required action, resolve its Work attester
   as an active contributor, and keep the Work/assessment EAS recipient equal to `providerGarden`,
-  including protocol-pool commitments that remain owned by the root pool.
-- **Reward binding**: `RewardRail.None` is valid only with zero source/token/amount.
+  including protocol-pool commitments that remain owned by the root pool. `providerGarden` answers
+  "who delivered" only; it is never the settlement payer (register #90).
+- **Payer-garden anchor**: the asking side owes the consideration, so `payerGarden` is stored
+  separately and settlement may spend no other Safe. A **Request** stores `pools[poolId].garden` at
+  creation — the pool made the ask, so the payer is fixed before any claim exists and acceptance
+  must not overwrite it. An **Offer** stores the claiming `gardenContext` at acceptance and is zero
+  before that, because nobody owes anything until an Offer is taken up. Garden-internal commitments
+  in both directions resolve `payerGarden == providerGarden`, which is the backwards-compatibility
+  guard for every single-garden pool; the protocol pool is the only place they routinely differ.
+  `CommitmentAccepted` carries the resolved value as its trailing argument.
+- **Consideration binding**: `ConsiderationRail.None` is valid only with zero source/token/amount.
   `ArbitrumExternal` requires a non-zero exact source/token/amount. `CeloSettlement` requires
-  zero declared source/token sentinels and a non-zero amount because pooling neither owns a
-  canonical-G$ authority nor knows a protocol-pool Request's payer garden at creation. Acceptance
-  resolves `providerGarden`; the SettlementModule then derives and stores its write-once
-  `gDollarToken` and that garden's active Celo Safe as the plan token/source.
-  `recordRewardPaid` remains the Arbitrum-rail total-payment record: it emits the stored source,
+  zero declared source/token sentinels and a non-zero amount, because pooling owns no canonical-G$
+  authority — not because the payer is unknown. The payer is `payerGarden`, resolved at creation
+  for a Request and at acceptance for an Offer; the SettlementModule then derives and stores its
+  write-once `gDollarToken` and **that** garden's active Celo Safe as the plan token/source.
+  `amount == 0` is free; the pair rule means a free commitment sits on `ConsiderationRail.None`,
+  while `ArbitrumExternal` and `CeloSettlement` both require a non-zero amount.
+  `recordConsiderationPaid` remains the Arbitrum-rail total-payment record: it emits the stored source,
   lead provider, token/amount, payout ref, and recorder without moving value or claiming an
   on-chain contributor split. `CeloSettlement` rejects that function and instead requires the
   fulfilled commitment's frozen contributor roster and recognition output to seed the
-  garden-managed payout plan in `settlement-spec.md`. The provider garden Celo Safe is the payer;
+  garden-managed payout plan in `settlement-spec.md`. The **payer** garden Celo Safe is the payer
+  — the pool garden for a Request, the claiming garden for an Offer, equal to the provider garden
+  only for garden-internal commitments (register #90);
   contributor accounts and amounts derive from the locked plan. The explicit rail makes recording
   both paths for one commitment impossible.
 - **Mandatory reasons**: `declineClaim`, steward cancellation, `markReadyForConfirmation`, fallback confirmation, `raiseDispute`, and every `resolveDispute` call reject an empty reason/CID with `ReasonRequired`. This error is the only empty-reason error; handlers preserve the emitted reason exactly.
@@ -1693,7 +1837,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   independent equal/verified remainder passes, a contributor receiving one remainder from each,
   and the separate integer-unit largest-remainder pass conserving budgets smaller than row count,
   unreachable ordinary confirmer threshold rejection, lead-only register exposure, assessment gating, claim identity,
-  cancel/expiry/dispute count effects, reward derivation, provider-garden Work/assessment
+  cancel/expiry/dispute count effects, consideration derivation, provider-garden Work/assessment
   validation, and decision-sync dedupe/convergence. The separate NET-NEW harness
   `packages/contracts/test/CommitmentPoolingBounds.t.sol`, run as
   `bun run --filter @green-goods/contracts test:match -- test/CommitmentPoolingBounds.t.sol`,
@@ -1706,13 +1850,19 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
   38-feature-slot declaration order plus the 12-slot `__gap` (50 total slots); arithmetic alone
   is not proof. The Bun-wrapped
   storage gate gains the `CommitmentPoolingModule:src/modules/CommitmentPooling.sol` entry.
-- Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> RewardPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
+- Fork test proves a full Offer -> Accepted -> WorkLinked -> approval-hook count -> ReadyForConfirmation -> confirm -> Fulfilled -> ConsiderationPaid pass against the deployed EAS on an Arbitrum fork (`bun run test:fork`, wrappers only per `.claude/rules/contracts.md`).
 
 ### 6.2 `CommitmentRegistry`
 
 #### Objective
 
-A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment classes, committed/fulfilled balances per account, class quotas, and concurrent provider-commitment caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface of any kind; balances move only through module calls. This is the voucher-shaped substrate (register #15, register #16) that transferable settlement vouchers later wrap 1:1 on the same poolId.
+A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment-instance
+classes, committed/fulfilled balances per account, class quotas, and concurrent
+provider-commitment caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface
+of any kind; balances move only through module calls. This is the authoritative promise-accounting
+substrate (register #15, register #16). A later transferable settlement instrument may consume its
+eligible fulfillment facts, but it does not wrap the registry class as the same identity or move
+promise ownership.
 
 #### Grassroots Economics grounding (clean-room, register #17)
 
@@ -1720,15 +1870,44 @@ Design vocabulary comes from Ruddick's "Commitment Pooling: an Economic Protocol
 
 - **Curation**: which commitments enter the pool's register. Implemented as steward-gated `createCommitment`/`acceptClaim` on the module plus module-only `registerClass` here; nothing enters the register except through curated module paths.
 - **Limiting**: hard caps per asset in the pool. Implemented as the per-class `quota` (defaults to the commitment's `targetUnits`) plus a per-pool `providerOpenCommitmentCap` on concurrent non-terminal provider obligations per lead provider. Offered Offers reserve that capacity from creation; Requests reserve it at acceptance. The first remains unit-denominated within one exact label/class; the second is count-denominated and never adds unlike units.
-- **Valuing**: relative value against a reference asset. MVP records it as a commitment term — `declaredUnitValue` against an exact-label `declaredValueBasis` on the module record (decision 16, amendment 2026-08-01) — with no swaps, no cross-label conversion, and no protocol arithmetic consuming it; units remain per-commitment labels. Relative-pricing *execution* stays reserved for the transferable-voucher layer, which activates on the same classes.
+- **Valuing**: relative value against a reference asset. MVP records it as a commitment term — `declaredUnitValue` against an exact-label `declaredValueBasis` on the module record (decision 16, amendment 2026-08-01) — with no swaps, no cross-label conversion, and no protocol arithmetic consuming it; units remain per-commitment labels. Relative-pricing *execution* stays reserved for the transferable-voucher layer, which owns separate voucher classes and may reference the exact declared label/basis without collapsing the identities.
 
-The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) maps to MVP as: seed = class registration at curated creation, with Offer capacity also reserved then; exchange = the `counterCommitmentId` reference record plus atomic bilateral paired acceptance through `acceptExchange` (decision 18); redemption = the declared-reward payout of a fulfilled commitment from the pool's settlement account (`settlement-spec.md` — redemption-shaped economically while value execution stays on separate rails). `acceptExchange` changes no registry interface: both Offer classes already became `Committed` at creation, so the module performs no second registry mutation during paired acceptance. Transferable and multilateral exchange execution remains reserved for the voucher layer.
+The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) is a
+**future-capability reference**, not a list of synonyms for the initial module:
+
+- module-only class registration is **curation and capacity accounting**, not a seed round;
+- `counterCommitmentId` plus `acceptExchange` is an atomic bilateral paired start, not pooled
+  inventory exchange;
+- declared-consideration payout is a separate support/settlement rail, not voucher redemption; and
+- seed inventory, exchange in/out, redemption, and cross-pool exchange require the separately
+  gated voucher/venue layer in `exchange-architecture-brief.md`.
+
+`acceptExchange` changes no registry interface: both Offer classes already became `Committed` at
+creation, so the module performs no second registry mutation during paired acceptance.
 
 #### Transferable-voucher attachment path (spec-now, build-later)
 
-- `classId == commitmentId` in MVP (1:1). The classId space is `uint256` and module-controlled, so later class kinds (per lead provider + unit label groupings) can join without migration.
-- A future settlement adapter (address reserved on the Pool struct) reads `fulfilledOf`/`committedOf` and issues transferable vouchers per class on the same poolId. The register itself never gains transfer functions; wrapping happens in the adapter's own token contract.
-- The full design-only wrap, quoter, limiter, venue, and Sarafu-hybrid fork is canonical at `exchange-architecture-brief.md` (PRD-651). It authorizes no implementation or `settlementAdapter` activation.
+- `classId == commitmentId` in the initial deploy. This identity is one immutable promise instance
+  and its non-transferable accounting row; it remains stable.
+- A non-zero `commitmentSeriesId` is a separate, pool-scoped identity for one Offer used over time.
+  It groups ordinary instances but owns no transferable balance.
+- A future `voucherClassId` is a third identity owned by a versioned adapter/router. It may
+  reference one pool, issuer context, `commitmentSeriesId`, value basis, backing mode, supply cap,
+  and redemption terms. It MUST NOT be equated with `commitmentId`, registry `classId`, or
+  `commitmentSeriesId`.
+- The Pool's reserved `settlementAdapter` remains one address in the initial storage shape. If a
+  later scope activates it, that address resolves a versioned adapter/router rather than silently
+  naming one forever-fixed token implementation.
+- The first eligible backing mode is fulfilled-only: the adapter consumes exact
+  `fulfilledOf` facts and prevents the same fulfillment from backing more than the authorized
+  amount. `committedOf` remains an eligibility/audit read and cannot mint a voucher.
+- Reserved-capacity issuance is a distinct future mode, disabled until its own consent, issuance,
+  exposure, default, repair, legal, and audit scope lock. It never transfers the underlying
+  promise, confirmer authority, contributor record, recognition, or Story.
+- These compatibility rules require **no new initial ABI member, event, storage slot, or registry
+  transfer surface**. The full design-only class, backing, issuance, seed, exchange, redemption,
+  and federation architecture is canonical at `exchange-architecture-brief.md` (PRD-651). It
+  authorizes no implementation or `settlementAdapter` activation.
 
 #### Storage layout (slot accounting)
 
@@ -2284,6 +2463,35 @@ frozen/reverting-module cases, plus
 
 Deployment artifacts are the source of truth for addresses; pre-broadcast zero/missing addresses mean pending broadcast, post-broadcast they are blockers (root CLAUDE.md contract deployment rules).
 
+> **Amendment 2026-08-06 (approved rehearsal-target change; supersedes the Arbitrum Sepolia
+> rehearsal below).** The pooling rehearsal runs on an **Arbitrum One fork**, not on `421614`.
+> Afo approved this on 2026-08-06 after the paragraph below was proven correct: Hats Protocol has
+> no Arbitrum Sepolia deployment, so the rehearsal would have had to stand up a hand-rolled Hats
+> tree and would have proven nothing about the real one. A fork runs the same runbook against live
+> Hats, live EAS and SchemaRegistry, live garden accounts, and the live `WorkApprovalResolver`.
+>
+> The rehearsal is `packages/contracts/test/fork/ArbitrumCommitmentPooling.t.sol`, run through
+> `bun run contracts:pooling:rehearse:arbitrum-fork` (shard `pooling-arbitrum`, also inside the
+> `arbitrum` CI shard). It registers both additive schemas on the real SchemaRegistry, pins
+> assessment v2, activates v3, deploys and wires the module and register, unpauses, opens a pool,
+> and drives a full commitment through a real EAS work approval into the module's
+> `onWorkDecision` bridge — the only place that bridge is exercised without a mock resolver. It
+> also proves the deterministic UID the release tooling computes off-chain is the UID real EAS
+> assigns, which is what makes an interrupted registration resumable rather than duplicated.
+>
+> The rehearsal immediately earned its place: `setAssessmentV3SchemaUID` reverts
+> `AssessmentV2SchemaUIDRequired` while the v2 UID is zero, which is exactly the live Arbitrum
+> state. Pinning the verified v2 UID is therefore an ordered runbook step, now asserted rather
+> than discovered during a broadcast.
+>
+> A fork still cannot prove keystore signing, Etherscan verification, or real gas and block
+> timing. Those belong to the broadcast runbook and remain human Release gates. The `421614`
+> network record, its scripts, and the four named `421614` gaps below are withdrawn as lane
+> deliverables; the verified EAS addresses are retained in
+> `packages/contracts/script/utils/pooling-release.ts` should the decision ever be revisited.
+> The settlement lane's separate Celo Sepolia / CCIP evidence plan is **not** covered by this
+> amendment and must re-derive its own posture.
+
 Arbitrum Sepolia is not interchangeable with Ethereum Sepolia for protocol dependencies. The
 official EAS repository publishes `421614` EAS
 `0x2521021fc8BF070473E1e1801D3c7B4aB701E1dE` and SchemaRegistry
@@ -2487,13 +2695,13 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CommitmentSeriesRested(uint256 indexed seriesId)
       - event: CommitmentSeriesResumed(uint256 indexed seriesId)
       - event: CommitmentSeriesRetired(uint256 indexed seriesId)
-      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, bytes32 creationRequestKey, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis)
-      - event: RewardDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
+      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, bytes32 creationRequestKey, bytes32 creationPayloadHash, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis, address payerGarden)
+      - event: ConsiderationDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
       - event: ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis)
       - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled)
       - event: ClaimRequested(uint256 indexed commitmentId, address indexed claimant, address indexed requestedBy, uint8 kind, address gardenContext, uint64 requestedAt)
       - event: ClaimDeclined(uint256 indexed commitmentId, address indexed claimant, string reasonCID)
-      - event: CommitmentAccepted(uint256 indexed commitmentId, address indexed claimant, address indexed counterparty, uint8 kind, address gardenContext, address leadProvider, address providerGarden)
+      - event: CommitmentAccepted(uint256 indexed commitmentId, address indexed claimant, address indexed counterparty, uint8 kind, address gardenContext, address leadProvider, address providerGarden, address payerGarden)
       - event: ExchangeAccepted(uint256 indexed commitmentIdA, uint256 indexed commitmentIdB, uint256 poolId, address indexed acceptorA, address acceptorB)
       - event: ContributorAdded(uint256 indexed commitmentId, address indexed contributor, address indexed addedBy)
       - event: ContributorRemoved(uint256 indexed commitmentId, address indexed contributor, address indexed removedBy)
@@ -2512,7 +2720,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CommitmentExpired(uint256 indexed commitmentId, address indexed caller)
       - event: CommitmentDisputed(uint256 indexed commitmentId, address indexed raiser, uint8 previousState, string reasonCID)
       - event: DisputeResolved(uint256 indexed commitmentId, uint8 resolution, uint8 finalState, string reasonCID)
-      - event: RewardPaid(uint256 indexed commitmentId, address indexed source, address indexed recipient, address token, uint256 amount, bytes32 payoutRef, address recordedBy)
+      - event: ConsiderationPaid(uint256 indexed commitmentId, address indexed source, address indexed recipient, address token, uint256 amount, bytes32 payoutRef, address recordedBy)
       - event: ModuleDependencyUpdated(uint8 indexed dependency, address indexed previousAddress, address indexed newAddress)
       - event: ModuleSchemaUIDUpdated(uint8 indexed schemaKind, bytes32 previousUID, bytes32 newUID)
       - event: ModulePauseStatusChanged(bool previousPaused, bool paused)
@@ -2552,7 +2760,7 @@ enum CommitmentClaimType { UNKNOWN GARDEN INDIVIDUAL }
 enum CommitmentClaimMode { UNKNOWN OPEN APPROVAL_GATED }
 enum CommitmentContributorPolicy { UNKNOWN OPEN LEAD_MANAGED }
 enum CommitmentSeriesState { UNKNOWN ACTIVE RESTING RETIRED }
-enum CommitmentRewardRail { UNKNOWN NONE ARBITRUM_EXTERNAL CELO_SETTLEMENT }
+enum CommitmentConsiderationRail { UNKNOWN NONE ARBITRUM_EXTERNAL CELO_SETTLEMENT }
 enum CommitmentConfirmationPath { UNKNOWN ORDINARY POOL_FALLBACK PROTOCOL_FALLBACK }
 enum CommitmentClaimRequestState { PENDING ACCEPTED DECLINED SUPERSEDED }
 enum CommitmentUnitScope { POOL CYCLE }
@@ -2565,12 +2773,12 @@ enum CommitmentUnitScope { POOL CYCLE }
   CYCLE_SEEDED CYCLE_OPENED CYCLE_CLOSED CYCLE_COMPOSTED CYCLE_CANCELLED
   COMMITMENT_SERIES_CREATED COMMITMENT_SERIES_METADATA_UPDATED
   COMMITMENT_SERIES_RESTED COMMITMENT_SERIES_RESUMED COMMITMENT_SERIES_RETIRED
-  CREATED REWARD_DECLARED VALUE_DECLARED CONFIRMER_RULE_SET CLAIM_REQUESTED CLAIM_DECLINED ACCEPTED
+  CREATED CONSIDERATION_DECLARED VALUE_DECLARED CONFIRMER_RULE_SET CLAIM_REQUESTED CLAIM_DECLINED ACCEPTED
   EXCHANGE_ACCEPTED
   CONTRIBUTOR_ADDED CONTRIBUTOR_REMOVED CONTRIBUTOR_REQUIREMENT_ASSIGNED CONTRIBUTOR_ROSTER_FROZEN
   WORK_LINKED WORK_UNLINKED APPROVED_WORK_COUNTED APPROVED_WORK_REVERSED EVIDENCE_ATTACHED
   ASSESSMENT_ATTACHED READY_FOR_CONFIRMATION CONFIRMATION_RECORDED FULFILLED
-  CANCELLED EXPIRED DISPUTED DISPUTE_RESOLVED REWARD_PAID
+  CANCELLED EXPIRED DISPUTED DISPUTE_RESOLVED CONSIDERATION_PAID
   UNITS_COMMITTED UNITS_RELEASED UNITS_FULFILLED
 }
 
@@ -2760,7 +2968,7 @@ type Commitment {
   creationSeen: Boolean! # false only for an update-before-create placeholder
   acceptanceSeen: Boolean! # true once the unique CommitmentAccepted payload is stored, even if its lifecycle cursor is older
   creationRequestKey: String # creator-scoped sender-safe key emitted by CommitmentCreated
-  creationPayloadHash: String # full normalized immutable creation payload
+  creationPayloadHash: String # frozen §6.1 creation preimage hash, emitted by CommitmentCreated; never an RPC read
   poolId: BigInt # null until creationSeen
   poolEntityId: String # relationship: chainId-poolId; null until creationSeen
   cycleId: BigInt # null when not cycle-scoped
@@ -2775,6 +2983,8 @@ type Commitment {
   leadProvider: String # Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
   providerGarden: String # EAS recipient/provider role scope after acceptance
   providerGardenId: String # relationship to documented bare-address Garden.id
+  payerGarden: String # settlement payer: pool garden for a Request (set at creation), claiming garden for an Offer (set at acceptance)
+  payerGardenId: String # relationship to documented bare-address Garden.id
   counterpartyKind: CommitmentClaimType
   direction: CommitmentDirection # null until creationSeen
   commitmentType: CommitmentKind # null until creationSeen
@@ -2813,16 +3023,16 @@ type Commitment {
   evidenceCIDs: [String!]!
   evidenceCount: Int!
   dueDate: BigInt # null until creationSeen
-  rewardRail: CommitmentRewardRail # null until creation or RewardDeclared supplies it
-  rewardSource: String
-  rewardRecipient: String # ArbitrumExternal RewardPaid recipient only; Celo beneficiary is on Disbursement
-  rewardToken: String
-  rewardAmount: BigInt
-  rewardPaid: Boolean!
-  rewardPayoutRef: String
-  rewardRecordedBy: String
-  rewardUpdateBlockNumber: BigInt # nullable latest DeclaredRewardUpdated/RewardPaid cursor
-  rewardUpdateLogIndex: Int
+  considerationRail: CommitmentConsiderationRail # null until creation or ConsiderationDeclared supplies it
+  considerationSource: String
+  considerationRecipient: String # ArbitrumExternal ConsiderationPaid recipient only; Celo beneficiary is on Disbursement
+  considerationToken: String
+  considerationAmount: BigInt
+  considerationPaid: Boolean!
+  considerationPayoutRef: String
+  considerationRecordedBy: String
+  considerationUpdateBlockNumber: BigInt # nullable latest DeclaredConsiderationUpdated/ConsiderationPaid cursor
+  considerationUpdateLogIndex: Int
   readyOverridden: Boolean!
   fulfilledBy: String # explicit CommitmentFulfilled.confirmer; null for non-confirmation terminal resolution
   confirmationPath: CommitmentConfirmationPath # null until confirmed or when fulfillment came from dispute resolution
@@ -2971,7 +3181,7 @@ type CommitmentEvidenceAttributionIndex {
   chainId: Int!
   commitmentId: BigInt!
   commitmentEntityId: String!
-  attributionEntityIds: [String!]! # stable event order; each ID is loaded directly
+  attributionEntityIds: [String!]! # unique, lexically sorted (ER-17 + the §8.3 relationship-array rule); each ID is loaded directly. Evidence order carries no meaning, so nothing consumes insertion order — only the semantically ordered pending lifecycle projections are exempt from lexical sorting.
   updatedAt: Int!
 }
 
@@ -3250,16 +3460,19 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   Fulfilled instance in a cycle appends its composite cycle ID once. No handler computes a rate,
   score, rank, participant count, cross-pool grouping, or unit total across labels.
 - **Creation payload completeness**: `CommitmentCreated` initializes `commitmentSeriesId`,
-  its nullable composite relationship, emitted `creationRequestKey`, stored
+  its nullable composite relationship, emitted `creationRequestKey`, emitted
   `creationPayloadHash`, contributor policy, derived
   domain tags, requirement action/domain/count arrays, `requiresAssessment`, `metadataCID`, and
   `needUID` directly, and seeds one `CommitmentRequirement` row per requirement. Handlers must
   not backfill these immutable facts from RPC reads or assume defaults that differ from the event.
-  The contract mapping is creator-scoped: a non-zero first-use key stores the hash of the complete
-  normalized `CreateCommitmentParams` payload and resulting commitment ID. Exact replay returns
-  that ID without a second event or state delta. Different payload reuse reverts
+  Every one of them, `creationPayloadHash` included, is an emitted event parameter, so the
+  no-RPC rule and the required field are consistent: the handler assigns
+  `event.params.creationPayloadHash` verbatim and never recomputes, derives, or nulls it.
+  The contract mapping is creator-scoped: a non-zero first-use key stores the frozen §6.1
+  preimage hash of the `CreateCommitmentParams` payload and the resulting commitment ID. Exact
+  replay returns that ID without a second event or state delta. Different payload reuse reverts
   `CommitmentCreationRequestConflict`; the UI read-through getter must compare every immutable
-  field before binding the local record.
+  field, including the stored hash, before binding the local record.
 - **CPP-alignment term and reverse-index handlers**: `CommitmentCreated` assigns
   `counterCommitmentId`, its nullable composite `counterCommitmentEntityId`,
   `declaredUnitValue`, and `declaredValueBasis` directly from the event only when the row has no
@@ -3273,14 +3486,14 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   once; a replay of the same transaction/log cannot append again. `ValueDeclared` compares its
   `(blockNumber, logIndex)` lexicographically with the nullable stored cursor, ignores an older or
   duplicate position, and otherwise assigns the emitted value/basis pair plus the new cursor.
-  It changes no lifecycle, unit, reward, settlement, or counter-index field. Replay fixtures cover
+  It changes no lifecycle, unit, consideration, settlement, or counter-index field. Replay fixtures cover
   creation→update, update→creation, duplicate delivery, and two updates delivered in either order.
   No later event reads `counterCommitmentId` to transition either side.
-- **Reward projection**: `RewardDeclared` and `RewardPaid` compare their event position with the
-  independent nullable `(rewardUpdateBlockNumber, rewardUpdateLogIndex)` pair before assigning
-  reward terms or receipt fields. Creation fills its declared reward snapshot only when no newer
-  reward cursor exists. An older declaration or receipt delivered last cannot regress the current
-  reward view; reverse declaration/receipt and duplicate fixtures assert convergence without
+- **Consideration projection**: `ConsiderationDeclared` and `ConsiderationPaid` compare their event position with the
+  independent nullable `(considerationUpdateBlockNumber, considerationUpdateLogIndex)` pair before assigning
+  consideration terms or receipt fields. Creation fills its declared consideration snapshot only when no newer
+  consideration cursor exists. An older declaration or receipt delivered last cannot regress the current
+  consideration view; reverse declaration/receipt and duplicate fixtures assert convergence without
   changing the commitment lifecycle cursor.
 - **Atomic exchange marker**: the two ordinary `CommitmentAccepted` events remain the canonical
   per-commitment lifecycle inputs. `ExchangeAccepted` additionally creates exactly one
@@ -3371,7 +3584,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   uses `creator`), then flips the guard atomically. A GardenAccount receiver is counted as that
   GardenAccount, never fanned out to its current stewards or named confirmers. Late acceptance,
   contributor, or freeze delivery re-enters this helper; duplicate delivery or later calls observe
-  the guards and apply no second delta. Request, readiness, confirmation-threshold, reward,
+  the guards and apply no second delta. Request, readiness, confirmation-threshold, consideration,
   value-declaration, and counter-commitment events change no other history counter.
 - **Terminal side projections**: every transition into Fulfilled, including
   `DisputeResolved(finalState = Fulfilled)`, loads the bounded attribution index and marks each
@@ -3423,7 +3636,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
   regressing `DECLINED`; a genuinely newer post-decline request fills/replaces the payload,
   clears the old resolution, advances the row cursor, and becomes `PENDING` unless a still-newer
   commitment acceptance/cancel/expiry marker wins. `CommitmentAccepted` carries
-  claimant/counterparty/leadProvider/providerGarden, stores its immutable acceptance position,
+  claimant/counterparty/leadProvider/providerGarden/payerGarden, stores its immutable acceptance position,
   marks the matching request `ACCEPTED` when that row exists, then independently loads
   `CommitmentClaimRequestIndex` and marks every other still-`PENDING` row `SUPERSEDED` with
   `COMMITMENT_ACCEPTED`. The bounded sweep never depends on finding a matching row: the two
@@ -3519,7 +3732,7 @@ NET-NEW `packages/indexer/src/handlers/commitmentPool.ts`, registered as a side-
 **Existing Garden identity compatibility (required).** `Garden.id` remains the normalized bare
 GardenAccount address and every Garden row continues to carry its explicit `chainId`, matching
 `packages/indexer/AGENTS.md`; no Commitment Pooling lane may convert it to a composite ID.
-`gardenId`, `providerGardenId`, and `gardenContextId` relationship fields therefore store the same
+`gardenId`, `providerGardenId`, `payerGardenId`, and `gardenContextId` relationship fields therefore store the same
 normalized bare Garden ID. Every new Commitment Pooling, settlement, request, index, event, and
 summary entity keeps its own chain-scoped composite `id` plus `chainId`, so their cross-chain
 identity never depends on changing `Garden.id`. Handler/query fixtures prove existing raw-address
@@ -3772,13 +3985,13 @@ Acceptance: hooks exported from the barrel only; the six offline pool job kinds 
 
 ### `packages/admin`
 
-Deliverables (full flows in `uiux-spec.md`; contract touchpoints listed here): steward seeding console (createCommitment with confirmer rule + declared reward + claim mode), cycle management across 5.2, claims queue (`acceptClaim`), analog capture (StewardCaptured via `onBehalfOf`, extending the `SubmitWork` on-behalf precedent), per-cycle assessment creation against the v3 schema, allocation preset picker at cycle open, dispute handling, `RewardPaid` recording. Garden workspace + new Pools workspace per register #10.
+Deliverables (full flows in `uiux-spec.md`; contract touchpoints listed here): steward seeding console (createCommitment with confirmer rule + declared consideration + claim mode), cycle management across 5.2, claims queue (`acceptClaim`), analog capture (StewardCaptured via `onBehalfOf`, extending the `SubmitWork` on-behalf precedent), per-cycle assessment creation against the v3 schema, allocation preset picker at cycle open, dispute handling, `ConsiderationPaid` recording. Garden workspace + new Pools workspace per register #10.
 
 Acceptance: every module write goes through shared mutation hooks; no direct contract calls in views; admin remains restrained (no hero moments).
 
 ### `packages/client`
 
-Deliverables (full flows in `uiux-spec.md`): offer/request creation, browse/claim, work linkage through the existing MDR flow, evidence capture, counterparty confirmation, commitment + cycle views in the Garden tab; personal commitments + pending-confirmations panel on the Profile wallet surface; settlement reward status + G$ send affordance per `settlement-spec.md`; Fulfilled and cycle-close hero moments (register #27, client only). The six August offline job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) cover field actions where applicable; G$ send remains an explicit online-only wallet action on Celo.
+Deliverables (full flows in `uiux-spec.md`): offer/request creation, browse/claim, work linkage through the existing MDR flow, evidence capture, counterparty confirmation, commitment + cycle views in the Garden tab; personal commitments + pending-confirmations panel on the Profile wallet surface; settlement consideration status + G$ send affordance per `settlement-spec.md`; Fulfilled and cycle-close hero moments (register #27, client only). The six August offline job kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) cover field actions where applicable; G$ send remains an explicit online-only wallet action on Celo.
 
 Acceptance: offline queue proof for each field action; mutual-aid copy only (banned-vocab lint passes).
 
@@ -3810,12 +4023,12 @@ Exit criteria, in dependency order:
    protocol pool + 13 garden pools registered; operational smoke passed (PR chain 3).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, signed saved-Offer persistence, hooks, six offline queue job kinds including `commitmentSeries` plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
-6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, reward, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
+6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, consideration, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
 
 ### Native phase 3: Release — 2026-08-12
 
 Goal: release the user-facing pooling flow, preserve the July non-value deployment proof, and complete one bounded production proof. The fixed date does not waive the value-tier gates or human authorization in `handoffs/human-release-ops.md`.
-Exit criteria: user-facing release authorization; persisted July deployment and post-deploy evidence; first real cycle opened; first team commitment fulfilled with eligible counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; and, only if every value-tier gate passes, one contributor child payout executed from the provider garden's registered Celo Safe under a conserved parent plan, acknowledged through authenticated Celo → Arbitrum CCIP, indexed as `Confirmed`, and visible as “support arrived.” A dispatch, Celo execution, timeout, or operator report without that acknowledgment is not confirmation. A blocked settlement leg remains blocked rather than weakening Release evidence.
+Exit criteria: user-facing release authorization; persisted July deployment and post-deploy evidence; first real cycle opened; first team commitment fulfilled with eligible counterparty confirmation; first Arbitrum-rail `ConsiderationPaid` recorded; and, only if every value-tier gate passes, one commitment-bound child payout executed from the immutable payer garden's registered Celo Safe under a conserved parent plan, acknowledged through authenticated Celo → Arbitrum CCIP, indexed as `Confirmed`, and visible as “support arrived.” A dispatch, Celo execution, timeout, or operator report without that acknowledgment is not confirmation. A blocked settlement leg remains blocked rather than weakening Release evidence.
 
 ### Native phase 4: Follow On / Hardening — 2026-09-30
 
@@ -3825,7 +4038,7 @@ Exit criteria: evidence-backed decisions only. This date authorizes no follow-on
 ### Operational checkpoint: July dry run — 2026-07-31
 
 Goal: run the commitment loop socially on existing rails while the Build phase completes.
-Exit criteria: methodology + scoping surveys complete (mandate artifact per garden); activations recorded; rewards flowing through existing Cookie Jar/treasury paths; zero contract dependencies.
+Exit criteria: methodology + scoping surveys complete (mandate artifact per garden); activations recorded; considerations flowing through existing Cookie Jar/treasury paths; zero contract dependencies.
 
 ### Operational checkpoint: Community and settlement evidence — 2026-09-30
 

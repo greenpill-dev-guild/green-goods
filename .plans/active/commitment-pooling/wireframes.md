@@ -154,7 +154,7 @@ Route `/home/:id/pool/:commitmentId`. `{AppBar}` hidden (Appendix B §5.1) — t
 │   The promise stays yours.                   │  chip (fixed phrasing, §13 Q2)
 ├──────────────────────────────────────────────┤
 │ Lead: Maria · 3 contributors — work underway │  accountability + team
-│ Reward: 20 DAI from the garden jar · pending │  declared-reward row (register #18)
+│ Consideration: 20 DAI from the garden jar · pending │  declared-consideration row (register #18)
 ├──────────────────────────────────────────────┤
 │ ▸ Timeline (4)                               │  {StateTimeline} disclosure
 │ ▸ Evidence (2)                    [ + Add ]  │  ▸ W2a attach sheet
@@ -181,7 +181,7 @@ TIMELINE — EXPANDED DISCLOSURE
 ```
 
 - W2 opens the dedicated W2a attach sheet (`{DialogShell}` + `{FileUploadField}`) for evidence capture.
-- Fulfilled state: hero moment fires once (§5.10), reward row flips to "reward released" when `RewardPaid` lands.
+- Fulfilled state: hero moment fires once (§5.10), consideration row flips to "consideration released" when `ConsiderationPaid` lands.
 - Disputed state: banner "under review by stewards", CTAs frozen.
 - Expired state (register #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Cancellation placement: while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`, register #34b/MF-2a). The Accepted steward path is locked at W10 `[ Cancel promise… ]` with its own required-reason dialog (register #51/MF-2b).
@@ -507,7 +507,7 @@ Adopted 2026-07-11 (register #34; the lifecycle/readiness states above and the h
 
 ### W8 — Steward seeding console (uiux-spec §6.3)
 
-Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/seed`. **Five steps, not four** (Appendix B §6.3, locked 2026-07-24): the old step 3 splits into *Who confirms* and *Reward*. **Hi-fi**: [`#screens/W8@step1`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W8@step1) (7 states).
+Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/seed`. **Five steps, not four** (Appendix B §6.3, locked 2026-07-24): the old step 3 splits into *Who confirms* and *Consideration*. **Hi-fi**: [`#screens/W8@step1`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W8@step1) (7 states).
 
 ```text
 ┌── Seed a commitment ── ● ● ● ● ○ ────────────────────────┐
@@ -536,12 +536,12 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ that safety path is explicitly selected.                 │
 │ claim mode  ◉ open   ○ steward-reviewed                  │  prefilled by context (register #19)
 ├──────────────────────────────────────────────────────────┤
-│ Step 4 — Reward                                          │
-│ reward rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
+│ Step 4 — Consideration                                          │
+│ consideration rail ○ none  ◉ external payout  ○ Celo G$         │  exactly one stored rail
 │ external    source [ garden jar ▾ ] token [DAI] amt [20] │  reference only, no custody
 ├──────────────────────────────────────────────────────────┤
 │ Step 5 — Review · team: Lead-managed · GG fallback: off  │
-│          reward: External                                │
+│          consideration: External                                │
 │                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -583,7 +583,7 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **H
 │ Eligible: João ✓ · Ana ○ · you ○   (1 of 2 required)     │  plain key-value row
 ├──────────────────────────────────────────────────────────┤
 │ Rail: External payout record (`ArbitrumExternal`)        │
-│ Reward: 20 DAI · garden jar · unpaid                     │  recording a payout is a
+│ Consideration: 20 DAI · garden jar · unpaid                     │  recording a payout is a
 │                                                          │  Fulfilled-only act (§6.7)
 │ Eligibility: garden fallback                             │  or Green Goods team fallback
 │ [ Confirm as garden fallback… ] [ Raise dispute… ]       │  reason required
@@ -593,7 +593,7 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows. **H
 FULFILLED — RECORD PAYOUT                RESOLVE DISPUTE — OWN STATE
 ┌────────────────────────────────┐       ┌────────────────────────────────┐
 │ Promise fulfilled              │       │ ( Restore previous / Fulfilled │
-│ Reward: 20 DAI · unpaid        │       │   / Cancelled / Expired )      │
+│ Consideration: 20 DAI · unpaid        │       │   / Cancelled / Expired )      │
 │ [ Record payout ]              │       │ + required reason · steward-   │
 │  → {AdminConfirmDialog}        │       │ only; Expired can never        │
 │    captures the rail reference │       │ become Fulfilled               │
@@ -688,7 +688,7 @@ Pools view inside the existing admin `/community` workspace, reached through tha
 │ ├─ Confirmations queue ──────────────────────────────────────────────┤ │
 │ │ ≡ Field survey — 1 of 2 confirmed                              ▸   │ │
 │ ├─ Funding view (references only) ───────────────────────────────────┤ │
-│ │ ≡ 20 DAI · protocol treasury → Field survey (co-funded w/ Awka)    │ │  reward references
+│ │ ≡ 20 DAI · protocol treasury → Field survey (co-funded w/ Awka)    │ │  consideration references
 │ └────────────────────────────────────────────────────────────────────┘ │
 │                                                                        │
 │ THIS GARDEN tab: summary card + [ Open garden pool ] handoff to W7     │
@@ -833,7 +833,7 @@ This commitment-pooling file retains only the shared commitment, confirmation, t
 
 G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 takes copy/action deltas and W10 has the rail-specific queue state drawn above.
 
-**W2 delta (PWA commitment detail, reward row)** — `CeloSettlement` renders three truthful phrases: “support on its way” before an authenticated outcome (delay keeps this phrase), “support arrived ↗” after the current execution key and attempt receives an authenticated success acknowledgment, and “support is being rearranged” after an authenticated failure until stewards reconcile or cancel it (cancellation then uses its own withdrawn/closed copy). A calm action explanation may accompany any phrase, but W2 never renders a success phrase for a failed state and never exposes the operational state noun. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` exposes the recognition-aligned contributor payout draft and the full operational state set; W21 finalizes the plan and prepares each payable row before dispatch. `ArbitrumExternal` alone exposes Record payout.
+**W2 delta (PWA commitment detail, consideration row)** — `CeloSettlement` renders three truthful phrases: “support on its way” before an authenticated outcome (delay keeps this phrase), “support arrived ↗” after the current execution key and attempt receives an authenticated success acknowledgment, and “support is being rearranged” after an authenticated failure until stewards reconcile or cancel it (cancellation then uses its own withdrawn/closed copy). A calm action explanation may accompany any phrase, but W2 never renders a success phrase for a failed state and never exposes the operational state noun. Settlement rows identify G$, never DAI. **W10 delta (admin commitment dialog)** — `CeloSettlement` exposes the recognition-aligned contributor payout draft and the full operational state set; W21 finalizes the plan and prepares each payable row before dispatch. `ArbitrumExternal` alone exposes Record payout.
 
 ### W21 — Garden Pool tab: Settlement section (delta to W7)
 
@@ -850,12 +850,12 @@ Rendered in the hi-fi as its **own canvas route** (page header `Settlement`, eye
 │ Payout plan 18 · Prune north beds · Partial · 100 G$ kept in garden   │
 │ Disbursements                                    [ Create batch ]      │
 │ Settlement/att. │ Recipient │ Kind   │ Amount │ State                  │  6-column dtable rows
-│ ≡ 104 / 0       │ Maria     │ Reward │ 160 G$ │ Queued   [ Dispatch ]  │
-│ ≡ 103 / 1       │ Kwame     │ Reward │ 100 G$ │ Failed                 │
+│ ≡ 104 / 0       │ Maria     │ Consideration │ 160 G$ │ Queued   [ Dispatch ]  │
+│ ≡ 103 / 1       │ Kwame     │ Consideration │ 100 G$ │ Failed                 │
 │                 │           │        │        │  [ Source follow-up ]  │
-│ ≡ 102 / 0       │ Ana       │ Reward │ 140 G$ │ confirming arrival     │
+│ ≡ 102 / 0       │ Ana       │ Consideration │ 140 G$ │ confirming arrival     │
 │                 │           │        │        │  [ Ack details ]       │
-│ ≡ 101 / 0       │ Kwame     │ Reward │ 18 G$  │ Confirmed ↗            │
+│ ≡ 101 / 0       │ Kwame     │ Consideration │ 18 G$  │ Confirmed ↗            │
 │ Protocol→Garden funding is separate from contributor payout status.   │
 │ Payout preparation, batches, and account registration await gates     │
 └────────────────────────────────────────────────────────────────────────┘
@@ -956,13 +956,13 @@ everything cross-garden and cross-chain lives here, keeping the garden workspace
 │ FLOWS — cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
 │ GG protocol Safe → garden Safes       [ Seed / top up ]                 │
-│ garden Safes → gardeners              planned commitment rewards         │
+│ garden Safes → gardeners              planned commitment considerations         │
 │ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │  oversight rows moved
 ├────────────────────────────────────────────────────────────────────────┤
 │ SEED / TOP UP — canQueueFunding only                                   │
 │ Garden [ Awka Hub · registered Celo Safe ▾ ] · Amount [ 500 G$ ]       │
 │ Source: GG protocol Safe · Recipient: selected registered garden Safe   │
-│ This does not fulfill, reward, or alter a commitment.                   │
+│ This does not fulfill, consideration, or alter a commitment.                   │
 │                                      [ Cancel ] [ Queue seed / top up ] │
 │ → emitted Funding / ProtocolToGarden / Queued · no commitment ID        │
 └────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
@@ -1058,7 +1058,7 @@ A **canvas-route wizard** (page header with a `Step N of 4` eyebrow) launched fr
 | §7.1 garden pool story | W15 |
 | §7.3 /impact section | W16 |
 | Community member/public/admin/evaluator/funder views | canonical Community `wireframes.md` |
-| settlement-spec §7 reward-status copy (PWA) | W2 delta note (§6) |
+| settlement-spec §7 consideration-status copy (PWA) | W2 delta note (§6) |
 | settlement-spec §7 admin settlement card + disbursement queue | W21 |
 | settlement-spec §7 batch execution console | W22 |
 | settlement-spec §7 wallet G$ + gardener send | W23 |
@@ -1086,7 +1086,7 @@ follow-up pass; the prototype artifact carries these as annotated planned states
 ### W8 delta — seeding console: exchange reference (Step 1) + declared value (Step 4)
 
 Step 1 gains the optional "In exchange for" picker below the cycle select; Step 4 gains the
-declared-value pair above the reward rail. All other steps unchanged; five-step rail stands.
+declared-value pair above the consideration rail. All other steps unchanged; five-step rail stands.
 
 ```text
 ┌── Step 1 — Type & scope (delta) ─────────────────────────┐
@@ -1094,18 +1094,18 @@ declared-value pair above the reward rail. All other steps unchanged; five-step 
 │ in exchange for  [ none ▾ ]                              │  optional; lists this pool's open
 │   ▸ "Weekly workshop facilitation" (Offer · open)        │  Offers/Requests only; other pools
 │   ▸ "Panel maintenance rota" (Request · open)            │  and self excluded by construction
-├── Step 4 — Reward (delta) ───────────────────────────────┤
+├── Step 4 — Consideration (delta) ───────────────────────────────┤
 │ declared value  [ 5 ] [ G$ ▾ ] per hour                  │  optional pair; free text basis with
 │ "What reference value does one hour carry here? Optional │  G$/USD presets; exact-label, never
 │  — a shared term; no settlement or conversion rule."     │  case-normalized
-│ reward rail ○ none  ◉ external payout  ○ Celo G$         │
+│ consideration rail ○ none  ◉ external payout  ○ Celo G$         │
 │ external  amt [ 60 ]  ← prefilled 5 × 12, editable       │  "Suggested from the declared
 │                                                          │   value — adjust freely"
 └──────────────────────────────────────────────────────────┘
 ```
 
-A commitment may declare value with `none` as its reward rail (valuation without pay). Steward
-edit pre-acceptance rides a `setDeclaredValue` action beside the existing reward edit; immutable
+A commitment may declare value with `none` as its consideration rail (valuation without pay). Steward
+edit pre-acceptance rides a `setDeclaredValue` action beside the existing consideration edit; immutable
 after acceptance.
 
 ### W3 delta — client creation flow
@@ -1314,7 +1314,7 @@ always lands in the editable creation flow; no template adds a contract type or 
 ### W21/W23 copy delta — reserve and redemption framing
 
 Where the settlement frames name the paying account, copy reads "the pool's reserve" (garden
-Safe) and a paid declared reward reads "redeemed from the pool's reserve" — framing only. Every
+Safe) and a paid declared consideration reads "redeemed from the pool's reserve" — framing only. Every
 settlement-state rule stands unchanged; "redeemed" never renders before the authenticated
 success acknowledgment for the current execution key and attempt.
 

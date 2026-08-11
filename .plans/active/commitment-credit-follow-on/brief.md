@@ -1,15 +1,15 @@
 # Commitment Credit — August Companion
 
 **Slug**: `commitment-credit-follow-on`
-**Stage**: `active — August-wave companion chain`
+**Stage**: `active — contracts increment in progress (stage 2 of 3)`
 **Priority**: `p1`
 
 ## Outcome
 
-Add a records-only, interest-free borrow-and-repay register once the Commitment Pooling and settlement interfaces freeze in code. The module records loan state and existing payment-rail references; it never custodies or transfers funds and never creates a personal credit score.
+Add a records-only, interest-free borrow-and-repay register against the merged Commitment Pooling and settlement interfaces. The module records loan state and authenticated or steward-attested payment-rail references; it never custodies or transfers funds and never creates a personal credit score.
 
 ## Activation boundary
 
-The explicit scope unlock was granted 2026-08-01 (pooling plan register #73, Grassroots Economics review session): this chain builds in the same August wave as Commitment Pooling, as an additive companion with zero pooling-module/register changes. Three dispatch gates remain before the contracts lane starts, recorded in [status.json](status.json): the in-code pooling/settlement interface freeze, revalidation of every spec-cited path against the implemented interfaces, and the human-owned legal/operations review of the interest-free records-only lending posture (start it immediately — it runs in parallel with the pooling build). The G$ leg locks settlement seam (a), `DisbursementKind.LoanPrincipal`.
+The explicit scope unlock was granted 2026-08-01 (pooling plan register #73, Grassroots Economics review session). The three contracts dispatch gates cleared on 2026-08-09: stage 1 merged at `c60b38dea`, Afo approved the interest-free records-only legal/operations posture, and the revalidation in [spec.md](spec.md) froze the exact `LoanPrincipal` selector against the interfaces at branch HEAD `238e4e218`. This stage owns the contract implementation and proof only. Deployment targets, artifacts, recovery/courier paths, live configuration, and broadcast are stage 3 after this contracts increment merges.
 
 The detailed design is in [spec.md](spec.md).

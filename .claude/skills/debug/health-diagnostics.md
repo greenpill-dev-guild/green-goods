@@ -55,11 +55,12 @@ cast call <contract> "functionName()" --rpc-url $RPC
 # View Docker container logs
 cd packages/indexer && bun run dev:docker:logs
 
-# Check Hasura GraphQL console (runs on port 8080)
-open http://localhost:8080/console
+# Check Hasura GraphQL console — repo-native PM2/Docker profile maps it to 3006
+# (standard Envio runtime default is 8080; see .claude/context/indexer.md)
+open http://localhost:3006/console
 
 # Test a GraphQL query directly
-node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ Garden { id name } }"})}).then(r=>r.text()).then(console.log)'
+node -e 'fetch("http://localhost:3006/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ Garden { id name } }"})}).then(r=>r.text()).then(console.log)'
 
 # Restart indexer containers
 bun run dev:docker:down && bun run dev:docker
@@ -149,12 +150,12 @@ cast estimate <gardenAddress> "submitWork(bytes32,string)" <args> --rpc-url $RPC
 cast receipt <txHash> --rpc-url $RPC | grep -A5 "logs"
 
 # Check indexer lag — compare latest indexed block vs chain head
-INDEXED=$(node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ _metadata { lastProcessedBlock } }"})}).then(r=>r.json()).then(x=>console.log(x.data._metadata.lastProcessedBlock))')
+INDEXED=$(node -e 'fetch("http://localhost:3006/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ _metadata { lastProcessedBlock } }"})}).then(r=>r.json()).then(x=>console.log(x.data._metadata.lastProcessedBlock))')
 CHAIN_HEAD=$(cast block-number --rpc-url $RPC)
 echo "Indexer lag: $((CHAIN_HEAD - INDEXED)) blocks"
 
 # Check if entity exists in indexer
-node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ Work(where: {id: {_eq: \"<workId>\"}}) { id status } }"})}).then(r=>r.text()).then(console.log)'
+node -e 'fetch("http://localhost:3006/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ Work(where: {id: {_eq: \"<workId>\"}}) { id status } }"})}).then(r=>r.text()).then(console.log)'
 ```
 
 ### Layer 5: Frontend Cache
@@ -181,10 +182,10 @@ echo -n "Chain: "; cast block-number --rpc-url $RPC && echo "OK" || echo "UNREAC
 echo -n "Contract: "; cast call $GARDEN_ADDRESS "name()(string)" --rpc-url $RPC && echo "OK" || echo "MISSING"
 
 # 3. Indexer running
-echo -n "Indexer: "; node -e 'fetch("http://localhost:8080/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo "OK" || echo "DOWN"
+echo -n "Indexer: "; node -e 'fetch("http://localhost:3006/healthz").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo "OK" || echo "DOWN"
 
 # 4. Frontend GraphQL reachable
-echo -n "GraphQL: "; node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ __typename }"})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo "OK" || echo "UNREACHABLE"
+echo -n "GraphQL: "; node -e 'fetch("http://localhost:3006/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ __typename }"})}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))' && echo "OK" || echo "UNREACHABLE"
 ```
 
 ---
@@ -362,10 +363,10 @@ async function checkIndexerLag() {
 
 ```bash
 # Check indexer is responding
-node -e 'fetch("http://localhost:8080/healthz").then(r=>console.log(r.status))'
+node -e 'fetch("http://localhost:3006/healthz").then(r=>console.log(r.status))'
 
 # Query GraphQL playground
-node -e 'fetch("http://localhost:8080/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ _metadata { lastProcessedBlock } }"})}).then(r=>r.text()).then(console.log)'
+node -e 'fetch("http://localhost:3006/v1/graphql", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({query:"{ _metadata { lastProcessedBlock } }"})}).then(r=>r.text()).then(console.log)'
 
 # Check Docker container status
 docker compose -f docker-compose.indexer.yaml ps

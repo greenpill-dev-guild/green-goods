@@ -282,7 +282,6 @@ function SeasonalContext({ garden }: { garden: Garden }) {
 
 - Full framework with citations: `docs/docs/reference/regenerative-design-framework.md`
 - Ecosystem thinking: `ecosystem.md` (15 user archetypes, cascade analysis)
-- Inclusive design: `interaction.md` (Persona Spectrum, adaptive density)
-- Spatial patterns: `spatial.md` (depth hierarchy, material system)
+- Inclusive design and spatial patterns: `surfaces.md` (Persona Spectrum, adaptive density, depth hierarchy, material system)
 - Green Goods design research: `docs/docs/reference/design-research.md` (personas, Eight Forms of Capital)
 - Ethereum alignment: `docs/docs/builders/ethereum-alignment.mdx` (CROPS, Walkaway Test)

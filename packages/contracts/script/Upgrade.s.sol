@@ -14,6 +14,7 @@ import { GardenAccount } from "../src/accounts/Garden.sol";
 import { WorkResolver } from "../src/resolvers/Work.sol";
 import { WorkApprovalResolver } from "../src/resolvers/WorkApproval.sol";
 import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
+import { TestimonyResolver } from "../src/resolvers/Testimony.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { OctantModule } from "../src/modules/Octant.sol";
 import { HatsModule } from "../src/modules/Hats.sol";
@@ -21,6 +22,8 @@ import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { KarmaGAPModule } from "../src/modules/Karma.sol";
 import { GreenWill } from "../src/registries/GreenWill.sol";
+import { CommitmentPoolingModule } from "../src/modules/CommitmentPooling.sol";
+import { CommitmentRegistry } from "../src/registries/Commitment.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -228,6 +231,36 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("AssessmentResolver upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Upgrade TestimonyResolver
+    /// @dev The EAS address is a constructor argument, so it is baked into implementation bytecode
+    ///      and cannot be changed by an upgrade. It is re-read from the network config here so a
+    ///      new implementation can never silently point at a different EAS than the proxy was
+    ///      deployed against.
+    function upgradeTestimonyResolver() public {
+        address proxy = loadProxyAddress("testimonyResolver");
+        console.log("Upgrading TestimonyResolver proxy at:", proxy);
+
+        validateProxy(proxy, "TestimonyResolver");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        address currentImplAddr = address(uint160(uint256(vm.load(proxy, implementationSlot))));
+        console.log("Current TestimonyResolver implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        (address eas,,,) = loadNetworkConfig();
+        console.log("Using EAS:", eas);
+
+        TestimonyResolver newImpl = new TestimonyResolver(eas);
+        console.log("New TestimonyResolver implementation:", address(newImpl));
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("TestimonyResolver upgraded successfully");
 
         vm.stopBroadcast();
     }
@@ -482,6 +515,43 @@ contract Upgrade is Script {
         upgradeYieldResolver();
         upgradeGardensModule();
         wireYieldResolverGardensModule();
+    }
+
+    /// @notice Upgrade the Commitment Pooling control plane and its register together
+    /// @dev The module and the register share the unit-accounting invariant: the module is the
+    ///      register's only authorized caller and the register is the module's only capacity
+    ///      ledger. Upgrading one without the other is never a valid intermediate state, so this
+    ///      grouped target is the only supported pooling upgrade path.
+    function upgradePooling() public {
+        address moduleProxy = loadProxyAddress("commitmentPoolingModule");
+        address registryProxy = loadProxyAddress("commitmentRegistry");
+        console.log("Upgrading CommitmentPoolingModule proxy at:", moduleProxy);
+        console.log("Upgrading CommitmentRegistry proxy at:", registryProxy);
+
+        validateProxy(moduleProxy, "CommitmentPoolingModule");
+        validateProxy(registryProxy, "CommitmentRegistry");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        address currentModuleImpl = address(uint160(uint256(vm.load(moduleProxy, implementationSlot))));
+        address currentRegistryImpl = address(uint160(uint256(vm.load(registryProxy, implementationSlot))));
+        console.log("Current CommitmentPoolingModule implementation:", currentModuleImpl);
+        console.log("Current CommitmentRegistry implementation:", currentRegistryImpl);
+
+        vm.startBroadcast();
+
+        CommitmentPoolingModule newModuleImpl = new CommitmentPoolingModule();
+        console.log("New CommitmentPoolingModule implementation:", address(newModuleImpl));
+        if (address(newModuleImpl) == currentModuleImpl) revert SameImplementation();
+
+        CommitmentRegistry newRegistryImpl = new CommitmentRegistry();
+        console.log("New CommitmentRegistry implementation:", address(newRegistryImpl));
+        if (address(newRegistryImpl) == currentRegistryImpl) revert SameImplementation();
+
+        UUPSUpgradeable(moduleProxy).upgradeTo(address(newModuleImpl));
+        UUPSUpgradeable(registryProxy).upgradeTo(address(newRegistryImpl));
+        console.log("Commitment Pooling upgraded successfully");
+
+        vm.stopBroadcast();
     }
 
     /// @notice Upgrade all contracts

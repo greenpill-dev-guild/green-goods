@@ -64,6 +64,58 @@ contracts:
     events:
       - event: JarCreated(address indexed jarAddress, address indexed creator)
       - event: MetadataUpdated(address indexed jarAddress, string metadata)
+  - name: SettlementModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: SettlementDeploymentPinned(address indexed ccipRouter, uint64 indexed localChainSelector, uint64 indexed remoteEvmChainId)
+      - event: FundingConfigurationLocked(address indexed protocolGarden, address indexed gDollarToken)
+      - event: SettlementAccountRegistered(address indexed garden, uint64 chainId, address indexed account, address[3] recoveryOwners, address rolesModifier, bytes32 roleKey, bytes32 allowanceKey, bytes32 permissionsConfigHash, bytes32 recoveryConfigHash, uint8 recoveryThreshold)
+      - event: SettlementRecoveryUpdated(address indexed garden, address[3] recoveryOwners, bytes32 recoveryConfigHash)
+      - event: SettlementAccountStatusChanged(address indexed garden, bool active)
+      - event: CcipRouteUpdated(uint64 indexed destinationChainSelector, address indexed destinationExecutor, address indexed previousDestinationExecutor, uint64 previousPeerExpiresAt, uint32 destinationGasLimit, uint8 protocolVersion)
+      - event: GardenerDeliveryStatusChanged(bool enabled)
+      - event: BatchSizeLimitUpdated(uint16 previousLimit, uint16 limit)
+      - event: DispatcherUpdated(address indexed previousDispatcher, address indexed dispatcher)
+      - event: FeeReserveMinimumUpdated(uint256 previousMinimum, uint256 minimum)
+      - event: HatsModuleUpdated(address indexed previousModule, address indexed newModule)
+      - event: CommitmentPoolingModuleUpdated(address indexed previousModule, address indexed newModule)
+      - event: PausedSet(bool paused)
+      - event: CommitmentPayoutPlanCreated(uint256 indexed payoutPlanId, uint256 indexed commitmentId, address indexed providerGarden, address payerGarden, address source, address token, uint8 payoutKind, uint256 declaredAmount, uint256 gardenRetainedAmount, address beneficiaryGarden, address beneficiaryRecipient, uint256 beneficiaryAmount, bytes32 recognitionSnapshotHash, address createdBy)
+      - event: ContributorPayoutSet(uint256 indexed payoutPlanId, uint32 indexed paymentSnapshotVersion, address indexed contributor, address recipient, uint16 recognitionWeightBps, uint16 paymentWeightBps, uint256 amount, string reasonCID, address editedBy)
+      - event: CommitmentPayoutSnapshotCommitted(uint256 indexed payoutPlanId, uint32 indexed paymentSnapshotVersion, uint32 rowCount, uint256 gardenRetainedAmount, uint256 contributorPayoutTotal, bytes32 paymentSnapshotHash, string reasonCID, address editedBy)
+      - event: CommitmentPayoutPlanFinalized(uint256 indexed payoutPlanId, uint8 payoutKind, uint32 payablePayoutCount, uint256 contributorPayoutTotal, uint256 beneficiaryAmount, uint256 gardenRetainedAmount, bytes32 recognitionSnapshotHash, bytes32 paymentSnapshotHash, bool completedWithoutDispatch, uint64 finalizedAt)
+      - event: DisbursementQueued(uint256 indexed disbursementId, uint256 indexed commitmentId, address indexed garden, uint256 payoutPlanId, address contributor, address executorGarden, uint8 kind, uint8 fundingRoute, address source, address recipient, address token, uint256 amount)
+      - event: BatchCreated(uint256 indexed batchId, address indexed executorGarden, address indexed source, address token, uint8 kind, uint8 fundingRoute, uint256[] disbursementIds)
+      - event: SettlementCommandDispatched(bytes32 indexed executionKey, bytes32 indexed commandMessageId, bool indexed isBatch, uint256 subjectId, uint32 attempt, uint64 destinationChainSelector, address destinationExecutor, uint32 destinationGasLimit, uint8 protocolVersion, bytes32 commandPayloadHash, uint256 fee)
+      - event: SettlementCommandRetried(bytes32 indexed executionKey, bytes32 indexed commandMessageId, bool indexed isBatch, uint256 subjectId, uint32 attempt, uint64 destinationChainSelector, address destinationExecutor, uint32 destinationGasLimit, uint8 protocolVersion, bytes32 commandPayloadHash, uint256 fee)
+      - event: SettlementAcknowledged(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId, bytes32 indexed originatingCommandMessageId, bool isBatch, uint256 subjectId, bool success, uint8 failureCode)
+      - event: DuplicateAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId)
+      - event: StaleAcknowledgmentIgnored(bytes32 indexed executionKey, bytes32 indexed acknowledgmentMessageId)
+      - event: StrandedSubjectFailed(bytes32 indexed executionKey, bool isBatch, uint256 indexed subjectId, address indexed retiredExecutor)
+      - event: DisbursementRequeued(uint256 indexed disbursementId, uint32 attempt)
+      - event: DisbursementCancelled(uint256 indexed disbursementId, address indexed actor, uint8 cancelledFromState, string reasonCID)
+      - event: BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID)
+      - event: FeeReserveFunded(address indexed funder, uint256 amount)
+      - event: ExcessFeesWithdrawn(address indexed recipient, uint256 amount)
+  # Code-level Celo read model only. No chain block/address is registered until release authorization.
+  - name: CeloSettlementExecutor
+    handler: src/EventHandlers.ts
+    events:
+      - event: ExecutorDeploymentPinned(address indexed ccipRouter, address indexed gDollarToken, uint64 indexed remoteChainSelector, uint64 localChainSelector, uint64 sourceEvmChainId)
+      - event: SourcePeerUpdated(uint64 indexed sourceChainSelector, address indexed sourceSettlementModule, address indexed previousSourceSettlementModule, uint64 previousPeerExpiresAt, uint8 protocolVersion)
+      - event: GardenRouteConfigured(address indexed garden, address indexed safe, address indexed rolesModifier, bytes32 roleKey, bytes32 allowanceKey, bytes32 permissionsConfigHash)
+      - event: GardenRouteStatusChanged(address indexed garden, bool active)
+      - event: CapsUpdated(uint16 maxBatchSize, uint256 maxTransferAmount, uint256 maxBatchAmount)
+      - event: FeePolicyUpdated(uint16 maxFeeBps, uint256 maxFeeAmount)
+      - event: PeriodicCapUpdated(uint64 periodDuration, uint256 maxPeriodAmount)
+      - event: AcknowledgmentFeeReserveMinimumUpdated(uint256 previousMinimum, uint256 minimum)
+      - event: AcknowledgmentFeeReserveFunded(address indexed funder, uint256 amount)
+      - event: ExcessAcknowledgmentFeesWithdrawn(address indexed recipient, uint256 amount)
+      - event: PausedSet(bool paused)
+      - event: SettlementExecutionStored(bytes32 indexed executionKey, bytes32 indexed commandMessageId, address indexed executorGarden, address acknowledgmentReceiver, uint8 protocolVersion, bool isBatch, uint256 settlementId, uint32 attempt, uint8 status, uint8 failureCode)
+      - event: DuplicateSettlementMessage(bytes32 indexed executionKey, bytes32 indexed commandMessageId)
+      - event: AcknowledgmentSent(bytes32 indexed executionKey, bytes32 indexed commandMessageId, bytes32 indexed acknowledgmentMessageId, uint256 fee, bool reserveFunded)
+      - event: AcknowledgmentDeferred(bytes32 indexed executionKey, bytes32 indexed commandMessageId, uint8 reasonCode)
 chains:
   - id: 42161
     start_block: 433713812
@@ -88,6 +140,8 @@ chains:
         address: "0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7"
       - name: CookieJarFactory
         address: "0x294d222eDE6DF6625B43544F1C634322467528Da"
+      # Pre-broadcast: handlers and ABI are generated, but no address is registered.
+      - name: SettlementModule
   - id: 11155111
     start_block: 10243363
     contracts:

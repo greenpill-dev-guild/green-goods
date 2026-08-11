@@ -30,7 +30,7 @@ bun build                    # Build everything (respects dependency order)
 
 Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts). Secondary dev commands (`dev:web`, `dev:full`, `dev:prod:mirror`, PM2 fallbacks) are catalogued in [`scripts/README.md`](scripts/README.md).
 
-**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs). Use `script/deploy.ts` for initial deployments and `script/upgrade.ts` for named UUPS upgrades; do not use `deploy.ts --force` as an upgrade or rollback path. For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
+**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs), `bun run check:sizes` (EIP-170 deployed-bytecode gate — Foundry tests don't enforce the 24,576-byte limit; CI runs this, and pooling behavior must land in `src/lib/CommitmentPooling/` per `.plans/active/commitment-pooling/contract-spec.md` §6.1). Use `script/deploy.ts` for initial deployments and `script/upgrade.ts` for named UUPS upgrades; do not use `deploy.ts --force` as an upgrade or rollback path. For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
 
 ## Validation Intent Ladder
 
@@ -107,6 +107,19 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Linear MCP** is wired into the Claude Code harness globally (~40 tools). Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
+**Writing in Linear — write for the person who opens it cold.** Titles and bodies are read by teammates, not parsed by agents. Say what is wrong or what should exist, in plain sentences, the way you would explain it to a colleague who has not been in your session.
+
+- **Lead with the problem or the outcome**, not the mechanism. "Gardeners can't submit work when offline" beats "JobQueue mutation retry regression".
+- **Prose over structure.** No status tables, no emoji headers, no `P0/P1` prefixes in titles, no restating the same fact in a summary *and* a detail section. Short paragraphs; a list only when the items are genuinely parallel.
+- **Never paste raw agent output** — session transcripts, tool logs, full stack traces, diff dumps, or a wall of file:line anchors. Quote the one line that matters and link the rest.
+- **No internal shorthand**: no screen codes (`W22`), no spec citations (`§6.1`, `register #90`), no plan-hub lane names, no decision-log numbers. Those live in `.plans/`. If context is genuinely needed, link the file.
+- **One issue per issue.** Two unrelated bugs in one title is two issues.
+- **Say what you actually know.** Mark what is verified versus suspected, and never write that something is fixed, passing, or deployed without having seen it — the same evidence bar as everywhere else in this file.
+- **Comments are updates, not changelogs.** Say what changed and what it means for the reader. Don't narrate your process.
+- **Don't rewrite history.** A `Done` issue's description stays as it was; add a comment, or open a successor and link it.
+
+Issue references use native `<issue>` mentions rather than markdown links. Fuller conventions and the routing contract: [`.claude/context/linear-routing-rules.md`](.claude/context/linear-routing-rules.md).
+
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
 
 **QA sync triage**: after a build sync QA session (formerly "product sync"), [`/qa-triage`](.claude/skills/qa-triage/SKILL.md) turns the meeting notes into Linear records + QA-sheet rows; the cron'd [`qa-triage-pulse`](docs/routines/qa-triage-pulse.md) pre-stages Customer Needs every Wednesday so `/qa-triage` can resume from them.
@@ -145,7 +158,7 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Query Keys**: Use `queryKeys.*` helpers from shared. Serialize objects in query keys.
 
-**Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, cookie jars, or Hypercert display metadata.
+**Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims, cookie-jar creation/metadata, settlement/payout lifecycle, and — when the pooling lane ships — commitment pooling events). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, or Hypercert display metadata. The enforceable boundary of record is `packages/indexer/scripts/check-indexing-boundary.mjs`; keep this line aligned with it, not the other way around.
 
 **Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
 
@@ -174,7 +187,9 @@ Full skill: `design` (direction; `design/implementation.md` for build guidance �
 ## Agentic Modern Web Standard
 
 - Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser-proof, or web-design changes: retrieve current guidance with `bun run agentic:guidance`, and run `bun run agentic:check` as the guidance-readiness front door. Prefer semantic HTML, native controls, and platform CSS before custom JavaScript; keep landmarks, labels, accessible names, focus order, touch targets, loading/error/empty states, and reduced-motion behavior legible to humans, assistive tech, and browser agents.
-- Local agentic browser QA must use the **authenticated Brave QA profile** (Codex browser-extension path, or Claude Code's Chrome/Chromium extension attached to the already-open Brave window; computer-use fallback). If authenticated Brave is unreachable, report QA as **blocked** — never substitute isolated Browser/Playwright/DevTools-MCP profiles or clean-room commands (`agentic:verify`, `agentic:browser-proof`, `lighthouse`, Brave DevTools MCP) and present them as authenticated verification; they are CI/clean-room evidence only. `dev-surfaces` remains the cross-repo doctor for guidance cache, Brave, and MCP readiness.
+- Local agentic browser QA must use the **authenticated Brave QA profile**. Codex uses the Codex browser-extension path to claim the already-open Brave window. Claude Code uses the Claude Code Chrome/Chromium extension path and selects the authenticated Brave profile/tab, with visible computer-use as its fallback.
+- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Clean-room commands (`agentic:verify`, `agentic:browser-proof`, `lighthouse`, Brave DevTools MCP) are CI evidence only and cannot support an authenticated verification claim.
+- If authenticated Brave access is blocked, stop and report QA as blocked. `dev-surfaces` remains the cross-repo doctor for guidance cache, Brave, and MCP readiness.
 - Full protocol (extension selection, Brave DevTools MCP constraints, WebMCP scope): `AGENTS.md § Agentic Modern Web Standard`.
 
 **Admin UI defect resolution**: however casually the user reports an admin defect ("the card on Hub feels tight"), resolve it to a canonical `Admin*` wrapper or canvas region before editing — never guess, never ask them to formalize. Escalate: authenticated Brave live DOM (`data-component` / `data-region` / `data-workspace`) → code fallback (`rg -n 'data-component="AdminX"' packages/admin/src/views/`) → ask only if both fail to narrow to one candidate. Full workflow + casual-term mapping: `.claude/skills/design/defect-grammar.md`.
@@ -250,7 +265,12 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 
 ## Codex Dispatch
 
-Codex CLI ships inside the Mac app — there is no globally installed `codex` binary; use `CODEX=/Applications/Codex.app/Contents/Resources/codex`. Common forms: `"$CODEX" exec review --uncommitted - < prompt.md` (review uncommitted diff), `"$CODEX" exec --full-auto -C <worktree> -o <result-file> "<prompt>"` (non-interactive task), `"$CODEX" exec review --commit <sha>`. Don't reach for `which codex` or install it globally. Worktree + dispatch protocol details: memory note `feedback_claude_orchestrated_codex.md`.
+Set `CODEX="$(.claude/scripts/resolve-codex-binary.sh)"` before direct Codex CLI calls. The resolver
+honors a valid `CODEX` override, checks the installed ChatGPT.app and Codex.app bundles, then falls
+back to `codex` on `PATH`. Common forms: `"$CODEX" exec review --uncommitted - < prompt.md` (review uncommitted diff),
+`"$CODEX" exec --full-auto -C <worktree> -o <result-file> "<prompt>"` (non-interactive task), and
+`"$CODEX" exec review --commit <sha>`. Worktree + dispatch protocol details live in
+`.claude/scripts/dispatch-codex-lane.sh` and `.claude/skills/plan/teams.md`.
 
 ## Repo Health Ritual
 

@@ -18,6 +18,7 @@ import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import {
   trackGardenJoinAlreadyMember,
+  trackGardenJoinCancelled,
   trackGardenJoinFailed,
   trackGardenJoinStarted,
   trackGardenJoinSuccess,
@@ -47,7 +48,8 @@ interface PasskeySession {
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { simulateJoinGarden } from "../../utils/blockchain/simulation";
-import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
+import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
+import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../../config/query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
@@ -392,20 +394,35 @@ export function useJoinGarden() {
         }
         removePendingJoin(gardenAddress);
 
-        // Track failed join - send both funnel event and structured exception
-        trackGardenJoinFailed({
-          gardenAddress,
-          error: error instanceof Error ? error.message : "Unknown error",
-          authMode,
-        });
+        // A declined wallet or passkey prompt is a user decision, not a product
+        // breakage. It still rolls back and rethrows like any other error, but it
+        // stays out of the failure funnel and the error dashboard — counting
+        // aborts as failures is what made `failures.conversion-kill` read a
+        // two-person retry loop as a 66.7% garden_join conversion kill (PRD-717).
+        if (isCancelledTxError(error)) {
+          trackGardenJoinCancelled({ gardenAddress, authMode });
+        } else {
+          // Telemetry carries the parsed error family only — viem embeds the
+          // signer address in raw wallet messages, and these values are quoted
+          // into shared surfaces by the growth-pulse routine.
+          const parsedErrorFamily = parseContractError(error).name;
 
-        // Also track as structured exception for PostHog error dashboard
-        trackContractError(error, {
-          source: "useJoinGarden",
-          gardenAddress,
-          authMode,
-          userAction: "joining garden",
-        });
+          // Track failed join - send both funnel event and structured exception
+          trackGardenJoinFailed({
+            gardenAddress,
+            error: parsedErrorFamily,
+            parsedErrorFamily,
+            authMode,
+          });
+
+          // Also track as structured exception for PostHog error dashboard
+          trackContractError(error, {
+            source: "useJoinGarden",
+            gardenAddress,
+            authMode,
+            userAction: "joining garden",
+          });
+        }
 
         isJoiningRef.current = false;
         setState((prev) => ({

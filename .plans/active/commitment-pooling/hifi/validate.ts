@@ -101,7 +101,7 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     allowed: ["Disputed"],
     resultAllowed: ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
   },
-  recordRewardPaid: { key: "commitment", allowed: ["Fulfilled"] },
+  recordConsiderationPaid: { key: "commitment", allowed: ["Fulfilled"] },
   setPoolCharter: {
     key: "pool",
     allowed: ["NotReady", "Ready", "Open", "Paused", "Closed", "Composted"],
@@ -159,6 +159,15 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
     allowed: ["Pending", "Partial"],
     effects: { disbursement: "Queued" },
     requires: { settlementAccount: ["Active"] },
+  },
+  prepareGardenBeneficiaryPayout: {
+    key: "payoutPlan",
+    allowed: ["Pending"],
+    effects: { disbursement: "Queued", disbursementKind: "GardenBeneficiary" },
+    requires: {
+      settlementAccount: ["Active"],
+      beneficiarySettlementAccount: ["Active"],
+    },
   },
   queueFunding: {
     key: "settlementAccount",

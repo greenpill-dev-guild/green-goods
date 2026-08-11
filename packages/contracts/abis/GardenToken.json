@@ -145,6 +145,19 @@
   },
   {
     "type": "function",
+    "name": "commitmentPoolingModule",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract ICommitmentPoolingModule"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "communityToken",
     "inputs": [],
     "outputs": [
@@ -565,6 +578,19 @@
   },
   {
     "type": "function",
+    "name": "setCommitmentPoolingModule",
+    "inputs": [
+      {
+        "name": "_module",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setCommunityToken",
     "inputs": [
       {
@@ -962,6 +988,25 @@
     "inputs": [
       {
         "name": "beacon",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentPoolingModuleUpdated",
+    "inputs": [
+      {
+        "name": "oldModule",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newModule",
         "type": "address",
         "indexed": true,
         "internalType": "address"

@@ -485,7 +485,7 @@
   --glass-overlay-bg: 0 0 0 / 40%;
 
   /* ── Material System ── 5-thickness semantic surface material (Warm Earth spec).
-   * Match thickness to content density — see .claude/skills/design/materials.md.
+   * Match thickness to content density — see .claude/skills/design/surfaces.md.
    * Opacity uses OKLCH per language.md § Color Direction (destination token format).
    * Usage: `background: var(--color-material-regular); backdrop-filter: blur(var(--blur-material-regular));`
    * Degrades to solid via @media (prefers-contrast: more) at end of theme layer.
@@ -749,7 +749,7 @@
 
 /* Material system — accessibility fallback.
  * Users who enable max-contrast lose translucent glass and get solid surfaces.
- * Matches the fallback rule in .claude/skills/design/materials.md § Accessibility.
+ * Matches the fallback rule in .claude/skills/design/surfaces.md § Material System.
  */
 @media (prefers-contrast: more) {
   :root {

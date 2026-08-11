@@ -45,11 +45,16 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `additionSeen`, and Work attribution has `linkSeen`. Base-event-only facts and unrelated cursor
   pairs are nullable until their owning event arrives; ordinary queries exclude unseen
   placeholders while handlers may load them by ID.
+  `Commitment.creationRequestKey` and `Commitment.creationPayloadHash` are both **emitted
+  parameters of `CommitmentCreated`** (amendment 2026-08-05, contract-spec §6.1 "Creation payload
+  hash (frozen preimage)"). Assign each verbatim from `event.params`. Never recompute the hash,
+  never derive it, never leave it null on a seen creation, and never satisfy it with an RPC read —
+  the no-RPC-backfill rule and this required field are consistent only because the event carries it.
   The commitment entity also carries creation key/hash, immutable acceptance position,
   `creationSeen`, `acceptanceSeen`, `frozenContributorCount`, nullable
   `memberHistoryOutcome`, `fulfilledParticipantHistoryApplied`, `counterCommitmentId`,
-  `declaredUnitValue`/`declaredValueBasis`, independent value, reward, confirmer-rule, and
-  lifecycle cursor pairs, `protocolFallbackEnabled`, `fulfilledBy`, nullable
+  `declaredUnitValue`/`declaredValueBasis`, independent value, consideration, confirmer-rule, and
+  lifecycle cursor pairs, immutable `payerGarden`/`payerGardenId`, `protocolFallbackEnabled`, `fulfilledBy`, nullable
   `confirmationPath`, `fallbackReason`, and derived `fulfilledByFallback`. Contributor membership,
   requirement assignment, and Work link membership each own independent event-position cursors.
   `ConfirmerRuleSet` is the only authority for the opt-in. `CommitmentFulfilled` is the only
@@ -76,6 +81,14 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   `CommitmentEvent.configurationKey/previousValue/newValue` audit fields, never a synthetic pool
   zero, and never mutate accounting entities.
 - Settlement phase: Arbitrum settlement account/disbursement/batch/message entities; Celo `SettlementGardenRoute`, bounded `CeloSettlementExecutor` execution, and acknowledgment-message entities; and one chain-composite `SettlementConfiguration` singleton per source/executor chain carrying role, local contract/router, nullable remote selector, nullable verified `remoteEvmChainId`, nullable active/previous peer + expiry, protocol version, pause state, source/executor batch limit, executor transfer/aggregate/period caps, dispatcher where applicable, native-fee floor/balance/low state, peer readiness, and nullable source-only `gardenerDeliveryEnabled`. Null means the source fact is unknown/not configured and can never satisfy readiness; only explicit `true` enables gardener delivery.
+- `CommitmentPayoutPlan` carries provider and payer relationships, immutable `payoutKind`, general
+  payable/prepared/confirmed/failed/cancelled counters, and nullable beneficiary garden/Safe/child
+  fields. `ContributorConsideration` buffers versioned contributor snapshots;
+  `GardenBeneficiary` accepts no contributor rows and binds its one child directly from
+  `DisbursementQueued`. Derive `CommitmentSettlementFlow` as `INTERNAL`,
+  `PROTOCOL_TO_GARDEN`, `GARDEN_TO_PROTOCOL`, or reserved `GARDEN_TO_GARDEN` from immutable
+  payer/provider plus write-once protocol garden; never infer it from recipient/source addresses.
+  The fact describes intended settlement direction, not later Celo token circulation.
 - Source `SettlementConfiguration` additionally persists the write-once protocol garden/canonical
   G$ plus event-owned Hats and CommitmentPoolingModule dependency addresses; handlers update those
   trust roots only from their exact old/new events.
@@ -115,15 +128,15 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   fills payload without revival; only a genuinely newer request may advance the cursor and return
   to Pending.
 - Preserve `Garden.id` as the normalized bare GardenAccount address with explicit `chainId`.
-  `gardenId`, `providerGardenId`, and `gardenContextId` relationship helpers store that existing ID;
+  `gardenId`, `providerGardenId`, `payerGardenId`, and `gardenContextId` relationship helpers store that existing ID;
   every new Commitment Pooling entity retains its own chain-scoped composite ID. No Garden
   primary-key migration or mixed-ID compatibility layer is permitted.
 - Nullable generic audit actor populated only from explicit event parameters, never transaction.from.
 - Commitment read model persists provider, bare-address providerGarden relation, preDisputeState,
   nullable lifecycle cursor, positional requirement rows (`requirementIndex`, domain/action,
   required/approved counts), the per-commitment `approvedUnits` value emitted by the contract, and
-  explicit `RewardRail` plus derived reward facts. `rewardRecipient` is the ArbitrumExternal
-  `RewardPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert
+  explicit `ConsiderationRail` plus derived consideration facts. `considerationRecipient` is the ArbitrumExternal
+  `ConsiderationPaid` recipient only; a Celo beneficiary lives on the settlement `Disbursement`. Hypercert
   persists `bundleKind`, composite fulfilled-commitment relationships, ascending unique Need UIDs,
   legacy Work-bundle readability, and certificate-scoped
   `HypercertCommitmentContributorAllocation` rows; integer recognition units never live on or
@@ -147,7 +160,7 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   including cycle-less rows, and follows the same reversible transition helper.
   `CommitmentPool.nonTerminalCycleCount` increments on seed and decrements once on cancel or
   compost. `PoolClosed` may project only when both are zero.
-- Pool charter, provider cap, commitment reward, contributor membership, contributor requirement
+- Pool charter, provider cap, commitment consideration, contributor membership, contributor requirement
   assignment, and Work link lifecycle each compare an independent `(blockNumber, logIndex)`
   cursor. `CommitmentContributorIndex`, its requirement-assignment companion, request/evidence/
   Need/counter indexes, and every other set-like relationship array are de-duplicated and sorted
@@ -350,8 +363,10 @@ lane and must be created before their commands can pass.
   Keep stable bps on `CommitmentContributor`, and persist each integer result on
   `HypercertCommitmentContributorAllocation` so every certificate owns an immutable allocation
   snapshot even when commitments are bundled again.
-- Index `CommitmentPayoutPlan` and `ContributorPayout`; draft events carry no child ID, while each
-  later `DisbursementQueued` binds one prepared child to its stable parent row and garden payer.
+- Index `CommitmentPayoutPlan` and `ContributorPayout`; creation freezes the plan kind, payer,
+  provider, and beneficiary fields. Draft events carry no child ID. A later
+  `DisbursementQueued(kind=ContributorConsideration)` binds one prepared child to its stable
+  contributor row; `GardenBeneficiary` binds the plan's one beneficiary child pointer.
   Buffer every version-tagged `ContributorPayoutSet` row by `(payoutPlanId,
   paymentSnapshotVersion)` and atomically publish a replacement only when the trailing
   `CommitmentPayoutSnapshotCommitted` row count and payment hash match; that event owns retention,
@@ -360,8 +375,11 @@ lane and must be created before their commands can pass.
   `{ contributor, recipient, recognitionWeightBps, paymentWeightBps, amount }` rows. Never hash
   disbursement IDs or child counters; there is no inclusion flag, because a row is payable
   exactly when its `amount > 0` (register #70). Keep payment weights
-  amount-derived and derive parent status from finalization, unprepared payable rows, and child
-  counters; do not infer payment from Hypercert weights or raw token transfers.
+  amount-derived and derive parent status from finalization, general unprepared payable count, and
+  child counters. A beneficiary plan has one payable row and cannot be Complete before its child
+  is Confirmed. Acknowledgment/failure/requeue/cancel applies the same parent-counter update to
+  both commitment-bound kinds and never clears their stable pointers. Do not infer payment from
+  Hypercert weights or raw token transfers.
 - Migration/replay fixtures must include solo lead, multi-person team, roster freeze at
   `ReadyForConfirmation`, every direct terminal `DisputeResolved` outcome, the exact reversible
   `Expired -> Disputed -> RestorePrevious/Cancelled` projection, duplicate/reverse lifecycle

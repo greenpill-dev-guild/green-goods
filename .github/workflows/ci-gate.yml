@@ -15,10 +15,15 @@ name: CI Gate
 #
 # Maintenance: keep scripts/quality/ci-gate.mjs in sync with workflow path
 # filters. Its fixture tests run before the live gate.
+#
+# Base branches are deliberately unfiltered: stacked pull requests target
+# another feature branch as their base, and a base filter here (and in the
+# per-package workflows) used to leave stacked layers with no CI at all —
+# required checks then showed blocked forever. Push triggers keep their
+# main/develop filters; PR-triggered CI runs for every layer of a stack.
 
 on:
   pull_request:
-    branches: [main, develop]
 
 permissions:
   actions: read

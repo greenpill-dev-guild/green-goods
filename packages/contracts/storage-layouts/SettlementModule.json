@@ -1,0 +1,1005 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_status",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "hatsModule",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_address"
+    },
+    {
+      "label": "commitmentPoolingModule",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "label": "protocolGarden",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "label": "gDollarToken",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_address"
+    },
+    {
+      "label": "paused",
+      "offset": 20,
+      "slot": "154",
+      "type": "t_bool"
+    },
+    {
+      "label": "gardenerDeliveryEnabled",
+      "offset": 21,
+      "slot": "154",
+      "type": "t_bool"
+    },
+    {
+      "label": "batchSizeLimit",
+      "offset": 22,
+      "slot": "154",
+      "type": "t_uint16"
+    },
+    {
+      "label": "dispatcher",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "label": "feeReserveMinimum",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_uint256"
+    },
+    {
+      "label": "_ccipRoute",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_struct(CcipRoute)_storage"
+    },
+    {
+      "label": "_nextDisbursementId",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_uint256"
+    },
+    {
+      "label": "_nextBatchId",
+      "offset": 0,
+      "slot": "161",
+      "type": "t_uint256"
+    },
+    {
+      "label": "_settlementAccounts",
+      "offset": 0,
+      "slot": "162",
+      "type": "t_mapping(t_address,t_struct(SettlementAccount)_storage)"
+    },
+    {
+      "label": "_disbursements",
+      "offset": 0,
+      "slot": "163",
+      "type": "t_mapping(t_uint256,t_struct(Disbursement)_storage)"
+    },
+    {
+      "label": "_batches",
+      "offset": 0,
+      "slot": "164",
+      "type": "t_mapping(t_uint256,t_struct(Batch)_storage)"
+    },
+    {
+      "label": "_planState",
+      "offset": 0,
+      "slot": "165",
+      "type": "t_struct(State)_storage"
+    },
+    {
+      "label": "_commandRecords",
+      "offset": 0,
+      "slot": "169",
+      "type": "t_mapping(t_bytes32,t_struct(CommandRecord)_storage)"
+    },
+    {
+      "label": "_commandPayloads",
+      "offset": 0,
+      "slot": "170",
+      "type": "t_mapping(t_bytes32,t_bytes_storage)"
+    },
+    {
+      "label": "commandExecutionKeys",
+      "offset": 0,
+      "slot": "171",
+      "type": "t_mapping(t_bytes32,t_bytes32)"
+    },
+    {
+      "label": "_settlementAccountGardens",
+      "offset": 0,
+      "slot": "172",
+      "type": "t_mapping(t_address,t_address)"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "173",
+      "type": "t_array(t_uint256)28_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)3_storage": {
+      "base": "t_address",
+      "encoding": "inplace",
+      "label": "address[3]",
+      "numberOfBytes": "96"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)28_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[28]",
+      "numberOfBytes": "896"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_array(t_uint256)dyn_storage": {
+      "base": "t_uint256",
+      "encoding": "dynamic_array",
+      "label": "uint256[]",
+      "numberOfBytes": "32"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_bytes32": {
+      "encoding": "inplace",
+      "label": "bytes32",
+      "numberOfBytes": "32"
+    },
+    "t_bytes_storage": {
+      "encoding": "bytes",
+      "label": "bytes",
+      "numberOfBytes": "32"
+    },
+    "t_enum(DisbursementKind)": {
+      "encoding": "inplace",
+      "enumMembers": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary"],
+      "label": "enum ISettlementModule.DisbursementKind",
+      "numberOfBytes": "1"
+    },
+    "t_enum(DisbursementState)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "Queued", "Dispatched", "Confirmed", "Failed", "Cancelled"],
+      "label": "enum ISettlementModule.DisbursementState",
+      "numberOfBytes": "1"
+    },
+    "t_enum(FundingRoute)": {
+      "encoding": "inplace",
+      "enumMembers": ["None", "ProtocolToGarden"],
+      "label": "enum ISettlementModule.FundingRoute",
+      "numberOfBytes": "1"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_address,t_struct(ContributorPayout)_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ISettlementModule.ContributorPayout)",
+      "numberOfBytes": "32",
+      "value": "t_struct(ContributorPayout)_storage"
+    },
+    "t_mapping(t_address,t_struct(SettlementAccount)_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => struct ISettlementModule.SettlementAccount)",
+      "numberOfBytes": "32",
+      "value": "t_struct(SettlementAccount)_storage"
+    },
+    "t_mapping(t_bytes32,t_bytes32)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => bytes32)",
+      "numberOfBytes": "32",
+      "value": "t_bytes32"
+    },
+    "t_mapping(t_bytes32,t_bytes_storage)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => bytes)",
+      "numberOfBytes": "32",
+      "value": "t_bytes_storage"
+    },
+    "t_mapping(t_bytes32,t_struct(CommandRecord)_storage)": {
+      "encoding": "mapping",
+      "key": "t_bytes32",
+      "label": "mapping(bytes32 => struct ISettlementModule.CommandRecord)",
+      "numberOfBytes": "32",
+      "value": "t_struct(CommandRecord)_storage"
+    },
+    "t_mapping(t_uint256,t_mapping(t_address,t_struct(ContributorPayout)_storage))": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => mapping(address => struct ISettlementModule.ContributorPayout))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_struct(ContributorPayout)_storage)"
+    },
+    "t_mapping(t_uint256,t_struct(Batch)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ISettlementModule.Batch)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Batch)_storage"
+    },
+    "t_mapping(t_uint256,t_struct(CommitmentPayoutPlan)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ISettlementModule.CommitmentPayoutPlan)",
+      "numberOfBytes": "32",
+      "value": "t_struct(CommitmentPayoutPlan)_storage"
+    },
+    "t_mapping(t_uint256,t_struct(Disbursement)_storage)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => struct ISettlementModule.Disbursement)",
+      "numberOfBytes": "32",
+      "value": "t_struct(Disbursement)_storage"
+    },
+    "t_mapping(t_uint256,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_uint256",
+      "label": "mapping(uint256 => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_string_storage": {
+      "encoding": "bytes",
+      "label": "string",
+      "numberOfBytes": "32"
+    },
+    "t_struct(Batch)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.Batch",
+      "members": [
+        {
+          "label": "executorGarden",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "source",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "token",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "kind",
+          "offset": 20,
+          "slot": "2",
+          "type": "t_enum(DisbursementKind)"
+        },
+        {
+          "label": "fundingRoute",
+          "offset": 21,
+          "slot": "2",
+          "type": "t_enum(FundingRoute)"
+        },
+        {
+          "label": "disbursementIds",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_array(t_uint256)dyn_storage"
+        },
+        {
+          "label": "state",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_enum(DisbursementState)"
+        },
+        {
+          "label": "attempt",
+          "offset": 1,
+          "slot": "4",
+          "type": "t_uint32"
+        },
+        {
+          "label": "executionKey",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "commandMessageId",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "dispatchedAt",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_uint64"
+        },
+        {
+          "label": "confirmedAt",
+          "offset": 8,
+          "slot": "7",
+          "type": "t_uint64"
+        },
+        {
+          "label": "acknowledgmentMessageId",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "failureCode",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint8"
+        }
+      ],
+      "numberOfBytes": "320"
+    },
+    "t_struct(CcipRoute)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.CcipRoute",
+      "members": [
+        {
+          "label": "destinationChainSelector",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint64"
+        },
+        {
+          "label": "destinationExecutor",
+          "offset": 8,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "previousDestinationExecutor",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "previousPeerExpiresAt",
+          "offset": 20,
+          "slot": "1",
+          "type": "t_uint64"
+        },
+        {
+          "label": "destinationGasLimit",
+          "offset": 28,
+          "slot": "1",
+          "type": "t_uint32"
+        },
+        {
+          "label": "protocolVersion",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint8"
+        }
+      ],
+      "numberOfBytes": "96"
+    },
+    "t_struct(CommandRecord)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.CommandRecord",
+      "members": [
+        {
+          "label": "isBatch",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "label": "subjectId",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "label": "attempt",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_uint32"
+        },
+        {
+          "label": "destinationChainSelector",
+          "offset": 4,
+          "slot": "2",
+          "type": "t_uint64"
+        },
+        {
+          "label": "destinationExecutor",
+          "offset": 12,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "destinationGasLimit",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint32"
+        },
+        {
+          "label": "protocolVersion",
+          "offset": 4,
+          "slot": "3",
+          "type": "t_uint8"
+        },
+        {
+          "label": "commandPayloadHash",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "latestCommandMessageId",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "acknowledged",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_bool"
+        }
+      ],
+      "numberOfBytes": "224"
+    },
+    "t_struct(CommitmentPayoutPlan)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.CommitmentPayoutPlan",
+      "members": [
+        {
+          "label": "commitmentId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "providerGarden",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_address"
+        },
+        {
+          "label": "payerGarden",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "source",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "label": "token",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "label": "payoutKind",
+          "offset": 20,
+          "slot": "4",
+          "type": "t_enum(DisbursementKind)"
+        },
+        {
+          "label": "declaredAmount",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_uint256"
+        },
+        {
+          "label": "gardenRetainedAmount",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_uint256"
+        },
+        {
+          "label": "contributorPayoutTotal",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_uint256"
+        },
+        {
+          "label": "beneficiaryGarden",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_address"
+        },
+        {
+          "label": "beneficiaryRecipient",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_address"
+        },
+        {
+          "label": "beneficiaryAmount",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_uint256"
+        },
+        {
+          "label": "beneficiaryDisbursementId",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_uint256"
+        },
+        {
+          "label": "recognitionContributorCount",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "payablePayoutCount",
+          "offset": 4,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "preparedPayoutCount",
+          "offset": 8,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "confirmedPayoutCount",
+          "offset": 12,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "failedPayoutCount",
+          "offset": 16,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "cancelledPayoutCount",
+          "offset": 20,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "paymentSnapshotVersion",
+          "offset": 24,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "recognitionSnapshotHash",
+          "offset": 0,
+          "slot": "13",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "paymentSnapshotHash",
+          "offset": 0,
+          "slot": "14",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "contributorOrder",
+          "offset": 0,
+          "slot": "15",
+          "type": "t_array(t_address)dyn_storage"
+        },
+        {
+          "label": "latestEditReasonCID",
+          "offset": 0,
+          "slot": "16",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "finalized",
+          "offset": 0,
+          "slot": "17",
+          "type": "t_bool"
+        },
+        {
+          "label": "createdAt",
+          "offset": 1,
+          "slot": "17",
+          "type": "t_uint64"
+        },
+        {
+          "label": "finalizedAt",
+          "offset": 9,
+          "slot": "17",
+          "type": "t_uint64"
+        }
+      ],
+      "numberOfBytes": "576"
+    },
+    "t_struct(ContributorPayout)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.ContributorPayout",
+      "members": [
+        {
+          "label": "contributor",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "recognitionWeightBps",
+          "offset": 20,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "paymentWeightBps",
+          "offset": 22,
+          "slot": "0",
+          "type": "t_uint16"
+        },
+        {
+          "label": "amount",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "label": "recipient",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "disbursementId",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_uint256"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_struct(Disbursement)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.Disbursement",
+      "members": [
+        {
+          "label": "commitmentId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "payoutPlanId",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_uint256"
+        },
+        {
+          "label": "contributor",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_address"
+        },
+        {
+          "label": "garden",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_address"
+        },
+        {
+          "label": "executorGarden",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "label": "kind",
+          "offset": 20,
+          "slot": "4",
+          "type": "t_enum(DisbursementKind)"
+        },
+        {
+          "label": "fundingRoute",
+          "offset": 21,
+          "slot": "4",
+          "type": "t_enum(FundingRoute)"
+        },
+        {
+          "label": "source",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_address"
+        },
+        {
+          "label": "recipient",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_address"
+        },
+        {
+          "label": "token",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_address"
+        },
+        {
+          "label": "amount",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_uint256"
+        },
+        {
+          "label": "state",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_enum(DisbursementState)"
+        },
+        {
+          "label": "batchId",
+          "offset": 0,
+          "slot": "10",
+          "type": "t_uint256"
+        },
+        {
+          "label": "reasonCID",
+          "offset": 0,
+          "slot": "11",
+          "type": "t_string_storage"
+        },
+        {
+          "label": "attempt",
+          "offset": 0,
+          "slot": "12",
+          "type": "t_uint32"
+        },
+        {
+          "label": "executionKey",
+          "offset": 0,
+          "slot": "13",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "commandMessageId",
+          "offset": 0,
+          "slot": "14",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "dispatchedAt",
+          "offset": 0,
+          "slot": "15",
+          "type": "t_uint64"
+        },
+        {
+          "label": "confirmedAt",
+          "offset": 8,
+          "slot": "15",
+          "type": "t_uint64"
+        },
+        {
+          "label": "acknowledgmentMessageId",
+          "offset": 0,
+          "slot": "16",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "failureCode",
+          "offset": 0,
+          "slot": "17",
+          "type": "t_uint8"
+        },
+        {
+          "label": "cancelledFromState",
+          "offset": 1,
+          "slot": "17",
+          "type": "t_enum(DisbursementState)"
+        }
+      ],
+      "numberOfBytes": "576"
+    },
+    "t_struct(SettlementAccount)_storage": {
+      "encoding": "inplace",
+      "label": "struct ISettlementModule.SettlementAccount",
+      "members": [
+        {
+          "label": "chainId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint64"
+        },
+        {
+          "label": "account",
+          "offset": 8,
+          "slot": "0",
+          "type": "t_address"
+        },
+        {
+          "label": "active",
+          "offset": 28,
+          "slot": "0",
+          "type": "t_bool"
+        },
+        {
+          "label": "recoveryOwners",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_array(t_address)3_storage"
+        },
+        {
+          "label": "rolesModifier",
+          "offset": 0,
+          "slot": "4",
+          "type": "t_address"
+        },
+        {
+          "label": "roleKey",
+          "offset": 0,
+          "slot": "5",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "allowanceKey",
+          "offset": 0,
+          "slot": "6",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "permissionsConfigHash",
+          "offset": 0,
+          "slot": "7",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "recoveryConfigHash",
+          "offset": 0,
+          "slot": "8",
+          "type": "t_bytes32"
+        },
+        {
+          "label": "recoveryThreshold",
+          "offset": 0,
+          "slot": "9",
+          "type": "t_uint8"
+        }
+      ],
+      "numberOfBytes": "320"
+    },
+    "t_struct(State)_storage": {
+      "encoding": "inplace",
+      "label": "struct SettlementPlanLib.State",
+      "members": [
+        {
+          "label": "nextPayoutPlanId",
+          "offset": 0,
+          "slot": "0",
+          "type": "t_uint256"
+        },
+        {
+          "label": "payoutPlans",
+          "offset": 0,
+          "slot": "1",
+          "type": "t_mapping(t_uint256,t_struct(CommitmentPayoutPlan)_storage)"
+        },
+        {
+          "label": "contributorPayouts",
+          "offset": 0,
+          "slot": "2",
+          "type": "t_mapping(t_uint256,t_mapping(t_address,t_struct(ContributorPayout)_storage))"
+        },
+        {
+          "label": "payoutPlanOfCommitment",
+          "offset": 0,
+          "slot": "3",
+          "type": "t_mapping(t_uint256,t_uint256)"
+        }
+      ],
+      "numberOfBytes": "128"
+    },
+    "t_uint16": {
+      "encoding": "inplace",
+      "label": "uint16",
+      "numberOfBytes": "2"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint32": {
+      "encoding": "inplace",
+      "label": "uint32",
+      "numberOfBytes": "4"
+    },
+    "t_uint64": {
+      "encoding": "inplace",
+      "label": "uint64",
+      "numberOfBytes": "8"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}
