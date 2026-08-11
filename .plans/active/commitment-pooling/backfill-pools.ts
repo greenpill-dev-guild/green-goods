@@ -26,7 +26,7 @@ const PLAN_HUB = __dirname;
 const REPO_ROOT = path.resolve(PLAN_HUB, "../../..");
 const CONTRACTS_ROOT = path.join(REPO_ROOT, "packages/contracts");
 const ROOT_ENV = path.join(REPO_ROOT, ".env");
-const EXPECTED_GARDEN_COUNT = 13;
+const EXPECTED_GARDEN_COUNT = 18;
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
 
@@ -94,7 +94,7 @@ export interface PoolBackfillPlan {
   tokenboundSalt: string;
   rootGarden: string;
   rootTokenId: number;
-  expectedGardenCount: 13;
+  expectedGardenCount: 18;
   gardens: Record<string, GardenEnumeration & { status: "PLANNED" | "SKIPPED_PROTOCOL_ROOT" }>;
   transactions: BackfillTransaction[];
   transactionBoundaryRule: string;
@@ -235,10 +235,10 @@ Usage:
   bun ../../.plans/active/commitment-pooling/backfill-pools.ts --network arbitrum --broadcast \\
     --plan <reviewed-plan.json> --step <index> --expected-safe-nonce <n> --receipt <safe-tx-hash>
 
-The dry-run pins a finalized Arbitrum block, enumerates exactly 13 live GardenToken accounts,
-then fails closed unless the frozen ABI can satisfy the authorized backfill-before-unpause order.
-The merged ABI currently gates registerPool behind whenOperational, so an executable plan cannot
-be produced without a separately resolved architecture/release-order decision.
+The dry-run pins a finalized Arbitrum block, enumerates exactly 18 live GardenToken accounts,
+requires the canonical root to round-trip as GardenToken token ID 0, then fails closed unless the
+separate paused owner-backfill contracts increment is present in the pinned combined base. That
+increment is intentionally not folded into this release branch before its human-reviewed merge.
 
 Broadcast is Phase B only. The owner is a contract Safe, so this wrapper never holds or infers
 Safe signatures. Each authorized Safe transaction is submitted through the reviewed Safe owner
@@ -285,9 +285,9 @@ export function buildBackfillTransactions(args: {
   if (!normalized.has(rootGarden.toLowerCase())) throw new Error("Garden enumeration does not contain the canonical root");
 
   throw new Error(
-    "Authorized release order requires pool registration/backfill before the separately gated pooling unpause, " +
-      "but the frozen CommitmentPoolingModule ABI gates registerPool behind whenOperational. " +
-      "Do not emit an unpause-first plan or silently change the merged ABI.",
+    "Authorized release order requires owner-only pool registration/backfill while paused. " +
+      "The separate contracts increment 5e70654c3 must be human-reviewed and merged into the combined base before " +
+      "this release branch may emit that transaction plan. Do not emit an unpause-first plan or silently absorb the increment.",
   );
 }
 

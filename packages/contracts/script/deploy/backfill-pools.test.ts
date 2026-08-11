@@ -13,7 +13,7 @@ function address(index: number): string {
 }
 
 function gardens(): GardenEnumeration[] {
-  return Array.from({ length: 13 }, (_, tokenId) => ({
+  return Array.from({ length: 18 }, (_, tokenId) => ({
     tokenId,
     garden: address(tokenId + 100),
     tokenOwner: address(tokenId + 200),
@@ -27,11 +27,11 @@ describe("one-shot pool backfill entrypoint", () => {
     expect(() =>
       buildBackfillTransactions({
         module: address(1),
-        rootGarden: enumeration[1].garden,
+        rootGarden: enumeration[0].garden,
         gardens: enumeration,
         startingSafeNonce: 41,
       }),
-    ).toThrow(/backfill before the separately gated pooling unpause/);
+    ).toThrow(/separate contracts increment 5e70654c3/);
   });
 
   it("rejects a stale or duplicate garden enumeration", () => {
@@ -39,18 +39,18 @@ describe("one-shot pool backfill entrypoint", () => {
     expect(() =>
       buildBackfillTransactions({
         module: address(1),
-        rootGarden: enumeration[1].garden,
-        gardens: enumeration.slice(0, 12),
+        rootGarden: enumeration[0].garden,
+        gardens: enumeration.slice(0, 17),
         startingSafeNonce: 0,
       }),
-    ).toThrow("Expected exactly 13 gardens");
+    ).toThrow("Expected exactly 18 gardens");
 
     const duplicate = gardens();
-    duplicate[12] = { ...duplicate[12], garden: duplicate[11].garden };
+    duplicate[17] = { ...duplicate[17], garden: duplicate[16].garden };
     expect(() =>
       buildBackfillTransactions({
         module: address(1),
-        rootGarden: duplicate[1].garden,
+        rootGarden: duplicate[0].garden,
         gardens: duplicate,
         startingSafeNonce: 0,
       }),

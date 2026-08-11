@@ -32,6 +32,7 @@ contract Upgrade is Script {
     error SameImplementation();
     error ZeroAddress(string paramName);
     error NotAContract(string contractName);
+    error UnexpectedAssessmentSchemaUID(bytes32 expected, bytes32 actual);
     /// @notice Load proxy address from deployment file
 
     function loadProxyAddress(string memory contractName) internal view returns (address) {
@@ -221,7 +222,18 @@ contract Upgrade is Script {
         vm.startBroadcast();
 
         (address eas,,,) = loadNetworkConfig();
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-latest.json");
+        string memory deploymentJson = vm.readFile(deploymentPath);
+        bytes32 expectedV2SchemaUID = abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32));
+        if (expectedV2SchemaUID == bytes32(0)) revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, bytes32(0));
+        bytes32 liveV2SchemaUID = AssessmentResolver(payable(proxy)).schemaUID();
+        if (liveV2SchemaUID != bytes32(0) && liveV2SchemaUID != expectedV2SchemaUID) {
+            revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, liveV2SchemaUID);
+        }
         console.log("Using EAS:", eas);
+        console.log("Expected Assessment v2 schema UID:");
+        console.logBytes32(expectedV2SchemaUID);
 
         AssessmentResolver newImpl = new AssessmentResolver(eas);
         console.log("New AssessmentResolver implementation:", address(newImpl));
@@ -231,6 +243,24 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("AssessmentResolver upgraded successfully");
+
+        // Arbitrum's live proxy predates artifact persistence and still reports a zero v2 UID.
+        // Pin the exact existing v2 schema in its own resumable transaction before any v3 schema
+        // preparation. A non-zero conflicting UID failed before broadcast above, while an exact
+        // existing pin is deliberately a no-op on replay.
+        if (liveV2SchemaUID == bytes32(0)) {
+            AssessmentResolver(payable(proxy)).setSchemaUID(expectedV2SchemaUID);
+            console.log("AssessmentResolver v2 schema UID pinned from the canonical artifact");
+        }
+        bytes32 pinnedV2SchemaUID = AssessmentResolver(payable(proxy)).schemaUID();
+        if (pinnedV2SchemaUID != expectedV2SchemaUID) {
+            revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, pinnedV2SchemaUID);
+        }
+        // This getter exists only on the target implementation and must remain unset until the
+        // separately ordered AssessmentV3 schema-preparation transaction.
+        if (AssessmentResolver(payable(proxy)).assessmentV3SchemaUID() != bytes32(0)) {
+            revert UnexpectedAssessmentSchemaUID(bytes32(0), AssessmentResolver(payable(proxy)).assessmentV3SchemaUID());
+        }
 
         vm.stopBroadcast();
     }

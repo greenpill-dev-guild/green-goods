@@ -347,6 +347,44 @@ contract CeloSettlementExecutorTest is Test {
         assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
     }
 
+    /// @notice Measures the executor's compile-time maximum atomic batch with all success-path
+    ///         balance, fee, Roles, storage, event, and acknowledgment work enabled.
+    /// @dev The mock router's delivery wrapper is included, making this a conservative local
+    ///      receiver measurement. The mock Roles module is not a substitute for the final live
+    ///      Safe/Zodiac condition tree, so release tooling records this evidence but must keep the
+    ///      manifest gas limit at zero until that separately authorized authority is frozen and
+    ///      measured on the same candidate.
+    function testMeasureHardMaxBatchDestinationGasCandidate() public {
+        vm.startPrank(OWNER);
+        executor.setPaused(true);
+        executor.setCaps(24, 1000 ether, 24_000 ether);
+        executor.setPeriodicCap(1 days, 100_000 ether);
+        executor.setPaused(false);
+        vm.stopPrank();
+
+        address[] memory recipients = new address[](24);
+        uint256[] memory amounts = new uint256[](24);
+        for (uint256 index; index < recipients.length; ++index) {
+            recipients[index] = address(uint160(0x4000 + index));
+            amounts[index] = 100 ether;
+        }
+
+        bytes memory payload = _command(true, 12, 0, 0, recipients, amounts);
+        uint256 gasBefore = gasleft();
+        router.deliver(address(executor), keccak256("hard-max-batch-gas"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
+        uint256 gasUsed = gasBefore - gasleft();
+        emit log_named_uint("settlement destination gas / local hard-max batch (24)", gasUsed);
+
+        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, true, uint256(12), uint32(0)));
+        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+        assertTrue(result.acknowledgmentSent);
+        assertLt(gasUsed, 5_000_000, "local destination execution exceeded the measurement guardrail");
+        for (uint256 index; index < recipients.length; ++index) {
+            assertEq(token.balanceOf(recipients[index]), amounts[index]);
+        }
+    }
+
     function testMalformedCommandUsesFrozenFailureSelector() public {
         vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
         router.deliver(address(executor), keccak256("malformed-command"), SOURCE_SELECTOR, SOURCE_MODULE, hex"01");

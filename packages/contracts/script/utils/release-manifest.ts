@@ -29,6 +29,15 @@ interface ChainManifest {
   protocolVersion: number;
   paused: boolean;
   destinationGasLimit?: string;
+  destinationGasMeasurement?: {
+    fixture: string;
+    batchSize: string;
+    gasUsed: string;
+    includesAcknowledgmentAttempt: boolean;
+    liveSafeZodiacMeasured: boolean;
+    measuredOn: string;
+    status: "local-hard-max-green-live-authority-pending" | "final-live-authority-green";
+  };
   protocolGarden?: string;
   hatsModule?: string;
   eas?: string;
@@ -47,6 +56,14 @@ export interface ReleaseManifest {
     deploymentSender: string;
     deploymentKeystore: string;
     protocolSafe: string;
+    protocolSafeConfiguration: {
+      threshold: string;
+      owners: string[];
+      ownerDecisionDate: string;
+      contractsGuideMinimumThreshold: string;
+      contractsGuideMinimumOwnerCount: string;
+      guidePolicyStatus: "blocked-pending-explicit-guidance-exception" | "satisfied";
+    };
     rollbackOwnerBeforeTransfer: string;
     rollbackOwnerAfterTransfer: string;
     gardenRecoveryOwner: string;
@@ -115,6 +132,20 @@ export interface ReleaseManifest {
   indexer: {
     activationAuthorized: boolean;
     configHash: string;
+    cloud: {
+      operator: "envio-cloud";
+      operatorLifecycle: "separate-deploy-promote-rollback";
+      organisation: string | null;
+      indexer: string | null;
+      deploymentBranch: string | null;
+      deploymentCommit: string | null;
+      previousProductionCommit: string | null;
+      rootDir: "packages/indexer";
+      configFile: "config.yaml";
+      autoDeploy: false;
+      liveContextStatus: "blocked-pending-live-cloud-context" | "frozen";
+      toolStatus: "external-alpha-cli-not-installed-by-repo";
+    };
     networks: unknown[];
     reindex: string;
     cutover: string;
@@ -206,6 +237,45 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   if (getAddress(manifest.ownership.protocolSafe) !== getAddress(manifest.ownership.rollbackOwnerAfterTransfer)) {
     throw new Error("The post-transfer rollback owner must be the protocol Safe");
   }
+  const safeConfiguration = manifest.ownership.protocolSafeConfiguration;
+  requireUintString(safeConfiguration.threshold, "ownership.protocolSafeConfiguration.threshold", 16);
+  requireUintString(
+    safeConfiguration.contractsGuideMinimumThreshold,
+    "ownership.protocolSafeConfiguration.contractsGuideMinimumThreshold",
+    16,
+  );
+  requireUintString(
+    safeConfiguration.contractsGuideMinimumOwnerCount,
+    "ownership.protocolSafeConfiguration.contractsGuideMinimumOwnerCount",
+    16,
+  );
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(safeConfiguration.ownerDecisionDate)) {
+    throw new Error("ownership.protocolSafeConfiguration.ownerDecisionDate must be an exact YYYY-MM-DD date");
+  }
+  if (safeConfiguration.owners.length === 0) {
+    throw new Error("ownership.protocolSafeConfiguration.owners must freeze the exact non-empty owner set");
+  }
+  const safeOwners = new Set<string>();
+  for (const [index, owner] of safeConfiguration.owners.entries()) {
+    requireAddress(owner, `ownership.protocolSafeConfiguration.owners.${index}`);
+    const normalized = getAddress(owner).toLowerCase();
+    if (safeOwners.has(normalized)) throw new Error(`Duplicate protocol Safe owner: ${owner}`);
+    safeOwners.add(normalized);
+  }
+  if (BigInt(safeConfiguration.threshold) > BigInt(safeConfiguration.owners.length)) {
+    throw new Error("Protocol Safe threshold exceeds the frozen owner count");
+  }
+  const guideMinimum = BigInt(safeConfiguration.contractsGuideMinimumThreshold);
+  const guideMinimumOwners = BigInt(safeConfiguration.contractsGuideMinimumOwnerCount);
+  const targetThreshold = BigInt(safeConfiguration.threshold);
+  const targetOwnerCount = BigInt(safeConfiguration.owners.length);
+  const guideSatisfied = targetThreshold >= guideMinimum && targetOwnerCount >= guideMinimumOwners;
+  if (
+    (!guideSatisfied && safeConfiguration.guidePolicyStatus !== "blocked-pending-explicit-guidance-exception") ||
+    (guideSatisfied && safeConfiguration.guidePolicyStatus !== "satisfied")
+  ) {
+    throw new Error("Protocol Safe guide policy status does not match the frozen threshold decision");
+  }
 
   for (const [network, chain] of Object.entries(manifest.chains) as Array<[ReleaseNetwork, ChainManifest]>) {
     requireUintString(chain.evmChainId, `${network}.evmChainId`);
@@ -219,6 +289,40 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
       }
       if (BigInt(chain.destinationGasLimit) > (1n << 32n) - 1n) {
         throw new Error(`${network}.destinationGasLimit does not round-trip to uint32`);
+      }
+    }
+    if (chain.destinationGasMeasurement !== undefined) {
+      requireUintString(
+        chain.destinationGasMeasurement.batchSize,
+        `${network}.destinationGasMeasurement.batchSize`,
+        16,
+      );
+      requireUintString(chain.destinationGasMeasurement.gasUsed, `${network}.destinationGasMeasurement.gasUsed`, 32);
+      if (!/^\d{4}-\d{2}-\d{2}$/u.test(chain.destinationGasMeasurement.measuredOn)) {
+        throw new Error(`${network}.destinationGasMeasurement.measuredOn must be an exact YYYY-MM-DD date`);
+      }
+      if (!chain.destinationGasMeasurement.fixture.trim()) {
+        throw new Error(`${network}.destinationGasMeasurement.fixture must name the exact measured entrypoint`);
+      }
+      if (chain.destinationGasMeasurement.batchSize !== "24") {
+        throw new Error(`${network}.destinationGasMeasurement must exercise the compile-time hard maximum of 24`);
+      }
+      if (!chain.destinationGasMeasurement.includesAcknowledgmentAttempt) {
+        throw new Error(`${network}.destinationGasMeasurement must include the acknowledgment attempt`);
+      }
+      const finalMeasurement = chain.destinationGasMeasurement.status === "final-live-authority-green";
+      if (chain.destinationGasMeasurement.liveSafeZodiacMeasured !== finalMeasurement) {
+        throw new Error(`${network}.destinationGasMeasurement status does not match live Safe/Zodiac proof`);
+      }
+      if (!finalMeasurement && chain.destinationGasLimit !== "0") {
+        throw new Error(`${network}.destinationGasLimit must remain zero until live Safe/Zodiac measurement is green`);
+      }
+      if (
+        finalMeasurement &&
+        (chain.destinationGasLimit === undefined ||
+          BigInt(chain.destinationGasLimit) < BigInt(chain.destinationGasMeasurement.gasUsed))
+      ) {
+        throw new Error(`${network}.destinationGasLimit must cover the final live-authority measurement`);
       }
     }
     const peer = manifest.chains[chain.peerNetwork];
@@ -334,6 +438,39 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   if (manifest.indexer.activationAuthorized) throw new Error("Phase A manifest may not authorize indexer activation");
   if (!/^0x[0-9a-f]{64}$/iu.test(manifest.indexer.configHash)) {
     throw new Error("indexer.configHash must freeze the exact packages/indexer/config.yaml hash");
+  }
+  const cloud = manifest.indexer.cloud;
+  if (
+    cloud.operator !== "envio-cloud" ||
+    cloud.operatorLifecycle !== "separate-deploy-promote-rollback" ||
+    cloud.rootDir !== "packages/indexer" ||
+    cloud.configFile !== "config.yaml" ||
+    cloud.autoDeploy !== false ||
+    cloud.toolStatus !== "external-alpha-cli-not-installed-by-repo"
+  ) {
+    throw new Error("Indexer Cloud operator settings must remain exact and fail-closed");
+  }
+  const liveContextValues = [
+    cloud.organisation,
+    cloud.indexer,
+    cloud.deploymentBranch,
+    cloud.deploymentCommit,
+    cloud.previousProductionCommit,
+  ];
+  if (cloud.liveContextStatus === "blocked-pending-live-cloud-context") {
+    if (liveContextValues.some((value) => value !== null)) {
+      throw new Error("Blocked Envio Cloud context may not contain a partial live target");
+    }
+  } else {
+    if (liveContextValues.some((value) => typeof value !== "string" || value.length === 0)) {
+      throw new Error("Frozen Envio Cloud context requires exact organisation, indexer, branch, and commits");
+    }
+    if (!/^[0-9a-f]{40}$/u.test(cloud.deploymentCommit ?? "")) {
+      throw new Error("Frozen Envio Cloud deploymentCommit must be an exact 40-character SHA");
+    }
+    if (!/^[0-9a-f]{40}$/u.test(cloud.previousProductionCommit ?? "")) {
+      throw new Error("Frozen Envio Cloud previousProductionCommit must be an exact 40-character SHA");
+    }
   }
 }
 

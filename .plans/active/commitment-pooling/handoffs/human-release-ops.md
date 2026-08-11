@@ -29,8 +29,8 @@ not weaken either broadcast gate or make the value tier a prerequisite for the n
 
 - A signed core-tier readiness checklist covering the shared blocking security requirements and the ordered
   `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
-  and `GardenToken`/`WorkApprovalResolver` upgrades, reverse wiring, pooling unpause, and pool
-  backfill.
+  and `GardenToken`/`WorkApprovalResolver` upgrades, reverse wiring, pool backfill, and the
+  separately gated pooling unpause.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff, bytecode/proxy/admin/peer verification, exact indexer update, pause state, and rollback owner.
 - For the non-value tier: verified Envio deployment configuration, completed reindex/cutover, and
@@ -72,7 +72,8 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
    signer/owner verification, transaction receipt, persisted artifact, post-action verifier, and
    rollback checkpoint before the next stage:
    1. **Resolver/schema preparation**: upgrade the existing `AssessmentResolver` proxy in place;
-      preserve and verify its v2 schema UID; deploy only the net-new
+      pin the canonical v2 schema UID if the live slot is zero, otherwise require the exact UID;
+      deploy only the net-new
       `TestimonyResolver`; register AssessmentV3 against the upgraded existing
       Assessment resolver; set the v3 and Community Testimony UIDs while Community Testimony's
       module remains zero; and prove v2/v3 compatibility.
@@ -87,15 +88,15 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
       `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
       both-direction wiring, and rollback state while pooling remains paused; register and
-      backfill the verified live pool inventory; and only then pass the separately authorized core
+      backfill the approved 18-account live pool inventory with protocol root token 0; and only then pass the separately authorized core
       unpause gate.
 
-   **Blocked release-order seam (observed 2026-08-11).** The frozen merged ABI gates
-   `registerPool` behind `whenOperational`, so it cannot register or backfill while the module is
-   paused. Unpausing first would violate the authoritative order above and consume the separately
-   gated unpause decision. The Bun backfill target therefore refuses to emit an executable plan.
-   This requires an explicit architecture/release-order resolution; operators must not improvise
-   a temporary unpause or silently change the ABI.
+   **Blocked release-order seam (updated 2026-08-11).** The frozen merged ABI gates `registerPool`
+   behind `whenOperational`. A separate ABI/storage-neutral contracts increment (`5e70654c3`)
+   permits only owner pool registration while paused and has passed its isolated contracts gates.
+   It still requires human review and merge into the target base. Until that merge is proven, the
+   Bun backfill target refuses to emit an executable plan. Operators must not improvise a temporary
+   unpause or silently absorb the increment into the release branch.
    Rehearse the exact sequence locally and on pinned forks. Ethereum Sepolia may prove an endpoint
    rehearsal where useful but is not target-chain proof. Arbitrum One and Celo remain separate,
    explicitly authorized production stages.
@@ -290,29 +291,40 @@ Validation:
 - `bun run --filter @green-goods/contracts build:full`
 - `bun run --filter @green-goods/indexer check:indexing-boundary`
 - `bun run --filter @green-goods/indexer build`
+- `bun run --filter @green-goods/indexer cloud:release -- --help`
+- `bun run --filter @green-goods/indexer cloud:release -- plan --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>`
+- `bun run --filter @green-goods/indexer cloud:release -- preflight --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>`
 - `bun run contracts:settlement:verify-lane` — read-only Arbitrum One↔Celo Mainnet CCIP lane
   verification against both real routers. No broadcast, no deployment, no funds. Re-run this
   immediately before any value authority is granted; a lane that was live in August is not
   evidence that it is live today.
 
-The current installed Envio CLI has no hosted `deploy` command. The indexer handoff is therefore
-inert and blocked on a verified operator entrypoint for activation/reindex/cutover/read-back. Do
-not substitute an invented command. No command in this handoff authorizes a broadcast.
+The installed local HyperIndex CLI still has no hosted `deploy` command. The repository now wraps
+Envio's separate alpha `envio-cloud` CLI without installing it or using `npx`. Its live preflight
+must prove the exact organisation/indexer/branch/root/config/commit and `autoDeploy=false`.
+Deployment, production promotion, and rollback are distinct wrapper actions with distinct Phase B
+authorization values. No command in this handoff authorizes one of those actions.
 
 ## Current live-state blockers
 
-- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was read as **2-of-6**
-  on Arbitrum. The approved **3-of-5** configuration is a target, not current live fact.
-- A finalized Arbitrum inventory read found **18** GardenToken accounts (IDs 0–17), not 13. The
-  root derives as token 0 while the frozen artifact identifies token 1. No backfill plan is valid
-  until the inventory and root decision are reconciled.
+- The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was re-read as the exact
+  approved **2-of-6** owner set. Repository contracts guidance still requires at least **3-of-5**
+  for protocol mainnet authority, so ownership transfer remains blocked until the guidance conflict
+  is explicitly resolved.
+- The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
+  protocol root token 0. The backfill entrypoint now proves those facts and then stops only on the
+  pending human-reviewed merge of contracts increment `5e70654c3`.
 - The live `AssessmentResolver` is not v3-capable. Downstream schema, pooling, SettlementModule,
-  and CreditRegistry dry-runs correctly stop at this prerequisite.
-- Settlement peer wiring is blocked because measured destination gas is not frozen. The manifest
-  value remains `"0"` and cannot be overridden by an environment variable.
+  and CreditRegistry stages still depend on its separately authorized upgrade. The exact
+  upgrade/v2-pin/schema-finalization sequence is green on one pinned Arbitrum fork.
+- A local hard-max 24-member executor run measured **1,383,897 gas**, including the acknowledgment
+  attempt. The manifest remains `"0"` until the final Safe/Zodiac configuration exists and the same
+  atomic path is measured through that live-authority policy.
 - Garden Safe/owner/recovery and Zodiac Roles/cap/fee/reserve facts are incomplete; value authority
   is disabled.
-- The hosted Envio activation command is unavailable from the installed CLI.
+- The exact Envio Cloud organisation, indexer, deployment branch, final commit, prior production
+  commit, and authenticated operator context remain unavailable. The operator path exists, but it
+  is not yet a frozen live target.
 
 These are blockers, not Phase B instructions. No operator should use this handoff until a pinned
 candidate report shows their resolution and a new exact stage authorization names the commit,

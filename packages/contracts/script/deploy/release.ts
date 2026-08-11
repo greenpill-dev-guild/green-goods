@@ -290,7 +290,7 @@ Phase B boundary form (not authorized by Phase A):
           index: 1,
           command: "bun run assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome:
-            "actual AssessmentResolver implementation/owner/code hash, final creation-code hash, and rollback calldata",
+            "actual AssessmentResolver implementation/owner/code hash, final creation-code hash, rollback calldata, and a separate canonical-v2-UID pin boundary when live v2 is zero",
           nextStageRule: "rebuild this nonce-bound plan immediately before its separately authorized stage",
         },
         {
@@ -338,9 +338,9 @@ Phase B boundary form (not authorized by Phase A):
           index: 9,
           command: "bun run pooling:backfill:dry:arbitrum",
           outcome:
-            "fail-closed proof of the live garden inventory and the unresolved frozen-ABI conflict: authorized backfill-before-unpause cannot call registerPool while whenOperational is false",
+            "fail-closed proof of the approved 18-garden/root-token-0 inventory; executable owner-only paused backfill remains gated on human merge of contracts increment 5e70654c3",
           nextStageRule:
-            "do not emit or authorize an unpause-first workaround and do not change the merged ABI inside release engineering",
+            "do not emit or authorize an unpause-first workaround and do not absorb the separate contracts increment before its human-reviewed merge",
         },
       ],
       ownershipTransfer: {
@@ -1053,6 +1053,15 @@ Phase B boundary form (not authorized by Phase A):
       safeFactoryCelo: null,
     };
     const liveBlockers: string[] = [];
+    const policyBlockers: string[] = [];
+    const approvedSafe = manifest.ownership.protocolSafeConfiguration;
+    if (approvedSafe.guidePolicyStatus !== "satisfied") {
+      policyBlockers.push(
+        `owner-approved protocol Safe threshold ${approvedSafe.threshold}-of-${approvedSafe.owners.length} is below ` +
+          `the contracts guide minimum ${approvedSafe.contractsGuideMinimumThreshold}-of-${approvedSafe.contractsGuideMinimumOwnerCount}; ` +
+          "release readiness requires an explicit guidance exception",
+      );
+    }
     if (!options.pureSimulation) {
       const safeAbi = [
         "function getOwners() view returns (address[])",
@@ -1093,9 +1102,14 @@ Phase B boundary form (not authorized by Phase A):
           owners: (owners as string[]).map(getAddress),
           threshold: String(threshold),
         };
-        if ((owners as string[]).length !== 5 || BigInt(threshold) !== 3n) {
+        const liveOwners = new Set((owners as string[]).map((owner) => getAddress(owner).toLowerCase()));
+        const approvedOwners = new Set(approvedSafe.owners.map((owner) => getAddress(owner).toLowerCase()));
+        const ownerSetMatches =
+          liveOwners.size === approvedOwners.size && [...approvedOwners].every((owner) => liveOwners.has(owner));
+        if (BigInt(threshold) !== BigInt(approvedSafe.threshold) || !ownerSetMatches) {
           liveBlockers.push(
-            `protocol Safe Arbitrum owner policy is ${String(threshold)}-of-${(owners as string[]).length}, expected 3-of-5`,
+            `protocol Safe Arbitrum configuration is ${String(threshold)}-of-${(owners as string[]).length}, ` +
+              `expected the exact approved ${approvedSafe.threshold}-of-${approvedSafe.owners.length} owner set`,
           );
         }
       }
@@ -1133,7 +1147,9 @@ Phase B boundary form (not authorized by Phase A):
       transactions: [],
       liveEvidence,
       liveBlockers,
+      policyBlockers,
       blockedUntil: [
+        `explicit contracts-guide exception for the owner-approved ${approvedSafe.threshold}-of-${approvedSafe.owners.length} protocol Safe target`,
         "exact garden Safe owners and threshold",
         "exact recovery configuration",
         "Zodiac Roles modifier address, role key, allowance key, and condition-tree hash",
@@ -1145,8 +1161,8 @@ Phase B boundary form (not authorized by Phase A):
     writeGenerated(filePath, plan);
     console.log(stable(plan));
     console.log(`Inert Safe/Zodiac plan written: ${filePath}`);
-    if (liveBlockers.length > 0) {
-      throw new Error(`Safe/Zodiac live preflight blocked: ${liveBlockers.join("; ")}`);
+    if (liveBlockers.length > 0 || policyBlockers.length > 0) {
+      throw new Error(`Safe/Zodiac preflight blocked: ${[...liveBlockers, ...policyBlockers].join("; ")}`);
     }
   }
 
@@ -1260,10 +1276,34 @@ Phase B boundary form (not authorized by Phase A):
         "cd packages/indexer && bun run check:indexing-boundary",
         "cd packages/indexer && bun run test",
         "cd packages/indexer && bun run build",
+        "cd packages/indexer && bun run cloud:release -- plan --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>",
+        "cd packages/indexer && bun run cloud:release -- preflight --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>",
+        "cd packages/indexer && bun run cloud:release -- verify --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch> --wait-till-synced",
         "read back SettlementExecution and SettlementAcknowledgment by execution key",
       ],
-      hostedActivation:
-        "BLOCKED: the installed Envio CLI has no deploy command. Record the exact hosted console/CI owner path before Phase B; do not invent a shell command.",
+      hostedActivation: {
+        operator: manifest.indexer.cloud.operator,
+        lifecycle: manifest.indexer.cloud.operatorLifecycle,
+        context: {
+          organisation: manifest.indexer.cloud.organisation,
+          indexer: manifest.indexer.cloud.indexer,
+          branch: manifest.indexer.cloud.deploymentBranch,
+          commit: manifest.indexer.cloud.deploymentCommit,
+          previousProductionCommit: manifest.indexer.cloud.previousProductionCommit,
+          rootDir: manifest.indexer.cloud.rootDir,
+          configFile: manifest.indexer.cloud.configFile,
+          autoDeploy: manifest.indexer.cloud.autoDeploy,
+        },
+        status: manifest.indexer.cloud.liveContextStatus,
+        toolStatus: manifest.indexer.cloud.toolStatus,
+        boundary:
+          "The repo wrapper never installs the alpha CLI. Deploy, production promotion, and rollback each require their own exact Phase B authorization value.",
+      },
+      blockers: [
+        "freeze the live Envio Cloud organisation, indexer, deployment branch, final commit, and prior production commit",
+        "prove the separately installed alpha CLI is authenticated to that exact organisation",
+        "keep auto-deploy disabled so a Git push is not an activation",
+      ],
       cutoverRule: "Do not cut over until addresses and receipt start blocks pass release-verify on both chains.",
     };
     const filePath = path.join(GENERATED_ROOT, manifest.releaseId, "indexer-handoff.json");

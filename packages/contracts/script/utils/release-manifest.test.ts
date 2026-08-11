@@ -35,6 +35,31 @@ describe("combined commitment release manifest", () => {
     const missingIndexerHash = structuredClone(manifest);
     missingIndexerHash.indexer.configHash = "";
     expect(() => validateReleaseManifest(missingIndexerHash)).toThrow(/indexer.configHash/);
+
+    const autoDeploy = structuredClone(manifest);
+    autoDeploy.indexer.cloud.autoDeploy = true as false;
+    expect(() => validateReleaseManifest(autoDeploy)).toThrow(/operator settings/);
+
+    const partialCloudContext = structuredClone(manifest);
+    partialCloudContext.indexer.cloud.organisation = "greenpill-dev-guild";
+    expect(() => validateReleaseManifest(partialCloudContext)).toThrow(/partial live target/);
+
+    const duplicateSafeOwner = structuredClone(manifest);
+    duplicateSafeOwner.ownership.protocolSafeConfiguration.owners[1] =
+      duplicateSafeOwner.ownership.protocolSafeConfiguration.owners[0];
+    expect(() => validateReleaseManifest(duplicateSafeOwner)).toThrow(/Duplicate protocol Safe owner/);
+
+    const falsePolicyGreen = structuredClone(manifest);
+    falsePolicyGreen.ownership.protocolSafeConfiguration.guidePolicyStatus = "satisfied";
+    expect(() => validateReleaseManifest(falsePolicyGreen)).toThrow(/guide policy status/);
+
+    const prematureGasFreeze = structuredClone(manifest);
+    prematureGasFreeze.chains.arbitrum.destinationGasLimit = "2000000";
+    expect(() => validateReleaseManifest(prematureGasFreeze)).toThrow(/must remain zero/);
+
+    const missingAcknowledgment = structuredClone(manifest);
+    missingAcknowledgment.chains.arbitrum.destinationGasMeasurement!.includesAcknowledgmentAttempt = false;
+    expect(() => validateReleaseManifest(missingAcknowledgment)).toThrow(/include the acknowledgment attempt/);
   });
 
   it("refuses peer wiring until measured gas is frozen and then rejects environment drift", async () => {

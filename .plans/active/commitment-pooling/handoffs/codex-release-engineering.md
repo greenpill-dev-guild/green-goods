@@ -9,7 +9,7 @@
 - Pinned base and starting HEAD: `7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b`
 - Reviewed implementation commit: `f5cc0eca3f06063b4c7b83c91c3dca03cd0324d9`
 - Review record: `../reports/phase-a-release-engineering-review-2026-08-11.md`
-- Current state: blocked after Phase A implementation and adversarial review
+- Current state: approved Phase A follow-up in progress; broadcast remains blocked
 - Linear context: none; Linear writes are not authorized in Phase A
 - Authority: the August 10 deployment/release session prompt and its recorded owner decisions
 
@@ -43,7 +43,8 @@ indexer, send a message-only ping, run a value canary, or write Linear.
    and local chain identities and only serialized tuples/receipts crossing the boundary.
 5. Post-deploy verification and production activation/reindex/read-back plans that remain inert in
    Phase A.
-6. A committed-range adversarial release review with no unresolved Critical or High finding.
+6. Fresh internal and Fable 5 committed-range adversarial release reviews of the final combined
+   candidate, with no unresolved Critical or High finding.
 
 ## Implemented Phase A surface
 
@@ -61,8 +62,9 @@ indexer, send a message-only ping, run a value canary, or write Linear.
   retry, reorder, duplication, cancellation, peer rotation, malformed payload, and idempotent
   execution are covered.
 - Post-deploy verification for code/proxy/owner/initializer/pause/wiring/route/caps/indexer hashes,
-  plus an inert Envio handoff. The handoff refuses to invent a hosted activation command that the
-  installed Envio CLI does not expose.
+  plus an inert Envio handoff and Bun-wrapped Envio Cloud plan/preflight/verify/deploy/promote/
+  rollback lifecycle. The wrapper uses the separate alpha `envio-cloud` CLI only when it is already
+  installed and authenticated; it never installs it or treats deploy as production promotion.
 
 ## Current blockers
 
@@ -70,27 +72,36 @@ The tooling fails closed on all of the following. None is authorization to alter
 rewrite frozen history, or mutate production state.
 
 1. `registerPool` is gated by `whenOperational`, but the authoritative August 10 release order
-   requires verified pool registration/backfill before the separately gated pooling unpause. The
-   merged ABI cannot execute that order. The backfill target therefore emits no executable plan.
-2. A finalized Arbitrum read found 18 GardenToken accounts (token IDs 0–17), while the frozen
-   release inventory says 13. The finalized root derivation is token 0; the frozen artifact says
-   token 1.
-3. The live protocol Safe is 2-of-6. The approved release target is 3-of-5. The Safe preflight
-   reports the mismatch; it does not restate the target as live fact.
-4. The live `AssessmentResolver` is not v3-capable. Schema planning and every dependent deploy
-   dry-run stop before producing an executable transaction sequence. The nonce-pinned resolver
-   upgrade and rollback plan exists, but no upgrade was broadcast.
-5. `destinationGasLimit` is intentionally frozen as `"0"` until measured. Bidirectional peer
-   planning rejects both zero and an environment override that differs from the manifest.
+   requires verified pool registration/backfill before the separately gated pooling unpause. A
+   separate, ABI/storage-neutral contracts increment (`5e70654c3`) now permits only owner pool
+   registration while paused and is green in its isolated worktree. The release branch must not
+   absorb it before human review and merge into the target base; until then the backfill entrypoint
+   intentionally emits no executable plan.
+2. The accountable owner approved the finalized 18-account GardenToken inventory (token IDs 0–17)
+   and protocol root token 0. The manifest and live backfill inventory now match that decision.
+3. The live protocol Safe is exactly 2-of-6, and the accountable owner approved 2-of-6 for this
+   release. `packages/contracts/AGENTS.md` still requires at least 3-of-5 for protocol mainnet
+   authority. The manifest records the exact owner decision but the Safe preflight remains blocked
+   until that guide is explicitly amended or an explicit guidance exception is recorded.
+4. The live `AssessmentResolver` is not v3-capable. The nonce-pinned three-boundary plan now
+   upgrades the proxy, pins the canonical v2 UID if live v2 is zero, and preserves v3 zero before
+   schema finalization. A single pinned Arbitrum fork proves that sequence through dependent schema
+   preparation/finalization, but no upgrade was broadcast.
+5. The local hard-max 24-member executor fixture measured 1,383,897 gas including the
+   acknowledgment attempt. `destinationGasLimit` remains `"0"` until the same atomic path is
+   measured with the final live Safe/Zodiac policy; peer planning remains blocked.
 6. Garden Safe owners, recovery tuples, Zodiac Roles modifier/key/conditions, allowances, caps,
    fee policy, and native reserve floors are incomplete. Value authority remains disabled.
-7. The installed Envio CLI has no hosted `deploy` command. The inert handoff records the missing
-   operator path rather than inventing one.
+7. The Envio Cloud organisation, indexer, deployment branch, final commit, prior production commit,
+   and authenticated operator context are not yet frozen. The repo now wraps the official separate
+   alpha Cloud CLI, with auto-deploy disabled and distinct deploy/promote/rollback gates; no hosted
+   action has been run.
 
-The release-engineering lane remains blocked until the accountable humans resolve the ABI/order,
-garden inventory/root, Safe target, and hosted-indexer operator path and supply the measured gas
-and value-authority facts. Assessment v3 preparation additionally needs its own Phase B stage
-authorization before downstream dry-runs can become green.
+The release-engineering lane remains blocked until the paused-registration increment merges, the
+protocol Safe guidance conflict is explicitly resolved, the final Safe/Zodiac/cap/fee facts and
+live-authority gas measurement are frozen, and the exact Envio Cloud context is proven. After the
+new combined base is pinned, regenerate the identity lock, rerun every gate, and conduct a fresh
+internal plus Fable 5 review before asking for any Phase B authorization.
 
 ## Approved owner decisions
 
@@ -104,6 +115,10 @@ authorization before downstream dry-runs can become green.
 - External-audit gate for this wave: internal committed-range review; no unresolved Critical or
   High finding.
 - The 48-hour timelock is waived for this wave; Safe multisig approval remains required.
+- Approved GardenToken release inventory: all 18 finalized accounts (token IDs 0–17), with protocol
+  root token 0.
+- Approved protocol Safe target: the exact live 2-of-6 owner set, subject to the still-blocking
+  repository guidance conflict described above.
 - Rehearsal ladder: local/fork confidence, Ethereum Sepolia endpoint rehearsal where useful,
   Arbitrum One, then Celo. The former two-week soak is withdrawn.
 - Credit deployment binds SettlementModule and CreditRegistry in both directions. G$ credit stays

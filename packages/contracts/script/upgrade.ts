@@ -169,6 +169,12 @@ interface PersistedUpgradePlan {
     module: string;
     transactionIndex: number;
   }>;
+  assessmentSchemaPin?: {
+    proxy: string;
+    expectedSchemaUID: string;
+    transactionIndex: number;
+    resumableState: string;
+  };
 }
 
 interface UpgradeCheckpoint {
@@ -193,6 +199,10 @@ export interface UpgradePreState {
 
 const EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const upgradeInterface = new Interface(["function upgradeTo(address)"]);
+const assessmentSchemaInterface = new Interface([
+  "function schemaUID() view returns (bytes32)",
+  "function setSchemaUID(bytes32 uid)",
+]);
 const poolingIntegrationInterface = new Interface([
   "function setCommitmentPoolingModule(address)",
   "function setCommitmentModule(address)",
@@ -693,6 +703,40 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
           };
         })
       : [];
+  let assessmentSchemaPin: PersistedUpgradePlan["assessmentSchemaPin"];
+  if (options.contract === "assessment-resolver") {
+    const snapshot = preState.find((candidate) => candidate.deploymentKey === "assessmentResolver");
+    if (!snapshot) throw new Error("Missing AssessmentResolver pre-state for the v2 schema pin");
+    const deployment = JSON.parse(
+      fs.readFileSync(resolveDeploymentArtifactPath(`${chainId}-latest.json`), "utf8"),
+    ) as Record<string, unknown>;
+    const schemas = deployment.schemas as Record<string, unknown> | undefined;
+    const expectedSchemaUID = schemas?.assessmentSchemaUID;
+    if (typeof expectedSchemaUID !== "string" || !/^0x[0-9a-f]{64}$/iu.test(expectedSchemaUID)) {
+      throw new Error("Canonical deployment artifact has no exact Assessment v2 schema UID");
+    }
+    const selector = assessmentSchemaInterface.getFunction("setSchemaUID")!.selector;
+    const transaction = transactions.find(
+      (candidate) =>
+        isAddress(candidate.to) &&
+        getAddress(candidate.to) === snapshot.proxy &&
+        typeof candidate.data === "string" &&
+        candidate.data.startsWith(selector),
+    );
+    if (transaction && typeof transaction.data === "string") {
+      const decoded = assessmentSchemaInterface.decodeFunctionData("setSchemaUID", transaction.data);
+      if (String(decoded[0]).toLowerCase() !== expectedSchemaUID.toLowerCase()) {
+        throw new Error("AssessmentResolver schema-pin transaction differs from the canonical v2 UID");
+      }
+      assessmentSchemaPin = {
+        proxy: snapshot.proxy,
+        expectedSchemaUID,
+        transactionIndex: transaction.index,
+        resumableState:
+          "The upgraded proxy has the exact v2 UID. Zero requires this pin; the exact UID is satisfied; any other non-zero UID is a conflict.",
+      };
+    }
+  }
 
   const plansDir = resolveUpgradePlanOutputDir();
   fs.mkdirSync(plansDir, { recursive: true });
@@ -717,6 +761,7 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
     libraries: artifact.libraries ?? [],
     upgrades,
     wiring,
+    assessmentSchemaPin,
     transactionBoundaryRule: "Verify the receipt and post-state for one transaction before authorizing the next.",
   };
 
@@ -840,6 +885,19 @@ function verifyUpgradeBoundary(
     }
     return;
   }
+  const assessmentSchemaPin =
+    plan.assessmentSchemaPin?.transactionIndex === transaction.index ? plan.assessmentSchemaPin : undefined;
+  if (assessmentSchemaPin) {
+    const value = execFileSync(
+      "cast",
+      ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
+      { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+    ).trim();
+    if (value.toLowerCase() !== assessmentSchemaPin.expectedSchemaUID.toLowerCase()) {
+      throw new Error("AssessmentResolver v2 schema UID does not match the reviewed post-upgrade pin");
+    }
+    return;
+  }
   throw new Error(`No post-action verifier is defined for transaction boundary ${transaction.index + 1}`);
 }
 
@@ -868,7 +926,9 @@ function assertUpgradeBoundaryPreconditions(
   }
   const upgrade = plan.upgrades.find((candidate) => candidate.upgradeTransactionIndex === transaction.index);
   const wiring = plan.wiring.find((candidate) => candidate.transactionIndex === transaction.index);
-  if (!upgrade && !wiring) {
+  const assessmentSchemaPin =
+    plan.assessmentSchemaPin?.transactionIndex === transaction.index ? plan.assessmentSchemaPin : undefined;
+  if (!upgrade && !wiring && !assessmentSchemaPin) {
     throw new Error(`No reviewed release action owns transaction boundary ${transaction.index + 1}`);
   }
   const owner = execFileSync("cast", ["call", transaction.to, "owner()(address)", "--rpc-url", rpcUrl], {
@@ -904,6 +964,26 @@ function assertUpgradeBoundaryPreconditions(
         getAddress(current) === getAddress(wiring.module)
           ? `Wiring boundary ${transaction.index + 1} already changed state; recover with its exact receipt`
           : `Wiring boundary ${transaction.index + 1} has conflicting live module ${current}`,
+      );
+    }
+  }
+  if (assessmentSchemaPin) {
+    const liveImplementation = readStorageAddress(assessmentSchemaPin.proxy, rpcUrl);
+    const upgradePlan = plan.upgrades.find((candidate) => candidate.proxy === assessmentSchemaPin.proxy);
+    if (!upgradePlan || liveImplementation !== getAddress(upgradePlan.newImplementation)) {
+      throw new Error("AssessmentResolver schema pin requires the reviewed target implementation to be live first");
+    }
+    const current = execFileSync(
+      "cast",
+      ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
+      { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+    ).trim();
+    if (!/^0x[0-9a-f]{64}$/iu.test(current)) throw new Error("Unreadable AssessmentResolver v2 schema UID");
+    if (current.toLowerCase() !== `0x${"0".repeat(64)}`) {
+      throw new Error(
+        current.toLowerCase() === assessmentSchemaPin.expectedSchemaUID.toLowerCase()
+          ? `Assessment schema-pin boundary ${transaction.index + 1} already changed state; recover with its exact receipt`
+          : `AssessmentResolver has conflicting live v2 schema UID ${current}`,
       );
     }
   }

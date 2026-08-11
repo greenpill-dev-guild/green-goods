@@ -32,6 +32,7 @@
     "offer_vocabulary_correction_handoff": "handoffs/claude-offer-vocabulary-correction.md",
     "release_ops_handoff": "handoffs/human-release-ops.md",
     "release_engineering_handoff": "handoffs/codex-release-engineering.md",
+    "fable_phase_a_release_review": "handoffs/fable-phase-a-release-review.md",
     "release_engineering_prompt": "reports/codex-deployment-release-session-prompt-2026-08-10.md",
     "release_engineering_review": "reports/phase-a-release-engineering-review-2026-08-11.md",
     "linear_update_pack": "reports/linear/linear-update-pack.md",
@@ -495,7 +496,7 @@
       "owner": "codex",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Phase A tooling and local proof are implemented, but a dry-run-green release candidate cannot be certified on the frozen merged contracts and current live state. registerPool is gated by whenOperational while the authoritative release order requires pool registration/backfill before the separately authorized pooling unpause; the finalized Arbitrum garden inventory is 18 with root token 0 rather than the frozen 13 with root token 1; the protocol Safe is live 2-of-6 rather than the approved 3-of-5 target; the live AssessmentResolver is not v3-capable; destination gas is unmeasured; Safe/Zodiac garden authority and caps are intentionally incomplete; and the installed Envio CLI exposes no hosted deploy command. The release tooling fails closed on each condition. No ABI/storage repair or live mutation is authorized in this lane.",
+      "blocked_reason": "The approved Phase A follow-up has reconciled the 18-garden/root-token-0 inventory, exact live 2-of-6 Safe decision, local hard-max destination-gas measurement, sequential AssessmentResolver upgrade/v2-pin fork proof, and a Bun-wrapped Envio Cloud lifecycle. Certification still requires human review and merge of the ABI/storage-neutral paused-registration increment derived from 5e70654c3; an explicit resolution of the 2-of-6 owner decision against the contracts guide minimum 3-of-5 policy; final garden Safe/Zodiac/cap/fee/reserve values plus live-authority gas measurement; exact live Envio Cloud organisation/indexer/branch/final-commit/rollback-commit context; a rebased and regenerated combined lock; fresh full gates; and new internal plus Fable 5 committed-range reviews. No broadcast, authority mutation, value movement, production activation, or Linear write is authorized.",
       "branch": "feature/commitment-pooling-contracts-deployment",
       "implementation_commit": "f5cc0eca3f06063b4c7b83c91c3dca03cd0324d9",
       "depends_on": ["contracts", "settlement"],
@@ -1124,6 +1125,14 @@
       "status": "blocked",
       "branch": "feature/commitment-pooling-contracts-deployment",
       "note": "Completed the Phase A release-engineering implementation and adversarial fail-closed review, but did not certify a release candidate. Live read-only proof found a 2-of-6 protocol Safe rather than the approved 3-of-5 target, 18 finalized gardens with root token 0 rather than the frozen 13/root token 1 inventory, and an AssessmentResolver that is not v3-capable. The merged pooling ABI also gates registerPool behind whenOperational while the authoritative release order requires backfill before the separately authorized unpause. Peer wiring remains blocked on measured destination gas; Safe/Zodiac value authority remains disabled and incomplete; the installed Envio CLI has no hosted deploy command. No broadcast, deployment, authority mutation, value movement, indexer activation, ping, canary, unpause, cap change, or Linear write occurred."
+    },
+    {
+      "timestamp": "2026-08-11T23:55:00.000-07:00",
+      "actor": "codex",
+      "lane": "release_engineering",
+      "status": "blocked",
+      "branch": "feature/commitment-pooling-contracts-deployment",
+      "note": "Applied Afo's follow-up decisions without broadcasting. The release manifest and live backfill proof now use all 18 gardens with protocol root token 0. The exact live 2-of-6 Safe is frozen as the owner decision but remains blocked against the repository's 3-of-5 minimum until explicit guidance resolution. An isolated ABI/storage-neutral increment derived from 5e70654c3 allows owner-only registration while paused and is green but awaits human merge. The hard-max 24-member local executor path measured 1,383,897 gas including acknowledgment; final gas still awaits the exact Safe/Zodiac policy. One pinned Arbitrum fork proves the sequential AssessmentResolver upgrade, canonical v2 pin, and schema finalization. A Bun-wrapped separate Envio Cloud deploy/promote/rollback path and queued Fable 5 final-candidate review now exist; exact cloud context and all final reviews remain blockers. No external mutation occurred."
     }
   ]
 }
