@@ -52,6 +52,14 @@ export {
 // From gardens-subgraph.ts
 export { getGardensSubgraphUrl } from "./gardens-subgraph";
 
+// From garden-visibility.ts
+export {
+  GARDENS_HIDDEN_EVERYWHERE,
+  GARDENS_HIDDEN_FROM_EDITORIAL,
+  isGardenHiddenEverywhere,
+  isGardenPubliclyVisible,
+} from "./garden-visibility";
+
 // From passkeyServer.ts (client-only passkey utilities)
 export {
   buildPasskeyRecoveryContext,

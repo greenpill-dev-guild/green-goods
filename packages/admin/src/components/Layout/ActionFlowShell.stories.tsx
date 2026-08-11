@@ -80,7 +80,7 @@ type Story = StoryObj<typeof ActionFlowShell>;
 export const Configure: Story = {
   args: {
     title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    context: "Tech and Sun Hub",
     backLabel: "Back to action selection",
     onBack: fn(),
     layout: "dialog",
@@ -102,7 +102,7 @@ export const Submitting: Story = {
 export const QualifyPhase: Story = {
   args: {
     title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    context: "Tech and Sun Hub",
     layout: "dialog",
     children: (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -144,7 +144,7 @@ const STEPS = [
 export const TwoColumnRail: Story = {
   args: {
     title: "Submit work",
-    context: "Aiyeloja Family Garden",
+    context: "Tech and Sun Hub",
     steps: STEPS,
     currentStep: 2,
     onStepClick: fn(),
