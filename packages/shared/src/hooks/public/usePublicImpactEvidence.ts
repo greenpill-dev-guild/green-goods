@@ -19,6 +19,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
@@ -49,10 +50,9 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
     queryKey: queryKeys.public.impactEvidence(chainId, page, pageSize),
     queryFn: async (): Promise<PublicImpactSlice> => {
       const gardens = await getGardens();
-      const visibleGardens = gardens.filter(
-        (garden) =>
-          (garden.name ?? "").trim().length > 0 || (garden.location ?? "").trim().length > 0
-      );
+      // Same predicate the archive and the proof counters use. A garden hidden
+      // from the website must not leak back in through its work records.
+      const visibleGardens = gardens.filter(isGardenPubliclyVisible);
 
       // First pass: pull all Work entries to determine recency-ordered Garden caps.
       const worksResult = await getWorks(
