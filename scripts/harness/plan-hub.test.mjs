@@ -1234,6 +1234,31 @@ test("compact-archive rejects nested report symlinks before mutation", () =>
     assert.equal(lstatSync(join(reportsDir, "review-2026-08-11.md")).isSymbolicLink(), true);
   }));
 
+test("validate rejects dangling report symlinks in archived hubs", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "linked-archive-validation", "--stage", "active"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "linked-archive-validation",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed_stale",
+        "--reason",
+        "No remaining live scope.",
+      ]).status,
+      0,
+    );
+    const reportsPath = join(root, ".plans", "archive", "linked-archive-validation", "reports");
+    symlinkSync(join(root, "missing-external-reports"), reportsPath, "dir");
+
+    const validated = runPlanHub(root, ["validate"]);
+    assert.notEqual(validated.status, 0);
+    assert.match(validated.stderr, /reports must be a real directory inside the feature hub/);
+  }));
+
 test("validate rejects noncanonical files inside archived hubs", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archive-residue", "--stage", "backlog"]).status, 0);

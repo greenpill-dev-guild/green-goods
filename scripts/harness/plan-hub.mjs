@@ -651,6 +651,8 @@ function validateStageStructure(stage, failures) {
     if (stage === "archive") {
       const { status } = readFeatureStatus(entryPath);
       const allowedEntries = archiveEntryNames(status);
+      const reportsError = reportsEntryError(entryPath);
+      if (reportsError) failures.push(reportsError);
       for (const child of readdirSync(entryPath)) {
         const childPath = join(entryPath, child);
         if (!allowedEntries.has(child)) {
@@ -658,7 +660,7 @@ function validateStageStructure(stage, failures) {
             `${childPath}: archived hubs retain only status.json, reports, and their four linked plan documents`,
           );
         } else if (child === "reports") {
-          if (!statSync(childPath).isDirectory()) {
+          if (!reportsError && !statSync(childPath).isDirectory()) {
             failures.push(`${childPath}: archived reports must remain in the reports directory`);
           }
         } else if (!statSync(childPath).isFile()) {
@@ -678,9 +680,9 @@ function markdownFilesUnder(directory) {
 
   return readdirSync(directory).flatMap((entry) => {
     const entryPath = join(directory, entry);
+    if (entry === "reports") return [];
     const stats = statSync(entryPath);
     if (stats.isDirectory()) {
-      if (entry === "reports") return [];
       return markdownFilesUnder(entryPath);
     }
     return stats.isFile() && entry.endsWith(".md") ? [entryPath] : [];
