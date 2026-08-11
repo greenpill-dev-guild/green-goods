@@ -1013,6 +1013,9 @@ test("archive moves record explicit closeout metadata and remain valid", () =>
     const reportContents = "# Review 2026-08-11\n\nImmutable evidence.\n";
     mkdirSync(reportDir, { recursive: true });
     writeFileSync(join(reportDir, "review-2026-08-11.md"), reportContents);
+    const activeStatus = readStatus(root, "active", "closed-fixture");
+    activeStatus.links.review = "reports/review-2026-08-11.md";
+    writeStatus(root, "active", "closed-fixture", activeStatus);
 
     const moved = runPlanHub(root, [
       "move",
@@ -1091,9 +1094,37 @@ test("archive moves reject a malformed reports entry before mutation", () =>
       "No remaining live scope.",
     ]);
     assert.notEqual(moved.status, 0);
-    assert.match(moved.stderr, /reports must be a directory before archival/);
+    assert.match(moved.stderr, /reports must be a directory before archive compaction/);
     assert.equal(existsSync(join(root, ".plans", "active", "malformed-reports")), true);
     assert.equal(existsSync(join(root, ".plans", "archive", "malformed-reports")), false);
+  }));
+
+test("compact-archive rejects a malformed reports entry before mutation", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "legacy-archive", "--stage", "active"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "legacy-archive",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed_stale",
+        "--reason",
+        "No remaining live scope.",
+      ]).status,
+      0,
+    );
+    writeFileSync(join(root, ".plans", "archive", "legacy-archive", "reports"), "not a directory\n");
+
+    const compacted = runPlanHub(root, ["compact-archive"]);
+    assert.notEqual(compacted.status, 0);
+    assert.match(compacted.stderr, /reports must be a directory before archive compaction/);
+    assert.equal(
+      readFileSync(join(root, ".plans", "archive", "legacy-archive", "reports"), "utf8"),
+      "not a directory\n",
+    );
   }));
 
 test("validate rejects noncanonical files inside archived hubs", () =>

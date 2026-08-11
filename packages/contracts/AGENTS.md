@@ -206,7 +206,7 @@ uint256 result = a.add(b);
 **Use random inputs to find edge cases:**
 
 ```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
+function testFuzz_GardenToken_mintsForValidRecipient(address to, string calldata uri) public {
     vm.assume(to != address(0));
     vm.assume(bytes(uri).length > 0);
 

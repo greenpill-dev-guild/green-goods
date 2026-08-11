@@ -349,6 +349,19 @@ function archiveEntryNames(status) {
   ]);
 }
 
+function isConfinedReportLink(link) {
+  if (typeof link !== "string" || !link.startsWith("reports/") || link.includes("\\")) return false;
+  const segments = link.split("/");
+  return segments.length > 1 && segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
+function reportsEntryError(featureDirPath) {
+  const reportsPath = join(featureDirPath, "reports");
+  return existsSync(reportsPath) && !statSync(reportsPath).isDirectory()
+    ? `${reportsPath}: reports must be a directory before archive compaction`
+    : null;
+}
+
 function compactArchiveFeature(destinationDir, status) {
   const allowedEntries = archiveEntryNames(status);
   for (const entry of readdirSync(destinationDir)) {
@@ -361,6 +374,7 @@ function compactArchiveFeature(destinationDir, status) {
 function markArchivedDocuments(destinationDir, status) {
   const slug = status.feature.slug;
   for (const relativePath of Object.values(status.links)) {
+    if (isConfinedReportLink(relativePath)) continue;
     const documentPath = join(destinationDir, relativePath);
     if (!relativePath.endsWith(".md") || !existsSync(documentPath)) {
       continue;
@@ -1611,10 +1625,15 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
 
     if (stage === "archive") {
       const nestedLinks = Object.values(status.links).filter(
-        (link) => typeof link === "string" && (link.includes("/") || link.includes("\\")),
+        (link) =>
+          typeof link === "string" &&
+          (link.includes("/") || link.includes("\\")) &&
+          !isConfinedReportLink(link),
       );
       if (nestedLinks.length > 0) {
-        errors.push(`archive links must reference top-level files: ${nestedLinks.join(", ")}`);
+        errors.push(
+          `archive links must reference top-level files or confined reports/ paths: ${nestedLinks.join(", ")}`,
+        );
       }
     }
   }
@@ -1793,9 +1812,9 @@ function moveFeature(flags) {
   }
 
   const { status } = readFeatureStatus(found.dir);
-  const reportsPath = join(found.dir, "reports");
-  if (toStage === "archive" && existsSync(reportsPath) && !statSync(reportsPath).isDirectory()) {
-    fail(`${reportsPath}: reports must be a directory before archival`);
+  const reportsError = toStage === "archive" ? reportsEntryError(found.dir) : null;
+  if (reportsError) {
+    fail(reportsError);
   }
   const movedAt = nowIso();
   status.feature.stage = toStage;
@@ -1960,6 +1979,8 @@ function compactArchive() {
   const knownSlugs = formalFeatureSlugs();
 
   for (const record of records) {
+    const reportsError = reportsEntryError(record.dir);
+    if (reportsError) failures.push(reportsError);
     const errors = validateFeatureStatus(record.status, record.dir, "archive", knownSlugs).filter(
       (error) =>
         !error.startsWith("archive status must fold notes") &&
