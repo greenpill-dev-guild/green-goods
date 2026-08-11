@@ -867,7 +867,7 @@ function w8(state: W8State): string {
     case "step3":
       inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>${hot("w8.add-address", btn("Add address", { kind: "ghost", sm: true, icon: "add-line" }))}`)}
 ${field("Threshold", input("2 of 2", { select: true }))}
-${banner("Choose up to the current confirmer limit (4) — the form blocks the fifth name before review.", "stone", "information-line")}
+${banner("Choose up to the current confirmer limit — the console reads MAX_CONFIRMERS from the deployed module and blocks the name past it before review.", "stone", "information-line")}
 ${hot("w8.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot · usable only while nobody local can confirm, always with a recorded reason · every contributor remains excluded.</span></span></label>`)}
 ${banner("The ordinary group is always checked first. The Green Goods team can step in only while that group is unreachable; turn the fallback off here for this promise.", "stone", "information-line")}
 ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}`;

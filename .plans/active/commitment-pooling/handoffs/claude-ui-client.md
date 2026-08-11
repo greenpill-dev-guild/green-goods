@@ -17,7 +17,8 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 
 - GREEN shared hooks/selectors/jobs, including the documented bare-address `Garden.id` query
   contract plus chain-scoped IDs for new Commitment Pooling entities
-- uiux-spec.md Appendix E and client frames W28–W31 in wireframes.md, plus planned SB-35/SB-36
+- uiux-spec.md Appendix E, and W28–W31 as drawn in `hifi/screens/exchange.ts` with `sb35`/`sb36`
+  as validated journeys (register #97f; wireframes.md keeps the lo-fi frames as background)
 - acceptance-matrix.md for exact identity, copy/state, and role proof
 - CCIP command/execution/acknowledgment states and gardenerDeliveryEnabled selector
 - Existing AppShell, Garden detail, WalletDrawer, offline indicator, wallet/passkey, and i18n patterns

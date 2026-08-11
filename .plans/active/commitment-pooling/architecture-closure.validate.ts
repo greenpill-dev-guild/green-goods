@@ -435,9 +435,9 @@ const sourceChecks: Array<[boolean, string]> = [
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
   [wireframes.includes("#screens/W7@open") && wireframes.includes("(30 states)"), "wireframe W7 state count is stale"],
   [
-    coverage.includes("400 rendered states") &&
+    coverage.includes("401 rendered states") &&
       coverage.includes("548 registered hotspots") &&
-      coverage.includes("388 scenes"),
+      coverage.includes("385 scenes"),
     "prototype coverage snapshot is stale",
   ],
   [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],

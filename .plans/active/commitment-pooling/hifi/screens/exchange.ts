@@ -8,7 +8,8 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  actionBar, banner, btn, card, chip, hdr, input, kv, listRow, pagepad, phoneFrame, sheetOver,
+  actionBar, banner, btn, card, chip, field, hdr, input, kv, listRow, pagepad, phoneFrame,
+  sectionTitle, sheetOver,
 } from "../kit";
 import type { HifiDef } from "./index";
 
@@ -38,7 +39,14 @@ function w28(state: W28State): string {
   switch (state) {
     case "selected":
       content = pagepad(
-        card(`${kv("You give", "Repair the shared water pump · 1 repair")}${kv("You receive", "Childcare during the work party · 6 hours")}${kv("Pair rule", "Both promises start together; each is kept on its own")}`),
+        sectionTitle("What you give"),
+        field("Title", input("Repair the shared water pump")),
+        sectionTitle("How much"),
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("repairs", "ok")}${chip("hours")}${chip("sessions")}${chip("other…")}</div>`,
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("1", "ok")}${chip("2")}${chip("custom…")}</div>`,
+        field("Due", input("Runs with the season · through Aug 30", { select: true })),
+        `<div class="t-meta">Every field the template filled stays editable until you make the offer.</div>`,
+        card(`${kv("You receive", "Childcare during the work party · 6 hours")}${kv("Pair rule", "Both promises start together; each is kept on its own")}`),
         `<div class="t-meta">The exchange reference travels with your Offer. Ana still chooses to start both — nothing is committed for her here.</div>`,
       );
       actions = `${hot("w28.submit", btn("Make this offer in exchange", { kind: "pri", full: true }))}${hot("w28.clear", btn("Clear the selection", { kind: "ghost", full: true, sm: true }))}`;
@@ -79,7 +87,7 @@ function w28(state: W28State): string {
 const W28_HOTS: HifiDef["hots"] = {
   "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId and enables the Use action. Accepted, lapsed, self-owned, non-Individual, capacity-inconsistent, and priced rows never render — exchange is barter, and a non-zero consideration on either side reverts with ExchangeConsiderationUnsupported. One eligible row is wired in this drawing; every eligible row is selectable in the app (WF:1213 · CS §5.3)." },
   "w28.clear": { l: "Clear the selection", to: "screen:W28", info: "Drops the exchange reference without losing the draft; focus returns to the row (WF:1217)." },
-  "w28.submit": { l: "Make this offer in exchange", info: "createCommitment atomically re-checks every eligibility predicate on Ana's Offer before storing counterCommitmentId — if it changed before mining, no promise is created and the picker returns for a clear-or-replace (WF:1219 · CS §5.3).", calls: ["createCommitment"], facts: { pool: "Open" }, pendingSync: true },
+  "w28.submit": { l: "Make this offer in exchange", to: "screen:W1@exchange-queued", info: "createCommitment atomically re-checks every eligibility predicate on Ana's Offer before storing counterCommitmentId — if it changed before mining, no promise is created and the picker returns for a clear-or-replace (WF:1219 · CS §5.3).", calls: ["createCommitment"], facts: { pool: "Open" }, pendingSync: true },
   "w28.retry": { l: "Retry loading Offers", to: "screen:W28", info: "Read-only retry; the draft and any prior selection survive." },
 };
 
@@ -199,7 +207,7 @@ const W31_HOTS: HifiDef["hots"] = {
   "w31.harvest-share": { l: "Harvest share template", to: "screen:W3@step-what", info: "Prefills existing fields only (a harvest-portion promise with its delivery note) and lands in the editable creation flow (Appendix E.2)." },
   "w31.tool-lending": { l: "Tool lending template", to: "screen:W3@step-what", info: "Prefills existing fields only (a named tool, period, and purpose) and lands in the editable creation flow (Appendix E.2)." },
   "w31.mentorship": { l: "Mentorship circle template", to: "screen:W3@step-what", info: "Prefills existing fields only (offered practice time) and lands in the editable creation flow (Appendix E.2)." },
-  "w31.exchange-circle": { l: "Exchange circle template", to: "screen:W28", info: "The one template that adds an exchange reference: it routes through the W28 picker before the ordinary review (Appendix E.2)." },
+  "w31.exchange-circle": { l: "Exchange circle template", to: "screen:W28", info: "The one template that adds an exchange reference: it routes through the W28 picker, whose selected state is the editable mirrored review — every template default stays editable until the offer is made (Appendix E.2)." },
   "w31.start-blank": { l: "Start blank", to: "screen:W3@step-what", info: "Enters the same flow with no hidden defaults (Appendix E.2)." },
 };
 

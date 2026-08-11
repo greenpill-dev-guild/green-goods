@@ -27,6 +27,7 @@ const W1_STATES = [
   ["open", "Open"], ["not-ready", "Not ready"], ["ready", "Ready"], ["seeded", "Seeded"],
   ["request-open", "Open request"], ["request-queued", "Request queued"],
   ["request-work-queued", "Work request queued"],
+  ["exchange-queued", "Exchange offer queued"],
   ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"], ["composted", "Composted"],
   ["cancelled-cycle", "Cycle cancelled"], ["paused-cancelled-cycle", "Cycle cancelled · pool paused"],
   ["empty-open", "Empty pool"], ["no-season", "No season"],
@@ -228,6 +229,15 @@ function w1(state: W1State): string {
         hot("w1.queued-card", requestCard({ queued: true })),
       );
       break;
+    case "exchange-queued":
+      content = pagepad(
+        seasonCard(),
+        banner("Your offer in exchange is saved on this device and will send when connected.", "stone", "wifi-off-line"),
+        hot("w1.queued-card", card(
+          `<div class="cardrow">${chip("Offer", "offer")}${chip("In exchange", "plain")}${chip("Queued", "queued")}</div><div class="t-title">Repair the shared water pump</div><div class="t-meta num">1 repair · runs with the season</div><div class="t-meta">Paired with Ana's childcare offer. Nothing starts for either of you until she chooses to start both.</div>`,
+        )),
+      );
+      break;
     case "request-work-queued":
       content = pagepad(
         seasonCard(),
@@ -352,7 +362,7 @@ function w1(state: W1State): string {
 }
 
 const W1_HOTS: HifiDef["hots"] = {
-  "w1.offer": { l: "Offer support", to: "screen:W3", info: "Starts the creation flow with direction = offer (UX:120)." },
+  "w1.offer": { l: "Offer support", to: "screen:W31", info: "Starts the creation flow with direction = offer, opening the Offer-template picker first; Start blank enters the same editable form with no hidden defaults (UX:122 · Appendix E.2)." },
   "w1.request": { l: "Request help", to: "screen:W3@request-what", info: "Creation flow with direction = request — a real three-step wizard as of register #96 (UX:605)." },
   "w1.take-up": { l: "Take this up (open claim)", to: "screen:W2", info: "Open mode: claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
   "w1.take-up-request": { l: "I can help (open request)", to: "screen:W2@request-active", info: "Open mode: the claimant becomes the provider and the request creator remains the confirmer.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
@@ -1456,7 +1466,7 @@ function w3(state: W3State): string {
       head = w3Head("Make an offer", 3);
       content = pagepad(
         sectionTitle("Who confirms"),
-        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Named group", "None — add people to require more than one confirmation")}${kv("Limit", "Choose up to the current confirmer limit (4) — the form blocks the fifth")}`),
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Named group", "None — add people to require more than one confirmation")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module, never a number drawn here")}`),
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason — and never by a contributor.</span></span></label>`),
         sectionTitle("Team options"),
         hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy" }))),
