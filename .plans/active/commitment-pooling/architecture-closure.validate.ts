@@ -28,6 +28,11 @@ const indexerHandoff = read("handoffs/codex-indexer.md");
 const stateHandoff = read("handoffs/codex-state-api.md");
 const clientHandoff = read("handoffs/claude-ui-client.md");
 const adminHandoff = read("handoffs/claude-ui-admin.md");
+// 2026-08-11 code-side closure legs: the merged Solidity interfaces themselves, so the
+// docs↔docs closure below can no longer drift silently from the implemented ABI.
+const poolingAbi = read("../../../packages/contracts/src/interfaces/ICommitmentPoolingModule.sol");
+const registryAbi = read("../../../packages/contracts/src/interfaces/ICommitmentRegistry.sol");
+const settlementAbi = read("../../../packages/contracts/src/interfaces/ISettlementModule.sol");
 
 const failures: string[] = [];
 const require = (condition: boolean, message: string) => {
@@ -52,6 +57,102 @@ require(canonicalEvents.length === 54, `expected 54 canonical ABI events, found 
 require(
   new Set(canonicalEvents).size === canonicalEvents.length,
   "canonical ABI inventory contains duplicate event names",
+);
+
+// 2026-08-11: the 54-event inventory was previously closed only against Matrix A1 — a
+// spec-vs-spec check. Close it against the merged Solidity interfaces too, so the canonical
+// config.yaml block and the implemented ABI cannot drift apart silently. ISettlementModule's
+// events are deliberately outside the 54 (settlement-spec owns those); a future extension may
+// add creditAbi + the D30 LoanState machine to the enum closures below.
+const solidityEventNames = (source: string) =>
+  [...source.matchAll(/^\s*event\s+([A-Za-z][A-Za-z0-9_]*)\(/gm)].map((match) => match[1]);
+const implementedEvents = [...solidityEventNames(poolingAbi), ...solidityEventNames(registryAbi)];
+require(
+  new Set(implementedEvents).size === implementedEvents.length,
+  "the merged pooling interfaces declare a duplicate event name",
+);
+for (const eventName of canonicalEvents) {
+  require(
+    implementedEvents.includes(eventName),
+    `canonical event ${eventName} is not declared in ICommitmentPoolingModule.sol or ICommitmentRegistry.sol`,
+  );
+}
+for (const eventName of implementedEvents) {
+  require(
+    canonicalEvents.includes(eventName),
+    `interface event ${eventName} is missing from contract-spec's canonical config.yaml inventory`,
+  );
+}
+
+// Enum-member closure: every drawn state machine must stay truthful to the merged enums.
+// Extraction targets the interface source, not the diagrams' mermaid — a section-scoped
+// whole-word search catches member add/remove and most renames without brittle mermaid parsing.
+const solidityEnumMembers = (source: string, enumName: string): string[] => {
+  const match = source.match(new RegExp(`enum ${enumName}\\s*\\{([^}]*)\\}`));
+  require(match !== null, `Solidity enum ${enumName} is missing from the interface source`);
+  return match
+    ? match[1]
+        .split(",")
+        .map((member) => member.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim())
+        .filter((member) => /^[A-Za-z][A-Za-z0-9_]*$/.test(member))
+    : [];
+};
+const hasWord = (haystack: string, word: string) => new RegExp(`\\b${word}\\b`).test(haystack);
+const extractedEnums: Record<string, string[]> = {};
+const machineClosures: Array<[string, string, string, string]> = [
+  ["PoolState", "## D8.", "## D9.", "pooling"],
+  ["CycleState", "## D9.", "## D10.", "pooling"],
+  ["CommitmentState", "## D10.", "## D11.", "pooling"],
+  ["DisbursementState", "## D22.", "## D23.", "settlement"],
+];
+const enumSources: Record<string, string> = { pooling: poolingAbi, settlement: settlementAbi };
+for (const [enumName, start, end, sourceKey] of machineClosures) {
+  const members = solidityEnumMembers(enumSources[sourceKey], enumName);
+  extractedEnums[enumName] = members;
+  const machine = section(diagrams, start, end);
+  for (const member of members) {
+    if (member === "None") continue; // storage sentinel, drawn as [*]
+    require(hasWord(machine, member), `${enumName} member ${member} is not drawn in the ${start} machine`);
+  }
+}
+extractedEnums.CommitmentSeriesState = solidityEnumMembers(poolingAbi, "CommitmentSeriesState");
+require(
+  solidityEnumMembers(settlementAbi, "PayoutPlanStatus").join(",") === "Draft,Pending,Partial,Complete,Failed",
+  "PayoutPlanStatus no longer matches the documented Draft/Pending/Partial/Complete/Failed set",
+);
+require(
+  extractedEnums.DisbursementState.join(",") === "None,Queued,Dispatched,Confirmed,Failed,Cancelled",
+  "DisbursementState no longer matches the 5-stored-plus-None set that D22/D23 document",
+);
+require(diagrams.includes("5 stored, 9 rendered"), "D23 no longer claims the 5-stored/9-rendered mapping");
+// The provenance preamble's derived/off-chain lists are load-bearing: assert them verbatim,
+// then assert each name is NOT an on-chain member of the machine that documents it as soft.
+require(
+  diagrams.includes(
+    "Derived across the spec machines: `Active`, `EvidenceSubmitted`, `PartiallyApproved`, `Reconciled` (commitment) and `InProgress`, `Reviewing` (cycle). Off-chain: `Draft` (commitment and cycle).",
+  ),
+  "the derived/off-chain state provenance preamble changed — re-close the enum lists before editing it",
+);
+for (const derived of ["Draft", "Active", "EvidenceSubmitted", "PartiallyApproved", "Reconciled"]) {
+  require(
+    !extractedEnums.CommitmentState.includes(derived),
+    `${derived} is documented derived/off-chain for commitments but is now a CommitmentState enum member`,
+  );
+}
+for (const derived of ["Draft", "InProgress", "Reviewing"]) {
+  require(
+    !extractedEnums.CycleState.includes(derived),
+    `${derived} is documented derived/off-chain for cycles but is now a CycleState enum member`,
+  );
+}
+// D12's four claim states are read-model rows, not Solidity storage; hold both facts.
+const claimMachine = section(diagrams, "## D12.", "## D13.");
+for (const state of ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]) {
+  require(claimMachine.includes(state), `claim-request read-model state ${state} is missing from D12`);
+}
+require(
+  claimMachine.includes("indexer"),
+  "D12 no longer attributes claim supersession to the read model",
 );
 
 const eventMatrix = section(matrix, "### A1. Complete event inventory", "### A2.");
@@ -222,7 +323,7 @@ for (const state of [
 ]) {
   require(matrix.includes(`\`${state}\``), `${state} is missing from Matrix C`);
 }
-for (const id of ["LC-01", "LC-02", "LC-03", "LC-04", "LC-05", "LC-06", "LC-07"]) {
+for (const id of ["LC-01", "LC-02", "LC-03", "LC-04", "LC-05", "LC-06", "LC-07", "LC-08"]) {
   require(matrix.includes(id), `${id} is missing from Matrix D`);
 }
 
@@ -272,6 +373,15 @@ for (const functionName of canonicalGatedFunctions) {
   require(
     galleryPermissionTable.includes(`\`${functionName}\``),
     `gallery permission table omits canonical gated function ${functionName}`,
+  );
+}
+// CommitmentSeriesState has no dedicated machine; the permission table is its closure surface
+// (the series rows name Active/Resting/Retired as the exact gate states).
+for (const member of extractedEnums.CommitmentSeriesState ?? []) {
+  if (member === "None") continue;
+  require(
+    hasWord(galleryPermissionTable, member),
+    `CommitmentSeriesState member ${member} is missing from the gallery permission table`,
   );
 }
 
@@ -525,8 +635,9 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Architecture closure validation passed: ${canonicalEvents.length} events, ` +
+  `Architecture closure validation passed: ${canonicalEvents.length} events (ABI-closed against 2 interface files), ` +
   `${requiredEntities.length} indexed entities, ${poolingFunctions.length} classified module functions, ` +
+  `6 enum vocabularies closed against the drawn machines, ` +
   `8 sparse-event materialization rows, ${contractCalls.length} executable calls, ` +
-  `${offlineKinds.length} offline kinds, 6 persistence states, and 7 lifecycle subjects.`,
+  `${offlineKinds.length} offline kinds, 6 persistence states, and 8 lifecycle subjects.`,
 );
