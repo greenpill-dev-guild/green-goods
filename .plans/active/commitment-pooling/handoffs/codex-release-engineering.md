@@ -7,6 +7,8 @@
 - Owner: Codex
 - Branch: `feature/commitment-pooling-contracts-deployment`
 - Pinned base and starting HEAD: `7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b`
+- Reviewed implementation commit: `f5cc0eca3f06063b4c7b83c91c3dca03cd0324d9`
+- Review record: `../reports/phase-a-release-engineering-review-2026-08-11.md`
 - Current state: blocked after Phase A implementation and adversarial review
 - Linear context: none; Linear writes are not authorized in Phase A
 - Authority: the August 10 deployment/release session prompt and its recorded owner decisions
@@ -143,6 +145,8 @@ authorization before downstream dry-runs can become green.
 
 ## Stop point
 
-Stop at a pinned, reviewed, dry-run-green release candidate. The next action must be a new explicit
-authorization naming the exact commit, target chain, stage, signer/owner, artifact diff, rollback
-checkpoint, and broadcast window. Approval of this handoff or its PR is not broadcast authority.
+The current stop is earlier than a release candidate because the blockers above prevent a green
+dry-run. After they are resolved, stop again at a pinned, reviewed, dry-run-green release candidate.
+The next Phase B action must be a new explicit authorization naming the exact commit, target chain,
+stage, signer/owner, artifact diff, rollback checkpoint, and broadcast window. Approval of this
+handoff or its PR is not broadcast authority.
