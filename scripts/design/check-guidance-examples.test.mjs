@@ -53,6 +53,22 @@ test("rejects named color property values", () => {
   assert.equal(failures.filter((failure) => failure.includes("raw named color")).length, 2);
 });
 
+test("rejects named-color token fallbacks", () => {
+  const text = ["```css", ".bad { color: var(--missing, red); }", "```"].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("raw named color"),
+    ),
+  );
+});
+
+test("rejects unterminated implementation fences", () => {
+  const text = ["```css", ".pane { color: var(--color-ink); }"].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), [
+    "design.md:1: unterminated implementation fence",
+  ]);
+});
+
 test("accepts pedagogical radius arithmetic and reduced-motion overrides", () => {
   const text = [
     "```css",

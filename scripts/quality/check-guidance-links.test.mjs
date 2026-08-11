@@ -117,6 +117,20 @@ test("does not confuse a colliding guide basename with an unrelated path", () =>
   assert.deepEqual(failures, []);
 });
 
+test("finds a relative consumer when deleted guide basenames collide", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [
+      {
+        path: ".claude/skills/design/SKILL.md",
+        text: "Read [the architecture](./ARCHITECTURE.md).",
+      },
+    ],
+    [".claude/skills/design/ARCHITECTURE.md"],
+    [".claude/skills/design/SKILL.md", "tests/ARCHITECTURE.md"],
+  );
+  assert.equal(failures.length, 1);
+});
+
 test("parses deleted and renamed paths", () => {
   assert.deepEqual(
     parseNameStatus(

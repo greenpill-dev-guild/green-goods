@@ -154,10 +154,16 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
       rules.push({
         label: basename,
         appliesTo: () => true,
-        test: (line) =>
-          line.includes(deletedPath) ||
-          line.includes(shortPath) ||
-          (!basenameCollides && line.includes(basename)),
+        test: (line, consumerPath) => {
+          const relativePath = path.posix.relative(path.posix.dirname(consumerPath), deletedPath);
+          return (
+            line.includes(deletedPath) ||
+            line.includes(shortPath) ||
+            line.includes(relativePath) ||
+            line.includes(`./${relativePath}`) ||
+            (!basenameCollides && line.includes(basename))
+          );
+        },
       });
     }
   }
@@ -176,7 +182,7 @@ export function scanDeletedSurfaceReferences(
       for (const rule of rules) {
         if (
           rule.appliesTo(file.path) &&
-          rule.test(line) &&
+          rule.test(line, file.path) &&
           !isExplicitRetirementNotice(line, rule.label)
         ) {
           failures.push(`${file.path}:${index + 1}: reference to deleted surface -> ${rule.label}`);

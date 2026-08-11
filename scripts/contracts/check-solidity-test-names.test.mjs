@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   addedTestFunctionsFromDiff,
   isCanonicalSolidityTestName,
+  stripSolidityNonCode,
   testFunctionsFromSource,
 } from "./check-solidity-test-names.mjs";
 
@@ -101,6 +102,23 @@ test("extracts added and renamed declarations across line breaks", () => {
     {
       file: "packages/contracts/test/unit/Credit.t.sol",
       line: 21,
+      name: "testCreditRegistry_revertsWhenPaused",
+    },
+  ]);
+});
+
+test("ignores declaration text in Solidity comments and strings", () => {
+  const source = [
+    "// function testLegacyComment(",
+    'string constant EXAMPLE = "function testLegacyString(";',
+    "/* function testLegacyBlock( */",
+    "function testCreditRegistry_revertsWhenPaused() public {}",
+  ].join("\n");
+  assert.equal(stripSolidityNonCode(source).split("\n").length, source.split("\n").length);
+  assert.deepEqual(testFunctionsFromSource(source, "packages/contracts/test/Credit.t.sol"), [
+    {
+      file: "packages/contracts/test/Credit.t.sol",
+      line: 4,
       name: "testCreditRegistry_revertsWhenPaused",
     },
   ]);

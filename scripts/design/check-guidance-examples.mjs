@@ -49,7 +49,7 @@ function hasRawNamedColor(line) {
     const withoutResources = value
       .replace(/url\(\s*(?:"[^"]*"|'[^']*'|[^)]*)\s*\)/gi, "")
       .replace(/\b(?:image-set|image|cross-fade)\s*\([^)]*\)/gi, "")
-      .replace(/var\([^)]*\)/gi, "");
+      .replace(/var\(\s*--[a-z0-9-]+(?:\s*,\s*([^)]*))?\)/gi, (_match, fallback = "") => fallback);
     for (const word of withoutResources.match(/[a-z][a-z0-9-]*/gi) ?? []) {
       if (cssNamedColors.has(word.toLowerCase())) return true;
     }
@@ -172,9 +172,11 @@ export function extractFencedBlocks(text) {
     current = {
       fence: match[1],
       language: match[2].trim().split(/\s+/)[0].toLowerCase(),
+      line: index + 1,
       lines: [],
     };
   }
+  if (current) blocks.push({ ...current, unterminated: true });
   return blocks;
 }
 
@@ -182,6 +184,9 @@ export function findDesignGuidanceViolations(text, relativePath) {
   const failures = [];
   for (const block of extractFencedBlocks(text)) {
     if (!implementationLanguages.has(block.language)) continue;
+    if (block.unterminated) {
+      failures.push(`${relativePath}:${block.line}: unterminated implementation fence`);
+    }
     let inBlockComment = false;
     let reducedMotionDepth = 0;
     for (const [entryIndex, entry] of block.lines.entries()) {

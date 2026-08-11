@@ -20,6 +20,55 @@ export function isCanonicalSolidityTestName(name) {
   return acceptedPatterns.some((pattern) => pattern.test(name));
 }
 
+export function stripSolidityNonCode(source) {
+  let output = "";
+  let state = "code";
+  let quote = "";
+  for (let index = 0; index < source.length; index++) {
+    const character = source[index];
+    const next = source[index + 1];
+    if (state === "line-comment") {
+      if (character === "\n") {
+        state = "code";
+        output += "\n";
+      } else output += " ";
+      continue;
+    }
+    if (state === "block-comment") {
+      if (character === "*" && next === "/") {
+        output += "  ";
+        index++;
+        state = "code";
+      } else output += character === "\n" ? "\n" : " ";
+      continue;
+    }
+    if (state === "string") {
+      if (character === "\\" && next !== undefined) {
+        output += "  ";
+        index++;
+      } else if (character === quote) {
+        output += " ";
+        state = "code";
+      } else output += character === "\n" ? "\n" : " ";
+      continue;
+    }
+    if (character === "/" && next === "/") {
+      output += "  ";
+      index++;
+      state = "line-comment";
+    } else if (character === "/" && next === "*") {
+      output += "  ";
+      index++;
+      state = "block-comment";
+    } else if (character === '"' || character === "'") {
+      quote = character;
+      output += " ";
+      state = "string";
+    } else output += character;
+  }
+  return output;
+}
+
 export function addedTestFunctionsFromDiff(diff) {
   const functions = [];
   let currentFile;
@@ -29,7 +78,8 @@ export function addedTestFunctionsFromDiff(diff) {
   const flushHunk = () => {
     if (!currentFile || hunk.length === 0) return;
     const source = hunk.map((entry) => entry.text).join("\n");
-    for (const match of source.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {
+    const code = stripSolidityNonCode(source);
+    for (const match of code.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {
       const startIndex = source.slice(0, match.index).split("\n").length - 1;
       const endIndex = startIndex + match[0].split("\n").length - 1;
       if (!hunk.slice(startIndex, endIndex + 1).some((entry) => entry.added)) continue;
@@ -68,7 +118,8 @@ export function addedTestFunctionsFromDiff(diff) {
 
 export function testFunctionsFromSource(source, file) {
   const functions = [];
-  for (const match of source.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {
+  const code = stripSolidityNonCode(source);
+  for (const match of code.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {
     const nameOffset = match[0].indexOf(match[1]);
     const line = source.slice(0, match.index + nameOffset).split(/\r?\n/).length;
     functions.push({ file, line, name: match[1] });
