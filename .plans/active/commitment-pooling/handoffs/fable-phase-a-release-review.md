@@ -6,9 +6,9 @@
 - Owner: Afolabi Aiyeloja
 - State: dispatched by Afolabi Aiyeloja on 2026-08-11 against the then-current `de7863391`
   candidate; informative review in flight, but not a final-candidate disposition
-- Best review point: after the paused-registration contracts increment is human-reviewed and merged,
-  the release branch is rebased on that merge, all manifests/locks are regenerated, and the full
-  Phase A gate is green; before any Phase B authorization request
+- Best review point: after the paused deployer-owned scope correction is committed, all
+  manifests/locks are regenerated, and the full Phase A gate is green; before any paused-deployment
+  Phase B authorization request
 - Authority: read-only review only; no file mutation, deployment, broadcast, ownership transfer,
   Safe/Zodiac grant, value movement, indexer activation, ping, canary, unpause, cap change, or
   Linear write
@@ -22,7 +22,14 @@ least 3 owners, and the exact live 2-of-6 protocol Safe is approved. Hosted prod
 deployment is removed from this release lane; PRD-722 owns that later work and receives only the
 contract address/start-block handoff here. Because this correction changes the candidate after
 dispatch, the in-flight response may inform remediation but cannot certify the final commit. Refresh
-the exact-range review after the paused-registration merge, lock regeneration, and final gates.
+the exact-range review after the final scope correction, lock regeneration, and final gates.
+
+**Second post-dispatch scope correction (2026-08-11).** The current ceremony now ends paused and
+deployment-sender owned. Ownership transfer, the approved 18-garden/root-token-0 backfill, and core
+unpause move to a separately reviewed later Product issue. The paused-registration increment is
+therefore not part of the current combined base. Current review must prove that transfer/backfill
+commands are absent from the deployer operator and ownership broadcast fails closed. The in-flight
+review of `de7863391` cannot certify this later scope correction.
 
 ## Activation gate
 
@@ -39,8 +46,9 @@ or the artifact hashes do not match the pinned commit.
 - Indexer handoff: `PRD-722; exact contract address/start-block diff only; no hosted deployment`
 - Validation receipt: `[new final Phase A report path]`
 
-Before review, prove the paused-registration increment derived from `5e70654c3` is an ancestor of
-the combined base. Do not review the isolated worktree commit as though it were already merged.
+Before review, prove the paused-registration increment derived from `5e70654c3` is not silently
+absorbed into the current combined base. It remains later-issue work unless a newer explicit owner
+decision changes the scope.
 
 ## Ready-to-paste review prompt
 
@@ -75,9 +83,10 @@ Review these lanes independently and then as one transaction sequence:
    batch-kind mixing, malformed messages, acknowledgment receiver/version binding, and authenticated
    success as the only confirmation path.
 4. Upgrade and rollback: actual old implementations, storage/ABI/event compatibility, the sequential
-   AssessmentResolver upgrade plus canonical v2 pin, schema finalization, paused pool registration,
-   integration upgrades, ownership transfers, one-transaction boundaries, post-action verification,
-   and the safe resumable state after every possible one-of-many failure.
+   AssessmentResolver upgrade plus canonical v2 pin, schema finalization, integration upgrades,
+   the paused deployment-sender-owned terminal state, one-transaction boundaries, post-action
+   verification, and the safe resumable state after every possible one-of-many failure. Confirm
+   that ownership transfer, pool backfill, and core unpause are later-issue operations.
 5. Persistence and recovery: first run, replay, stale side file, interrupted write, on-chain-success/
    local-write-failure, code-hash mismatch after retry, preservation of unrelated historical Celo
    keys, and canonical artifact mutation during simulation.

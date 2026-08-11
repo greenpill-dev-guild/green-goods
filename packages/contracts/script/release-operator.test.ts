@@ -6,6 +6,7 @@ import {
   assertAllowedOperatorCommand,
   createPasswordLease,
   parseSessionOptions,
+  RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
 } from "./release-operator";
 
@@ -56,6 +57,38 @@ describe("release operator session", () => {
       /requires a value/,
     );
     expect(() => tokenizeOperatorCommand("run 'unterminated")).toThrow(/Unclosed quote/);
+  });
+
+  it("excludes ownership and backfill from the paused deployer-owned ceremony", () => {
+    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("release:ownership:arbitrum");
+    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("release:ownership:celo");
+    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("pooling:backfill:arbitrum");
+    expect(() =>
+      assertAllowedOperatorCommand(tokenizeOperatorCommand("run release:ownership:arbitrum --step 1")),
+    ).toThrow(/not allowlisted/);
+    expect(() =>
+      assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:backfill:arbitrum --step 1")),
+    ).toThrow(/not allowlisted/);
+  });
+
+  it("accepts exact mined-receipt recovery for every current deployer-signed wrapper", () => {
+    const receipt = `0x${"ab".repeat(32)}`;
+    const commands = [
+      "assessment:upgrade:arbitrum",
+      "pooling:schemas:arbitrum",
+      "pooling:deploy:arbitrum",
+      "pooling:finalize:arbitrum",
+      "settlement:module:deploy:arbitrum",
+      "credit:registry:deploy:arbitrum",
+      "pooling:upgrade:arbitrum",
+      "settlement:executor:deploy:celo",
+    ];
+    for (const command of commands) {
+      expect(assertAllowedOperatorCommand(tokenizeOperatorCommand(`run ${command} --receipt ${receipt}`))).toEqual({
+        script: command,
+        args: ["--receipt", receipt],
+      });
+    }
   });
 
   it("uses a private 0600 password file and removes it when the session closes", () => {

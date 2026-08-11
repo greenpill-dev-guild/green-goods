@@ -73,6 +73,29 @@ describe("release CLI real entrypoints", () => {
     expect(`${noBoundary.stdout}${noBoundary.stderr}`).toContain("Broadcast requires --step");
   });
 
+  it("ends the current core plan paused and blocks ownership broadcast before RPC", () => {
+    const corePlan = run(["protocol-core", "--network", "arbitrum", "--pure-simulation"]);
+    expect(corePlan).toContain('"operations": [');
+    expect(corePlan).toContain('"ownership-transfer"');
+    expect(corePlan).toContain('"18-garden-pool-backfill"');
+    expect(corePlan).not.toContain('"command": "bun run release:ownership:plan:arbitrum"');
+    expect(corePlan).not.toContain('"command": "bun run pooling:backfill:dry:arbitrum"');
+
+    const transfer = fail([
+      "ownership-transfer",
+      "--network",
+      "arbitrum",
+      "--broadcast",
+      "--step",
+      "1",
+      "--expected-nonce",
+      "0",
+      "--override-sepolia-gate",
+    ]);
+    expect(transfer.status).not.toBe(0);
+    expect(`${transfer.stdout}${transfer.stderr}`).toContain("deferred to a later issue");
+  });
+
   it("runs scoped recovery simulation through the real CLI without canonical mutation", () => {
     const canonicalBefore = fs.readFileSync(ARBITRUM_ARTIFACT);
     const output = run(["release-recover", "--network", "arbitrum", "--stage", "settlement-module", "--dry-run"]);

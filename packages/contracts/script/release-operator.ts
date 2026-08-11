@@ -19,10 +19,7 @@ export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["settlement:module:deploy:arbitrum", "paused Arbitrum SettlementModule boundaries"],
   ["credit:registry:deploy:arbitrum", "paused records-only CreditRegistry boundaries"],
   ["pooling:upgrade:arbitrum", "GardenToken and WorkApprovalResolver integration-upgrade boundaries"],
-  ["release:ownership:arbitrum", "Arbitrum ownership-transfer boundaries"],
-  ["pooling:backfill:arbitrum", "approved 18-garden paused-registration backfill"],
   ["settlement:executor:deploy:celo", "paused CeloSettlementExecutor boundaries"],
-  ["release:ownership:celo", "Celo ownership-transfer boundaries"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -37,20 +34,29 @@ const FORBIDDEN_ARGUMENTS = new Set([
 ]);
 
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
-  ["assessment:upgrade:arbitrum", new Set(["--plan", "--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["pooling:schemas:arbitrum", new Set(["--artifact", "--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["pooling:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["pooling:finalize:arbitrum", new Set(["--artifact", "--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["settlement:module:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["credit:registry:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["pooling:upgrade:arbitrum", new Set(["--plan", "--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["release:ownership:arbitrum", new Set(["--step", "--expected-nonce", "--override-sepolia-gate"])],
   [
-    "pooling:backfill:arbitrum",
-    new Set(["--plan", "--step", "--expected-safe-nonce", "--receipt", "--override-sepolia-gate"]),
+    "assessment:upgrade:arbitrum",
+    new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
   ],
-  ["settlement:executor:deploy:celo", new Set(["--step", "--expected-nonce", "--override-sepolia-gate"])],
-  ["release:ownership:celo", new Set(["--step", "--expected-nonce", "--override-sepolia-gate"])],
+  [
+    "pooling:schemas:arbitrum",
+    new Set(["--artifact", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
+  ],
+  ["pooling:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
+  [
+    "pooling:finalize:arbitrum",
+    new Set(["--artifact", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
+  ],
+  [
+    "settlement:module:deploy:arbitrum",
+    new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
+  ],
+  ["credit:registry:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
+  [
+    "pooling:upgrade:arbitrum",
+    new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
+  ],
+  ["settlement:executor:deploy:celo", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
 ]);
 
 const BOOLEAN_ARGUMENTS = new Set(["--override-sepolia-gate"]);

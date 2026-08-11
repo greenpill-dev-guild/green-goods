@@ -10,8 +10,9 @@
 
 This handoff never authorizes an agent broadcast. The core-upgrade/deployment tier and
 value-bearing CCIP settlement tier have separate operational evidence and authorization, but both
-share the repository's blocking internal committed-range review, protocol Safe ownership,
-tested-rollback, post-action verification, and per-stage human authorization requirements.
+share the repository's blocking internal committed-range review, tested rollback, post-action
+verification, and per-stage human authorization requirements. Protocol Safe ownership is now a
+later activation prerequisite, not part of this paused deployment ceremony.
 
 **Owner decision 2026-08-10.** For this release wave, internal review replaces a commissioned
 external audit, the 48-hour timelock is waived in favor of Safe multisig approval, and the former
@@ -26,12 +27,20 @@ indexer is older and remains untouched by this release ceremony; PRD-722 separat
 configuration, deployment/reindex, cutover/rollback, and live read-back. Commitment Pooling runtime
 UI work follows the proven backend sequence without making the value tier a prerequisite.
 
+**Owner decision 2026-08-11.** This deployment stops with every touched proxy paused and owned by
+the frozen deployment sender. It does not transfer ownership, register/backfill the approved 18
+gardens, or unpause core. Those three operations move together to a separately reviewed Product
+issue. The protocol Safe remains the approved future owner, not the owner expected by this
+ceremony's post-deploy verifier.
+
 ## Outputs
 
-- A signed core-tier readiness checklist covering the shared blocking security requirements and the ordered
+- A signed paused-deployment checklist covering the shared blocking security requirements and the ordered
   `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
-  and `GardenToken`/`WorkApprovalResolver` upgrades, reverse wiring, pool backfill, and the
-  separately gated pooling unpause.
+  and `GardenToken`/`WorkApprovalResolver` upgrades and reverse wiring. Its terminal state is
+  paused and deployment-sender owned.
+- A separate follow-up issue for protocol-Safe ownership transfer, the approved 18-garden/root-0
+  paused backfill, and the separately authorized pooling unpause.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff,
   bytecode/proxy/admin/peer verification, pause state, rollback owner, and an exact indexer
@@ -55,8 +64,8 @@ UI work follows the proven backend sequence without making the value tier a prer
 | GoodDollar operating/token confirmation | Afolabi Aiyeloja | GoodDollar/Good Labs contact |
 | CCIP router/peer/gas/fee-reserve health | Afolabi Aiyeloja | settlement implementer |
 | Protocol Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` | Afolabi Aiyeloja | protocol signers |
-| Pre-transfer rollback owner `green-goods-deployer` | Afolabi Aiyeloja | deployment operator |
-| Post-transfer rollback execution | Afolabi Aiyeloja | protocol Safe; deployment EOA proposes/co-ordinates |
+| Current deployment and rollback owner `green-goods-deployer` | Afolabi Aiyeloja | deployment operator |
+| Deferred post-transfer rollback execution | Afolabi Aiyeloja | protocol Safe; deployment EOA proposes/co-ordinates |
 | Garden Safe recovery owner `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C` | Afolabi Aiyeloja | network council signers; verify live on Celo |
 | Garden Safe Zodiac Roles/caps | Afolabi Aiyeloja | settlement operator + named garden delegate |
 | Direct CCIP lane + local/fork/endpoint evidence ladder | Afolabi Aiyeloja | QA/release operator + reviewer |
@@ -84,20 +93,20 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       verified module only after its UID and record are exact; set the final non-zero,
       pairwise-distinct schema UIDs; verify dependency/schema/proxy state; and keep the pooling
       module paused through the integration upgrades.
-   3. **Integration upgrades and backfill**: upgrade the existing `GardenToken` and
+   3. **Integration upgrades and paused handoff**: upgrade the existing `GardenToken` and
       `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
       `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
-      both-direction wiring, and rollback state while pooling remains paused; then transfer and
-      verify every touched UUPS/admin owner on the exact approved 2-of-6 protocol Safe, register and
-      backfill the approved 18-account live pool inventory with protocol root token 0, and only then
-      pass the separately authorized core unpause gate.
+      both-direction wiring, and rollback state while pooling remains paused. Stop with every
+      touched proxy owned by `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 
-   **Blocked release-order seam (updated 2026-08-11).** The frozen merged ABI gates `registerPool`
-   behind `whenOperational`. A separate ABI/storage-neutral contracts increment (`5e70654c3`)
-   permits only owner pool registration while paused and has passed its isolated contracts gates.
-   It still requires human review and merge into the target base. Until that merge is proven, the
-   Bun backfill target refuses to emit an executable plan. Operators must not improvise a temporary
-   unpause or silently absorb the increment into the release branch.
+   **Deferred activation issue (updated 2026-08-11).** A new Product issue must own the exact
+   protocol-Safe transfers, merge/prove the separately reviewed ABI/storage-neutral paused-owner
+   registration increment derived from `5e70654c3`, execute the approved 18-account/root-token-0
+   backfill while paused, and request core unpause separately. It must reread the complete Safe
+   owner set and threshold on each target chain, verify one transfer receipt and live owner before
+   the next transfer, prove every backfill receipt/checkpoint, and preserve the deployment EOA as
+   the rollback owner until each individual transfer is confirmed. This deployment must not
+   improvise a temporary unpause or an EOA-specific backfill path.
    Rehearse the exact sequence locally and on pinned forks. Ethereum Sepolia may prove an endpoint
    rehearsal where useful but is not target-chain proof. Arbitrum One and Celo remain separate,
    explicitly authorized production stages.
@@ -249,18 +258,14 @@ bun run contracts:release:core:plan:arbitrum
 bun run contracts:pooling:schemas:preview:arbitrum
 bun run contracts:assessment:upgrade:dry:arbitrum
 bun run contracts:pooling:deploy:dry:arbitrum
+bun run contracts:pooling:finalize:dry:arbitrum
 bun run contracts:pooling:upgrade:dry:arbitrum
-bun run contracts:pooling:backfill:dry:arbitrum
 bun run contracts:settlement:module:plan:arbitrum
 bun run contracts:settlement:module:dry:arbitrum
 bun run contracts:credit:registry:plan:arbitrum
 bun run contracts:credit:registry:dry:arbitrum
 bun run contracts:settlement:executor:plan:celo
 bun run contracts:settlement:executor:dry:celo
-bun run contracts:settlement:safe:plan:celo
-bun run contracts:settlement:safe:dry:celo
-bun run contracts:settlement:peer:plan:arbitrum
-bun run contracts:settlement:peer:plan:celo
 bun run contracts:release:verify:plan:arbitrum
 bun run contracts:release:verify:plan:celo
 bun run contracts:release:indexer:handoff
@@ -273,7 +278,6 @@ bun run contracts:assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pendi
 bun run contracts:pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>
 bun run contracts:pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>
 bun run contracts:pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-bun run contracts:release:ownership:plan:arbitrum
 ```
 
 ### Phase B deployer session (one password entry)
@@ -302,24 +306,27 @@ run pooling:finalize:arbitrum --artifact <reviewed-finalization-plan.json> --ste
 run settlement:module:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
 run credit:registry:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
 run pooling:upgrade:arbitrum --plan <reviewed-integration-upgrade-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
-run release:ownership:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
-```
-
-Ownership transfer is the final deployer-signed Arbitrum action. After it verifies, the Safe owner
-submits each reviewed backfill transaction; the Bun wrapper verifies the supplied Safe receipt and
-does not use or infer a deployer credential:
-
-```text
-run pooling:backfill:arbitrum --plan <reviewed-backfill-plan.json> --step <i> --expected-safe-nonce <n> --receipt <safe-exec-transaction-hash> --override-sepolia-gate
-```
-
-The separately authorized paused Celo candidate can use the same still-open operator session, or a
-new authorized session with one new password entry if its broadcast window is later:
-
-```text
 run settlement:executor:deploy:celo --step <i> --expected-nonce <n> --override-sepolia-gate
-run release:ownership:celo --step <i> --expected-nonce <n> --override-sepolia-gate
 ```
+
+Keep this single session open across the authorized Arbitrum and Celo boundaries to enter the
+deployer password once. A later broadcast window, normal exit, handled termination, or failed
+wrapper ends the credential lease and a new session will correctly prompt once again.
+
+If a transaction mined but local checkpoint persistence failed, reopen the pinned clean session
+and rerun the **same** wrapper, plan, step, and expected nonce with the mined receipt appended:
+
+```text
+run <same-current-wrapper> <same-reviewed-arguments> --receipt <mined-transaction-hash>
+```
+
+All eight current deployer-signed wrappers allow `--receipt`; the wrapper verifies the transaction
+sender, target, calldata, nonce, receipt, code/post-state, and checkpoint before promotion. Do not
+use `--receipt` to bypass a failed or mismatched transaction.
+
+There is deliberately no ownership-transfer or pool-backfill command in this operator session.
+The package retains their fail-closed planning/recovery code for the later issue, but the current
+manifest rejects an ownership broadcast and the current operator allowlist rejects both commands.
 
 No peer-wiring, Safe/Zodiac grant, message-only ping, unpause, canary, or cap-increase broadcast
 command is listed: those separately gated paths remain unavailable until their exact facts and
@@ -344,15 +351,18 @@ CeloSettlementExecutor address/start-block diff. The hosted production indexer i
 unchanged. Live PRD-722 is the active indexer lane and owns codegen, configuration, reindex,
 deployment, cutover/rollback, and read-back; this handoff contains no hosted deployment command.
 
-## Current live-state blockers
+For this ceremony, both post-deploy verifiers use the default `deployment` owner phase. Do not run
+the `release:verify:safe:*` variants; those belong to the later ownership-transfer issue.
+
+## Current deployment gates and deferred activation facts
 
 - The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was re-read as the exact
   approved **2-of-6** owner set. Repository policy now requires threshold >= 2 and owner count >= 3,
-  so this exact set satisfies the guide; every live owner and the threshold still require re-read
-  before ownership transfer.
+  so this exact set satisfies the guide. It is future-transfer evidence only and is not an owner
+  precondition for this paused deployment.
 - The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
-  protocol root token 0. The backfill entrypoint now proves those facts and then stops only on the
-  pending human-reviewed merge of contracts increment `5e70654c3`.
+  protocol root token 0. Its backfill and the pending human-reviewed increment derived from
+  `5e70654c3` are deferred together; neither blocks deploying and verifying paused contracts.
 - The live `AssessmentResolver` is not v3-capable. Downstream schema, pooling, SettlementModule,
   and CreditRegistry stages still depend on its separately authorized upgrade. The exact
   upgrade/v2-pin/schema-finalization sequence is green on one pinned Arbitrum fork.
@@ -360,30 +370,30 @@ deployment, cutover/rollback, and read-back; this handoff contains no hosted dep
   attempt. The manifest remains `"0"` until the final Safe/Zodiac configuration exists and the same
   atomic path is measured through that live-authority policy.
 - Garden Safe/owner/recovery and Zodiac Roles/cap/fee/reserve facts are incomplete; value authority
-  is disabled.
+  is disabled. They do not block a paused candidate with no peer/value authority.
 - The hosted production indexer is the older deployment and is deliberately outside this contracts
   ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
-These are blockers, not Phase B instructions. No operator should use this handoff until a pinned
-candidate report shows their resolution and a new exact stage authorization names the commit,
-chain, signer/owner, artifact diff, rollback checkpoint, and window.
+The paused deployment still requires a final pinned manifest/lock, fresh gates, exact-range review,
+and a new exact stage authorization naming the commit, chain, signer/owner, artifact diff, rollback
+checkpoint, and window. Deferred activation facts do not need to be resolved to deploy paused, but
+they continue to block ownership transfer, backfill, peer/value authority, and unpause.
 
 ## Core-tier unblock evidence
 
 - The internal committed-range review has no unresolved Critical/High finding.
-- Every touched protocol UUPS/admin owner and the exact protocol Safe are verified; Safe multisig
-  approval is required. The 48-hour timelock is waived for this wave by the August 10 owner
-  decision.
+- Every touched protocol UUPS/admin owner is verified as the frozen deployment sender before and
+  after its boundary. The default `deployment` owner-phase verifier must pass; Safe ownership is
+  not expected in this ceremony.
 - The current local/fork/optional Ethereum Sepolia endpoint/Arbitrum One/Celo ladder is satisfied
   for the authorized stage, and rollback procedures are documented and tested.
 - Full relevant tests; resolver/schema, module/register/finalization, integration-upgrade/wiring,
-  post-wiring unpause, and pool-backfill dry runs; post-action verifiers;
-  storage/upgrade/rollback proof; and named rollback owners pass for all three ordered stages.
-- An isolated, human-authorized ownership-transfer plan may start from the observed live EOA, but
-  every later tx-plan sender equals the verified protocol Safe and grouped upgrades prove their
-  Safe-ownership preconditions before plan persistence. The stage record contains the exact
-  implementation/proxy/admin addresses, schema UIDs, dependency wiring, transaction receipts,
-  persisted artifact changes, and post-action verification needed to begin the next stage.
+  paused post-wiring verification, post-action verifiers, storage/upgrade/rollback proof, and the
+  deployment-sender rollback owner pass for all three ordered stages. Backfill and unpause are not
+  current gate commands.
+- The stage record contains the exact implementation/proxy/admin addresses, schema UIDs,
+  dependency wiring, transaction receipts, persisted artifact changes, and post-action
+  verification needed to begin the next separately authorized deployment stage.
 - Reviewed artifacts remain non-custodial and non-transferable.
 - Afolabi Aiyeloja records explicit artifact/window authorization.
 

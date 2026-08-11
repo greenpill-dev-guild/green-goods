@@ -354,7 +354,7 @@ contract CeloSettlementExecutorTest is Test {
     ///      Safe/Zodiac condition tree, so release tooling records this evidence but must keep the
     ///      manifest gas limit at zero until that separately authorized authority is frozen and
     ///      measured on the same candidate.
-    function testMeasureHardMaxBatchDestinationGasCandidate() public {
+    function testCeloSettlementExecutor_measureHardMaxBatchDestinationGasCandidate() public {
         vm.startPrank(OWNER);
         executor.setPaused(true);
         executor.setCaps(24, 1000 ether, 24_000 ether);

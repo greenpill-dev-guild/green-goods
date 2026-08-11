@@ -51,10 +51,10 @@ indexer, send a message-only ping, run a value canary, or write Linear.
 - Combined release manifest and immutable identity lock, including 20 linked libraries, five
   implementations, five proxies, exact CREATE2 identities, schema records, existing-proxy upgrade
   inputs, ownership, chain selectors, routers, paused state, and indexer config hash.
-- Selective Bun targets for manifest, protocol-core plan, schemas, pooling, upgrades, ownership,
-  SettlementModule, CreditRegistry, Celo executor, Safe plan, peer plan, recovery, verification,
-  indexer handoff, and pool backfill. Every release-owned broadcast form is one reviewed
-  transaction boundary and remains Phase B only.
+- Selective Bun targets for manifest, protocol-core plan, schemas, pooling, upgrades,
+  SettlementModule, CreditRegistry, Celo executor, recovery, verification, and indexer handoff.
+  Ownership, Safe/peer, and pool-backfill planning code is retained for later issues, but current
+  ownership broadcast fails closed and none of those commands is in the deployer operator.
 - Atomic side-artifact merge and recovery, nonce/owner/code-hash rechecks, on-chain-success/local-
   write-failure recovery, exact old/new key preservation, and receipt-bound checkpoint handling.
 - Two isolated Anvil processes and worker processes for the settlement lifecycle. Only serialized
@@ -65,19 +65,22 @@ indexer, send a message-only ping, run a value canary, or write Linear.
   plus an inert PRD-722 handoff carrying only exact contract addresses and receipt start blocks.
 - A Bun-only operator session verifies the pinned clean candidate and frozen deployer keystore,
   prompts for its password once per session, and then permits only the documented deployment
-  wrappers. Each wrapper still executes one reviewed boundary and verifies it before another.
+  wrappers. Each wrapper still executes one reviewed boundary and verifies it before another;
+  mined-receipt recovery is allowed for every current wrapper.
+- The current ceremony ends paused and deployment-sender owned. Ownership transfer, the approved
+  18-garden/root-token-0 backfill, and core unpause are excluded from the operator allowlist and
+  require a separately reviewed Product issue.
 
 ## Current blockers
 
 The tooling fails closed on all of the following. None is authorization to alter the merged ABI,
 rewrite frozen history, or mutate production state.
 
-1. `registerPool` is gated by `whenOperational`, but the authoritative August 10 release order
-   requires verified pool registration/backfill before the separately gated pooling unpause. A
-   separate, ABI/storage-neutral contracts increment (`5e70654c3`) now permits only owner pool
-   registration while paused and is green in its isolated worktree. The release branch must not
-   absorb it before human review and merge into the target base; until then the backfill entrypoint
-   intentionally emits no executable plan.
+1. The later activation issue must resolve the `registerPool`/paused-order seam. The separate,
+   ABI/storage-neutral contracts increment derived from `5e70654c3` permits only owner pool
+   registration while paused and is green in its isolated worktree, but is not part of this paused
+   deployment base. Until a later human review and merge, the backfill entrypoint intentionally
+   emits no executable plan.
 2. The accountable owner approved the finalized 18-account GardenToken inventory (token IDs 0–17)
    and protocol root token 0. The manifest and live backfill inventory now match that decision.
 3. The live protocol Safe is exactly 2-of-6, and the accountable owner approved that exact set.
@@ -96,18 +99,18 @@ rewrite frozen history, or mutate production state.
    PRD-722 receives only the verified address/start-block diff and separately owns codegen,
    configuration, deployment/reindex, cutover/rollback, and live read-back.
 
-The release-engineering lane remains blocked until the paused-registration increment merges and the
-final Safe/Zodiac/cap/fee facts plus live-authority gas measurement are frozen. After the new
-combined base is pinned, regenerate the identity lock, rerun every gate, and conduct a fresh
-internal plus Fable 5 exact-range review before asking for any Phase B authorization.
+The paused-deployment candidate does not wait for the registration increment, ownership transfer,
+backfill, unpause, or final Safe/Zodiac facts. It still requires the final manifest/lock, fresh
+gates, and fresh internal plus Fable 5 exact-range review before asking for a paused-deployment
+Phase B authorization. All deferred facts remain blockers for the later activation/value issues.
 
 ## Approved owner decisions
 
 - Release owner: Afolabi Aiyeloja.
 - Protocol Safe: `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`.
-- Rollback owner before ownership transfer: deployment EOA `green-goods-deployer`.
+- Current ceremony and rollback owner: deployment EOA `green-goods-deployer`.
 - Rollback execution after ownership transfer: protocol Safe; the deployment EOA remains the
-  proposer/coordinator.
+  proposer/coordinator. This is later-issue policy, not a current ceremony action.
 - Garden-Safe recovery owner to verify on Celo: network council Safe
   `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C`.
 - External-audit gate for this wave: internal committed-range review; no unresolved Critical or
@@ -116,7 +119,7 @@ internal plus Fable 5 exact-range review before asking for any Phase B authoriza
 - Approved GardenToken release inventory: all 18 finalized accounts (token IDs 0–17), with protocol
   root token 0.
 - Approved protocol Safe target: the exact live 2-of-6 owner set; it satisfies the repository
-  threshold >= 2 and owner count >= 3 minimum.
+  threshold >= 2 and owner count >= 3 minimum. It remains the future owner.
 - Rehearsal ladder: local/fork confidence, Ethereum Sepolia endpoint rehearsal where useful,
   Arbitrum One, then Celo. The former two-week soak is withdrawn.
 - Credit deployment binds SettlementModule and CreditRegistry in both directions. G$ credit stays
@@ -155,12 +158,13 @@ internal plus Fable 5 exact-range review before asking for any Phase B authoriza
   artifacts. The local courier may use chain IDs `421614` and `11142220` only as isolated local
   process identities.
 - Phase B execution, PR merge, production unpause, cap increases, message-only ping, Safe/Zodiac
-  grants, value canary, and value movement.
+  grants, ownership transfer, pool backfill, value canary, and value movement.
 
 ## Stop point
 
-The current stop is earlier than a release candidate because the blockers above prevent a green
-dry-run. After they are resolved, stop again at a pinned, reviewed, dry-run-green release candidate.
+The current stop remains before a release candidate until this scope correction is fully validated
+and independently reviewed. The candidate may cover only paused deployer-owned deployment; it must
+not claim activation or readiness for the deferred ownership/backfill/unpause work.
 The next Phase B action must be a new explicit authorization naming the exact commit, target chain,
 stage, signer/owner, artifact diff, rollback checkpoint, and broadcast window. Approval of this
 handoff or its PR is not broadcast authority.

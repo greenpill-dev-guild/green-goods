@@ -175,7 +175,7 @@ Commitment Pooling / Settlement / Credit release targets
 
   release-manifest         Validate the combined manifest and exact deterministic identity lock
   protocol-core            Print the dependency-ordered Arbitrum core preparation/finalization plan
-  ownership-transfer      Plan/execute one owner transfer boundary to the frozen protocol Safe
+  ownership-transfer      Plan a future owner transfer; current-manifest broadcast is disabled
   settlement-module       Deploy/plan the paused Arbitrum SettlementModule candidate
   credit-registry         Deploy/plan the paused records-only CreditRegistry and exact binding
   settlement-executor     Deploy/plan the paused Celo executor (only --network celo is supported)
@@ -208,7 +208,6 @@ Examples (Phase A, no broadcast):
   bun run credit:registry:plan:arbitrum
   bun run settlement:executor:plan:celo
   bun run settlement:safe:plan:celo
-  bun run release:ownership:plan:arbitrum
   bun run release:verify:plan:arbitrum
   bun run release:indexer:handoff
 
@@ -256,7 +255,8 @@ Phase B boundary form (not authorized by Phase A):
     console.log(`Release manifest: ${manifest.releaseId}`);
     console.log(`Frozen implementation source: ${manifest.sourceCommit}`);
     console.log(`Deployment sender/initial owner: ${manifest.ownership.deploymentSender}`);
-    console.log(`Protocol Safe/final owner: ${manifest.ownership.protocolSafe}`);
+    console.log(`Protocol Safe/future owner: ${manifest.ownership.protocolSafe}`);
+    console.log("Current ceremony end state: paused and deployment-sender owned");
     console.log(`CREATE2 salt base: ${manifest.create2.domain}:${manifest.create2.version}`);
     console.log(`Deterministic identities: ${lock.identities.length} (20 libraries, 5 implementations, 5 proxies)`);
     console.log(
@@ -327,28 +327,15 @@ Phase B boundary form (not authorized by Phase A):
           nextStageRule:
             "rebuild after earlier receipts; a stale sender nonce invalidates every predicted implementation",
         },
-        {
-          index: 8,
-          command: "bun run release:ownership:plan:arbitrum",
-          outcome:
-            "one-boundary transfer plan from the verified deployment owner to the frozen protocol Safe for every touched Arbitrum proxy",
-          nextStageRule: "each transfer receipt and live owner must verify before the next target",
-        },
-        {
-          index: 9,
-          command: "bun run pooling:backfill:dry:arbitrum",
-          outcome:
-            "fail-closed proof of the approved 18-garden/root-token-0 inventory; executable owner-only paused backfill remains gated on human merge of contracts increment 5e70654c3",
-          nextStageRule:
-            "do not emit or authorize an unpause-first workaround and do not absorb the separate contracts increment before its human-reviewed merge",
-        },
       ],
-      ownershipTransfer: {
-        separatelyAuthorized: true,
+      deferredFollowUp: {
+        issueRequired: manifest.ceremony.followUpIssueRequired,
+        operations: ["ownership-transfer", "18-garden-pool-backfill", "core-unpause"],
         from: manifest.ownership.deploymentSender,
         to: manifest.ownership.protocolSafe,
         rollbackBefore: manifest.ownership.rollbackOwnerBeforeTransfer,
         rollbackAfter: manifest.ownership.rollbackOwnerAfterTransfer,
+        rule: "A separately reviewed Product issue must update the manifest and prove the paused-registration increment, Safe state on each target chain, every transfer receipt, the approved 18-garden/root-token-0 backfill, and a separate unpause authorization.",
       },
       predictedCore: lock.identities
         .filter((item) => item.network === "arbitrum")
@@ -366,6 +353,11 @@ Phase B boundary form (not authorized by Phase A):
   }
 
   private async ownershipTransfer(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): Promise<void> {
+    if (options.broadcast && !manifest.ceremony.ownershipTransferIncluded) {
+      throw new Error(
+        "Ownership transfer is deferred to a later issue and is not included in the current paused deployer-owned ceremony",
+      );
+    }
     if (options.network !== "arbitrum" && options.network !== "celo") {
       throw new Error("ownership-transfer supports only --network arbitrum|celo");
     }

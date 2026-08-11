@@ -41,7 +41,9 @@ contract ArbitrumAssessmentReleaseSequenceForkTest is Test {
         "bytes32 baselineUID";
     string internal constant COMMUNITY_TESTIMONY_SCHEMA = "uint256 commitmentId,string title,string testimonyCID";
 
-    function testLiveUpgradeV2PinSchemaPreparationAndPausedDependencyShareOneForkState() public {
+    function testIntegration_AssessmentResolver_liveUpgradeV2PinSchemaPreparationAndPausedDependencyShareOneForkState()
+        public
+    {
         assertEq(block.chainid, 42_161, "requires the Bun-wrapped Arbitrum process fork");
         AssessmentResolver resolver = AssessmentResolver(payable(ASSESSMENT_PROXY));
         address owner = resolver.owner();

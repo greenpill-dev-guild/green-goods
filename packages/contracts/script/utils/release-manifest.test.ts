@@ -21,6 +21,18 @@ describe("combined commitment release manifest", () => {
     expect(manifest.ownership.protocolSafeConfiguration.owners).toHaveLength(6);
     expect(manifest.indexer).toMatchObject({ ownerLane: "PRD-722", handoffOnly: true });
     expect(manifest.indexer).not.toHaveProperty("cloud");
+    expect(manifest.ceremony).toEqual({
+      endState: "paused-deployer-owned",
+      ownershipTransferIncluded: false,
+      poolBackfillIncluded: false,
+      unpauseIncluded: false,
+      followUpIssueRequired: true,
+    });
+    expect(manifest.existingProxyUpgrades.map((upgrade) => upgrade.currentCeremonyEndOwner)).toEqual([
+      manifest.ownership.deploymentSender,
+      manifest.ownership.deploymentSender,
+      manifest.ownership.deploymentSender,
+    ]);
   });
 
   it("rejects numeric selectors, duplicate schemas, and prematurely enabled authority", () => {
@@ -70,6 +82,14 @@ describe("combined commitment release manifest", () => {
     const missingAcknowledgment = structuredClone(manifest);
     missingAcknowledgment.chains.arbitrum.destinationGasMeasurement!.includesAcknowledgmentAttempt = false;
     expect(() => validateReleaseManifest(missingAcknowledgment)).toThrow(/include the acknowledgment attempt/);
+
+    const ownershipTransfer = structuredClone(manifest);
+    ownershipTransfer.ceremony.ownershipTransferIncluded = true as false;
+    expect(() => validateReleaseManifest(ownershipTransfer)).toThrow(/paused and deployer-owned/);
+
+    const backfill = structuredClone(manifest);
+    backfill.ceremony.poolBackfillIncluded = true as false;
+    expect(() => validateReleaseManifest(backfill)).toThrow(/paused and deployer-owned/);
   });
 
   it("refuses peer wiring until measured gas is frozen and then rejects environment drift", async () => {

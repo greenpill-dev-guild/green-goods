@@ -69,6 +69,13 @@ export interface ReleaseManifest {
     gardenRecoveryOwner: string;
     timelockWaivedForRelease: boolean;
   };
+  ceremony: {
+    endState: "paused-deployer-owned";
+    ownershipTransferIncluded: false;
+    poolBackfillIncluded: false;
+    unpauseIncluded: false;
+    followUpIssueRequired: true;
+  };
   chains: Record<ReleaseNetwork, ChainManifest>;
   schemas: Array<{ identity: string; uid: string; resolver: string; moduleRelationship: string }>;
   schemaPreparation: {
@@ -102,7 +109,7 @@ export interface ReleaseManifest {
     currentImplementation: string;
     currentImplementationCodeHash: string;
     currentOwner: string;
-    targetOwner: string;
+    currentCeremonyEndOwner: string;
     finalArtifact: string;
     constructorArguments: string[];
     expectedImplementationCreationCodeHash: string;
@@ -263,6 +270,17 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   if (safeConfiguration.guidePolicyStatus !== "satisfied") {
     throw new Error("Protocol Safe guide policy status must be satisfied");
   }
+  if (
+    manifest.ceremony?.endState !== "paused-deployer-owned" ||
+    manifest.ceremony.ownershipTransferIncluded !== false ||
+    manifest.ceremony.poolBackfillIncluded !== false ||
+    manifest.ceremony.unpauseIncluded !== false ||
+    manifest.ceremony.followUpIssueRequired !== true
+  ) {
+    throw new Error(
+      "The current ceremony must end paused and deployer-owned; ownership transfer, pool backfill, and unpause require a later issue",
+    );
+  }
 
   for (const [network, chain] of Object.entries(manifest.chains) as Array<[ReleaseNetwork, ChainManifest]>) {
     requireUintString(chain.evmChainId, `${network}.evmChainId`);
@@ -381,9 +399,9 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
     requireAddress(upgrade.proxy, `existingProxyUpgrades.${upgrade.name}.proxy`);
     requireAddress(upgrade.currentImplementation, `existingProxyUpgrades.${upgrade.name}.currentImplementation`);
     requireAddress(upgrade.currentOwner, `existingProxyUpgrades.${upgrade.name}.currentOwner`);
-    requireAddress(upgrade.targetOwner, `existingProxyUpgrades.${upgrade.name}.targetOwner`);
-    if (getAddress(upgrade.targetOwner) !== getAddress(manifest.ownership.protocolSafe)) {
-      throw new Error(`Existing proxy upgrade ${upgrade.name} must target the protocol Safe`);
+    requireAddress(upgrade.currentCeremonyEndOwner, `existingProxyUpgrades.${upgrade.name}.currentCeremonyEndOwner`);
+    if (getAddress(upgrade.currentCeremonyEndOwner) !== getAddress(manifest.ownership.deploymentSender)) {
+      throw new Error(`Existing proxy upgrade ${upgrade.name} must remain owned by the deployment sender`);
     }
     for (const [label, value] of Object.entries({
       currentImplementationCodeHash: upgrade.currentImplementationCodeHash,
