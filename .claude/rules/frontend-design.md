@@ -186,10 +186,10 @@ Use the `Alert` component from `@green-goods/shared` for all error/warning/info 
 Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the canonical declaration of which entity the operator is in. Views, page headers, toolbars, list rows, and cards must not restate that same entity. Re-declaration steals vertical space, dilutes the chrome's authority, and trains the eye to ignore the very element that should be ground truth.
 
 ```tsx
-// Bad — AppBar GardenChip already shows "Aiyeloja Family Garden"
+// Bad — AppBar GardenChip already shows "Tech and Sun Hub"
 <PageHeader
   title="Work"
-  description="Review work flowing through Aiyeloja Family Garden."
+  description="Review work flowing through Tech and Sun Hub."
   metadata={<MetaStrip items={[{ label: garden.name }]} />}
 />
 <WorkbenchRow eyebrow={garden.name} title={...} />
