@@ -151,11 +151,11 @@ Empty pool (Open but zero commitments): planted-seed illustration slot + two pri
 
 Full-screen flow reusing the work-flow chrome pattern (`TopNav` + `FormProgress`, verified in `packages/client/src/views/Garden/index.tsx:41-44`). Appendix E.2 adds an offer-template picker before this form; choosing **Start blank** enters the same flow with no hidden defaults. Direction (offer vs request) comes from the entry CTA or selected template and stays editable in step 1. Steps:
 
-1. **What, team, and cycle scope**: direction, commitment type (DomainImpact or SupportService for gardener creation; SeasonCampaign and StewardCaptured are console-seeded only), immutable contributor policy (`Open` or `LeadManaged`) with its join-rule explanation, claim type (Individual for gardener creation), claim mode from the context default, title, note, and one explicit binding: an Open Season, one Open Campaign, or cycle-less where allowed. Seeded cycles are operator-only. Entry from a scoped pool filter prefills that cycle but keeps it visible and editable; the form never guesses from “current cycle.”
+1. **What and cycle scope** *(amended 2026-08-10, register #94)*: direction (from the entry CTA, editable), commitment type (DomainImpact or SupportService for gardener creation; SeasonCampaign and StewardCaptured are console-seeded only), title, note, and one binding: an Open Season, one Open Campaign, or cycle-less where allowed. When exactly one legal target is open the form binds it and shows it as an editable field with helper copy — binding the unique legal target is not guessing; the chooser appears only when more than one target is legal. Seeded cycles are operator-only. Entry from a scoped pool filter prefills that cycle but keeps it visible and editable. Claim type stays Individual for gardener creation and claim mode keeps the context default — neither renders as a gardener-facing control. The immutable contributor policy (`Open` or `LeadManaged`, `Open` default) moved to the Advanced detour (step 4).
 2. **How much and proof**: unit label, target quantity, `requiresAssessment`, due date or cycle deadline default. DomainImpact requires a positive approved-work count per bound action (set beside each action in step 3); SupportService may explicitly carry no work requirement and then requires evidence before Ready.
 3. **Requirements** (DomainImpact only): add repeatable `{ actionUID, requiredCount }` rows reading "This promise needs: [Action] × [count]." The flow validates at least one row, registry existence, and a non-zero count; action UID `0` is valid and actions may share a domain. Domains are derived from ActionRegistry. The UI never presents four as a product maximum; the eventual `MAX_REQUIREMENTS` follows the 8/16/24/32 gas/indexer benchmark. It uses the action-selection card grammar the work flow intro already renders (`views/Garden/index.tsx:54-96`). SupportService skips Work requirements and uses lightweight evidence + confirmation (register #20).
-4. **Who confirms**: preview the direction-aware receiver default and any named group. A labeled native checkbox, **“Let the Green Goods team confirm if nobody local is eligible,”** writes `protocolFallbackEnabled`; it is off by default. Persistent helper text says this is a reasoned safety path for small gardens, never permission for a contributor to confirm their own work. If the ordinary rule is already unreachable, the review blocks until the rule is repaired or the checkbox is selected; if the registered protocol pool is unavailable, the checkbox is disabled with the named prerequisite rather than disappearing.
-5. **Review and promise**: summary repeats the immutable contributor policy and its join rule, every ordered requirement/count row, the ordinary confirmer rule, and whether Green Goods team fallback is selected, then "Make this offer" / "Ask for this help". Submission enqueues the `commitment` job kind (§5.11) and returns to the pool tab with the optimistic card visible.
+4. **Review and promise** *(amended 2026-08-10, register #94 — the separate Who-confirms step is retired from the default path)*: summary repeats the title, amount, due rule, cycle binding, every ordered requirement/count row, the direction-aware confirmer default, the pilot-default Green Goods fallback line, and the team policy, then "Make this offer" / "Ask for this help". Submission enqueues the `commitment` job kind (§5.11) and returns to the pool tab with the optimistic card visible.
+5. **Advanced detour** *(register #94; reached from review, never a numbered wizard step)*: the named confirmer group picker, the labeled native checkbox **“Let the Green Goods team confirm if nobody local is eligible”** writing `protocolFallbackEnabled` — **on by default for the pilot** (supersedes the 2026-08-02 off-by-default closure's default while keeping its guard: usable only while the ordinary path is unreachable after contributor exclusion, reason always required, never a contributor), switchable off per promise, and disabled with the named prerequisite when the registered protocol pool is unavailable — plus the immutable contributor policy (`Open` default) and `requiresAssessment` (off default). If the ordinary rule is unreachable and the fallback has been switched off, the review blocks until the rule is repaired or the fallback is re-selected.
 
 Drafts persist locally per the existing draft pattern (mirror `WorkDraftRecord` semantics, `packages/shared/src/types/job-queue.ts:194-209`); resume prompt on re-entry (client `DraftDialog` precedent, `views/Garden/index.tsx:42`).
 
@@ -308,7 +308,7 @@ Flow AdminDialog + `ActionFlowShell` steps (stepper precedent `CreateAssessment.
 
 1. **Type and scope**: commitment type (SeasonCampaign, SupportService, DomainImpact, StewardCaptured), direction (offer or request the pool is seeding), cycle binding, title, note. The cycle selector groups the one open Season separately from every open Campaign, labels type on every option, and permits an explicit cycle-less choice where the contract allows it. `AdminTextField` + type cards.
 2. **Requirements and team policy**: unit label + target quantity; repeatable `{ actionUID, requiredCount }` rows; immutable `ContributorPolicy` (`Open` or `LeadManaged`); optional assessment requirement; due date or cycle-deadline default. DomainImpact requires at least one registered row and a positive count per action. SupportService, StewardCaptured, and SeasonCampaign may explicitly choose evidence-only with no Work requirements. The review step shows per-requirement progress and the single commitment's `approvedUnits` use `floor(targetUnits × Σ min(approved[i], required[i]) / Σ required[i])`. No assessment UID is attached at creation because `providerGarden` is not frozen until acceptance.
-3. **Who confirms**: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accountable lead and every contributor before threshold validation. A labeled checkbox, **“Let the Green Goods team confirm if nobody local is eligible,”** writes `protocolFallbackEnabled` and is off by default. When the ordinary threshold is unreachable, the flow requires either a repaired rule or this explicit selection; the protocol option is disabled with an explanation while `protocolPoolId` is unavailable. Claim mode (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19).
+3. **Who confirms** *(amended 2026-08-10, register #94)*: direction-aware default preview (Offer recipient; Request creator) or explicit any-N named group. The address group picker excludes the accountable lead and every contributor before threshold validation. A labeled checkbox, **“Let the Green Goods team confirm if nobody local is eligible,”** writes `protocolFallbackEnabled` and is **on by default for the pilot** (register #94), switchable off per promise; the guard is unchanged — usable only while the ordinary path is unreachable, reason required, never a contributor. When the ordinary threshold is unreachable and the fallback is switched off, the flow requires either a repaired rule or re-selecting the fallback; the protocol option is disabled with an explanation while `protocolPoolId` is unavailable. Claim mode (open-claim vs approval-gated) is prefilled by context default (protocol pool approval-gated, garden campaign open-claim; register #19).
 4. **Consideration** (optional; the default is free): select exactly one rail: `None`, `ArbitrumExternal`, or `CeloSettlement`. `None` requires zero source/token/amount. `ArbitrumExternal` captures the external source reference, token, and amount for later payout recording. `CeloSettlement` captures only the amount and serializes zero source/token sentinels; SettlementModule derives its canonical G$ token and immutable payer Safe from direction plus acceptance context. The preview says a Request is paid by the pool garden and an Offer by the claiming garden. After fulfillment it shows the immutable result: a Garden-claimed Request pays the external claiming garden Safe in full; individual Requests and all Offers use a conserved contributor plan; retention appears only for garden-internal contributor plans. It never enables `Record payout`.
 5. **Review and seed**: summary repeats the immutable contributor policy, who may join/manage the roster, ordinary confirmer reachability, and whether Green Goods team fallback is selected, then exposes the seed action. Console actions are online-expected but ride the same queue plumbing (§5.11 note).
 
@@ -357,7 +357,7 @@ Registration path (all verified anchor points):
 4. Pools inherits the Community workspace tone through `data-tone="community"`; dialogs pass that same tone.
 
 View at `/community/pools` — **rescoped 2026-07-18**: the admin stays garden-focused, so this mode shows exactly **the Protocol pool + this garden's pool**; other gardens' pools never render here (the cross-garden overview moved to the Operations workspace, §6.11). The inner `AdminTabRail` carries two focused views:
-- **Protocol pool tab**: the root-garden pool console (tokenId 1, `rootGarden 0xf401f34378384713222d1d21f63359cc4E8a858a`, corrections-log §6), framed for the garden steward: **claimable by your gardeners** (open protocol commitments — surveys, community activations — with the W25 claim journey), **your garden's involvement** (this garden's claims/accepted rows + confirmations queue, mirroring the Hub Confirm grammar §6.9 scoped to the protocol pool), and the **funding view** (declared consideration references only; co-funded references name the owning garden). Protocol-only actions keep their exact capability gates; deployer status never substitutes for `queueFunding` authority.
+- **Protocol pool tab** *(audience amended 2026-08-10, register #97 — this is the protocol-steward operations home)*: the root-garden pool console (tokenId 1, `rootGarden 0xf401f34378384713222d1d21f63359cc4E8a858a`, corrections-log §6) carries the protocol stewards' own queues — cross-garden claim accept/decline, the protocol confirmations queue mirroring the Hub Confirm grammar (§6.9), protocol seeding (register #96), the read-only member-delivery gate status row (register #34f), and the **funding view** (declared consideration references only; co-funded references name the owning garden). Garden stewards claim protocol commitments in the client (W25, the sb13 journey) — that path is not duplicated here. Protocol-only actions keep their exact capability gates; deployer status never substitutes for `queueFunding` authority.
 - **This garden tab**: one tap into the same §6.2 pool console (W7) — no duplicated grammar, with the Open · Confirmed · Past chips carrying history in place.
 
 ### 6.9 Hub: Confirm stage on the existing rail NET-NEW
@@ -582,6 +582,47 @@ stays open. W4/W5 draw it.
 confirmers, threshold, claim mode, and the explicit Green Goods team fallback
 checkbox; *Consideration* carries the declared rail and amount. Five is the locked
 presentation — `W8` draws it and `sb6`/`sb9a`/`sb10` walk it.
+
+**§5.4/§6.3 pilot fallback default + wizard compression (2026-08-10, register
+#93–#94).** `protocolFallbackEnabled` defaults **on** at both creation surfaces,
+switchable off per promise; the unreachable-path guard, required reason, Hats
+check at signing, and contributor exclusion are unchanged, and the queue builder
+still round-trips the explicit boolean without inference. The client wizard's
+default path is four steps for garden work (What → How much → Proof → Review)
+and three for service/requests: the separate Who-confirms step retired into an
+Advanced detour off review, which also carries the named-group picker, the
+contributor policy (`Open` default), and `requiresAssessment` (off default).
+The cycle field binds the unique legal open target and stays editable; the
+chooser renders only when more than one target is legal. The seeding console
+keeps its five steps (the 2026-07-24 lock above) with the fallback checkbox now
+pre-checked. Guided flows were re-cut the same day so each is one person's
+action to completion: echoes are read-only (the build rejects an echo carrying
+a control), continuations hand off via end-of-flow links, and `sb42`–`sb48`
+carry the split-out segments. Section-body edits for this amendment were
+line-count-neutral, so `UX:NNN` citations below §5.4 did not shift.
+
+**§5.4 request wizard, fixed chrome, and tap-first inputs (2026-08-10, register
+#95–#96).** Request creation is the same wizard at full fidelity — three steps
+(What → How much → Review), never a single compressed screen. Every creation
+step uses the Submit Work chrome this section already cites: the close +
+progress header and the bottom action bar are fixed; only the form content
+scrolls. Unit and amount are chip picks with a typed escape, due is a radio
+defaulting to the cycle end on every path, titles offer tap-to-fill suggestions
+from the garden's actions and common asks, and reason-taking dialogs lead with
+common-reason chips that fill the still-required stored reason. §6.9's admin
+chapters resolve as Decide on promises / Work review / Assessments; the
+baseline assessment is its own flow ending at §6.2's readiness checklist; and
+the protocol pool seeds its own asks and offers to gardens from §6.8's
+Community workspace with steward-reviewed claims (register #19).
+
+**§5.4 DomainImpact request variant (2026-08-10 night, register #97a).** An
+ask may be garden work: choosing Garden work on the ask's first step adds the
+Requirements proof step, so a garden-work ask runs four steps (What → How much
+→ Proof → Review) while a service ask keeps three. Requirement rows,
+validation, and the action-card grammar are §5.4 step 3 unchanged; who-confirms
+stays the asker with the pilot fallback behind them; and review reaches the same
+Advanced detour as the offer path — per-promise fallback opt-out and a declarable
+assessment included, drawn once in the offer cast. The drawn ask keeps every Advanced default, so approved work alone carries it to Ready per the contract's conditional gate; choosing Garden work re-renders the wizard as its own four-step cast, so the dot row never grows mid-flow.
 
 ## Appendix C: group commitments, recognition, and payout plans (2026-07-28)
 

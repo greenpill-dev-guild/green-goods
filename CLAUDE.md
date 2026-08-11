@@ -158,7 +158,7 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Query Keys**: Use `queryKeys.*` helpers from shared. Serialize objects in query keys.
 
-**Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims, cookie-jar creation/metadata, settlement/payout lifecycle, and — when the pooling lane ships — commitment pooling events). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, or Hypercert display metadata. The enforceable boundary of record is `packages/indexer/scripts/check-indexing-boundary.mjs`; keep this line aligned with it, not the other way around.
+**Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims, GreenWill badge issuance, cookie-jar creation/metadata, settlement/payout lifecycle, and — when the pooling lane ships — commitment pooling events). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, or Hypercert display metadata. The enforceable boundary of record is `packages/indexer/scripts/check-indexing-boundary.mjs`; keep this line aligned with it, not the other way around.
 
 **Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
 

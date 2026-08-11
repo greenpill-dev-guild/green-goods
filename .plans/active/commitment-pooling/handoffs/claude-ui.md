@@ -19,8 +19,9 @@ paths, preserves unrelated working-tree changes, and does not switch the primary
 - Completed scoped existing-admin fixes and polish, including PRD-737
 - Corrected uiux-spec.md, wireframes.md, diagrams.md, and settlement status vocabulary — including
   Appendix D and the bilateral-wave Appendix E. Appendix E.1 owns exchange-pair UX, E.2 owns the
-  Offer-template library, and E.3 owns the noun-reduction/plain-language rules; W28–W31 and
-  planned SB-35/SB-36 are the review sources.
+  Offer-template library, and E.3 owns the noun-reduction/plain-language rules. The executable
+  source is now the hi-fi registry: `hifi/screens/exchange.ts` draws W28–W31 with their recovery
+  states, and `sb35`/`sb36` are validated journeys, not planned ones (register #97f).
 - acceptance-matrix.md for the final state/copy/public-claim/role proof
 - Admin/client package guides and authenticated Brave access
 

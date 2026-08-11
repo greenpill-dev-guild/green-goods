@@ -417,3 +417,18 @@ lane and must be created before their commands can pass.
   cycles, exact replay convergence, duplicate/replacement same-chain pooling block rejection, and
   an exchange pair whose A and B each have pending requests but neither accepted counterpart has
   a request row; both indexes must converge with no Pending rows and no database scan.
+
+
+## Audit note (2026-08-10, prototype-registry drift audit)
+
+Two findings for this lane from the cross-stack audit:
+
+1. **Dangling foreign keys already shipped**: `schema.graphql` carries
+   `CommitmentPayoutPlan.commitmentEntityId: String!` and
+   `Disbursement.commitmentEntityId: String` with no `Commitment` entity to
+   join — the settlement half landed ahead of the pooling half. When this lane
+   dispatches, the Commitment entity family must land with ids matching what
+   the settlement handlers already write into those fields.
+2. **`CLAUDE.md` boundary line updated 2026-08-10** to name settlement and
+   (when this lane ships) commitment pooling as in-boundary; the enforceable
+   boundary of record is `packages/indexer/scripts/check-indexing-boundary.mjs`.

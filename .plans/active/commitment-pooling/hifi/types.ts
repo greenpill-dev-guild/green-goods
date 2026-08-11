@@ -15,6 +15,51 @@ export const FLOW_GROUPS = [
 ] as const;
 export type ReviewGroup = (typeof FLOW_GROUPS)[number]["id"];
 
+// Chapters cluster a group's flow cards under lifecycle-ordered headings.
+// Deliberately loose data, not a calcified constant (decision 2026-08-10):
+// labels are expected to keep evolving as real garden vocabulary lands, so the
+// build checks only referential integrity — a flow must name a chapter that
+// exists in its group — and never asserts names or counts. Rename freely here.
+export const CHAPTERS: Record<ReviewGroup, readonly { id: string; label: string; collapsed?: boolean }[]> = {
+  client: [
+    { id: "make", label: "Make an offer" },
+    { id: "ask", label: "Asks & requests" },
+    { id: "take-up", label: "Take up a promise" },
+    { id: "keep", label: "Keep & prove it" },
+    { id: "confirm", label: "Confirm & resolve" },
+    { id: "change", label: "Change of plans" },
+    { id: "series", label: "Ongoing Offers" },
+    { id: "money", label: "Money & wallet" },
+  ],
+  admin: [
+    { id: "season", label: "Run the season" },
+    { id: "promises", label: "Decide on promises" },
+    { id: "work", label: "Work review" },
+    { id: "assess", label: "Assessments" },
+    { id: "behalf", label: "On a member's behalf" },
+    { id: "recognition", label: "Recognition & rewards" },
+    { id: "settlement", label: "Settlement" },
+    // Protocol-team-only operations stay out of a community review session's
+    // way: rendered collapsed, expandable on demand.
+    { id: "ggops", label: "Green Goods operations", collapsed: true },
+  ],
+  editorial: [{ id: "public-story", label: "The public story" }],
+};
+
+// Acting-role tags shown on flow cards (replaces the redundant surface badge).
+// Closed vocabulary matching the spec's hat-based personas (UX §1); order on a
+// flow is primary actor first. A flow needing three role chips is a smell that
+// it should split.
+export const ROLES = [
+  { id: "gardener", label: "Gardener" },
+  { id: "steward", label: "Steward" },
+  { id: "evaluator", label: "Evaluator" },
+  { id: "member", label: "Member (no device)" },
+  { id: "public", label: "Public" },
+  { id: "green-goods-team", label: "Green Goods team" },
+] as const;
+export type RoleId = (typeof ROLES)[number]["id"];
+
 // Scene surface tokens (what the stagebar pill renders). `pwa` is the client
 // dialect's own word for itself and predates the group ids; keeping it avoids
 // churning every journey for no reviewer-visible gain.
@@ -55,7 +100,12 @@ export type DisbursementKind =
   | "Funding"
   | "LoanPrincipal"
   | "GardenBeneficiary";
-export type DisbursementRoute = "ContributorConsideration" | "GardenBeneficiary" | "ProtocolToGarden";
+// Mirrors Solidity `FundingRoute { None, ProtocolToGarden }` exactly
+// (ISettlementModule.sol). The 2026-08-10 contracts audit found the earlier
+// union had conflated two orthogonal on-chain axes by also listing
+// ContributorConsideration/GardenBeneficiary — those are DisbursementKind
+// members, never routes; no call site ever used them as routes.
+export type DisbursementRoute = "None" | "ProtocolToGarden";
 // Onchain queueFunding capability, not deployer status: route visibility never
 // implies submit authority (register #69).
 export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
@@ -86,9 +136,12 @@ export type ContractCall =
   // retire only. Co-holder, apprenticeship, handover, fork, and community-held
   // stewardship are follow-on consent events and deliberately absent here, so a
   // drawn succession control cannot compile into a call that does not exist.
+  // acceptExchange joined 2026-08-10 (register #97) — shipped and tested
+  // on-chain per the same-day contracts audit.
   | "createCommitmentSeries" | "updateCommitmentSeriesMetadata"
   | "restCommitmentSeries" | "resumeCommitmentSeries" | "retireCommitmentSeries"
   | "createCommitment" | "setDeclaredValue" | "claimCommitment" | "acceptClaim" | "declineClaim"
+  | "acceptExchange"
   | "joinCommitment" | "leaveCommitment" | "addContributor" | "removeContributor"
   | "setContributorRequirement" | "attachEvidence" | "linkWork" | "attachAssessment" | "submitForConfirmation"
   | "markReadyForConfirmation" | "confirmFulfillment" | "confirmFulfillmentAsFallback" | "cancelCommitment" | "expireCommitment"
@@ -181,5 +234,7 @@ export type ShippedSB = {
   persona: string;
   reviewVisible: boolean;
   reviewGroup: ReviewGroup;
+  chapter: string; // must exist in CHAPTERS[reviewGroup]; names stay renameable data
+  roles: RoleId[]; // primary actor first; validated against ROLES
   steps: ShippedStep[];
 };

@@ -236,6 +236,11 @@ export const PLAYER_JS = `(function(){
     curSb = sb; curI = Math.min(Math.max(ix || 0, 0), sb.steps.length - 1);
     $("home").style.display = "none";
     $("stage").classList.add("on");
+    // A card tapped at the bottom of a long catalog must open the flow at its
+    // top, not wherever the page happened to be scrolled. Instant, not the CSS
+    // smooth default: collapsing the catalog cancels an in-flight smooth
+    // scroll, which left the stage header stranded above the viewport.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     render();
   }
   function inspect(label, info, to){
@@ -371,6 +376,9 @@ export const PLAYER_JS = `(function(){
     expState = r.state || scr.states[0].id;
     $("exphome").style.display = "none";
     $("expstage").classList.add("on");
+    // Same top-of-page contract as the flow stage: a card tapped low in the
+    // library opens its screen at the top. Instant for the same reason.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     renderExp();
   }
   function renderExp(){

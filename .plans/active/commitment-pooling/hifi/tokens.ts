@@ -95,6 +95,11 @@ export const HIFI_CSS = `
 
 /* header */
 .hf .hdr{display:flex;align-items:center;gap:10px;padding:8px 16px 4px;min-height:44px}
+/* Fixed flow chrome (uiux §5.4 Submit Work pattern): a header rendered via
+   phoneFrame's header slot sits above the scroll; .fbar sits below it. */
+.hf .hdr.fixed{flex:none;background:var(--cv);border-bottom:1px solid var(--ln);padding-bottom:8px}
+.hf .fbar{flex:none;background:var(--cv);border-top:1px solid var(--ln);padding:10px 16px 12px;display:flex;flex-direction:column;gap:8px}
+.hf .fbar .brow{margin:0}
 .hf .hdr .hback{width:44px;height:44px;border-radius:99px;border:0;background:transparent;color:var(--ink);
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;margin-left:-8px}
 .hf .hdr .hback:active{background:var(--stone-bg)}

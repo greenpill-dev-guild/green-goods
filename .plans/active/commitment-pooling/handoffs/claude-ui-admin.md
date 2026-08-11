@@ -75,7 +75,7 @@ unrelated working-tree changes, and do not switch the primary tree's branch.
 - Hypercert allocation consumes the shared metadata composer and indexer `bundleKind`/`commitmentIds`/ascending-unique-`needUIDs` outputs.
 - `W10@accepted` uses one locked action row: “Send for confirmation” is available only when required evidence is complete; “Cancel promise” opens the reason-required `W10@cancel` steward dialog; “Mark ready” opens the authorized reason-required `W10@mark-ready-override` flow and is visually distinct from ordinary evidence completion. The row never implies that acceptance alone made the commitment Ready.
 - `W10@attach-assessment` is the only assessment-attachment placement. It filters to eligible Assessment v3 records for the commitment’s accepted `providerGarden`, records the selected assessment before Ready submission, and exposes an empty/ineligible state instead of attaching an unrelated garden’s assessment.
-- Core seeding exposes an off-by-default protocol-fallback choice before acceptance. W10 and W13
+- Core seeding exposes a protocol-fallback choice before acceptance — on by default for the pilot (register #94, opt-out per promise). W10 and W13
   render indexed `Ordinary`, `PoolFallback`, and `ProtocolFallback` paths with the confirming actor
   and reason; cross-garden protocol-fallback rows are visually and textually distinct from local
   garden confirmations. A fallback action or queue row appears only when indexed eligibility proves
@@ -184,9 +184,10 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 
 ## Binding confirmation amendment — 2026-08-02
 
-- W8 persists the off-by-default `protocolFallbackEnabled` choice in the full creation payload and
-  repeats it at review. Missing registered protocol-pool identity disables the choice with an
-  operator-facing repair path.
+- W8 persists the `protocolFallbackEnabled` choice — on by default for the pilot (register #94,
+  2026-08-10, superseding this amendment's earlier off default; opt-out per promise) — in the full
+  creation payload and repeats it at review. Missing registered protocol-pool identity disables the
+  choice with an operator-facing repair path.
 - W10 local fallback requires current steward/owner authority in the commitment's own garden.
   W10 protocol fallback requires explicit opt-in plus current steward/owner authority in the
   registered Green Goods protocol garden. A wallet holding both authorities uses and renders
