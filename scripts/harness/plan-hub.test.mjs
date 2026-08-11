@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -1123,6 +1124,59 @@ test("archive moves reject symlinked report directories", () =>
     assert.equal(existsSync(join(root, ".plans", "active", "linked-reports")), true);
   }));
 
+test("archive moves reject symlinks nested inside report directories", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "nested-linked-reports", "--stage", "active"]).status, 0);
+    const reportsDir = join(root, ".plans", "active", "nested-linked-reports", "reports");
+    const externalReport = join(root, "external-report.md");
+    mkdirSync(reportsDir);
+    writeFileSync(externalReport, "# Mutable external evidence\n");
+    symlinkSync(externalReport, join(reportsDir, "review-2026-08-11.md"), "file");
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "nested-linked-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must not contain symlinks/);
+    assert.equal(existsSync(join(root, ".plans", "active", "nested-linked-reports")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "nested-linked-reports")), false);
+  }));
+
+test("archive moves keep canonical document links at the top level", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "nested-canonical-link", "--stage", "active"]).status, 0);
+    const featureDir = join(root, ".plans", "active", "nested-canonical-link");
+    mkdirSync(join(featureDir, "reports"));
+    writeFileSync(join(featureDir, "reports", "brief.md"), "# Replacement brief\n");
+    const status = readStatus(root, "active", "nested-canonical-link");
+    status.links.brief = "reports/brief.md";
+    writeStatus(root, "active", "nested-canonical-link", status);
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "nested-canonical-link",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /archive canonical links must reference top-level files: brief/);
+    assert.equal(existsSync(join(root, ".plans", "active", "nested-canonical-link", "brief.md")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "nested-canonical-link")), false);
+  }));
+
 test("compact-archive rejects a malformed reports entry before mutation", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "legacy-archive", "--stage", "active"]).status, 0);
@@ -1149,6 +1203,35 @@ test("compact-archive rejects a malformed reports entry before mutation", () =>
       readFileSync(join(root, ".plans", "archive", "legacy-archive", "reports"), "utf8"),
       "not a directory\n",
     );
+  }));
+
+test("compact-archive rejects nested report symlinks before mutation", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "linked-legacy-archive", "--stage", "active"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "linked-legacy-archive",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed_stale",
+        "--reason",
+        "No remaining live scope.",
+      ]).status,
+      0,
+    );
+    const reportsDir = join(root, ".plans", "archive", "linked-legacy-archive", "reports");
+    const externalReport = join(root, "external-legacy-report.md");
+    mkdirSync(reportsDir);
+    writeFileSync(externalReport, "# Mutable external evidence\n");
+    symlinkSync(externalReport, join(reportsDir, "review-2026-08-11.md"), "file");
+
+    const compacted = runPlanHub(root, ["compact-archive"]);
+    assert.notEqual(compacted.status, 0);
+    assert.match(compacted.stderr, /reports must not contain symlinks/);
+    assert.equal(lstatSync(join(reportsDir, "review-2026-08-11.md")).isSymbolicLink(), true);
   }));
 
 test("validate rejects noncanonical files inside archived hubs", () =>

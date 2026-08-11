@@ -365,9 +365,24 @@ function reportsEntryError(featureDirPath) {
     if (error.code === "ENOENT") return null;
     throw error;
   }
-  return stats.isSymbolicLink() || !stats.isDirectory()
-    ? `${reportsPath}: reports must be a real directory inside the feature hub before archive compaction`
-    : null;
+  if (stats.isSymbolicLink() || !stats.isDirectory()) {
+    return `${reportsPath}: reports must be a real directory inside the feature hub before archive compaction`;
+  }
+
+  const directories = [reportsPath];
+  while (directories.length > 0) {
+    const directory = directories.pop();
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = join(directory, entry.name);
+      const entryStats = lstatSync(entryPath);
+      if (entryStats.isSymbolicLink()) {
+        return `${entryPath}: reports must not contain symlinks before archive compaction`;
+      }
+      if (entryStats.isDirectory()) directories.push(entryPath);
+    }
+  }
+
+  return null;
 }
 
 function compactArchiveFeature(destinationDir, status) {
@@ -1633,6 +1648,15 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
     }
 
     if (stage === "archive") {
+      const nestedCanonicalLinks = REQUIRED_LINK_ROLES.filter((role) => {
+        const link = status.links[role];
+        return typeof link === "string" && (link.includes("/") || link.includes("\\"));
+      });
+      if (nestedCanonicalLinks.length > 0) {
+        errors.push(
+          `archive canonical links must reference top-level files: ${nestedCanonicalLinks.join(", ")}`,
+        );
+      }
       const nestedLinks = Object.values(status.links).filter(
         (link) =>
           typeof link === "string" &&
