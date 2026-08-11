@@ -32,6 +32,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
@@ -85,11 +86,9 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
       const works = worksResult.status === "fulfilled" ? worksResult.value : [];
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : [];
 
-      // Gardens: include only initialized rows (same heuristic as
-      // usePublicGardens — name OR location set).
-      const visibleGardens = gardens.filter(
-        (g) => (g.name ?? "").trim().length > 0 || (g.location ?? "").trim().length > 0
-      );
+      // Same predicate the archive and the evidence ledger use, so the headline
+      // garden count can never disagree with the gardens a visitor can browse.
+      const visibleGardens = gardens.filter(isGardenPubliclyVisible);
 
       return {
         gardenCount: visibleGardens.length,

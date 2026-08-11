@@ -90,7 +90,7 @@ export const SuccessDonate: StoryObj<typeof SuccessBody> = {
     <Frame>
       <SuccessBody
         amountLabel="$20.00"
-        gardenName="Aiyeloja Family Garden"
+        gardenName="Muizenberg Community Garden"
         isDonate={true}
         onDonateAgain={() => {}}
         onClose={() => {}}
@@ -103,7 +103,7 @@ export const SuccessEndow: StoryObj<typeof SuccessBody> = {
     <Frame>
       <SuccessBody
         amountLabel="$100.00"
-        gardenName="Aiyeloja Family Garden"
+        gardenName="Muizenberg Community Garden"
         isDonate={false}
         onDonateAgain={() => {}}
         onClose={() => {}}
@@ -116,7 +116,7 @@ export const SuccessEndowWeth: StoryObj<typeof SuccessBody> = {
     <Frame>
       <SuccessBody
         amountLabel="0.05 WETH"
-        gardenName="Aiyeloja Family Garden"
+        gardenName="Muizenberg Community Garden"
         isDonate={false}
         onDonateAgain={() => {}}
         onClose={() => {}}

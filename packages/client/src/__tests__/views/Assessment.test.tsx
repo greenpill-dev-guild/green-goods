@@ -60,7 +60,7 @@ const baseAssessment = {
 
 const baseGarden = {
   id: GARDEN_ID,
-  name: "Aiyeloja Family Garden",
+  name: "Muizenberg Community Garden",
   assessments: [baseAssessment],
 };
 
@@ -128,7 +128,7 @@ describe("GardenAssessment", () => {
 
   it("renders title, description, capitals, and garden eyebrow", () => {
     renderRoute();
-    expect(screen.getByText("Aiyeloja Family Garden")).toBeInTheDocument();
+    expect(screen.getByText("Muizenberg Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Q1 Soil Health Assessment")).toBeInTheDocument();
     expect(screen.getByText("Assessment of soil regeneration outcomes")).toBeInTheDocument();
     expect(screen.getByText("Natural")).toBeInTheDocument();

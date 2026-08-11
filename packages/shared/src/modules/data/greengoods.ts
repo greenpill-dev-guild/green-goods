@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import {
   type Action,
   type ActionContentLocale,
@@ -354,7 +355,12 @@ export async function getGardens(): Promise<Garden[]> {
       ])
     );
 
-    return data.Garden.map((garden) => {
+    // Curated out of every surface — see config/garden-visibility.ts. Filtering
+    // here rather than per-view keeps the PWA and admin consistent with the
+    // website for gardens that should not exist anywhere in Green Goods.
+    const visibleGardens = data.Garden.filter((garden) => !isGardenHiddenEverywhere(garden.id));
+
+    return visibleGardens.map((garden) => {
       // DIRTY FIX: Override Octant Community Garden banner until indexer is updated
       const OCTANT_BANNER_OVERRIDE = "bafkreihslrqy363mkr4kn5skr56zcazyvikldosy433p6e5okxyxxjdyuy";
       const isOctantGarden = garden.name === "Octant Community Garden";
