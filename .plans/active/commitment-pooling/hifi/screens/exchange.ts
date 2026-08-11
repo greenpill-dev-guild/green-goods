@@ -77,7 +77,7 @@ function w28(state: W28State): string {
 }
 
 const W28_HOTS: HifiDef["hots"] = {
-  "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId and enables the Use action. Accepted, lapsed, self-owned, non-Individual, capacity-inconsistent, and priced rows never render — exchange is barter, and a non-zero consideration on either side reverts with ExchangeConsiderationUnsupported (WF:1213 · CS §5.3)." },
+  "w28.pick-childcare": { l: "Choose Ana's Offer", to: "screen:W28@selected", info: "Selecting an eligible same-pool Offer stores it as the draft's counterCommitmentId and enables the Use action. Accepted, lapsed, self-owned, non-Individual, capacity-inconsistent, and priced rows never render — exchange is barter, and a non-zero consideration on either side reverts with ExchangeConsiderationUnsupported. One eligible row is wired in this drawing; every eligible row is selectable in the app (WF:1213 · CS §5.3)." },
   "w28.clear": { l: "Clear the selection", to: "screen:W28", info: "Drops the exchange reference without losing the draft; focus returns to the row (WF:1217)." },
   "w28.submit": { l: "Make this offer in exchange", info: "createCommitment atomically re-checks every eligibility predicate on Ana's Offer before storing counterCommitmentId — if it changed before mining, no promise is created and the picker returns for a clear-or-replace (WF:1219 · CS §5.3).", calls: ["createCommitment"], facts: { pool: "Open" }, pendingSync: true },
   "w28.retry": { l: "Retry loading Offers", to: "screen:W28", info: "Read-only retry; the draft and any prior selection survive." },

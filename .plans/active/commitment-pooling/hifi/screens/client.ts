@@ -26,6 +26,7 @@ import type { StateFacts } from "../types";
 const W1_STATES = [
   ["open", "Open"], ["not-ready", "Not ready"], ["ready", "Ready"], ["seeded", "Seeded"],
   ["request-open", "Open request"], ["request-queued", "Request queued"],
+  ["request-work-queued", "Work request queued"],
   ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"], ["composted", "Composted"],
   ["cancelled-cycle", "Cycle cancelled"], ["paused-cancelled-cycle", "Cycle cancelled · pool paused"],
   ["empty-open", "Empty pool"], ["no-season", "No season"],
@@ -225,6 +226,15 @@ function w1(state: W1State): string {
         seasonCard(),
         banner("Your request is saved on this device and will send when connected.", "stone", "wifi-off-line"),
         hot("w1.queued-card", requestCard({ queued: true })),
+      );
+      break;
+    case "request-work-queued":
+      content = pagepad(
+        seasonCard(),
+        banner("Your ask is saved on this device and will send when connected.", "stone", "wifi-off-line"),
+        hot("w1.queued-card", card(
+          `<div class="cardrow">${chip("Request", "request")}${chip("AGRO", "domain")}${chip("Queued", "queued")}</div><div class="t-title">Clear the drainage channel</div><div class="t-meta num">8 hours · runs with the season</div><div class="t-meta">Saved on this device — it will send when connected.</div>`,
+        )),
       );
       break;
     case "queued":
@@ -1546,7 +1556,7 @@ function w3(state: W3State): string {
     case "request-work-review":
       head = w3Head("Ask for help", 3);
       content = pagepad(
-        card(`${kv("Title", "Clear the drainage channel")}${kv("How much", "8 hours")}${kv("Due", "Aug 20")}${kv("Season", "First Rains")}${kv("This ask needs", "Weed × 2 · Mulch × 4")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
+        card(`${kv("Title", "Clear the drainage channel")}${kv("How much", "8 hours")}${kv("Due", "Aug 20")}${kv("Season", "First Rains")}${kv("This ask needs", "Weed × 2 · Mulch × 4")}${kv("Team", "Open — anyone in this pool can help")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
         `<div class="t-meta">A garden-work ask travels the Work rails: whoever takes it up submits work, the stewards approve it, and you confirm the ask was met.</div>`,
       );
       actions = `${hot("w3.submit-work-request", btn("Ask for this work", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
@@ -1554,7 +1564,7 @@ function w3(state: W3State): string {
     case "request-variant":
       head = w3Head("Ask for help", 2, 3);
       content = pagepad(
-        card(`${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Season", "First Rains")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
+        card(`${kv("Title", "Ride to the market on Saturday")}${kv("How much", "1 ride")}${kv("Due", "Aug 30 — runs with the season")}${kv("Season", "First Rains")}${kv("Team", "Open — anyone in this pool can help")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
         `<div class="t-meta">Support requests skip action anchors — evidence and the person you asked carry the proof.</div>`,
       );
       actions = `${hot("w3.submit-request", btn("Ask for this help", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
@@ -1648,7 +1658,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.request-work-continue-what": { l: "Continue to amount", to: "screen:W3@request-work-howmuch", info: "The garden-work ask's what — title suggested from the garden's actions — continues to chip-picked unit and amount; the dot row reads four steps from the first screen (register #97a)." },
   "w3.request-continue-work": { l: "Continue on the garden work path", to: "screen:W3@request-anchors", info: "The garden-work ask continues to its action requirements before review (register #97)." },
   "w3.request-continue-anchors": { l: "Continue to review", to: "screen:W3@request-work-review", info: "Requirements → review; who-confirms is already the asker with the pilot fallback behind them." },
-  "w3.submit-work-request": { l: "Ask for this work", info: "Enqueues the DomainImpact Request with its requirement rows — same commitment job, request direction (register #97).", calls: ["createCommitment"], pendingSync: true },
+  "w3.submit-work-request": { l: "Ask for this work", to: "screen:W1@request-work-queued", info: "Enqueues the DomainImpact Request with its requirement rows — same commitment job, request direction (register #97) — and returns to the pool tab with the optimistic queued card until CommitmentCreated syncs.", calls: ["createCommitment"], pendingSync: true },
   "w3.request-continue-howmuch": { l: "Continue to review", to: "screen:W3@request-variant", info: "Chip-picked unit and amount continue to review; who-confirms is already the request creator with the pilot fallback behind them (UX §5.4)." },
   "w3.submit-request": { l: "Ask for this help", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
   "w3.review-saved-offer": { l: "Review this offer", to: "screen:W3@saved-offer-review", info: "Carries the saved workshop details into the ordinary one-time Offer review without replacing them with the generic Garden work example." },

@@ -88,6 +88,7 @@ export const SBS: SB[] = [
   { f: "W3@request-work-howmuch", hot: { h: "w3.request-continue-work", l: "Continue" }, who: "Ana", st: "Draft (local)", ev: "unit and amount stay chip picks; the garden-work path adds one proof step", cite: "UX:618" },
   { f: "W3@request-anchors", hot: { h: "w3.request-continue-anchors", l: "Continue" }, who: "Ana", st: "Draft (local)", ev: "the ask names its required actions — Weed × 2 · Mulch × 4 — approved work is the proof", cite: "CS:1384" },
   { f: "W3@request-work-review", hot: { h: "w3.submit-work-request", l: "Ask for this work" }, who: "Ana", st: "Draft → Requested", ev: "review repeats the ask with its requirement rows; who-confirms is already Ana · commitment job → CommitmentCreated", cite: "UX:157 · CS:132" },
+  { f: "W1@request-work-queued", hot: null, marks: ["w1.queued-card"], who: "Ana", st: "Queued (local)", ev: "the optimistic ask stays visible in its pool scope until CommitmentCreated syncs", cite: "UX:157" },
   { f: "W2@request-work-active", hot: null, marks: ["w2.submit-work-request-detail"], st: "Requested → Active", ev: "João takes it up and submits work on the ordinary rails — approvals count toward the ask's requirements", cite: "CS:737", br: [{ l: "Work approval, steward side", to: "sb4b:0" }] },
   { f: "W2@request-work-partially-approved", hot: null, st: "PartiallyApproved · 1 of 2", ev: "each approval lands on the ask as progress Ana can watch", cite: "CS:737 · CS:138a" },
   { f: "W2@request-work-ready-confirmer", hot: null, st: "ReadyForConfirmation", ev: "both approvals counted — Ana, who asked, can now confirm on the ordinary request path; every contributor stays excluded", cite: "CS:139 · CS §6.1", br: [{ l: "Confirm — same path, request cast", to: "screen:W4@confirm-request" }] },
@@ -211,18 +212,15 @@ export const SBS: SB[] = [
 ]},
 // The campaign-request cast's full walk (register #97): evidence to confirmed
 // without losing the Campaign binding — previously screen-library-only.
-{ id: "sb52", n: 52, title: "Keep a campaign ask, from evidence to confirmed", persona: "Helper (João) + asker (Ana)", scen: "S1 · campaign request", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
+{ id: "sb52", n: 52, title: "Keep a campaign ask until it's ready to confirm", persona: "Helper (João)", scen: "S1 · campaign request", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
   { f: "W1@campaign-market", hot: { h: "w1.take-up-campaign-request", l: "I can help" }, who: "João", st: "Campaign Open", ev: "claim → CommitmentAccepted · the Market rides Campaign binding travels with the ask", cite: "UX:127 · CS:133" },
   { f: "W2@campaign-request-active", hot: { h: "w2.add-evidence-campaign-request", l: "Add evidence" }, who: "João", st: "Accepted → Active", ev: "evidence is the provider's next legal act; the Campaign remains the scope", cite: "CS:138b" },
   { f: "W2a@compose-campaign-request", hot: { h: "w2a.attach-campaign-request", l: "Attach evidence" }, who: "João", st: "Evidence draft", ev: "the shared composer queues the photo with its credited-contributor vector", cite: "CS:739" },
   { f: "W2@campaign-request-evidence-queued", hot: null, who: "João", st: "Evidence queued (local)", ev: "the evidence row is visible with queued chrome until EvidenceAttached syncs", cite: "UX:218" },
   { f: "W2@campaign-request-evidence-submitted", hot: { h: "w2.send-confirmation-campaign-request", l: "Send for confirmation" }, who: "João", st: "EvidenceSubmitted", ev: "the evidence-only call advances to ReadyForConfirmation without a work gate", cite: "CS:741", mf: true },
   { f: "W2@campaign-request-ready-pending", hot: null, st: "Readiness queued (local)", ev: "the ask remains EvidenceSubmitted until readiness reaches the contract", cite: "UX:169,221" },
-  { f: "W2@campaign-request-ready-confirmer", hot: { h: "w2.confirm-campaign-request-detail", l: "Review confirmation" }, who: "Ana", st: "ReadyForConfirmation", ev: "Ana asked for this, so Ana confirms — the named request creator opens confirmation after readiness syncs", cite: "CS:139" },
-  { f: "W4@confirm-campaign-request", hot: { h: "w4.confirm-campaign-request", l: "Confirm — Campaign help arrived" }, alts: [{ h: "w4.not-yet-campaign-request", l: "Not yet → steward review", to: "screen:W4@not-yet-campaign-request" }], who: "Ana", st: "ReadyForConfirmation", ev: "ConfirmationRecorded → CommitmentFulfilled, still inside the Campaign scope", cite: "CS:139" },
-  { f: "W4@confirmed-pending-campaign-request", hot: null, who: "Ana", st: "Pending local sync", ev: "the confirmation is saved locally without showing fulfillment early", cite: "UX:169,221" },
-  { f: "W4@confirmed-campaign-request", hot: { h: "w4.done-campaign-request", l: "Back to the pool" }, who: "Ana", st: "Fulfilled", ev: "sync completion shows the quiet result; the Campaign count updates", cite: "UX:197-204" },
-  { f: "W2@campaign-request-fulfilled", hot: null, st: "Fulfilled", ev: "the same Campaign ask returns as kept — same title, same unit, same Campaign", cite: "UX:127" },
+  { f: "W2@campaign-request-ready-confirmer", hot: null, st: "ReadyForConfirmation", ev: "done — now it waits on Ana, who asked; the Campaign binding travels with her confirmation", cite: "CS:139", br: [{ l: "Confirm — same path, campaign cast", to: "screen:W4@confirm-campaign-request" }] },
+  { f: "W2@campaign-request-fulfilled", hot: null, st: "Fulfilled", ev: "when Ana confirms, the same Campaign ask returns as kept — same title, same unit, same Campaign; the Campaign count updates", cite: "UX:127" },
 ]},
 // The exchange wave graduates to the registry (register #97): acceptExchange is
 // shipped and tested on-chain, so the planned SB-35/SB-36 become walkable.
