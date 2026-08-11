@@ -152,6 +152,9 @@ jobs:
       - name: Run guidance guardrail tests
         run: node --test scripts/quality/check-guidance-links.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
 
+      - name: Check test quality
+        run: bun run check:test-quality
+
       - name: Validate plan hubs
         run: node scripts/harness/plan-hub.mjs validate
 

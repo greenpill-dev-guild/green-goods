@@ -34,10 +34,20 @@ test("rejects newly introduced legacy and sentence-style names", () => {
     "testApprovalGatedFreeOfferRechecksClaimantMembership",
     "testRevert_CreditRegistryPaused",
     "testRevert_revertsWhenPaused",
+    "testInvariant_preservesCap",
     "test_credit_registry",
   ]) {
     assert.equal(isCanonicalSolidityTestName(name), false, name);
   }
+});
+
+test("ignores added declarations in non-Solidity contract test files", () => {
+  const diff = [
+    "+++ b/packages/contracts/test/README.md",
+    "@@ -1,0 +1,1 @@",
+    "+function testLegacyDocumentationExample() public {}",
+  ].join("\n");
+  assert.deepEqual(addedTestFunctionsFromDiff(diff), []);
 });
 
 test("extracts only added or renamed function declarations", () => {

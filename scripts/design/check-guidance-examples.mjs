@@ -17,6 +17,7 @@ const implementationLanguages = new Set([
   "typescript",
 ]);
 const javascriptLanguages = new Set(["javascript", "js", "jsx", "ts", "tsx", "typescript"]);
+const slashCommentLanguages = new Set([...javascriptLanguages, "scss"]);
 const canonicalCustomProperty =
   /^--(?:spring|color|radius|shadow|blur|space|surface|tone|canvas|gg)-|^--e[0-9-]/i;
 const cssNamedColors = new Set(
@@ -25,7 +26,7 @@ const cssNamedColors = new Set(
   ),
 );
 const colorProperty =
-  /(?:\b(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow)|--[a-z0-9-]+)\s*:\s*([^;}]+)/gi;
+  /(?:^|[{\s,;])["']?(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow|--[a-z0-9-]+)["']?\s*:\s*([^;}]+)/gi;
 const colorAttribute =
   /\b(?:color|fill|stroke|background-color|border-color)\s*=\s*["']([^"']+)["']/gi;
 const multilineGuardedProperty =
@@ -75,7 +76,7 @@ function implementationForLine(lines, index) {
   return withoutCustomPropertyDeclarations(implementation);
 }
 
-function withoutImplementationComments(lines) {
+function withoutImplementationComments(lines, language) {
   const visible = [];
   let inBlockComment = false;
   for (const entry of lines) {
@@ -110,7 +111,7 @@ function withoutImplementationComments(lines) {
         index++;
         continue;
       }
-      if (character === "/" && next === "/") break;
+      if (character === "/" && next === "/" && slashCommentLanguages.has(language)) break;
       text += character;
     }
     visible.push({ ...entry, rawText: source, text });
@@ -136,8 +137,15 @@ function hasRawRadius(line) {
       return true;
     }
   }
-  for (const match of line.matchAll(/\b(?:border-radius|borderRadius)\s*:\s*["']?([^"';},]+)/gi)) {
-    if (/\b(?:0|[0-9]*\.?[0-9]+(?:px|r?em|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc))\b/i.test(match[1])) {
+  for (const match of line.matchAll(/\b(border-radius|borderRadius)\s*:\s*["']?([^"';},]+)/gi)) {
+    const property = match[1];
+    const value = match[2].trim();
+    const unitlessReactRadius =
+      property === "borderRadius" && /^(?:[1-9][0-9]*(?:\.[0-9]+)?|0?\.[0-9]*[1-9][0-9]*)$/.test(value);
+    if (
+      unitlessReactRadius ||
+      /\b(?:0|[0-9]*\.?[0-9]+(?:px|r?em|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc))\b/i.test(value)
+    ) {
       return true;
     }
   }
@@ -257,7 +265,7 @@ export function findDesignGuidanceViolations(text, relativePath) {
     if (block.unterminated) {
       failures.push(`${relativePath}:${block.line}: unterminated implementation fence`);
     }
-    const implementationLines = withoutImplementationComments(block.lines);
+    const implementationLines = withoutImplementationComments(block.lines, block.language);
     let reducedMotionDepth = 0;
     let motionConfigDepth = 0;
     for (const [entryIndex, entry] of implementationLines.entries()) {

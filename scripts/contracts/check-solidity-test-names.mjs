@@ -8,7 +8,7 @@ import { parseBaseArgs, resolveGitBase, runGit } from "../lib/git-guardrails.mjs
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 const acceptedPatterns = [
-  /^test(?!Fuzz_|Integration_|Upgrade_|E2E_|Revert_)[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
+  /^test(?!Fuzz_|Integration_|Upgrade_|E2E_|Revert_|Invariant_)[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
   /^testFuzz_[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
   /^testIntegration_[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
   /^testUpgrade_[A-Z][A-Za-z0-9]*_[a-z][A-Za-z0-9_]*$/,
@@ -77,6 +77,10 @@ export function addedTestFunctionsFromDiff(diff) {
   let inHunk = false;
   const flushHunk = () => {
     if (!currentFile || hunk.length === 0) return;
+    if (!currentFile.endsWith(".sol")) {
+      hunk = [];
+      return;
+    }
     const source = hunk.map((entry) => entry.text).join("\n");
     const code = stripSolidityNonCode(source);
     for (const match of code.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {

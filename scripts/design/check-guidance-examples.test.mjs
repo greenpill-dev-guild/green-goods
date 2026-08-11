@@ -71,6 +71,15 @@ test("rejects named color property values", () => {
   assert.equal(failures.filter((failure) => failure.includes("raw named color")).length, 2);
 });
 
+test("rejects raw colors behind quoted React style keys", () => {
+  const text = ["```tsx", 'const bad = { "color": "#fff" };', "```"].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("raw hexadecimal color"),
+    ),
+  );
+});
+
 test("rejects named-color token fallbacks", () => {
   const text = ["```css", ".bad { color: var(--missing, red); }", "```"].join("\n");
   assert.ok(
@@ -165,6 +174,19 @@ test("ignores color names embedded in background resources", () => {
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
 });
 
+test("preserves unquoted CSS URLs while checking later declarations", () => {
+  const text = [
+    "```css",
+    ".bad { background: url(https://example.test/image.svg); color: #fff; }",
+    "```",
+  ].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("raw hexadecimal color"),
+    ),
+  );
+});
+
 test("checks raw JSX and SVG color attributes", () => {
   const text = ["```tsx", '<path fill="#fff" stroke="red" />', "```"].join("\n");
   const failures = findDesignGuidanceViolations(text, "design.md");
@@ -184,6 +206,15 @@ test("rejects radius literals nested in CSS functions", () => {
       failure.includes("arbitrary numeric radius"),
     ).length,
     2,
+  );
+});
+
+test("rejects unitless numeric React radius values", () => {
+  const text = ["```tsx", "const bad = { borderRadius: 24 };", "```"].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("arbitrary numeric radius"),
+    ),
   );
 });
 

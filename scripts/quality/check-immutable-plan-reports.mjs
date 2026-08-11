@@ -9,6 +9,22 @@ const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 const datedReportPattern = /^\.plans\/(?:[^/]+\/)*reports\/(?:[^/]+\/)*[^/]*\d{4}-\d{2}-\d{2}.*\.md$/;
 
 export function parseNameStatus(output) {
+  if (output.includes("\0")) {
+    const fields = output.split("\0");
+    const entries = [];
+    for (let index = 0; index < fields.length && fields[index]; ) {
+      const statusField = fields[index++];
+      const [statusToken, inlinePath] = statusField.split("\t", 2);
+      const status = statusToken[0];
+      if (status === "R" || status === "C") {
+        const oldPath = inlinePath ?? fields[index++];
+        entries.push({ status, oldPath, path: fields[index++] });
+      } else {
+        entries.push({ status, path: inlinePath ?? fields[index++] });
+      }
+    }
+    return entries;
+  }
   const entries = [];
   for (const line of output.split(/\r?\n/)) {
     if (!line) continue;
@@ -49,6 +65,7 @@ function main() {
             runGit(repoRoot, [
               "diff",
               "--name-status",
+              "-z",
               "--find-renames",
               `${base}...HEAD`,
               "--",
@@ -57,7 +74,7 @@ function main() {
           )
         : []),
       ...parseNameStatus(
-        runGit(repoRoot, ["diff", "--name-status", "--find-renames", "HEAD", "--", ".plans"])
+        runGit(repoRoot, ["diff", "--name-status", "-z", "--find-renames", "HEAD", "--", ".plans"])
           .stdout,
       ),
     ];

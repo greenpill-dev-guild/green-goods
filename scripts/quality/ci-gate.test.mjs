@@ -108,6 +108,12 @@ test("CI Gate script changes require shared and supply-chain workflows", () => {
   ]);
 });
 
+test("test-quality wrapper changes require the supply-chain workflow that runs it", () => {
+  assert.deepEqual(expectedWorkflowNames(["scripts/quality/check-test-quality.sh"]), [
+    "Supply Chain Guardrails",
+  ]);
+});
+
 test("source-structure changes require every workflow that runs the check", () => {
   assert.deepEqual(expectedWorkflowNames(["scripts/quality/check-source-structure.js"]), [
     "Admin",

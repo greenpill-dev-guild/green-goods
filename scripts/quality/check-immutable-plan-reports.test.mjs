@@ -59,6 +59,12 @@ test("protects dated reports in nested report directories", () => {
   ]);
 });
 
+test("parses NUL-delimited non-ASCII paths without Git quoting", () => {
+  const path = ".plans/active/example/reports/résumé-2026-08-11.md";
+  const entries = parseNameStatus(`M\0${path}\0`);
+  assert.deepEqual(immutableReportViolations(entries), [`M: ${path}`]);
+});
+
 test("rejects unknown CLI arguments", () => {
   const result = spawnSync(process.execPath, [script, "--unknown"], { encoding: "utf8" });
   assert.equal(result.status, 2);
