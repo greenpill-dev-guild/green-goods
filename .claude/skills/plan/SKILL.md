@@ -102,6 +102,9 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
   themselves. Before setting a lane to passed or completed, fill that lane's handoff Validation
   Receipt. Reviewers treat a missing or stale receipt as pending evidence. This work does not add
   validation receipts to the Plan Hub machine schema.
+- Legacy boundary: lanes already terminal before this receipt policy was adopted on 2026-08-11 keep
+  their existing recorded evidence and status. Any reopened lane or new terminal claim after that
+  date requires the receipt; do not rewrite historical dated reports to retrofit it.
 
 Copy-paste shapes — the plan header/body template, the `status.json` lane-state example, and
 the batch-report template — live in [templates.md](./templates.md). Load it when writing the

@@ -21,6 +21,7 @@
 - Exact command(s): pending
 - Result: pending
 - Evidence-only follow-up (if applicable): not applicable
+- Worktree identity (if applicable): not applicable
 
 ## Risks / Blockers
 

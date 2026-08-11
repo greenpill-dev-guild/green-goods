@@ -1793,6 +1793,10 @@ function moveFeature(flags) {
   }
 
   const { status } = readFeatureStatus(found.dir);
+  const reportsPath = join(found.dir, "reports");
+  if (toStage === "archive" && existsSync(reportsPath) && !statSync(reportsPath).isDirectory()) {
+    fail(`${reportsPath}: reports must be a directory before archival`);
+  }
   const movedAt = nowIso();
   status.feature.stage = toStage;
   status.workflow.overall_status = STAGE_TO_STATUS[toStage];

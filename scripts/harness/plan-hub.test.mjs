@@ -1074,6 +1074,28 @@ test("archive moves reject completed resolution until every lane is terminal", (
     assert.equal(readStatus(root, "active", "incomplete-fixture").feature.stage, "active");
   }));
 
+test("archive moves reject a malformed reports entry before mutation", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "malformed-reports", "--stage", "active"]).status, 0);
+    writeFileSync(join(root, ".plans", "active", "malformed-reports", "reports"), "not a directory\n");
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "malformed-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must be a directory before archival/);
+    assert.equal(existsSync(join(root, ".plans", "active", "malformed-reports")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "malformed-reports")), false);
+  }));
+
 test("validate rejects noncanonical files inside archived hubs", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archive-residue", "--stage", "backlog"]).status, 0);
