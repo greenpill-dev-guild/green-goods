@@ -103,6 +103,9 @@ jobs:
       - name: Check design tokens
         run: bun run check:design-tokens
 
+      - name: Run design guidance guardrail tests
+        run: node --test scripts/design/check-guidance-examples.test.mjs
+
       - name: Check banned vocabulary
         run: bun run lint:vocab
 

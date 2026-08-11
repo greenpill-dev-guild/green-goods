@@ -5,6 +5,7 @@
 #   1. Tautological assertions: expect(true), expect(false), || true
 #   2. Ungoverned or expired test skips
 #   3. Type-safety bypasses: @ts-nocheck in test files
+#   4. Newly added or renamed Solidity tests use the canonical naming format
 
 set -euo pipefail
 
@@ -150,6 +151,13 @@ if [ -n "$TS_NOCHECK" ]; then
   VIOLATIONS=$((VIOLATIONS + $(echo "$TS_NOCHECK" | wc -l)))
 else
   echo "PASS: No @ts-nocheck found in test files."
+fi
+echo ""
+
+# ── Check 4: Diff-aware Solidity test naming ────────────────────
+echo "--- Check 4: New Solidity test naming ---"
+if ! node "$REPO_ROOT/scripts/contracts/check-solidity-test-names.mjs"; then
+  VIOLATIONS=$((VIOLATIONS + 1))
 fi
 echo ""
 

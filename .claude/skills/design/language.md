@@ -52,7 +52,7 @@ Adapted from Apple's Liquid Glass, these three types create geometric harmony ac
 
 When an element lives inside a container, its corner radius derives from the parent's radius minus the padding between them. This eliminates "pinched" or "flared" corners that create visual tension.
 
-```
+```text
 child_radius = parent_radius - padding
 
 ┌─────────────────────────────────┐  Panel: 20px radius
@@ -119,7 +119,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 ```css
 /* Capsule button — morph on press */
 .btn-primary {
-  border-radius: 9999px; /* capsule at rest */
+  border-radius: var(--radius-full); /* capsule at rest */
   transition: border-radius var(--spring-spatial-fast),
               transform var(--spring-spatial-fast);
 }
@@ -543,7 +543,7 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
 
 The interface has three distinct functional layers. Glass creates a floating control plane above content, replacing the traditional "embedded controls in content" model.
 
-```
+```text
 Layer 3: Glass Controls   — Navigation bars, toolbars, FABs
                             Liquid Glass material, floating above content
                             Interactive, persistent, orientation-giving

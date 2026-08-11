@@ -108,6 +108,14 @@ jobs:
           SOURCE_STRUCTURE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
         run: node scripts/quality/check-source-structure.js
 
+      - name: Check new Solidity test names
+        env:
+          SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: bun run check:solidity-test-names
+
+      - name: Run Solidity naming guardrail tests
+        run: node --test scripts/contracts/check-solidity-test-names.test.mjs
+
       - name: Run contract lint
         working-directory: packages/contracts
         run: bun run lint
