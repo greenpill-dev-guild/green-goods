@@ -212,7 +212,7 @@ const W31_HOTS: HifiDef["hots"] = {
 };
 
 export const EXCHANGE_DEFS: HifiDef[] = [
-  { screen: { id: "W28", title: "W28 · Offer in exchange", surface: "client", frame: "phone", group: "Client PWA", states: W28_STATES.map(([id, label]) => ({ id, label, facts: id === "picker" || id === "selected" ? { pool: "Open" } : undefined, html: w28(id) })) }, hots: W28_HOTS },
+  { screen: { id: "W28", title: "W28 · Offer in exchange", surface: "client", frame: "phone", group: "Client PWA", states: W28_STATES.map(([id, label]) => ({ id, label, facts: id === "picker" || id === "selected" ? { pool: "Open", cycle: "Open" } : undefined, html: w28(id) })) }, hots: W28_HOTS },
   { screen: { id: "W29", title: "W29 · Exchange pair", surface: "client", frame: "phone", group: "Client PWA", states: W29_STATES.map(([id, label]) => ({ id, label, facts: { commitment: id === "proposed" ? "Offered" : "Accepted", kind: "SupportService" }, html: w29(id) })) }, hots: W29_HOTS },
   { screen: { id: "W30", title: "W30 · Start both promises", surface: "client", frame: "phone", group: "Client PWA", states: W30_STATES.map(([id, label]) => ({ id, label, facts: { commitment: "Offered", kind: "SupportService" }, html: w30(id) })) }, hots: W30_HOTS },
   { screen: { id: "W31", title: "W31 · Offer templates", surface: "client", frame: "phone", group: "Client PWA", states: W31_STATES.map(([id, label]) => ({ id, label, html: w31(id) })) }, hots: W31_HOTS },

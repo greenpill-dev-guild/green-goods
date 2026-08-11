@@ -28,6 +28,7 @@ const W1_STATES = [
   ["request-open", "Open request"], ["request-queued", "Request queued"],
   ["request-work-queued", "Work request queued"],
   ["exchange-queued", "Exchange offer queued"],
+  ["request-work-open", "Work request open for claim"],
   ["reviewing", "Reviewing"], ["paused", "Paused"], ["closed", "Closed"], ["composted", "Composted"],
   ["cancelled-cycle", "Cycle cancelled"], ["paused-cancelled-cycle", "Cycle cancelled · pool paused"],
   ["empty-open", "Empty pool"], ["no-season", "No season"],
@@ -229,6 +230,14 @@ function w1(state: W1State): string {
         hot("w1.queued-card", requestCard({ queued: true })),
       );
       break;
+    case "request-work-open":
+      content = pagepad(
+        seasonCard(),
+        hot("w1.take-up-work-request", card(
+          `<div class="cardrow">${chip("Request", "request")}${chip("AGRO", "domain")}</div><div class="t-title">Clear the drainage channel</div><div class="t-meta num">8 hours · due Aug 30</div><div class="t-meta">Needs approved work: Weed × 2 · Mulch × 4. Anyone in this garden may offer to help.</div><div class="brow">${btn("I can help", { kind: "sec" })}</div>`,
+        )),
+      );
+      break;
     case "exchange-queued":
       content = pagepad(
         seasonCard(),
@@ -351,13 +360,17 @@ function w1(state: W1State): string {
       );
   }
 
-  const sync =
-    state === "queued" || state === "support-queued" || state === "request-queued"
-      ? syncBar("1 promise waiting to send")
-      : state === "sync-failed"
-        ? syncBar("1 item needs attention")
-        : "";
-  const offline = state === "queued" || state === "support-queued" || state === "request-queued" || state === "sync-failed";
+  // Every queued cast carries the same offline chrome — a new queued state that
+  // forgets to join these two predicates draws a queued card with no sync bar.
+  const queuedState =
+    state === "queued" || state === "support-queued" || state === "request-queued" ||
+    state === "request-work-queued" || state === "exchange-queued";
+  const sync = queuedState
+    ? syncBar("1 promise waiting to send")
+    : state === "sync-failed"
+      ? syncBar("1 item needs attention")
+      : "";
+  const offline = queuedState || state === "sync-failed";
   return phoneFrame(`${head}${tabs}${content}<div style="flex:1"></div>${sync}`, { offline });
 }
 
@@ -365,6 +378,7 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.offer": { l: "Offer support", to: "screen:W31", info: "Starts the creation flow with direction = offer, opening the Offer-template picker first; Start blank enters the same editable form with no hidden defaults (UX:122 · Appendix E.2)." },
   "w1.request": { l: "Request help", to: "screen:W3@request-what", info: "Creation flow with direction = request — a real three-step wizard as of register #96 (UX:605)." },
   "w1.take-up": { l: "Take this up (open claim)", to: "screen:W2", info: "Open mode: claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
+  "w1.take-up-work-request": { l: "I can help", to: "screen:W2@request-work-active", info: "Open-claim on a DomainImpact Request: claimCommitment → CommitmentAccepted with provider = claimant and confirmer = Ana, the asker. The ask then rides the ordinary Work-approval rails (CS:133 · register #97a).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "DomainImpact" } },
   "w1.take-up-request": { l: "I can help (open request)", to: "screen:W2@request-active", info: "Open mode: the claimant becomes the provider and the request creator remains the confirmer.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w1.take-up-campaign-request": { l: "I can help (campaign request)", to: "screen:W2@campaign-request-active", info: "Open mode preserves the Market rides Campaign binding while the claimant becomes provider.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w1.open-paused-promise": { l: "Open promise while paused", to: "screen:W2@active", info: "Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
@@ -915,7 +929,7 @@ function w2(state: W2State): string {
       break;
     case "request-work-ready-confirmer":
       band = card(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana asked for this work, so Ana confirms it — every contributor stays excluded.</div>${hot("w2.confirm-request-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana asked for this work, so Ana confirms it — every contributor stays excluded.</div>${hot("w2.confirm-request-work-detail", btn("Review confirmation", { kind: "pri", full: true }))}`,
       );
       break;
     case "campaign-request-active":
@@ -1219,6 +1233,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-pending", info: "Queues the evidence-only readiness transition; DomainImpact is rejected on-chain (CS:138b).", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService promise." },
   "w2.send-confirmation-request": { l: "Send request for confirmation", to: "screen:W2@request-ready-pending", info: "Queues submitForConfirmation while keeping Ana as default confirmer and João as provider.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.confirm-request-work-detail": { l: "Review confirmation", to: "screen:W4@confirm-request-work", info: "Opens the garden-work ask's confirmation sheet — approved Work is the proof shown there, not evidence (register #97a)." },
   "w2.confirm-request-detail": { l: "Review request confirmation", to: "screen:W4@confirm-request", info: "Opens only after the request readiness update has synced." },
   "w2.send-confirmation-campaign-request": { l: "Send campaign request for confirmation", to: "screen:W2@campaign-request-ready-pending", info: "Queues readiness without losing the Market rides Campaign binding.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-campaign-request-detail": { l: "Review campaign-request confirmation", to: "screen:W4@confirm-campaign-request", info: "Opens the named request creator's confirmation while preserving Campaign scope." },
@@ -1388,6 +1403,8 @@ const W3_STATES = [
   ["step-what", "1 · What"], ["step-howmuch", "2 · How much"], ["step-anchors", "3 · Proof"],
   ["step-review", "4 · Review & promise"],
   ["step-advanced", "Advanced · confirmers & team"],
+  ["step-advanced-no-protocol", "Advanced · no protocol pool"],
+  ["step-confirmers", "Advanced · named confirmer group"],
   ["support-howmuch", "Support · amount"],
   ["support-review", "Support · review"],
   ["request-what", "Request · 1 · What"], ["request-howmuch", "Request · 2 · How much"],
@@ -1457,7 +1474,7 @@ function w3(state: W3State): string {
     case "step-review":
       head = w3Head("Make an offer", 3);
       content = pagepad(
-        card(`${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 12")}${kv("Season", "First Rains")}${kv("This promise needs", "Prune × 2 · Plant × 12")}${kv("Who confirms", "The person you help · the Green Goods team can step in if no one local can confirm")}${kv("Team", "Open — garden members may join in")}`),
+        card(`${kv("Title", "Prune the north beds")}${kv("How much", "6 hours")}${kv("Due", "Aug 30 — runs with the season")}${kv("Season", "First Rains")}${kv("This promise needs", "Prune × 2 · Plant × 12")}${kv("Who confirms", "The person you help · the Green Goods team can step in if no one local can confirm")}${kv("Team", "Open — garden members may join in")}`),
         `<div class="t-meta">Submitting queues the promise on this device and returns you to the pool — it sends when connected.</div>`,
       );
       actions = `${hot("w3.submit", btn("Make this offer", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
@@ -1466,7 +1483,8 @@ function w3(state: W3State): string {
       head = w3Head("Make an offer", 3);
       content = pagepad(
         sectionTitle("Who confirms"),
-        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Named group", "None — add people to require more than one confirmation")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module, never a number drawn here")}`),
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module, never a number drawn here")}`),
+        hot("w3.confirmer-group", field("Named group", input("None — add people to require more than one confirmation", { select: true }))),
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason — and never by a contributor.</span></span></label>`),
         sectionTitle("Team options"),
         hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy" }))),
@@ -1474,10 +1492,39 @@ function w3(state: W3State): string {
       );
       actions = hot("w3.advanced-done", btn("Back to review", { kind: "pri", full: true }));
       break;
+    case "step-advanced-no-protocol":
+      head = w3Head("Make an offer", 3);
+      content = pagepad(
+        sectionTitle("Who confirms"),
+        card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module")}`),
+        hot("w3.confirmer-group", field("Named group", input("None — add people to require more than one confirmation", { select: true }))),
+        `<label class="arow" style="align-items:flex-start;opacity:.55"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" disabled style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Unavailable on this deployment: no Green Goods protocol pool is registered yet. Name a local confirmer group instead.</span></span></label>`,
+        banner("Because the team fallback is unavailable here, this promise stores it off and the review will block until the ordinary confirmer rule can be met locally.", "amber", "error-warning-line"),
+        sectionTitle("Team options"),
+        hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy-noproto" }))),
+      );
+      actions = hot("w3.advanced-done", btn("Back to review", { kind: "pri", full: true }));
+      break;
+    case "step-confirmers":
+      head = w3Head("Make an offer", 3);
+      content = pagepad(
+        sectionTitle("Named confirmer group"),
+        `<div class="t-meta">Any one of the people you name may confirm. Contributors and the accountable lead never appear here — they cannot confirm their own promise.</div>`,
+        card(
+          `<label class="arow"><input type="checkbox" checked aria-label="João"><span class="grow"><b>João</b><span class="t-meta" style="display:block">Neighbour · not a contributor</span></span></label>` +
+            `<label class="arow"><input type="checkbox" checked aria-label="Luz"><span class="grow"><b>Luz</b><span class="t-meta" style="display:block">Garden member · not a contributor</span></span></label>` +
+            `<label class="arow"><input type="checkbox" aria-label="Kwame"><span class="grow"><b>Kwame</b><span class="t-meta" style="display:block">Garden member · not a contributor</span></span></label>`,
+          { cls: "flat" },
+        ),
+        field("How many must confirm", radio([{ label: "Any one of them", meta: "threshold 1 of 2 named", on: true }, { label: "Both of them", meta: "threshold 2 of 2 named" }], { interactive: true, name: "confirmer-threshold" })),
+        banner("Maria and Ana are on the contributor roster, so they are not listed — a contributor can never confirm.", "stone", "shield-check-line"),
+      );
+      actions = hot("w3.confirmers-done", btn("Use this group", { kind: "pri", full: true }));
+      break;
     case "support-review":
       head = w3Head("Make an offer", 2, 3);
       content = pagepad(
-        card(`${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Campaign", "Tool library")}${kv("Who confirms", "The person you help · the Green Goods team can step in if no one local can confirm")}${kv("Team", "Open — garden members may join in")}`),
+        card(`${kv("Title", "Repair tool handles")}${kv("How much", "1 repair session")}${kv("Due", "Aug 30 — runs with the campaign")}${kv("Campaign", "Tool library")}${kv("Who confirms", "The person you help · the Green Goods team can step in if no one local can confirm")}${kv("Team", "Open — garden members may join in")}`),
         `<div class="t-meta">Service offers skip action anchors. Evidence and the named recipient carry the proof.</div>`,
       );
       actions = `${hot("w3.submit-support", btn("Make this offer", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
@@ -1566,7 +1613,7 @@ function w3(state: W3State): string {
     case "request-work-review":
       head = w3Head("Ask for help", 3);
       content = pagepad(
-        card(`${kv("Title", "Clear the drainage channel")}${kv("How much", "8 hours")}${kv("Due", "Aug 20")}${kv("Season", "First Rains")}${kv("This ask needs", "Weed × 2 · Mulch × 4")}${kv("Team", "Open — anyone in this pool can help")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
+        card(`${kv("Title", "Clear the drainage channel")}${kv("How much", "8 hours")}${kv("Due", "Aug 30 — runs with the season")}${kv("Season", "First Rains")}${kv("This ask needs", "Weed × 2 · Mulch × 4")}${kv("Team", "Open — anyone in this pool can help")}${kv("Who confirms", "You — it was your ask · the Green Goods team can step in if no one local can confirm")}`),
         `<div class="t-meta">A garden-work ask travels the Work rails: whoever takes it up submits work, the stewards approve it, and you confirm the ask was met.</div>`,
       );
       actions = `${hot("w3.submit-work-request", btn("Ask for this work", { kind: "pri", full: true }))}${hot("w3.advanced", btn("Adjust who confirms or team options", { kind: "ghost", full: true, sm: true }))}`;
@@ -1660,6 +1707,8 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.continue-anchors": { l: "Continue to review", to: "screen:W3@step-review", info: "Action anchors → review. Who-confirms is defaulted (recipient + pilot Green Goods fallback) and adjustable from review's Advanced detour (UX §5.4, amended 2026-08-10)." },
   "w3.protocol-fallback": { l: "Green Goods team fallback", info: "Writes protocolFallbackEnabled — ON by default for the pilot (decision 2026-08-10, supersedes the 2026-08-02 off-by-default closure). The runtime guard is unchanged: usable only while the ordinary path is unreachable, always with a recorded reason, never by a contributor. Turn it off here per promise." },
   "w3.advanced": { l: "Adjust who confirms / team options", to: "screen:W3@step-advanced", info: "Optional detour from every review step — offer and request alike (register #97a): named confirmer groups, the pilot-default Green Goods fallback with its per-promise opt-out, contributor policy, and assessment requirement live here so the default path stays four quick steps. Drawn once in the offer cast." },
+  "w3.confirmer-group": { l: "Named confirmer group", to: "screen:W3@step-confirmers", info: "Opens the any-N named-group picker (UX §5.4 step 5). The list excludes the accountable lead and every contributor before threshold validation." },
+  "w3.confirmers-done": { l: "Use this group", to: "screen:W3@step-advanced", info: "Returns the chosen addresses and threshold to Advanced, which carries them back to review." },
   "w3.advanced-done": { l: "Back to review", to: "screen:W3@step-review", info: "Returns to review carrying any adjusted confirmer, team, or assessment choices. The detour is drawn once in the offer cast, so the drawn return lands on the offer review — service and request reviews reach it as a screen branch and return to their own review in the app (same reuse convention as W4@confirm-request)." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
@@ -1686,7 +1735,10 @@ const W3_HOTS: HifiDef["hots"] = {
 
 const W4_STATES = [
   ["confirm-domain", "Garden work"], ["confirm-support", "Support / service"],
-  ["confirm-request", "A request you asked for"], ["confirm-campaign-request", "A Campaign request"],
+  ["confirm-request", "A request you asked for"], ["confirm-request-work", "A garden-work ask you made"],
+  ["confirmed-pending-request-work", "Work ask · confirmation queued"],
+  ["confirmed-request-work", "Work ask · confirmed"],
+  ["confirm-campaign-request", "A Campaign request"],
   ["confirm-captured", "A recorded promise"],
   ["not-yet", "Not yet — garden work"], ["not-yet-support", "Not yet — service"],
   ["not-yet-request", "Not yet — request"], ["not-yet-campaign-request", "Not yet — Campaign request"],
@@ -1712,14 +1764,19 @@ const w4Behind = (cast: PromiseCast = "offer") =>
 
 function w4(state: W4State): string {
   const campaignRequest = state.includes("campaign-request");
-  const request = state.includes("request") && !campaignRequest;
+  // The garden-work ask is a Request whose proof is approved Work, not evidence —
+  // it keeps its own cast so confirmation never switches models at the last step.
+  const requestWork = state.includes("request-work");
+  const request = state.includes("request") && !campaignRequest && !requestWork;
   const support = state.includes("support");
   const captured = state.includes("captured");
-  const cast: PromiseCast = campaignRequest ? "campaign-request" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
+  const cast: PromiseCast = campaignRequest ? "campaign-request" : requestWork ? "request-work" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
   const evidenceOnly = request || campaignRequest || support || captured;
   const summary =
     cast === "request"
       ? `<div class="t-meta">Request · João provides · Ana asked for this and confirms it.</div>`
+      : cast === "request-work"
+        ? `<div class="t-meta">Garden-work ask · João did the work · Ana asked for this and confirms it.</div>`
       : cast === "campaign-request"
         ? `<div class="t-meta">Campaign request · João provides · Ana confirms for Market rides.</div>`
         : cast === "support"
@@ -1748,6 +1805,10 @@ function w4(state: W4State): string {
     case "confirm-request":
       title = "Did the help arrive?";
       inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      break;
+    case "confirm-request-work":
+      title = "Was the work you asked for done?";
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Approved work", meta: "Weed × 2 · Mulch × 4 — all approved by the stewards" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request-work", btn("Confirm — the work was done", { kind: "pri", full: true }))}${hot("w4.not-yet-request-work", btn("Not yet", { kind: "sec", full: true }))}`;
       break;
     case "confirm-campaign-request":
       title = "Did the Campaign help arrive?";
@@ -1788,6 +1849,7 @@ function w4(state: W4State): string {
     case "confirmed-pending":
     case "confirmed-pending-support":
     case "confirmed-pending-request":
+    case "confirmed-pending-request-work":
     case "confirmed-pending-campaign-request":
     case "confirmed-pending-captured":
       title = "Confirmation saved";
@@ -1803,6 +1865,7 @@ function w4(state: W4State): string {
     case "confirmed":
     case "confirmed-support":
     case "confirmed-request":
+    case "confirmed-request-work":
     case "confirmed-campaign-request":
     case "confirmed-captured":
       title = "Promise kept";
@@ -1852,6 +1915,8 @@ const W4_HOTS: HifiDef["hots"] = {
   "w4.confirm": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled after the queued confirmation syncs (CS:139).", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-support": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the evidence-only service promise; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-request": { l: "Confirm — help arrived", to: "screen:W4@confirmed-pending-request", info: "The request creator confirms the claimant's help; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-request-work": { l: "Confirm — the work was done", to: "screen:W4@confirmed-pending-request-work", info: "The asker confirms a DomainImpact Request whose proof was approved Work, not evidence; fulfillment appears only after sync (register #97a).", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.not-yet-request-work": { l: "Not yet", to: "screen:W4@not-yet-request", info: "The same reason-required steward review as every other Not yet — the garden-work ask keeps its cast until the reason dialog opens." },
   "w4.confirm-campaign-request": { l: "Confirm — Campaign help arrived", to: "screen:W4@confirmed-pending-campaign-request", info: "The request creator confirms the Campaign-scoped request without losing that Campaign binding.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-captured": { l: "Confirm — recorded promise kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only StewardCaptured promise.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.not-yet": { l: "Not yet", to: "screen:W4@not-yet", info: "Requires a reason → online steward review. It never cancels the promise (UX:167)." },
@@ -1902,7 +1967,7 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
       commitment: state === "claim-accepted" ? "Accepted" : "Requested",
       kind: "SupportService",
     };
-  if (["open", "request-open", "request-queued", "empty-open", "campaign-market", "campaign-tools", "queued", "support-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
+  if (["open", "request-open", "request-queued", "request-work-open", "request-work-queued", "exchange-queued", "empty-open", "campaign-market", "campaign-tools", "queued", "support-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
     return { pool: "Open", cycle: "Open" };
   return undefined;
 };
@@ -1956,6 +2021,7 @@ const w4Facts = (state: W4State): StateFacts => ({
     state === "confirmed-request" || state === "confirmed-campaign-request" ||
     state === "confirmed-captured" ? "Fulfilled" : "ReadyForConfirmation",
   kind: state.includes("captured") ? "StewardCaptured"
+    : state.includes("request-work") ? "DomainImpact"
     : state.includes("support") || state.includes("request") ? "SupportService"
     : "DomainImpact",
 });

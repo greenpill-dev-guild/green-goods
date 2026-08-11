@@ -4,10 +4,10 @@ Updated 2026-08-10. This is the human-readable screen-by-state audit for the sel
 
 ## Build snapshot
 
-- 40 registered screens / 401 rendered states in the full source registry
-- 33 presentation-visible hi-fi screens / 394 states: 18 Client PWA (259 states), 13 Admin console (130 states), 2 Editorial website (5 states)
-- 548 registered hotspots
-- 57 validated source flows / 385 scenes; 56 presentation-visible flows / 376 scenes: 29 Client PWA, 25 Admin console, 2 Editorial website
+- 40 registered screens / 407 rendered states in the full source registry
+- 33 presentation-visible hi-fi screens / 400 states: 18 Client PWA (265 states), 13 Admin console (130 states), 2 Editorial website (5 states)
+- 554 registered hotspots
+- 57 validated source flows / 389 scenes; 56 presentation-visible flows / 380 scenes: 29 Client PWA, 25 Admin console, 2 Editorial website
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -187,12 +187,12 @@ field, a reason-less act must not invent one). Each control whose label ends in
 
 | Screen | Surface | States | State ids |
 | --- | --- | ---: | --- |
-| W1 | Client PWA | 30 | open, not-ready, ready, seeded, request-open, request-queued, request-work-queued, exchange-queued, reviewing, paused, closed, composted, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
+| W1 | Client PWA | 31 | open, not-ready, ready, seeded, request-open, request-queued, request-work-queued, request-work-open, exchange-queued, reviewing, paused, closed, composted, cancelled-cycle, paused-cancelled-cycle, empty-open, no-season, campaign-market, campaign-tools, queued, support-queued, sync-failed, waiting-membership, cycle-summary, claim-pending, claim-declined, claim-superseded, claim-accepted, loading, not-found, read-error |
 | W2 | Client PWA | 70 | accepted, offered, requested, active, evidence-queued, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, fulfilled-pool-fallback, fulfilled-protocol-fallback, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-accepted, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error, request-work-active, request-work-partially-approved, request-work-ready-confirmer |
 | W2a | Client PWA | 7 | compose, compose-request, compose-campaign-request, compose-support, compose-captured, queued, failed |
 | W2b | Client PWA | 9 | forming, add-contributor, remove-contributor, assign-requirement, open-eligible, join-submitted, open-member, frozen, recognition |
-| W3 | Client PWA | 19 | step-what, step-howmuch, step-anchors, step-review, step-advanced, support-howmuch, support-review, request-what, request-howmuch, request-work-what, request-work-howmuch, request-anchors, request-work-review, request-variant, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |
-| W4 | Client PWA | 26 | confirm-domain, confirm-support, confirm-request, confirm-campaign-request, confirm-captured, not-yet, not-yet-support, not-yet-request, not-yet-campaign-request, not-yet-captured, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, confirmed-pending-campaign-request, confirmed-campaign-request, confirmed-pending-captured, confirmed-captured, not-yet-failed, not-yet-failed-support, not-yet-failed-request, not-yet-failed-campaign-request, not-yet-failed-captured |
+| W3 | Client PWA | 21 | step-what, step-howmuch, step-anchors, step-review, step-advanced, step-advanced-no-protocol, step-confirmers, support-howmuch, support-review, request-what, request-howmuch, request-work-what, request-work-howmuch, request-anchors, request-work-review, request-variant, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |
+| W4 | Client PWA | 29 | confirm-domain, confirm-support, confirm-request, confirm-request-work, confirmed-pending-request-work, confirmed-request-work, confirm-campaign-request, confirm-captured, not-yet, not-yet-support, not-yet-request, not-yet-campaign-request, not-yet-captured, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, confirmed-pending-campaign-request, confirmed-campaign-request, confirmed-pending-captured, confirmed-captured, not-yet-failed, not-yet-failed-support, not-yet-failed-request, not-yet-failed-campaign-request, not-yet-failed-captured |
 | W5 | Client PWA | 7 | default, queued, waiting-membership, empty, loading, not-found, read-error |
 | W23 | Client PWA | 6 | balance, contributor-receipt, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
