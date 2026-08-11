@@ -111,12 +111,12 @@ jobs:
 
       - name: Check guidance links and retired references
         env:
-          GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:guidance-links
 
       - name: Check immutable dated plan reports
         env:
-          PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:immutable-plan-reports
 
       - name: Run guidance guardrail tests

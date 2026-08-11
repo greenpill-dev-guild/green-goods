@@ -20,7 +20,8 @@ const implementationLanguages = new Set([
 const checks = [
   {
     label: "hardcoded transition duration",
-    pattern: /\bduration-(?!\[?var)[0-9]+(?:ms|s)?\b|\bduration\s*:\s*(?!var\()[0-9.]+(?:ms|s)/i,
+    pattern:
+      /\bduration-(?!\[?var)[0-9]+(?:ms|s)?\b|\b(?:transition|animation)(?:-duration)?\s*:[^;}]*\b[0-9]*\.?[0-9]+(?:ms|s)\b/i,
   },
   { label: "hardcoded easing", pattern: /cubic-bezier\s*\(/i },
   { label: "raw hexadecimal color", pattern: /#[0-9a-f]{3,8}\b/i },
@@ -40,8 +41,15 @@ const checks = [
   },
   {
     label: "raw shadow",
-    pattern:
-      /\bshadow-(?:xl|2xl)\b|\bshadow-\[(?!var\()[^\]]+\]|\bbox-shadow\s*:(?!\s*var\()|\bboxShadow\s*:(?!\s*["']?var\()/i,
+    test: (line) => {
+      const cssProperty = line.match(/\bbox-shadow\s*:\s*([^;}]+)/i)?.[1]?.trim();
+      if (cssProperty && cssProperty !== "none" && !cssProperty.startsWith("var(")) return true;
+      const jsProperty = line.match(/\bboxShadow\s*:\s*["']?([^"',;}]+)/)?.[1]?.trim();
+      if (jsProperty && jsProperty !== "none" && !jsProperty.startsWith("var(")) return true;
+      return /(?<!box-)(?<!--)\b(?:drop-)?shadow(?:-(?:sm|md|lg|xl|2xl|inner))?\b(?!-none\b)(?!-\[var\()/i.test(
+        line,
+      );
+    },
   },
 ];
 
@@ -85,22 +93,49 @@ export function findDesignGuidanceViolations(text, relativePath) {
   const failures = [];
   for (const block of extractFencedBlocks(text)) {
     if (!implementationLanguages.has(block.language)) continue;
-    const illustratesTokenReplacement = block.lines.some((entry) =>
-      entry.text.includes("Token form"),
+    const tokenMarkerIndexes = new Set(
+      block.lines.flatMap((entry, index) => (entry.text.includes("Token form") ? [index] : [])),
     );
-    const reducedMotionOverride = block.lines.some((entry) =>
-      entry.text.includes("prefers-reduced-motion"),
-    );
-    for (const entry of block.lines) {
+    let inBlockComment = false;
+    let reducedMotionDepth = 0;
+    for (const [lineIndex, entry] of block.lines.entries()) {
       const line = entry.text.trim();
-      if (!line || line.startsWith("//") || line.startsWith("/*") || line.startsWith("*")) continue;
+      if (!line) continue;
+      if (inBlockComment) {
+        if (line.includes("*/")) inBlockComment = false;
+        continue;
+      }
+      if (line.startsWith("//")) continue;
+      if (line.startsWith("/*")) {
+        if (!line.includes("*/")) inBlockComment = true;
+        continue;
+      }
       if (/^--[a-z0-9-]+\s*:/.test(line)) continue;
+      const opensReducedMotion = line.includes("prefers-reduced-motion");
+      const inReducedMotion = reducedMotionDepth > 0 || opensReducedMotion;
+      const radiusExampleLine = [...tokenMarkerIndexes].some(
+        (markerIndex) => Math.abs(markerIndex - lineIndex) <= 1,
+      );
       for (const check of checks) {
-        if (check.label === "arbitrary numeric radius" && illustratesTokenReplacement) continue;
-        if (check.label === "hardcoded transition duration" && reducedMotionOverride) continue;
-        if (check.pattern.test(line)) {
+        if (check.label === "arbitrary numeric radius" && radiusExampleLine) continue;
+        if (
+          check.label === "hardcoded transition duration" &&
+          inReducedMotion &&
+          /\b(?:0|0\.0*\d+)(?:ms|s)\b/.test(line)
+        ) {
+          continue;
+        }
+        const implementation = line.replace(/\s+\/\/.*$/, "");
+        if ((check.test ?? ((value) => check.pattern.test(value)))(implementation)) {
           failures.push(`${relativePath}:${entry.line}: ${check.label} in implementation example`);
         }
+      }
+      if (opensReducedMotion) reducedMotionDepth = 1;
+      if (reducedMotionDepth > 0) {
+        const opens = (line.match(/\{/g) ?? []).length;
+        const closes = (line.match(/\}/g) ?? []).length;
+        reducedMotionDepth += opens - closes - (opensReducedMotion ? 1 : 0);
+        if (reducedMotionDepth < 0) reducedMotionDepth = 0;
       }
     }
   }
@@ -108,26 +143,33 @@ export function findDesignGuidanceViolations(text, relativePath) {
 }
 
 function main() {
-  if (process.argv.length > 2) {
-    console.error(`check-guidance-examples: unknown argument: ${process.argv[2]}`);
+  try {
+    if (process.argv.length > 2) throw new Error(`unknown argument: ${process.argv[2]}`);
+    const designDir = path.join(repoRoot, ".claude", "skills", "design");
+    if (!fs.existsSync(designDir)) {
+      throw new Error(
+        `design guidance directory not found: ${path.relative(repoRoot, designDir)}`,
+      );
+    }
+    const failures = [];
+    for (const file of markdownFiles(designDir)) {
+      failures.push(
+        ...findDesignGuidanceViolations(
+          fs.readFileSync(file, "utf8"),
+          path.relative(repoRoot, file),
+        ),
+      );
+    }
+    if (failures.length > 0) {
+      console.error(`check-guidance-examples: ${failures.length} failure(s):`);
+      for (const failure of failures) console.error(`- ${failure}`);
+      process.exit(1);
+    }
+    console.log("check-guidance-examples: design implementation fences use shared tokens.");
+  } catch (error) {
+    console.error(`check-guidance-examples: ${error.message}`);
     process.exit(2);
   }
-  const designDir = path.join(repoRoot, ".claude", "skills", "design");
-  const failures = [];
-  for (const file of markdownFiles(designDir)) {
-    failures.push(
-      ...findDesignGuidanceViolations(
-        fs.readFileSync(file, "utf8"),
-        path.relative(repoRoot, file),
-      ),
-    );
-  }
-  if (failures.length > 0) {
-    console.error(`check-guidance-examples: ${failures.length} failure(s):`);
-    for (const failure of failures) console.error(`- ${failure}`);
-    process.exit(1);
-  }
-  console.log("check-guidance-examples: design implementation fences use shared tokens.");
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) main();

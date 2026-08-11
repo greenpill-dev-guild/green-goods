@@ -131,6 +131,7 @@ scripts/
 - `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, and loopback URL probes for local smoke checks.
 - `env-schema.mjs` — dotenv/schema parser and profile-required-key helpers used by `dev/env-check.js` and env-parity checks.
 - `env-parity.mjs` — Vercel build-time environment-parity and Sentry-DSN assertions used by the client and admin Vite configs.
+- `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
 
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.

@@ -156,8 +156,13 @@ echo ""
 
 # ── Check 4: Diff-aware Solidity test naming ────────────────────
 echo "--- Check 4: New Solidity test naming ---"
-if ! node "$REPO_ROOT/scripts/contracts/check-solidity-test-names.mjs"; then
+SOLIDITY_NAME_STATUS=0
+node "$REPO_ROOT/scripts/contracts/check-solidity-test-names.mjs" || SOLIDITY_NAME_STATUS=$?
+if [ "$SOLIDITY_NAME_STATUS" -eq 1 ]; then
   VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$SOLIDITY_NAME_STATUS" -ne 0 ]; then
+  echo "ERROR: Solidity test-name checker could not run (exit $SOLIDITY_NAME_STATUS)."
+  exit "$SOLIDITY_NAME_STATUS"
 fi
 echo ""
 

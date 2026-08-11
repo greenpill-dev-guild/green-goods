@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  addedLineNumbersFromDiff,
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
@@ -17,6 +18,24 @@ test("finds an untagged opening fence but accepts a tagged fence", () => {
     "guide.md:1: fenced code block is missing a language tag",
   ]);
   assert.deepEqual(findUntaggedFenceOpenings("```text\ndiagram\n```", "guide.md"), []);
+});
+
+test("checks only changed fence openings", () => {
+  const text = ["```", "legacy", "```", "```", "changed", "```"].join("\n");
+  assert.deepEqual(findUntaggedFenceOpenings(text, "guide.md", new Set([4])), [
+    "guide.md:4: fenced code block is missing a language tag",
+  ]);
+});
+
+test("extracts added line numbers without counting Git markers", () => {
+  const diff = [
+    "+++ b/guide.md",
+    "@@ -2,1 +2,2 @@",
+    "+first",
+    "\\ No newline at end of file",
+    "+second",
+  ].join("\n");
+  assert.deepEqual([...addedLineNumbersFromDiff(diff).get("guide.md")], [2, 3]);
 });
 
 test("finds consumers of a deleted slash command", () => {
@@ -34,6 +53,14 @@ test("allows explicit retirement notices", () => {
     [".claude/skills/status/SKILL.md"],
   );
   assert.deepEqual(failures, []);
+});
+
+test("does not treat an unrelated move as a retirement notice", () => {
+  const failures = scanDeletedSurfaceReferences(
+    [{ path: "docs/guide.mdx", text: "Once the data has moved, run `/status`." }],
+    [".claude/skills/status/SKILL.md"],
+  );
+  assert.equal(failures.length, 1);
 });
 
 test("finds source comments pointing at a deleted design guide", () => {

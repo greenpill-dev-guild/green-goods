@@ -110,7 +110,7 @@ jobs:
 
       - name: Check new Solidity test names
         env:
-          SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+          SOLIDITY_TEST_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:solidity-test-names
 
       - name: Run Solidity naming guardrail tests

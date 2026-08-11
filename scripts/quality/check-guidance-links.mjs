@@ -6,17 +6,27 @@
 // - requires language tags on fenced blocks in changed Markdown/MDX files
 // - keeps the SessionStart banner aligned with user-invocable skills
 
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { parseBaseArgs, resolveGitBase, runGit } from "../lib/git-guardrails.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 
 const RETIREMENT_NOTICE_RE =
-  /\b(retired?|retirement|folded|removed|removal|replaced|renamed|deleted|deletion|archived|superseded|moved)\b/i;
-const RETIRED_SCAN_EXEMPT = new Set([".claude/loop.md"]);
+  /\b(retired?|retirement|folded|removed|removal|replaced|renamed|deleted|deletion|archived|superseded)\b/i;
+const RETIRED_SCAN_EXEMPT = new Set([
+  ".claude/loop.md",
+  "scripts/quality/check-guidance-links.mjs",
+]);
+const PERSISTENT_RETIRED_PATHS = [
+  ".claude/skills/status/SKILL.md",
+  ".claude/skills/design/spatial.md",
+  ".claude/skills/design/materials.md",
+  ".claude/skills/design/interaction.md",
+];
 const CONSUMER_EXTENSIONS = new Set([
   ".css",
   ".js",
@@ -76,14 +86,6 @@ function walkMarkdown(dir, out = []) {
   return out;
 }
 
-function runGit(args, { allowFailure = false } = {}) {
-  const result = spawnSync("git", args, { cwd: repoRoot, encoding: "utf8" });
-  if (result.status !== 0 && !allowFailure) {
-    throw new Error(`git ${args.join(" ")} failed: ${result.stderr.trim()}`);
-  }
-  return result;
-}
-
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -103,7 +105,7 @@ export function parseNameStatus(output) {
   return entries;
 }
 
-export function findUntaggedFenceOpenings(text, relativePath) {
+export function findUntaggedFenceOpenings(text, relativePath, changedLines) {
   const failures = [];
   let openFence;
   for (const [index, line] of text.split(/\r?\n/).entries()) {
@@ -116,7 +118,7 @@ export function findUntaggedFenceOpenings(text, relativePath) {
       continue;
     }
     openFence = match[1];
-    if (!match[2].trim()) {
+    if (!match[2].trim() && (!changedLines || changedLines.has(index + 1))) {
       failures.push(`${relativePath}:${index + 1}: fenced code block is missing a language tag`);
     }
   }
@@ -163,9 +165,12 @@ export function scanDeletedSurfaceReferences(files, deletedPaths) {
   const rules = deriveDeletedSurfaceRules(deletedPaths);
   for (const file of files) {
     for (const [index, line] of file.text.split(/\r?\n/).entries()) {
-      if (RETIREMENT_NOTICE_RE.test(line)) continue;
       for (const rule of rules) {
-        if (rule.appliesTo(file.path) && rule.test(line)) {
+        if (
+          rule.appliesTo(file.path) &&
+          rule.test(line) &&
+          !isExplicitRetirementNotice(line, rule.label)
+        ) {
           failures.push(`${file.path}:${index + 1}: reference to deleted surface -> ${rule.label}`);
         }
       }
@@ -174,30 +179,49 @@ export function scanDeletedSurfaceReferences(files, deletedPaths) {
   return [...new Set(failures)];
 }
 
-function parseArgs(argv) {
-  let base;
-  for (let index = 0; index < argv.length; index++) {
-    if (argv[index] === "--base") {
-      if (!argv[index + 1]) throw new Error("--base requires a Git ref");
-      base = argv[++index];
-    } else {
-      throw new Error(`unknown argument: ${argv[index]}`);
-    }
-  }
-  return { base };
+function isExplicitRetirementNotice(line, label) {
+  if (!RETIREMENT_NOTICE_RE.test(line)) return false;
+  const escapedLabel = escapeRegex(label);
+  const verb = RETIREMENT_NOTICE_RE.source;
+  return (
+    new RegExp(`${escapedLabel}.{0,50}${verb}`, "i").test(line) ||
+    new RegExp(`${verb}.{0,50}${escapedLabel}`, "i").test(line)
+  );
 }
 
-function resolveBase(explicitBase) {
-  const candidate = explicitBase || process.env.GUIDANCE_BASE_REF;
-  if (candidate) return candidate;
-  const fallback = runGit(["rev-parse", "--verify", "--quiet", "origin/develop"], {
-    allowFailure: true,
-  });
-  return fallback.status === 0 ? "origin/develop" : undefined;
+export function addedLineNumbersFromDiff(diff) {
+  const linesByFile = new Map();
+  let currentFile;
+  let newLine = 0;
+  for (const line of diff.split(/\r?\n/)) {
+    if (line.startsWith("+++ b/")) {
+      currentFile = line.slice(6);
+      if (!linesByFile.has(currentFile)) linesByFile.set(currentFile, new Set());
+      continue;
+    }
+    const hunk = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunk) {
+      newLine = Number(hunk[1]);
+      continue;
+    }
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      if (currentFile) linesByFile.get(currentFile)?.add(newLine);
+      newLine++;
+    } else if (!line.startsWith("-") && !line.startsWith("\\")) {
+      newLine++;
+    }
+  }
+  return linesByFile;
 }
 
 function shouldScanConsumer(file) {
-  if (file.startsWith(".plans/") || file.includes("/generated/") || file.includes("/dist/")) {
+  if (RETIRED_SCAN_EXEMPT.has(file)) return false;
+  if (
+    (file.startsWith(".plans/") && !file.startsWith(".plans/active/")) ||
+    (file.startsWith(".plans/active/") && file.includes("/reports/")) ||
+    file.includes("/generated/") ||
+    file.includes("/dist/")
+  ) {
     return false;
   }
   if (file.includes(".test.") || file.endsWith("bun.lock") || file.endsWith("package-lock.json")) {
@@ -209,21 +233,19 @@ function shouldScanConsumer(file) {
 function collectDiff(base) {
   const entries = [];
   if (base) {
-    const verified = runGit(["rev-parse", "--verify", "--quiet", `${base}^{commit}`], {
-      allowFailure: true,
-    });
-    if (verified.status !== 0) throw new Error(`base ref does not resolve to a commit: ${base}`);
     entries.push(
       ...parseNameStatus(
-        runGit(["diff", "--name-status", "--find-renames", `${base}...HEAD`]).stdout,
+        runGit(repoRoot, ["diff", "--name-status", "--find-renames", `${base}...HEAD`]).stdout,
       ),
     );
   }
   entries.push(
-    ...parseNameStatus(runGit(["diff", "--name-status", "--find-renames", "HEAD"]).stdout),
+    ...parseNameStatus(
+      runGit(repoRoot, ["diff", "--name-status", "--find-renames", "HEAD"]).stdout,
+    ),
   );
   entries.push(
-    ...runGit(["ls-files", "--others", "--exclude-standard"])
+    ...runGit(repoRoot, ["ls-files", "--others", "--exclude-standard"])
       .stdout.split(/\r?\n/)
       .filter(Boolean)
       .map((file) => ({ status: "A", path: file })),
@@ -303,7 +325,7 @@ function main() {
   const failures = [];
   let args;
   try {
-    args = parseArgs(process.argv.slice(2));
+    args = parseBaseArgs(process.argv.slice(2));
   } catch (error) {
     console.error(`check-guidance-links: ${error.message}`);
     process.exit(2);
@@ -341,12 +363,12 @@ function main() {
 
     if (!RETIRED_SCAN_EXEMPT.has(relativePath)) {
       for (const [index, line] of text.split("\n").entries()) {
-        if (RETIREMENT_NOTICE_RE.test(line)) continue;
         for (const pattern of RETIRED_PATTERNS) {
           const hit = typeof pattern === "string" ? line.includes(pattern) : pattern.test(line);
-          if (hit) {
+          const label = typeof pattern === "string" ? pattern : pattern.source;
+          if (hit && !isExplicitRetirementNotice(line, label)) {
             failures.push(
-              `${relativePath}:${index + 1}: reference to retired surface -> ${typeof pattern === "string" ? pattern : pattern.source}`,
+              `${relativePath}:${index + 1}: reference to retired surface -> ${label}`,
             );
           }
         }
@@ -355,23 +377,73 @@ function main() {
   }
 
   try {
-    const base = resolveBase(args.base);
+    const base = resolveGitBase({
+      repoRoot,
+      explicitBase: args.base,
+      environmentVariables: ["GUIDANCE_BASE_REF"],
+    });
     const diff = collectDiff(base);
     const deletedPaths = diff
       .filter((entry) => entry.status === "D" || entry.status === "R")
       .map((entry) => entry.oldPath ?? entry.path);
-    const trackedPaths = runGit(["ls-files"]).stdout.split(/\r?\n/).filter(Boolean);
+    const trackedPaths = runGit(repoRoot, ["ls-files"]).stdout.split(/\r?\n/).filter(Boolean);
     const presentPaths = new Set([
       ...trackedPaths,
       ...diff
         .filter((entry) => entry.status !== "D" && fs.existsSync(path.join(repoRoot, entry.path)))
         .map((entry) => entry.path),
     ]);
-    const consumers = [...presentPaths].filter(shouldScanConsumer).map((relativePath) => ({
-      path: relativePath,
-      text: fs.readFileSync(path.join(repoRoot, relativePath), "utf8"),
-    }));
-    failures.push(...scanDeletedSurfaceReferences(consumers, deletedPaths));
+    if (deletedPaths.length > 0) {
+      const missingTombstones = deletedPaths.filter(
+        (deletedPath) =>
+          deriveDeletedSurfaceRules([deletedPath]).length > 0 &&
+          !PERSISTENT_RETIRED_PATHS.includes(deletedPath),
+      );
+      for (const deletedPath of missingTombstones) {
+        failures.push(
+          `${deletedPath}: deleted guidance surface needs a persistent tombstone in check-guidance-links.mjs`,
+        );
+      }
+      const consumers = [...presentPaths].filter(shouldScanConsumer).map((relativePath) => ({
+        path: relativePath,
+        text: fs.readFileSync(path.join(repoRoot, relativePath), "utf8"),
+      }));
+      failures.push(...scanDeletedSurfaceReferences(consumers, deletedPaths));
+    }
+
+    const changedConsumers = [...new Set(diff.map((entry) => entry.path))]
+      .filter(
+        (relativePath) =>
+          shouldScanConsumer(relativePath) && fs.existsSync(path.join(repoRoot, relativePath)),
+      )
+      .map((relativePath) => ({
+        path: relativePath,
+        text: fs.readFileSync(path.join(repoRoot, relativePath), "utf8"),
+      }));
+    failures.push(
+      ...scanDeletedSurfaceReferences(changedConsumers, PERSISTENT_RETIRED_PATHS),
+    );
+
+    const addedLines = new Map();
+    const mergeAddedLines = (source) => {
+      for (const [file, lines] of source) {
+        const target = addedLines.get(file) ?? new Set();
+        for (const line of lines) target.add(line);
+        addedLines.set(file, target);
+      }
+    };
+    if (base) {
+      mergeAddedLines(
+        addedLineNumbersFromDiff(
+          runGit(repoRoot, ["diff", "--unified=0", "--no-color", `${base}...HEAD`]).stdout,
+        ),
+      );
+    }
+    mergeAddedLines(
+      addedLineNumbersFromDiff(
+        runGit(repoRoot, ["diff", "--unified=0", "--no-color", "HEAD"]).stdout,
+      ),
+    );
 
     const changedMarkdown = new Set();
     for (const entry of diff) {
@@ -387,8 +459,19 @@ function main() {
     for (const relativePath of changedMarkdown) {
       const absolutePath = path.join(repoRoot, relativePath);
       if (fs.existsSync(absolutePath)) {
+        if (!addedLines.has(relativePath)) {
+          const lineCount = fs.readFileSync(absolutePath, "utf8").split(/\r?\n/).length;
+          addedLines.set(
+            relativePath,
+            new Set(Array.from({ length: lineCount }, (_, index) => index + 1)),
+          );
+        }
         failures.push(
-          ...findUntaggedFenceOpenings(fs.readFileSync(absolutePath, "utf8"), relativePath),
+          ...findUntaggedFenceOpenings(
+            fs.readFileSync(absolutePath, "utf8"),
+            relativePath,
+            addedLines.get(relativePath),
+          ),
         );
       }
     }

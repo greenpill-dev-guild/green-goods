@@ -1,19 +1,12 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { parseBaseArgs, resolveGitBase, runGit } from "../lib/git-guardrails.mjs";
+
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
-const datedReportPattern = /^\.plans\/(?:[^/]+\/)+reports\/.+\d{4}-\d{2}-\d{2}.*\.md$/;
-
-function runGit(args, { allowFailure = false } = {}) {
-  const result = spawnSync("git", args, { cwd: repoRoot, encoding: "utf8" });
-  if (result.status !== 0 && !allowFailure) {
-    throw new Error(`git ${args.join(" ")} failed: ${result.stderr.trim()}`);
-  }
-  return result;
-}
+const datedReportPattern = /^\.plans\/(?:[^/]+\/)*reports\/.+\d{4}-\d{2}-\d{2}.*\.md$/;
 
 export function parseNameStatus(output) {
   const entries = [];
@@ -42,42 +35,30 @@ export function immutableReportViolations(entries) {
   return failures;
 }
 
-function parseArgs(argv) {
-  let base;
-  for (let index = 0; index < argv.length; index++) {
-    if (argv[index] === "--base") {
-      if (!argv[index + 1]) throw new Error("--base requires a Git ref");
-      base = argv[++index];
-    } else {
-      throw new Error(`unknown argument: ${argv[index]}`);
-    }
-  }
-  return { base };
-}
-
-function resolveBase(explicitBase) {
-  const candidate = explicitBase || process.env.PLAN_REPORTS_BASE_REF || process.env.GUIDANCE_BASE_REF;
-  if (candidate) return candidate;
-  if (runGit(["rev-parse", "--verify", "--quiet", "origin/develop"], { allowFailure: true }).status === 0) {
-    return "origin/develop";
-  }
-  throw new Error("no base ref supplied and origin/develop is unavailable");
-}
-
 function main() {
   try {
-    const args = parseArgs(process.argv.slice(2));
-    const base = resolveBase(args.base);
-    if (runGit(["rev-parse", "--verify", "--quiet", `${base}^{commit}`], { allowFailure: true }).status !== 0) {
-      throw new Error(`base ref does not resolve to a commit: ${base}`);
-    }
+    const args = parseBaseArgs(process.argv.slice(2));
+    const base = resolveGitBase({
+      repoRoot,
+      explicitBase: args.base,
+      environmentVariables: ["PLAN_REPORTS_BASE_REF", "GUIDANCE_BASE_REF"],
+    });
     const entries = [
+      ...(base
+        ? parseNameStatus(
+            runGit(repoRoot, [
+              "diff",
+              "--name-status",
+              "--find-renames",
+              `${base}...HEAD`,
+              "--",
+              ".plans",
+            ]).stdout,
+          )
+        : []),
       ...parseNameStatus(
-        runGit(["diff", "--name-status", "--find-renames", `${base}...HEAD`, "--", ".plans"])
+        runGit(repoRoot, ["diff", "--name-status", "--find-renames", "HEAD", "--", ".plans"])
           .stdout,
-      ),
-      ...parseNameStatus(
-        runGit(["diff", "--name-status", "--find-renames", "HEAD", "--", ".plans"]).stdout,
       ),
     ];
     const failures = immutableReportViolations(entries);

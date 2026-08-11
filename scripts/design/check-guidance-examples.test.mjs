@@ -39,6 +39,65 @@ test("accepts pedagogical radius arithmetic and reduced-motion overrides", () =>
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
 });
 
+test("does not let reduced-motion or token markers hide unrelated literals", () => {
+  const text = [
+    "```css",
+    ".pane { transition-duration: 200ms; border-radius: 18px; }",
+    ".example { border-radius: 24px; }",
+    "/* Token form — derive instead of hardcoding the arithmetic. */",
+    ".tokenized { border-radius: var(--radius-2xl); }",
+    "@media (prefers-reduced-motion: reduce) {",
+    "  * { transition-duration: 0.01ms !important; }",
+    "}",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("hardcoded transition duration")));
+  assert.ok(failures.some((failure) => failure.includes("arbitrary numeric radius")));
+});
+
+test("checks universal selectors but permits explicit shadow removal", () => {
+  const text = [
+    "```css",
+    "* { color: #fff; }",
+    ".flat { box-shadow: none; }",
+    "```",
+    "```tsx",
+    'const flat = { boxShadow: "none" };',
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+  assert.equal(failures.some((failure) => failure.includes("raw shadow")), false);
+});
+
+test("rejects transition and animation shorthand durations independently", () => {
+  const text = [
+    "```css",
+    ".fade { transition: opacity 200ms ease; }",
+    ".pulse { animation: pulse 0.4s ease; }",
+    "```",
+  ].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.equal(
+    failures.filter((failure) => failure.includes("hardcoded transition duration")).length,
+    2,
+  );
+});
+
+test("rejects the non-token shadow utility family", () => {
+  const text = [
+    "```tsx",
+    'const values = ["shadow", "shadow-sm", "shadow-md", "shadow-lg", "shadow-inner", "drop-shadow-lg"];',
+    "```",
+  ].join("\n");
+  assert.ok(
+    findDesignGuidanceViolations(text, "design.md").some((failure) =>
+      failure.includes("raw shadow"),
+    ),
+  );
+});
+
 test("rejects hardcoded implementation values", () => {
   const text = [
     "```tsx",

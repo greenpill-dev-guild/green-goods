@@ -159,12 +159,12 @@ The rule is `child_radius = parent_radius − padding`. A concrete before/after 
 ```css
 /* ❌ Before — flared corners: the child's 24px radius exceeds what the
    parent's geometry allows (24px parent − 16px padding = 8px budget). */
-.parent { border-radius: 24px; padding: 16px; }   /* --radius-2xl */
-.child  { border-radius: 24px; }                   /* clashes at every corner */
+.parent { border-radius: 24px; padding: 16px; }   /* Token form comparison: --radius-2xl */
+.child  { border-radius: 24px; }                   /* Token form comparison: clashes at every corner */
 
 /* ✅ After — concentric: child radius = parent radius − padding. */
-.parent { border-radius: 24px; padding: 16px; }    /* --radius-2xl */
-.child  { border-radius: 8px; }                    /* 24 − 16 = 8 → --radius-md */
+.parent { border-radius: 24px; padding: 16px; }    /* Token form comparison: --radius-2xl */
+.child  { border-radius: 8px; }                    /* Token form comparison: 24 − 16 = 8 → --radius-md */
 
 /* ✅ Token form — derive instead of hardcoding the arithmetic. */
 .child  { border-radius: calc(var(--radius-2xl) - var(--space-4)); }

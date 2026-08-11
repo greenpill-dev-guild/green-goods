@@ -61,6 +61,23 @@ test("extracts only added or renamed function declarations", () => {
   ]);
 });
 
+test("does not count Git no-newline markers as source lines", () => {
+  const diff = [
+    "+++ b/packages/contracts/test/unit/Credit.t.sol",
+    "@@ -10,1 +10,2 @@",
+    "+function testCreditRegistry_firstScenario() public {}",
+    "\\ No newline at end of file",
+    "+function testCreditRegistry_secondScenario() public {}",
+  ].join("\n");
+  assert.deepEqual(
+    addedTestFunctionsFromDiff(diff).map(({ line, name }) => ({ line, name })),
+    [
+      { line: 10, name: "testCreditRegistry_firstScenario" },
+      { line: 11, name: "testCreditRegistry_secondScenario" },
+    ],
+  );
+});
+
 test("extracts test declarations from an untracked Solidity source", () => {
   const source = [
     "contract CreditTest {",
@@ -89,10 +106,25 @@ test("rejects unknown CLI arguments", () => {
   assert.match(result.stderr, /unknown argument/);
 });
 
+test("rejects --base without a value", () => {
+  const result = spawnSync(process.execPath, [script, "--base"], { encoding: "utf8" });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--base requires a Git ref/);
+});
+
 test("rejects a base ref that does not resolve", () => {
   const result = spawnSync(process.execPath, [script, "--base", "refs/heads/not-a-real-base"], {
     encoding: "utf8",
   });
   assert.equal(result.status, 2);
   assert.match(result.stderr, /base ref does not resolve/);
+});
+
+test("falls back when an environment-provided base does not resolve", () => {
+  const result = spawnSync(process.execPath, [script], {
+    encoding: "utf8",
+    env: { ...process.env, SOLIDITY_TEST_BASE_REF: "refs/heads/not-a-real-environment-base" },
+  });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /follow the canonical format/);
 });

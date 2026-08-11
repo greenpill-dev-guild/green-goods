@@ -33,11 +33,19 @@ test("allows new corrections and edits outside dated report paths", () => {
   const entries = parseNameStatus(
     [
       "A\t.plans/active/example/reports/correction-2026-08-11.md",
+      "C100\t.plans/active/example/reports/audit-2026-08-09.md\t.plans/active/example/reports/audit-copy-2026-08-11.md",
       "M\t.plans/active/example/spec.md",
       "M\t.plans/active/example/reports/current-summary.md",
     ].join("\n"),
   );
   assert.deepEqual(immutableReportViolations(entries), []);
+});
+
+test("protects dated reports directly under .plans/reports", () => {
+  const entries = parseNameStatus("M\t.plans/reports/root-audit-2026-08-09.md");
+  assert.deepEqual(immutableReportViolations(entries), [
+    "M: .plans/reports/root-audit-2026-08-09.md",
+  ]);
 });
 
 test("rejects unknown CLI arguments", () => {
