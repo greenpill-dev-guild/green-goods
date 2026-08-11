@@ -32,6 +32,7 @@ const WORKFLOW_MATCHERS = new Map([
       path === ".env.schema" ||
       path.startsWith("packages/contracts/") ||
       path.startsWith("scripts/contracts/") ||
+      path === "scripts/lib/git-guardrails.mjs" ||
       path === "scripts/quality/check-source-structure.js" ||
       path === ".github/workflows/contracts.yml",
   ],

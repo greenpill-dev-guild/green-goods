@@ -111,6 +111,37 @@ test("checks color-bearing shorthand declarations", () => {
   assert.ok(failures.some((failure) => failure.includes("raw named color")));
 });
 
+test("ignores color names embedded in background resources", () => {
+  const text = [
+    "```css",
+    '.hero { background: url("/images/black.svg") center / cover; }',
+    "```",
+  ].join("\n");
+  assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
+});
+
+test("checks raw JSX and SVG color attributes", () => {
+  const text = ["```tsx", '<path fill="#fff" stroke="red" />', "```"].join("\n");
+  const failures = findDesignGuidanceViolations(text, "design.md");
+  assert.ok(failures.some((failure) => failure.includes("raw hexadecimal color")));
+  assert.ok(failures.some((failure) => failure.includes("raw named color")));
+});
+
+test("rejects radius literals nested in CSS functions", () => {
+  const text = [
+    "```css",
+    ".one { border-radius: calc(24px - 4px); }",
+    ".two { border-radius: max(8px, var(--radius-md)); }",
+    "```",
+  ].join("\n");
+  assert.equal(
+    findDesignGuidanceViolations(text, "design.md").filter((failure) =>
+      failure.includes("arbitrary numeric radius"),
+    ).length,
+    2,
+  );
+});
+
 test("does not let reduced-motion or token markers hide unrelated literals", () => {
   const text = [
     "```css",

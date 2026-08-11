@@ -24,32 +24,54 @@ export function addedTestFunctionsFromDiff(diff) {
   const functions = [];
   let currentFile;
   let newLine = 0;
+  let hunk = [];
+  let inHunk = false;
+  const flushHunk = () => {
+    if (!currentFile || hunk.length === 0) return;
+    const source = hunk.map((entry) => entry.text).join("\n");
+    for (const match of source.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {
+      const startIndex = source.slice(0, match.index).split("\n").length - 1;
+      const endIndex = startIndex + match[0].split("\n").length - 1;
+      if (!hunk.slice(startIndex, endIndex + 1).some((entry) => entry.added)) continue;
+      const nameOffset = match[0].indexOf(match[1]);
+      const nameIndex = startIndex + match[0].slice(0, nameOffset).split("\n").length - 1;
+      functions.push({ file: currentFile, line: hunk[nameIndex].line, name: match[1] });
+    }
+    hunk = [];
+  };
   for (const line of diff.split(/\r?\n/)) {
     if (line.startsWith("+++ b/")) {
+      flushHunk();
       currentFile = line.slice(6);
+      inHunk = false;
       continue;
     }
-    const hunk = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-    if (hunk) {
-      newLine = Number(hunk[1]);
+    const hunkHeader = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunkHeader) {
+      flushHunk();
+      newLine = Number(hunkHeader[1]);
+      inHunk = true;
       continue;
     }
+    if (!inHunk) continue;
     if (line.startsWith("+") && !line.startsWith("+++")) {
-      const match = line.slice(1).match(/^\s*function\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/);
-      if (match) functions.push({ file: currentFile, line: newLine, name: match[1] });
+      hunk.push({ text: line.slice(1), line: newLine, added: true });
       newLine++;
     } else if (!line.startsWith("-") && !line.startsWith("\\")) {
+      hunk.push({ text: line.startsWith(" ") ? line.slice(1) : line, line: newLine, added: false });
       newLine++;
     }
   }
-  return functions;
+  flushHunk();
+  return [...new Map(functions.map((entry) => [`${entry.file}:${entry.line}:${entry.name}`, entry])).values()];
 }
 
 export function testFunctionsFromSource(source, file) {
   const functions = [];
-  for (const [index, line] of source.split(/\r?\n/).entries()) {
-    const match = line.match(/^\s*function\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/);
-    if (match) functions.push({ file, line: index + 1, name: match[1] });
+  for (const match of source.matchAll(/\bfunction\s+((?:test|invariant)[A-Za-z0-9_]*)\s*\(/g)) {
+    const nameOffset = match[0].indexOf(match[1]);
+    const line = source.slice(0, match.index + nameOffset).split(/\r?\n/).length;
+    functions.push({ file, line, name: match[1] });
   }
   return functions;
 }
@@ -65,7 +87,7 @@ function main() {
     const committedDiff = base
       ? runGit(repoRoot, [
           "diff",
-          "--unified=0",
+          "--unified=3",
           "--no-color",
           `${base}...HEAD`,
           "--",
@@ -74,7 +96,7 @@ function main() {
       : "";
     const workingDiff = runGit(repoRoot, [
       "diff",
-      "--unified=0",
+      "--unified=3",
       "--no-color",
       "HEAD",
       "--",

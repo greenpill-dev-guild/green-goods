@@ -68,6 +68,12 @@ test("does not confuse retired Claude commands with agent product commands", () 
     [".claude/skills/status/SKILL.md"],
   );
   assert.deepEqual(failures, []);
+
+  const retiredAgentPrompt = scanDeletedSurfaceReferences(
+    [{ path: "packages/agent/src/prompt.ts", text: "// Ask the operator to run /review." }],
+    [".claude/skills/review/SKILL.md"],
+  );
+  assert.equal(retiredAgentPrompt.length, 1);
 });
 
 test("filters tracked paths that no longer exist in the worktree", () => {

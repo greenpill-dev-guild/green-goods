@@ -79,6 +79,33 @@ test("does not count Git no-newline markers as source lines", () => {
   );
 });
 
+test("extracts added and renamed declarations across line breaks", () => {
+  const diff = [
+    "+++ b/packages/contracts/test/unit/Credit.t.sol",
+    "@@ -10,3 +10,3 @@",
+    " function",
+    "-  testOldSentenceName",
+    "+  testNewSentenceName",
+    " (",
+    "@@ -20,0 +20,3 @@",
+    "+function",
+    "+  testCreditRegistry_revertsWhenPaused",
+    "+(",
+  ].join("\n");
+  assert.deepEqual(addedTestFunctionsFromDiff(diff), [
+    {
+      file: "packages/contracts/test/unit/Credit.t.sol",
+      line: 11,
+      name: "testNewSentenceName",
+    },
+    {
+      file: "packages/contracts/test/unit/Credit.t.sol",
+      line: 21,
+      name: "testCreditRegistry_revertsWhenPaused",
+    },
+  ]);
+});
+
 test("extracts test declarations from an untracked Solidity source", () => {
   const source = [
     "contract CreditTest {",
@@ -97,6 +124,24 @@ test("extracts test declarations from an untracked Solidity source", () => {
       file: "packages/contracts/test/Credit.t.sol",
       line: 4,
       name: "invariant_CreditRegistry_reservationsNeverExceedCap",
+    },
+  ]);
+});
+
+test("extracts multiline declarations from untracked Solidity source", () => {
+  const source = [
+    "contract CreditTest {",
+    "  function",
+    "    testCreditRegistry_revertsWhenPaused",
+    "  (",
+    "  ) public {}",
+    "}",
+  ].join("\n");
+  assert.deepEqual(testFunctionsFromSource(source, "packages/contracts/test/Credit.t.sol"), [
+    {
+      file: "packages/contracts/test/Credit.t.sol",
+      line: 3,
+      name: "testCreditRegistry_revertsWhenPaused",
     },
   ]);
 });

@@ -23,6 +23,8 @@ const cssNamedColors = new Set(
 );
 const colorProperty =
   /\b(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow)\s*:\s*([^;}]+)/gi;
+const colorAttribute =
+  /\b(?:color|fill|stroke|background-color|border-color)\s*=\s*["']([^"']+)["']/gi;
 const multilineGuardedProperty =
   /\b(?:transition(?:-duration)?|animation(?:-duration)?|transitionDuration|animationDuration|color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?(?:-color)?|outline(?:-color)?|text-decoration-color|fill|stroke|box-shadow|text-shadow|backgroundColor|borderColor|outlineColor|textDecorationColor|boxShadow|textShadow|border-radius|borderRadius)\s*:\s*$/i;
 
@@ -31,7 +33,10 @@ function withoutCustomPropertyDeclarations(line) {
 }
 
 function colorPropertyValues(line) {
-  return [...line.matchAll(colorProperty)].map((match) => match[1]);
+  return [
+    ...[...line.matchAll(colorProperty)].map((match) => match[1]),
+    ...[...line.matchAll(colorAttribute)].map((match) => match[1]),
+  ];
 }
 
 function hasRawHexColor(line) {
@@ -41,8 +46,11 @@ function hasRawHexColor(line) {
 
 function hasRawNamedColor(line) {
   for (const value of colorPropertyValues(line)) {
-    const withoutTokens = value.replace(/var\([^)]*\)/gi, "");
-    for (const word of withoutTokens.match(/[a-z][a-z0-9-]*/gi) ?? []) {
+    const withoutResources = value
+      .replace(/url\(\s*(?:"[^"]*"|'[^']*'|[^)]*)\s*\)/gi, "")
+      .replace(/\b(?:image-set|image|cross-fade)\s*\([^)]*\)/gi, "")
+      .replace(/var\([^)]*\)/gi, "");
+    for (const word of withoutResources.match(/[a-z][a-z0-9-]*/gi) ?? []) {
       if (cssNamedColors.has(word.toLowerCase())) return true;
     }
   }
@@ -72,6 +80,16 @@ function hasOnlyReducedMotionDurations(line) {
   );
 }
 
+function hasRawRadius(line) {
+  if (/\brounded-\[(?!var\()[^\]]*[0-9][^\]]*\]/i.test(line)) return true;
+  for (const match of line.matchAll(/\b(?:border-radius|borderRadius)\s*:\s*["']?([^"';},]+)/gi)) {
+    if (/\b(?:0|[0-9]*\.?[0-9]+(?:px|r?em|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc))\b/i.test(match[1])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const checks = [
   {
     label: "hardcoded transition duration",
@@ -95,8 +113,7 @@ const checks = [
   },
   {
     label: "arbitrary numeric radius",
-    pattern:
-      /\brounded-\[(?!var\()[^\]]*[0-9][^\]]*\]|\bborder-radius\s*:\s*(?!var\()[0-9.]|\bborderRadius\s*:\s*["']?[0-9.]/i,
+    test: hasRawRadius,
   },
   {
     label: "raw shadow",

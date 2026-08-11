@@ -139,7 +139,7 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 /* Card — complement lift-and-press with radius tighten */
 .card-interactive:active {
   transform: scale(0.985);
-  border-radius: calc(var(--radius-2xl) - 2px);
+  border-radius: var(--radius-xl);
 }
 ```
 

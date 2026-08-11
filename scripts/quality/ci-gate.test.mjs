@@ -37,6 +37,14 @@ test("contract source changes include every contract consumer", () => {
   ]);
 });
 
+test("contract naming helper changes require contracts CI", () => {
+  assert.deepEqual(expectedWorkflowNames(["scripts/lib/git-guardrails.mjs"]), [
+    "Contracts",
+    "Shared",
+    "Supply Chain Guardrails",
+  ]);
+});
+
 test("ontology-scoped changes require the ontology workflow", () => {
   assert.deepEqual(expectedWorkflowNames(["packages/shared/src/ontology/green-goods-ontology.json"]), [
     "Admin",

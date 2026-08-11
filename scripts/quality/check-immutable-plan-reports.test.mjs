@@ -50,6 +50,15 @@ test("protects dated reports directly under .plans/reports", () => {
   ]);
 });
 
+test("protects dated reports in nested report directories", () => {
+  const entries = parseNameStatus(
+    "M\t.plans/active/example/reports/linear/update-2026-08-11.md",
+  );
+  assert.deepEqual(immutableReportViolations(entries), [
+    "M: .plans/active/example/reports/linear/update-2026-08-11.md",
+  ]);
+});
+
 test("rejects unknown CLI arguments", () => {
   const result = spawnSync(process.execPath, [script, "--unknown"], { encoding: "utf8" });
   assert.equal(result.status, 2);
