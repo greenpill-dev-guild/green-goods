@@ -17,7 +17,7 @@ Each handoff should capture:
 5. Known risks or blockers
 6. Repo-truth references from the active hub or reports, not tool-local memory claims
 
-Before a lane is marked passed or completed, its handoff must include:
+Before a handoff claims `green`, `passed`, `completed`, or `merge-ready`, it must include:
 
 ```markdown
 ## Validation Receipt
@@ -26,8 +26,10 @@ Before a lane is marked passed or completed, its handoff must include:
 - Run at (UTC): `YYYY-MM-DDTHH:MM:SSZ`
 - Exact command(s): `<commands>`
 - Result: `<counts or concise output summary>`
-- Worktree identity: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
-- Evidence-only follow-up (if applicable): `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- Validated paths: `<implementation, dependency, configuration, and validation paths>`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
+- Evidence-only diff command and result (if applicable): `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
 ```
 
 `status.json` and `record-tdd` do not replace this receipt; they track orchestration and TDD state.

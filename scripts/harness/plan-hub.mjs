@@ -378,6 +378,9 @@ function reportsEntryError(featureDirPath) {
       if (entryStats.isSymbolicLink()) {
         return `${entryPath}: reports must not contain symlinks before archive compaction`;
       }
+      if (entryStats.isFile() && entryStats.nlink > 1) {
+        return `${entryPath}: reports must not contain hard-linked files before archive compaction`;
+      }
       if (entryStats.isDirectory()) directories.push(entryPath);
     }
   }
@@ -482,8 +485,7 @@ function readFeatureStatus(featureDirPath) {
   return { path, status };
 }
 
-function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
-  const lockDir = join(featureDirPath, ".status.lock");
+function withDirectoryLock(lockDir, work, timeoutMs = 5000) {
   const deadline = Date.now() + timeoutMs;
 
   while (true) {
@@ -508,6 +510,14 @@ function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
   } finally {
     rmSync(lockDir, { recursive: true, force: true });
   }
+}
+
+function withFeatureLock(featureDirPath, work, timeoutMs = 5000) {
+  return withDirectoryLock(join(featureDirPath, ".status.lock"), work, timeoutMs);
+}
+
+function withArchiveLock(work, timeoutMs = 5000) {
+  return withDirectoryLock(join(PLANS_ROOT, "_templates", ".archive.lock"), work, timeoutMs);
 }
 
 function laneDependenciesMet(status, laneName) {
@@ -1826,10 +1836,13 @@ function scaffoldFeature(slug, flags) {
   console.log(`Scaffolded ${targetDir}`);
 }
 
-function moveFeature(flags) {
+function moveFeature(flags, archiveLockHeld = false) {
   const slug = requireFlag(flags, "feature");
   const toStage = requireFlag(flags, "to");
   assertMoveStage(toStage);
+  if (toStage === "archive" && !archiveLockHeld) {
+    return withArchiveLock(() => moveFeature(flags, true));
+  }
   if (toStage === "archive" && flags.resolution && !VALID_ARCHIVE_RESOLUTIONS.has(flags.resolution)) {
     fail(
       `Invalid archive resolution "${flags.resolution}". Expected one of: ${Array.from(VALID_ARCHIVE_RESOLUTIONS).join(", ")}`,
@@ -2008,7 +2021,10 @@ function stale(flags) {
   }
 }
 
-function compactArchive() {
+function compactArchive(archiveLockHeld = false) {
+  if (!archiveLockHeld) {
+    return withArchiveLock(() => compactArchive(true));
+  }
   const records = featureRecords("archive");
   const failures = [];
   const knownSlugs = formalFeatureSlugs();

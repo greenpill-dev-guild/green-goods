@@ -64,9 +64,10 @@
 - **Run at (UTC)**: `YYYY-MM-DDTHH:MM:SSZ`
 - **Command**: `<exact command>`
 - **Result**: `<counts or concise output summary>`
-- **Worktree identity**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
-- **Evidence-only follow-up (if applicable)**:
-  - `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- **Validated paths**: `<implementation, dependency, configuration, and validation paths>`
+- **Worktree identity command and result**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
+- **Evidence-only diff command and result (if applicable)**: `git diff --exit-code <tested>..HEAD -- <validated paths>` → `<result>`
+- **Evidence-only worktree-status command and result (if applicable)**: `git status --porcelain=v1 --untracked-files=all -- <validated paths>` → `<empty result>`
 ```
 
 ## `status.json` Lane-State Example

@@ -351,7 +351,12 @@ contract MyModule is UUPSUpgradeable {
 
 Before upgrading:
 - [ ] Storage gap present and correctly sized
-- [ ] Every ERC-7201 namespace slot and ordered member layout is protected by a committed baseline
+- [ ] Every first-party ERC-7201 namespace slot and ordered member layout is protected by a committed baseline
+- [ ] Vendored ERC-7201 namespaces are either baseline-protected or explicitly excluded with their
+      upstream ownership and invalidation rule documented. `octant.tokenized.strategy.storage` in
+      `packages/contracts/src/vendor/octant/core/TokenizedStrategy.sol` is excluded while that file
+      remains an unmodified upstream-vendored surface; any local edit to the vendor source requires
+      a first-party namespace baseline or an explicit upstream storage-compatibility review.
 - [ ] No storage variable reordering
 - [ ] No storage variable type changes
 - [ ] New variables added at end only

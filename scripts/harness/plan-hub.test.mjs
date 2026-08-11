@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
+  linkSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -1150,6 +1151,69 @@ test("archive moves reject symlinks nested inside report directories", () =>
     assert.equal(existsSync(join(root, ".plans", "archive", "nested-linked-reports")), false);
   }));
 
+test("archive moves reject hard-linked report files", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "hard-linked-reports", "--stage", "active"]).status, 0);
+    const featureDir = join(root, ".plans", "active", "hard-linked-reports");
+    const reportsDir = join(featureDir, "reports");
+    mkdirSync(reportsDir);
+    linkSync(join(featureDir, "brief.md"), join(reportsDir, "review-2026-08-11.md"));
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "hard-linked-reports",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must not contain hard-linked files/);
+    assert.equal(existsSync(join(root, ".plans", "active", "hard-linked-reports")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "hard-linked-reports")), false);
+  }));
+
+test("archive moves revalidate reports after waiting for the archive lock", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "locked-archive-move", "--stage", "active"]).status, 0);
+    const reportsPath = join(root, ".plans", "active", "locked-archive-move", "reports");
+    const externalReports = join(root, "external-locked-reports");
+    const lockPath = join(root, ".plans", "_templates", ".archive.lock");
+    mkdirSync(reportsPath);
+    writeFileSync(join(reportsPath, "review.md"), "# Original evidence\n");
+    mkdirSync(externalReports);
+    mkdirSync(lockPath);
+    spawn(
+      process.execPath,
+      [
+        "-e",
+        "const fs=require('node:fs');setTimeout(()=>{fs.rmSync(process.env.REPORTS,{recursive:true});fs.symlinkSync(process.env.EXTERNAL,process.env.REPORTS,'dir');fs.rmSync(process.env.LOCK,{recursive:true});},25);",
+      ],
+      {
+        env: { ...process.env, REPORTS: reportsPath, EXTERNAL: externalReports, LOCK: lockPath },
+        stdio: "ignore",
+      },
+    );
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "locked-archive-move",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /reports must be a real directory inside the feature hub/);
+    assert.equal(existsSync(join(root, ".plans", "archive", "locked-archive-move")), false);
+  }));
+
 test("archive moves keep canonical document links at the top level", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "nested-canonical-link", "--stage", "active"]).status, 0);
@@ -1232,6 +1296,47 @@ test("compact-archive rejects nested report symlinks before mutation", () =>
     assert.notEqual(compacted.status, 0);
     assert.match(compacted.stderr, /reports must not contain symlinks/);
     assert.equal(lstatSync(join(reportsDir, "review-2026-08-11.md")).isSymbolicLink(), true);
+  }));
+
+test("compact-archive revalidates reports after waiting for the archive lock", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "locked-archive-compact", "--stage", "active"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "locked-archive-compact",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed_stale",
+        "--reason",
+        "No remaining live scope.",
+      ]).status,
+      0,
+    );
+    const reportsPath = join(root, ".plans", "archive", "locked-archive-compact", "reports");
+    const externalReports = join(root, "external-compact-reports");
+    const lockPath = join(root, ".plans", "_templates", ".archive.lock");
+    mkdirSync(reportsPath);
+    writeFileSync(join(reportsPath, "review.md"), "# Original evidence\n");
+    mkdirSync(externalReports);
+    mkdirSync(lockPath);
+    spawn(
+      process.execPath,
+      [
+        "-e",
+        "const fs=require('node:fs');setTimeout(()=>{fs.rmSync(process.env.REPORTS,{recursive:true});fs.symlinkSync(process.env.EXTERNAL,process.env.REPORTS,'dir');fs.rmSync(process.env.LOCK,{recursive:true});},25);",
+      ],
+      {
+        env: { ...process.env, REPORTS: reportsPath, EXTERNAL: externalReports, LOCK: lockPath },
+        stdio: "ignore",
+      },
+    );
+
+    const compacted = runPlanHub(root, ["compact-archive"]);
+    assert.notEqual(compacted.status, 0);
+    assert.match(compacted.stderr, /reports must be a real directory inside the feature hub/);
   }));
 
 test("validate rejects dangling report symlinks in archived hubs", () =>

@@ -27,8 +27,10 @@
 - Run at (UTC): pending
 - Exact command(s): pending
 - Result: pending
-- Worktree identity: pending
-- Evidence-only follow-up (if applicable): not applicable
+- Validated paths: pending
+- Worktree identity command and result: pending
+- Evidence-only diff command and result (if applicable): not applicable
+- Evidence-only worktree-status command and result (if applicable): not applicable
 
 ## Risks / Blockers
 
