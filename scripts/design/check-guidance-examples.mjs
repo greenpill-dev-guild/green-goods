@@ -105,7 +105,15 @@ const checks = [
       if (cssProperty && cssProperty !== "none" && !cssProperty.startsWith("var(")) return true;
       const jsProperty = line.match(/\bboxShadow\s*:\s*["']?([^"',;}]+)/)?.[1]?.trim();
       if (jsProperty && jsProperty !== "none" && !jsProperty.startsWith("var(")) return true;
+      const withoutTokenDropShadows = line.replace(
+        /drop-shadow\s*\(\s*var\(\s*--[a-z0-9-]+\s*\)\s*\)/gi,
+        "",
+      );
+      if (/drop-shadow\s*\(/i.test(withoutTokenDropShadows)) return true;
       for (const match of line.matchAll(/["'`]([^"'`]*)["'`]/g)) {
+        if (/(?:^|\s)(?:drop-)?shadow-\[(?!var\()[^\]]+\](?=$|\s)/i.test(match[1])) {
+          return true;
+        }
         if (
           /(?:^|\s)(?:drop-)?shadow(?:-(?:sm|md|lg|xl|2xl|inner))?(?=$|\s)/i.test(match[1])
         ) {

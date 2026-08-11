@@ -231,10 +231,10 @@ for (uint256 i = 0; i < items.length; i++) { }
 ```solidity
 // Pattern: test[Contract]_[scenario]
 function testGardenToken_mintsNewGarden() public {}
-function testGardenToken_revertsOnUnauthorized() public {}
+function testGardenToken_revertsWhenCallerUnauthorized() public {}
 
 // Categories
-testContract_scenario
+test[Contract]_scenario
 testFuzz_Contract_property
 testIntegration_Contract_scenario
 testUpgrade_Contract_scenario

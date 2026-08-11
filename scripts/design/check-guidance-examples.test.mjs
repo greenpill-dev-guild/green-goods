@@ -195,6 +195,23 @@ test("does not treat JavaScript shadow identifiers as utility classes", () => {
   assert.deepEqual(findDesignGuidanceViolations(text, "design.md"), []);
 });
 
+test("rejects raw drop-shadow functions and arbitrary shadow utilities", () => {
+  const text = [
+    "```css",
+    ".icon { filter: drop-shadow(0 1px 2px #000); }",
+    "```",
+    "```tsx",
+    'const card = "shadow-[0_1px_2px_#000]";',
+    "```",
+  ].join("\n");
+  assert.equal(
+    findDesignGuidanceViolations(text, "design.md").filter((failure) =>
+      failure.includes("raw shadow"),
+    ).length,
+    2,
+  );
+});
+
 test("rejects hardcoded implementation values", () => {
   const text = [
     "```tsx",
