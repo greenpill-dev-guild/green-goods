@@ -167,11 +167,11 @@ for (const functionName of new Set(classifiedFunctions)) {
 
 const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n\/\/ Metadata/)?.[1] ?? "";
 const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
-require(contractCalls.length === 57, `expected 57 executable hi-fi call names, found ${contractCalls.length}`);
+require(contractCalls.length === 58, `expected 58 executable hi-fi call names, found ${contractCalls.length}`);
 const executablePoolingCalls = contractCalls.filter((call) => poolingFunctions.includes(call));
 require(
-  executablePoolingCalls.length === 41,
-  `expected 41 executable Commitment Pooling calls, found ${executablePoolingCalls.length}`,
+  executablePoolingCalls.length === 42,
+  `expected 42 executable Commitment Pooling calls, found ${executablePoolingCalls.length}`,
 );
 for (const call of executablePoolingCalls) {
   require(
@@ -433,11 +433,11 @@ const sourceChecks: Array<[boolean, string]> = [
     "prototype spec omits executable expiry or declared-value paths",
   ],
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
-  [wireframes.includes("#screens/W7@open") && wireframes.includes("(29 states)"), "wireframe W7 state count is stale"],
+  [wireframes.includes("#screens/W7@open") && wireframes.includes("(30 states)"), "wireframe W7 state count is stale"],
   [
-    coverage.includes("377 rendered states") &&
-      coverage.includes("518 registered hotspots") &&
-      coverage.includes("366 scenes"),
+    coverage.includes("397 rendered states") &&
+      coverage.includes("544 registered hotspots") &&
+      coverage.includes("388 scenes"),
     "prototype coverage snapshot is stale",
   ],
   [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],

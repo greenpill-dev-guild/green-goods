@@ -9,7 +9,7 @@ import { hot } from "../html";
 import { icon } from "../icons";
 import {
   banner, btn, card, chip, disclosure, emptyState, field, hdr, homeHeader, input, kv, listRow, meter, pagepad,
-  phoneFrame, radio, sectionTitle, seg, sheetOver, skeleton, stepDots,
+  phoneFrame, radio, reasonChips, sectionTitle, seg, sheetOver, skeleton, stepDots,
 } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
@@ -125,7 +125,10 @@ ${banner("Recognition records your contribution to the impact certificate. This 
       )}`;
       break;
     case "send":
-      inner = `${field("To", input("address or member…", { placeholder: true, icon: "user-line" }))}
+      inner = `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Ana", "ok")}${chip("Maria")}${chip("Garden jar")}</div>
+<div class="t-meta">Tap a recent recipient, or paste an address below.</div>
+${field("To", input("address or member…", { placeholder: true, icon: "user-line" }))}
+<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("5 G$")}${chip("20 G$", "ok")}${chip("Half")}${chip("All")}</div>
 ${field("Amount", input("20 G$"))}
 ${banner("Sent from your account on Celo. No gas needed.", "stone", "send-plane-line")}
 ${hot("w23.send-submit", btn("Send", { kind: "pri", full: true }))}`;

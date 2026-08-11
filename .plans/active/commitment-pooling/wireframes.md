@@ -438,7 +438,7 @@ All admin frames: `{CanvasRouteFrame}` + `{CanvasRouteHeader}` + `{CanvasRouteCo
 
 ### W7 — Garden workspace: Pool tab (uiux-spec §6.2)
 
-Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (29 states).
+Route `/garden/pool` on the existing Garden `{AdminTabRail}` — the shipped rail is **Health · Impact · Activity** (Settings opens as a dialog over Health, not a tab; `garden.utils.ts`), and Pool joins it as the NET-NEW fourth tab. Seeding is a header action, not a FAB. **Hi-fi**: [`#screens/W7@open`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W7@open) (30 states).
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -531,9 +531,9 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ confirmers  [ + add address ]  ≡ Maria ✕  ≡ João ✕       │  {AddressGroupField} NET-NEW
 │ threshold   N = [ 2 ] of 2                               │  validates N ≤ group size
 │ Every frozen contributor is excluded from confirmation.  │
-│ □ Let Green Goods team confirm if nobody local is eligible│  protocolFallbackEnabled · off
+│ ☑ Let Green Goods team confirm if nobody local is eligible│  protocolFallbackEnabled · pilot default ON (register #94)
 │ Claim acceptance fails if N becomes unreachable unless   │
-│ that safety path is explicitly selected.                 │
+│ that safety path remains selected (opt-out per promise). │
 │ claim mode  ◉ open   ○ steward-reviewed                  │  prefilled by context (register #19)
 ├──────────────────────────────────────────────────────────┤
 │ Step 4 — Consideration                                          │
@@ -696,7 +696,7 @@ Pools view inside the existing admin `/community` workspace, reached through tha
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Hi-fi**: [`#screens/W12@protocol`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W12@protocol) (2 states). *Wireframe-only: a "claimable by your gardeners" browse list is not drawn by the hi-fi — gardeners browse protocol commitments in the client (W25); this admin mode carries claims, confirmations, and funding references.*
+**Hi-fi**: [`#screens/W12@protocol`](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c#screens/W12@protocol) (3 states — protocol seeding added by register #96). *Wireframe-only: a "claimable by your gardeners" browse list is not drawn by the hi-fi — gardeners browse protocol commitments in the client (W25); this admin mode carries claims, confirmations, funding references, and protocol seeding.*
 
 ### W13 — Hub: Confirm stage (uiux-spec §6.9)
 

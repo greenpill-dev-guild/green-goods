@@ -2,9 +2,9 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: Offer once/over-time architecture remains the initial implementation scope, and the full Commitment Pooling compatibility boundary is now frozen pre-code: promise instance, ongoing Offer series, and future voucher class stay distinct; fulfilled backing precedes capacity backing; one bounded pool precedes federation; G$ support remains separate from redemption. The canonical six-tab Google Doc prose reconciliation is complete, accepted, and verified after reload. Live gallery republication and every image replacement/insertion remain manual publication steps. PRD-721 remains Todo and manually undispatched until this closure is reviewed, mirrored to Linear, merged to develop, and Afo explicitly dispatches contract implementation. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
+**Status**: `ACTIVE: Offer once/over-time architecture remains the initial implementation scope, and the full Commitment Pooling compatibility boundary is now frozen pre-code: promise instance, ongoing Offer series, and future voucher class stay distinct; fulfilled backing precedes capacity backing; one bounded pool precedes federation; G$ support remains separate from redemption. The canonical six-tab Google Doc prose reconciliation is complete, accepted, and verified after reload. Live gallery republication and every image replacement/insertion remain manual publication steps. Contracts (PRD-721, dispatched 2026-08-05) and settlement (dispatched 2026-08-08) are in progress per status.json, with the pooling module and settlement contracts merged to develop — the 2026-08-10 audit verified all prototype-declared calls exist on-chain under exact names (58 including register #97's `acceptExchange`). Indexer carries the settlement/payout half only (no core pooling entities yet); state-api, ui-client, ui-admin, and editorial remain unstarted. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-04`
+**Last Updated**: `2026-08-10`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -43,7 +43,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `session-state-admin-canvas.md` | Session-continuity handover for the admin-canvas work stream | Execution context — not canonical design or contract truth |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
-| `architecture-closure.validate.ts` | Machine gate for all 54 events, 26 entities, 86 module functions, eight sparse-event materialization cases, 56 executable calls, six jobs/persistence states, seven lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
+| `architecture-closure.validate.ts` | Machine gate for all 54 events, 26 entities, 86 module functions, eight sparse-event materialization cases, 58 executable calls, six jobs/persistence states, seven lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
 | `external-brief.md` | Pointer to the canonical Google Doc plus the repo's implementation/evidence source map | **Pointer only — never a prose mirror** |
 | `reports/audit-2026-07-20.md` | Original CP-AUD-001–021 dispatch-readiness audit | **IMMUTABLE INPUT — never edit** |
@@ -78,10 +78,10 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | List | Range | What it is |
 |---|---|---|
 | **Decision Log** (the table below) | 1–61 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–92 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–92 |
+| **Full decision register** (further below) | 1–97 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–97 |
 
 - **Every `#1`–`#61` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
-- **`#62`–`#92` are unambiguous register numbers**, but naming the list is still preferred.
+- **`#62`–`#97` are unambiguous register numbers**, but naming the list is still preferred.
 - **`#39`–`#40` became ambiguous on 2026-08-01**, when the Decision Log gained its CPP-alignment scope lock and staged-product narrative while the full register already carried different entries at those numbers. Name the list explicitly for both.
 - **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
@@ -161,7 +161,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 60 | **An acknowledgment must satisfy the live route, and a stranded subject has an owner-only exit.** Acknowledgment authentication additionally requires the snapshotted executor to still be the active peer, or the previous peer inside its unexpired grace window, per `settlement-spec.md` §3.1.3. Because that strands any command genuinely in flight at a zero-grace cutover — `requeue` requires `Failed` and `cancelDisbursement` accepts only `Queued|Failed`, so a `Dispatched` child would be unrecoverable — the module also gains a bounded owner-only path to mark such a subject `Failed` once the grace window has expired, emitting its own event. | Afo decision 2026-08-09, on the pre-merge review's M1. Authentication ran only against the `CommandRecord` snapshot, so a drained cutover — the strongest revocation the source offers — left the retired executor able to mark its in-flight commands `Confirmed` with no G$ moved. Closing that alone would have traded a security hole for a liveness hole, so the exit path is part of the same decision rather than a follow-up. |
 | 61 | **Committing a garden to pay for an Offer requires a steward once the Offer is priced.** Claiming an Offer with a `gardenContext` requires `isGardenSteward` when the declared consideration is non-zero, and continues to require only `isGardenMember` when it is free. The ApprovalGated path re-checks the claimant's membership in `gardenContext` at final acceptance. | Afo decision 2026-08-09, on the pre-merge review's M4. The Garden-claim branch already required a steward while the Individual branch required only membership, so any gardener could bind their garden as the immutable `payerGarden` of a priced protocol Offer without any steward acting. No funds moved — the payer garden's own steward still has to create the payout plan — but the garden carried an unauthorized obligation record and reserved provider capacity. Pricing is the line because free peer-to-peer Offers are the common pilot case and should stay frictionless. This changes an expectation pinned in `CommitmentPoolingPayer.t.sol`. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–92)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–97)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -685,6 +685,78 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     authorization boundary. A protocol garden cannot claim its own institutional Request.
     `CommitmentSettlementFlow` is derived in the read model while later Celo token circulation
     remains an external observation problem. Tracked in PRD-800.
+
+93. Prototype catalog restructure (2026-08-10, Afo review round): flows are self-contained to one
+    person's action to completion. A "Meanwhile" echo is a read-only consequence — the build now
+    rejects any echo carrying an advancing control — and the moment another role must act, the
+    flow ends at a waiting state with an end-of-flow handoff link. Split-outs: sb42 confirm
+    (from sb1), sb43 request-provider (from sb2), sb44 captured-member (from sb8), sb45 team
+    formation (from sb33), sb46 garden-claim acceptance (from sb13), sb47 not-yet resolution
+    (from sb5), sb48 protocol-wide impact (from sb15); sb29's recipient scenes became read-only
+    beats. Every flow carries a `chapter` (lifecycle-ordered card clusters per surface tab; the
+    Green Goods operations chapter renders collapsed) and `roles` acting-role tags that replace
+    the redundant surface badge. Chapter and role vocabularies are renameable data in
+    `hifi/types.ts` — the build asserts referential integrity only, never names or counts, so
+    real garden vocabulary can reshape them without touching the validator.
+94. Green Goods fallback pilot default ON (2026-08-10, Afo decision; supersedes the 2026-08-02
+    off-by-default confirmation-path closure's default, not its guard): creation surfaces (W3
+    client wizard, W8 seed console) write `protocolFallbackEnabled = true` by default, shown on
+    review and switchable off per promise from the wizard's Advanced detour. The runtime posture
+    is unchanged and remains the safety argument: the fallback stays usable only while the
+    ordinary named/default path is unreachable after contributor exclusion, always records a
+    reason, requires current protocol-pool Hats at signing, and never permits a contributor to
+    confirm. The queue builder still round-trips the explicit boolean without inference. The
+    default-path wizard drops the separate Who-confirms step (4 steps for garden work, 3 for
+    service/requests); named groups, contributor policy, and assessment move to Advanced.
+
+95. Tap-first input modality (2026-08-10, Afo direction "click-based flow where possible with
+    minimal data input"): the principle is *type only what only you can know* — names, stories,
+    and free-form reasons stay human; everything derivable arrives as a tap with a typed escape.
+    Applied across the prototypes: every reason-taking dialog (not-yet, withdraw, decline,
+    pause/cancel season, steward cancel/override/dispute/resolution, both fallback confirms,
+    settlement cancels) leads with common-reason chips that fill the still-required reason field;
+    the creation wizards pick unit and amount from chips with a custom escape and default due to
+    the cycle end via radio on every path (fixing the service path's raw-text date); evidence
+    credits contributors by roster chips instead of a typed list; W11 opens with the standard
+    split applied and edits as the exception; W21 payout edits are recognition-prefilled
+    corrections; W23 send offers recent recipients and amount presets. The contract surface is
+    unchanged — reason fields remain (REASON_CONFIRMS still enforces them) and chips only fill
+    them. Measured baseline before this pass: 74% of 198 acting scenes tap-only, 23/50 flows
+    zero-typing; the pass converts the reason family and wizard unit/amount/due to tap-default.
+
+96. Coverage closure round (2026-08-10, Afo approvals on all six review questions): (a) request
+    creation is a real three-step wizard (`W3@request-what/request-howmuch/request-variant`)
+    rather than a compressed review screen; (b) every W3 wizard state adopts the fixed Submit
+    Work chrome — close + progress header and bottom action bar are fixed frame, only the form
+    scrolls (matches §5.4's cited TopNav + FormProgress pattern); (c) echo-trim assessment
+    adopted: an echo stays only where the member-visible consequence is the act's point — the
+    multi-checkpoint member peeks in sb9a/sb9c/sb10 became branch links to the screen library;
+    (d) protocol-pool coverage completed: sb49 seeds protocol asks/offers to gardens from the
+    Community workspace (`W12@seed-protocol`), closing the rail seed → claim (sb13) → accept
+    (sb46) → pay (sb19); (e) the admin "Decide & review" chapter split into Decide on promises /
+    Work review / Assessments, sb4b split at its actor seam (steward approves work; evaluator
+    attests and attaches in sb50), and sb22 regrew into Record the pool's baseline ending at the
+    readiness checklist; (f) the artifact's Implementation reference tab is generated from the
+    executable registry on every build (flow/screen indexes with calls, cites, walked-by),
+    retiring the drifted hand-written prototypes.md rendering — the file stays in the repo as
+    historical source material.
+
+97. Full-coverage round (2026-08-10 night, Afo approvals via plan-mode questions): (a) DomainImpact
+    Requests are drawable — the request wizard gains the Garden work kind with action requirements
+    (`W3@request-anchors`/`request-work-review`), `W2` gains the request-work cast, and sb51 walks
+    ask → work approvals → ready-to-confirm; (b) W12's Protocol pool tab is ruled the
+    protocol-steward operations home — uiux §6.8 amended (garden stewards claim via client W25/sb13,
+    never a duplicated admin pane) and W12 gains the register #34f read-only delivery-gate status
+    row; (c) campaign-request cast gains its guided walk (sb52); (d) Ongoing Offers gain read-only
+    admin series context (`W7@series-view`) per the acceptance-matrix admin column; (e)
+    `MAX_CONFIRMERS` renders on both creation surfaces and `W26` names the cycle-less
+    certificate-ineligible row; (f) the exchange wave graduates into the hi-fi registry — W28–W31
+    drawn with recovery states, `acceptExchange` added to the prototype ContractCall union and
+    validator CALL_RULES (the same-day contracts audit verified it shipped and tested on-chain),
+    and sb35/sb36 walk bilateral pair acceptance and template-first creation; multilateral and
+    transferable exchange stay design-only. Audit records: indexer dangling-FK and agent-store
+    findings appended to their handoffs, this file's status header re-synced to status.json, and
+    CLAUDE.md's indexer-boundary line corrected to defer to check-indexing-boundary.mjs.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

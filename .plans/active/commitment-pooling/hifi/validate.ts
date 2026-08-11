@@ -13,7 +13,7 @@
 
 import type { SB as RawSB, Scene } from "./journeys";
 import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
-import { HOME_SURFACE, SCENE_SURFACES } from "./types";
+import { CHAPTERS, HOME_SURFACE, ROLES, SCENE_SURFACES } from "./types";
 import type {
   ContractCall, HotRegistry, ResolveTables, Screen, ShippedSB, ShippedStep, StateFacts,
 } from "./types";
@@ -76,6 +76,10 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   setDeclaredValue: { key: "commitment", allowed: ["Offered", "Requested"] },
   claimCommitment: { key: "commitment", allowed: ["Offered", "Requested"] },
   acceptClaim: { key: "commitment", allowed: ["Offered", "Requested"], next: "Accepted" },
+  // Atomic Offer×Offer acceptance: acts on B while both sides are Offered;
+  // both emerge Accepted as ordinary independent commitments (CS §5.3).
+  // StewardCaptured is excluded to mirror ExchangeCreatorConsentRequired.
+  acceptExchange: { key: "commitment", allowed: ["Offered"], next: "Accepted", kinds: ["DomainImpact", "SupportService", "SeasonCampaign"] },
   declineClaim: { key: "commitment", allowed: ["Offered", "Requested"] },
   joinCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
   leaveCommitment: { key: "commitment", allowed: ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"] },
@@ -518,6 +522,8 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     persona: sb.persona,
     reviewVisible: sb.reviewVisible,
     reviewGroup: sb.reviewGroup,
+    chapter: sb.chapter,
+    roles: sb.roles,
     steps: sb.steps.map((sc, ix): ShippedStep => {
       const where = `${sb.id}:${ix}`;
       const r = resolveScreen(sc.f, where);
@@ -614,7 +620,25 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
         err.push(`ECHO ${sb.id}:${ix} marked echo but sits on the flow's home surface (${home})`);
       if (!step.echo && eff !== home)
         err.push(`SURFACE ${sb.id}:${ix} off-home scene (${eff}) must be marked echo`);
+      // Echoes are read-only consequences (decision 2026-08-10): the moment
+      // another role must ACT on another surface, the flow ends at a waiting
+      // state and hands off via a branch link — it never drives the other seat.
+      if (step.echo && (step.hot || step.alts.length))
+        err.push(`ECHO ${sb.id}:${ix} carries an advancing control — echoes are read-only; end the flow and hand off instead`);
     });
+  }
+
+  // Chapter and role integrity. Chapters/roles are renameable data arrays in
+  // types.ts — the build checks references, never names or counts (2026-08-10).
+  for (const sb of raw) {
+    const chapters = CHAPTERS[sb.reviewGroup] ?? [];
+    if (!chapters.some((chapter) => chapter.id === sb.chapter))
+      err.push(`CHAPTER ${sb.id}: "${sb.chapter}" is not a chapter of group "${sb.reviewGroup}"`);
+    if (!sb.roles.length)
+      err.push(`ROLES ${sb.id}: at least one acting role is required`);
+    for (const role of sb.roles)
+      if (!ROLES.some((known) => known.id === role))
+        err.push(`ROLES ${sb.id}: unknown role "${role}"`);
   }
 
   // alias targets

@@ -10,7 +10,7 @@
 import { POOL_LIFETIME } from "../fixtures";
 import { esc, hot } from "../html";
 import { icon } from "../icons";
-import { banner, btn, chip, disclosure, emptyState, field, input, kv, meter, radio, skeleton } from "../kit";
+import { banner, btn, chip, disclosure, emptyState, field, input, kv, meter, radio, reasonChips, skeleton } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
 
@@ -212,6 +212,7 @@ const W7_STATES = [
   ["reopen-confirm", "Reopen pool — confirm"], ["manage", "Manage pool and cycles"],
   ["claims", "Claims waiting"], ["claim-declined", "Declined — others pending"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
   ["due-live", "Past due — expiry available"],
+  ["series-view", "Ongoing Offers — series context"],
   ["seed-cycle", "Seed a cycle"],
   ["pause-confirm", "Pause — confirm"], ["close-pool-confirm", "Close pool — confirm"],
   ["paused-close-pool-confirm", "Close paused pool — confirm"],
@@ -453,6 +454,7 @@ const W7_DESC: Record<W7State, string> = {
   claims: "Requests waiting for a steward decision in this cycle.",
   "expiry-queue": "Promises that lapsed this cycle — offer them again.",
   "due-live": "Past-due promises remain live until someone submits the permissionless expiry action.",
+  "series-view": "Ongoing Offers grouped by series — read-only state and context.",
   "seed-cycle": "Set the next Season or Campaign before opening it.",
   loading: "Loading the pool…",
   empty: "The pool is open and waiting for its first promise.",
@@ -506,8 +508,8 @@ export const w7Behind = (state: "open" | "ready" | "paused" | "closed" | "compos
 // enforces both directions via REASON_CONFIRMS. Each of these was previously
 // one click straight to the outcome state — which teaches an implementer that
 // no confirmation exists.
-const w7Confirm = (radius: string, reason: string) =>
-  `${banner(radius, "amber", "error-warning-line")}${field("Reason (required)", input(reason))}`;
+const w7Confirm = (radius: string, reason: string, chips?: string[]) =>
+  `${banner(radius, "amber", "error-warning-line")}${chips ? reasonChips(chips) : ""}${field("Reason (required)", input(reason))}`;
 
 const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; actions: string; closeHot: string }>> = {
   "pause-confirm": {
@@ -515,6 +517,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
     body: w7Confirm(
       "Pausing stops new promises, claims, and confirmations for 23 members across 7 open promises. Evidence, work linkage, and recovery stay open; resuming clears this reason.",
       "seasonal flooding, back after the rains",
+      ["Weather or season", "Group is regrouping", "Safety first"],
     ),
     actions: `${hot("w7.confirm-dismiss", btn("Keep running", { kind: "ghost" }))}${hot("w7.pause-confirm", btn("Pause pool", { kind: "pri" }))}`,
     closeHot: "w7.confirm-dismiss",
@@ -557,6 +560,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
     body: w7Confirm(
       "Season of First Rains has no live promises; all 8 are kept, cancelled, or expired. Cancelling ends the season for everyone in it; each promise keeps its own record, and members see the reason you give here.",
       "funding fell through for the rains",
+      ["Funding fell through", "Season replanned", "Started by mistake"],
     ),
     actions: `${hot("w7.confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-confirm", btn("Cancel season", { kind: "danger" }))}`,
     closeHot: "w7.confirm-dismiss",
@@ -566,6 +570,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
     body: w7Confirm(
       "The pool stays paused. Season of First Rains has no live promises; all 8 are kept, cancelled, or expired. Cancelling ends the season, and every promise keeps its own record and reason.",
       "funding fell through for the rains",
+      ["Funding fell through", "Season replanned", "Started by mistake"],
     ),
     actions: `${hot("w7.paused-confirm-dismiss", btn("Keep the season", { kind: "ghost" }))}${hot("w7.cancel-cycle-paused-confirm", btn("Cancel season", { kind: "danger" }))}`,
     closeHot: "w7.paused-confirm-dismiss",
@@ -575,6 +580,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
     body: w7Confirm(
       "Only Maria's request is declined — João's stays pending and the promise stays claimable. Maria sees your reason and may ask again.",
       "provider context — see charter",
+      ["Crew is full", "Needs more experience", "Asked after another was chosen"],
     ),
     actions: `${hot("w7.decline-dismiss", btn("Keep pending", { kind: "ghost" }))}${hot("w7.decline-claim-confirm", btn("Decline request", { kind: "pri" }))}`,
     closeHot: "w7.decline-dismiss",
@@ -687,6 +693,20 @@ function w7(state: W7State): string {
     body = w7PoolCard(state);
   } else if (state === "due-live") {
     body = `${w7Summary()}${w7DueLiveCommitments()}`;
+  } else if (state === "series-view") {
+    // Ongoing Offers in the console: read-only series context (acceptance
+    // matrix admin column, register #97). Instances group under their series;
+    // available count equals current Offered instances; Retired keeps context.
+    body = `${w7Summary()}${acard(
+      "Ongoing Offers — grouped by series",
+      `<div class="arow">${hot("w7.series-row", `<div class="grow"><b>Hosting climate workshops</b> <span class="t-meta">ongoing Offer · Maria</span></div>`)}${chip("Active", "ok")}</div>
+<div class="arow" style="padding-left:14px"><div class="grow"><span class="t-meta">3 linked instances · 2 kept · 1 place open now (equals current Offered instances)</span></div></div>
+<div class="arow">${hot("w7.series-row-resting", `<div class="grow"><b>Saturday tool repair</b> <span class="t-meta">ongoing Offer · Rui</span></div>`)}${chip("Resting", "plain")}</div>
+<div class="arow" style="padding-left:14px"><div class="grow"><span class="t-meta">5 linked instances · 5 kept · no place open while resting</span></div></div>
+<div class="arow" style="opacity:.6">${hot("w7.series-row-retired", `<div class="grow"><b>Seedling starter kits</b> <span class="t-meta">ongoing Offer · retired May 30</span></div>`)}${chip("Retired", "plain")}</div>
+<div class="arow" style="padding-left:14px;opacity:.6"><div class="grow"><span class="t-meta">8 linked instances · 8 kept · read-only terminal context, history stays with the garden</span></div></div>
+${banner("State and context only — the console never edits a member's ongoing Offer. Rest, resume, and retire stay with its holder in the client (sb41).", "stone", "information-line")}`,
+    )}`;
   } else {
     // The default view answers "what needs me?" — summary, pool state, the
     // scoped commitment list, and (per §6.2 section 4) the claims queue while
@@ -713,6 +733,9 @@ function w7(state: W7State): string {
 }
 
 const W7_HOTS: HifiDef["hots"] = {
+  "w7.series-row": { l: "Active ongoing Offer", info: "Series context is read-only in the console (register #97): instances group under their series, and the available count equals current Offered instances. Lifecycle acts (rest/resume/retire) stay with the holder in the client." },
+  "w7.series-row-resting": { l: "Resting ongoing Offer", info: "A resting series holds no open place; its kept history remains visible." },
+  "w7.series-row-retired": { l: "Retired ongoing Offer", info: "Read-only terminal context — retirement never erases the series' kept instances." },
   "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@pause-confirm", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
   "w7.confirm-dismiss": { l: "Keep as it is", to: "screen:W7", info: "Closes the confirmation without applying the act." },
   "w7.pause-confirm": { l: "Pause pool (confirm)", to: "screen:W7@paused", info: "pausePool(reason) — the stored reason renders in the member banner (UX:60 · CS:725).", calls: ["pausePool"] },
@@ -729,10 +752,10 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.edit-charter": {
     l: "Edit readiness",
     to: "screen:W7@preflight-complete",
-    info: "Persists setPoolCharter and setProviderOpenCommitmentCap before the qualifying Baseline app preflight; the pool remains NotReady until markPoolReady succeeds (UX:269).",
+    info: "Persists setPoolCharter and setProviderOpenCommitmentCap before the qualifying Baseline app preflight; the pool remains NotReady until markPoolReady succeeds (UX:298).",
     calls: ["setPoolCharter", "setProviderOpenCommitmentCap"],
   },
-  "w7.mark-ready": { l: "Mark pool ready", to: "screen:W7@ready", info: "markPoolReady records NotReady → Ready after charter + non-zero cap pass onchain and the qualifying Baseline passes the app preflight (CS:724 · UX:269).", calls: ["markPoolReady"] },
+  "w7.mark-ready": { l: "Mark pool ready", to: "screen:W7@ready", info: "markPoolReady records NotReady → Ready after charter + non-zero cap pass onchain and the qualifying Baseline passes the app preflight (CS:724 · UX:298).", calls: ["markPoolReady"] },
   "w7.open-pool": { l: "Open pool", to: "screen:W7@open-no-cycle", info: "openPool → PoolOpened. The pool opens without inventing an active cycle; seeding remains the next act (CS:100, CS:727).", calls: ["openPool"] },
   "w7.close-pool": { l: "Close pool", to: "screen:W7@close-pool-confirm", info: "Offered only after indexed pool live commitments and non-terminal cycles are both zero; closePool takes no reason." },
   "w7.close-pool-paused": { l: "Close paused pool", to: "screen:W7@paused-close-pool-confirm", info: "Offered only after the paused pool has zero live commitments and zero non-terminal cycles." },
@@ -777,7 +800,7 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.jump-claims": { l: "Claims waiting", to: "screen:W7@claims", info: "Opens the steward-reviewed claims queue — a distinct triage task with its own view." },
   "w7.jump-payouts": { l: "Failed payouts", info: "Scrolls to declared rewards whose recorded payout failed; zero here means nothing is stuck." },
   "w7.report-row": { l: "Cycle report", to: "screen:W26@review", info: "Reconciliation report (UX:75)." },
-  "w7.seed-fab": { l: "Seed a commitment", to: "screen:W8", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:150)." },
+  "w7.seed-fab": { l: "Seed a commitment", to: "screen:W8", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:154)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -844,8 +867,9 @@ function w8(state: W8State): string {
     case "step3":
       inner = `${field("Confirmers", `<div class="arow"><div class="grow">Maria</div>${icon("close-line", "s")}</div><div class="arow"><div class="grow">João</div>${icon("close-line", "s")}</div>${hot("w8.add-address", btn("Add address", { kind: "ghost", sm: true, icon: "add-line" }))}`)}
 ${field("Threshold", input("2 of 2", { select: true }))}
-${hot("w8.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Selected for this promise · off by default for new promises · every contributor remains excluded.</span></span></label>`)}
-${banner("The ordinary group is checked first. If it becomes unreachable, repair it or explicitly select the Green Goods team before acceptance.", "stone", "information-line")}
+${banner("Choose up to the current confirmer limit (4) — the form blocks the fifth name before review.", "stone", "information-line")}
+${hot("w8.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot · usable only while nobody local can confirm, always with a recorded reason · every contributor remains excluded.</span></span></label>`)}
+${banner("The ordinary group is always checked first. The Green Goods team can step in only while that group is unreachable; turn the fallback off here for this promise.", "stone", "information-line")}
 ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}`;
       next = hot("w8.continue-rule", btn("Continue", { kind: "pri" }));
       break;
@@ -860,7 +884,7 @@ ${banner("One rail only. External payouts are recorded here after the fact; Celo
       next = hot("w8.continue-reward", btn("Continue", { kind: "pri" }));
       break;
     case "step5":
-      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Contributor policy", "Lead-managed team · lead or steward manages the roster")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Green Goods team fallback", "selected · reason required if used")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
+      inner = `${kv("Kind", "Campaign promise · the pool offers")}${kv("Contributor policy", "Lead-managed team · lead or steward manages the roster")}${kv("Title", "Market rides")}${kv("Unit · target", "rides · 16")}${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Green Goods team fallback", "on (pilot default) · reason required if used")}${kv("Claim mode", "steward-reviewed")}${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
       next = hot("w8.seed", btn("Seed this commitment", { kind: "pri" }));
       break;
     default:
@@ -887,7 +911,7 @@ ${field("Cycle", input("Season: First Rains", { select: true }))}${field("Title"
 const W8_HOTS: HifiDef["hots"] = {
   "w8.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy at seeding; the review repeats who may join or edit the team." },
   "w8.add-address": { l: "Add confirmer address", info: "Adds another named confirmer before the threshold is locked." },
-  "w8.protocol-fallback": { l: "Green Goods team fallback", info: "Explicitly writes protocolFallbackEnabled. It is off by default, requires the registered protocol pool, and never permits a contributor to confirm." },
+  "w8.protocol-fallback": { l: "Green Goods team fallback", info: "Writes protocolFallbackEnabled — ON by default for the pilot (decision 2026-08-10, supersedes the 2026-08-02 off-by-default closure). Requires the registered protocol pool; usable only while the ordinary path is unreachable; never permits a contributor to confirm." },
   "w8.claim-mode": { l: "Claim mode", info: "Set at seeding; prefilled by context — protocol pool gated, garden campaigns open." },
   "w8.reward": { l: "Reward rail", info: "Exactly one rail is declared: none, an external payout record, or a Celo G$ settlement. External rewards are references only; G$ uses the settlement module." },
   "w8.continue-scope": { l: "Continue to requirements", to: "screen:W8@step2", info: "Type and scope → requirements." },
@@ -904,7 +928,7 @@ const W8_HOTS: HifiDef["hots"] = {
   "w8.record": { l: "Record the captured promise", to: "screen:W7", info: "StewardCaptured create — the member stays the social source; the steward is recorded as recordedBy (CS:730)." },
   "w8.keep-editing": { l: "Keep editing", to: "screen:W8", info: "Returns to the flow with entered values intact." },
   "w8.discard-confirm": { l: "Discard", to: "screen:W7", info: "Leaves the flow and drops the unsaved seeded promise." },
-  "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — season/campaign and steward-captured kinds are created only here (UX:150).", calls: ["createCommitment"] },
+  "w8.seed": { l: "Seed this commitment", to: "screen:W7", info: "Console seeding — season/campaign and steward-captured kinds are created only here (UX:154).", calls: ["createCommitment"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -1046,19 +1070,19 @@ ${banner("This rail records a jar or treasury payment that happens outside the a
       actions = `${dismiss("Close")}${hot("w10.record-payout", btn("Record external payout", { kind: "pri" }))}`;
       break;
     case "fallback-confirm":
-      body = `${kv("Eligibility path", "Garden fallback · local Hats")}${field("Reason (required)", input("confirmed on site visit"))}${banner("Every frozen team address is blocked. The member timeline will say “confirmed by garden steward — fallback” and show this reason.", "stone", "shield-check-line")}`;
+      body = `${kv("Eligibility path", "Garden fallback · local Hats")}${reasonChips(["Confirmed on a site visit", "Recipient has no device", "Agreed at the gathering"])}${field("Reason (required)", input("confirmed on site visit"))}${banner("Every frozen team address is blocked. The member timeline will say “confirmed by garden steward — fallback” and show this reason.", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.fallback-confirm", btn("Confirm as garden fallback", { kind: "pri" }))}`;
       break;
     case "protocol-fallback-confirm":
-      body = `${kv("Eligibility path", "Green Goods team fallback · explicitly selected")}${field("Reason (required)", input("no eligible local confirmer"))}${banner("Current protocol-garden Hats are checked at signing. Every contributor is blocked, and module-owner status alone grants no authority. The member timeline will say “confirmed by Green Goods team — fallback.”", "stone", "shield-check-line")}`;
+      body = `${kv("Eligibility path", "Green Goods team fallback · enabled (pilot default)")}${reasonChips(["No eligible local confirmer", "Named group unreachable", "Recipient left the garden"])}${field("Reason (required)", input("no eligible local confirmer"))}${banner("Current protocol-garden Hats are checked at signing. Every contributor is blocked, and module-owner status alone grants no authority. The member timeline will say “confirmed by Green Goods team — fallback.”", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.protocol-fallback-confirm", btn("Confirm for Green Goods team", { kind: "pri" }))}`;
       break;
     case "raise-dispute":
-      body = `${field("Reason (required)", input("delivery contested at the gathering"))}${banner("Freezes the promise for review. Members see “under review by stewards” — never dispute language.", "stone")}`;
+      body = `${reasonChips(["Delivery contested", "Details look wrong", "Needs a second look"])}${field("Reason (required)", input("delivery contested at the gathering"))}${banner("Freezes the promise for review. Members see “under review by stewards” — never dispute language.", "stone")}`;
       actions = `${dismiss()}${hot("w10.dispute-confirm", btn("Raise dispute", { kind: "pri" }))}`;
       break;
     case "resolve-dispute":
-      body = `${kv("Your role", "Steward · contributor on this promise")}${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("Fulfilled is unavailable because your connected steward address is on the contributor roster. A non-contributor steward may see that outcome only when its policy and verified-credit gates pass. Every available outcome renders its reason in the member timeline.", "stone")}`;
+      body = `${kv("Your role", "Steward · contributor on this promise")}${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state — no unit movement", on: true }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${reasonChips(["Resolved at the gathering", "Work completed since", "Agreed to release it"])}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("Fulfilled is unavailable because your connected steward address is on the contributor roster. A non-contributor steward may see that outcome only when its policy and verified-credit gates pass. Every available outcome renders its reason in the member timeline.", "stone")}`;
       actions = `${dismiss()}${hot("w10.resolve", btn("Resolve", { kind: "pri" }))}`;
       break;
     case "attach-assessment":
@@ -1083,11 +1107,11 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
       actions = `${dismiss()}${hot("w10.send-confirmation", btn("Send for confirmation", { kind: "pri" }))}`;
       break;
     case "mark-ready-override":
-      body = `${field("Reason (required)", input("field-verified at the weekly gathering"))}${banner("Steward override — separate from Send for confirmation. Moves the promise to Ready without the recipient's send; the reason is stored and shows in the member timeline.", "stone", "shield-check-line")}`;
+      body = `${reasonChips(["Checked in the field", "Recipient has no device", "Agreed at the gathering"])}${field("Reason (required)", input("field-verified at the weekly gathering"))}${banner("Steward override — separate from Send for confirmation. Moves the promise to Ready without the recipient's send; the reason is stored and shows in the member timeline.", "stone", "shield-check-line")}`;
       actions = `${dismiss()}${hot("w10.override-confirm", btn("Mark ready", { kind: "pri" }))}`;
       break;
     case "cancel":
-      body = `${field("Reason (required)", input("withdrawn by agreement at the gathering"))}${banner("Steward cancel — Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.", "stone", "error-warning-line")}`;
+      body = `${reasonChips(["Withdrawn by agreement", "No longer needed", "Duplicate promise"])}${field("Reason (required)", input("withdrawn by agreement at the gathering"))}${banner("Steward cancel — Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.", "stone", "error-warning-line")}`;
       actions = `${dismiss("Keep promise")}${hot("w10.cancel-confirm", btn("Cancel promise", { kind: "danger" }))}`;
       break;
     case "garden-ready":
@@ -1181,7 +1205,7 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.protocol-fallback-confirm": {
     l: "Green Goods team fallback (confirm)",
     to: "screen:W2@fulfilled-protocol-fallback",
-    info: "For an explicitly opted-in commitment, confirmFulfillmentAsFallback emits the caller, ProtocolFallback, and required reason. Current protocol-pool Hats are required; module ownership alone is rejected.",
+    info: "For a fallback-enabled commitment (pilot default on), confirmFulfillmentAsFallback emits the caller, ProtocolFallback, and required reason. Current protocol-pool Hats are required; module ownership alone is rejected.",
     calls: ["confirmFulfillmentAsFallback"],
     facts: { commitment: "ReadyForConfirmation", pool: "Open", cycle: "Open", kind: "DomainImpact" },
   },
@@ -1189,7 +1213,7 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143).", calls: ["raiseDispute"] },
   "w10.resolve-options": { l: "Resolution outcomes", info: "This contributor-steward fixture exposes RestorePrevious / Cancelled / Expired only. Fulfilled is hidden because the on-chain SelfConfirmation guard would reject this actor; eligible non-contributor stewards receive the separately gated Fulfilled option (CS:144)." },
   "w10.resolve": { l: "Resolve", to: "screen:W2@ready-confirmer", info: "This fixture selects RestorePrevious, returning the exact stored ReadyForConfirmation state with no unit movement (LAP:186).", calls: ["resolveDispute"], resultFacts: { commitment: "ReadyForConfirmation" } },
-  "w10.assessment-pick": { l: "Assessment picker", info: "Attach re-runs the auto-Ready check → CommitmentReadyForConfirmation (CS:740)." },
+  "w10.assessment-pick": { l: "Assessment picker", info: "Attach re-runs the auto-Ready check → CommitmentReadyForConfirmation (CS:235)." },
   "w10.attach": { l: "Attach assessment", to: "screen:W2@ready-confirmer", info: "attachAssessment → auto-Ready re-run (UX:287). Adopted MF-13 placement.", calls: ["attachAssessment"] },
   "w10.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-confirmer", info: "Evidence-only records expose Send for confirmation to eligible creator/counterparty/steward; the member result keeps the SupportService cast (UX:294).", calls: ["submitForConfirmation"] },
   "w10.mark-override": { l: "Mark ready with override", to: "screen:W10@mark-ready-override", info: "Steward-only, separate from Send for confirmation; requires a visible reason (UX:294)." },
@@ -1305,6 +1329,7 @@ ${banner("The two editable fields are stored as 3,500 / 6,500 bps when the cycle
     ? banner("Shares must total exactly 100% — currently 104%.", "error", "error-warning-line")
     : `<div class="quietok">${icon("check-line")}total: 100%</div>`;
   const inner = `<div class="t-meta">Set how each fulfilled promise's units split across the six roles.</div>
+${banner("The standard Garden-led split arrives already applied — most seasons continue straight through. Adjust a share only when this season is genuinely different.", "stone", "checkbox-circle-fill")}
 ${hot("w11.presets", field("Preset", radio([{ label: "Garden-led (default)", on: true }, { label: "Balanced" }, { label: "Custom" }], { interactive: true, name: "allocation-preset" })))}
 ${rows}${sum}
 ${hot("w11.recognition", field("Gardener recognition", `<div class="arow"><div class="grow">${input("35")}<span class="t-meta">% equal</span></div><div class="grow">${input("65")}<span class="t-meta">% verified</span></div></div><div class="quietok">${icon("check-line")}total: 100%</div>`))}
@@ -1405,7 +1430,7 @@ ${banner("Work cards show which promise they fulfil; the approval rails are unch
 
 const W13_HOTS: HifiDef["hots"] = {
   "w13.row": { l: "Garden fallback row", to: "screen:W10@detail-fallback-eligible", info: "The row is present only after indexed eligibility proves the ordinary path cannot reach threshold. The detail keeps the mandatory reason and PoolFallback provenance visible." },
-  "w13.protocol-row": { l: "Green Goods team fallback row", to: "screen:W10@protocol-fallback-confirm", info: "Cross-garden row appears only because the commitment explicitly opted in and this account currently wears a protocol-pool steward/owner Hat." },
+  "w13.protocol-row": { l: "Green Goods team fallback row", to: "screen:W10@protocol-fallback-confirm", info: "Cross-garden row appears only because the commitment carries protocolFallbackEnabled (the pilot default) and this account currently wears a protocol-pool steward/owner Hat." },
   "w13.chip": { l: "Commitment-context chip (W13b)", info: "Work cards show which promise they fulfill; approval rails untouched (UX:285)." },
   "w13.new-assessment": { l: "Create assessment", to: "screen:W14", info: "Opens the existing Create Assessment flow, which §6.6 extends rather than forks." },
   "w13.approve": { l: "Approve work", info: "Uses the existing WorkApproval rail; the context chip only links this work back to its promise." },

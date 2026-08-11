@@ -12,14 +12,21 @@ import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
 // inner scroll surface as AppShell's #app-scroll. AppShell-backed frames carry
 // the shipping 69px AppBar reservation by default; callers may choose the active
 // destination or explicitly opt out for a genuinely non-AppShell surface.
-export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: string | false } = {}): string {
+export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: string | false; header?: string } = {}): string {
   const bottomBar = opts.appBar === false ? "" : (opts.appBar ?? appBar("garden"));
   return `<div class="phonefit" data-phone-scale="1"><div class="phone"><div class="scr" data-viewport-width="${PHONE_VIEWPORT_WIDTH}" data-viewport-height="${PHONE_VIEWPORT_HEIGHT}">
 <div class="statusbar"><span class="num">9:41</span><span class="sbr">${opts.offline ? icon("wifi-off-line", "s") : ""}<span class="sb-sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="sb-batt"></span></span></div>
-<main class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</main>
+${opts.header ?? ""}<main class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</main>
 ${bottomBar}
 <div class="homebar"><i></i></div>
 </div></div></div>`;
+}
+
+// Fixed bottom action bar for full-screen flows — the Submit Work chrome
+// (uiux §5.4: TopNav + FormProgress fixed, actions fixed at the foot). Pass
+// the result as phoneFrame's appBar so it sits between the scroll and homebar.
+export function actionBar(actions: string): string {
+  return `<div class="fbar">${actions}</div>`;
 }
 
 // Screen header — client views hand-render h1 (.title-screen grammar).
@@ -82,6 +89,14 @@ export type ChipTone = "plain" | "offer" | "request" | "domain" | "ok" | "warn" 
 export function chip(label: string, tone: ChipTone = "plain", opts: { dot?: boolean } = {}): string {
   const t = tone === "plain" ? "" : ` ${tone}`;
   return `<span class="ch${t}${opts.dot ? " dot" : ""}">${esc(label)}</span>`;
+}
+
+// Tap-first reasons (register #95): the common reasons for an act render as
+// chips above its reason field. Tapping fills the field; the field stays — it
+// is the stored record and REASON_CONFIRMS still requires it. Chips carry no
+// hotspot: the acting control of these dialogs remains the confirm button.
+export function reasonChips(options: string[]): string {
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:2px 0">${options.map((o) => chip(o)).join("")}</div><div class="t-meta">Tap a reason to fill it in — or say it your own way.</div>`;
 }
 
 // StatusBadge (shared/components/StatusBadge.tsx) — icon + colour, never colour

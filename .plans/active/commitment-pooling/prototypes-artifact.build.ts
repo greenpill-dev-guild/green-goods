@@ -44,161 +44,12 @@ import {
   screenCardsHtml,
   TABLES,
 } from "./hifi/screens/index";
-import { FLOW_GROUPS } from "./hifi/types";
+import { CHAPTERS, FLOW_GROUPS, ROLES } from "./hifi/types";
 import { normalizeAndValidate } from "./hifi/validate";
 
-const SRC = `${import.meta.dir}/prototypes.md`;
 const OUT = process.env.OUT ?? "/tmp/commitment-pooling-prototypes.html";
 
-const md = readFileSync(SRC, "utf8");
-const lines = md.split("\n");
-
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// ---------- Reference-tab document pipeline (unchanged) ----------
-function inline(raw: string): string {
-  let s = esc(raw);
-  const codes: string[] = [];
-  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\x00" + (codes.length - 1) + "\x00"; });
-  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-  s = s.replace(/\b(CI-W\d+|MF-\d+[ab]?|W\d+a?|SB-\d+(?:\.\d+[ab]?(?:–\d+)?)?)\b/g, (m) => {
-    if (m.startsWith("SB-")) {
-      const sec = m.match(/^SB-(\d+)/)![1];
-      return `<a class="chip sb" href="#sb-${sec}">${m}</a>`;
-    }
-    if (m.startsWith("MF-")) return `<a class="chip mf" href="#sec-15">${m}</a>`;
-    return `<span class="chip w">${m}</span>`;
-  });
-  s = s.replace(/\x00(\d+)\x00/g, (_, i) => `<code>${codes[+i]}</code>`);
-  return s;
-}
-
-type Sec = { id: string; title: string; html: string[] };
-const secs: Sec[] = [];
-let cur: Sec | null = null;
-let front: string[] = [];
-let i = 0;
-let h1 = "Commitment Pooling — Flow Prototypes";
-
-function push(html: string) { (cur ? cur.html : front).push(html); }
-
-function slug(t: string): string {
-  const sb = t.match(/^SB-(\d+)/);
-  if (sb) return `sb-${sb[1]}`;
-  const num = t.match(/^(\d+)\./);
-  if (num) return `sec-${num[1]}`;
-  return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
-}
-
-function flowHtml(code: string[]): string {
-  const labels: Record<string, string> = {};
-  const edges: { f: string; t: string; l: string }[] = [];
-  for (const ln of code) {
-    const m = ln.match(/^\s*(\w+)(?:\["([^"]*)"\])?\s*-->\|"([^"]*)"\|\s*(\w+)(?:\["([^"]*)"\])?/);
-    if (!m) continue;
-    if (m[2]) labels[m[1]] = m[2];
-    if (m[5]) labels[m[4]] = m[5];
-    edges.push({ f: m[1], t: m[4], l: m[3] });
-  }
-  const rows = edges.map(e =>
-    `<div class="fr"><span class="fn">${esc(labels[e.f] ?? e.f)}</span><span class="fe"><span class="fl">${esc(e.l)}</span><span class="fa" aria-hidden="true"></span></span><span class="fn">${esc(labels[e.t] ?? e.t)}</span></div>`
-  ).join("");
-  const srcCode = esc(code.join("\n"));
-  return `<div class="flow">${rows}</div><details class="msrc"><summary>mermaid source</summary><pre>${srcCode}</pre></details>`;
-}
-
-while (i < lines.length) {
-  const ln = lines[i];
-  if (ln.startsWith("# ") && !cur && front.length === 0) { h1 = ln.slice(2).replace(/ \(.*\)$/, ""); i++; continue; }
-  if (ln.startsWith("## ")) {
-    const title = ln.slice(3);
-    cur = { id: slug(title), title, html: [] };
-    secs.push(cur);
-    i++; continue;
-  }
-  if (ln.startsWith("```mermaid")) {
-    const buf: string[] = []; i++;
-    while (i < lines.length && !lines[i].startsWith("```")) { buf.push(lines[i]); i++; }
-    i++; push(flowHtml(buf)); continue;
-  }
-  if (ln.startsWith("```text") || ln === "```") {
-    const buf: string[] = []; i++;
-    while (i < lines.length && !lines[i].startsWith("```")) { buf.push(lines[i]); i++; }
-    i++;
-    const proposed = buf.some(b => b.includes("NEW — proposed"));
-    push(`<div class="framewrap${proposed ? " proposed" : ""}">${proposed ? '<div class="ptag">NEW — proposed lo-fi, not locked</div>' : ""}<pre class="frame">${esc(buf.join("\n"))}</pre></div>`);
-    continue;
-  }
-  if (ln.startsWith("|")) {
-    const rows: string[] = [];
-    while (i < lines.length && lines[i].startsWith("|")) { rows.push(lines[i]); i++; }
-    const cells = (r: string) => r.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map(c => c.trim());
-    let bodyStart = 1;
-    if (rows.length > 1 && /^[\s|:-]+$/.test(rows[1])) bodyStart = 2;
-    const head = cells(rows[0]).map(c => `<th>${inline(c)}</th>`).join("");
-    const body = rows.slice(bodyStart).map(r => {
-      const warn = r.includes("⚠");
-      return `<tr${warn ? ' class="warn"' : ""}>${cells(r).map(c => `<td>${inline(c)}</td>`).join("")}</tr>`;
-    }).join("");
-    push(`<div class="tw"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`);
-    continue;
-  }
-  if (ln.startsWith("- ")) {
-    const items: string[] = [];
-    while (i < lines.length && lines[i].startsWith("- ")) { items.push(lines[i].slice(2)); i++; }
-    push(`<ul>${items.map(it => `<li>${inline(it)}</li>`).join("")}</ul>`);
-    continue;
-  }
-  if (ln === "---" || ln.trim() === "") { i++; continue; }
-  const buf: string[] = [ln];
-  i++;
-  while (i < lines.length && lines[i].trim() !== "" && !/^(#|```|\||- |---)/.test(lines[i])) { buf.push(lines[i]); i++; }
-  push(`<p>${inline(buf.join(" "))}</p>`);
-}
-
-const sbSecs = secs.filter(s => s.id.startsWith("sb-"));
-const refSecs = secs.filter(s => !s.id.startsWith("sb-"));
-const groupsDoc: [string, Sec[]][] = [
-  ["Member journeys", sbSecs.slice(0, 7)],
-  ["Operator journeys", sbSecs.slice(7, 10)],
-  ["Settlement", sbSecs.slice(10, 12)],
-  ["Protocol + September", sbSecs.slice(12, 14)],
-];
-const navSb = groupsDoc.map(([g, ss]) =>
-  `<div class="ng">${g}</div>` + ss.map(s => {
-    const m = s.title.match(/^(SB-\d+) — (.*)$/);
-    const label = m ? `<b>${m[1]}</b> ${esc(m[2].replace(/\*\*/g, ""))}` : esc(s.title);
-    return `<a href="#${s.id}">${label}</a>`;
-  }).join("")
-).join("");
-const navRef = `<div class="ng">Reference</div>` + refSecs.map(s =>
-  `<a href="#${s.id}">${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</a>`
-).join("");
-
-const refToc = `<nav class="ref-toc" aria-label="Reference overview">${groupsDoc.map(([g, ss]) =>
-  `<a href="#${ss[0].id}"><b>${esc(g)}</b><span>${ss.length} journeys</span></a>`
-).join("")}${refSecs.map(s =>
-  `<a href="#${s.id}"><b>${esc(s.title.replace(/ \(.*\)$/, "").replace(/ —.*$/, ""))}</b></a>`
-).join("")}</nav>`;
-
-const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
-<p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
-<p><strong>Exchange-wave source additions</strong>: W28–W31 and SB-35/SB-36 are approved planned source journeys for bilateral exchange and template-first creation. They render in the Reference document only until the separate Claude review pass adds them to the executable hi-fi registry; this artifact does not claim they are already drawn or validated.</p>
-<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the six pool job kinds in August (MF-5) · the admin due-live expiry action, post-expiry queue, and member "offer again" ship in August, while a keeper cron remains only a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
-<p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
-
-const sections = secs.map(s => {
-  const m = s.title.match(/^(SB-\d+) — (.*)$/);
-  const heading = m
-    ? `<h2><span class="sbnum">${m[1]}</span> ${inline(m[2])}</h2>`
-    : `<h2>${inline(s.title.replace(/^\d+\. /, ""))}</h2>`;
-  const glance = s.html.findIndex(block => block.includes("<strong>At a glance</strong>"));
-  const fold = glance >= 0 && s.html.length - glance > 4;
-  const body = fold
-    ? `${s.html.slice(0, glance + 1).join("\n")}<details class="refmore"><summary>Open the full section</summary>${s.html.slice(glance + 1).join("\n")}</details>`
-    : s.html.join("\n");
-  return `<section id="${s.id}">${heading}${body}</section>`;
-}).join("\n");
 
 // ---------- Normalize journeys against the screen registry + validate ----------
 const { sbs, errors, warnings } = normalizeAndValidate(SBS, {
@@ -236,15 +87,116 @@ const PLAYER_DATA = JSON.stringify({
 const visibleSbs = sbs.filter((sb) => sb.reviewVisible);
 const visibleScreens = SCREENS.filter((screen) => screen.reviewVisible);
 
+// Flow cards: chapter clusters inside each surface tab, role chips instead of
+// the old surface badge (which merely repeated the tab label), and a derived
+// "continues in" hint taken from the final scene's cross-flow branch links —
+// derived, not transcribed, so a re-split can never leave a stale hint.
+const roleLabel = new Map<string, string>(ROLES.map((role) => [role.id, role.label]));
+const sbTitle = new Map(sbs.map((sb) => [sb.id, sb.title]));
+const flowCardHtml = (sb: (typeof visibleSbs)[number]) => {
+  const roleChips = sb.roles.map((role) => `<span class="role-chip">${esc(roleLabel.get(role) ?? role)}</span>`).join("");
+  const lastSteps = sb.steps.slice(-2);
+  const continuesIn = [...new Set(lastSteps.flatMap((step) => (step.br ?? [])
+    .map((branch) => branch.to.match(/^(sb[a-z0-9]+):/)?.[1])
+    .filter((target): target is string => !!target && target !== sb.id && (target.replace(/\D/g, "") !== sb.id.replace(/\D/g, ""))),
+  ))];
+  // Continues-in reads as prose right after the description; role chips pin to
+  // the card's bottom edge so every card in a row shares the same tag position.
+  const nextLine = continuesIn.length
+    ? `<span class="nextline">↳ ${esc(continuesIn.map((target) => sbTitle.get(target) ?? target).join(" · "))}</span>`
+    : "";
+  return `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbm">${esc(sb.persona)}</span>${nextLine}<span class="cardchips">${roleChips}</span></button>`;
+};
 const flowCatalog = FLOW_GROUPS.map(({ id, label }, groupIx) => {
-  const cards = visibleSbs
-    .filter((sb) => sb.reviewGroup === id)
-    .map((sb) => `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbm">${esc(sb.persona)}</span><span class="surface-badge">${esc(label)}</span></button>`)
-    .join("");
-  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2><div class="grid">${cards}</div></section>`;
+  const groupSbs = visibleSbs.filter((sb) => sb.reviewGroup === id);
+  const chapters = (CHAPTERS[id] ?? []).flatMap((chapter) => {
+    const cards = groupSbs.filter((sb) => sb.chapter === chapter.id).map(flowCardHtml).join("");
+    if (!cards) return []; // an empty chapter simply doesn't render (renameable data, no count asserts)
+    const inner = `<h3 class="chapter-h">${esc(chapter.label)}</h3><div class="grid">${cards}</div>`;
+    return [chapter.collapsed
+      ? `<details class="chapter-fold"><summary><h3 class="chapter-h">${esc(chapter.label)}</h3><span class="fold-hint">protocol team only — open when needed</span></summary><div class="grid">${cards}</div></details>`
+      : inner];
+  }).join("");
+  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2>${chapters}</section>`;
 }).join("");
 
 const screenCards = screenCardsHtml();
+
+// ---------- Reference tab: generated from the executable registry ----------
+// prototypes.md was the hand-written July reference; it drifted within weeks
+// of each restructure. This tab now derives from the same registry the
+// validator checks, so it cannot disagree with the prototypes (register #96).
+const statusNote = `<aside class="status"><h2>Status — audit closure 2026-07-25 · hi-fi register #36</h2>
+<p><strong>Presentation review</strong>: ${SBS.filter((b) => b.reviewVisible).length} guided flows and ${SCREENS.filter((s) => s.frame !== "ascii").length} high-fidelity screens are grouped by Client PWA, Admin console, and Editorial website, with lifecycle-ordered chapters inside each tab and acting-role tags on every card. September Community wireframes remain validated source material with stable direct hashes, but are intentionally hidden from the presentation catalogs until their high-fidelity pass. Adopted micro-frames remain dissolved into their locked parent states. Rendered copy and lifecycle-sensitive call/state pairings are build-linted.</p>
+<p><strong>Self-contained flows (2026-08-10)</strong>: every flow is one person's action to completion. "Meanwhile" echoes are read-only consequences — the build rejects an echo carrying a control — and cross-role continuations hand off through end-of-flow links (sb42–sb48 carry the split-out segments; old mid-ribbon hashes retire as <code>#sb9</code> did). The creation wizards default the confirmer rule with the Green Goods team fallback ON for the pilot (supersedes the 2026-08-02 off-by-default closure; the unreachable-path guard, required reason, and contributor exclusion are unchanged), keeping the default path to four steps and moving named groups, team policy, and assessment to an Advanced detour.</p>
+<p><strong>Exchange wave drawn (2026-08-10, register #97)</strong>: W28–W31 and the two exchange journeys are now in the executable registry — the same-day contracts audit found <code>acceptExchange</code> shipped and tested on-chain, so the screens caught up with the chain. Bilateral pair creation, atomic acceptance, counterpart-lapsed context, and template-first creation are all walkable; multilateral and transferable exchange stay design-only in the exchange architecture brief.</p>
+<p><strong>Adopted</strong>: pool open/close on the pool status card + open-cycle guard prompt (MF-1) · member pre-acceptance withdraw (MF-2a) · <code>waiting_for_hat</code> covers the six pool job kinds in August (MF-5) · the admin due-live expiry action, post-expiry queue, and member "offer again" ship in August, while a keeper cron remains only a post-launch backstop (MF-3/MF-4) · pilot stewards hold the executor role with a visible missing-role guard state · read-only delivery-gate status row on W21 · testimony is September-realized (MF-12) · the dry run rehearses payout with a real minimal Cookie Jar withdrawal.</p>
+<p><strong>Placement closure (register #51)</strong>: W10 steward cancel, the Work Review commitment row, the pre-claim personal/garden chooser, and the W10 attach-assessment picker are locked where drawn. The W10 accepted/override states, W23 delivery-blocked state, W26 reconciliation report, queue-funding control, and both origin-specific settlement-cancellation messages are also realized rather than review proposals. <strong>Join-request queue</strong> design is canonical in <code>../community-interface/join-queue-spec.md</code>; implementation remains gated on RESR-64's operating record.</p></aside>`;
+
+const chapterLabelOf = (group: keyof typeof CHAPTERS, id: string) =>
+  (CHAPTERS[group] ?? []).find((chapter) => chapter.id === id)?.label ?? id;
+const callsOfFlow = (sb: (typeof sbs)[number]) => {
+  const set = new Set<string>();
+  for (const step of sb.steps)
+    for (const hid of [step.hot?.h, ...(step.alts ?? []).map((alt) => alt.h)])
+      if (hid) for (const call of HOTS[hid]?.calls ?? []) set.add(call);
+  return [...set];
+};
+const citesOfFlow = (sb: (typeof sbs)[number]) => {
+  const set = new Set<string>();
+  for (const step of sb.steps)
+    for (const token of (step.cite ?? "").split("·")) if (token.trim()) set.add(token.trim());
+  return [...set];
+};
+const capList = (items: string[], max: number) =>
+  items.length > max ? `${items.slice(0, max).join(" · ")} · +${items.length - max} more` : items.join(" · ");
+const walkedBy = new Map<string, Set<string>>();
+for (const sb of visibleSbs)
+  for (const step of sb.steps) {
+    if (!walkedBy.has(step.f)) walkedBy.set(step.f, new Set());
+    walkedBy.get(step.f)!.add(sb.title);
+  }
+const callsOfScreen = (id: string) => {
+  const set = new Set<string>();
+  for (const hid of SCREEN_HOTS[id] ?? []) for (const call of HOTS[hid]?.calls ?? []) set.add(call);
+  return [...set];
+};
+// One section per surface, flows and screens together (Afo 2026-08-10: split
+// flow/screen sections read as duplicates of the browsing tabs). The tables
+// answer the implementation question the tabs don't: calls, cites, walked-by.
+const refSurfaceSections = FLOW_GROUPS.map(({ id, label }) => {
+  const flowRows = visibleSbs.filter((sb) => sb.reviewGroup === id).map((sb) => {
+    const calls = callsOfFlow(sb);
+    return `<tr><td><strong>${esc(sb.title)}</strong><br><span style="color:var(--stone);font-size:12px">${esc(sb.persona)} · <code>#${sb.id}</code></span></td><td>${esc(chapterLabelOf(sb.reviewGroup, sb.chapter))}</td><td>${sb.steps.length}</td><td>${calls.length ? `<code>${calls.join("</code> <code>")}</code>` : "read-only walk"}</td><td>${esc(capList(citesOfFlow(sb), 8))}</td></tr>`;
+  }).join("");
+  const screenGroup = REVIEW_GROUPS.find((group) => group.surface === id);
+  const screenRows = (screenGroup?.ids ?? []).map((sid) => {
+    const scr = SCREENS.find((candidate) => candidate.id === sid)!;
+    const calls = callsOfScreen(sid);
+    const walkers = [...(walkedBy.get(sid) ?? [])];
+    return `<tr><td><strong><code>${esc(sid)}</code></strong> ${esc(scr.title.replace(/^W\S+ · /, ""))}</td><td>${scr.states.length}</td><td>${calls.length ? `<code>${calls.join("</code> <code>")}</code>` : "—"}</td><td>${walkers.length ? esc(capList(walkers, 3)) : "Screen library only"}</td></tr>`;
+  }).join("");
+  return `<section id="ref-${id}"><h2>${esc(label)}</h2>
+<h3>Flows — what each walked path exercises</h3>
+<div class="tw"><table><thead><tr><th>Flow</th><th>Chapter</th><th>Scenes</th><th>Contract calls on the walked path</th><th>Spec cites</th></tr></thead><tbody>${flowRows}</tbody></table></div>
+<h3>Screens — what each screen declares</h3>
+<div class="tw"><table><thead><tr><th>Screen</th><th>States</th><th>Calls declared</th><th>Walked by</th></tr></thead><tbody>${screenRows}</tbody></table></div></section>`;
+}).join("\n");
+const refHowTo = `<section id="ref-howto"><h2>How to read this reference</h2>
+<p>Everything on this tab is <strong>generated from the executable registry on every build</strong> — the same source the validator checks — so it cannot drift from the Flows and Screens tabs. Those tabs are for browsing; this one answers the implementation questions they don't: which contract calls a walked path exercises, which spec lines it cites, and which flows exercise each screen. Deep links are stable: <code>#sbN/i</code> opens a guided flow at a scene, <code>#screens/ID@state</code> opens a screen state.</p>
+<p>Spec cites resolve to the plan-hub documents: <code>UX</code> → uiux-spec.md (by line or section), <code>CS</code> → contract-spec.md, <code>WF</code> → wireframes.md, <code>AM</code> → acceptance-matrix.md, <code>SS</code> → settlement-spec.md, <code>DG</code> → diagrams.md. Other keys cite sibling documents in the same hub. The retired hand-written reference (prototypes.md) remains in the repo as historical source material.</p></section>`;
+const refPlanned = `<section id="ref-planned"><h2>Planned additions</h2>
+<p>The exchange wave (W28–W31, both journeys) graduated into the executable registry on 2026-08-10 (register #97), closing the one place the chain was ahead of the prototypes. What remains planned: the September Community wireframes (registered, validated, directly addressable, hidden from the catalogs until their high-fidelity pass), September-realized testimony (register #34g), and the multilateral/transferable exchange tier, which stays design-only in the exchange architecture brief.</p></section>`;
+const refNav = `<div class="ng">Start here</div><a href="#ref-howto">How to read this</a>
+<div class="ng">Surfaces</div>${FLOW_GROUPS.map(({ id, label }) => `<a href="#ref-${id}">${esc(label)}</a>`).join("")}
+<div class="ng">Roadmap</div><a href="#ref-planned">Planned additions</a>`;
+const refToc = `<nav class="ref-toc" aria-label="Reference overview"><a href="#ref-howto"><b>How to read this</b><span>generated, not written</span></a>${FLOW_GROUPS.map(({ id, label }) => {
+  const flowCount = visibleSbs.filter((sb) => sb.reviewGroup === id).length;
+  const screenCount = REVIEW_GROUPS.find((group) => group.surface === id)?.ids.length ?? 0;
+  return `<a href="#ref-${id}"><b>${esc(label)}</b><span>${flowCount} flows · ${screenCount} screens</span></a>`;
+}).join("")}<a href="#ref-planned"><b>Planned additions</b><span>exchange wave · September</span></a></nav>`;
+const refSections = `${refHowTo}\n${refSurfaceSections}\n${refPlanned}`;
+const distinctCalls = new Set(visibleSbs.flatMap((sb) => callsOfFlow(sb))).size;
 
 // Both tablists are generated from the same arrays that generate their panels,
 // so a new group cannot appear as a tab without a panel (or vice versa) and the
@@ -287,10 +239,10 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-// 29 = the 25-screen August set plus the four standing-commitment screens
-// (W32 saved offer details, W33 offer over time, W34 ongoing Offer detail, W35 add places).
-assertBuild(visibleScreens.length === 29, `expected 29 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 14 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 14 client / 13 admin / 2 editorial`);
+// 33 = the 25-screen August set + four standing-commitment screens (W32–W35)
+// + the four exchange/template screens (W28–W31, register #97).
+assertBuild(visibleScreens.length === 33, `expected 33 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 18 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 18 client / 13 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
@@ -377,6 +329,10 @@ body{margin:0;background:var(--canvas);color:var(--ink);
   border-radius:8px;padding:5px 12px;font:600 12.5px inherit;cursor:pointer;min-height:44px}
 .chromebtn:hover{color:var(--ink)}
 .chromebtn[aria-pressed="true"]{border-color:var(--accent-ink);color:var(--ink)}
+.chromebtn .tb{display:none;align-items:center;gap:7px}
+.chromebtn[aria-pressed="false"] .tb-dark{display:inline-flex}
+.chromebtn[aria-pressed="true"] .tb-light{display:inline-flex}
+.chromebtn svg{width:15px;height:15px;fill:currentColor;flex:none}
 #tab-doc,#tab-play,#tab-screens{display:none}
 #tab-doc.on,#tab-play.on,#tab-screens.on{display:block}
 
@@ -397,7 +353,16 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .tick{color:var(--accent-ink);font-weight:700}
 .sbt{font-weight:650;font-size:14px}
 .sbm{font-size:11.5px;color:var(--stone)}
-.surface-badge{width:max-content;margin-top:4px;border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:650;color:var(--accent-ink)}
+.chapter-h{margin:20px 0 8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.catalog-panel .chapter-h:first-of-type{margin-top:6px}
+.cardchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:7px}
+.role-chip{border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:650;color:var(--accent-ink)}
+.nextline{font-size:11px;color:var(--stone);margin-top:2px}
+.chapter-fold{border:1px dashed var(--line);border-radius:10px;padding:2px 12px 8px;margin:20px 0 8px}
+.chapter-fold summary{cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;list-style:revert}
+.chapter-fold summary .chapter-h{margin:0}
+.chapter-fold .fold-hint{font-size:11px;color:var(--stone)}
+.chapter-fold[open]{padding-bottom:12px}
 .screenkey{font:700 10.5px ui-monospace,Menlo,monospace;color:var(--accent-ink);letter-spacing:.04em}
 #stage,#expstage{display:none}
 #stage.on,#expstage.on{display:block}
@@ -529,6 +494,7 @@ nav.doc a.on{background:var(--panel);color:var(--accent-ink)}
 #tab-doc section{margin:0 0 44px;scroll-margin-top:64px}
 #tab-doc h2{font-size:17.5px;margin:34px 0 12px;padding-top:18px;border-top:1px solid var(--line);text-wrap:balance}
 #tab-doc section:first-of-type h2{border-top:0;padding-top:0}
+#tab-doc h3{font-size:14px;margin:20px 0 6px}
 .sbnum{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:700;
   color:var(--accent-ink);background:var(--panel);border:1px solid var(--line);
   border-radius:6px;padding:2px 7px;margin-right:6px;vertical-align:2px}
@@ -606,7 +572,7 @@ ${iconSprite()}
   <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Guided flows</button>
   <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screen library</button>
   <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Implementation reference</button>
-  <button class="chromebtn" id="themebtn" type="button" aria-pressed="false">Dark mode</button>
+  <button class="chromebtn" id="themebtn" type="button" aria-pressed="false"><span class="tb tb-dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5.5a8.5 8.5 0 0 0 8.5 8.5c.7 0 1.4-.09 2.06-.25A9.5 9.5 0 1 1 10.25 3.44 8.5 8.5 0 0 0 10 5.5z"/></svg>Dark mode</span><span class="tb tb-light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Light mode</span></button>
 </div>
 
 <div id="tab-play" class="on" role="tabpanel" aria-labelledby="tabbtn-play">
@@ -672,17 +638,15 @@ ${iconSprite()}
 <div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
 <div class="wrap">
 <nav class="doc" aria-label="Sections">
-  <div class="brand">Implementation reference<small>prototypes.md · 2026-07-25</small></div>
-  ${navSb}
-  ${navRef}
+  <div class="brand">Implementation reference<small>generated from the registry · 2026-08-10</small></div>
+  ${refNav}
 </nav>
 <main>
-<h1>${esc(h1)}</h1>
-<p class="sub">${new Set(SBS.map((b) => b.n)).size} storyboards composing the implemented legacy W1–W26 family and community CI-W frames, plus the seven planned §18 deltas/W27, missing-frame index, action inventory, and state-coverage matrix. Every claim cites file:line in the repo specs. Source of truth: <code>.plans/active/commitment-pooling/prototypes.md</code>.</p>
+<h1>Commitment Pooling: Implementation Reference</h1>
+<p class="sub">${visibleSbs.length} guided flows · ${visibleScreens.length} screens · ${distinctCalls} distinct contract calls, generated from the executable registry on every build — the same source the validator checks, so this page cannot drift from the prototypes. The retired hand-written reference (<code>prototypes.md</code>) stays in the repo as historical source material.</p>
 ${refToc}
 ${statusNote}
-${front.join("\n")}
-${sections}
+${refSections}
 </main>
 </div>
 </div>
