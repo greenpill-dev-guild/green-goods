@@ -179,6 +179,7 @@
     "contracts:pooling:rehearse:arbitrum-fork": "APP_ENV=development bun run --cwd packages/contracts test:fork:pooling:arbitrum",
     "contracts:settlement:verify-lane": "APP_ENV=development bun run --cwd packages/contracts test:fork:settlement-lane",
     "contracts:release:manifest": "APP_ENV=development bun run --cwd packages/contracts release:manifest",
+    "contracts:release:operator": "APP_ENV=development bun run --cwd packages/contracts release:operator",
     "contracts:release:core:plan:arbitrum": "APP_ENV=development bun run --cwd packages/contracts release:core:plan:arbitrum",
     "contracts:release:ownership:plan:arbitrum": "APP_ENV=development bun run --cwd packages/contracts release:ownership:plan:arbitrum",
     "contracts:release:ownership:dry:arbitrum": "APP_ENV=development bun run --cwd packages/contracts release:ownership:dry:arbitrum",

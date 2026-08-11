@@ -20,10 +20,11 @@ endpoint rehearsal where useful, Arbitrum One, then Celo. These waivers do not a
 broadcast or collapse the separate core-unpause, message-only ping, Safe/Zodiac value-authority,
 minimum-value canary, and cap/unpause decisions.
 
-The approved product sequence treats the verified non-value broadcast plus indexer
-deployment/reindex/live read-back as the handoff into scoped existing-admin fixes and polish.
-Commitment Pooling runtime UI implementation follows that foundation work. This sequencing does
-not weaken either broadcast gate or make the value tier a prerequisite for the non-settlement UI.
+The approved product sequence treats verified contract receipts and the exact indexer
+address/start-block artifact diff as the handoff to PRD-722. The currently hosted production
+indexer is older and remains untouched by this release ceremony; PRD-722 separately owns its
+configuration, deployment/reindex, cutover/rollback, and live read-back. Commitment Pooling runtime
+UI work follows the proven backend sequence without making the value tier a prerequisite.
 
 ## Outputs
 
@@ -32,9 +33,9 @@ not weaken either broadcast gate or make the value tier a prerequisite for the n
   and `GardenToken`/`WorkApprovalResolver` upgrades, reverse wiring, pool backfill, and the
   separately gated pooling unpause.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
-- For every authorized broadcast: signer set, transaction hash, block, artifact diff, bytecode/proxy/admin/peer verification, exact indexer update, pause state, and rollback owner.
-- For the non-value tier: verified Envio deployment configuration, completed reindex/cutover, and
-  live entity/query read-back suitable for the downstream admin-foundation and UI lanes.
+- For every authorized broadcast: signer set, transaction hash, block, artifact diff,
+  bytecode/proxy/admin/peer verification, pause state, rollback owner, and an exact indexer
+  address/start-block handoff. No hosted indexer mutation occurs in this lane.
 - For the value tier: live official-directory route evidence, message-only ping/ack, calibrated delivery/acknowledgment service windows, native ETH/CELO fee-reserve health, audited Safe/Zodiac bounds, matching measured batch limits, a manual-execution runbook, minimum-value canary, observation record, and one authenticated-acknowledgment G$ exit proof.
 
 ## Proof limit
@@ -81,15 +82,15 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       `CommitmentRegistry` and `CommitmentPoolingModule` proxies paused; wire and verify their
       dependencies; reconcile the exact Community Testimony registry record; activate its
       verified module only after its UID and record are exact; set the final non-zero,
-      pairwise-distinct schema UIDs; verify dependency/schema/proxy state; transfer and verify every
-      touched UUPS/admin owner on the approved protocol Safe target; and keep the pooling module paused
-      through the integration upgrades.
+      pairwise-distinct schema UIDs; verify dependency/schema/proxy state; and keep the pooling
+      module paused through the integration upgrades.
    3. **Integration upgrades and backfill**: upgrade the existing `GardenToken` and
       `WorkApprovalResolver` proxies in place; wire `setCommitmentPoolingModule` and
       `setCommitmentModule`; prove updater preservation plus post-upgrade storage, ownership,
-      both-direction wiring, and rollback state while pooling remains paused; register and
-      backfill the approved 18-account live pool inventory with protocol root token 0; and only then pass the separately authorized core
-      unpause gate.
+      both-direction wiring, and rollback state while pooling remains paused; then transfer and
+      verify every touched UUPS/admin owner on the exact approved 2-of-6 protocol Safe, register and
+      backfill the approved 18-account live pool inventory with protocol root token 0, and only then
+      pass the separately authorized core unpause gate.
 
    **Blocked release-order seam (updated 2026-08-11).** The frozen merged ABI gates `registerPool`
    behind `whenOperational`. A separate ABI/storage-neutral contracts increment (`5e70654c3`)
@@ -235,82 +236,120 @@ inaccurate. It is replaced, not waived, by:
 
 ## Exact Bun commands
 
-All commands below are wrappers implemented and `--help`-checked in Phase A. Plan, dry-run,
-recovery, and verification forms do not broadcast. Commands whose name contains `deploy`, or an
-unqualified Phase B action, still require the exact per-stage authorization record described in
-this handoff.
+All commands are repository Bun wrappers. The planning and verification commands below do not
+broadcast. The operator-session commands are templates only: each use still requires an explicit
+authorization naming the pinned commit, chain, stage, signer/owner, artifact diff, rollback
+checkpoint, and window.
 
-Manifest and dependency plan:
+### Phase A and immediate pre-stage planning (no password)
 
-- `bun run contracts:release:manifest`
-- `bun run contracts:release:core:plan:arbitrum`
+```bash
+bun run contracts:release:manifest
+bun run contracts:release:core:plan:arbitrum
+bun run contracts:pooling:schemas:preview:arbitrum
+bun run contracts:assessment:upgrade:dry:arbitrum
+bun run contracts:pooling:deploy:dry:arbitrum
+bun run contracts:pooling:upgrade:dry:arbitrum
+bun run contracts:pooling:backfill:dry:arbitrum
+bun run contracts:settlement:module:plan:arbitrum
+bun run contracts:settlement:module:dry:arbitrum
+bun run contracts:credit:registry:plan:arbitrum
+bun run contracts:credit:registry:dry:arbitrum
+bun run contracts:settlement:executor:plan:celo
+bun run contracts:settlement:executor:dry:celo
+bun run contracts:settlement:safe:plan:celo
+bun run contracts:settlement:safe:dry:celo
+bun run contracts:settlement:peer:plan:arbitrum
+bun run contracts:settlement:peer:plan:celo
+bun run contracts:release:verify:plan:arbitrum
+bun run contracts:release:verify:plan:celo
+bun run contracts:release:indexer:handoff
+```
 
-Resolver, pooling, and upgrade preparation:
+Rebuild every nonce-bound plan immediately before its authorized stage:
 
-- `bun run contracts:pooling:schemas:preview:arbitrum`
-- `bun run contracts:pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
-- `bun run contracts:assessment:upgrade:dry:arbitrum`
-- `bun run contracts:assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
-- `bun run contracts:pooling:deploy:dry:arbitrum`
-- `bun run contracts:pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
-- `bun run contracts:pooling:upgrade:dry:arbitrum`
-- `bun run contracts:pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>`
-- `bun run contracts:pooling:backfill:dry:arbitrum`
+```bash
+bun run contracts:assessment:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+bun run contracts:pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+bun run contracts:pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+bun run contracts:pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+bun run contracts:release:ownership:plan:arbitrum
+```
 
-Settlement and credit preparation:
+### Phase B deployer session (one password entry)
 
-- `bun run contracts:settlement:module:plan:arbitrum`
-- `bun run contracts:settlement:module:dry:arbitrum`
-- `bun run contracts:credit:registry:plan:arbitrum`
-- `bun run contracts:credit:registry:dry:arbitrum`
-- `bun run contracts:settlement:executor:plan:celo`
-- `bun run contracts:settlement:executor:dry:celo`
-- `bun run contracts:settlement:safe:plan:celo`
-- `bun run contracts:settlement:safe:dry:celo`
-- `bun run contracts:settlement:peer:plan:arbitrum`
-- `bun run contracts:settlement:peer:plan:celo`
+Start exactly one session from a clean checkout at the authorized candidate:
 
-Courier, recovery, verification, and indexer handoff:
+```bash
+bun run contracts:release:operator -- --commit <pinned-40-character-candidate>
+```
 
-- `bun run contracts:settlement:dual-chain:up`
-- `bun run contracts:settlement:courier`
-- `bun run contracts:settlement:dual-chain:down`
-- `bun run contracts:release:recover:plan:arbitrum`
-- `bun run contracts:release:recover:plan:celo`
-- `bun run contracts:release:verify:plan:arbitrum`
-- `bun run contracts:release:verify:plan:celo`
-- `bun run contracts:release:verify:arbitrum`
-- `bun run contracts:release:verify:celo`
-- `bun run contracts:release:indexer:handoff`
+The session checks HEAD and cleanliness before unlocking, prompts once, verifies that the Foundry
+keystore resolves to `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`, and keeps the password only in
+a mode-0600 temporary password file for the life of the session. It accepts no raw Forge, shell,
+private-key, password, account, keystore, RPC, network, sender, or arbitrary-script input. Each
+script accepts only the exact arguments shown below. It deletes the temporary credential file on
+normal exit and handled termination. A failed wrapper closes the session.
 
-Validation:
+Inside `release>`, run only the separately authorized boundary. Repeat a template with the next
+reviewed boundary/nonce only after the prior wrapper has persisted and verified its receipt:
 
-- `bun run --filter @green-goods/contracts lint:check`
-- `bun run --filter @green-goods/contracts test`
-- `bun run --filter @green-goods/contracts test:script`
-- `bun run --filter @green-goods/contracts build:full`
-- `bun run --filter @green-goods/indexer check:indexing-boundary`
-- `bun run --filter @green-goods/indexer build`
-- `bun run --filter @green-goods/indexer cloud:release -- --help`
-- `bun run --filter @green-goods/indexer cloud:release -- plan --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>`
-- `bun run --filter @green-goods/indexer cloud:release -- preflight --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>`
-- `bun run contracts:settlement:verify-lane` — read-only Arbitrum One↔Celo Mainnet CCIP lane
-  verification against both real routers. No broadcast, no deployment, no funds. Re-run this
-  immediately before any value authority is granted; a lane that was live in August is not
-  evidence that it is live today.
+```text
+run assessment:upgrade:arbitrum --plan <reviewed-assessment-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
+run pooling:schemas:arbitrum --artifact <reviewed-preparation-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
+run pooling:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
+run pooling:finalize:arbitrum --artifact <reviewed-finalization-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
+run settlement:module:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
+run credit:registry:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
+run pooling:upgrade:arbitrum --plan <reviewed-integration-upgrade-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
+run release:ownership:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
+```
 
-The installed local HyperIndex CLI still has no hosted `deploy` command. The repository now wraps
-Envio's separate alpha `envio-cloud` CLI without installing it or using `npx`. Its live preflight
-must prove the exact organisation/indexer/branch/root/config/commit and `autoDeploy=false`.
-Deployment, production promotion, and rollback are distinct wrapper actions with distinct Phase B
-authorization values. No command in this handoff authorizes one of those actions.
+Ownership transfer is the final deployer-signed Arbitrum action. After it verifies, the Safe owner
+submits each reviewed backfill transaction; the Bun wrapper verifies the supplied Safe receipt and
+does not use or infer a deployer credential:
+
+```text
+run pooling:backfill:arbitrum --plan <reviewed-backfill-plan.json> --step <i> --expected-safe-nonce <n> --receipt <safe-exec-transaction-hash> --override-sepolia-gate
+```
+
+The separately authorized paused Celo candidate can use the same still-open operator session, or a
+new authorized session with one new password entry if its broadcast window is later:
+
+```text
+run settlement:executor:deploy:celo --step <i> --expected-nonce <n> --override-sepolia-gate
+run release:ownership:celo --step <i> --expected-nonce <n> --override-sepolia-gate
+```
+
+No peer-wiring, Safe/Zodiac grant, message-only ping, unpause, canary, or cap-increase broadcast
+command is listed: those separately gated paths remain unavailable until their exact facts and
+reviewed wrappers exist. Do not substitute an ad hoc command.
+
+### Recovery, verification, courier, and indexer handoff
+
+```bash
+bun run contracts:settlement:dual-chain:up
+bun run contracts:settlement:courier
+bun run contracts:settlement:dual-chain:down
+bun run contracts:release:recover:plan:arbitrum
+bun run contracts:release:recover:plan:celo
+bun run contracts:release:verify:arbitrum
+bun run contracts:release:verify:celo
+bun run contracts:release:indexer:handoff
+bun run contracts:settlement:verify-lane
+```
+
+`contracts:release:indexer:handoff` emits only the verified SettlementModule and
+CeloSettlementExecutor address/start-block diff. The hosted production indexer is intentionally
+unchanged. Live PRD-722 is the active indexer lane and owns codegen, configuration, reindex,
+deployment, cutover/rollback, and read-back; this handoff contains no hosted deployment command.
 
 ## Current live-state blockers
 
 - The protocol Safe at `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` was re-read as the exact
-  approved **2-of-6** owner set. Repository contracts guidance still requires at least **3-of-5**
-  for protocol mainnet authority, so ownership transfer remains blocked until the guidance conflict
-  is explicitly resolved.
+  approved **2-of-6** owner set. Repository policy now requires threshold >= 2 and owner count >= 3,
+  so this exact set satisfies the guide; every live owner and the threshold still require re-read
+  before ownership transfer.
 - The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
   protocol root token 0. The backfill entrypoint now proves those facts and then stops only on the
   pending human-reviewed merge of contracts increment `5e70654c3`.
@@ -322,9 +361,8 @@ authorization values. No command in this handoff authorizes one of those actions
   atomic path is measured through that live-authority policy.
 - Garden Safe/owner/recovery and Zodiac Roles/cap/fee/reserve facts are incomplete; value authority
   is disabled.
-- The exact Envio Cloud organisation, indexer, deployment branch, final commit, prior production
-  commit, and authenticated operator context remain unavailable. The operator path exists, but it
-  is not yet a frozen live target.
+- The hosted production indexer is the older deployment and is deliberately outside this contracts
+  ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
 These are blockers, not Phase B instructions. No operator should use this handoff until a pinned
 candidate report shows their resolution and a new exact stage authorization names the commit,
@@ -384,7 +422,8 @@ chain, signer/owner, artifact diff, rollback checkpoint, and window.
 ## Acceptance
 
 - No broadcast or Safe grant occurs without an artifact-specific authorization record.
-- Indexer config includes only Green Goods Arbitrum/Celo settlement events; raw G$ transfers remain excluded.
+- The PRD-722 handoff includes only Green Goods Arbitrum/Celo settlement events and excludes raw G$
+  transfers; hosted configuration and deployment remain PRD-722 work.
 - Same-key transport retries do not duplicate value and acknowledgment retry does not touch value.
 - One capped real flow reaches Arbitrum `Confirmed` only after the authenticated success acknowledgment, and the UI renders “support arrived” only then.
 - Any unavailable evidence leaves the value leg blocked.

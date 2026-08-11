@@ -1411,10 +1411,10 @@ retry.
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); only the accountable lead provider is the exposure/count subject (§6.2) |
-| Register admin | `setModule` | register owner: protocol 3-of-5 Safe before any mainnet activation | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
-| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner: protocol 3-of-5 Safe before this lane's mainnet upgrade | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
-| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: protocol 3-of-5 Safe before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
-| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | protocol 3-of-5 Safe | UUPS convention repo-wide; existing Assessment initializer is never re-run |
+| Register admin | `setModule` | register owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before any mainnet activation | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before this lane's mainnet upgrade | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
+| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
 **Ownership and release gate (amended 2026-08-10; supersedes the 2026-08-02 external-audit,
 timelock, and soak requirements for this wave).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
@@ -1926,7 +1926,7 @@ Comment style follows `packages/contracts/src/modules/CookieJar.sol:55-59`.
 
 Gap: `uint256[44] private __gap;` (6 named + 44 reserved = 50 total).
 
-Ownership note: the decision language "owned by the module" is implemented as an `onlyModule` mutation gate (same shape as `onlyGardenToken`, `packages/contracts/src/modules/CookieJar.sol:65-68`). The `OwnableUpgradeable` owner stays the protocol upgrade owner, like every other upgradeable contract in the repo (`_authorizeUpgrade onlyOwner`, `packages/contracts/src/modules/CookieJar.sol:302-304`) — the protocol 3-of-5 Safe required by §6.1 before this lane's mainnet activation. If the owner were the module, nobody could upgrade the register.
+Ownership note: the decision language "owned by the module" is implemented as an `onlyModule` mutation gate (same shape as `onlyGardenToken`, `packages/contracts/src/modules/CookieJar.sol:65-68`). The `OwnableUpgradeable` owner stays the protocol upgrade owner, like every other upgradeable contract in the repo (`_authorizeUpgrade onlyOwner`, `packages/contracts/src/modules/CookieJar.sol:302-304`) — the exact approved protocol Safe satisfying the §6.1 minimum before this lane's mainnet activation. If the owner were the module, nobody could upgrade the register.
 
 #### Interface (canonical)
 
@@ -4077,7 +4077,7 @@ repeats the schema-key pattern; nothing may ever rewrite an existing key (the
     `Fulfilled`; its units argument does not imply partial-fulfillment readiness. A module v1.1
     must separately specify remaining-slot semantics, register transitions, events, and indexer
     deltas before permitting partial conversion.
-12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the protocol 3-of-5 Safe required by §6.1 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
+12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the exact approved Safe satisfying §6.1's threshold >= 2 and owner count >= 3 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 
 ---
 

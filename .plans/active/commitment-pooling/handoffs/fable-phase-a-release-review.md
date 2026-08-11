@@ -4,7 +4,8 @@
 
 - Reviewer: Fable 5
 - Owner: Afolabi Aiyeloja
-- State: queued; not dispatchable until every activation-gate field below is exact
+- State: dispatched by Afolabi Aiyeloja on 2026-08-11 against the then-current `de7863391`
+  candidate; informative review in flight, but not a final-candidate disposition
 - Best review point: after the paused-registration contracts increment is human-reviewed and merged,
   the release branch is rebased on that merge, all manifests/locks are regenerated, and the full
   Phase A gate is green; before any Phase B authorization request
@@ -15,6 +16,13 @@
 This is an additional independent review of the final combined Phase A candidate. It complements
 the accountable internal committed-range review selected by the August 10 owner decision; it is
 not a commissioned external audit and is never broadcast authority.
+
+**Post-dispatch scope correction (2026-08-11).** Repository policy is now threshold >= 2 with at
+least 3 owners, and the exact live 2-of-6 protocol Safe is approved. Hosted production-indexer
+deployment is removed from this release lane; PRD-722 owns that later work and receives only the
+contract address/start-block handoff here. Because this correction changes the candidate after
+dispatch, the in-flight response may inform remediation but cannot certify the final commit. Refresh
+the exact-range review after the paused-registration merge, lock regeneration, and final gates.
 
 ## Activation gate
 
@@ -28,8 +36,7 @@ or the artifact hashes do not match the pinned commit.
 - Manifest hash: `[0x-prefixed 32-byte hash]`
 - Release lock path/hash: `[path]` / `[0x-prefixed 32-byte hash]`
 - Protocol Safe decision/policy disposition: `[exact recorded disposition]`
-- Envio Cloud target: `[organisation/indexer/branch/root/config/commit]`
-- Previous production indexer commit: `[40-character rollback commit]`
+- Indexer handoff: `PRD-722; exact contract address/start-block diff only; no hosted deployment`
 - Validation receipt: `[new final Phase A report path]`
 
 Before review, prove the paused-registration increment derived from `5e70654c3` is an ancestor of
@@ -47,7 +54,7 @@ uncommitted files, later commits, commit messages as evidence, or either impleme
 Read the root `AGENTS.md`, package guides for contracts and indexer, the complete active Commitment
 Pooling and Commitment Credit hubs, the three frozen specs, the final Phase A report, combined
 manifest/lock, deployment wrappers, artifact merge/recovery code, courier fixture, post-deploy
-verifiers, indexer Cloud wrapper, and every changed file in the exact range. Read actual code.
+verifiers, inert PRD-722 indexer handoff, and every changed file in the exact range. Read actual code.
 
 The architecture is frozen: Arbitrum holds commitment/payout/credit truth; SettlementModule sends
 message-only authenticated CCIP commands; CeloSettlementExecutor invokes bounded Safe/Zodiac
@@ -74,15 +81,15 @@ Review these lanes independently and then as one transaction sequence:
 5. Persistence and recovery: first run, replay, stale side file, interrupted write, on-chain-success/
    local-write-failure, code-hash mismatch after retry, preservation of unrelated historical Celo
    keys, and canonical artifact mutation during simulation.
-6. Indexer and cutover: Green Goods settlement events only, exact address/start-block diff, full
-   reindex semantics, deploy versus promotion separation, read-back convergence, previous production
-   version rollback, and any possibility that a Git push or dry-run activates production.
+6. Indexer boundary: Green Goods settlement events only, exact address/start-block diff, no raw G$
+   indexing, no hosted deployment/reindex/cutover command in this release lane, and an unambiguous
+   PRD-722 handoff. Flag any path by which a Git push or dry-run could activate production.
 7. Review provenance: exact committed range, generated ABI/storage/event/lock equality, current live
    read-only evidence, proposed signer/owner/window/rollback checkpoint, and whether any claim uses
    dry-run language as deployed or Celo execution as paid.
 
 Use only repository Bun wrappers. Do not run raw Forge. You may run read-only local/fork/live
-inspection, but no mutating command and no Envio deploy/promote/rollback action. Re-run the exact
+inspection, but no mutating command and no hosted-indexer action. Re-run the exact
 help and validation commands named by the final report rather than inventing commands.
 
 Report numbered findings first, ordered Critical, High, Medium, Low. Each finding must include the

@@ -183,7 +183,7 @@ Commitment Pooling / Settlement / Credit release targets
   settlement-peer         Plan peer wiring after fresh bidirectional lane proof
   release-recover         Print the recovery command and exact expected identities
   release-verify          Run the release post-deploy verifier (read-only)
-  indexer-handoff         Produce an inert Envio address/start-block activation plan
+  indexer-handoff         Produce an inert PRD-722 address/start-block handoff (no hosted deploy)
 
 Release options:
   --network <name>        Exact target network (arbitrum or celo as documented above)
@@ -275,7 +275,7 @@ Phase B boundary form (not authorized by Phase A):
       console.log(`Frozen release lock matches: ${LOCK_PATH}`);
     }
     console.log("Safe/Zodiac authority: disabled; no value-authority transaction can be built from this manifest");
-    console.log("Indexer activation: disabled; handoff generation is inert");
+    console.log("Indexer deployment: outside this lane; PRD-722 handoff generation is inert");
   }
 
   private protocolCore(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): void {
@@ -1053,15 +1053,7 @@ Phase B boundary form (not authorized by Phase A):
       safeFactoryCelo: null,
     };
     const liveBlockers: string[] = [];
-    const policyBlockers: string[] = [];
     const approvedSafe = manifest.ownership.protocolSafeConfiguration;
-    if (approvedSafe.guidePolicyStatus !== "satisfied") {
-      policyBlockers.push(
-        `owner-approved protocol Safe threshold ${approvedSafe.threshold}-of-${approvedSafe.owners.length} is below ` +
-          `the contracts guide minimum ${approvedSafe.contractsGuideMinimumThreshold}-of-${approvedSafe.contractsGuideMinimumOwnerCount}; ` +
-          "release readiness requires an explicit guidance exception",
-      );
-    }
     if (!options.pureSimulation) {
       const safeAbi = [
         "function getOwners() view returns (address[])",
@@ -1147,9 +1139,7 @@ Phase B boundary form (not authorized by Phase A):
       transactions: [],
       liveEvidence,
       liveBlockers,
-      policyBlockers,
       blockedUntil: [
-        `explicit contracts-guide exception for the owner-approved ${approvedSafe.threshold}-of-${approvedSafe.owners.length} protocol Safe target`,
         "exact garden Safe owners and threshold",
         "exact recovery configuration",
         "Zodiac Roles modifier address, role key, allowance key, and condition-tree hash",
@@ -1161,8 +1151,8 @@ Phase B boundary form (not authorized by Phase A):
     writeGenerated(filePath, plan);
     console.log(stable(plan));
     console.log(`Inert Safe/Zodiac plan written: ${filePath}`);
-    if (liveBlockers.length > 0 || policyBlockers.length > 0) {
-      throw new Error(`Safe/Zodiac preflight blocked: ${[...liveBlockers, ...policyBlockers].join("; ")}`);
+    if (liveBlockers.length > 0) {
+      throw new Error(`Safe/Zodiac preflight blocked: ${liveBlockers.join("; ")}`);
     }
   }
 
@@ -1271,40 +1261,12 @@ Phase B boundary form (not authorized by Phase A):
           startBlock: "RECEIPT_REQUIRED",
         },
       ],
-      commandsAfterSeparateAuthorization: [
-        "cd packages/indexer && bun run codegen",
-        "cd packages/indexer && bun run check:indexing-boundary",
-        "cd packages/indexer && bun run test",
-        "cd packages/indexer && bun run build",
-        "cd packages/indexer && bun run cloud:release -- plan --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>",
-        "cd packages/indexer && bun run cloud:release -- preflight --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch>",
-        "cd packages/indexer && bun run cloud:release -- verify --org <frozen-org> --indexer <frozen-indexer> --commit <pinned-commit> --previous-production-commit <rollback-commit> --expected-branch <frozen-branch> --wait-till-synced",
-        "read back SettlementExecution and SettlementAcknowledgment by execution key",
-      ],
-      hostedActivation: {
-        operator: manifest.indexer.cloud.operator,
-        lifecycle: manifest.indexer.cloud.operatorLifecycle,
-        context: {
-          organisation: manifest.indexer.cloud.organisation,
-          indexer: manifest.indexer.cloud.indexer,
-          branch: manifest.indexer.cloud.deploymentBranch,
-          commit: manifest.indexer.cloud.deploymentCommit,
-          previousProductionCommit: manifest.indexer.cloud.previousProductionCommit,
-          rootDir: manifest.indexer.cloud.rootDir,
-          configFile: manifest.indexer.cloud.configFile,
-          autoDeploy: manifest.indexer.cloud.autoDeploy,
-        },
-        status: manifest.indexer.cloud.liveContextStatus,
-        toolStatus: manifest.indexer.cloud.toolStatus,
-        boundary:
-          "The repo wrapper never installs the alpha CLI. Deploy, production promotion, and rollback each require their own exact Phase B authorization value.",
-      },
-      blockers: [
-        "freeze the live Envio Cloud organisation, indexer, deployment branch, final commit, and prior production commit",
-        "prove the separately installed alpha CLI is authenticated to that exact organisation",
-        "keep auto-deploy disabled so a Git push is not an activation",
-      ],
-      cutoverRule: "Do not cut over until addresses and receipt start blocks pass release-verify on both chains.",
+      ownerLane: manifest.indexer.ownerLane,
+      handoffOnly: manifest.indexer.handoffOnly,
+      productionState: "The hosted production indexer is an older release and is intentionally unchanged here.",
+      nextAction:
+        "PRD-722 owns config/codegen/reindex/cutover/read-back and must consume this exact address/start-block diff after contract receipts verify.",
+      commands: [],
     };
     const filePath = path.join(GENERATED_ROOT, manifest.releaseId, "indexer-handoff.json");
     writeGenerated(filePath, plan);

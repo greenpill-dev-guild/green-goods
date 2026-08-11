@@ -16,7 +16,7 @@ order only, and a reader following the map could miss an active dispatch surface
 | `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Depends on core indexer GREEN |
 | `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
 | `codex-release-engineering.md` | Phase A manifest, deployment/recovery tooling, courier, and verification | Codex | Active; no broadcast or Linear writes |
-| `fable-phase-a-release-review.md` | Final combined Phase A committed-range adversarial review | Fable 5 | Queued after refreshed gates, before any Phase B request |
+| `fable-phase-a-release-review.md` | Final combined Phase A committed-range adversarial review | Fable 5 | Dispatched against `de7863391`; refresh required after candidate changes |
 | `claude-contracts-hardening.md` | Resolver wiring, cross-chain approach, and contract hardening follow-ups (PRD-799) | Claude | Runs alongside the contracts lane |
 | `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Blocked behind state/API |
 | `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Blocked behind state/API |

@@ -116,7 +116,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   check that GardenToken and WorkApprovalResolver report the same live owner before one plan
   persists.
 - Mainnet transaction planning fails closed unless the verified target owner is the protocol
-  3-of-5 Safe. A human-authorized ownership-transfer plan may start from the observed deployer EOA,
+  exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3. A human-authorized ownership-transfer plan may start from the observed deployer EOA,
   but it must be isolated, name every touched proxy, and verify Safe ownership before any upgrade,
   schema/module activation, or unpause plan can persist. Release evidence additionally binds the
   repository's external-audit, 48-hour timelock, two-week testnet-operation, and tested-rollback
@@ -180,7 +180,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   permits the initial zero → non-zero wiring only; later replacement requires the current module
   paused and emits exact old/new without touching accounting state. The frozen
   mainnet release plan additionally proves the external audit has no unresolved critical/high
-  finding, every touched UUPS/admin owner is the protocol 3-of-5 Safe, the 48-hour timelock and
+  finding, every touched UUPS/admin owner is the exact approved protocol Safe, the recorded timelock and
   two-week testnet-operation requirements passed, and rollback was tested before any broadcast or
   activation step is authorized.
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
@@ -385,7 +385,7 @@ reasons:
 1. `contract-spec.md` §6.1's ownership gate. The live proxies currently report deployer EOA
    `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`, but that address is valid **only** for
    the isolated, human-authorized ownership-transfer plan. Every other mainnet plan resolves its
-   sender from the verified protocol 3-of-5 Safe.
+   sender from the verified exact approved protocol Safe.
 2. `upgrade.ts` cannot yet enforce that. Today it accepts `--sender` optionally, silently falls back
    to `process.env.SENDER_ADDRESS`, persists `sender: … ?? null` (`script/upgrade.ts:424`), and
    never reads `owner()`. An unsubstituted placeholder therefore does not fail closed — it persists

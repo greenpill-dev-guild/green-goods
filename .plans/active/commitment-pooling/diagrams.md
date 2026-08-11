@@ -2098,7 +2098,7 @@ classDiagram
     +createCommitment() / claimCommitment()
     +acceptClaim() / confirmFulfillment()
     +resolveDispute() / validateRecognitionSnapshot()
-    owner: protocol 3-of-5 Safe before activation
+    owner: exact approved protocol Safe (threshold >= 2, owners >= 3) before activation
   }
   class CommitmentRegistry {
     <<net-new UUPS proxy>>
@@ -2160,7 +2160,7 @@ classDiagram
   note for CeloSettlementExecutor "Zodiac Roles member, never a Safe owner"
 ```
 
-Ownership at a glance: the three live proxies currently expose the deployer EOA as observed `owner()`, but this lane cannot upgrade or activate them until protocol UUPS/admin authority is transferred to and verified on the 3-of-5 Safe. Net-new Arbitrum proxies remain paused and likewise require verified Safe ownership before activation. External audit, the 48-hour mainnet timelock, two weeks of testnet operation, and tested rollback remain blocking for the pooling tier; the Celo executor's production owner is the approved timelock. No contract enumerates cycles or claims to make a transition, and no owner has a value-moving bypass on the settlement path.
+Ownership at a glance: the three live proxies currently expose the deployer EOA as observed `owner()`, but this lane cannot activate them until protocol UUPS/admin authority is transferred to and verified on the exact approved Safe. Repository policy requires threshold >= 2 and owner count >= 3; this release freezes the exact live 2-of-6 set. Net-new Arbitrum proxies remain paused and likewise require verified Safe ownership before activation. The August 10 review/timelock/soak dispositions and tested rollback remain binding for the pooling tier; the Celo executor's production owner follows the approved release manifest. No contract enumerates cycles or claims to make a transition, and no owner has a value-moving bypass on the settlement path.
 
 ## D25. Error taxonomy — surface and recovery map
 

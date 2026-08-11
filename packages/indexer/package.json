@@ -17,7 +17,6 @@
     "start": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio start",
     "stop": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "doctor": "node ../../scripts/dev/doctor.js --profile full",
-    "cloud:release": "bun scripts/envio-cloud-release.ts",
     "check:indexing-boundary": "node scripts/check-indexing-boundary.mjs",
     "db:up": "node ../../scripts/dev/node-cli.js envio local docker up",
     "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",

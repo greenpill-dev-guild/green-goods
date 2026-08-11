@@ -62,7 +62,7 @@ export interface ReleaseManifest {
       ownerDecisionDate: string;
       contractsGuideMinimumThreshold: string;
       contractsGuideMinimumOwnerCount: string;
-      guidePolicyStatus: "blocked-pending-explicit-guidance-exception" | "satisfied";
+      guidePolicyStatus: "satisfied";
     };
     rollbackOwnerBeforeTransfer: string;
     rollbackOwnerAfterTransfer: string;
@@ -132,20 +132,8 @@ export interface ReleaseManifest {
   indexer: {
     activationAuthorized: boolean;
     configHash: string;
-    cloud: {
-      operator: "envio-cloud";
-      operatorLifecycle: "separate-deploy-promote-rollback";
-      organisation: string | null;
-      indexer: string | null;
-      deploymentBranch: string | null;
-      deploymentCommit: string | null;
-      previousProductionCommit: string | null;
-      rootDir: "packages/indexer";
-      configFile: "config.yaml";
-      autoDeploy: false;
-      liveContextStatus: "blocked-pending-live-cloud-context" | "frozen";
-      toolStatus: "external-alpha-cli-not-installed-by-repo";
-    };
+    ownerLane: "PRD-722";
+    handoffOnly: true;
     networks: unknown[];
     reindex: string;
     cutover: string;
@@ -269,12 +257,11 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   const guideMinimumOwners = BigInt(safeConfiguration.contractsGuideMinimumOwnerCount);
   const targetThreshold = BigInt(safeConfiguration.threshold);
   const targetOwnerCount = BigInt(safeConfiguration.owners.length);
-  const guideSatisfied = targetThreshold >= guideMinimum && targetOwnerCount >= guideMinimumOwners;
-  if (
-    (!guideSatisfied && safeConfiguration.guidePolicyStatus !== "blocked-pending-explicit-guidance-exception") ||
-    (guideSatisfied && safeConfiguration.guidePolicyStatus !== "satisfied")
-  ) {
-    throw new Error("Protocol Safe guide policy status does not match the frozen threshold decision");
+  if (targetThreshold < guideMinimum || targetOwnerCount < guideMinimumOwners) {
+    throw new Error(`Protocol Safe must have threshold >= ${guideMinimum} and owner count >= ${guideMinimumOwners}`);
+  }
+  if (safeConfiguration.guidePolicyStatus !== "satisfied") {
+    throw new Error("Protocol Safe guide policy status must be satisfied");
   }
 
   for (const [network, chain] of Object.entries(manifest.chains) as Array<[ReleaseNetwork, ChainManifest]>) {
@@ -439,38 +426,8 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   if (!/^0x[0-9a-f]{64}$/iu.test(manifest.indexer.configHash)) {
     throw new Error("indexer.configHash must freeze the exact packages/indexer/config.yaml hash");
   }
-  const cloud = manifest.indexer.cloud;
-  if (
-    cloud.operator !== "envio-cloud" ||
-    cloud.operatorLifecycle !== "separate-deploy-promote-rollback" ||
-    cloud.rootDir !== "packages/indexer" ||
-    cloud.configFile !== "config.yaml" ||
-    cloud.autoDeploy !== false ||
-    cloud.toolStatus !== "external-alpha-cli-not-installed-by-repo"
-  ) {
-    throw new Error("Indexer Cloud operator settings must remain exact and fail-closed");
-  }
-  const liveContextValues = [
-    cloud.organisation,
-    cloud.indexer,
-    cloud.deploymentBranch,
-    cloud.deploymentCommit,
-    cloud.previousProductionCommit,
-  ];
-  if (cloud.liveContextStatus === "blocked-pending-live-cloud-context") {
-    if (liveContextValues.some((value) => value !== null)) {
-      throw new Error("Blocked Envio Cloud context may not contain a partial live target");
-    }
-  } else {
-    if (liveContextValues.some((value) => typeof value !== "string" || value.length === 0)) {
-      throw new Error("Frozen Envio Cloud context requires exact organisation, indexer, branch, and commits");
-    }
-    if (!/^[0-9a-f]{40}$/u.test(cloud.deploymentCommit ?? "")) {
-      throw new Error("Frozen Envio Cloud deploymentCommit must be an exact 40-character SHA");
-    }
-    if (!/^[0-9a-f]{40}$/u.test(cloud.previousProductionCommit ?? "")) {
-      throw new Error("Frozen Envio Cloud previousProductionCommit must be an exact 40-character SHA");
-    }
+  if (manifest.indexer.ownerLane !== "PRD-722" || manifest.indexer.handoffOnly !== true) {
+    throw new Error("Indexer release scope must remain a PRD-722 handoff with no hosted deployment action");
   }
 }
 

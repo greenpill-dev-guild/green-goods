@@ -41,8 +41,8 @@ indexer, send a message-only ping, run a value canary, or write Linear.
    transaction boundary.
 4. The exact two-process local settlement courier and lifecycle fixture, with distinct processes
    and local chain identities and only serialized tuples/receipts crossing the boundary.
-5. Post-deploy verification and production activation/reindex/read-back plans that remain inert in
-   Phase A.
+5. Post-deploy verification plus an inert PRD-722 address/start-block handoff. Hosted indexer
+   deployment/reindex/cutover/read-back is outside this release-engineering lane.
 6. Fresh internal and Fable 5 committed-range adversarial release reviews of the final combined
    candidate, with no unresolved Critical or High finding.
 
@@ -62,9 +62,10 @@ indexer, send a message-only ping, run a value canary, or write Linear.
   retry, reorder, duplication, cancellation, peer rotation, malformed payload, and idempotent
   execution are covered.
 - Post-deploy verification for code/proxy/owner/initializer/pause/wiring/route/caps/indexer hashes,
-  plus an inert Envio handoff and Bun-wrapped Envio Cloud plan/preflight/verify/deploy/promote/
-  rollback lifecycle. The wrapper uses the separate alpha `envio-cloud` CLI only when it is already
-  installed and authenticated; it never installs it or treats deploy as production promotion.
+  plus an inert PRD-722 handoff carrying only exact contract addresses and receipt start blocks.
+- A Bun-only operator session verifies the pinned clean candidate and frozen deployer keystore,
+  prompts for its password once per session, and then permits only the documented deployment
+  wrappers. Each wrapper still executes one reviewed boundary and verifies it before another.
 
 ## Current blockers
 
@@ -79,10 +80,9 @@ rewrite frozen history, or mutate production state.
    intentionally emits no executable plan.
 2. The accountable owner approved the finalized 18-account GardenToken inventory (token IDs 0–17)
    and protocol root token 0. The manifest and live backfill inventory now match that decision.
-3. The live protocol Safe is exactly 2-of-6, and the accountable owner approved 2-of-6 for this
-   release. `packages/contracts/AGENTS.md` still requires at least 3-of-5 for protocol mainnet
-   authority. The manifest records the exact owner decision but the Safe preflight remains blocked
-   until that guide is explicitly amended or an explicit guidance exception is recorded.
+3. The live protocol Safe is exactly 2-of-6, and the accountable owner approved that exact set.
+   Repository policy is now threshold >= 2 with at least 3 owners, so the guide conflict is closed.
+   The manifest and verifier still require the exact six-owner set and threshold to match live.
 4. The live `AssessmentResolver` is not v3-capable. The nonce-pinned three-boundary plan now
    upgrades the proxy, pins the canonical v2 UID if live v2 is zero, and preserves v3 zero before
    schema finalization. A single pinned Arbitrum fork proves that sequence through dependent schema
@@ -92,16 +92,14 @@ rewrite frozen history, or mutate production state.
    measured with the final live Safe/Zodiac policy; peer planning remains blocked.
 6. Garden Safe owners, recovery tuples, Zodiac Roles modifier/key/conditions, allowances, caps,
    fee policy, and native reserve floors are incomplete. Value authority remains disabled.
-7. The Envio Cloud organisation, indexer, deployment branch, final commit, prior production commit,
-   and authenticated operator context are not yet frozen. The repo now wraps the official separate
-   alpha Cloud CLI, with auto-deploy disabled and distinct deploy/promote/rollback gates; no hosted
-   action has been run.
+7. The hosted production indexer is an older deployment and is intentionally outside this lane.
+   PRD-722 receives only the verified address/start-block diff and separately owns codegen,
+   configuration, deployment/reindex, cutover/rollback, and live read-back.
 
-The release-engineering lane remains blocked until the paused-registration increment merges, the
-protocol Safe guidance conflict is explicitly resolved, the final Safe/Zodiac/cap/fee facts and
-live-authority gas measurement are frozen, and the exact Envio Cloud context is proven. After the
-new combined base is pinned, regenerate the identity lock, rerun every gate, and conduct a fresh
-internal plus Fable 5 review before asking for any Phase B authorization.
+The release-engineering lane remains blocked until the paused-registration increment merges and the
+final Safe/Zodiac/cap/fee facts plus live-authority gas measurement are frozen. After the new
+combined base is pinned, regenerate the identity lock, rerun every gate, and conduct a fresh
+internal plus Fable 5 exact-range review before asking for any Phase B authorization.
 
 ## Approved owner decisions
 
@@ -117,8 +115,8 @@ internal plus Fable 5 review before asking for any Phase B authorization.
 - The 48-hour timelock is waived for this wave; Safe multisig approval remains required.
 - Approved GardenToken release inventory: all 18 finalized accounts (token IDs 0–17), with protocol
   root token 0.
-- Approved protocol Safe target: the exact live 2-of-6 owner set, subject to the still-blocking
-  repository guidance conflict described above.
+- Approved protocol Safe target: the exact live 2-of-6 owner set; it satisfies the repository
+  threshold >= 2 and owner count >= 3 minimum.
 - Rehearsal ladder: local/fork confidence, Ethereum Sepolia endpoint rehearsal where useful,
   Arbitrum One, then Celo. The former two-week soak is withdrawn.
 - Credit deployment binds SettlementModule and CreditRegistry in both directions. G$ credit stays
@@ -144,7 +142,8 @@ internal plus Fable 5 review before asking for any Phase B authorization.
 3. Add manifest and shared persistence/recovery primitives with adversarial entrypoint tests.
 4. Add selective deployment/configuration/verification targets.
 5. Add the exact dual-process courier fixture.
-6. Prepare indexer activation and read-back commands without activating production addresses.
+6. Produce only the PRD-722 contract-address/start-block handoff; do not add or run hosted indexer
+   deployment, reindex, cutover, or read-back commands in this lane.
 7. Run full repository gates and the committed-range adversarial review.
 
 ## Out of scope

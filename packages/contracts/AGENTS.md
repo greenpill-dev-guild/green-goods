@@ -163,7 +163,7 @@ function mint(address to) { ... }  // Defaults to public!
 
 ```solidity
 // ✅ Multi-sig + Timelock for admin actions
-// - Gnosis Safe (3-of-5 signers minimum)
+// - Gnosis Safe (at least a 2-signature threshold and at least 3 owners)
 // - Timelock delay (48h for mainnet, 24h for testnet)
 // - Emergency pause with separate guardian
 
@@ -446,14 +446,14 @@ For new contract work, deployment artifacts move through phases:
 ### Mainnet Additional Requirements (All Blocking)
 
 - External security audit completed — no unresolved critical/high findings
-- Protocol UUPS/admin ownership configured on a Gnosis Safe with a 3-of-5 minimum. This
-  rule governs protocol upgrade and administrative authority; it is not the threshold for
-  a garden's bounded operational settlement Safe.
-- A per-garden Celo settlement Safe may use the Commitment Pooling pilot's exact 2-of-3
-  recovery exception only when all three named owner roles, the scoped Roles/Allowance
-  selectors and caps, owner/executor separation, the recovery configuration hash, and live
-  post-deploy verification satisfy `settlement-spec.md`. The exception grants no protocol
-  upgrade authority and does not weaken the 3-of-5 protocol rule.
+- Protocol UUPS/admin ownership configured on a Gnosis Safe with a threshold of at least 2 and
+  at least 3 owners. The exact approved owner set and threshold must be frozen in the release
+  manifest and verified live; the current approved protocol target is exact 2-of-6. This rule
+  governs protocol upgrade and administrative authority, not a garden's bounded operational Safe.
+- A per-garden Celo settlement Safe uses the Commitment Pooling pilot's exact 2-of-3 recovery
+  policy only when all three named owner roles, the scoped Roles/Allowance selectors and caps,
+  owner/executor separation, the recovery configuration hash, and live post-deploy verification
+  satisfy `settlement-spec.md`. It grants no protocol upgrade authority.
 - Timelock delay: 48h mainnet, 24h testnet
 - Minimum 2 weeks testnet operation before mainnet
 - Rollback procedures documented and tested

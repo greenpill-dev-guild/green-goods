@@ -132,33 +132,16 @@ bun run check:indexing-boundary  # Verify indexing scope
 ### Envio Cloud deployment
 
 Production indexers are hosted by Envio Cloud and deployed from a configured Git branch. After
-the repository proof gates pass, use the repository wrapper to pin the live organisation, indexer,
-branch, full commit, monorepo root, and config file. The wrapper drives Envio's separate alpha
-`envio-cloud` CLI; it never installs that tool, never falls back to `npx`, and never reads or writes
-Envio credentials itself. Pushing code does not authorize deployment, reindexing, or endpoint
-cutover.
+the repository proof gates pass, select the approved branch/version in Envio Cloud and verify its
+hosted configuration and secrets before starting a full reindex. Pushing code does not authorize
+deployment, reindexing, or endpoint cutover.
 
 ```bash
 cd packages/indexer
 bun run codegen
 bun run build
 bun run test
-bun run cloud:release -- --help
-bun run cloud:release -- plan --org <frozen-org> --indexer <frozen-indexer> \
-  --commit <40-character-commit> --previous-production-commit <rollback-commit> \
-  --expected-branch <frozen-branch>
-bun run cloud:release -- preflight --org <frozen-org> --indexer <frozen-indexer> \
-  --commit <40-character-commit> --previous-production-commit <rollback-commit> \
-  --expected-branch <frozen-branch>
 ```
-
-The read-only preflight requires live `autoDeploy=false`, `rootDir=packages/indexer`,
-`configFile=config.yaml`, the exact branch, and the exact commit in Envio Cloud. Deployment,
-production promotion, and rollback are three distinct wrapper actions and require three distinct
-Phase B authorization values. A deployment starts a full reindex but does not promote the new
-endpoint. Verify the fully synced deployment and settlement execution-key/acknowledgment read-back
-before separately authorizing promotion. Rollback promotes the named prior production commit; it
-is not inferred from deploy or promotion approval.
 
 `bun run start` invokes `envio start` only for a production self-hosted runtime with externally
 managed PostgreSQL and Hasura. It is not the Green Goods Envio Cloud deployment command.

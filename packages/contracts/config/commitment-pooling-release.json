@@ -31,9 +31,9 @@
         "0xAcD59e854adf632d2322404198624F757C868C97"
       ],
       "ownerDecisionDate": "2026-08-11",
-      "contractsGuideMinimumThreshold": "3",
-      "contractsGuideMinimumOwnerCount": "5",
-      "guidePolicyStatus": "blocked-pending-explicit-guidance-exception"
+      "contractsGuideMinimumThreshold": "2",
+      "contractsGuideMinimumOwnerCount": "3",
+      "guidePolicyStatus": "satisfied"
     },
     "rollbackOwnerBeforeTransfer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
     "rollbackOwnerAfterTransfer": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
@@ -267,20 +267,8 @@
   "indexer": {
     "activationAuthorized": false,
     "configHash": "0xb3cfc35d0ff1152a7543c5209032ac4b118b08cbd2c916f6d62fdef0bb3b82b0",
-    "cloud": {
-      "operator": "envio-cloud",
-      "operatorLifecycle": "separate-deploy-promote-rollback",
-      "organisation": null,
-      "indexer": null,
-      "deploymentBranch": null,
-      "deploymentCommit": null,
-      "previousProductionCommit": null,
-      "rootDir": "packages/indexer",
-      "configFile": "config.yaml",
-      "autoDeploy": false,
-      "liveContextStatus": "blocked-pending-live-cloud-context",
-      "toolStatus": "external-alpha-cli-not-installed-by-repo"
-    },
+    "ownerLane": "PRD-722",
+    "handoffOnly": true,
     "networks": [
       {
         "evmChainId": "42161",

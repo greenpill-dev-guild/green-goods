@@ -12,6 +12,15 @@ describe("combined commitment release manifest", () => {
     expect(() => assertManifestMatchesNetworkDirectory(manifest)).not.toThrow();
     expect(BigInt(manifest.chains.arbitrum.ccipSelector).toString()).toBe(manifest.chains.arbitrum.ccipSelector);
     expect(BigInt(manifest.chains.celo.ccipSelector).toString()).toBe(manifest.chains.celo.ccipSelector);
+    expect(manifest.ownership.protocolSafeConfiguration).toMatchObject({
+      threshold: "2",
+      contractsGuideMinimumThreshold: "2",
+      contractsGuideMinimumOwnerCount: "3",
+      guidePolicyStatus: "satisfied",
+    });
+    expect(manifest.ownership.protocolSafeConfiguration.owners).toHaveLength(6);
+    expect(manifest.indexer).toMatchObject({ ownerLane: "PRD-722", handoffOnly: true });
+    expect(manifest.indexer).not.toHaveProperty("cloud");
   });
 
   it("rejects numeric selectors, duplicate schemas, and prematurely enabled authority", () => {
@@ -36,22 +45,23 @@ describe("combined commitment release manifest", () => {
     missingIndexerHash.indexer.configHash = "";
     expect(() => validateReleaseManifest(missingIndexerHash)).toThrow(/indexer.configHash/);
 
-    const autoDeploy = structuredClone(manifest);
-    autoDeploy.indexer.cloud.autoDeploy = true as false;
-    expect(() => validateReleaseManifest(autoDeploy)).toThrow(/operator settings/);
-
-    const partialCloudContext = structuredClone(manifest);
-    partialCloudContext.indexer.cloud.organisation = "greenpill-dev-guild";
-    expect(() => validateReleaseManifest(partialCloudContext)).toThrow(/partial live target/);
+    const indexerDeploymentScope = structuredClone(manifest);
+    indexerDeploymentScope.indexer.handoffOnly = false as true;
+    expect(() => validateReleaseManifest(indexerDeploymentScope)).toThrow(/PRD-722 handoff/);
 
     const duplicateSafeOwner = structuredClone(manifest);
     duplicateSafeOwner.ownership.protocolSafeConfiguration.owners[1] =
       duplicateSafeOwner.ownership.protocolSafeConfiguration.owners[0];
     expect(() => validateReleaseManifest(duplicateSafeOwner)).toThrow(/Duplicate protocol Safe owner/);
 
-    const falsePolicyGreen = structuredClone(manifest);
-    falsePolicyGreen.ownership.protocolSafeConfiguration.guidePolicyStatus = "satisfied";
-    expect(() => validateReleaseManifest(falsePolicyGreen)).toThrow(/guide policy status/);
+    const belowMinimumThreshold = structuredClone(manifest);
+    belowMinimumThreshold.ownership.protocolSafeConfiguration.threshold = "1";
+    expect(() => validateReleaseManifest(belowMinimumThreshold)).toThrow(/threshold >= 2/);
+
+    const belowMinimumOwners = structuredClone(manifest);
+    belowMinimumOwners.ownership.protocolSafeConfiguration.owners =
+      belowMinimumOwners.ownership.protocolSafeConfiguration.owners.slice(0, 2);
+    expect(() => validateReleaseManifest(belowMinimumOwners)).toThrow(/owner count >= 3/);
 
     const prematureGasFreeze = structuredClone(manifest);
     prematureGasFreeze.chains.arbitrum.destinationGasLimit = "2000000";
