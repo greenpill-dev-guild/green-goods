@@ -2373,6 +2373,7 @@
   "app.toast.approval.success.title": "Approval submitted",
   "app.toast.approval.walletConfirm.message": "Waiting for wallet confirmation...",
   "app.toast.approval.walletConfirm.title": "Confirm in your wallet",
+  "app.toast.approval.walletConfirmed.message": "Transaction confirmed.",
   "app.toast.copied": "Copied",
   "app.toast.copyFailed": "Copy failed",
   "app.toast.default.contextErrorMessage": "Couldn't {context}. Try again.",

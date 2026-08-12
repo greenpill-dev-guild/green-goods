@@ -14,6 +14,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -50,6 +51,7 @@ const PENDING_AUTO_CLEAR_MS = 60_000;
 type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
 
 export function useWorkApproval() {
+  const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
@@ -395,10 +397,12 @@ export function useWorkApproval() {
         toastService.success({
           id: "approval-submit",
           title: isApproval ? "Approval submitted" : "Decision submitted",
-          message:
-            result.confirmed === false
-              ? "Waiting for wallet confirmation..."
-              : "Transaction confirmed.",
+          message: formatMessage({
+            id:
+              result.confirmed === false
+                ? "app.toast.approval.walletConfirm.message"
+                : "app.toast.approval.walletConfirmed.message",
+          }),
           context: "wallet confirmation",
           suppressLogging: true,
         });

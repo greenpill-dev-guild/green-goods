@@ -10,6 +10,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock modules
@@ -85,6 +86,7 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 import { toastService } from "../../components/toast";
 import { queryKeys } from "../../config/query-keys";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
+import en from "../../i18n/en.json";
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
@@ -106,7 +108,11 @@ describe("hooks/work/useWorkApproval", () => {
 
   const createWrapper = () => {
     return ({ children }: { children: ReactNode }) =>
-      createElement(QueryClientProvider, { client: queryClient }, children);
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: en },
+        createElement(QueryClientProvider, { client: queryClient }, children)
+      );
   };
 
   beforeEach(() => {
@@ -446,6 +452,7 @@ describe("hooks/work/useWorkApproval", () => {
         expect(toastService.success).toHaveBeenCalledWith(
           expect.objectContaining({
             id: "approval-submit",
+            message: "Transaction confirmed.",
           })
         );
       });
