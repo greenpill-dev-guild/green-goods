@@ -1,17 +1,5 @@
-/**
- * Contract Error Parsing Utilities
- *
- * Parses contract revert errors from UserOperation failures and transaction errors.
- * Provides human-readable messages for common Green Goods contract errors.
- *
- * @module utils/errors/contract-errors
- */
-
 import { extractErrorMessage } from "./extract-message";
 
-/**
- * Error metadata with recovery information
- */
 interface ErrorInfo {
   name: string;
   message?: string;
@@ -29,14 +17,6 @@ const LOCALIZED_ERROR_FALLBACKS = {
   },
 } as const;
 
-/**
- * Common contract error signatures and their human-readable messages
- *
- * Selectors are calculated using: cast sig "ErrorName()"
- * Run `cast sig "ErrorName()"` to get the 4-byte selector for any error.
- *
- * Last updated: 2026-02-25 (synced with deployed contracts)
- */
 const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // ============================================================================
   // GardenAccount.sol errors
@@ -417,9 +397,6 @@ function parseKnownError(raw: string, errorInfo: ErrorInfo): ParsedContractError
   };
 }
 
-/**
- * Extract error signature from various error formats
- */
 function extractErrorSignature(error: unknown): string | null {
   if (!error) return null;
 

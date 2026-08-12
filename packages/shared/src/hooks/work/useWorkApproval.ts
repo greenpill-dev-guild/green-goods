@@ -49,39 +49,6 @@ interface ApprovalMutationResult {
 const PENDING_AUTO_CLEAR_MS = 60_000;
 type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
 
-/**
- * Hook for submitting work approvals
- *
- * Automatically branches based on authentication mode:
- * - Wallet users: Direct blockchain transaction
- * - Passkey users: Sponsored smart-account transaction
- *
- * @returns TanStack Query mutation for approval submission
- *
- * @example
- * ```tsx
- * function ApprovalForm({ work }) {
- *   const approvalMutation = useWorkApproval();
- *
- *   const handleApprove = async () => {
- *     await approvalMutation.mutateAsync({
- *       draft: { workUID, actionUID, approved: true, feedback: "Great work!" },
- *       work
- *     });
- *   };
- *
- *   return (
- *     <button
- *       onClick={handleApprove}
- *       disabled={approvalMutation.isPending}
- *       aria-busy={approvalMutation.isPending || undefined}
- *     >
- *       Approve
- *     </button>
- *   );
- * }
- * ```
- */
 export function useWorkApproval() {
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
