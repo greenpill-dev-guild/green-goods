@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { SettlementFundingLib } from "../../lib/Settlement/FundingLib.sol";
 import { SettlementPlanLib } from "../../lib/Settlement/PlanLib.sol";
 import { SettlementAdmin } from "./Admin.sol";
 
@@ -58,6 +59,7 @@ abstract contract SettlementPlans is SettlementAdmin {
         SettlementPlanLib.finalizeCommitmentPayoutPlan(
             _planState, _settlementAccounts, hatsModule, commitmentPoolingModule, DESTINATION_EVM_CHAIN_ID, payoutPlanId
         );
+        SettlementFundingLib.closeIfPlanComplete(_planState, payoutPlanId);
     }
 
     function prepareContributorPayout(

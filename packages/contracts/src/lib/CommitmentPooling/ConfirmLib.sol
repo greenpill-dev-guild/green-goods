@@ -27,6 +27,9 @@ library CommitmentPoolingConfirmLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireAcceptedUnfrozen(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         if (
             msg.sender != commitment.counterparty && msg.sender != commitment.creator
                 && msg.sender != commitment.leadProvider
@@ -72,6 +75,9 @@ library CommitmentPoolingConfirmLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireAcceptedUnfrozen(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         if (!CommitmentPoolingGuardLib.isPoolSteward(env, pools, commitment.poolId, msg.sender)) {
             revert ICommitmentPoolingModule.NotPoolSteward(msg.sender, commitment.poolId);
         }
@@ -105,6 +111,9 @@ library CommitmentPoolingConfirmLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         if (commitment.state != ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation) {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }
@@ -149,6 +158,9 @@ library CommitmentPoolingConfirmLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         if (commitment.state != ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation) {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }

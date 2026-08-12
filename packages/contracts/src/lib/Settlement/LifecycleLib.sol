@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { ISettlementModule } from "../../interfaces/ISettlementModule.sol";
 import { SettlementCommandLib } from "./CommandLib.sol";
+import { SettlementFundingLib } from "./FundingLib.sol";
 import { SettlementLoanLib } from "./LoanLib.sol";
 import { SettlementPlanLib } from "./PlanLib.sol";
 
@@ -501,6 +502,14 @@ library SettlementLifecycleLib {
             _activeAccountMatches(accounts, disbursement.garden, disbursement.recipient, config.destinationEvmChainId);
         } else if (disbursement.kind == ISettlementModule.DisbursementKind.LoanPrincipal) {
             SettlementLoanLib.recheckLoanPrincipal(disbursement, disbursementId);
+        } else if (disbursement.kind == ISettlementModule.DisbursementKind.Refund) {
+            SettlementFundingLib.recheckRefund(
+                accounts,
+                config.destinationEvmChainId,
+                ISettlementModule(address(this)).gDollarToken(),
+                disbursementId,
+                disbursement
+            );
         } else {
             revert ISettlementModule.InvalidPayoutVector();
         }

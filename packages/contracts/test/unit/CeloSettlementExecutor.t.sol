@@ -347,6 +347,42 @@ contract CeloSettlementExecutorTest is Test {
         assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
     }
 
+    function testRefundUsesTheTypedBoundedGDollarTransferPath() public {
+        router.deliver(
+            address(executor),
+            keccak256("refund"),
+            SOURCE_SELECTOR,
+            SOURCE_MODULE,
+            _command(false, 12, 0, 4, _one(CONTRIBUTOR), _oneAmount(100 ether))
+        );
+
+        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(12), uint32(0)));
+        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.None));
+        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+        assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
+    }
+
+    function testRefundBelowSafeBalanceFailsWithoutPartialTransfer() public {
+        token.setBalance(address(payerSafe), 99 ether);
+        router.deliver(
+            address(executor),
+            keccak256("refund-below-safe-balance"),
+            SOURCE_SELECTOR,
+            SOURCE_MODULE,
+            _command(false, 13, 0, 4, _one(CONTRIBUTOR), _oneAmount(100 ether))
+        );
+
+        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(13), uint32(0)));
+        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Failed));
+        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.RouteReverted));
+        assertEq(token.balanceOf(CONTRIBUTOR), 0);
+        assertEq(token.balanceOf(address(payerSafe)), 99 ether);
+        assertTrue(result.acknowledgmentSent);
+    }
+
     /// @notice Measures the executor's compile-time maximum atomic batch with all success-path
     ///         balance, fee, Roles, storage, event, and acknowledgment work enabled.
     /// @dev The mock router's delivery wrapper is included, making this a conservative local

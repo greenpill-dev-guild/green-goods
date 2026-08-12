@@ -11,6 +11,8 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
 
     bytes32 private constant WORK_A = keccak256("sync-work-a");
     bytes32 private constant WORK_B = keccak256("sync-work-b");
+    bytes32 private constant WORK_C = keccak256("sync-work-c");
+    bytes32 private constant WORK_D = keccak256("sync-work-d");
 
     function setUp() public {
         _setUpProductionFixture();
@@ -255,6 +257,35 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         );
         vm.prank(POOL_STEWARD);
         module.syncWorkDecisions(commitmentId, _uids(approvalUID));
+    }
+
+    function testPoolPauseKeepsWorkLinkUnlinkSyncAndDecisionHookAvailable() public {
+        uint256 linkId = _acceptedDomainImpact(keccak256("paused-link"));
+        uint256 unlinkId = _acceptedDomainImpact(keccak256("paused-unlink"));
+        uint256 syncId = _acceptedDomainImpact(keccak256("paused-sync"));
+        uint256 hookId = _acceptedDomainImpact(keccak256("paused-hook"));
+        _setWorkAttestation(WORK_A, CREATOR, 0);
+        _link(unlinkId, WORK_B, 0);
+        _link(syncId, WORK_C, 0);
+        _link(hookId, WORK_D, 0);
+        bytes32 syncDecision = _decision(WORK_C, 0, true, 1);
+        bytes32 hookDecision = _decision(WORK_D, 0, true, 1);
+        vm.prank(POOL_STEWARD);
+        module.pausePool(poolId, "bafy-pause-work");
+
+        vm.prank(CREATOR);
+        module.linkWork(linkId, WORK_A, 0, keccak256("paused-link-operation"));
+        vm.prank(POOL_STEWARD);
+        module.unlinkWork(WORK_B);
+        vm.prank(POOL_STEWARD);
+        module.syncWorkDecisions(syncId, _uids(syncDecision));
+        vm.prank(address(decisionResolver));
+        module.onWorkDecision(WORK_D, hookDecision, 1, POOL_GARDEN, true);
+
+        assertEq(module.workCommitmentOf(WORK_A), linkId);
+        assertEq(module.workCommitmentOf(WORK_B), 0);
+        assertEq(module.getRequirement(syncId, 0).approvedCount, 1);
+        assertEq(module.getRequirement(hookId, 0).approvedCount, 1);
     }
 
     // ───────────────────────────── Helpers ─────────────────────────────

@@ -228,7 +228,7 @@
     },
     "t_enum(DisbursementKind)": {
       "encoding": "inplace",
-      "enumMembers": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary"],
+      "enumMembers": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary", "Refund"],
       "label": "enum ISettlementModule.DisbursementKind",
       "numberOfBytes": "1"
     },
