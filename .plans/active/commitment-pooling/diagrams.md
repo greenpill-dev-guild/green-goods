@@ -397,7 +397,7 @@ flowchart LR
 | **Module owner** | ✓ universal steward fallback — pool/cycle lifecycle · accept/decline claims · `resolveDispute` (a direct-Fulfilled lever) | ✓ steward-fallback: seed SeasonCampaign · StewardCaptured in any pool | ✓ steward-fallback evidence/work linkage · sync/unlink | ✓ steward-fallback Baseline capture | — | ✗ never — ordinary and both fallback confirmation paths exclude module-owner status | ✓ steward-fallback attribution repair | ✓ queue protocol funding only | — | ✓ pause · peer/module wiring · measured limits · dispatcher assignment · UUPS upgrade |
 | **Protocol steward** | ✓ root-pool stewardship | ✓ seed and adjudicate protocol commitments | ✓ attach within ordinary pool rules | ✓ Baseline analog capture when acting as steward | ✓ existing WorkApproval scope | selected `ProtocolFallback` on any pool, with reason, never as a contributor; current root-garden Hats only | ✓ repair zero-eligible attribution before composition | ✓ explicit ProtocolToGarden funding; no commitment-consideration bypass | — | — |
 | **Garden steward** | ✓ seed / open / pause / compost · accept / decline claims | ✓ seed SeasonCampaign · StewardCaptured (`onBehalfOf`) | ✓ attach for gardeners | ✓ Baseline analog capture only | ✓ WorkApproval (existing flow) | local `PoolFallback` only, with reason, never as a contributor; local wins for dual-role callers | ✓ repair contributor attribution before composition | ✓ create/edit/finalize/prepare provider payout plans; dispatch/retry/requeue/cancel within resolved scope | — | — |
-| **Gardener** | — | ✓ own Offer / Request · claim open commitments | ✓ own evidence · link work | — | — | ✓ when eligible confirmer | — | — | — | — |
+| **Gardener** | — | ✓ own Offer / Request · claim open commitments — a **priced** Offer claim additionally requires a steward of the paying garden (`PricedOfferClaimRequiresSteward`); free Offers stay member-claimable | ✓ own evidence · link work | — | — | ✓ when eligible confirmer | — | — | — | — |
 | **Lead provider** | — | — | ✓ deliver + evidence | — | — | ✗ never confirm own delivery | — | — | — | — |
 | **Evaluator** | — | — | — | ✓ Baseline · delta/re-assessment · technical, with the last two Evaluator-Hat-only | — | ✓ when named confirmer and not a contributor | — | — | — | — |
 | **Community member** | — | ✓ needs + signals (Community PWA) | — | ✓ testimony with Community Hat only | — | ✓ when named confirmer and not a contributor | — | — | — | — |
@@ -842,8 +842,8 @@ stateDiagram-v2
   [*] --> Draft
   Draft --> Offered : create · Offer
   Draft --> Requested : create · Request
-  Offered --> Accepted : accepted (creator)
-  Requested --> Accepted : accepted (claimant)
+  Offered --> Accepted : accepted — lead = creator (claim, or acceptExchange for a paired Offer)
+  Requested --> Accepted : accepted — lead = claimant, or the authenticated requester for a Garden claim
   Offered --> Cancelled : cancel
   Requested --> Cancelled : cancel
   Offered --> Expired : expire
@@ -877,10 +877,13 @@ stateDiagram-v2
   PartiallyApproved --> ReadyForConfirmation : (a) required counts met + assessment satisfied
   Accepted --> ReadyForConfirmation : (b) submitForConfirmation — evidence-only kinds
   Accepted --> ReadyForConfirmation : (c) steward override with reason
+  Accepted --> ReadyForConfirmation : (d) automatic — attachAssessment completes the (b) gate
   note right of Accepted
     path (b) gate — no work requirement ·
     evidenceCount ≥ 1 · totalVerifiedCredits > 0 ·
-    declared assessment attached (D6)
+    declared assessment attached (D6) ·
+    (d) fires with no call when the assessment
+    lands after evidence + credit already exist
   end note
   ReadyForConfirmation --> [*]
   class Active derived
@@ -892,6 +895,8 @@ While the derived overlays are showing, the on-chain state remains `Accepted` �
 
 - **DomainImpact** — runs the full Work → WorkApproval rail with per-action required counts (`requirementIndex` credits exactly one requirement per approval — amendment 2026-07-18); paths (a).
 - **SupportService / StewardCaptured / SeasonCampaign** seeded with no work requirement — path (b): the counterparty's confirmation IS the review, gated as the in-diagram note states (D6).
+- **Path (d) is (b) completing automatically**: `attachAssessment` runs the same readiness evaluation, so an evidence-only commitment already holding evidence and verified credit flips to `ReadyForConfirmation` the moment its assessment is attached — no `submitForConfirmation` call. `CommitmentReadyForConfirmation(overridden = false)` still fires, so event-keyed indexers see the same signal; UIs keyed on the *call* must not assume one happened.
+- **Path (c) is an override in authority only** — it still enforces every freeze precondition: non-zero verified credit, the open-cycle policy when cycle-scoped, fresh work-decision sequences, and confirmer reachability. A steward cannot override a commitment with zero credit.
 
 #### D10.3 Act 3 — Resolution (confirmation, endings, disputes, reconciliation)
 
@@ -943,7 +948,7 @@ This ledger *is* the register's `accounting-state` vocabulary — the sidecar's 
   class but leaves it `Registered`;
 - cancellation or expiry from an unaccepted Offered Offer **releases** its existing reservation
   once; cancellation or expiry from an unaccepted Requested Request releases nothing;
-- Offer acceptance verifies the existing reservation and performs no second commit. Request
+- Offer acceptance performs no second commit — the creation-time reservation holds by construction, and only the exchange path re-verifies it explicitly. Request
   acceptance moves its `Registered` class to `Committed` and acquires one provider slot once;
 - cancellation or expiry from `Accepted`/`ReadyForConfirmation` **releases** those committed units and that one slot once (`Released`);
 - fulfillment converts committed units with `fulfillUnits` (`Fulfilled`) and releases that one slot;
@@ -2325,7 +2330,7 @@ flowchart TB
   class S3,S4,S5,S6,S7,S8 paused
 ```
 
-Amber marks every step that runs **while pooling is paused** — stages 3 through 8, the entire remaining ceremony from the moment the module exists. Dashed stages are gated or not yet authorized: the two schema-preparation stages run before pooling exists, and stages 9–11 belong to the separately reviewed follow-up issue that must prove the resolved backfill order (paused-registration increment or amended sequence), exact Safe owners/threshold on each chain, every transfer receipt and backfill checkpoint, and a separate unpause authorization (`followUpIssueRequired: true` in the release manifest). The backfill enumerates live GardenToken accounts at execution — the 2026-08-08 read-only census found 18 with root token 0, but no count is frozen into the runbook. The storage-layout and UUPS proof gate (§7.4) still covers every touched contract and runs before any broadcast. Deployment artifacts remain the source of truth for addresses: pre-broadcast zero or missing addresses mean pending broadcast; post-broadcast they are blockers.
+Amber marks every step that runs **while pooling is paused** — stages 3 through 8, the entire remaining ceremony from the moment the module exists. Dashed stages are gated or not yet authorized: the two schema-preparation stages run before pooling exists, and stages 9–11 belong to the separately reviewed follow-up issue that must prove the resolved backfill order (paused-registration increment or amended sequence), exact Safe owners/threshold on each chain, every transfer receipt and backfill checkpoint, and a separate unpause authorization (`followUpIssueRequired: true` in the release manifest). The backfill enumerates live GardenToken accounts at execution — the 2026-08-08 read-only census found 18 with root token 0, and while the deferred-op *label* carries that 18, the backfill itself enumerates rather than trusting a frozen count. The storage-layout and UUPS proof gate (§7.4) still covers every touched contract and runs before any broadcast. Deployment artifacts remain the source of truth for addresses: pre-broadcast zero or missing addresses mean pending broadcast; post-broadcast they are blockers.
 
 ---
 
@@ -2333,7 +2338,7 @@ Amber marks every step that runs **while pooling is paused** — stages 3 throug
 
 **How to read this**: the function-level authorization source, and the only place in this file that is exact about who may call what. A caller must satisfy **both** the named role **and** every listed gate — a broad capability in D4 never widens a row here, and where a sequence diagram and this table disagree, this table wins. Rows are grouped in lifecycle order: pool and cycle control, then commitments, then settlement, then configuration and upgrades.
 
-This table is the Architecture-tab copy of the three canonical permission matrices in `contract-spec.md`, `settlement-spec.md`, and the commitment-credit follow-on spec §3.3. **Synchronized 2026-08-05** (pooling + settlement) **and 2026-08-11** (credit lane: the CreditRegistry surface, `queueLoanPrincipal`, and `setCreditRegistry` — rows the settlement-spec matrix itself still predates; its own sync is flagged): every current mutating entry point in those matrices now has a row here. It previously omitted the series, contributor, declared-value, and exchange families, which made twelve live mutations look undefined, and it gated the accountable lead provider out of `submitForConfirmation`. Public views (`validateRecognitionSnapshot`, the `get*` reads) are not listed because they mutate nothing.
+This table is the Architecture-tab copy of the three canonical permission matrices in `contract-spec.md`, `settlement-spec.md`, and the commitment-credit follow-on spec §3.3. **Synchronized 2026-08-05** (pooling + settlement) **and 2026-08-11** (credit lane: the CreditRegistry surface, `queueLoanPrincipal`, and `setCreditRegistry` — rows the settlement-spec matrix itself still predates; its own sync is flagged): every current mutating entry point in those matrices now has a row here. As with the pooling module, the CreditRegistry `owner()` passes every steward and recorder check in its rows — ownership is a universal fallback there too, stated once here rather than per cell; the one exception is `queueLoanPrincipal`, whose Hats check carries no owner bypass. It previously omitted the series, contributor, declared-value, and exchange families, which made twelve live mutations look undefined, and it gated the accountable lead provider out of `submitForConfirmation`. Public views (`validateRecognitionSnapshot`, the `get*` reads) are not listed because they mutate nothing.
 
 | Function or family | Authorized caller | Non-negotiable gate |
 |---|---|---|
@@ -2379,7 +2384,7 @@ This table is the Architecture-tab copy of the three canonical permission matric
 | `setGardenerDeliveryEnabled` | `SettlementModule` owner | Enabling requires the recorded Celo AA/paymaster exit evidence; disabling blocks first preparation of contributor children and gardener sends, but never hides payout plans or historical children and never blocks the funding route |
 | `createCommitmentPayoutPlan` / `setContributorPayouts` / `finalizeCommitmentPayoutPlan` / `prepareContributorPayout` / `prepareGardenBeneficiaryPayout` | Resolved payer-garden settlement steward (operator/owner of immutable `payerGarden`, register #90) | Fulfilled, priced Celo commitment with non-zero payer. Shape derives immutably. Contributor edits preserve exact conservation and allow retention only when payer = provider. Beneficiary freezes an active external garden Safe, full amount, zero retention/contributor rows, and one payable child; it cannot enter contributor edits or complete locally. Both preparation paths are idempotent; beneficiary has no gardener-delivery gate |
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
-| `queueLoanPrincipal` | Current steward/owner (Hats) of the loan's pool garden | Approved CreditRegistry loan with reserved cap and still-future due date; configured CreditRegistry unpaused and exactly bound (settlement/pooling/hats identity); pool Open + credit enabled; canonical G$ token, zero fee, rail `None`, no prior child — an existing child returns its id with no second mutation; active destination settlement account whose Safe is not the borrower; `SettlementModule` unpaused. Creates the one `DisbursementKind.LoanPrincipal` child and its persistent `LoanPrincipalRelationship` |
+| `queueLoanPrincipal` | Current steward/owner (Hats) of the loan's pool garden | Approved CreditRegistry loan with reserved cap and still-future due date; configured CreditRegistry unpaused and exactly bound (settlement/pooling/hats identity); pool Open + credit enabled; canonical G$ token, zero fee, rail `None`, no prior child — an existing child returns its id with no second mutation; active destination settlement account whose Safe is not the borrower; `SettlementModule` unpaused for the creating path — an exact replay returns the existing child id even while paused. Creates the one `DisbursementKind.LoanPrincipal` child and its persistent `LoanPrincipalRelationship` |
 | `setCreditRegistry` | `SettlementModule` owner | Module paused; zero rejected; exact repeat is a no-op; requires zero active Approved-loan cap reservations on the outgoing registry; the candidate must expose exact settlement/pooling/hats binding through fail-closed probes; emits `CreditRegistryUpdated(old, new)` |
 | CreditRegistry `configurePoolCredit`, `addExecutor` / `removeExecutor` | Pool-garden steward | First `configurePoolCredit` fixes one non-zero denomination token for the pool; later calls change cap/enabled only; executors are the rail-side identities that record disbursed/settled (`PoolCreditConfigured`, `ExecutorUpdated`) |
 | CreditRegistry `requestLoan` | Pool member for self; steward may name a distinct current member through `onBehalfOf` | Pool Open + credit enabled; token exactly the pool's immutable denomination; non-zero principal; future non-zero due date; non-empty terms; optional commitment exists in the same pool; requested principal within remaining `borrowerCap` (`LoanRequested`) |
@@ -2581,7 +2586,7 @@ its custody, liquidity, pricing, failure, and repair responsibilities without we
 
 **How to read this**: one interest-free advance's whole life, on the same pools the rest of this file draws. Every box is an on-chain `LoanState` enum member (`None` is the storage sentinel, rendered as the start marker), which is why this machine carries no derived or app-only colour — the one soft overlay, `Repaying`, is deliberately **not** a box: the indexer derives it from `RepaymentRecorded` while repayment sits between zero and `principal + feeAmount`, and the stored state stays `Disbursed` (credit spec §4). Every transition is one function and one event. Two rules shape the endings: **default is not terminal** — a defaulted loan can still be repaid, and `LoanRepaid(recoveredFromDefault = true)` records the recovery — and **nothing here moves value**. The registry is a pool-scoped, records-only control plane that never receives, approves, holds, or transfers funds: `recordDisbursed` and `recordRepayment` record already-executed Jar/Treasury/G$ rail transfers, and the borrower can neither approve their own loan nor record their own repayment.
 
-The G$ leg is the one settlement seam: a pool-garden steward calls `SettlementModule.queueLoanPrincipal(loanId)`, which validates **only an Approved loan** (still-future due date, reserved cap, pool Open with credit enabled, canonical G$, unpaused registry and module) and creates the loan's single `DisbursementKind.LoanPrincipal` child plus a persistent `LoanPrincipalRelationship{creditRegistry, loanId}` — idempotent per loan, with `commitmentId` and `payoutPlanId` zero because it is neither a consideration nor a payout-plan child. Only that child, authenticated `Confirmed` and matched field-by-field through `executionRef = keccak256(abi.encode(executionKey, disbursementId))`, can later be recorded as the G$ disbursement; G$ repayment stays reverted (`GDollarRepaymentDisabled`) until a bounded authenticated receipt policy clears its gates. Module pause blocks every mutation **except** `markDefaulted` and `cancelLoan` (wind-down). The exact caller and gate for every function is in the permission table.
+The G$ leg is the one settlement seam: a pool-garden steward calls `SettlementModule.queueLoanPrincipal(loanId)`, which validates **only an Approved loan** (still-future due date, reserved cap, pool Open with credit enabled, canonical G$, unpaused registry and module) and creates the loan's single `DisbursementKind.LoanPrincipal` child plus a persistent `LoanPrincipalRelationship{creditRegistry, loanId}` — idempotent per loan, with `commitmentId` and `payoutPlanId` zero because it is neither a consideration nor a payout-plan child. Only that child, authenticated `Confirmed` and matched field-by-field through `executionRef = keccak256(abi.encode(executionKey, disbursementId))`, can later be recorded as the G$ disbursement; G$ repayment stays reverted (`GDollarRepaymentDisabled`) until a bounded authenticated receipt policy clears its gates. Registry pause blocks every operational mutation **except** `markDefaulted` and `cancelLoan` (wind-down); the owner's configuration setters run only *while* paused. The exact caller and gate for every function is in the permission table.
 
 ```mermaid
 stateDiagram-v2
