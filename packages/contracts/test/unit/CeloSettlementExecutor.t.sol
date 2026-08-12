@@ -267,7 +267,7 @@ contract ExecutorMockRoles is IZodiacRoles {
             token.setBalance(address(payerSafe), 10_000 ether);
         }
 
-        function testSenderPaidFeeDeliversExactNetAndStoresSuccess() public {
+        function testCeloSettlementExecutor_senderPaidFeeDeliversExactNetAndStoresSuccess() public {
             token.setFee(5 ether, true);
             bytes32 messageId = keccak256("success-command");
             router.deliver(
@@ -287,7 +287,7 @@ contract ExecutorMockRoles is IZodiacRoles {
             assertTrue(result.acknowledgmentSent);
         }
 
-        function testReceiverPaidFeeFailsClosedWithoutTransfer() public {
+        function testCeloSettlementExecutor_receiverPaidFeeFailsClosedWithoutTransfer() public {
             token.setFee(5 ether, false);
             bytes32 messageId = keccak256("receiver-pays-command");
             router.deliver(
@@ -306,7 +306,7 @@ contract ExecutorMockRoles is IZodiacRoles {
             assertEq(token.balanceOf(address(payerSafe)), 10_000 ether);
         }
 
-        function testGardenBeneficiaryRequiresRegisteredActiveSafe() public {
+        function testCeloSettlementExecutor_gardenBeneficiaryRequiresRegisteredActiveSafe() public {
             vm.startPrank(OWNER);
             executor.setPaused(true);
             executor.setGardenRouteActive(BENEFICIARY_GARDEN, false);
@@ -326,7 +326,7 @@ contract ExecutorMockRoles is IZodiacRoles {
             assertEq(token.balanceOf(address(beneficiarySafe)), 0);
         }
 
-        function testDuplicateCommandDoesNotPayTwice() public {
+        function testCeloSettlementExecutor_duplicateCommandDoesNotPayTwice() public {
             bytes memory payload = _command(false, 10, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether));
             router.deliver(address(executor), keccak256("first"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
             router.deliver(address(executor), keccak256("duplicate"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
@@ -423,7 +423,7 @@ contract ExecutorMockRoles is IZodiacRoles {
             }
         }
 
-        function testMalformedCommandUsesFrozenFailureSelector() public {
+        function testCeloSettlementExecutor_malformedCommandUsesFrozenFailureSelector() public {
             vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
             router.deliver(address(executor), keccak256("malformed-command"), SOURCE_SELECTOR, SOURCE_MODULE, hex"01");
         }
