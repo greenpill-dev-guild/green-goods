@@ -89,6 +89,8 @@ export interface ReleaseManifest {
       acceptedGasUsed: string;
       firstRejectedBatchSize: string;
       firstRejectedGasUsed: string;
+      profile: string;
+      executionMode: "isolated-per-call-transactions";
       distinctFundedPlans: true;
       coldDependencyPath: true;
       commitmentPoolingReadFree: true;
@@ -320,6 +322,18 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   requireUintString(sourceMeasurement.acceptedGasUsed, "batching.acceptedGasUsed", 32);
   requireUintString(sourceMeasurement.firstRejectedBatchSize, "batching.firstRejectedBatchSize", 16);
   requireUintString(sourceMeasurement.firstRejectedGasUsed, "batching.firstRejectedGasUsed", 32);
+  if (sourceMeasurement.profile !== manifest.build.profile) {
+    throw new Error(
+      "batching source-acknowledgment measurement must come from the exact release build profile; " +
+        `measured under "${String(sourceMeasurement.profile)}" but the artifact freezes "${String(manifest.build.profile)}"`,
+    );
+  }
+  if (sourceMeasurement.executionMode !== "isolated-per-call-transactions") {
+    throw new Error(
+      "batching source-acknowledgment measurement must run with per-call transaction isolation " +
+        "(forge --isolate); vm.cool alone leaves the receiver path warm in non-tracing runs",
+    );
+  }
   if (
     !sourceMeasurement.acceptedFixture.trim() ||
     !sourceMeasurement.firstRejectedFixture.trim() ||

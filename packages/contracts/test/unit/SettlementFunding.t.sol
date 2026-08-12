@@ -36,7 +36,7 @@ contract SettlementFundingTest is SettlementPayerTest {
     address private constant EXECUTOR = address(0x8000);
     uint256 private constant PRICE = 100 ether;
     uint256 private constant SOURCE_ACKNOWLEDGMENT_GAS_LIMIT = 300_000;
-    uint16 private constant PROPOSED_BATCH_SIZE_LIMIT = 3;
+    uint16 private constant PROPOSED_BATCH_SIZE_LIMIT = 2;
     uint16 private constant HARD_MAX_BATCH_SIZE = 24;
     bytes32 private constant FUNDING_STATE_SLOT = 0x14790e171eb52cfebe9fb0c814ca455ea33a3bcc183d5784757d5df85dd1e400;
 
@@ -316,30 +316,43 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(uint8(settlement.payoutPlanStatus(planId)), uint8(ISettlementModule.PayoutPlanStatus.Complete));
     }
 
+    /// @dev The three source-acknowledgment boundary tests below prove the frozen release
+    ///      batch-size limit against the production artifact. They are meaningful only when
+    ///      (a) compiled under `FOUNDRY_PROFILE=production` (via_ir, optimizer_runs = 1 —
+    ///      the exact release codegen) and (b) executed with `forge test --isolate`, where
+    ///      every top-level call runs as its own transaction with a fresh access list, so
+    ///      the acknowledgment delivery pays true cold-path gas exactly like a live CCIP
+    ///      delivery. `vm.cool` alone is NOT sufficient: measured 2026-08-12 on forge 1.5.1,
+    ///      `cool()` silently leaves accounts and slots warm in normal (non-tracing) runs.
+    ///      The `_coolSettlementAcknowledgmentPath()` calls remain only as defense in depth
+    ///      for gas-report-style tracing runs. These tests are therefore excluded from the
+    ///      optimizer-off `test` profile lanes and the optimizer-200 `ci` deep lane, and run
+    ///      exclusively through `bun run test:gas:release` (chained into `bun run test`);
+    ///      `script/utils/release-gas-gate.test.ts` guards that routing against drift.
     function testProposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget() public {
         if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(PROPOSED_BATCH_SIZE_LIMIT, 100);
 
-        emit log_named_uint("settlement source acknowledgment gas / proposed funded batch (3)", attempt.gasUsed);
+        emit log_named_uint("settlement source acknowledgment gas / proposed funded batch (2)", attempt.gasUsed);
         assertTrue(attempt.success, "the proposed funded batch must fit the fixed source receiver budget");
         assertEq(attempt.returnData.length, 0);
         assertEq(uint8(settlement.getBatch(attempt.batchId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
         _assertFundingState(100, ISettlementModule.FundingState.Closed);
-        _assertFundingState(102, ISettlementModule.FundingState.Closed);
+        _assertFundingState(101, ISettlementModule.FundingState.Closed);
     }
 
     function testNextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget() public {
         if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(PROPOSED_BATCH_SIZE_LIMIT + 1, 150);
 
-        emit log_named_uint("settlement source acknowledgment gas / first rejected funded batch (4)", attempt.gasUsed);
+        emit log_named_uint("settlement source acknowledgment gas / first rejected funded batch (3)", attempt.gasUsed);
         assertFalse(
             attempt.success, "the first batch above the proposed limit must exceed the fixed source receiver budget"
         );
         assertEq(attempt.returnData.length, 0, "receiver-gas exhaustion must return no Solidity revert payload");
         assertEq(uint8(settlement.getBatch(attempt.batchId).state), uint8(ISettlementModule.DisbursementState.Dispatched));
         _assertFundingState(150, ISettlementModule.FundingState.Consumed);
-        _assertFundingState(153, ISettlementModule.FundingState.Consumed);
+        _assertFundingState(152, ISettlementModule.FundingState.Consumed);
 
         _coolSettlementAcknowledgmentPath();
         (bool retrySuccess, uint256 retryGasUsed, bytes memory retryData) = router.tryDeliverWithReceiverGas(
@@ -350,12 +363,12 @@ contract SettlementFundingTest is SettlementPayerTest {
             attempt.acknowledgment,
             1_000_000
         );
-        emit log_named_uint("settlement source acknowledgment gas / funded batch retry (4)", retryGasUsed);
+        emit log_named_uint("settlement source acknowledgment gas / funded batch retry (3)", retryGasUsed);
         assertTrue(retrySuccess, "the unchanged batch must succeed when only the receiver-gas cap is raised");
         assertEq(retryData.length, 0);
         assertEq(uint8(settlement.getBatch(attempt.batchId).state), uint8(ISettlementModule.DisbursementState.Confirmed));
         _assertFundingState(150, ISettlementModule.FundingState.Closed);
-        _assertFundingState(153, ISettlementModule.FundingState.Closed);
+        _assertFundingState(152, ISettlementModule.FundingState.Closed);
     }
 
     function testHardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget() public {
@@ -378,8 +391,9 @@ contract SettlementFundingTest is SettlementPayerTest {
     }
 
     /// @dev Coverage instrumentation changes the measured receiver path itself, so its result
-    ///      cannot prove or refute the production 300,000-gas boundary. These tests remain part of
-    ///      every normal and release test run and are omitted only from LCOV execution.
+    ///      cannot prove or refute the production 300,000-gas boundary. The boundary tests run
+    ///      through the production-profile release gas gate (`bun run test:gas:release`) and are
+    ///      omitted from LCOV execution and from the non-production-codegen suite lanes.
     function _coverageInstrumentationEnabled() private view returns (bool) {
         try vm.envBool("CONTRACT_COVERAGE_MODE") returns (bool enabled) {
             return enabled;

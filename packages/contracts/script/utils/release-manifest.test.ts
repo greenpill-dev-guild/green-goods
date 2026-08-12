@@ -30,12 +30,14 @@ describe("combined commitment release manifest", () => {
     });
     expect(manifest.batching).toMatchObject({
       hardMaxBatchSize: "24",
-      releaseBatchSizeLimit: "3",
+      releaseBatchSizeLimit: "2",
       activationIncluded: false,
       sourceAcknowledgmentGasLimit: "300000",
       sourceAcknowledgmentMeasurement: {
-        acceptedBatchSize: "3",
-        firstRejectedBatchSize: "4",
+        acceptedBatchSize: "2",
+        firstRejectedBatchSize: "3",
+        profile: "production",
+        executionMode: "isolated-per-call-transactions",
         distinctFundedPlans: true,
         coldDependencyPath: true,
         commitmentPoolingReadFree: true,
@@ -116,6 +118,15 @@ describe("combined commitment release manifest", () => {
     const unprovenBatchGas = structuredClone(manifest);
     unprovenBatchGas.batching.sourceAcknowledgmentMeasurement.firstRejectedGasUsed = "300000";
     expect(() => validateReleaseManifest(unprovenBatchGas)).toThrow(/gas boundary is not proven/);
+
+    const wrongMeasurementProfile = structuredClone(manifest);
+    wrongMeasurementProfile.batching.sourceAcknowledgmentMeasurement.profile = "ci";
+    expect(() => validateReleaseManifest(wrongMeasurementProfile)).toThrow(/exact release build profile/);
+
+    const unisolatedMeasurement = structuredClone(manifest);
+    unisolatedMeasurement.batching.sourceAcknowledgmentMeasurement.executionMode =
+      "vm-cool" as "isolated-per-call-transactions";
+    expect(() => validateReleaseManifest(unisolatedMeasurement)).toThrow(/per-call transaction isolation/);
   });
 
   it("refuses peer wiring until measured gas is frozen and then rejects environment drift", async () => {
