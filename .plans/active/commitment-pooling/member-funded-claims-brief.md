@@ -97,8 +97,9 @@ rather than duplicating it.
   eligibility checked via the existing settlement→pooling commitment read), `DisbursementKind.Refund`
   appended last (ordinal-safe; `SourceStranded` precedent; indexer enum has the `UNKNOWN`
   fail-closed member), events (`FundingPledged`, `FundingDepositRecorded`, `FundingConsumed`,
-  refund via existing `DisbursementQueued` + relationship), ~6–10 new errors, ERC-7201 storage
-  entries + layout baselines (~250–400 LOC).
+  `FundingWithdrawn`, refund via existing `DisbursementQueued` + relationship), ~6–10 new errors,
+  ERC-7201 storage entries including the write-once commitment-to-consumed-funding pointer +
+  layout baselines (~250–400 LOC).
 - `CeloSettlementExecutor` — accept the `Refund` kind on the typed route (per-kind handling
   exists; ~20–40 LOC). This is a Celo-side change → paused executor upgrade path.
 - Explicitly zero: no new custody contract, no bridging, no change to caps/recovery/Zodiac scope,

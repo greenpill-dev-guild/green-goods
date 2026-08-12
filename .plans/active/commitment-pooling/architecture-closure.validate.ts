@@ -7,6 +7,7 @@ const read = (path: string) => readFileSync(join(here, path), "utf8");
 
 const matrix = read("architecture-closure-matrices.md");
 const contract = read("contract-spec.md");
+const settlementSpec = read("settlement-spec.md");
 const standing = read("standing-commitments-spec.md");
 const uiux = read("uiux-spec.md");
 const client = read("hifi/screens/client.ts");
@@ -53,7 +54,7 @@ const namesInBackticks = (value: string) =>
 const canonicalEvents = [
   ...contract.matchAll(/^\s+- event:\s+([A-Za-z][A-Za-z0-9_]*)\(/gm),
 ].map((match) => match[1]);
-require(canonicalEvents.length === 57, `expected 57 canonical ABI events, found ${canonicalEvents.length}`);
+require(canonicalEvents.length === 58, `expected 58 canonical ABI events, found ${canonicalEvents.length}`);
 require(
   new Set(canonicalEvents).size === canonicalEvents.length,
   "canonical ABI inventory contains duplicate event names",
@@ -61,11 +62,16 @@ require(
 
 // 2026-08-11: the original 54-event inventory was previously closed only against Matrix A1 — a
 // spec-vs-spec check. Close it against the Solidity interfaces too, including register #103's
-// three SettlementModule funding events. Other settlement events remain owned by settlement-spec
+// funding events as amended by register #104. Other settlement events remain owned by settlement-spec
 // and are deliberately outside this pooling closure inventory.
 const solidityEventNames = (source: string) =>
   [...source.matchAll(/^\s*event\s+([A-Za-z][A-Za-z0-9_]*)\(/gm)].map((match) => match[1]);
-const settlementFundingEventNames = ["FundingPledged", "FundingDepositRecorded", "FundingConsumed"];
+const settlementFundingEventNames = [
+  "FundingPledged",
+  "FundingDepositRecorded",
+  "FundingConsumed",
+  "FundingWithdrawn",
+];
 const implementedEvents = [
   ...solidityEventNames(poolingAbi),
   ...solidityEventNames(registryAbi),
@@ -93,6 +99,12 @@ for (const eventName of implementedEvents) {
     `interface event ${eventName} is missing from contract-spec's canonical config.yaml inventory`,
   );
 }
+require(
+  settlementSpec.includes(
+    "| 6 | `consumedFundingOfCommitment` | `mapping(uint256 commitmentId => uint256 fundingId)` |",
+  ),
+  "settlement-spec no longer freezes consumedFundingOfCommitment as namespace entry 6",
+);
 
 // Enum-member closure: every drawn state machine must stay truthful to the merged enums.
 // Extraction targets the interface source, not the diagrams' mermaid — a section-scoped
@@ -114,6 +126,7 @@ const machineClosures: Array<[string, string, string, string]> = [
   ["CycleState", "## D9.", "## D10.", "pooling"],
   ["CommitmentState", "## D10.", "## D11.", "pooling"],
   ["DisbursementState", "## D22.", "## D23.", "settlement"],
+  ["FundingState", "## D31.", "## Appendix:", "settlement"],
 ];
 const enumSources: Record<string, string> = { pooling: poolingAbi, settlement: settlementAbi };
 for (const [enumName, start, end, sourceKey] of machineClosures) {
@@ -647,7 +660,7 @@ if (failures.length > 0) {
 console.log(
   `Architecture closure validation passed: ${canonicalEvents.length} events (ABI-closed against 3 interface files), ` +
   `${requiredEntities.length} indexed entities, ${poolingFunctions.length} classified module functions, ` +
-  `6 enum vocabularies closed against the drawn machines, ` +
+  `7 enum vocabularies closed against the drawn machines, ` +
   `8 sparse-event materialization rows, ${contractCalls.length} executable calls, ` +
   `${offlineKinds.length} offline kinds, 6 persistence states, and 8 lifecycle subjects.`,
 );

@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE: Offer once/over-time architecture remains the initial implementation scope, and the full Commitment Pooling compatibility boundary is now frozen pre-code: promise instance, ongoing Offer series, and future voucher class stay distinct; fulfilled backing precedes capacity backing; one bounded pool precedes federation; G$ support remains separate from redemption. The canonical six-tab Google Doc prose reconciliation is complete, accepted, and verified after reload. Live gallery republication and every image replacement/insertion remain manual publication steps. Contracts (PRD-721, dispatched 2026-08-05) and settlement (dispatched 2026-08-08) are in progress per status.json, with the pooling module and settlement contracts merged to develop — the 2026-08-10 audit verified all prototype-declared calls exist on-chain under exact names (58 including register #97's `acceptExchange`). Indexer carries the settlement/payout half only (no core pooling entities yet); state-api, ui-client, ui-admin, and editorial remain unstarted. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-10`
+**Last Updated**: `2026-08-11`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -44,7 +44,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `session-state-admin-canvas.md` | Session-continuity handover for the admin-canvas work stream | Execution context — not canonical design or contract truth |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
-| `architecture-closure.validate.ts` | Machine gate for all 54 events, 26 entities, 86 module functions, eight sparse-event materialization cases, 58 executable calls, six jobs/persistence states, seven lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
+| `architecture-closure.validate.ts` | Machine gate for all 58 ABI-closed events, 26 entities, 86 module functions, seven enum vocabularies, eight sparse-event materialization cases, 62 executable calls, six jobs/persistence states, eight lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
 | `backfill-pools.ts` | Bun-wrapped, finalized-block pool-inventory and Safe-receipt verifier; fails closed on inventory/root drift and the frozen backfill-before-unpause ABI conflict | Phase A release tooling only; no broadcast authority |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
 | `external-brief.md` | Pointer to the canonical Google Doc plus the repo's implementation/evidence source map | **Pointer only — never a prose mirror** |
@@ -877,6 +877,24 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     the client-prototype iteration before this dispatch, so this decision uses the next available
     number rather than rewriting decision history.
 
+104. Narrow specification re-closure after the Phase 4 adversarial review (2026-08-11, Afo
+    authorization; amends register #103 without widening its product scope): `FundingWithdrawn`
+    becomes the fourth funding event so the later event-derived read model can distinguish a
+    nothing-owed `Pledged -> Withdrawn` transition from an unchanged pledge. The member-funding
+    ERC-7201 namespace appends `consumedFundingOfCommitment` as declaration six; consumption sets
+    that pointer once, and payout completion closes funding locally from it without an external
+    Commitment Pooling read on the fixed-gas authenticated acknowledgment path. The proposed
+    configured batch limit must be measured against the 300,000 source-receiver budget with the
+    worst case of distinct funded plans; a lower measured limit is required if 24 does not fit.
+    The unchanged paused-registration authority risk is explicitly accepted: a current root-garden
+    steward can register the root as Garden before the module owner registers the Protocol pool,
+    consume the root's one-pool slot, and block later Protocol registration. The reviewed backfill
+    must reject that shape and execute the owner-only exact-root Protocol registration first, but
+    this increment adds no new authority guard. These two spec corrections and the recorded risk
+    acceptance reclose and receive Afo review before their Phase 4 implementation changes; no
+    other ABI, storage, authority, release-lane blocker, or application/indexer scope rides this
+    amendment.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
@@ -1032,7 +1050,8 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Contracts (`codex/contracts/commitment-pooling`): PRD-721 (historical labels PRD-671/672)
 
-- [ ] Implement register #103's full pool-pause freeze and paused `registerPool` path without
+- [ ] Implement register #103's full pool-pause freeze and paused `registerPool` path, as amended
+  by register #104's accepted root-registration residual, without
   gating evidence/linkage, roster wind-down, cancellation/expiry/dispute recovery, or the
   non-blocking Work-decision hook
 - [ ] Contract logic and tests per `contract-spec.md`; bun wrappers only, never raw forge
@@ -1062,7 +1081,9 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
   [PRD-813](https://linear.app/greenpill-dev-guild/issue/PRD-813)
 - [ ] Implement register #103's member-funded claim records, steward-confirmed deposits,
   acceptance consumption, one persistent refund child, failed-refund requeue, and ordinal-safe
-  `DisbursementKind.Refund` through the existing command/acknowledgment rail
+  `DisbursementKind.Refund` through the existing command/acknowledgment rail, as amended by
+  register #104's `FundingWithdrawn` event, sixth local closure pointer, and measured source-ack
+  gas proof
 - [ ] `SettlementModule` + tests per `settlement-spec.md` §3; zero changes to the pooling module or register; bun wrappers only
 - [ ] Build Arbitrum `SettlementModule` + Celo `CeloSettlementExecutor` against the exact command/ack tuples; reuse the existing `@chainlink/contracts-ccip` dependency and ENS sender/receiver authentication patterns
 - [ ] Prove immutable batch membership, disabled/configured/hard-ceiling batch bounds, per-member failed-attempt recovery, idempotent same-key command retry, independent acknowledgment retry, one immutable router per implementation, bounded peer grace, paused/drained router cutover, zero CCIP token amounts, native-fee reserve monitoring, bounded Safe execution/failure codes, exact indexer entities/events, and AA-gated PWA member delivery

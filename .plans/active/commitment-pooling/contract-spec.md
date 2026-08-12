@@ -1389,7 +1389,7 @@ queued-callback retry.
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
 | Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the paused `registerPool` backfill |
-| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | callable while module paused; one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. No other operational mutation is un-gated by this exception. |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | callable while module paused; one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. Register #104 accepts the unchanged-authority residual: a current root-garden steward can register the root as Garden before the owner registers Protocol, consuming the one-pool slot and blocking later Protocol registration. The reviewed backfill rejects that shape and executes owner-first root Protocol registration, but this increment adds no authority guard. No other operational mutation is un-gated by this exception. |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume. `closePool` additionally requires `liveCommitmentCount == 0` and `nonTerminalCycleCount == 0`; paused state does not remove the cancel/expire/resolve and cancel/compost wind-down path. |
@@ -2120,11 +2120,12 @@ Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): after 
 `gardenToken.setCommitmentPoolingModule(module)` and
 `workApprovalResolver.setCommitmentModule(module)`; verify both reverse links, updater
 preservation, storage, ownership, and every chain-2/chain-3 readiness fact while the pooling
-module remains paused; then call `module.setPaused(false)`, register the protocol pool on the
-root garden, enumerate the live GardenToken gardens at execution (18 at the 2026-08-08 census),
+module remains paused; register the protocol pool on the root garden first, enumerate the live
+GardenToken gardens at execution (18 at the 2026-08-08 census),
 skip the normalized root GardenAccount
 because it already owns the Protocol pool, submit `registerPool(garden, Garden)` for every
-non-root garden, and run the operational smoke. The backfill records the root as
+non-root garden, verify that complete paused backfill, then separately authorize and call
+`module.setPaused(false)` before the operational smoke. The backfill records the root as
 `SKIPPED_PROTOCOL_ROOT`; it never attempts a second pool registration for that garden.
 
 ### 6.4 EAS schema work: exactly two registrations (register #14)
@@ -2569,11 +2570,11 @@ as named deliverables.
 3. PR chain 3 (upgrades): upgrade GardenToken implementation (6.3) and
    WorkApprovalResolver implementation (6.5); `setCommitmentPoolingModule` /
    `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and
-   both-direction wiring; unpause the pooling module only after those reverse links and every
-   chain-2 readiness fact pass; then register the protocol pool on the root garden
+   both-direction wiring; keep the pooling module paused while registering the protocol pool on the root garden
    (`deployments/42161-latest.json:40-43`), enumerate all live gardens at execution (18 at the
    2026-08-08 census), skip that normalized
-   root address, and backfill `registerPool(garden, Garden)` for every non-root garden.
+   root address, and backfill `registerPool(garden, Garden)` for every non-root garden. Verify the
+   complete inventory, then perform the separately authorized unpause.
 4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump
    `start_block` (8.1).
 
@@ -2703,8 +2704,9 @@ Boundary restated: Envio indexes Green Goods core state only; EAS attestations a
 ### 8.1 `config.yaml` additions
 
 Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surface as `uint8`).
-The `SettlementModule` stanza below is the register #103 event delta for the already-existing
-indexer contract block; the later indexer dispatch merges those three events into that block and
+The `SettlementModule` stanza below is the register #103 event delta, as amended by register #104,
+for the already-existing indexer contract block; the later indexer dispatch merges those four
+events into that block and
 must not configure a second copy of the proxy:
 
 ```yaml
@@ -2775,6 +2777,7 @@ must not configure a second copy of the proxy:
       - event: FundingPledged(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address garden, address refundAccount, uint256 expectedAmount, address recordedBy)
       - event: FundingDepositRecorded(uint256 indexed fundingId, bytes32 indexed depositReference, uint256 amount, address indexed recordedBy)
       - event: FundingConsumed(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, uint256 depositedAmount, address consumedBy)
+      - event: FundingWithdrawn(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address withdrawnBy)
 ```
 
 Pooling network entries are `42161` only — the `421614` entry was withdrawn 2026-08-06 with the
@@ -4010,10 +4013,11 @@ authorization.
 Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, and a verified live-garden enumeration that records the root skip and submits every non-root Garden registration (18 gardens / 17 non-root at the 2026-08-08 census; no count frozen).
 
 Acceptance: storage-layout gates green pre-broadcast; GardenToken and WorkApprovalResolver are
-upgraded and both reverse links are verified while pooling remains paused; unpause succeeds only
-after every chain-2 and chain-3 readiness fact passes; the root receives exactly one Protocol pool,
-the backfill proves `SKIPPED_PROTOCOL_ROOT` for that address, and the 12 remaining live gardens
-receive Garden pools without a `PoolExists` abort; a scripted offer -> fulfilled smoke passes; the
+upgraded and both reverse links are verified while pooling remains paused; the root receives
+exactly one owner-registered Protocol pool first, the backfill proves `SKIPPED_PROTOCOL_ROOT` for
+that address, and every enumerated non-root garden receives a Garden pool without a `PoolExists`
+abort while the module remains paused. Unpause is a separate authorization only after every
+chain-2/chain-3 and backfill-readiness fact passes; a scripted offer -> fulfilled smoke passes; the
 post-broadcast artifact shows both new addresses and non-zero pool count; and a live approval on an
 existing garden emits `ApprovedWorkCounted` for a linked work.
 

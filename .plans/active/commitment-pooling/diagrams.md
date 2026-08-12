@@ -1762,7 +1762,9 @@ flow, recognition/payment/retention, and beneficiary-Safe facts; `ContributorPay
 for contributor shape;
 `CommitmentFunding` is the member-funded-claim record rendered as `COMMITMENT_FUNDING`; it keeps
 the priced Offer, recorded funder/refund account, garden-Safe deposit, lifecycle state, and at most
-one linked Refund child together;
+one linked Refund child together. Settlement storage also keeps one write-once
+commitment-to-consumed-funding pointer so a completed payout can close funding locally on the
+bounded acknowledgment path; that internal lookup is not a second read-model entity;
 `Disbursement` and `SettlementBatch` are Arbitrum-owned child subjects, `SettlementMessage` stores each
 command or acknowledgment by event chain and CCIP message ID, and `SettlementExecution` stores
 the idempotent Celo result by execution key. The joins distinguish a Celo execution from an
@@ -2308,7 +2310,7 @@ The ledger has 161 unique selector names: 53 validation, 14 permission/identity,
 
 **How to read this**: the only diagram here about *getting to* the system rather than the system itself, and — since 2026-08-11 — a copy of the shipped release tooling rather than a plan. The eleven stages are the eight keystore-gated operator commands in `release-operator.ts` plus the three operations the ceremony explicitly defers (`ownership-transfer`, the garden-pool backfill, `core-unpause`), exactly as `config/commitment-pooling-release.json` freezes them (`ceremony.endState: "paused-deployer-owned"`; all three deferred-inclusion flags false). Read the amber band as a single invariant: **the pooling module is deployed paused and stays paused until both reverse links exist and every readiness fact passes** — the ceremony itself *ends* inside that band, deployer-owned. Unpausing early is the exact contradiction corrections-log §23 was written to close.
 
-Three more rules the picture encodes. Rehearsal is the **Arbitrum One fork**, not a testnet: Arbitrum Sepolia `421614` was withdrawn on 2026-08-06 (Hats has no deployment there), the fork runs the same runbook against live Hats, EAS, and resolver state (contract-spec §7.3 amendments), and Ethereum Sepolia survives only as a labeled endpoint-evidence lane. Schema UID pinning remains **one-way** — a wrong pin is not recoverable by re-pinning. And stage 10 is drawn dashed and contested on purpose: the merged pooling ABI gates `registerPool` behind `whenOperational` while the approved release order runs backfill before the separately authorized unpause, so the backfill/unpause sequencing is an open, tracked release-order decision — this diagram takes no side. The manifest also records `timelockWaivedForRelease: true`: the four settlement setters are owner-direct and paused-only in code, with the timelock an ops-policy ownership target for later governance.
+Three more rules the picture encodes. Rehearsal is the **Arbitrum One fork**, not a testnet: Arbitrum Sepolia `421614` was withdrawn on 2026-08-06 (Hats has no deployment there), the fork runs the same runbook against live Hats, EAS, and resolver state (contract-spec §7.3 amendments), and Ethereum Sepolia survives only as a labeled endpoint-evidence lane. Schema UID pinning remains **one-way** — a wrong pin is not recoverable by re-pinning. Stage 10 runs while the module remains paused: the owner registers the exact-root Protocol pool first, the verifier re-enumerates the live Garden inventory, and only then may the non-root Garden registrations execute before a separately authorized unpause. Register #104 accepts the residual unchanged-authority risk that a current root-garden steward could front-run that owner transaction with a Garden-type registration and consume the root's one-pool slot; the reviewed plan rejects that shape, but the contract adds no new authority guard. The manifest also records `timelockWaivedForRelease: true`: the four settlement setters are owner-direct and paused-only in code, with the timelock an ops-policy ownership target for later governance.
 
 ```mermaid
 flowchart TB
@@ -2329,7 +2331,7 @@ flowchart TB
 
   subgraph FOLLOW["Deferred follow-up"]
     S9["9 · ownership-transfer<br/>eight Arbitrum proxies + the Celo executor to the<br/>protocol Safe 2-of-6 · one verified boundary at a time"]
-    S10["10 · garden-pool backfill — CONTESTED<br/>enumerate live GardenToken accounts at execution ·<br/>Protocol pool on the root garden · one pool per non-root garden<br/>pending release-order decision: paused-registration backfill<br/>vs whenOperational ABI"]
+    S10["10 · garden-pool backfill while PAUSED<br/>owner registers exact-root Protocol pool FIRST ·<br/>enumerate live GardenToken accounts at execution<br/>then one Garden pool per non-root garden"]
     S11["11 · core-unpause<br/>separate authorization after every readiness fact"]
     S9 --> S10 --> S11
   end
@@ -2347,11 +2349,11 @@ flowchart TB
 
   classDef planned fill:#fbf8f2,stroke:#6e6857,stroke-width:2px,stroke-dasharray:6 4,color:#2a2722
   classDef paused fill:#f7ebdd,stroke:#b66a3c,stroke-width:2px,color:#2a2722
-  class S1,S2,S9,S10,S11,IDX,REHEARSE,ROLLBACK planned
-  class S3,S4,S5,S6,S7,S8 paused
+  class S1,S2,S9,S11,IDX,REHEARSE,ROLLBACK planned
+  class S3,S4,S5,S6,S7,S8,S10 paused
 ```
 
-Amber marks every step that runs **while pooling is paused** — stages 3 through 8, the entire remaining ceremony from the moment the module exists. Dashed stages are gated or not yet authorized: the two schema-preparation stages run before pooling exists, and stages 9–11 belong to the separately reviewed follow-up issue that must prove the resolved backfill order (paused-registration increment or amended sequence), exact Safe owners/threshold on each chain, every transfer receipt and backfill checkpoint, and a separate unpause authorization (`followUpIssueRequired: true` in the release manifest). The backfill enumerates live GardenToken accounts at execution — the 2026-08-08 read-only census found 18 with root token 0, and while the deferred-op *label* carries that 18, the backfill itself enumerates rather than trusting a frozen count. The storage-layout and UUPS proof gate (§7.4) still covers every touched contract and runs before any broadcast. Deployment artifacts remain the source of truth for addresses: pre-broadcast zero or missing addresses mean pending broadcast; post-broadcast they are blockers.
+Amber marks every step that runs **while pooling is paused** — stages 3 through 8 and the stage-10 registration backfill. Dashed stages are gated or not yet authorized: the two schema-preparation stages run before pooling exists, and stages 9–11 belong to the separately reviewed follow-up issue that must prove exact Safe owners/threshold on each chain, every transfer receipt, the owner-first root Protocol receipt, every non-root backfill checkpoint, and a separate unpause authorization (`followUpIssueRequired: true` in the release manifest). The backfill enumerates live GardenToken accounts at execution — the 2026-08-08 read-only census found 18 with root token 0, and while the deferred-op *label* carries that 18, the backfill itself enumerates rather than trusting a frozen count. The storage-layout and UUPS proof gate (§7.4) still covers every touched contract and runs before any broadcast. Deployment artifacts remain the source of truth for addresses: pre-broadcast zero or missing addresses mean pending broadcast; post-broadcast they are blockers.
 
 ---
 
@@ -2365,7 +2367,7 @@ This table is the Architecture-tab copy of the three canonical permission matric
 |---|---|---|
 | `initialize` (module and register) | Deployer, once, behind the UUPS proxy | Sets `paused = true` and fixes the non-zero canonical `rootGarden`; no operational mutation is reachable until `setPaused(false)` clears its dependency and schema-UID gate |
 | `onGardenMinted` | GardenToken only | Idempotent; creates one Garden pool in NotReady |
-| `registerPool` | Protocol: module owner; Garden: garden operator/owner or module owner | Callable while the module is paused for backfill; one pool per garden; Protocol requires the exact initializer-fixed `rootGarden` before any write; the first/only exact-root Protocol registration sets write-once `protocolPoolId` |
+| `registerPool` | Protocol: module owner; Garden: garden operator/owner or module owner | Callable while the module is paused for backfill; one pool per garden; Protocol requires the exact initializer-fixed `rootGarden` before any write; the first/only exact-root Protocol registration sets write-once `protocolPoolId`. Register #104 accepts that unchanged Garden authority lets a current root-garden steward consume the root slot before the owner transaction; the verifier rejects that plan shape and runs owner-first Protocol registration, but the contract adds no guard |
 | `setPoolCharter`, `markPoolReady` | Resolved pool steward | Ready requires non-empty charter and a previously configured non-zero provider open-commitment cap; Baseline remains an app preflight |
 | `openPool`, `pausePool`, `resumePool`, `closePool`, `compostPool`, `reopenPool` | Resolved pool steward | Exact D8 transition; pause reason mandatory; close requires `Pool.liveCommitmentCount == 0` and `Pool.nonTerminalCycleCount == 0` after safe wind-down |
 | `seedCycle`, `openCycle`, `closeCycle`, `compostCycle`, `cancelCycle` | Resolved pool steward | Exact D9 transition; allocation exists only on open and totals 10,000 BPS; close/cancel require `liveCommitmentCount == 0`; a commitment-bundle certificate may compose only after close writes Reconciled, then compost follows mint; cancel reason mandatory |
@@ -2407,8 +2409,8 @@ This table is the Architecture-tab copy of the three canonical permission matric
 | `queueFunding` | Protocol steward or `SettlementModule` owner | Only the derived ProtocolToGarden route; active source/destination accounts; no caller-selected token/Safe/target/calldata |
 | `recordFunding(commitmentId, funder, refundAccount)` | Immutable pool-garden settlement steward | Active ApprovalGated claim by the funder on a non-zero-priced CeloSettlement Offer; expected amount, garden, and non-zero refund account freeze on first use; exact replay returns the same funding ID |
 | `recordFundingDeposit(fundingId, amount, depositReference)` | Immutable pool-garden settlement steward | `Pledged` only; unique non-zero reference; amount at least the frozen price; records the complete deposit, including excess |
-| `consumeFunding(fundingId)` | Immutable pool-garden settlement steward | `DepositRecorded` only; commitment Accepted with counterparty equal to the funder. Acceptance is not settlement-gated, so this records the steward checkpoint without creating a reverse pooling dependency |
-| `queueFundingRefund(fundingId)` | Immutable pool-garden settlement steward | `Pledged` withdrawal closes with nothing owed; `DepositRecorded` becomes refundable after decline, supersession, or withdrawal; `Consumed` becomes refundable only after terminal non-fulfillment. One write-once `Refund` child ever, for the complete deposit to the immutable refund account |
+| `consumeFunding(fundingId)` | Immutable pool-garden settlement steward | `DepositRecorded` only; commitment Accepted with counterparty equal to the funder. Records the write-once local commitment pointer; acceptance is not settlement-gated and creates no reverse pooling dependency |
+| `queueFundingRefund(fundingId)` | Immutable pool-garden settlement steward | `Pledged` withdrawal emits `FundingWithdrawn` and closes with nothing owed; `DepositRecorded` becomes refundable after decline, supersession, or withdrawal; `Consumed` becomes refundable only after terminal non-fulfillment. One write-once `Refund` child ever, for the complete deposit to the immutable refund account |
 | `queueLoanPrincipal` | Current steward/owner (Hats) of the loan's pool garden | Approved CreditRegistry loan with reserved cap and still-future due date; configured CreditRegistry unpaused and exactly bound (settlement/pooling/hats identity); pool Open + credit enabled; canonical G$ token, zero fee, rail `None`, no prior child — an existing child returns its id with no second mutation; active destination settlement account whose Safe is not the borrower; `SettlementModule` unpaused for the creating path — an exact replay returns the existing child id even while paused. Creates the one `DisbursementKind.LoanPrincipal` child and its persistent `LoanPrincipalRelationship` |
 | `setCreditRegistry` | `SettlementModule` owner | Module paused; zero rejected; exact repeat is a no-op; requires zero active Approved-loan cap reservations on the outgoing registry; the candidate must expose exact settlement/pooling/hats binding through fail-closed probes; emits `CreditRegistryUpdated(old, new)` |
 | CreditRegistry `configurePoolCredit`, `addExecutor` / `removeExecutor` | Pool-garden steward | First `configurePoolCredit` fixes one non-zero denomination token for the pool; later calls change cap/enabled only; executors are the rail-side identities that record disbursed/settled (`PoolCreditConfigured`, `ExecutorUpdated`) |
@@ -2642,14 +2644,17 @@ the earmark and the existing payout machinery pays Ben. Decline, supersession, w
 deposit, or terminal non-fulfillment makes exactly one refund child eligible. That child keeps the
 ordinary D22 lifecycle: a failed Safe transfer returns the same child to Queued after the Safe is
 replenished, and only the authenticated success acknowledgment records `Refunded`. Earmarks are
-accounting records, not token locks.
+accounting records, not token locks. A withdrawal before deposit emits `FundingWithdrawn`, so the
+later event-derived read model can distinguish `Withdrawn` from a still-Pledged record. Accepted
+funding writes one local commitment pointer; payout acknowledgment closes from that pointer without
+calling Commitment Pooling inside the fixed source-receiver gas budget.
 
 ```mermaid
 stateDiagram-v2
   direction LR
   [*] --> Pledged : recordFunding freezes claimant, price, garden, refund account
   Pledged --> DepositRecorded : steward records full deposit and unique reference
-  Pledged --> Withdrawn : withdraw before deposit, nothing owed
+  Pledged --> Withdrawn : FundingWithdrawn, nothing owed
   DepositRecorded --> Consumed : accepted claimant matches funder
   DepositRecorded --> RefundQueued : declined, superseded, or withdrawn after deposit
   Consumed --> Closed : promise fulfilled, provider payout uses the garden Safe

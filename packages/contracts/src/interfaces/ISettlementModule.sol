@@ -238,6 +238,9 @@ interface ISettlementModule {
         uint256 depositedAmount,
         address consumedBy
     );
+    event FundingWithdrawn(
+        uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address withdrawnBy
+    );
     event SettlementAccountRegistered(
         address indexed garden,
         uint64 chainId,
