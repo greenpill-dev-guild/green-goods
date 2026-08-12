@@ -40,7 +40,7 @@ contract SettlementFundingTest is SettlementPayerTest {
     uint16 private constant HARD_MAX_BATCH_SIZE = 24;
     bytes32 private constant FUNDING_STATE_SLOT = 0x14790e171eb52cfebe9fb0c814ca455ea33a3bcc183d5784757d5df85dd1e400;
 
-    function testFundingPledgeIsIdempotentAndFreezesThePendingClaim() public {
+    function testSettlementFunding_fundingPledgeIsIdempotentAndFreezesThePendingClaim() public {
         _setPricedOffer(1, FUNDER_A);
 
         vm.expectEmit(true, true, true, true);
@@ -69,7 +69,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(vm.load(address(settlement), _mappingSlot(FUNDER_A, uint256(commitmentFunderRoot))), bytes32(fundingId));
     }
 
-    function testFundingPledgeConflictCannotChangeRefundOrFrozenPrice() public {
+    function testSettlementFunding_fundingPledgeConflictCannotChangeRefundOrFrozenPrice() public {
         _setPricedOffer(2, FUNDER_A);
         vm.prank(OWNER);
         uint256 fundingId = settlement.recordFunding(2, FUNDER_A, REFUND_A);
@@ -86,7 +86,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         settlement.recordFunding(2, FUNDER_A, REFUND_A);
     }
 
-    function testFundingPledgeRejectsTheGardenSourceSafeAsRefundAccount() public {
+    function testSettlementFunding_fundingPledgeRejectsTheGardenSourceSafeAsRefundAccount() public {
         _setPricedOffer(5, FUNDER_A);
 
         vm.expectRevert(ISettlementModule.InvalidPayoutVector.selector);
@@ -94,7 +94,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         settlement.recordFunding(5, FUNDER_A, BENEFICIARY_SAFE);
     }
 
-    function testDepositRequiresUniqueReferenceAndAtLeastTheFrozenPrice() public {
+    function testSettlementFunding_depositRequiresUniqueReferenceAndAtLeastTheFrozenPrice() public {
         _setPricedOffer(3, FUNDER_A);
         _setPricedOffer(4, FUNDER_B);
         uint256 first = _pledge(3, FUNDER_A, REFUND_A);
@@ -117,12 +117,12 @@ contract SettlementFundingTest is SettlementPayerTest {
         settlement.recordFundingDeposit(second, PRICE, depositRef);
     }
 
-    function testBothFundingRaceOrdersConsumeOnlyTheAcceptedMember() public {
+    function testSettlementFunding_bothFundingRaceOrdersConsumeOnlyTheAcceptedMember() public {
         _assertFundingRace(10, FUNDER_A, REFUND_A, FUNDER_B, REFUND_B);
         _assertFundingRace(11, FUNDER_B, REFUND_B, FUNDER_A, REFUND_A);
     }
 
-    function testDeclineAfterDepositRefundsExactAndExcessDepositsInFull() public {
+    function testSettlementFunding_declineAfterDepositRefundsExactAndExcessDepositsInFull() public {
         _setPricedOffer(20, FUNDER_A);
         _addPendingClaim(20, FUNDER_B);
         uint256 exact = _pledgeAndDeposit(20, FUNDER_A, REFUND_A, PRICE, keccak256("exact"));
@@ -146,7 +146,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(settlement.getDisbursement(excessRefund).recipient, REFUND_B);
     }
 
-    function testRefundFailureRequeuesTheSameChildAndSuccessClosesTheObligation() public {
+    function testSettlementFunding_refundFailureRequeuesTheSameChildAndSuccessClosesTheObligation() public {
         _setPricedOffer(30, FUNDER_A);
         uint256 fundingId = _pledgeAndDeposit(30, FUNDER_A, REFUND_A, PRICE, keccak256("retry-deposit"));
 
@@ -177,7 +177,35 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(settlement.queueFundingRefund(fundingId), childId);
     }
 
-    function testConsumedFundingRefundsOnlyAfterTerminalNonFulfillment() public {
+    function testSettlementFunding_refundCancellationCannotStrandTheRecordedObligation() public {
+        _setPricedOffer(31, FUNDER_A);
+        uint256 fundingId = _pledgeAndDeposit(31, FUNDER_A, REFUND_A, PRICE, keccak256("cancel-guard"));
+
+        vm.prank(OWNER);
+        uint256 childId = settlement.queueFundingRefund(fundingId);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RefundDisbursementCannotBeCancelled.selector, childId));
+        vm.prank(OWNER);
+        settlement.cancelDisbursement(childId, "must remain recoverable");
+
+        _enableGardenerDelivery(1);
+        uint256[] memory childIds = new uint256[](1);
+        childIds[0] = childId;
+        vm.prank(OWNER);
+        uint256 batchId = settlement.createBatch(childIds);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementModule.RefundDisbursementCannotBeCancelled.selector, childId));
+        vm.prank(OWNER);
+        settlement.cancelBatch(batchId, "must remain recoverable");
+
+        assertEq(uint8(settlement.getDisbursement(childId).state), uint8(ISettlementModule.DisbursementState.Queued));
+        assertEq(uint8(settlement.getBatch(batchId).state), uint8(ISettlementModule.DisbursementState.Queued));
+        assertEq(
+            uint8(settlement.getCommitmentFunding(fundingId).state), uint8(ISettlementModule.FundingState.RefundQueued)
+        );
+        vm.prank(OWNER);
+        assertEq(settlement.queueFundingRefund(fundingId), childId);
+    }
+
+    function testSettlementFunding_consumedFundingRefundsOnlyAfterTerminalNonFulfillment() public {
         _setPricedOffer(40, FUNDER_A);
         uint256 fundingId = _pledgeAndDeposit(40, FUNDER_A, REFUND_A, PRICE, keccak256("consumed"));
         _accept(40, FUNDER_A);
@@ -196,7 +224,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(uint8(settlement.getDisbursement(childId).kind), uint8(ISettlementModule.DisbursementKind.Refund));
     }
 
-    function testPledgedWithdrawalCreatesNoRefundChild() public {
+    function testSettlementFunding_pledgedWithdrawalCreatesNoRefundChild() public {
         _setPricedOffer(50, FUNDER_A);
         uint256 fundingId = _pledge(50, FUNDER_A, REFUND_A);
 
@@ -214,7 +242,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         settlement.queueFundingRefund(fundingId);
     }
 
-    function testCompletedPayoutPlanClosesConsumedFundingWithoutAnotherPayment() public {
+    function testSettlementFunding_completedPayoutPlanClosesConsumedFundingWithoutAnotherPayment() public {
         _setPricedOffer(60, FUNDER_A);
         uint256 fundingId = _pledgeAndDeposit(60, FUNDER_A, REFUND_A, PRICE, keccak256("close"));
         _accept(60, FUNDER_A);
@@ -248,7 +276,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(vm.load(address(settlement), _mappingSlot(60, uint256(FUNDING_STATE_SLOT) + 5)), bytes32(fundingId));
     }
 
-    function testConsumeRejectsAConflictingWriteOncePointerWithoutMutation() public {
+    function testSettlementFunding_consumeRejectsAConflictingWriteOncePointerWithoutMutation() public {
         _setPricedOffer(62, FUNDER_A);
         uint256 fundingId = _pledgeAndDeposit(62, FUNDER_A, REFUND_A, PRICE, keccak256("pointer-conflict"));
         _accept(62, FUNDER_A);
@@ -268,7 +296,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(vm.load(address(settlement), pointerSlot), bytes32(conflictingFundingId));
     }
 
-    function testSuccessfulAcknowledgmentClosesFundingWithoutPoolingRead() public {
+    function testSettlementFunding_successfulAcknowledgmentClosesFundingWithoutPoolingRead() public {
         _enableGardenerDelivery(0);
         uint256 childId = _prepareFundedContributorPayout(61, FUNDER_A, REFUND_A, address(0xD061));
         vm.prank(OWNER);
@@ -290,7 +318,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         assertEq(uint8(settlement.getCommitmentFunding(fundingId).state), uint8(ISettlementModule.FundingState.Closed));
     }
 
-    function testSuccessfulAcknowledgmentCompletesUnfundedPlanWithoutPoolingRead() public {
+    function testSettlementFunding_successfulAcknowledgmentCompletesUnfundedPlanWithoutPoolingRead() public {
         pooling.setCommitment(63, _gardenRequest(PROTOCOL_GARDEN, PROVIDER_GARDEN));
 
         vm.startPrank(OWNER);
@@ -329,7 +357,7 @@ contract SettlementFundingTest is SettlementPayerTest {
     ///      optimizer-off `test` profile lanes and the optimizer-200 `ci` deep lane, and run
     ///      exclusively through `bun run test:gas:release` (chained into `bun run test`);
     ///      `script/utils/release-gas-gate.test.ts` guards that routing against drift.
-    function testProposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget() public {
+    function testSettlementFunding_proposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget() public {
         if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(PROPOSED_BATCH_SIZE_LIMIT, 100);
 
@@ -341,7 +369,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         _assertFundingState(101, ISettlementModule.FundingState.Closed);
     }
 
-    function testNextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget() public {
+    function testSettlementFunding_nextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget() public {
         if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(PROPOSED_BATCH_SIZE_LIMIT + 1, 150);
 
@@ -371,7 +399,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         _assertFundingState(152, ISettlementModule.FundingState.Closed);
     }
 
-    function testHardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget() public {
+    function testSettlementFunding_hardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget() public {
         if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(HARD_MAX_BATCH_SIZE, 200);
 
@@ -383,7 +411,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         _assertFundingState(223, ISettlementModule.FundingState.Consumed);
     }
 
-    function testFundingWritesRequireTheImmutableGardenSteward() public {
+    function testSettlementFunding_fundingWritesRequireTheImmutableGardenSteward() public {
         _setPricedOffer(70, FUNDER_A);
         vm.expectRevert(abi.encodeWithSelector(ISettlementModule.NotSettlementSteward.selector, FUNDER_A, PROVIDER_GARDEN));
         vm.prank(FUNDER_A);
@@ -402,7 +430,7 @@ contract SettlementFundingTest is SettlementPayerTest {
         }
     }
 
-    function testPausedSourceAllowsRecordsOnlyFundingWritesButBlocksNewRefundAuthority() public {
+    function testSettlementFunding_pausedSourceAllowsRecordsOnlyFundingWritesButBlocksNewRefundAuthority() public {
         _setPricedOffer(71, FUNDER_A);
         vm.prank(OWNER);
         settlement.setPaused(true);

@@ -258,9 +258,7 @@ library SettlementLifecycleLib {
             payloads,
             executionKeys,
             SettlementCommandLib.RetryRequest({
-                router: config.router,
-                feeReserveMinimum: config.feeReserveMinimum,
-                executionKey: key
+                router: config.router, feeReserveMinimum: config.feeReserveMinimum, executionKey: key
             })
         );
     }
@@ -299,6 +297,9 @@ library SettlementLifecycleLib {
         public
     {
         ISettlementModule.Disbursement storage disbursement = _knownDisbursement(disbursements, disbursementId);
+        if (disbursement.kind == ISettlementModule.DisbursementKind.Refund) {
+            revert ISettlementModule.RefundDisbursementCannotBeCancelled(disbursementId);
+        }
         if (disbursement.state == ISettlementModule.DisbursementState.Dispatched) {
             revert ISettlementModule.DispatchedSettlementCannotBeCancelled();
         }
@@ -333,6 +334,12 @@ library SettlementLifecycleLib {
         ISettlementModule.Batch storage batch = _knownBatch(batches, batchId);
         if (batch.state != ISettlementModule.DisbursementState.Queued) {
             revert ISettlementModule.BatchNotInState(batchId, batch.state);
+        }
+        for (uint256 index; index < batch.disbursementIds.length; ++index) {
+            uint256 disbursementId = batch.disbursementIds[index];
+            if (disbursements[disbursementId].kind == ISettlementModule.DisbursementKind.Refund) {
+                revert ISettlementModule.RefundDisbursementCannotBeCancelled(disbursementId);
+            }
         }
         batch.state = ISettlementModule.DisbursementState.Cancelled;
         for (uint256 index; index < batch.disbursementIds.length; ++index) {
