@@ -895,6 +895,18 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     other ABI, storage, authority, release-lane blocker, or application/indexer scope rides this
     amendment.
 
+105. Internal committed-range review substitution confirmed for the member-funded increment
+    (2026-08-12, Afo confirmation): the August 10 decision to use an internal committed-range
+    review instead of an external vendor audit extends to the reopened member-funded release
+    increment pinned at
+    `21454603967370e98a61df70d399cfa7c11ce63d..50a2c29d3d9f08ed97d9b0e8b8de95d07f6fcb63`
+    and reviewed in `reports/member-funded-release-rereview-2026-08-12.md`. This closes only the
+    explicit audit-disposition confirmation requested by that report. It does not authorize a
+    deployment, broadcast, Safe transaction, value movement, canary, unpause, cap increase, or
+    indexer activation; it does not close the protocol-Safe transfer, AssessmentResolver v3 Phase
+    B, final `destinationGasLimit`, or value-authority blockers; and it does not extend the pinned
+    range to later build/test optimization commits.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
