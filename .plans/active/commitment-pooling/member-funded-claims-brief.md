@@ -1,7 +1,8 @@
 # Member-Funded Claims with Refund — Design Brief (Option B)
 
 **Feature Slug**: `commitment-pooling` (companion brief)
-**Status**: draft for discussion — no decision registered, no code authorized
+**Status**: approved for the reopened release increment by decision register #103; implementation
+remains blocked on the Phase 1–3 review checkpoint
 **Created**: 2026-08-11 (founder request after the architecture-realignment review)
 **Companions**: `contract-spec.md` (commitment lifecycle, claim machinery, consideration model),
 `settlement-spec.md` (payout plans, disbursement lifecycle, command/ack rail),

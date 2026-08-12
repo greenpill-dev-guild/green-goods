@@ -427,14 +427,14 @@ Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and other
 
 ### `disbursement-kind`
 
-Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is the records-only Commitment Credit companion shape queued from approved CreditRegistry loans for G$ settlement.
+Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable provider-payment shapes; LoanPrincipal is the records-only Commitment Credit companion shape; Refund returns a steward-confirmed member deposit from the garden Safe through the ordinary settlement rail.
 
-**Canonical members:** ContributorConsideration (0) · Funding (1) · LoanPrincipal (2) · GardenBeneficiary (3)
+**Canonical members:** ContributorConsideration (0) · Funding (1) · LoanPrincipal (2) · GardenBeneficiary (3) · Refund (4)
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
-| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · DisbursementKind</code> | <code>ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary</code> |  |
-| indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. |
+| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · DisbursementKind</code> | <code>ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary, Refund</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY, REFUND</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. REFUND is ABI-live in the reopened release and is temporarily baselined until the later indexer dispatch lands. |
 
 ### `funding-route`
 
@@ -446,6 +446,16 @@ Typed funding route for non-commitment settlement entries; ProtocolToGarden is t
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FundingRoute</code> | <code>None, ProtocolToGarden</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · FundingRoute</code> | <code>UNKNOWN, NONE, PROTOCOL_TO_GARDEN</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. |
+
+### `funding-state`
+
+Lifecycle of one member-funded priced-Offer claim. Pledged records intent; DepositRecorded records the full steward-confirmed Safe deposit; Consumed binds it to the accepted claimant; Closed follows completed delivery; RefundQueued and Refunded reuse one persistent settlement child; Withdrawn means no recorded deposit was owed.
+
+**Canonical members:** None (0) · Pledged (1) · DepositRecorded (2) · Consumed (3) · Closed (4) · RefundQueued (5) · Refunded (6) · Withdrawn (7)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FundingState</code> | <code>None, Pledged, DepositRecorded, Consumed, Closed, RefundQueued, Refunded, Withdrawn</code> |  |
 
 ### `commitment-settlement-flow`
 

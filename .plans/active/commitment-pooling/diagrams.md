@@ -692,7 +692,7 @@ stateDiagram-v2
 
 ## D8. Pool state machine
 
-**How to read this**: six named on-chain states (after the `None` unknown-row sentinel) and the exact call that moves between them. Two of them are easy to confuse — `Paused` stops the *start* of new promises, while `Composted` is archival rest that keeps the full history readable and can wake again through `reopenPool`. Pool `Paused` is deliberately a creation-side stop, not a full freeze: claims, acceptance, and confirmation on existing promises stay callable on-chain, and the whole-module emergency freeze is the module-level `setPaused` in the second table below. Every transition is a rare, deliberate steward console action; nothing here happens automatically.
+**How to read this**: six named on-chain states (after the `None` unknown-row sentinel) and the exact call that moves between them. Two of them are easy to confuse — `Paused` is the full freeze for new participation and progress decisions in this pool, while `Composted` is archival rest that keeps the full history readable and can wake again through `reopenPool`. Register #103 supersedes the earlier creation-side-only posture: claim/decline, acceptance, exchange, Ready submission/override, and confirmation now stop with creation, while evidence/linkage and safe wind-down remain available. The module-level `setPaused` is still the whole-module emergency freeze in the second table below. Every pool transition is a rare, deliberate steward console action; nothing here happens automatically.
 
 Every pool transition is on-chain. One pool per garden, idempotent registration; the protocol pool is the root garden's pool (the deployment artifact's canonical `rootGarden` — token 0 on Arbitrum One).
 
@@ -718,15 +718,15 @@ stateDiagram-v2
 | NotReady | garden minted, pool registered, onchain charter/cap predicate not yet met or app Baseline preflight still missing | configuration only | steward |
 | Ready | onchain charter + non-zero provider open-commitment cap are present; the app offered the write only after a current non-revoked Baseline preflight | seed cycles; open the pool | steward |
 | Open | promises can flow | create / claim / confirm commitments; seed and open cycles | gardeners + steward |
-| Paused | **creation-side stop** | starting anything new is disabled — new commitments, new series, cycle seeding and opening; claims, acceptance, Ready-submission, confirmation, and exchange stay callable on-chain (a pausing steward stops intake by not accepting claims), and browse, evidence/work linkage, cancellation, expiry, and dispute recovery remain available | steward (resume); existing actors keep every non-creation path |
+| Paused | **full per-pool freeze** | new commitments/series, cycle seed/open, claim/decline, acceptance, exchange, Ready submission/override, and confirmation are disabled; browse, evidence/work linkage, roster-safe wind-down, cancellation, expiry, dispute recovery, and the non-blocking Work-decision hook remain available | steward (resume); existing actors retain only evidence, recovery, and wind-down paths |
 | Closed | wind-down complete | no new activity; every commitment was terminal and every cycle Cancelled or Composted before entry | steward |
 | Composted | **archival rest — history + "ready for the next season"** | read everything; `reopenPool` back to Ready or Open; nothing else | steward |
 
-Composting is archival, not deletion and not a stop — `Paused` is the creation-side stop; a composted pool keeps its full promise history visible and can wake for a new season via `reopenPool`. And the two pauses have deliberately different scopes — only the module-level one is a freeze:
+Composting is archival, not deletion and not a stop — `Paused` is a pool-scoped freeze; a composted pool keeps its full promise history visible and can wake for a new season via `reopenPool`. The two pauses differ by scope, not by whether they freeze:
 
 | Pause | Scope | Blocks | Keeps available |
 |---|---|---|---|
-| Pool `Paused` | that pool only | creation-side writes: new commitments, new series, cycle seed/open | everything else on existing promises — claims, acceptance, Ready-submit, confirmation, exchange, evidence/work linkage, cancellation, expiry, dispute recovery. (A fuller claim/confirm freeze was considered and deliberately deferred as a post-deploy upgrade candidate, decision 2026-08-11) |
+| Pool `Paused` | that pool only | new commitments/series, cycle seed/open, claim/decline, acceptance, exchange, Ready submission/override, confirmation (register #103) | browse, evidence/work linkage, roster-safe wind-down, cancellation, expiry, dispute recovery, and the non-blocking `onWorkDecision` hook |
 | Module `setPaused` | whole module — **the emergency freeze** | operational mutations | owner configuration, unpause, `cancelCommitment`, `expireCommitment`, `resolveDispute`, and pool `pausePool` / `closePool` / `compostPool` wind-down; the deliberately ungated `onWorkDecision` resolver hook also stays live, so a pre-freeze work decision can still credit requirements and auto-flip an Accepted commitment to ReadyForConfirmation while the module is paused |
 
 ## D9. Cycle state machine (types: Season, Campaign)

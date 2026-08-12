@@ -169,7 +169,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 64 | **Prototype UI reuses the shipping app's components and rhythms — never a parallel pattern.** Wizards render the real FormProgress chrome with back buttons; evidence is an MDR variant of Submit Work; the kind choice is equal cards; the promise detail carries people + team above the fold and one bar-held primary; ongoing is an inline expansion of the composer, not a detour; exchange is parked until it gets its own design session; "Request" is the single asking word; stewards declare G$ support in a real wizard step on the phone. | Afo's iteration-2 review, 2026-08-11: the correction pass fixed structure but not look-and-feel — flows still invented patterns the app already solves (dots vs FormProgress, sheet evidence vs MDR, X-only headers), the ongoing entry stayed invisible, and steward G$ had no phone surface at all. Register #102. |
 | 63 | **The client prototype catalog is a two-tier product: canonical journeys plus an exhaustive state library.** Seventeen client journeys each start at a drawn home surface, one person, one sitting; every offline/failure/cycle-state variant stays reviewable in the Screen library. The composer is entry-fixed with a details capture, and the ongoing and exchange paths folded in as choices; evidence and work capture share the shipping Submit-Work interaction; the work↔promise bridge is drawn in both directions; browse cards carry the D5 contract. Two new validator rules (entry-surface, one-row bars) keep both regressions impossible. | Afo decisions D1–D10, 2026-08-11 interactive plan session, after the deep client-PWA audit found the registry's state-coverage instrument being presented as UX journeys: wizard repetition across eight flows, mid-app starts, promise/offer vocabulary drift, unused MDR patterns, and a work-link mis-wired to the admin console. Register #101; admin findings recorded, not fixed, in `reports/admin-prototype-follow-up-2026-08-11.md`. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–102)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–103)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -862,6 +862,21 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     592 hotspots / 45 flows / 283 scenes, 0 warnings; artifact republished (share pin re-pinned
     manually). No runtime package, contract, ABI, indexer, or Linear change.
 
+103. The `commitment-pooling-settlement-credit-v1` candidate is deliberately reopened for one
+    coherent ABI increment (2026-08-11, Afo decision). The increment contains exactly three
+    changes: member-funded priced-Offer claims with garden-Safe custody and mechanically eligible
+    refunds under `member-funded-claims-brief.md` Option B; `PoolState.Paused` as the full per-pool
+    freeze for claim, decline, acceptance, exchange, Ready submission/override, and both
+    confirmation paths; and authority-preserving `registerPool` backfill while the module is
+    paused. This supersedes register #100's creation-side pool-pause posture. The frozen candidate
+    is reopened only for these three changes, then receives new interface/storage/event closure,
+    tests, release identities, and a fresh committed-range review before re-freeze. Specification,
+    closure matrices, ontology, Linear tracking, diagrams, prototypes, and the circulation
+    document must close and pass their gates before implementation begins; Afo reviews those
+    Phase 1–3 surfaces at the explicit pre-code checkpoint. Register #102 was already committed to
+    the client-prototype iteration before this dispatch, so this decision uses the next available
+    number rather than rewriting decision history.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
@@ -1017,6 +1032,9 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Contracts (`codex/contracts/commitment-pooling`): PRD-721 (historical labels PRD-671/672)
 
+- [ ] Implement register #103's full pool-pause freeze and paused `registerPool` path without
+  gating evidence/linkage, roster wind-down, cancellation/expiry/dispute recovery, or the
+  non-blocking Work-decision hook
 - [ ] Contract logic and tests per `contract-spec.md`; bun wrappers only, never raw forge
 - [ ] Implement `CommitmentSeries` exactly per `standing-commitments-spec.md`: storage, errors,
   events, direct-holder Active/Resting/Retired lifecycle, validated Offer-only instance reference,
@@ -1037,6 +1055,9 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Settlement (`codex/settlement/commitment-pooling`): PRD-686
 
+- [ ] Implement register #103's member-funded claim records, steward-confirmed deposits,
+  acceptance consumption, one persistent refund child, failed-refund requeue, and ordinal-safe
+  `DisbursementKind.Refund` through the existing command/acknowledgment rail
 - [ ] `SettlementModule` + tests per `settlement-spec.md` §3; zero changes to the pooling module or register; bun wrappers only
 - [ ] Build Arbitrum `SettlementModule` + Celo `CeloSettlementExecutor` against the exact command/ack tuples; reuse the existing `@chainlink/contracts-ccip` dependency and ENS sender/receiver authentication patterns
 - [ ] Prove immutable batch membership, disabled/configured/hard-ceiling batch bounds, per-member failed-attempt recovery, idempotent same-key command retry, independent acknowledgment retry, one immutable router per implementation, bounded peer grace, paused/drained router cutover, zero CCIP token amounts, native-fee reserve monitoring, bounded Safe execution/failure codes, exact indexer entities/events, and AA-gated PWA member delivery

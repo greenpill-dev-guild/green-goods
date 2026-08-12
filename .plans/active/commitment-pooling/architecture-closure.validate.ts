@@ -53,28 +53,38 @@ const namesInBackticks = (value: string) =>
 const canonicalEvents = [
   ...contract.matchAll(/^\s+- event:\s+([A-Za-z][A-Za-z0-9_]*)\(/gm),
 ].map((match) => match[1]);
-require(canonicalEvents.length === 54, `expected 54 canonical ABI events, found ${canonicalEvents.length}`);
+require(canonicalEvents.length === 57, `expected 57 canonical ABI events, found ${canonicalEvents.length}`);
 require(
   new Set(canonicalEvents).size === canonicalEvents.length,
   "canonical ABI inventory contains duplicate event names",
 );
 
-// 2026-08-11: the 54-event inventory was previously closed only against Matrix A1 — a
-// spec-vs-spec check. Close it against the merged Solidity interfaces too, so the canonical
-// config.yaml block and the implemented ABI cannot drift apart silently. ISettlementModule's
-// events are deliberately outside the 54 (settlement-spec owns those); a future extension may
-// add creditAbi + the D30 LoanState machine to the enum closures below.
+// 2026-08-11: the original 54-event inventory was previously closed only against Matrix A1 — a
+// spec-vs-spec check. Close it against the Solidity interfaces too, including register #103's
+// three SettlementModule funding events. Other settlement events remain owned by settlement-spec
+// and are deliberately outside this pooling closure inventory.
 const solidityEventNames = (source: string) =>
   [...source.matchAll(/^\s*event\s+([A-Za-z][A-Za-z0-9_]*)\(/gm)].map((match) => match[1]);
-const implementedEvents = [...solidityEventNames(poolingAbi), ...solidityEventNames(registryAbi)];
+const settlementFundingEventNames = ["FundingPledged", "FundingDepositRecorded", "FundingConsumed"];
+const implementedEvents = [
+  ...solidityEventNames(poolingAbi),
+  ...solidityEventNames(registryAbi),
+  ...solidityEventNames(settlementAbi).filter((eventName) => settlementFundingEventNames.includes(eventName)),
+];
+for (const eventName of settlementFundingEventNames) {
+  require(
+    solidityEventNames(settlementAbi).includes(eventName),
+    `${eventName} is missing from ISettlementModule.sol`,
+  );
+}
 require(
   new Set(implementedEvents).size === implementedEvents.length,
-  "the merged pooling interfaces declare a duplicate event name",
+  "the ABI-closed interfaces declare a duplicate canonical event name",
 );
 for (const eventName of canonicalEvents) {
   require(
     implementedEvents.includes(eventName),
-    `canonical event ${eventName} is not declared in ICommitmentPoolingModule.sol or ICommitmentRegistry.sol`,
+    `canonical event ${eventName} is not declared in its ABI-closed Solidity interface`,
   );
 }
 for (const eventName of implementedEvents) {
@@ -635,7 +645,7 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `Architecture closure validation passed: ${canonicalEvents.length} events (ABI-closed against 2 interface files), ` +
+  `Architecture closure validation passed: ${canonicalEvents.length} events (ABI-closed against 3 interface files), ` +
   `${requiredEntities.length} indexed entities, ${poolingFunctions.length} classified module functions, ` +
   `6 enum vocabularies closed against the drawn machines, ` +
   `8 sparse-event materialization rows, ${contractCalls.length} executable calls, ` +

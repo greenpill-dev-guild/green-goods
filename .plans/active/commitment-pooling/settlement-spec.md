@@ -233,12 +233,31 @@ removes a push-refund or trapped-overpayment path while preserving the safe
 pull/guarded-excess principle used by the existing ENS CCIP integration. The generated
 storage-layout baseline—not a prose slot estimate—sets the final storage gap.
 
+**Member-funding namespace (register #103).** The ABI increment does not consume or reorder the
+legacy layout above. It adds one ERC-7201 namespace,
+`green.goods.settlement.commitment-funding`, with this declaration order:
+
+| # | Entry | Type |
+|---|---|---|
+| 1 | `nextFundingId` | `uint256` (starts at 1) |
+| 2 | `fundings` | `mapping(uint256 fundingId => CommitmentFunding)` |
+| 3 | `fundingOfCommitmentFunder` | `mapping(uint256 commitmentId => mapping(address funder => uint256 fundingId))` |
+| 4 | `fundingByDepositReference` | `mapping(bytes32 depositReference => uint256 fundingId)` |
+| 5 | `fundingOfRefundDisbursement` | `mapping(uint256 disbursementId => uint256 fundingId)` |
+
+The namespace slot is the ERC-7201 derivation of that exact string. The implementation and
+storage-layout tests freeze the computed slot before any upgrade. One funding record exists per
+`(commitmentId, funder)`; the forward `refundDisbursementId` inside the record and the reverse
+mapping above are both persistent and must agree. They are never cleared by failure, requeue, or
+cancellation.
+
 ### 3.1.2 Target types
 
 ```solidity
 enum DisbursementState { None, Queued, Dispatched, Confirmed, Failed, Cancelled }
-enum DisbursementKind { ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary }  // ordinal zero is the commitment-bound contributor payment; Funding = Safe top-up hop, not commitment-bound; LoanPrincipal is reserved and unqueueable until its lane dispatches; GardenBeneficiary = commitment-bound payment to a claiming garden's Safe
+enum DisbursementKind { ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary, Refund }  // Refund is appended last so ordinals 0-3 remain stable
 enum FundingRoute { None, ProtocolToGarden }
+enum FundingState { None, Pledged, DepositRecorded, Consumed, Closed, RefundQueued, Refunded, Withdrawn }
 enum CommitmentSettlementFlow { Internal, ProtocolToGarden, GardenToProtocol, GardenToGarden } // derived read-model fact; never caller-authored
 enum PayoutPlanStatus { Draft, Pending, Partial, Complete, Failed } // derived from plan + child states
 enum FailureCode {
@@ -306,6 +325,22 @@ struct Disbursement {
     bytes32 acknowledgmentMessageId;
     uint8 failureCode;
     DisbursementState cancelledFromState; // None unless terminal state is Cancelled
+}
+
+struct CommitmentFunding {
+    uint256 commitmentId;
+    address funder;              // canonical claimant whose pending request was pledged
+    address garden;              // immutable pool garden whose registered Celo Safe holds the deposit
+    address refundAccount;       // immutable recorded Celo recipient; never replaced at queue time
+    uint256 expectedAmount;      // frozen priced-Offer consideration
+    uint256 depositedAmount;     // full steward-confirmed amount; may exceed expectedAmount
+    bytes32 depositReference;    // unique non-zero Celo transaction reference
+    FundingState state;
+    uint256 refundDisbursementId;// one child ever; zero before a refund is queued
+    uint64 pledgedAt;
+    uint64 depositRecordedAt;
+    uint64 consumedAt;
+    uint64 closedAt;
 }
 
 struct CommitmentPayoutPlan {
@@ -420,6 +455,52 @@ struct SettlementAcknowledgmentV1 {
 }
 ```
 
+**Commitment-funding state machine (register #103).** A funding ID is immutable and never reused.
+The stored transitions are:
+
+```text
+Pledged -> DepositRecorded -> Consumed -> Closed
+                         \-> RefundQueued -> Refunded
+Pledged -> Withdrawn
+DepositRecorded -> RefundQueued
+Consumed -> RefundQueued
+```
+
+- `recordFunding` freezes the priced Offer's expected amount, the claimant/funder, the pool garden,
+  and the funder's chosen refund account. Exact replay is read-through success; conflicting reuse
+  of the same `(commitmentId, funder)` is a hard error.
+- `recordFundingDeposit` is the only `Pledged -> DepositRecorded` transition. The steward records a
+  unique non-zero Celo transaction reference and the full deposit. The amount must be at least the
+  frozen price. On fulfillment, only the price funds provider consideration and any excess stays
+  with the garden as a top-up; on refund, the complete recorded deposit is returned.
+- `consumeFunding` is the only `DepositRecorded -> Consumed` transition and re-reads the accepted
+  commitment to prove the funder is its counterparty. It records the deposit as backing for that
+  accepted promise; it never transfers G$.
+- `Consumed -> Closed` occurs only when the existing payout plan for the same commitment derives
+  `Complete`. It creates no payment and no new event; the read model derives closure from the
+  payout-plan events. A fulfilled commitment whose payout has not completed remains `Consumed`.
+- `queueFundingRefund` is the only refund-authority write. A still-pledged withdrawal becomes
+  `Withdrawn` with nothing owed. `DepositRecorded` becomes refundable after decline, supersession,
+  or an explicit steward-triggered funding withdrawal. `Consumed` becomes refundable only after
+  the pooling module reports `Cancelled` or `Expired`; those states include the corresponding
+  dispute outcomes. Delay, `Disputed`, `ReadyForConfirmation`, and `Fulfilled` are not eligible.
+- The first eligible funded refund allocates one ordinary Queued disbursement with
+  `kind = Refund`, `fundingRoute = None`, `commitmentId` and `contributor = funder`, source set to
+  the immutable garden Safe, recipient set to `refundAccount`, canonical G$, and amount set to the
+  full `depositedAmount`. Both funding-to-child and child-to-funding pointers are stored before
+  `DisbursementQueued` is emitted. Every later call returns that same child; no state, failure,
+  cancellation, retry, or replay can allocate a second refund.
+- An authenticated success acknowledgment of that child moves `RefundQueued -> Refunded`. An
+  authenticated failure leaves the funding in `RefundQueued`; ordinary `requeue` creates the next
+  attempt on the same child. Cancelling the ordinary child never clears the refund obligation or
+  relationship and never permits a replacement child.
+
+Garden-Safe earmarks are accounting, not token locks. The spendable view is
+`Safe balance - all open DepositRecorded/Consumed/RefundQueued obligations`; it is a warning and
+authorization aid, not a custody guarantee. If the Safe is below its obligations, refund dispatch
+fails through the existing bounded execution/acknowledgment path, stays owed, and the same child is
+requeued only after the Safe is replenished. No log-only or timeout-only path marks it refunded.
+
 `HARD_MAX_BATCH_SIZE = 24` is only the compile-time safety ceiling. `batchSizeLimit` starts at
 zero and keeps batching disabled until worst-case destination gas, atomic Safe execution, and
 acknowledgment overhead are measured. Production may set a value from 1 through 24 while
@@ -517,7 +598,12 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | `prepareContributorPayout(planId, contributor)` | resolved payer-garden settlement steward | caller is an operator/owner steward of immutable `payerGarden`; finalized `ContributorConsideration` plan; frozen row has non-zero amount/recipient. Existing child returns idempotently before pause/account/delivery rechecks. First preparation requires active payer, unpaused source, `gardenerDeliveryEnabled`, and Pending/Partial parent; creates one Queued child, stores the row child ID, increments `preparedPayoutCount`, and emits `DisbursementQueued(kind=ContributorConsideration)` |
 | `prepareGardenBeneficiaryPayout(planId)` | resolved payer-garden settlement steward | caller is an operator/owner steward of immutable `payerGarden`; finalized `GardenBeneficiary` plan. Existing child returns idempotently before pause/account rechecks. First preparation requires active payer and beneficiary accounts, beneficiary Safe still equal to the frozen recipient, unpaused source, and Pending/Partial parent; creates one Queued child with `garden = beneficiaryGarden`, `contributor = address(0)`, stores `beneficiaryDisbursementId`, increments `preparedPayoutCount`, and emits `DisbursementQueued(kind=GardenBeneficiary)`. `gardenerDeliveryEnabled` is irrelevant because the recipient is a Safe |
 | `queueFunding(garden, amount)` | protocol steward or module owner | the single modeled route is ProtocolToGarden, recorded on the disbursement's immutable `fundingRoute` fact; target garden must differ from `protocolGarden`; executorGarden is snapshotted as protocolGarden; source, recipient, and canonical G$ derive from funding config + active settlement accounts; no arbitrary addresses/tokens; event `DisbursementQueued(kind=Funding)` |
-| `createBatch(ids[])` | resolved settlement steward for the immutable executorGarden | 1–`batchSizeLimit` unique Queued ids; same executorGarden, source, token, kind, and fundingRoute; unique recipients before fee quote/mutation. Every commitment-bound kind rechecks its immutable payer account. `GardenBeneficiary` additionally rechecks every immutable beneficiary garden account and frozen Safe. Funding rechecks the protocol source plus every target garden. Reserved `LoanPrincipal` remains unqueueable until its lane adds its own checks. Mixed kinds/routes revert; same-kind contributor children from different plans may batch only when executor/token match; beneficiary children follow the identical homogeneity rule. Entry ids are immutable; event `BatchCreated` |
+| `recordFunding(commitmentId, funder, refundAccount)` | pool-garden settlement steward | settlement reads the pooling module and requires an existing active ApprovalGated claim by `funder` on a non-zero-priced Offer using `CeloSettlement`; pool and pool garden must resolve, and the garden's settlement account must be active. Expected amount derives from the commitment and is frozen; `refundAccount` is a non-zero immutable Celo recipient. First use creates `Pledged`; an exact retry returns the existing ID without an event, while a changed refund account or changed frozen price reverts `FundingRecordConflict` |
+| `recordFundingDeposit(fundingId, amount, depositReference)` | immutable pool-garden settlement steward | `Pledged` only; unique non-zero reference; `amount >= expectedAmount`. The complete deposit is recorded, including any excess, and state becomes `DepositRecorded`. Excess is a garden top-up only when delivery completes; if a refund becomes eligible, the complete recorded amount is owed |
+| `consumeFunding(fundingId)` | immutable pool-garden settlement steward | `DepositRecorded` only; pooling must report the commitment Accepted with `counterparty == funder`. State becomes `Consumed`. Pooling never reads settlement state and acceptance is not gated on this write: accepting without a recorded deposit knowingly fronts the Offer from the Safe and creates no member refund obligation |
+| `queueFundingRefund(fundingId)` | immutable pool-garden settlement steward | mechanically derives one of three outcomes. `Pledged` withdrawal closes to `Withdrawn` with no child. `DepositRecorded` is refundable after decline, supersession, or steward-triggered withdrawal. `Consumed` is refundable only when the existing pooling read reports terminal non-fulfillment (`Cancelled` or `Expired`, including those dispute outcomes). Refund uses the immutable garden Safe, canonical G$, recorded refund account, and full `depositedAmount`; it creates exactly one `DisbursementQueued(kind=Refund, contributor=funder)` child and stores both relationship directions before emission. Any existing child returns idempotently; fulfillment is never refund-eligible |
+| `queueLoanPrincipal(loanId)` | immutable pool-garden settlement steward | configured CreditRegistry required; exact `(registry, loanId)` retry returns the existing child before new queue gates. First queue requires source unpaused, an Approved non-expired loan, Open pool with credit enabled, active pool-garden settlement account, principal within the remaining registry reservation, and matching Settlement/Pooling/Hats configuration; source/recipient/token/amount derive from those records. Stores both relationship directions and emits `DisbursementQueued(kind=LoanPrincipal)` plus `LoanPrincipalQueued` |
+| `createBatch(ids[])` | resolved settlement steward for the immutable executorGarden | 1–`batchSizeLimit` unique Queued ids; same executorGarden, source, token, kind, and fundingRoute; unique recipients before fee quote/mutation. Every commitment-bound kind rechecks its immutable payer account. `GardenBeneficiary` additionally rechecks every immutable beneficiary garden account and frozen Safe. Refund rechecks the immutable funding garden/account and relationship; Funding rechecks the protocol source plus every target garden; LoanPrincipal rechecks the active loan reservation and pool source. Mixed kinds/routes revert; same-kind children may batch only when executor/token match. Entry ids are immutable; event `BatchCreated` |
 | `dispatchDisbursement(id)` / `dispatchBatch(batchId)` | resolved settlement steward for immutable `executorGarden`, or exact configured `dispatcher` | subject Queued. Every commitment-bound kind rechecks payer activity immediately before fee quote/send; `GardenBeneficiary` also rechecks beneficiary account activity and frozen Safe. Funding rechecks protocol source and target accounts. Deactivation blocks dispatch without mutation. Delegated dispatch executes only an immutable payer-steward-approved plan; owner has no value-moving bypass. Preserve native reserve floor, build the fixed payload with no target/token/calldata override, send no token amounts, persist key/message ID, and move Queued → Dispatched |
 | `retryCommand(id)` / `retryBatchCommand(batchId)` | resolved settlement steward for immutable `executorGarden`, or exact configured `dispatcher` | subject remains Dispatched without authenticated acknowledgment; native fee balance covers the quote without falling below `feeReserveMinimum`; uses the command's snapshotted selector/executor/gas/version/payload hash, never the later active route; records a new CCIP message ID; never creates a second payment authority |
 | CCIP acknowledgment receiver | the implementation's immutable CCIP router only | zero token amounts; supported snapshotted version; execution key maps to the current subject/attempt; `originatingCommandMessageId` must already map to that same key; source selector and encoded sender must equal that `CommandRecord`'s snapshotted destination selector/executor (which must still be the active or unexpired previous global peer); success requires `FailureCode.None`, failure requires a bounded non-zero code. Success → Confirmed; execution failure → Failed. Duplicate/stale acknowledgments are emitted and ignored without mutating settled state |
@@ -527,8 +613,9 @@ requeues, cancels, overwrites, or pays a replacement command merely because grac
 | `initialize(owner, hatsModule, commitmentPoolingModule, protocolGarden, gDollarToken)` | proxy initializer | every address non-zero; protocol garden and canonical G$ become write-once configuration; disbursement, batch, and payout-plan IDs start at 1; delivery disabled; batch limit/dispatcher/reserve start at zero; `paused = true`; owner-only UUPS authorization |
 | fee operations (`fundFees`, `withdrawExcessFees`, `quoteCommandFee`, balance/readiness views) | anyone / owner / public | fees use native ETH; dispatch/retry and withdrawal preserve `feeReserveMinimum`; funding, floor changes, withdrawals, current balance, and low-balance state are observable |
 | dependency setters (`setHatsModule`, `setCommitmentPoolingModule`) | module owner | source must be paused; zero rejected; every real change emits exact old/new addresses |
+| `setCreditRegistry(registry)` | module owner | source must be paused; zero rejected; candidate must expose matching SettlementModule, CommitmentPoolingModule, and HatsModule configuration and be paused. Exact repeat is a no-op. Replacement is blocked while the previous registry has an active principal reservation; every real change emits `CreditRegistryUpdated` |
 | `setPaused` | module owner | initialize paused; pausing is always allowed. Unpause requires non-zero dependencies, a complete non-zero CCIP route, active protocol settlement account, and non-zero fee reserve floor; paused source blocks contributor preparation, funding queue, batch creation, dispatch, command retry, and requeue while permitting configuration, fee funding/guarded excess withdrawal, Queued/Failed terminal cancellation, and authenticated acknowledgment receipt |
-| views (`getDisbursement`, `getBatch`, `getPayoutPlan`, `contributorPayoutOf`, `payoutContributors`, `payoutPlanOfCommitment`, `payoutPlanStatus`, `settlementAccountOf`, `isAcknowledgmentPending`, `gardenerDeliveryEnabled`, `ccipRoute`, `dispatcher`, fee floor/balance/low state) | public | `getPayoutPlan` exposes immutable shape and beneficiary fields; `payoutContributors` is empty for beneficiary shape and otherwise returns the immutable order. Status derives from all commitment-bound child states, not only contributor rows |
+| views (`getDisbursement`, `getBatch`, `getPayoutPlan`, `contributorPayoutOf`, `payoutContributors`, `payoutPlanOfCommitment`, `getCommitmentFunding`, `fundingOfCommitmentFunder`, `fundingRefundDisbursementOf`, `payoutPlanStatus`, `settlementAccountOf`, `isAcknowledgmentPending`, `gardenerDeliveryEnabled`, `ccipRoute`, `dispatcher`, fee floor/balance/low state) | public | funding views expose the immutable claimant/garden/refund account, recorded deposit, exact state, and one refund-child pointer. `getPayoutPlan` exposes immutable shape and beneficiary fields; `payoutContributors` is empty for beneficiary shape and otherwise returns the immutable order. Status derives from all commitment-bound child states, not only contributor rows |
 
 “Resolved settlement steward” names no new role. Every steward gate above resolves through the
 module's `hatsModule` trust root as
@@ -554,6 +641,28 @@ corresponding contracts exist):
 
 ```solidity
 event FundingConfigurationLocked(address indexed protocolGarden, address indexed gDollarToken);
+event FundingPledged(
+    uint256 indexed fundingId,
+    uint256 indexed commitmentId,
+    address indexed funder,
+    address garden,
+    address refundAccount,
+    uint256 expectedAmount,
+    address recordedBy
+);
+event FundingDepositRecorded(
+    uint256 indexed fundingId,
+    bytes32 indexed depositReference,
+    uint256 amount,
+    address indexed recordedBy
+);
+event FundingConsumed(
+    uint256 indexed fundingId,
+    uint256 indexed commitmentId,
+    address indexed funder,
+    uint256 depositedAmount,
+    address consumedBy
+);
 event SettlementAccountRegistered(
     address indexed garden,
     uint64 chainId,
@@ -715,6 +824,15 @@ event FeeReserveFunded(address indexed funder, uint256 amount);
 event ExcessFeesWithdrawn(address indexed recipient, uint256 amount);
 
 error FundingConfigurationIncomplete();
+error FundingRecordConflict(uint256 commitmentId, address funder, uint256 existingFundingId);
+error UnknownCommitmentFunding(uint256 fundingId);
+error CommitmentFundingNotInState(uint256 fundingId, FundingState actual);
+error FundingDepositReferenceRequired();
+error FundingDepositReferenceUsed(bytes32 depositReference, uint256 existingFundingId);
+error FundingDepositBelowPrice(uint256 fundingId, uint256 expectedAmount, uint256 depositedAmount);
+error FundingClaimantMismatch(uint256 fundingId, address funder, address acceptedCounterparty);
+error FundingRefundNotEligible(uint256 fundingId);
+error FundingRefundAlreadyLinked(uint256 fundingId, uint256 disbursementId);
 error ZeroAddress();
 error UnauthorizedCaller(address caller);
 error NotSettlementSteward(address caller, address garden);
@@ -818,6 +936,15 @@ interface ISettlementModule {
         uint256 payoutPlanId
     ) external returns (uint256 disbursementId);
     function queueFunding(address garden, uint256 amount) external returns (uint256 disbursementId);
+    function recordFunding(
+        uint256 commitmentId,
+        address funder,
+        address refundAccount
+    ) external returns (uint256 fundingId);
+    function recordFundingDeposit(uint256 fundingId, uint256 amount, bytes32 depositReference) external;
+    function consumeFunding(uint256 fundingId) external;
+    function queueFundingRefund(uint256 fundingId) external returns (uint256 disbursementId);
+    function queueLoanPrincipal(uint256 loanId) external returns (uint256 disbursementId);
     function createBatch(uint256[] calldata disbursementIds) external returns (uint256 batchId);
     function dispatchDisbursement(uint256 disbursementId) external returns (bytes32 messageId);
     function dispatchBatch(uint256 batchId) external returns (bytes32 messageId);
@@ -837,6 +964,9 @@ interface ISettlementModule {
     ) external view returns (ContributorPayout memory);
     function payoutContributors(uint256 payoutPlanId) external view returns (address[] memory);
     function payoutPlanOfCommitment(uint256 commitmentId) external view returns (uint256);
+    function getCommitmentFunding(uint256 fundingId) external view returns (CommitmentFunding memory);
+    function fundingOfCommitmentFunder(uint256 commitmentId, address funder) external view returns (uint256);
+    function fundingRefundDisbursementOf(uint256 fundingId) external view returns (uint256);
     function payoutPlanStatus(uint256 payoutPlanId) external view returns (PayoutPlanStatus);
     function MAX_PAYOUT_CONTRIBUTORS() external pure returns (uint256);
     function isAcknowledgmentPending(bool isBatch, uint256 subjectId) external view returns (bool);
@@ -863,6 +993,7 @@ interface ISettlementModule {
     function withdrawExcessFees(address payable recipient, uint256 amount) external;
       function setHatsModule(address module) external;
       function setCommitmentPoolingModule(address module) external;
+    function setCreditRegistry(address registry) external;
     function setPaused(bool paused_) external;
 }
 ```
@@ -1698,9 +1829,18 @@ Shared substrate additions (current lane PRD-723; extends historical PRD-674's s
 
 Envio indexes Green Goods protocol events from both the Arbitrum `SettlementModule` and Celo `CeloSettlementExecutor`. It does **not** index raw G$ transfers or arbitrary Celo token events. The Celo event slice is necessary to distinguish “executed; acknowledgment pending” from “not delivered.” New config blocks use deployment-artifact placeholders pre-broadcast.
 
+**Register #103 read-model target, documentation only.** The later indexer dispatch adds the
+`CommitmentFunding` entity and maps `Refund`; this phase does not edit `packages/indexer/`. Until
+that dispatch, the live GraphQL `DisbursementKind` representation intentionally remains at its
+existing four Solidity-backed kinds (plus `UNKNOWN`). The dated ontology drift baseline owns that
+temporary mismatch. Funding rows derive only from the three funding events plus the existing
+claim, commitment, payout-plan, `DisbursementQueued`, requeue/cancel, and authenticated
+acknowledgment events. Raw Celo transfers remain outside the indexer boundary.
+
 ```graphql
 enum DisbursementState { UNKNOWN QUEUED DISPATCHED CONFIRMED FAILED CANCELLED }
-enum DisbursementKind { UNKNOWN CONTRIBUTOR_CONSIDERATION FUNDING LOAN_PRINCIPAL GARDEN_BENEFICIARY }
+enum DisbursementKind { UNKNOWN CONTRIBUTOR_CONSIDERATION FUNDING LOAN_PRINCIPAL GARDEN_BENEFICIARY REFUND }
+enum FundingState { UNKNOWN PLEDGED DEPOSIT_RECORDED CONSUMED CLOSED REFUND_QUEUED REFUNDED WITHDRAWN }
 enum FundingRoute { UNKNOWN NONE PROTOCOL_TO_GARDEN }
 enum CommitmentSettlementFlow { UNKNOWN INTERNAL PROTOCOL_TO_GARDEN GARDEN_TO_PROTOCOL GARDEN_TO_GARDEN }
 enum SettlementExecutionStatus { UNKNOWN SUCCESS FAILED }
@@ -1774,6 +1914,28 @@ type SettlementGardenRoute {
   configuredAt: Int!
   updatedAt: Int!
 }
+type CommitmentFunding {
+  id: ID! # chainId-fundingId
+  chainId: Int!
+  fundingId: BigInt!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  funder: String!
+  garden: String!
+  gardenId: String!
+  refundAccount: String!
+  expectedAmount: BigInt!
+  depositedAmount: BigInt!
+  depositReference: String
+  state: FundingState!
+  refundDisbursementId: BigInt
+  refundDisbursementEntityId: String
+  pledgedAt: Int!
+  depositRecordedAt: Int
+  consumedAt: Int
+  closedAt: Int
+  updatedAt: Int!
+}
 type Disbursement {
   id: ID! # chainId-disbursementId
   chainId: Int!
@@ -1785,6 +1947,7 @@ type Disbursement {
   commitmentId: BigInt
   commitmentEntityId: String
   payoutPlanId: BigInt payoutPlanEntityId: String contributor: String contributorEntityId: String
+  fundingId: BigInt fundingEntityId: String
   settlementFlow: CommitmentSettlementFlow # commitment-bound only; null for Funding/LoanPrincipal
   kind: DisbursementKind! fundingRoute: FundingRoute! source: String!
   recipient: String! token: String! amount: BigInt!

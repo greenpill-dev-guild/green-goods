@@ -222,11 +222,22 @@ until it is composted. Replays and invalid transitions never change either count
 
 On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired, Disputed }`. `Draft`, `Active`, `EvidenceSubmitted`, `PartiallyApproved`, and `Reconciled` are derived.
 
+**Register #103 acceptance and pause rule.** A member may file an ApprovalGated claim request on a
+priced Offer; the price does not create custody or acceptance. The existing
+`PricedOfferClaimRequiresSteward` gate moves to `acceptClaim`, so only a steward can start the
+priced promise. A priced Open-mode Offer still reverts at claim time because it has no steward
+decision step. `claimCommitment`, `acceptClaim`, `declineClaim`, `acceptExchange`, both
+ReadyForConfirmation entry points, and both confirmation functions all require the parent pool to
+be `Open`; `PoolState.Paused` therefore freezes those transitions as well as creation. Evidence,
+Work linkage/sync, roster wind-down, cancel, expire, dispute, resolution, and the non-blocking
+Work-decision hook keep their separately stated gates and remain available where their commitment
+state permits.
+
 | Transition | Layer | Mechanism |
 |---|---|---|
 | Draft (exists) | off-chain | Client/admin IndexedDB draft (offline-first). |
 | Draft -> Offered or Requested | on-chain | `createCommitment(params)`. Event `CommitmentCreated` (direction Offer or Request sets the initial state). A non-zero `commitmentSeriesId` must resolve to an Active same-pool direct-holder Individual Offer. For Offer B with non-zero `counterCommitmentId`, the same transaction rejects `StewardCaptured` / non-zero `onBehalfOf` and revalidates A as a same-pool Offered Individual Offer with a distinct creator and exact full reservation before B ID allocation, storage, class registration, or event emission. Offer creation then commits B's full class quota and reserves the creator's provider slot; Request creation only registers its class. |
-| Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`; either identity matching the creator reverts. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` rechecks the stored requester against the creator, consumes the canonical claimant-keyed terms, and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Request acceptance records committed units and reserves its resolved provider slot; Offer acceptance validates the already-Committed class and does not mutate registry accounting again. |
+| Offered/Requested -> Accepted | on-chain | Parent pool must be Open. `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`; either identity matching the creator reverts. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead, but a priced Offer may not use Open mode. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), including a member-filed request on a priced Offer; steward `acceptClaim(commitmentId, claimant)` owns the priced-Offer gate, rechecks the stored requester against the creator, consumes the canonical claimant-keyed terms, and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Request acceptance records committed units and reserves its resolved provider slot; Offer acceptance validates the already-Committed class and does not mutate registry accounting again. |
 | Offered + Offered -> Accepted + Accepted | on-chain | `acceptExchange(exchangeCommitmentId)` takes direct-created B, resolves A from B's immutable same-pool `counterCommitmentId`, and requires A's creator as caller. Offer×Offer, Offered×Offered, distinct-creator, Individual×Individual, B-not-`StewardCaptured`, cycle, and identity checks pass before mutation, and both full immutable-quota classes must still be Committed to their creators. B's creator accepts A; A's creator accepts B. Two `CommitmentAccepted` events, `ContributorAdded(A, A.creator)` and `ContributorAdded(B, B.creator)`, and one `ExchangeAccepted` marker commit atomically; each ordinary acceptance event independently supersedes every other still-Pending request in its bounded request index, even when the accepted counterpart had no request row. No second registry commit, slot consumption, or provider-cap headroom check occurs. Provider caps apply only when reserving a new slot. Any failure reverts both sides. Later lifecycle remains independent. |
 | Accepted -> Active | derived | First `WorkLinked` or `EvidenceAttached` after acceptance. |
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
@@ -263,6 +274,10 @@ One UUPS module that owns the whole commitment-pooling control plane: durable po
   match its exact configured UID.
 - Import and type the existing concrete `ActionRegistry` from `packages/contracts/src/registries/Action.sol` (the repo has no `IActionRegistry`). Validate every requirement action with its deployed ABI: `actionToOwner(actionUID) != address(0)` proves registration and `getAction(actionUID).domain` supplies the derived domain tag. Actions may share a domain. UID `0` remains valid because `ActionRegistry.registerAction` allocates from `_nextActionUID++` (`packages/contracts/src/registries/Action.sol:185-188`).
 - Call the `CommitmentRegistry` for every unit-count change (commit, release, fulfill).
+- Keep the member-funding dependency one-way: pooling exposes claim, commitment, pool, and
+  consideration facts, while SettlementModule reads them and owns every `CommitmentFunding`
+  record and refund. Pooling never reads settlement state and never treats a deposit as custody or
+  an acceptance prerequisite.
 
 #### Scaffold conventions (copied, not invented)
 
@@ -1358,22 +1373,23 @@ hats (`IHatsModule.GardenRole`) in the relevant garden; the acting persona noun 
 `paused = true`. Module pause blocks operational mutations but never `setPaused`,
 `cancelCommitment`, `expireCommitment`, or `resolveDispute`; owner dependency/schema setters are
 callable **only while paused**. `setPaused(false)` fails closed until all six dependency addresses
-and all four non-zero, pairwise-distinct schema UIDs are configured. Pool-level Paused additionally
-blocks creation-side writes only — new commitments, new series, and cycle seeding/opening — on
-that pool; claims, acceptance, Ready submissions, and confirmations on existing commitments remain
-callable (decision 2026-08-11: the fuller claim/confirm pool freeze is a tracked post-deploy
-upgrade candidate, and the module-level pause is the emergency freeze).
+and all four non-zero, pairwise-distinct schema UIDs are configured. Pool-level Paused is the full
+per-pool freeze (register #103): in addition to creation, series creation, and cycle seed/open, it
+blocks claim, decline, acceptance, exchange, Ready submission/override, and both confirmation
+paths. Evidence/linkage, roster-safe wind-down, cancellation, expiry, dispute, resolution, and the
+non-blocking Work-decision hook retain their separately stated gates.
 `onGardenMinted` is an operational mutation and therefore reverts `ModulePaused` while the module
 is paused; GardenToken's existing try/catch around that callback (6.3) swallows the revert, so
 garden minting is never blocked by pooling state. Any garden minted during the paused window
-simply has no pool row yet and is covered by the `registerPool` backfill that PR chain 3 already
-runs after the verified unpause — there is no separate catch-up path and no queued-callback
-retry.
+simply has no pool row yet and is covered by `registerPool`, whose authority and identity gates are
+unchanged but whose module-pause guard is deliberately absent. The release backfill runs and is
+verified while the module remains paused, before a separately authorized unpause; there is no
+queued-callback retry.
 
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
-| Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the post-unpause `registerPool` backfill |
-| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. |
+| Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the paused `registerPool` backfill |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | callable while module paused; one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. No other operational mutation is un-gated by this exception. |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume. `closePool` additionally requires `liveCommitmentCount == 0` and `nonTerminalCycleCount == 0`; paused state does not remove the cancel/expire/resolve and cancel/compost wind-down path. |
@@ -1386,10 +1402,10 @@ retry.
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the exact frozen preimage hash from §6.1 "Creation payload hash (frozen preimage)", emits it in `CommitmentCreated`, and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
 | Commitment | `setDeclaredConsideration` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `ConsiderationRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule derives its write-once canonical G$ token and immutable payer-garden Safe; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
-| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
-| Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
-| Commitment | `acceptExchange` | creator of referenced commitment A | B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; B must be direct-created rather than `StewardCaptured`/`onBehalfOf`; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's direct creation plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Each ordinary acceptance independently sweeps every other still-Pending indexed request for its commitment. Cap headroom is checked only when `commitUnits` reserves a new slot. |
-| Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
+| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | pool Open; runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator. A priced Offer must be ApprovalGated: the member may emit `ClaimRequested`, while an Open-mode priced Offer reverts `PricedOfferClaimRequiresSteward` |
+| Commitment | `acceptClaim` | steward | pool Open; ApprovalGated path; owns the priced-Offer steward gate, consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
+| Commitment | `acceptExchange` | creator of referenced commitment A | pool Open; B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; B must be direct-created rather than `StewardCaptured`/`onBehalfOf`; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's direct creation plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Each ordinary acceptance independently sweeps every other still-Pending indexed request for its commitment. Cap headroom is checked only when `commitUnits` reserves a new slot. |
+| Commitment | `declineClaim` | steward | pool Open; ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible gardener | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
 | Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
@@ -1400,10 +1416,10 @@ retry.
 | Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision, then enumerates the complete active-link set and requires every local sequence to equal the resolver before evaluating Ready; omission of any stale linked Work reverts the batch |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active; each contributor receives at most one evidence-derived recognition credit per commitment |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
-| Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
-| Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
-| Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
-| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | current ordinary named/default path is unreachable after contributor exclusion (`OrdinaryConfirmationStillReachable` otherwise); mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
+| Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | pool Open; SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
+| Confirmation | `markReadyForConfirmation` | steward | pool Open; override path; reason emitted and visible |
+| Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | pool Open; state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
+| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | pool Open; current ordinary named/default path is unreachable after contributor exclusion (`OrdinaryConfirmationStillReachable` otherwise); mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
 | Exit | `cancelCommitment` | creator or steward (from Offered/Requested) · steward only (from Accepted) | reason CID; never from ReadyForConfirmation except via dispute resolution; allowed while module paused |
 | Exit | `expireCommitment` | anyone (permissionless) | past dueDate, or cycle endTime when dueDate == 0 |
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
@@ -1783,11 +1799,12 @@ against the recomputed one. The read-through recovery path is unchanged: clients
   fail-closed state. Exact repeats are no-ops. `setPaused(false)` revalidates the complete non-zero/distinct
   dependency/schema set and otherwise reverts `ModuleNotReady`; every real pause transition emits
   `ModulePauseStatusChanged`. While paused, operational entry points stay blocked, but cancel,
-  expire, and dispute resolution remain available for safe wind-down. Pool-level Paused blocks
-  creation-side writes only (new commitments, new series, cycle seed/open); claims, acceptance,
-  Ready submission, confirmation, and exchange on existing commitments remain callable, as do
-  browse, evidence/linkage, cancellation/expiry, and dispute recovery (decision 2026-08-11). `PoolPaused` carries the mandatory
-  reason CID and `PoolResumed` clears the indexed reason.
+  expire, and dispute resolution remain available for safe wind-down. Pool-level Paused is the
+  full per-pool freeze from register #103: it blocks new commitments/series, cycle seed/open,
+  claim/decline, acceptance, exchange, Ready submission/override, and confirmation on existing
+  commitments. Browse, evidence/linkage, roster-safe wind-down, cancellation/expiry, dispute
+  recovery, and the non-blocking Work-decision hook remain available under their ordinary state
+  gates. `PoolPaused` carries the mandatory reason CID and `PoolResumed` clears the indexed reason.
 - **Cycle binding**: `cycleId == 0` is the only cycle-less sentinel, and any caller class may use
   it — gardeners create cycle-less commitments exactly as stewards do. The cycle-state requirement
   is conditional on `cycleId != 0` and never applies to `cycleId == 0`. Any non-zero cycle must
@@ -2685,7 +2702,10 @@ Boundary restated: Envio indexes Green Goods core state only; EAS attestations a
 
 ### 8.1 `config.yaml` additions
 
-Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surface as `uint8`):
+Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surface as `uint8`).
+The `SettlementModule` stanza below is the register #103 event delta for the already-existing
+indexer contract block; the later indexer dispatch merges those three events into that block and
+must not configure a second copy of the proxy:
 
 ```yaml
   - name: CommitmentPoolingModule
@@ -2748,6 +2768,13 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: UnitsCommitted(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
       - event: UnitsReleased(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
       - event: UnitsFulfilled(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalFulfilled)
+  # Register #103 additions to the existing SettlementModule config block.
+  - name: SettlementModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: FundingPledged(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address garden, address refundAccount, uint256 expectedAmount, address recordedBy)
+      - event: FundingDepositRecorded(uint256 indexed fundingId, bytes32 indexed depositReference, uint256 amount, address indexed recordedBy)
+      - event: FundingConsumed(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, uint256 depositedAmount, address consumedBy)
 ```
 
 Pooling network entries are `42161` only — the `421614` entry was withdrawn 2026-08-06 with the

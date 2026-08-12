@@ -15,12 +15,24 @@ interface ISettlementModule {
         ContributorConsideration,
         Funding,
         LoanPrincipal,
-        GardenBeneficiary
+        GardenBeneficiary,
+        Refund
     }
 
     enum FundingRoute {
         None,
         ProtocolToGarden
+    }
+
+    enum FundingState {
+        None,
+        Pledged,
+        DepositRecorded,
+        Consumed,
+        Closed,
+        RefundQueued,
+        Refunded,
+        Withdrawn
     }
 
     enum PayoutPlanStatus {
@@ -101,6 +113,22 @@ interface ISettlementModule {
     struct LoanPrincipalRelationship {
         address creditRegistry;
         uint256 loanId;
+    }
+
+    struct CommitmentFunding {
+        uint256 commitmentId;
+        address funder;
+        address garden;
+        address refundAccount;
+        uint256 expectedAmount;
+        uint256 depositedAmount;
+        bytes32 depositReference;
+        FundingState state;
+        uint256 refundDisbursementId;
+        uint64 pledgedAt;
+        uint64 depositRecordedAt;
+        uint64 consumedAt;
+        uint64 closedAt;
     }
 
     struct CommitmentPayoutPlan {
@@ -191,6 +219,25 @@ interface ISettlementModule {
     }
 
     event FundingConfigurationLocked(address indexed protocolGarden, address indexed gDollarToken);
+    event FundingPledged(
+        uint256 indexed fundingId,
+        uint256 indexed commitmentId,
+        address indexed funder,
+        address garden,
+        address refundAccount,
+        uint256 expectedAmount,
+        address recordedBy
+    );
+    event FundingDepositRecorded(
+        uint256 indexed fundingId, bytes32 indexed depositReference, uint256 amount, address indexed recordedBy
+    );
+    event FundingConsumed(
+        uint256 indexed fundingId,
+        uint256 indexed commitmentId,
+        address indexed funder,
+        uint256 depositedAmount,
+        address consumedBy
+    );
     event SettlementAccountRegistered(
         address indexed garden,
         uint64 chainId,
@@ -353,6 +400,15 @@ interface ISettlementModule {
     event ExcessFeesWithdrawn(address indexed recipient, uint256 amount);
 
     error FundingConfigurationIncomplete();
+    error FundingRecordConflict(uint256 commitmentId, address funder, uint256 existingFundingId);
+    error UnknownCommitmentFunding(uint256 fundingId);
+    error CommitmentFundingNotInState(uint256 fundingId, FundingState actual);
+    error FundingDepositReferenceRequired();
+    error FundingDepositReferenceUsed(bytes32 depositReference, uint256 existingFundingId);
+    error FundingDepositBelowPrice(uint256 fundingId, uint256 expectedAmount, uint256 depositedAmount);
+    error FundingClaimantMismatch(uint256 fundingId, address funder, address acceptedCounterparty);
+    error FundingRefundNotEligible(uint256 fundingId);
+    error FundingRefundAlreadyLinked(uint256 fundingId, uint256 disbursementId);
     error ZeroAddress();
     error UnauthorizedCaller(address caller);
     error NotSettlementSteward(address caller, address garden);
@@ -478,6 +534,16 @@ interface ISettlementModule {
         returns (uint256 disbursementId);
     function prepareGardenBeneficiaryPayout(uint256 payoutPlanId) external returns (uint256 disbursementId);
     function queueFunding(address garden, uint256 amount) external returns (uint256 disbursementId);
+    function recordFunding(
+        uint256 commitmentId,
+        address funder,
+        address refundAccount
+    )
+        external
+        returns (uint256 fundingId);
+    function recordFundingDeposit(uint256 fundingId, uint256 amount, bytes32 depositReference) external;
+    function consumeFunding(uint256 fundingId) external;
+    function queueFundingRefund(uint256 fundingId) external returns (uint256 disbursementId);
     function queueLoanPrincipal(uint256 loanId) external returns (uint256 disbursementId);
     function createBatch(uint256[] calldata disbursementIds) external returns (uint256 batchId);
     function dispatchDisbursement(uint256 disbursementId) external returns (bytes32 messageId);
@@ -505,6 +571,9 @@ interface ISettlementModule {
         returns (ContributorPayout memory);
     function payoutContributors(uint256 payoutPlanId) external view returns (address[] memory);
     function payoutPlanOfCommitment(uint256 commitmentId) external view returns (uint256);
+    function getCommitmentFunding(uint256 fundingId) external view returns (CommitmentFunding memory);
+    function fundingOfCommitmentFunder(uint256 commitmentId, address funder) external view returns (uint256);
+    function fundingRefundDisbursementOf(uint256 fundingId) external view returns (uint256);
     function loanPrincipalDisbursementOf(address registry, uint256 loanId) external view returns (uint256);
     function loanPrincipalRelationshipOf(uint256 disbursementId) external view returns (LoanPrincipalRelationship memory);
     function payoutPlanStatus(uint256 payoutPlanId) external view returns (PayoutPlanStatus);

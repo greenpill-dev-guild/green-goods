@@ -1526,12 +1526,18 @@
     {
       "id": "disbursement-kind",
       "status": "live",
-      "definition": "Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable commitment-bound shapes; LoanPrincipal is the records-only Commitment Credit companion shape queued from approved CreditRegistry loans for G$ settlement.",
+      "definition": "Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable provider-payment shapes; LoanPrincipal is the records-only Commitment Credit companion shape; Refund returns a steward-confirmed member deposit from the garden Safe through the ordinary settlement rail.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
-        "members": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary"]
+        "members": [
+          "ContributorConsideration",
+          "Funding",
+          "LoanPrincipal",
+          "GardenBeneficiary",
+          "Refund"
+        ]
       },
       "representations": [
         {
@@ -1541,7 +1547,13 @@
           "symbol": "DisbursementKind",
           "extract": "solidity-enum",
           "ordered": true,
-          "members": ["ContributorConsideration", "Funding", "LoanPrincipal", "GardenBeneficiary"]
+          "members": [
+            "ContributorConsideration",
+            "Funding",
+            "LoanPrincipal",
+            "GardenBeneficiary",
+            "Refund"
+          ]
         },
         {
           "id": "indexer",
@@ -1555,9 +1567,10 @@
             "CONTRIBUTOR_CONSIDERATION",
             "FUNDING",
             "LOAN_PRINCIPAL",
-            "GARDEN_BENEFICIARY"
+            "GARDEN_BENEFICIARY",
+            "REFUND"
           ],
-          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
+          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values. REFUND is ABI-live in the reopened release and is temporarily baselined until the later indexer dispatch lands."
         }
       ],
       "mappings": []
@@ -1591,6 +1604,47 @@
           "ordered": true,
           "members": ["UNKNOWN", "NONE", "PROTOCOL_TO_GARDEN"],
           "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
+        }
+      ],
+      "mappings": []
+    },
+    {
+      "id": "funding-state",
+      "status": "live",
+      "definition": "Lifecycle of one member-funded priced-Offer claim. Pledged records intent; DepositRecorded records the full steward-confirmed Safe deposit; Consumed binds it to the accepted claimant; Closed follows completed delivery; RefundQueued and Refunded reuse one persistent settlement child; Withdrawn means no recorded deposit was owed.",
+      "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "index",
+        "members": [
+          "None",
+          "Pledged",
+          "DepositRecorded",
+          "Consumed",
+          "Closed",
+          "RefundQueued",
+          "Refunded",
+          "Withdrawn"
+        ]
+      },
+      "representations": [
+        {
+          "id": "solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ISettlementModule.sol",
+          "symbol": "FundingState",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": [
+            "None",
+            "Pledged",
+            "DepositRecorded",
+            "Consumed",
+            "Closed",
+            "RefundQueued",
+            "Refunded",
+            "Withdrawn"
+          ]
         }
       ],
       "mappings": []
