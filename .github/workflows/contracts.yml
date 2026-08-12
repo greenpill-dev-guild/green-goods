@@ -315,13 +315,23 @@ jobs:
           fi
 
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
-            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
-            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::SEPOLIA_RPC_URL secret is not configured; using derived Alchemy Sepolia RPC from existing key secret."
+            else
+              SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+              echo "::warning::SEPOLIA_RPC_URL secret and Alchemy key secrets are not configured; using public Sepolia RPC fallback."
+            fi
           fi
 
           if [[ -z "$ETHEREUM_RPC_URL" ]]; then
-            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
-            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ETHEREUM_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ETHEREUM_RPC_URL secret is not configured; using derived Alchemy Ethereum RPC from existing key secret."
+            else
+              ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+              echo "::warning::ETHEREUM_RPC_URL secret and Alchemy key secrets are not configured; using public Ethereum RPC fallback."
+            fi
           fi
 
           echo "::add-mask::$ARBITRUM_RPC_URL"
@@ -421,13 +431,23 @@ jobs:
           fi
 
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
-            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
-            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::SEPOLIA_RPC_URL secret is not configured; using derived Alchemy Sepolia RPC from existing key secret."
+            else
+              SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+              echo "::warning::SEPOLIA_RPC_URL secret and Alchemy key secrets are not configured; using public Sepolia RPC fallback."
+            fi
           fi
 
           if [[ -z "$ETHEREUM_RPC_URL" ]]; then
-            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
-            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ETHEREUM_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ETHEREUM_RPC_URL secret is not configured; using derived Alchemy Ethereum RPC from existing key secret."
+            else
+              ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+              echo "::warning::ETHEREUM_RPC_URL secret and Alchemy key secrets are not configured; using public Ethereum RPC fallback."
+            fi
           fi
 
           echo "::add-mask::$ARBITRUM_RPC_URL"
