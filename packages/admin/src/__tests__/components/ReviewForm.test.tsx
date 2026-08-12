@@ -8,12 +8,15 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReviewForm } from "@/views/Garden/WorkDetail/ReviewForm";
 
-const mockApprovalMutation = {
-  mutateAsync: vi.fn(),
-};
-const mockPrimaryAddress = vi.fn();
-const mockParseAndFormatError = vi.fn();
-const mockToastError = vi.fn();
+const { mockApprovalMutation, mockPrimaryAddress, mockParseAndFormatError, mockToastError } =
+  vi.hoisted(() => ({
+    mockApprovalMutation: {
+      mutateAsync: vi.fn(),
+    },
+    mockPrimaryAddress: vi.fn(),
+    mockParseAndFormatError: vi.fn(),
+    mockToastError: vi.fn(),
+  }));
 
 vi.mock("@green-goods/shared", () => ({
   AudioRecorder: () => <div data-testid="audio-recorder" />,
