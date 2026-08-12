@@ -398,7 +398,7 @@ describe("wallet-submission", () => {
       );
     });
 
-    it("reports an unconfirmed submission when receipt waiting times out", async () => {
+    it("reports an unconfirmed submission when the receipt helper times out", async () => {
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
@@ -406,18 +406,42 @@ describe("wallet-submission", () => {
       mock(mockWalletClient.sendTransaction!).mockResolvedValue(
         "0xApprovalTxHash" as `0x${string}`
       );
-      mock(wagmiCore.waitForTransactionReceipt).mockRejectedValue(
-        new Error("Transaction confirmation timeout")
-      );
+      mock(wagmiCore.waitForTransactionReceipt).mockImplementation(() => new Promise(() => {}));
 
       const result = await submitApprovalDirectly(
         mockApprovalDraft,
         "0xGardenAddress",
         "0xGardenerAddress",
-        mockChainId
+        mockChainId,
+        { txTimeout: 0 }
       );
 
       expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: false });
+    });
+
+    it("rethrows receipt failures instead of recording an optimistic approval", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      const receiptError = new Error("Transaction execution reverted");
+      mock(wagmiCore.waitForTransactionReceipt).mockRejectedValue(receiptError);
+
+      try {
+        await submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toBe("Transaction execution reverted");
+        expect((error as Error).cause).toBe(receiptError);
+      }
     });
 
     it("should throw error when wallet is not connected", async () => {

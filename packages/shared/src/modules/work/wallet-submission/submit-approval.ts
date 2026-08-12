@@ -19,7 +19,7 @@ import { extractErrorMessage } from "../../../utils/errors/extract-message";
 import { pollQueriesAfterTransaction } from "../../../utils/blockchain/polling";
 import { simulateApprovalSubmission } from "../simulate";
 import type { WalletSubmissionOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
@@ -93,7 +93,10 @@ export async function submitApprovalDirectly(
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
       confirmed = true;
       debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
-    } catch {
+    } catch (err: unknown) {
+      if (!(err instanceof TransactionReceiptTimeoutError)) {
+        throw err;
+      }
       debugLog("[WalletSubmission] Approval timeout, continuing...", { hash });
     }
 
