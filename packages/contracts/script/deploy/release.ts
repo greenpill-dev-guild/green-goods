@@ -258,7 +258,7 @@ Phase B boundary form (not authorized by Phase A):
     console.log(`Protocol Safe/future owner: ${manifest.ownership.protocolSafe}`);
     console.log("Current ceremony end state: paused and deployment-sender owned");
     console.log(`CREATE2 salt base: ${manifest.create2.domain}:${manifest.create2.version}`);
-    console.log(`Deterministic identities: ${lock.identities.length} (20 libraries, 5 implementations, 5 proxies)`);
+    console.log(`Deterministic identities: ${lock.identities.length} (21 libraries, 5 implementations, 5 proxies)`);
     console.log(
       `TestimonyResolver preparation: ${manifest.schemaPreparation.expected.implementation} -> ` +
         manifest.schemaPreparation.expected.proxy,
@@ -335,7 +335,7 @@ Phase B boundary form (not authorized by Phase A):
         to: manifest.ownership.protocolSafe,
         rollbackBefore: manifest.ownership.rollbackOwnerBeforeTransfer,
         rollbackAfter: manifest.ownership.rollbackOwnerAfterTransfer,
-        rule: "A separately reviewed Product issue must update the manifest and prove the paused-registration increment, Safe state on each target chain, every transfer receipt, the approved 18-garden/root-token-0 backfill, and a separate unpause authorization.",
+        rule: "A separately reviewed Product issue must update the manifest and prove the paused-registration increment, Safe state on each target chain, every transfer receipt, the approved 18-garden/root-token-0 backfill while the module remains paused, and a separate later unpause authorization.",
       },
       predictedCore: lock.identities
         .filter((item) => item.network === "arbitrum")

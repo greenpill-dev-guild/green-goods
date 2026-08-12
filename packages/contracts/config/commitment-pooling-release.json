@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "commitment-pooling-settlement-credit-v1",
-  "sourceCommit": "7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b",
+  "sourceCommit": "49fc62cc0e665de929baca02c1228a43d681ad68",
   "build": {
     "profile": "production",
     "solc": "0.8.28",
@@ -46,6 +46,26 @@
     "poolBackfillIncluded": false,
     "unpauseIncluded": false,
     "followUpIssueRequired": true
+  },
+  "batching": {
+    "hardMaxBatchSize": "24",
+    "releaseBatchSizeLimit": "3",
+    "activationIncluded": false,
+    "sourceAcknowledgmentGasLimit": "300000",
+    "sourceAcknowledgmentMeasurement": {
+      "acceptedFixture": "SettlementFundingTest.testProposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget",
+      "firstRejectedFixture": "SettlementFundingTest.testNextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget",
+      "hardMaxFixture": "SettlementFundingTest.testHardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget",
+      "acceptedBatchSize": "3",
+      "acceptedGasUsed": "250326",
+      "firstRejectedBatchSize": "4",
+      "firstRejectedGasUsed": "304689",
+      "distinctFundedPlans": true,
+      "coldDependencyPath": true,
+      "commitmentPoolingReadFree": true,
+      "measuredOn": "2026-08-11",
+      "status": "local-cold-state-green"
+    }
   },
   "chains": {
     "arbitrum": {

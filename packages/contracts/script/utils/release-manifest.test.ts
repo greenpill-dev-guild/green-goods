@@ -28,6 +28,20 @@ describe("combined commitment release manifest", () => {
       unpauseIncluded: false,
       followUpIssueRequired: true,
     });
+    expect(manifest.batching).toMatchObject({
+      hardMaxBatchSize: "24",
+      releaseBatchSizeLimit: "3",
+      activationIncluded: false,
+      sourceAcknowledgmentGasLimit: "300000",
+      sourceAcknowledgmentMeasurement: {
+        acceptedBatchSize: "3",
+        firstRejectedBatchSize: "4",
+        distinctFundedPlans: true,
+        coldDependencyPath: true,
+        commitmentPoolingReadFree: true,
+        status: "local-cold-state-green",
+      },
+    });
     expect(manifest.existingProxyUpgrades.map((upgrade) => upgrade.currentCeremonyEndOwner)).toEqual([
       manifest.ownership.deploymentSender,
       manifest.ownership.deploymentSender,
@@ -90,6 +104,18 @@ describe("combined commitment release manifest", () => {
     const backfill = structuredClone(manifest);
     backfill.ceremony.poolBackfillIncluded = true as false;
     expect(() => validateReleaseManifest(backfill)).toThrow(/paused and deployer-owned/);
+
+    const batchActivation = structuredClone(manifest);
+    batchActivation.batching.activationIncluded = true as false;
+    expect(() => validateReleaseManifest(batchActivation)).toThrow(/may freeze but not activate batching/);
+
+    const oversizedBatchLimit = structuredClone(manifest);
+    oversizedBatchLimit.batching.releaseBatchSizeLimit = "4";
+    expect(() => validateReleaseManifest(oversizedBatchLimit)).toThrow(/prove the frozen limit/);
+
+    const unprovenBatchGas = structuredClone(manifest);
+    unprovenBatchGas.batching.sourceAcknowledgmentMeasurement.firstRejectedGasUsed = "300000";
+    expect(() => validateReleaseManifest(unprovenBatchGas)).toThrow(/gas boundary is not proven/);
   });
 
   it("refuses peer wiring until measured gas is frozen and then rejects environment drift", async () => {
@@ -110,11 +136,12 @@ describe("combined commitment release manifest", () => {
     const implementations = lock.identities.filter((identity) => identity.kind === "implementation");
     const proxies = lock.identities.filter((identity) => identity.kind === "proxy");
 
-    expect(libraries).toHaveLength(20);
+    expect(libraries).toHaveLength(21);
     expect(implementations).toHaveLength(5);
     expect(proxies).toHaveLength(5);
     expect(new Set(lock.identities.map((identity) => identity.address)).size).toBe(lock.identities.length);
-    expect(Object.keys(lock.libraryMap)).toHaveLength(20);
+    expect(Object.keys(lock.libraryMap)).toHaveLength(21);
+    expect(libraries.find((identity) => identity.name === "SettlementFundingLib")).toBeDefined();
     expect(libraries.find((identity) => identity.name === "SettlementLifecycleLib")?.libraries).toHaveProperty(
       "src/lib/Settlement/CommandLib.sol:SettlementCommandLib",
     );

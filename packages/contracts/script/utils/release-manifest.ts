@@ -76,6 +76,26 @@ export interface ReleaseManifest {
     unpauseIncluded: false;
     followUpIssueRequired: true;
   };
+  batching: {
+    hardMaxBatchSize: string;
+    releaseBatchSizeLimit: string;
+    activationIncluded: false;
+    sourceAcknowledgmentGasLimit: string;
+    sourceAcknowledgmentMeasurement: {
+      acceptedFixture: string;
+      firstRejectedFixture: string;
+      hardMaxFixture: string;
+      acceptedBatchSize: string;
+      acceptedGasUsed: string;
+      firstRejectedBatchSize: string;
+      firstRejectedGasUsed: string;
+      distinctFundedPlans: true;
+      coldDependencyPath: true;
+      commitmentPoolingReadFree: true;
+      measuredOn: string;
+      status: "local-cold-state-green";
+    };
+  };
   chains: Record<ReleaseNetwork, ChainManifest>;
   schemas: Array<{ identity: string; uid: string; resolver: string; moduleRelationship: string }>;
   schemaPreparation: {
@@ -183,7 +203,7 @@ export interface ReleaseLock {
 }
 
 const EXPECTED_RELEASE_IDENTITY_COUNTS = {
-  libraries: 20,
+  libraries: 21,
   implementations: 5,
   proxies: 5,
 } as const;
@@ -280,6 +300,55 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
     throw new Error(
       "The current ceremony must end paused and deployer-owned; ownership transfer, pool backfill, and unpause require a later issue",
     );
+  }
+
+  const batching = manifest.batching;
+  requireUintString(batching.hardMaxBatchSize, "batching.hardMaxBatchSize", 16);
+  requireUintString(batching.releaseBatchSizeLimit, "batching.releaseBatchSizeLimit", 16);
+  requireUintString(batching.sourceAcknowledgmentGasLimit, "batching.sourceAcknowledgmentGasLimit", 32);
+  if (batching.hardMaxBatchSize !== "24") {
+    throw new Error("batching.hardMaxBatchSize must match the compile-time ceiling of 24");
+  }
+  if (BigInt(batching.releaseBatchSizeLimit) > BigInt(batching.hardMaxBatchSize)) {
+    throw new Error("batching.releaseBatchSizeLimit exceeds the compile-time ceiling");
+  }
+  if (batching.activationIncluded !== false) {
+    throw new Error("The paused deployer-owned ceremony may freeze but not activate batching");
+  }
+  const sourceMeasurement = batching.sourceAcknowledgmentMeasurement;
+  requireUintString(sourceMeasurement.acceptedBatchSize, "batching.acceptedBatchSize", 16);
+  requireUintString(sourceMeasurement.acceptedGasUsed, "batching.acceptedGasUsed", 32);
+  requireUintString(sourceMeasurement.firstRejectedBatchSize, "batching.firstRejectedBatchSize", 16);
+  requireUintString(sourceMeasurement.firstRejectedGasUsed, "batching.firstRejectedGasUsed", 32);
+  if (
+    !sourceMeasurement.acceptedFixture.trim() ||
+    !sourceMeasurement.firstRejectedFixture.trim() ||
+    !sourceMeasurement.hardMaxFixture.trim()
+  ) {
+    throw new Error("batching source-acknowledgment fixtures must name all three measured entrypoints");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(sourceMeasurement.measuredOn)) {
+    throw new Error("batching.sourceAcknowledgmentMeasurement.measuredOn must be an exact YYYY-MM-DD date");
+  }
+  if (
+    sourceMeasurement.status !== "local-cold-state-green" ||
+    !sourceMeasurement.distinctFundedPlans ||
+    !sourceMeasurement.coldDependencyPath ||
+    !sourceMeasurement.commitmentPoolingReadFree
+  ) {
+    throw new Error("batching source-acknowledgment measurement must freeze the reviewed cold local path");
+  }
+  if (
+    sourceMeasurement.acceptedBatchSize !== batching.releaseBatchSizeLimit ||
+    BigInt(sourceMeasurement.firstRejectedBatchSize) !== BigInt(batching.releaseBatchSizeLimit) + 1n
+  ) {
+    throw new Error("batching measurement must prove the frozen limit and its first rejected size");
+  }
+  if (
+    BigInt(sourceMeasurement.acceptedGasUsed) > BigInt(batching.sourceAcknowledgmentGasLimit) ||
+    BigInt(sourceMeasurement.firstRejectedGasUsed) <= BigInt(batching.sourceAcknowledgmentGasLimit)
+  ) {
+    throw new Error("batching source-acknowledgment gas boundary is not proven");
   }
 
   for (const [network, chain] of Object.entries(manifest.chains) as Array<[ReleaseNetwork, ChainManifest]>) {
@@ -788,8 +857,8 @@ export function buildReleaseLock(manifest = loadReleaseManifest(), baseSalt?: st
 
   if (!complete) {
     throw new Error(
-      "Incomplete release identity graph: expected 20 libraries, 5 implementations, 5 proxies, " +
-        `and 30 unique addresses; found ${actualCounts.libraries} libraries, ` +
+      "Incomplete release identity graph: expected 21 libraries, 5 implementations, 5 proxies, " +
+        `and 31 unique addresses; found ${actualCounts.libraries} libraries, ` +
         `${actualCounts.implementations} implementations, ${actualCounts.proxies} proxies, ` +
         `${Object.keys(libraryMap).length} library-map entries, and ${uniqueAddresses} unique addresses. ` +
         "Production artifacts may already contain linked bytecode; restore them with " +

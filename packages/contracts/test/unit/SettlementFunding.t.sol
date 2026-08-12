@@ -317,6 +317,7 @@ contract SettlementFundingTest is SettlementPayerTest {
     }
 
     function testProposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget() public {
+        if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(PROPOSED_BATCH_SIZE_LIMIT, 100);
 
         emit log_named_uint("settlement source acknowledgment gas / proposed funded batch (3)", attempt.gasUsed);
@@ -328,6 +329,7 @@ contract SettlementFundingTest is SettlementPayerTest {
     }
 
     function testNextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget() public {
+        if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(PROPOSED_BATCH_SIZE_LIMIT + 1, 150);
 
         emit log_named_uint("settlement source acknowledgment gas / first rejected funded batch (4)", attempt.gasUsed);
@@ -357,6 +359,7 @@ contract SettlementFundingTest is SettlementPayerTest {
     }
 
     function testHardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget() public {
+        if (_coverageInstrumentationEnabled()) return;
         FundedBatchAttempt memory attempt = _deliverFundedBatchWithGasLimit(HARD_MAX_BATCH_SIZE, 200);
 
         emit log_named_uint("settlement source acknowledgment gas / hard-max funded batch (24)", attempt.gasUsed);
@@ -372,6 +375,17 @@ contract SettlementFundingTest is SettlementPayerTest {
         vm.expectRevert(abi.encodeWithSelector(ISettlementModule.NotSettlementSteward.selector, FUNDER_A, PROVIDER_GARDEN));
         vm.prank(FUNDER_A);
         settlement.recordFunding(70, FUNDER_A, REFUND_A);
+    }
+
+    /// @dev Coverage instrumentation changes the measured receiver path itself, so its result
+    ///      cannot prove or refute the production 300,000-gas boundary. These tests remain part of
+    ///      every normal and release test run and are omitted only from LCOV execution.
+    function _coverageInstrumentationEnabled() private view returns (bool) {
+        try vm.envBool("CONTRACT_COVERAGE_MODE") returns (bool enabled) {
+            return enabled;
+        } catch {
+            return false;
+        }
     }
 
     function testPausedSourceAllowsRecordsOnlyFundingWritesButBlocksNewRefundAuthority() public {

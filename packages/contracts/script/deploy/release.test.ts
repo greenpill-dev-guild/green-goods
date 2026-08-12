@@ -78,6 +78,10 @@ describe("release CLI real entrypoints", () => {
     expect(corePlan).toContain('"operations": [');
     expect(corePlan).toContain('"ownership-transfer"');
     expect(corePlan).toContain('"18-garden-pool-backfill"');
+    expect(corePlan.indexOf('"ownership-transfer"')).toBeLessThan(corePlan.indexOf('"18-garden-pool-backfill"'));
+    expect(corePlan.indexOf('"18-garden-pool-backfill"')).toBeLessThan(corePlan.indexOf('"core-unpause"'));
+    expect(corePlan).toContain("backfill while the module remains paused");
+    expect(corePlan).toContain("separate later unpause authorization");
     expect(corePlan).not.toContain('"command": "bun run release:ownership:plan:arbitrum"');
     expect(corePlan).not.toContain('"command": "bun run pooling:backfill:dry:arbitrum"');
 
