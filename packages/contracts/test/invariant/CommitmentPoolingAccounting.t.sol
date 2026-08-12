@@ -73,8 +73,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     /// @dev Each commitment registers its own class with `quota == targetUnits`, so the legal
     ///      states are (0,0) before commit and after release, (quota,0) while committed, and
     ///      (0,quota) once fulfilled. Anything else means units were counted twice or leaked.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_classAccountingStaysWithinQuota() public {
         uint256 count = handler.commitmentCount();
         for (uint256 i = 0; i < count; i++) {
@@ -99,8 +97,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     ///      reverts inside the registry — what this catches is the other direction: a terminal
     ///      commitment that quietly kept its units committed, which holds a provider's open-count
     ///      slot forever.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_terminalCommitmentsHoldNoCommittedUnits() public {
         uint256 count = handler.commitmentCount();
         for (uint256 i = 0; i < count; i++) {
@@ -138,8 +134,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     /// @dev The count is the pool's only exposure limit, and it is maintained by increment and
     ///      decrement rather than derived. A drift upward silently locks a provider out of the
     ///      pool; a drift downward lets them exceed the cap.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_providerOpenCountMatchesCommittedClasses() public {
         address[] memory actors = handler.allActors();
         uint256 count = handler.commitmentCount();
@@ -165,8 +159,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     ///      exactly once. If that pairing were off by one, a cycle could never reach the
     ///      `liveCommitmentCount == 0` that closing requires — and this is the only test that walks
     ///      the Expired -> Disputed -> resolved episode in arbitrary combination with the others.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_liveCountsMatchNonTerminalCommitments() public {
         uint256 count = handler.commitmentCount();
         uint256 live;
@@ -192,8 +184,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     /// @dev Recognition divides by `totalVerifiedCredits` and requires exactly
     ///      `eligibleContributorCount` rows, so drift here does not revert — it produces a
     ///      recognition vector that can never be assembled, or one that omits a contributor.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_contributorCreditTotalsAgreeWithRecords() public {
         address[] memory actors = handler.allActors();
         uint256 count = handler.commitmentCount();
@@ -232,8 +222,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     /// @dev The freeze is what makes a recognition snapshot reproducible: a late approval or
     ///      reversal landing after it would silently change a vector that has already been hashed
     ///      and, downstream, settled against.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_frozenRosterNeverChanges() public {
         uint256 count = handler.commitmentCount();
         for (uint256 i = 0; i < count; i++) {
@@ -258,8 +246,6 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
     }
 
     /// @notice A frozen roster is never unfrozen.
-    /// forge-config: default.invariant.runs = 16
-    /// forge-config: default.invariant.depth = 96
     function invariant_freezeIsOneWay() public {
         uint256 count = handler.commitmentCount();
         for (uint256 i = 0; i < count; i++) {

@@ -32,6 +32,7 @@
     "typecheck": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.json",
     "test": "bun run typecheck && FOUNDRY_PROFILE=test forge test --no-match-contract 'E2E' --no-match-path 'test/fork/**' && bun run test:script",
     "test:solidity": "FOUNDRY_PROFILE=test forge test --no-match-contract 'E2E' --no-match-path 'test/fork/**'",
+    "test:deep": "FOUNDRY_PROFILE=ci forge test --no-match-contract 'E2E' --no-match-path 'test/fork/**'",
     "test:script": "node ../../scripts/dev/node-cli.js vitest run script/**/*.test.ts",
     "test:fast": "FOUNDRY_PROFILE=test forge test --no-match-contract 'E2E|Fork'",
     "test:lite": "FOUNDRY_PROFILE=test forge test --no-match-path 'test/integration/Garden*|test/unit/GardenAccount*|test/unit/GardenToken*|test/E2E*|test/Fuzz*|test/Gas*|test/Storage*|test/Upgrade*|test/fork/e2e/*|test/fork/eas/*|test/fork/gardens/*'",

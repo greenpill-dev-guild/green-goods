@@ -56,6 +56,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -105,6 +106,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -170,6 +172,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -257,6 +260,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -362,6 +366,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
