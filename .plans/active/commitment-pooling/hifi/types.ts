@@ -21,15 +21,20 @@ export type ReviewGroup = (typeof FLOW_GROUPS)[number]["id"];
 // build checks only referential integrity — a flow must name a chapter that
 // exists in its group — and never asserts names or counts. Rename freely here.
 export const CHAPTERS: Record<ReviewGroup, readonly { id: string; label: string; collapsed?: boolean }[]> = {
+  // Lifecycle order after iteration 2 (2026-08-11): make → requests → take up
+  // → prove → confirm → team → money → change. The separate Ongoing chapter is
+  // gone — ongoing lives inside Make an offer (Afo decision, iteration 2).
   client: [
     { id: "make", label: "Make an offer" },
-    { id: "ask", label: "Asks & requests" },
+    // "Requests" was the odd one out: every other chapter names the act, so the
+    // two creation doors now read as the matched pair they are (Afo, D3).
+    { id: "ask", label: "Make a request" },
     { id: "take-up", label: "Take up a promise" },
-    { id: "keep", label: "Keep & prove it" },
+    { id: "keep", label: "Prove it" },
     { id: "confirm", label: "Confirm & resolve" },
-    { id: "change", label: "Change of plans" },
-    { id: "series", label: "Ongoing Offers" },
+    { id: "team", label: "The team behind a promise" },
     { id: "money", label: "Money & wallet" },
+    { id: "change", label: "Change of plans" },
   ],
   admin: [
     { id: "season", label: "Run the season" },
@@ -99,7 +104,8 @@ export type DisbursementKind =
   | "ContributorConsideration"
   | "Funding"
   | "LoanPrincipal"
-  | "GardenBeneficiary";
+  | "GardenBeneficiary"
+  | "Refund";
 // Mirrors Solidity `FundingRoute { None, ProtocolToGarden }` exactly
 // (ISettlementModule.sol). The 2026-08-10 contracts audit found the earlier
 // union had conflated two orthogonal on-chain axes by also listing
@@ -110,6 +116,9 @@ export type DisbursementRoute = "None" | "ProtocolToGarden";
 // implies submit authority (register #69).
 export type QueueFundingAuthority = "None" | "ProtocolSteward" | "ModuleOwner";
 export type PayoutPlanLifecycle = "Draft" | "Pending" | "Partial" | "Complete" | "Failed";
+export type FundingLifecycle =
+  | "None" | "Pledged" | "DepositRecorded" | "Consumed"
+  | "Closed" | "RefundQueued" | "Refunded" | "Withdrawn";
 
 // Explicit facts make lifecycle legality reviewable by the build. A state need
 // only declare the entities that its controls act on.
@@ -129,6 +138,7 @@ export type StateFacts = {
   disbursementRoute?: DisbursementRoute;
   queueFundingAuthority?: QueueFundingAuthority;
   payoutPlan?: PayoutPlanLifecycle;
+  funding?: FundingLifecycle;
 };
 
 export type ContractCall =
@@ -151,7 +161,9 @@ export type ContractCall =
   | "compostPool" | "reopenPool" | "seedCycle" | "openCycle" | "closeCycle"
   | "compostCycle" | "cancelCycle" | "registerSettlementAccount" | "requeue"
   | "createCommitmentPayoutPlan" | "setContributorPayouts" | "finalizeCommitmentPayoutPlan"
-  | "prepareContributorPayout" | "prepareGardenBeneficiaryPayout" | "queueFunding" | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
+  | "prepareContributorPayout" | "prepareGardenBeneficiaryPayout" | "queueFunding"
+  | "recordFunding" | "recordFundingDeposit" | "consumeFunding" | "queueFundingRefund"
+  | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
   | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
 
 // Metadata for one registered hotspot (a tappable control on a screen).
@@ -231,6 +243,8 @@ export type ShippedSB = {
   id: string;
   n: number;
   title: string;
+  /** One plain sentence under the card title: what this walk covers. */
+  desc: string;
   persona: string;
   reviewVisible: boolean;
   reviewGroup: ReviewGroup;

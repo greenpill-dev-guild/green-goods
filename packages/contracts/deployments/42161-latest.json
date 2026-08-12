@@ -39,7 +39,7 @@
   "strategyHypercertFractionOffer": "0xecab24cade0261fc6513ca13bb3d10f760af3da8",
   "rootGarden": {
     "address": "0xf401f34378384713222d1d21f63359cc4E8a858a",
-    "tokenId": 1
+    "tokenId": 0
   },
   "schemas": {
     "assessmentDescription": "Assessment v2 schema for Green Goods gardens. Stores title, description, and location on-chain. The full strategy kernel (diagnosis, SMART outcomes, Cynefin phase, domain, SDG targets, attachments) is stored in IPFS and referenced by assessmentConfigCID.",

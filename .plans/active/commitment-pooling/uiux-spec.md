@@ -27,7 +27,7 @@ Roles are Hats-tree roles, not app accounts (`IHatsModule.GardenRole`: Owner, Op
 | Evaluator | Delta/re-assessment + technical assessment authorship (assessment v3, register #7); reviews flow through existing WorkApproval rails |
 | Funder | Seed/match garden campaign considerations (consideration-source reference only, custody stays with pool owner); read pool story |
 | Community | View pool story, provide priority signal, confirm when named, community testimony attestation (Community Hat) when a commitment is aimed at the community |
-| Protocol team | Current steward/owner Hat wearers of the registered root-garden protocol pool (tokenId 1, register #8); while the ordinary named/default path is unreachable after contributor exclusion, they may confirm an explicitly opted-in commitment in any pool through the reasoned protocol fallback. `deployer`/module-owner status alone is never confirmation authority |
+| Protocol team | Current steward/owner Hat wearers of the registered root-garden protocol pool (tokenId 0, register #8); while the ordinary named/default path is unreachable after contributor exclusion, they may confirm an explicitly opted-in commitment in any pool through the reasoned protocol fallback. `deployer`/module-owner status alone is never confirmation authority |
 
 Contributor self-confirmation is blocked everywhere, including both fallback paths. With no explicit confirmer group, an Offer defaults to its recipient and a Request defaults to its creator/requester. A named group is evaluated after excluding every contributor. If the ordinary rule would be unreachable, creation/acceptance fails unless the person explicitly selected **Green Goods team fallback** before acceptance and the registered protocol pool exists. The selection never adds protocol stewards to the named threshold; it supplies a separate structural path. Confirmation is the review for SupportService/StewardCaptured; DomainImpact keeps the full Work then WorkApproval path (register #20).
 
@@ -57,7 +57,7 @@ Locked state machines from the Lifecycle doc (digest §Locked state machines). H
 | NotReady | Pool tab absent from garden detail | Garden Pool tab setup checklist requires charter CID, non-zero provider open-commitment cap, and one current non-revoked Baseline assessment (v2/v3, recipient = pool garden, resolver-validated Baseline kind); capability flags remain visible | Readiness copy, no stats | Readiness copy |
 | Ready | Pool tab present, readiness banner ("warming up, promises open when the first cycle is seeded"), browse/create disabled | Open-pool action on the pool status card + seed-first-cycle CTA (register #34a) | Readiness copy | Readiness copy |
 | Open | Full base surface live | Full console | Live pool story | Live view + signal |
-| Paused | Banner “new participation paused by stewards” with indexed reason; browse, evidence/linkage, cancellation/expiry, and dispute recovery remain available; create/claim/Ready-submit/confirm are disabled | Pause reason + resume action; safe-wind-down controls remain | Neutral quiet-period line, aggregates stay | View-only plus allowed recovery |
+| Paused | Banner “This pool is paused” with indexed reason; browse, evidence/linkage, roster-safe wind-down, cancellation/expiry, and dispute recovery remain available. Register #103 makes the hidden create/claim/decline/accept/exchange/Ready-submit/override/confirm controls match on-chain enforcement rather than a product-only quiet period | Pause reason + resume action; the same participation/progress controls are disabled with an explanation, while safe-wind-down controls remain | Neutral quiet-period line, aggregates stay | View-only plus evidence, recovery, and allowed wind-down |
 | Closed | View-only history | Compost action available | Aggregate story remains | View-only |
 | Composted | History + "ready for the next season" line | Reopen or new-cycle actions | Past-cycles aggregate | History |
 
@@ -107,7 +107,7 @@ A claim chooses the **one accountable lead provider**, whether that lead is a pe
 | Declined | Rationale is visible to that claimant; commitment remains browseable and “Ask again” creates a fresh request if it is still open | Only the selected row becomes Declined; every other pending request remains Pending | Edit provider context where allowed and submit a fresh request; never retry the declined request record |
 | Superseded | “Taken up by another provider” or “No longer available,” according to the indexed resolution code; no false failure or retry action | Acceptance, pre-acceptance cancellation, or pre-acceptance expiry marks every still-pending indexed request Superseded | Exit to browse; a new request is possible only if the commitment later becomes claimable again |
 
-Network/queue failure before `ClaimRequested` exists is not Declined: the optimistic row reverts and offers the ordinary offline Retry/Discard path. Contract-level Declined and Superseded states come from indexed events and survive refresh.
+Network/queue failure before `ClaimRequested` exists is not Declined: the optimistic row reverts and offers the ordinary offline Retry/Discard path. Declined comes from the indexed on-chain `ClaimDeclined` event; Superseded is written by the indexer during its bounded sweep — no per-row chain event exists — and both survive refresh.
 
 ---
 
@@ -295,7 +295,7 @@ All admin copy stays restrained (no hero language, no gallery moments); celebrat
 Route `/garden/pool` added to the garden branch (`packages/admin/src/routes/views.tsx:168-215`) and to the Garden view's `AdminTabRail` (`packages/admin/src/views/Garden/index.tsx:81-98`). Composition: `CanvasRouteFrame` + `CanvasRouteHeader` (title "Pool", actions via `AdminViewActions`) + `CanvasRouteContent`.
 
 Sections (AdminCard blocks):
-1. **Pool status card**: pool state chip, capability flags, charter/policy CID, provider open-commitment cap, and latest qualifying Baseline assessment. The app keeps the Ready action disabled until all three preflight inputs are present; the submitted contract write itself enforces charter plus a non-zero concurrent-commitment cap only. Once Ready, the card's primary action is **Open pool**. **Close pool** is enabled only when indexed `liveCommitmentCount == 0` and `nonTerminalCycleCount == 0`; every cycle must be Cancelled or Composted, and every cycle-less or cycle-scoped commitment must be Fulfilled, Cancelled, or Expired. Otherwise the card says the remaining live promises must be wound down and links to those rows/cycles instead of opening a reverting confirmation. A past-due but still-live row renders in `W7@due-live` with **Expire now**; only a successful permissionless `expireCommitment` routes to the Expired `W7@expiry-queue` result and exposes re-seed/history. Failure keeps the row live and never claims its capacity or pool/cycle count was released. A later keeper is only an operational backstop. Then Compost/Reopen follows §4.1 (register #34a — the card owns the pool lifecycle; the open-cycle flow adds only a "pool is Ready — open it now?" guard prompt). Pause requires a reason CID; resume clears the indexed reason. The card disables only create/claim/Ready-submit/confirm while paused and keeps cancel/expire/resolve plus cycle cancel/compost wind-down controls available.
+1. **Pool status card**: pool state chip, capability flags, charter/policy CID, provider open-commitment cap, and latest qualifying Baseline assessment. The app keeps the Ready action disabled until all three preflight inputs are present; the submitted contract write itself enforces charter plus a non-zero concurrent-commitment cap only. Once Ready, the card's primary action is **Open pool**. **Close pool** is enabled only when indexed `liveCommitmentCount == 0` and `nonTerminalCycleCount == 0`; every cycle must be Cancelled or Composted, and every cycle-less or cycle-scoped commitment must be Fulfilled, Cancelled, or Expired. Otherwise the card says the remaining live promises must be wound down and links to those rows/cycles instead of opening a reverting confirmation. A past-due but still-live row renders in `W7@due-live` with **Expire now**; only a successful permissionless `expireCommitment` routes to the Expired `W7@expiry-queue` result and exposes re-seed/history. Failure keeps the row live and never claims its capacity or pool/cycle count was released. A later keeper is only an operational backstop. Then Compost/Reopen follows §4.1 (register #34a — the card owns the pool lifecycle; the open-cycle flow adds only a "pool is Ready — open it now?" guard prompt). Pause requires a reason CID; resume clears the indexed reason. The card disables create/claim/decline/accept/exchange/Ready-submit/override/confirm while paused and keeps evidence/linkage, roster-safe wind-down, cancel/expire/resolve, plus cycle cancel/compost wind-down controls available.
 2. **Cycles console**: a dedicated Season slot shows the one open Season or an empty “No open Season” state, followed by a Campaigns list that may contain any number of concurrently open Campaigns. Every row has its own locked-state stepper (Draft, Seeded, Open, InProgress, Reviewing, Reconciled, Composted), scoped counts, and guarded actions; opening a second Season is blocked and points to the existing one, while opening another Campaign remains available. Cancelled is destructive behind a reason field, Reviewing/InProgress interchange is scoped to one row, and open-cycle runs §6.10 for the selected cycle. Reconciled/Composted/Cancelled history appears below with type and report scope preserved.
 3. **Commitments table**: `AdminSearchToolbar` + `AdminFilterChip` row (state, type, direction) + `AdminSortSelect`; rows are `AdminListItem` with `AdminBadge` state chips; row opens the commitment AdminDialog detail (state timeline, evidence, linked work, confirmer rule, consideration row, dispute/override actions §6.7).
 4. **Claims queue** (visible when any approval-gated requests exist): each row shows canonical `claimant`, authenticated `requestedBy`, `claimType`, `gardenContext`, `requestedAt`, and `state`. For a Garden claim the claimant is the GardenAccount and requestedBy is its operator; for Individual they match. The creator cannot request a Garden claim through a GardenAccount they operate; the claim control is disabled with the self-claim explanation, and acceptance rechecks stored legacy/pending rows before mutation. Accept/decline key the exact stored claimant. Accept shows derived `providerGarden` and supersedes other pending rows; decline requires a reason and affects only the selected row. History exposes reason/resolution without presenting event outcomes as queue failures.
@@ -357,7 +357,7 @@ Registration path (all verified anchor points):
 4. Pools inherits the Community workspace tone through `data-tone="community"`; dialogs pass that same tone.
 
 View at `/community/pools` — **rescoped 2026-07-18**: the admin stays garden-focused, so this mode shows exactly **the Protocol pool + this garden's pool**; other gardens' pools never render here (the cross-garden overview moved to the Operations workspace, §6.11). The inner `AdminTabRail` carries two focused views:
-- **Protocol pool tab** *(audience amended 2026-08-10, register #97 — this is the protocol-steward operations home)*: the root-garden pool console (tokenId 1, `rootGarden 0xf401f34378384713222d1d21f63359cc4E8a858a`, corrections-log §6) carries the protocol stewards' own queues — cross-garden claim accept/decline, the protocol confirmations queue mirroring the Hub Confirm grammar (§6.9), protocol seeding (register #96), the read-only member-delivery gate status row (register #34f), and the **funding view** (declared consideration references only; co-funded references name the owning garden). Garden stewards claim protocol commitments in the client (W25, the sb13 journey) — that path is not duplicated here. Protocol-only actions keep their exact capability gates; deployer status never substitutes for `queueFunding` authority.
+- **Protocol pool tab** *(audience amended 2026-08-10, register #97 — this is the protocol-steward operations home)*: the root-garden pool console (tokenId 0, `rootGarden 0xf401f34378384713222d1d21f63359cc4E8a858a`, corrections-log §6) carries the protocol stewards' own queues — cross-garden claim accept/decline, the protocol confirmations queue mirroring the Hub Confirm grammar (§6.9), protocol seeding (register #96), the read-only member-delivery gate status row (register #34f), and the **funding view** (declared consideration references only; co-funded references name the owning garden). Garden stewards claim protocol commitments in the client (W25, the sb13 journey) — that path is not duplicated here. Protocol-only actions keep their exact capability gates; deployer status never substitutes for `queueFunding` authority.
 - **This garden tab**: one tap into the same §6.2 pool console (W7) — no duplicated grammar, with the Open · Confirmed · Past chips carrying history in place.
 
 ### 6.9 Hub: Confirm stage on the existing rail NET-NEW
@@ -623,6 +623,116 @@ validation, and the action-card grammar are §5.4 step 3 unchanged; who-confirms
 stays the asker with the pilot fallback behind them; and review reaches the same
 Advanced detour as the offer path — per-promise fallback opt-out and a declarable
 assessment included, drawn once in the offer cast. The drawn ask keeps every Advanced default, so approved work alone carries it to Ready per the contract's conditional gate; choosing Garden work re-renders the wizard as its own four-step cast, so the dot row never grows mid-flow.
+
+**§3 promise vs offer/ask vocabulary (2026-08-11, correction pass D3).** "Promise"
+names the *record* — detail surfaces, counts, and timeline copy ("Open the
+promise", "8 promises · 5 kept"). The *acts* always use direction verbs: "Offer
+support", "Ask for help", "Make this offer", "Ask for this help". No creation
+surface, template picker, or wizard header may read "Create a promise" or "Make
+a promise"; the template picker header is "Start from a template".
+
+**§5.2 card contract + steward-authority copy (2026-08-11, D5/D8b).** Browse
+cards additionally carry a **creator by-line** (avatar + name; "for {garden}"
+when garden-claimed) and real progress where one exists (places left on an
+ongoing Offer, approved n/m on garden work); the state chip renders only when
+the state is not plainly open; the footer carries **exactly one** context
+action ("Take this up" / "I can help" / "Ask to take this up" / "Open promise")
+or one plain reason line when no action is available; a small roster indicator
+appears when a team has formed; notes, eligibility prose, and declared value
+live in detail, never on cards. Ongoing-Offer places render with an "Ongoing"
+chip + places-left count. The §5.2 empty-Season slot also names authority
+plainly: Seasons and Campaigns are opened by stewards.
+
+**§5.4 composer correction (2026-08-11, D2/D4/D5/D7/D9 — supersedes §5.4's
+"stays editable in step 1").** Direction is **fixed by the entry CTA** ("Offer
+support" / "Ask for help") and never renders as an in-form Direction control;
+changing direction means leaving the flow. Step 1 carries the kind choice as
+plain words (garden work vs a service or support) plus an optional **Add
+details** capture — photo / audio note / written note / links — using the
+work-flow media interaction (camera/gallery/mic one-tap from the fixed action
+bar); its payload is pinned as the commitment-metadata JSON v1 document
+(contract-spec §6 addendum 2026-08-11) whose CID rides `metadataCID`. Step 2
+gains **How often — Just once / Ongoing** on offer casts; Ongoing folds the
+former separate ongoing wizard (Appendix F.2 item 2) into this composer: review
+shows the series line and submission runs `createCommitmentSeries` plus the
+first place creations as one ordered queue sequence. The optional "Offer this
+in exchange for…" row (Appendix E.1) is a labeled detour from step 2. The
+template picker (Appendix E.2) is a **prefill layer reached from step 1**
+("Start from a template"), never a gate before the form. The review step
+renders the **work-flow review anatomy** — sectioned `WorkView` grammar (What
+you're offering/asking · How much · Proof · Who confirms & team), each section
+with an edit link back to its step — instead of a single label/value card. The
+Advanced detour additionally offers **Invite contributors** (LeadManaged roster
+picker, `addContributor` semantics, online-only) so a team can exist from
+creation. Flow chrome: the fixed bottom action bar lays its actions in **one
+row** — an icon or short-text secondary beside one full-width primary, matching
+the shipping Submit Work bar — and detour affordances render in page content,
+never as a second stacked bar button.
+
+**§5.5 evidence-capture parity (2026-08-11, D4 — supersedes the pick-one-kind
+form).** The capture interaction follows the work-flow media step: camera,
+gallery, and **audio note** are one-tap from the fixed action bar; link and
+written note are additional kinds; multiple items compose into a visible list
+before submitting, and each item still enqueues one evidence object with its
+immutable `creditedContributors` vector. The roster-chip contributor picker is
+unchanged. Audio serializes like work-flow audio notes (`SerializedFileData`).
+
+**§5.7 work-first linkage (2026-08-11, D6).** The Submit Work flow itself
+carries an optional **"Fulfills a promise"** field on the details step — a
+picker over the gardener's Accepted/Active DomainImpact commitments in the
+selected garden (prefilled and locked when the flow was deep-linked from a
+commitment; pickable when the gardener started from the Garden tab). Selection
+writes the same `meta.commitmentId` + dependent `workLink` path; the review
+step keeps the locked read-only "fulfills: {commitment title}" row. The "Link
+existing work" picker on commitment detail is a **client** surface listing the
+gardener's approved/pending works with an exact requirement-row choice — never
+an admin screen.
+
+**§5.8 Things I can offer panel section (2026-08-11, D8a — realizes Appendix
+F.2 item 1).** The private saved-details list and the gardener's ongoing Offers
+(with rest / resume / retire entry) render as a section of the WalletDrawer
+Commitments panel — this is the drawn entry for W32. The pool tab shows only
+the public life of ongoing Offers (place cards with the "Ongoing" chip, §5.2
+addendum above).
+
+**Appendix E.1 exchange entry + pair CTA chrome (2026-08-11, D2/D7).** The
+exchange row lives on composer step 2 as a labeled detour; the pair-detail
+primary action ("Start both promises…") renders in the fixed bottom action bar,
+never inline in scroll content; the "Exchange circle" template routes into the
+same detour.
+
+**Appendix F.2 ongoing path folded into the composer (2026-08-11, D2/D8a).**
+F.2 item 2's separate ongoing wizard is retired: garden and terms are the
+composer's existing fields, "Offer over time" is the composer's How-often
+choice, and the series + first places submit as one ordered queue sequence.
+F.2 item 1's "Things I can offer" is realized as the WalletDrawer section
+(§5.8 addendum above). W33 as a separate wizard screen retires with it.
+
+**Iteration 2 (2026-08-11 evening, register #102 — Afo's artifact review;
+supersedes parts of the same-day addenda above).** (a) Wizard chrome mirrors
+the shipping Submit Work exactly: the real `FormProgress` numbered-step
+stepper in the top nav, close on step 1 and BACK on later steps, one-row
+fixed bar. (b) The kind choice renders as equal 2-up tappable cards, and
+choice rows are equal-height. (c) Ongoing is an INLINE expansion of the
+composer's amount step — places-to-start and scope appear under the How-often
+choice, and the review gains a Places section; no ongoing detour screens
+exist. (d) **Exchange is parked**: the §5.4/E.1 composer detour and the
+template-picker exchange row are withdrawn from the client; W28–W30 remain
+Screen-library reference until exchange gets its own design session. (e)
+**"Request" is the single asking word** — entry "Make a request", chapter
+"Requests" — refining the D3 rule ("ask" leaves product copy). (f) Stewards
+declare G$ support in a real wizard step ("Support", after How much; the
+progress count grows only for stewards) using existing declared-consideration
+semantics; the review repeats it in its own section and the promise detail
+carries a support row. (g) Evidence (§5.5) is a full MDR variant — Media →
+Details (contributor chips + note/link) → Review — with a tap-to-add capture
+area, replacing the single-sheet composer. (h) The promise detail (§5.3)
+carries the E5 anatomy: creator→counterparty avatars and the team strip above
+the fold, and its ONE contextual primary action in a fixed bottom bar. (i)
+The confirmation walk ends once on the promise — no duplicate full-screen
+kept moment, no editorial echo inside the member flow. (j) The team surface
+is entered through the promise detail, and the lead's add-people act is a
+first-class walk.
 
 ## Appendix C: group commitments, recognition, and payout plans (2026-07-28)
 

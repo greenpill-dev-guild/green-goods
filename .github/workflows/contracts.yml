@@ -22,16 +22,12 @@ on:
       - "scripts/lib/git-guardrails.mjs"
       - "scripts/quality/check-source-structure.js"
       - ".github/workflows/contracts.yml"
-  workflow_dispatch:
+  workflow_call:
     inputs:
       operation:
         description: "Contracts operation to run"
         required: true
-        type: choice
-        options:
-          - fork-readiness
-          - ci
-          - all
+        type: string
         default: fork-readiness
 
 permissions:
@@ -56,6 +52,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -73,7 +70,9 @@ jobs:
       # Restore the newest Foundry build for this compiler config, then save a
       # fresh entry per commit; forge recompiles only what changed since the
       # restored snapshot. Per-job key prefixes keep each job's profile
-      # artifacts in their own cache lineage.
+      # artifacts in their own cache lineage. This lineage holds two profile
+      # subdirectories (out/test and out/production) because the required gate
+      # below compiles both.
       - name: Cache Foundry build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -84,6 +83,17 @@ jobs:
           restore-keys: |
             foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
+      # `bun run test` is the required PR gate and chains, in order:
+      #   1. TypeScript typecheck
+      #   2. optimizer-off `test`-profile unit suite (the three source-acknowledgment
+      #      boundary fixtures are excluded by exact name — their gas is meaningless
+      #      outside release codegen)
+      #   3. `test:gas:release` — the production-profile (via_ir, optimizer_runs = 1)
+      #      cold-path proof of the frozen batch-size boundary, run with per-call
+      #      transaction isolation; this is release gas evidence, the nightly deep
+      #      lane's optimizer-200 numbers are not
+      #   4. script tests (vitest), including the release-lock derivation and the
+      #      gas-gate routing guardrail
       - name: Run contract unit tests
         working-directory: packages/contracts
         run: bun run test
@@ -105,6 +115,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -170,6 +181,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -257,6 +269,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -302,13 +315,23 @@ jobs:
           fi
 
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
-            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
-            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::SEPOLIA_RPC_URL secret is not configured; using derived Alchemy Sepolia RPC from existing key secret."
+            else
+              SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+              echo "::warning::SEPOLIA_RPC_URL secret and Alchemy key secrets are not configured; using public Sepolia RPC fallback."
+            fi
           fi
 
           if [[ -z "$ETHEREUM_RPC_URL" ]]; then
-            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
-            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ETHEREUM_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ETHEREUM_RPC_URL secret is not configured; using derived Alchemy Ethereum RPC from existing key secret."
+            else
+              ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+              echo "::warning::ETHEREUM_RPC_URL secret and Alchemy key secrets are not configured; using public Ethereum RPC fallback."
+            fi
           fi
 
           echo "::add-mask::$ARBITRUM_RPC_URL"
@@ -362,6 +385,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
           version: stable
+          cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -407,13 +431,23 @@ jobs:
           fi
 
           if [[ -z "$SEPOLIA_RPC_URL" ]]; then
-            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
-            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::SEPOLIA_RPC_URL secret is not configured; using derived Alchemy Sepolia RPC from existing key secret."
+            else
+              SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+              echo "::warning::SEPOLIA_RPC_URL secret and Alchemy key secrets are not configured; using public Sepolia RPC fallback."
+            fi
           fi
 
           if [[ -z "$ETHEREUM_RPC_URL" ]]; then
-            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
-            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ETHEREUM_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ETHEREUM_RPC_URL secret is not configured; using derived Alchemy Ethereum RPC from existing key secret."
+            else
+              ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+              echo "::warning::ETHEREUM_RPC_URL secret and Alchemy key secrets are not configured; using public Ethereum RPC fallback."
+            fi
           fi
 
           echo "::add-mask::$ARBITRUM_RPC_URL"

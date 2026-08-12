@@ -219,3 +219,66 @@ describe("SettlementModule read model", () => {
     assert.equal(disbursement.settlementFlow, "GARDEN_TO_PROTOCOL");
   });
 });
+
+describe("SettlementModule credit release seam", () => {
+  function loanDisbursement(disbursementId: bigint, logIndex: number) {
+    return SettlementModule.DisbursementQueued.createMockEvent({
+      disbursementId,
+      commitmentId: 0n,
+      garden: addr(1),
+      payoutPlanId: 0n,
+      contributor: ZERO_ADDRESS,
+      executorGarden: addr(1),
+      kind: 2n,
+      fundingRoute: 0n,
+      source: addr(2),
+      recipient: addr(3),
+      token: addr(91),
+      amount: 100n,
+      mockEventData: mockEvent(100, logIndex),
+    });
+  }
+
+  function loanRelationship(disbursementId: bigint, logIndex: number) {
+    return SettlementModule.LoanPrincipalQueued.createMockEvent({
+      disbursementId,
+      creditRegistry: addr(80),
+      loanId: 77n,
+      mockEventData: mockEvent(100, logIndex),
+    });
+  }
+
+  it("indexes the two-way credit binding from its dedicated configuration event", async () => {
+    const mockDb = createTestIndexer();
+    const event = SettlementModule.CreditRegistryUpdated.createMockEvent({
+      previousRegistry: ZERO_ADDRESS,
+      newRegistry: addr(80),
+      mockEventData: mockEvent(99),
+    });
+    const after = await SettlementModule.CreditRegistryUpdated.processEvent({ event, mockDb });
+    assert.equal(
+      (await after.SettlementConfiguration.get(`${CHAIN_ID}-settlement-config`))?.creditRegistry,
+      addr(80).toLowerCase()
+    );
+  });
+
+  it("converges the loan relationship in either replay order", async () => {
+    for (const reverse of [false, true]) {
+      let mockDb = createTestIndexer();
+      const queued = loanDisbursement(reverse ? 902n : 901n, reverse ? 1 : 0);
+      const linked = loanRelationship(reverse ? 902n : 901n, reverse ? 0 : 1);
+      for (const event of reverse ? [linked, queued] : [queued, linked]) {
+        mockDb = await SettlementModule[
+          event.event as "DisbursementQueued" | "LoanPrincipalQueued"
+        ].processEvent({
+          event,
+          mockDb,
+        });
+      }
+      const entity = await mockDb.Disbursement.get(`${CHAIN_ID}-${reverse ? 902 : 901}`);
+      assert.equal(entity?.kind, "LOAN_PRINCIPAL");
+      assert.equal(entity?.creditRegistry, addr(80).toLowerCase());
+      assert.equal(entity?.loanId, 77n);
+    }
+  });
+});

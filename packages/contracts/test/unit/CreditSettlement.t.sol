@@ -82,6 +82,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         assertEq(uint8(ISettlementModule.DisbursementKind.Funding), 1);
         assertEq(uint8(ISettlementModule.DisbursementKind.LoanPrincipal), 2);
         assertEq(uint8(ISettlementModule.DisbursementKind.GardenBeneficiary), 3);
+        assertEq(uint8(ISettlementModule.DisbursementKind.Refund), 4);
         assertEq(uint8(ISettlementModule.FailureCode.SourceStranded), 12);
     }
 

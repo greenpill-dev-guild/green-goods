@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="circular-gd-title circular-gd-desc">
   <title id="circular-gd-title">A circular G dollar economy: the pilot hypothesis</title>
-  <desc id="circular-gd-desc">Green Goods circulation diagram with three related parties. The House of Alignment supports the GG protocol pool on Celo. On the left, individual Requests: the pool asks gardeners for protocol work and pays the gardener directly. On the right, garden Requests such as events and garden surveys, which the garden claims and is paid into its own Safe, plus discretionary seeding; and Offers such as support sessions and onboarding, which the garden claims and pays for from what it earned. Along the bottom, each garden runs its own commitments and pays its own gardeners, unchanged. Only the upstream House of Alignment relationship is confirmed; every other path is planned or evidence gated.</desc>
+  <desc id="circular-gd-desc">Green Goods circulation diagram with three related parties. The House of Alignment supports the GG protocol pool on Celo. On the left, individual Requests: the pool asks gardeners for protocol work and pays the gardener directly. On the right, garden Requests such as events and garden surveys, which the garden claims and is paid into its own Safe, plus discretionary seeding; and Offers such as support sessions and onboarding, which the garden claims and pays for from what it earned. Along the bottom, each garden runs its own commitments and pays its own gardeners, gardeners keep the garden's promises, and gardeners spend earned G$ back with their garden. A loop under the Gardeners block records that gardeners also help each other: mutual aid is confirmed, and paid help between gardeners moves through the garden's Safe rather than wallet to wallet. Only the upstream House of Alignment relationship is confirmed; every other path is planned or evidence gated.</desc>
   <defs>
     <marker id="circular-gd-arrow-solid" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
@@ -34,9 +34,13 @@
   <path d="M 650 330 C 760 340, 856 430, 856 640" fill="none" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="4 5" marker-end="url(#circular-gd-arrow-gated)"/>
 
   <!-- B1 · the garden pays its own gardeners -->
-  <path d="M 586 702 L 316 702" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <path d="M 586 680 L 316 680" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
   <!-- B2 · gardeners keep the garden's promises -->
-  <path d="M 316 746 L 586 746" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <path d="M 316 720 L 586 720" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- B3 · gardeners spend earned G$ back with the garden -->
+  <path d="M 316 760 L 586 760" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
+  <!-- P · gardeners help each other · paid help moves through the garden's Safe -->
+  <path d="M 78 782 C 44 842, 176 842, 142 782" fill="none" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#circular-gd-arrow-gated)"/>
 
   <!-- ============ arrow labels ============ -->
 
@@ -72,8 +76,14 @@
     <text x="800" y="400" font-size="14">plus discretionary seeding</text>
 
     <!-- bottom edge -->
-    <text x="451" y="688" font-size="14">the garden pays its own gardeners</text>
-    <text x="451" y="775" font-size="14">gardeners keep the garden’s promises</text>
+    <text x="451" y="666" font-size="14">the garden pays its own gardeners</text>
+    <text x="451" y="706" font-size="14">gardeners keep the garden’s promises</text>
+    <text x="451" y="746" font-size="14">gardeners spend G$ with the garden</text>
+
+    <!-- peer loop -->
+    <text x="110" y="856" font-size="13">gardeners help each other;</text>
+    <text x="110" y="872" font-size="13">paid help moves through</text>
+    <text x="110" y="888" font-size="13">the garden’s Safe</text>
   </g>
 
   <!-- ============ blocks ============ -->

@@ -211,6 +211,7 @@ const W7_STATES = [
   ["compost-pool-confirm", "Compost pool — confirm"], ["pool-composted", "Pool composted"],
   ["reopen-confirm", "Reopen pool — confirm"], ["manage", "Manage pool and cycles"],
   ["claims", "Claims waiting"], ["claim-declined", "Declined — others pending"], ["claim-outcomes", "Claim outcomes"], ["expiry-queue", "Lapsed this cycle"],
+  ["funded-claim", "Funded claim waiting"],
   ["due-live", "Past due — expiry available"],
   ["series-view", "Ongoing Offers — series context"],
   ["seed-cycle", "Seed a cycle"],
@@ -464,6 +465,7 @@ const W7_DESC: Record<W7State, string> = {
   "cancel-cycle-confirm": "Season of First Rains is live — offers and requests between neighbors.",
   "paused-cancel-cycle-confirm": "Paused for the season — evidence and recovery stay open.",
   "decline-claim-confirm": "Season of First Rains is live — offers and requests between neighbors.",
+  "funded-claim": "A priced Offer claim is waiting for its funding checkpoint.",
 };
 
 // Dimmed pool route behind a W7 confirmation. Hotspot-free for the same reason
@@ -707,6 +709,12 @@ function w7(state: W7State): string {
 <div class="arow" style="padding-left:14px;opacity:.6"><div class="grow"><span class="t-meta">8 linked instances · 8 kept · read-only terminal context, history stays with the garden</span></div></div>
 ${banner("State and context only — the console never edits a member's ongoing Offer. Rest, resume, and retire stay with its holder in the client (sb41).", "stone", "information-line")}`,
     )}`;
+  } else if (state === "funded-claim") {
+    body = `${w7Summary()}${acard(
+      "Funded claim waiting",
+      `<div class="arow"><div class="grow"><b>Design a market poster</b> · Ben's Offer · Maria claims</div>${chip("40 G$", "plain")}${hot("w7.open-funded-claim", btn("Review funding", { kind: "pri", sm: true }))}</div>
+${banner("The request itself moved no G$. Review the claimant, garden Safe, price, and refund account before creating the funding record.", "stone")}`,
+    )}`;
   } else {
     // The default view answers "what needs me?" — summary, pool state, the
     // scoped commitment list, and (per §6.2 section 4) the claims queue while
@@ -733,6 +741,11 @@ ${banner("State and context only — the console never edits a member's ongoing 
 }
 
 const W7_HOTS: HifiDef["hots"] = {
+  "w7.open-funded-claim": {
+    l: "Review funded claim",
+    to: "screen:W37@claim",
+    info: "Opens the priced-Offer funding checkpoint without accepting the claim or recording a deposit.",
+  },
   "w7.series-row": { l: "Active ongoing Offer", info: "Series context is read-only in the console (register #97): instances group under their series, and the available count equals current Offered instances. Lifecycle acts (rest/resume/retire) stay with the holder in the client." },
   "w7.series-row-resting": { l: "Resting ongoing Offer", info: "Resting pauses new places only — an existing Offered place stays claimable, so availability derives from current Offered instances, never from series state. Kept history remains visible." },
   "w7.series-row-retired": { l: "Retired ongoing Offer", info: "Read-only terminal context — retirement never erases the series' kept instances." },
@@ -1578,6 +1591,8 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
   if (state === "loading") return undefined;
   if (["claims", "decline-claim-confirm", "claim-declined"].includes(state))
     return { pool: "Open", cycle: "Open", commitment: "Requested", kind: "SupportService" };
+  if (state === "funded-claim")
+    return { pool: "Open", cycle: "Open", commitment: "Offered", kind: "SupportService", funding: "None", settlementAccount: "Active" };
   if (state === "claim-outcomes")
     return { pool: "Open", cycle: "Open", commitment: "Accepted", kind: "SupportService" };
   if (state === "due-live")

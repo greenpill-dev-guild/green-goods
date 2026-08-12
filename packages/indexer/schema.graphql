@@ -107,6 +107,7 @@ type SettlementConfiguration {
   gDollarToken: String!
   hatsModule: String
   commitmentPoolingModule: String
+  creditRegistry: String
   localContract: String!
   localRouter: String!
   localChainSelector: BigInt!
@@ -272,6 +273,8 @@ type Disbursement {
   payoutPlanEntityId: String
   contributor: String
   contributorEntityId: String
+  creditRegistry: String
+  loanId: BigInt
   settlementFlow: CommitmentSettlementFlow
   kind: DisbursementKind!
   fundingRoute: FundingRoute!
@@ -293,6 +296,15 @@ type Disbursement {
   failureCode: Int
   cancelledFromState: DisbursementState
   createdAt: Int!
+  updatedAt: Int!
+}
+
+type LoanPrincipalRelationship {
+  id: ID! # chainId-disbursementId
+  chainId: Int!
+  disbursementId: BigInt!
+  creditRegistry: String!
+  loanId: BigInt!
   updatedAt: Int!
 }
 

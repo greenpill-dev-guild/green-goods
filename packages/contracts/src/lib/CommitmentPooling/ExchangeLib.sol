@@ -36,6 +36,9 @@ library CommitmentPoolingExchangeLib {
         if (offerA.state == ICommitmentPoolingModule.CommitmentState.None || offerA.poolId != offerB.poolId) {
             revert ICommitmentPoolingModule.ExchangeCounterpartMismatch(exchangeCommitmentId);
         }
+        CommitmentPoolingGuardLib.requirePoolState(
+            offerB.poolId, pools[offerB.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         if (msg.sender != offerA.creator) revert ICommitmentPoolingModule.UnauthorizedCaller(msg.sender);
 
         _requireExchangeEligible(env, cycles, counterCommitmentId, offerA, exchangeCommitmentId, offerB);

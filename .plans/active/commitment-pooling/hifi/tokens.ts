@@ -98,8 +98,28 @@ export const HIFI_CSS = `
 /* Fixed flow chrome (uiux §5.4 Submit Work pattern): a header rendered via
    phoneFrame's header slot sits above the scroll; .fbar sits below it. */
 .hf .hdr.fixed{flex:none;background:var(--cv);border-bottom:1px solid var(--ln);padding-bottom:8px}
-.hf .fbar{flex:none;background:var(--cv);border-top:1px solid var(--ln);padding:10px 16px 12px;display:flex;flex-direction:column;gap:8px}
+.hf .fbar{flex:none;background:var(--cv);border-top:1px solid var(--ln);padding:10px 16px 12px;display:flex;flex-direction:row;align-items:center;gap:10px}
 .hf .fbar .brow{margin:0}
+.hf .fbar .b.full{width:auto;flex:1}
+.hf .byline{display:flex;align-items:center;gap:6px;margin:2px 0}
+.hf .byline .avatar{width:20px;height:20px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none}
+.hf .hdr.fixed h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf .fprog{display:flex;align-items:center;gap:3px;color:var(--stone);flex:none}
+.hf .fprog .fpstep{width:18px;height:18px;border-radius:99px;border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;font:600 10.5px inherit;color:var(--stone);flex:none;background:var(--card)}
+.hf .fprog .fpstep.done{background:var(--gr-bg);border-color:transparent;color:var(--gr-ink)}
+.hf .fprog .fpstep.cur{border-color:var(--act);color:var(--act);box-shadow:0 0 0 3px color-mix(in srgb,var(--act) 20%,transparent)}
+.hf .fprog .fpline{width:8px;height:1px;background:var(--ln2);flex:none}
+.hf .fprog .fpline.done{background:var(--gr)}
+.hf .fprog .fpsep{display:inline-flex;color:var(--ln2)}
+.hf .kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hf .kcard{border:1px solid var(--ln);border-radius:16px;background:var(--card);padding:14px 12px;display:flex;flex-direction:column;gap:4px;min-height:108px;cursor:pointer}
+.hf .kcard.on{background:var(--gr-bg);border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
+.hf .kcard .ic{color:var(--act)}
+.hf .kcard .kl{font:600 15px inherit;color:var(--ink)}
+.hf .kcard .km{font-size:12.5px;color:var(--stone);line-height:1.35}
+.hf .teamstrip{display:flex;align-items:center;gap:8px;padding:2px 0}
+.hf .teamstrip .avatar{width:24px;height:24px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none;box-shadow:0 0 0 2px var(--card)}
+.hf .teamstrip .avatar+.avatar{margin-left:-10px}
 .hf .hdr .hback{width:44px;height:44px;border-radius:99px;border:0;background:transparent;color:var(--ink);
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;margin-left:-8px}
 .hf .hdr .hback:active{background:var(--stone-bg)}
@@ -278,7 +298,7 @@ export const HIFI_CSS = `
 .hf .inp select:disabled{color:inherit;opacity:1;-webkit-text-fill-color:currentColor}
 .hf .inp.sel::after{content:"";margin-left:auto;border:5px solid transparent;border-top-color:var(--stone);translate:0 3px}
 .hf .radio{display:flex;flex-direction:column;gap:8px}
-.hf .ro{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--ln);border-radius:14px;
+.hf .ro{display:flex;gap:10px;align-items:center;min-height:64px;border:1px solid var(--ln);border-radius:14px;
   padding:11px 13px;cursor:pointer;background:var(--card);min-height:44px}
 .hf .ro .rdot{appearance:none;width:20px;height:20px;border:0;border-radius:99px;box-shadow:inset 0 0 0 2px var(--ln2);flex:none;margin-top:1px;background:transparent;opacity:1}
 .hf .ro.on,.hf .ro:has(.rdot:checked){border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}

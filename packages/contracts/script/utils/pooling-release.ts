@@ -23,8 +23,8 @@ import { solidityPackedKeccak256 } from "ethers";
  */
 export const POOLING_REHEARSAL_FORK_NETWORK = "arbitrum";
 
-/** Artifact keys the pooling lane owns in `deployments/{chainId}-latest.json`. */
-export const POOLING_UPGRADE_KEYS = ["commitmentPoolingModule", "commitmentRegistry"] as const;
+/** Existing proxies upgraded only after the net-new pooling pair is deployed and verified. */
+export const POOLING_INTEGRATION_UPGRADE_KEYS = ["gardenToken", "workApprovalResolver"] as const;
 
 /** Config keys appended for this lane. Order is the registration order. */
 export const COMMITMENT_SCHEMA_KEYS = ["assessmentV3", "communityTestimony"] as const;

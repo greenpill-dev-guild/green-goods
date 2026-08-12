@@ -48,8 +48,9 @@ function w28(state: W28State): string {
         `<div class="t-meta">Every field the template filled stays editable until you make the offer.</div>`,
         card(`${kv("You receive", "Childcare during the work party · 6 hours")}${kv("Pair rule", "Both promises start together; each is kept on its own")}`),
         `<div class="t-meta">The exchange reference travels with your Offer. Ana still chooses to start both — nothing is committed for her here.</div>`,
+        `<div class="brow">${hot("w28.clear", btn("Clear the selection", { kind: "ghost", sm: true }))}</div>`,
       );
-      actions = `${hot("w28.submit", btn("Make this offer in exchange", { kind: "pri", full: true }))}${hot("w28.clear", btn("Clear the selection", { kind: "ghost", full: true, sm: true }))}`;
+      actions = hot("w28.submit", btn("Make this offer in exchange", { kind: "pri", full: true }));
       break;
     case "selection-invalid":
       content = pagepad(
@@ -78,8 +79,9 @@ function w28(state: W28State): string {
         card(input("Search offers in this pool…", { placeholder: true, ariaLabel: "Search offers in this pool" }), { cls: "inset" }),
         w28Rows(),
         `<div class="t-meta">Tap an Offer to review the pair — the action below stays off until one is chosen.</div>`,
+        `<div class="brow">${hot("w28.clear", btn("Clear", { kind: "ghost", sm: true }))}</div>`,
       );
-      actions = `${btn("Use this offer", { kind: "pri", full: true, disabled: true })}${hot("w28.clear", btn("Clear", { kind: "ghost", full: true, sm: true }))}`;
+      actions = btn("Use this offer", { kind: "pri", full: true, disabled: true });
   }
   return phoneFrame(content, { header: w28Head, appBar: actionBar(actions) });
 }
@@ -119,12 +121,14 @@ function w29(state: W29State): string {
     card(`<div class="cardrow"><div class="grow"><div class="t-title">Exchange pair</div><div class="t-meta">${pairLine}</div></div>${pairChip}</div>`),
     card(`${kv("Maria gives", `Repair the shared water pump · 1 repair · ${stateB}`)}${kv("Ana gives", `Childcare during the work party · 6 hours · ${stateA}`)}`),
     banner("Each promise is kept on its own — the pair context never replaces a promise's ordinary state.", "stone", "information-line"),
-    state === "proposed"
-      ? hot("w29.accept-cta", btn("Start both promises…", { kind: "pri", full: true }))
-      : hot("w29.open-other", btn("Open the other promise", { kind: "sec", full: true })),
     feed,
   );
-  return phoneFrame(`${hdr("Repair the shared water pump", { back: true })}${body}`, { appBar: false });
+  // The pair's primary action lives in the fixed bar, never inline in scroll
+  // content (one-row rule, 2026-08-11 D7).
+  const pairAction = state === "proposed"
+    ? hot("w29.accept-cta", btn("Start both promises…", { kind: "pri", full: true }))
+    : hot("w29.open-other", btn("Open the other promise", { kind: "sec", full: true }));
+  return phoneFrame(`${hdr("Repair the shared water pump", { back: true })}${body}`, { appBar: actionBar(pairAction) });
 }
 
 const W29_HOTS: HifiDef["hots"] = {
@@ -185,18 +189,19 @@ function w31(_state: W31State): string {
     return hid ? hot(hid, inner) : inner;
   };
   const body = pagepad(
-    `<div class="t-meta">Start from an Offer template — a familiar way this pool works together. Choosing one only prefills the ordinary form; every field stays editable and no template adds a contract type.</div>`,
+    `<div class="t-meta">A familiar way this pool works together, as a starting point. Choosing one only prefills the ordinary form; every field stays editable and no template adds a contract type.</div>`,
     card(
       row("w31.rotation", "refresh-line", "Rotation", "Each member takes a turn receiving the pool's help.") +
         row("w31.work-party", "group-line", "Work party", "A group gathers around one shared piece of work.") +
         row("w31.harvest-share", "seedling-line", "Harvest share", "People promise part of a harvest and how it arrives.") +
         row("w31.tool-lending", "settings-line", "Tool lending", "A tool is offered for a named period and purpose.") +
-        row("w31.mentorship", "sticky-note-line", "Mentorship circle", "People offer time to learn and practice together.") +
-        row("w31.exchange-circle", "send-plane-line", "Exchange circle", "Two people prepare linked offers that start together and are kept separately."),
+        row("w31.mentorship", "sticky-note-line", "Mentorship circle", "People offer time to learn and practice together."),
       { cls: "flat" },
     ),
   );
-  return phoneFrame(`${hdr("Create a promise", { back: true })}${body}`, {
+  // Retitled 2026-08-11 (D3 vocabulary rule): the picker never says "create a
+  // promise" — it is a prefill layer reached from the composer's step 1.
+  return phoneFrame(`${hdr("Start from a template", { back: true })}${body}`, {
     appBar: actionBar(hot("w31.start-blank", btn("Start blank", { kind: "sec", full: true }))),
   });
 }
@@ -207,7 +212,9 @@ const W31_HOTS: HifiDef["hots"] = {
   "w31.harvest-share": { l: "Harvest share template", to: "screen:W3@step-what", info: "Prefills existing fields only (a harvest-portion promise with its delivery note) and lands in the editable creation flow (Appendix E.2)." },
   "w31.tool-lending": { l: "Tool lending template", to: "screen:W3@step-what", info: "Prefills existing fields only (a named tool, period, and purpose) and lands in the editable creation flow (Appendix E.2)." },
   "w31.mentorship": { l: "Mentorship circle template", to: "screen:W3@step-what", info: "Prefills existing fields only (offered practice time) and lands in the editable creation flow (Appendix E.2)." },
-  "w31.exchange-circle": { l: "Exchange circle template", to: "screen:W28", info: "The one template that adds an exchange reference: it routes through the W28 picker, whose selected state is the editable mirrored review — every template default stays editable until the offer is made (Appendix E.2)." },
+  // Exchange circle removed 2026-08-11 (iteration 2): exchange is PARKED out
+  // of the client journeys pending its own design session; W28–W30 stay in the
+  // Screen library as reference.
   "w31.start-blank": { l: "Start blank", to: "screen:W3@step-what", info: "Enters the same flow with no hidden defaults (Appendix E.2)." },
 };
 

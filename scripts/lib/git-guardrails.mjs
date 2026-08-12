@@ -1,7 +1,17 @@
 import { spawnSync } from "node:child_process";
 
 export function runGit(repoRoot, args, { allowFailure = false } = {}) {
-  const result = spawnSync("git", args, { cwd: repoRoot, encoding: "utf8" });
+  const result = spawnSync("git", args, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    // Large planning/spec PRs can legitimately exceed Node's 1 MiB child-process default.
+    // The diff-aware guards must inspect the complete patch instead of failing with an empty
+    // stderr after spawnSync terminates on ENOBUFS.
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  if (result.error && !allowFailure) {
+    throw new Error(`git ${args.join(" ")} failed: ${result.error.message}`);
+  }
   if (result.status !== 0 && !allowFailure) {
     throw new Error(`git ${args.join(" ")} failed: ${result.stderr.trim()}`);
   }

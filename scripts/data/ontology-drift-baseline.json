@@ -3,6 +3,15 @@
   "description": "Known ontology drift, burned down over time. scripts/quality/check-ontology.mjs reconciles this bidirectionally: unlisted findings fail CI, stale entries fail CI once the drift is fixed, and entries expire at most 250 days out. Renew an entry consciously with a fresh note — never let one roll silently.",
   "entries": [
     {
+      "id": "disbursement-kind-refund-indexer-2026-08-11",
+      "guard": "graphql-enums",
+      "subject": "vocab:disbursement-kind/rep:indexer",
+      "detail": "missing [REFUND]",
+      "owner": "indexer",
+      "expires": "2026-09-30",
+      "note": "Remove this baseline when the later member-funded-claims indexer dispatch adds REFUND handlers and GraphQL projection."
+    },
+    {
       "id": "capital-type-order",
       "guard": "shared-ts-vocab",
       "subject": "vocab:capital/rep:capital-type",

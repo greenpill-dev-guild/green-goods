@@ -11,6 +11,7 @@
 // Hotspot `info` strings are spec commentary (may cite enum names like
 // StewardCaptured) — they are not screen copy and are never scanned.
 
+import { SB_ROUTE_ALIASES } from "./journeys";
 import type { SB as RawSB, Scene } from "./journeys";
 import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
 import { CHAPTERS, HOME_SURFACE, ROLES, SCENE_SURFACES } from "./types";
@@ -36,11 +37,12 @@ type FactKey =
   | "pool" | "cycle" | "series" | "cycleLiveCommitments" | "poolLiveCommitments"
   | "poolNonTerminalCycles" | "commitment"
   | "settlementAccount" | "beneficiarySettlementAccount" | "disbursement"
-  | "disbursementKind" | "disbursementRoute" | "queueFundingAuthority" | "payoutPlan";
+  | "disbursementKind" | "disbursementRoute" | "queueFundingAuthority" | "payoutPlan" | "funding";
 const FACT_KEYS = [
   "pool", "cycle", "series", "cycleLiveCommitments", "poolLiveCommitments", "poolNonTerminalCycles",
   "commitment", "kind", "settlementAccount", "beneficiarySettlementAccount",
   "disbursement", "disbursementKind", "disbursementRoute", "queueFundingAuthority", "payoutPlan",
+  "funding",
 ] as const satisfies readonly (keyof StateFacts)[];
 type ConditionalRequirement = {
   when: Partial<Record<FactKey, string>>;
@@ -188,6 +190,41 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
       queueFundingAuthority: ["ProtocolSteward", "ModuleOwner"],
     },
   },
+  recordFunding: {
+    key: "funding",
+    allowed: ["None", "Pledged"],
+    next: "Pledged",
+    requires: {
+      pool: ["Open"],
+      commitment: ["Offered"],
+      settlementAccount: ["Active"],
+    },
+  },
+  recordFundingDeposit: {
+    key: "funding",
+    allowed: ["Pledged"],
+    next: "DepositRecorded",
+    requires: { settlementAccount: ["Active"] },
+  },
+  consumeFunding: {
+    key: "funding",
+    allowed: ["DepositRecorded"],
+    next: "Consumed",
+    requires: {
+      commitment: ["Accepted"],
+      settlementAccount: ["Active"],
+    },
+  },
+  queueFundingRefund: {
+    key: "funding",
+    allowed: ["Pledged", "DepositRecorded", "Consumed"],
+    resultAllowed: ["Withdrawn", "RefundQueued"],
+    effects: {
+      disbursement: "Queued",
+      disbursementKind: "Refund",
+    },
+    requires: { settlementAccount: ["Active"] },
+  },
   createBatch: {
     key: "disbursement",
     allowed: ["Queued"],
@@ -320,6 +357,37 @@ function validateCalls(
   }
 }
 
+// One-row action-bar rule (2026-08-11 D7, uiux Appendix B addendum): a fixed
+// flow bar carries at most ONE full-width button — an icon/short secondary may
+// sit beside it, but two stacked full buttons are the exact regression the
+// correction pass removed. Depth-aware so nested divs cannot truncate the scan.
+function fbarBlocks(html: string): string[] {
+  const blocks: string[] = [];
+  const open = /<div class="fbar">/g;
+  let m: RegExpExecArray | null;
+  while ((m = open.exec(html))) {
+    const tagRe = /<(\/?)div\b[^>]*>/g;
+    tagRe.lastIndex = open.lastIndex;
+    let depth = 1;
+    let end = html.length;
+    let t: RegExpExecArray | null;
+    while ((t = tagRe.exec(html))) {
+      depth += t[1] === "/" ? -1 : 1;
+      if (depth === 0) { end = t.index; break; }
+    }
+    blocks.push(html.slice(m.index + m[0].length, end));
+  }
+  return blocks;
+}
+
+function scanActionBars(screenId: string, stateId: string, html: string) {
+  for (const block of fbarBlocks(html)) {
+    const fulls = (block.match(/class="b [^"]*\bfull\b/g) ?? []).length;
+    if (fulls > 1)
+      err.push(`BAR ${screenId}@${stateId}: ${fulls} full-width buttons stacked in one action bar — one-row rule (2026-08-11 D7): one full-width primary, optional icon/short secondary; detours move into page content`);
+  }
+}
+
 // data-hot / data-mark tokens actually present in one state's html
 function domTokens(html: string) {
   const hots = new Set<string>();
@@ -383,6 +451,8 @@ const BANNED_CLIENT_PUBLIC: [RegExp, string][] = [
   [/\bdisputes?d?\b/i, 'dispute ("under review by stewards" is the ceiling)'],
   [/\blegal\b/i, "legal"],
 ];
+/** Card descriptions stay one scannable sentence — see the DESC check below. */
+const DESC_MAX = 190;
 const ADMIN_HERO: [RegExp, string][] = [
   [/congratulations|celebrat|amazing|awesome|🎉/i, "admin hero language (quiet checkmark rule)"],
 ];
@@ -519,6 +589,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     id: sb.id,
     n: sb.n,
     title: sb.title,
+    desc: sb.desc,
     persona: sb.persona,
     reviewVisible: sb.reviewVisible,
     reviewGroup: sb.reviewGroup,
@@ -568,7 +639,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   // are all rendered UI too; scan them rather than limiting vocabulary checks
   // to the screen-state HTML.
   for (const sb of raw) {
-    const text = [sb.title, sb.persona, sb.scen, ...sb.steps.flatMap((sc) => [
+    const text = [sb.title, sb.desc, sb.persona, sb.scen, ...sb.steps.flatMap((sc) => [
       sc.who, sc.surface, sc.st, sc.ev, sc.note, sc.hot?.l,
       ...(sc.alts ?? []).map((a) => a.l),
       ...(sc.br ?? []).map((b) => b.l),
@@ -634,11 +705,55 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     const chapters = CHAPTERS[sb.reviewGroup] ?? [];
     if (!chapters.some((chapter) => chapter.id === sb.chapter))
       err.push(`CHAPTER ${sb.id}: "${sb.chapter}" is not a chapter of group "${sb.reviewGroup}"`);
+    // Every card is title → description → tags (Afo, D3). The description is
+    // the part a reviewer reads to choose a flow, so an empty one is a broken
+    // card, and an essay is one that stops being scannable in a two-column grid.
+    const desc = sb.desc?.trim() ?? "";
+    if (!desc) err.push(`DESC ${sb.id}: flow cards need a description line`);
+    else if (desc.length > DESC_MAX) err.push(`DESC ${sb.id}: ${desc.length} chars — keep card descriptions under ${DESC_MAX}`);
     if (!sb.roles.length)
       err.push(`ROLES ${sb.id}: at least one acting role is required`);
     for (const role of sb.roles)
       if (!ROLES.some((known) => known.id === role))
         err.push(`ROLES ${sb.id}: unknown role "${role}"`);
+  }
+
+  // Retired journey routes (2026-08-11 D3). The redirect map is only worth
+  // shipping if it cannot lie: a source that shadows a live scene would hide
+  // real content behind a redirect, and a target that no longer resolves sends
+  // a reviewer somewhere worse than the clamp it was meant to fix.
+  const sceneCount = (id: string) => raw.find((sb) => sb.id === id)?.steps.length;
+  const parseRoute = (route: string) => {
+    const m = route.match(/^(sb[\w-]+)\/(\d+)$/);
+    return m ? { id: m[1], ix: Number(m[2]) } : null;
+  };
+  for (const [from, to] of Object.entries(SB_ROUTE_ALIASES)) {
+    const src = parseRoute(from);
+    const dst = parseRoute(to);
+    if (!src) err.push(`ROUTE alias "${from}" is not an sbID/index route`);
+    else if (src.ix < (sceneCount(src.id) ?? 0))
+      err.push(`ROUTE alias "${from}" shadows a live scene — a real route must win over a redirect`);
+    if (!dst) err.push(`ROUTE alias "${from}" → "${to}" is not an sbID/index route`);
+    else if (dst.ix >= (sceneCount(dst.id) ?? 0))
+      err.push(`ROUTE alias "${from}" → "${to}" does not resolve (flow missing or scene index out of range)`);
+  }
+
+  // Entry-surface rule (2026-08-11 D1): every review-visible flow's FIRST scene
+  // is the surface its actor actually enters from — never a mid-app state. The
+  // allowed sets are the drawn home surfaces per group: the client enters via
+  // the pool tab, the wallet drawer, or the Garden-tab work flow; admin flows
+  // enter at their consoles; editorial at its public pages.
+  const ALLOWED_ENTRY: Record<string, readonly string[]> = {
+    client: ["W1", "W5", "WFLOW"],
+    admin: ["W7", "W8", "W9", "W10", "W12", "W13", "W14", "W21", "W22", "W24", "HUBWORK"],
+    editorial: ["W15", "W16"],
+  };
+  for (const sb of sbs) {
+    if (!sb.reviewVisible) continue;
+    const first = sb.steps[0];
+    const allowed = ALLOWED_ENTRY[sb.reviewGroup] ?? [];
+    if (first && !allowed.includes(first.f))
+      err.push(`ENTRY ${sb.id}: first scene ${first.f}@${first.v} is not a drawn home surface for ${sb.reviewGroup} (allowed: ${allowed.join(", ")})`);
   }
 
   // alias targets
@@ -652,6 +767,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       scanState(s, st.id, st.html, sept);
       scanEnabledButtons(s.id, st.id, st.html);
       scanFormNames(s.id, st.id, st.html);
+      scanActionBars(s.id, st.id, st.html);
       const t = domTokens(st.html);
       for (const h of t.hots) {
         emitted.add(h);

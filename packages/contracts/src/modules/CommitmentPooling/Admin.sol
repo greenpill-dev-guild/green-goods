@@ -184,14 +184,7 @@ abstract contract CommitmentPoolingAdmin is CommitmentPoolingBase {
         if (poolId == nextPoolId) nextPoolId = poolId + 1;
     }
 
-    function registerPool(
-        address garden,
-        ICommitmentPoolingModule.PoolType poolType
-    )
-        external
-        whenOperational
-        returns (uint256 poolId)
-    {
+    function registerPool(address garden, ICommitmentPoolingModule.PoolType poolType) external returns (uint256 poolId) {
         poolId = CommitmentPoolingPoolsLib.registerPool(_env(), gardenPool, pools, nextPoolId, rootGarden, garden, poolType);
         if (poolId == nextPoolId) nextPoolId = poolId + 1;
         if (poolType == ICommitmentPoolingModule.PoolType.Protocol) protocolPoolId = poolId;

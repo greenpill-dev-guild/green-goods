@@ -32,6 +32,7 @@ contract Upgrade is Script {
     error SameImplementation();
     error ZeroAddress(string paramName);
     error NotAContract(string contractName);
+    error UnexpectedAssessmentSchemaUID(bytes32 expected, bytes32 actual);
     /// @notice Load proxy address from deployment file
 
     function loadProxyAddress(string memory contractName) internal view returns (address) {
@@ -221,7 +222,18 @@ contract Upgrade is Script {
         vm.startBroadcast();
 
         (address eas,,,) = loadNetworkConfig();
+        string memory deploymentPath =
+            string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-latest.json");
+        string memory deploymentJson = vm.readFile(deploymentPath);
+        bytes32 expectedV2SchemaUID = abi.decode(vm.parseJson(deploymentJson, ".schemas.assessmentSchemaUID"), (bytes32));
+        if (expectedV2SchemaUID == bytes32(0)) revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, bytes32(0));
+        bytes32 liveV2SchemaUID = AssessmentResolver(payable(proxy)).schemaUID();
+        if (liveV2SchemaUID != bytes32(0) && liveV2SchemaUID != expectedV2SchemaUID) {
+            revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, liveV2SchemaUID);
+        }
         console.log("Using EAS:", eas);
+        console.log("Expected Assessment v2 schema UID:");
+        console.logBytes32(expectedV2SchemaUID);
 
         AssessmentResolver newImpl = new AssessmentResolver(eas);
         console.log("New AssessmentResolver implementation:", address(newImpl));
@@ -231,6 +243,24 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("AssessmentResolver upgraded successfully");
+
+        // Arbitrum's live proxy predates artifact persistence and still reports a zero v2 UID.
+        // Pin the exact existing v2 schema in its own resumable transaction before any v3 schema
+        // preparation. A non-zero conflicting UID failed before broadcast above, while an exact
+        // existing pin is deliberately a no-op on replay.
+        if (liveV2SchemaUID == bytes32(0)) {
+            AssessmentResolver(payable(proxy)).setSchemaUID(expectedV2SchemaUID);
+            console.log("AssessmentResolver v2 schema UID pinned from the canonical artifact");
+        }
+        bytes32 pinnedV2SchemaUID = AssessmentResolver(payable(proxy)).schemaUID();
+        if (pinnedV2SchemaUID != expectedV2SchemaUID) {
+            revert UnexpectedAssessmentSchemaUID(expectedV2SchemaUID, pinnedV2SchemaUID);
+        }
+        // This getter exists only on the target implementation and must remain unset until the
+        // separately ordered AssessmentV3 schema-preparation transaction.
+        if (AssessmentResolver(payable(proxy)).assessmentV3SchemaUID() != bytes32(0)) {
+            revert UnexpectedAssessmentSchemaUID(bytes32(0), AssessmentResolver(payable(proxy)).assessmentV3SchemaUID());
+        }
 
         vm.stopBroadcast();
     }
@@ -517,41 +547,27 @@ contract Upgrade is Script {
         wireYieldResolverGardensModule();
     }
 
-    /// @notice Upgrade the Commitment Pooling control plane and its register together
-    /// @dev The module and the register share the unit-accounting invariant: the module is the
-    ///      register's only authorized caller and the register is the module's only capacity
-    ///      ledger. Upgrading one without the other is never a valid intermediate state, so this
-    ///      grouped target is the only supported pooling upgrade path.
-    function upgradePooling() public {
-        address moduleProxy = loadProxyAddress("commitmentPoolingModule");
-        address registryProxy = loadProxyAddress("commitmentRegistry");
-        console.log("Upgrading CommitmentPoolingModule proxy at:", moduleProxy);
-        console.log("Upgrading CommitmentRegistry proxy at:", registryProxy);
+    /// @notice Upgrade the two existing integrations required by Commitment Pooling.
+    /// @dev The net-new CommitmentPoolingModule and CommitmentRegistry are deployed, never
+    ///      "upgraded". This grouped plan proves GardenToken and WorkApprovalResolver share the
+    ///      declared owner before either existing proxy is touched.
+    function upgradeCommitmentPoolingIntegrations() public {
+        upgradeGardenToken();
+        upgradeWorkApprovalResolver();
 
-        validateProxy(moduleProxy, "CommitmentPoolingModule");
-        validateProxy(registryProxy, "CommitmentRegistry");
-
-        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
-        address currentModuleImpl = address(uint160(uint256(vm.load(moduleProxy, implementationSlot))));
-        address currentRegistryImpl = address(uint160(uint256(vm.load(registryProxy, implementationSlot))));
-        console.log("Current CommitmentPoolingModule implementation:", currentModuleImpl);
-        console.log("Current CommitmentRegistry implementation:", currentRegistryImpl);
+        address poolingModule = vm.envAddress("COMMITMENT_POOLING_MODULE");
+        if (poolingModule == address(0)) revert ZeroAddress("CommitmentPoolingModule");
+        if (vm.envBool("UPGRADE_REQUIRE_LIVE_DEPENDENCIES")) {
+            validateAddress(poolingModule, "CommitmentPoolingModule");
+        }
+        address gardenTokenProxy = loadProxyAddress("gardenToken");
+        address workApprovalProxy = loadProxyAddress("workApprovalResolver");
 
         vm.startBroadcast();
-
-        CommitmentPoolingModule newModuleImpl = new CommitmentPoolingModule();
-        console.log("New CommitmentPoolingModule implementation:", address(newModuleImpl));
-        if (address(newModuleImpl) == currentModuleImpl) revert SameImplementation();
-
-        CommitmentRegistry newRegistryImpl = new CommitmentRegistry();
-        console.log("New CommitmentRegistry implementation:", address(newRegistryImpl));
-        if (address(newRegistryImpl) == currentRegistryImpl) revert SameImplementation();
-
-        UUPSUpgradeable(moduleProxy).upgradeTo(address(newModuleImpl));
-        UUPSUpgradeable(registryProxy).upgradeTo(address(newRegistryImpl));
-        console.log("Commitment Pooling upgraded successfully");
-
+        GardenToken(gardenTokenProxy).setCommitmentPoolingModule(poolingModule);
+        WorkApprovalResolver(payable(workApprovalProxy)).setCommitmentModule(poolingModule);
         vm.stopBroadcast();
+        console.log("Commitment Pooling integration reverse wiring completed");
     }
 
     /// @notice Upgrade all contracts

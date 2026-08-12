@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 import { SettlementAcknowledgmentLib } from "../../lib/Settlement/AcknowledgmentLib.sol";
+import { SettlementFundingLib } from "../../lib/Settlement/FundingLib.sol";
 import { SettlementLifecycleLib } from "../../lib/Settlement/LifecycleLib.sol";
 import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementPlans } from "./Plans.sol";
@@ -31,6 +32,46 @@ abstract contract SettlementLifecycle is SettlementPlans {
             gDollarToken,
             amount
         );
+    }
+
+    function recordFunding(
+        uint256 commitmentId,
+        address funder,
+        address refundAccount
+    )
+        external
+        override
+        nonReentrant
+        returns (uint256 fundingId)
+    {
+        return
+            SettlementFundingLib.recordFunding(_settlementAccounts, _fundingConfig(), commitmentId, funder, refundAccount);
+    }
+
+    function recordFundingDeposit(
+        uint256 fundingId,
+        uint256 amount,
+        bytes32 depositReference
+    )
+        external
+        override
+        nonReentrant
+    {
+        SettlementFundingLib.recordFundingDeposit(
+            _settlementAccounts, _fundingConfig(), fundingId, amount, depositReference
+        );
+    }
+
+    function consumeFunding(uint256 fundingId) external override nonReentrant {
+        SettlementFundingLib.consumeFunding(_settlementAccounts, _fundingConfig(), fundingId);
+    }
+
+    function queueFundingRefund(uint256 fundingId) external override nonReentrant returns (uint256 disbursementId) {
+        bool created;
+        (disbursementId, created) = SettlementFundingLib.queueFundingRefund(
+            _disbursements, _settlementAccounts, _fundingConfig(), _nextDisbursementId, fundingId
+        );
+        if (created) _nextDisbursementId = disbursementId + 1;
     }
 
     function queueLoanPrincipal(uint256 loanId) external override nonReentrant returns (uint256 disbursementId) {
@@ -148,5 +189,15 @@ abstract contract SettlementLifecycle is SettlementPlans {
         SettlementAcknowledgmentLib.receiveAcknowledgment(
             _disbursements, _batches, _commandRecords, commandExecutionKeys, _planState, _ccipRoute, message
         );
+    }
+
+    function _fundingConfig() private view returns (SettlementFundingLib.RuntimeConfig memory) {
+        return SettlementFundingLib.RuntimeConfig({
+            hatsModule: hatsModule,
+            poolingModule: commitmentPoolingModule,
+            gDollarToken: gDollarToken,
+            destinationEvmChainId: DESTINATION_EVM_CHAIN_ID,
+            paused: paused
+        });
     }
 }

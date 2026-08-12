@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import * as path from "node:path";
-import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import { type ParsedOptions } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
 import { NetworkManager } from "../utils/network";
 import {
@@ -280,7 +280,7 @@ export class PoolingConfigureDeployer {
 
     console.log(`\nUsing Foundry keystore: ${keystoreName}`);
     console.log("Password will be prompted interactively");
-    console.log("forge", redactSensitiveArgs(args).join(" "));
+    console.log("Executing the Bun-wrapped pooling configuration target");
 
     // The script requires this and will not infer an owner. It is only set here after
     // `assertSingleOwner` proved this sender equals every live `owner()`.

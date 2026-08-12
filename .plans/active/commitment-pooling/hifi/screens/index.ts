@@ -14,6 +14,7 @@ import { SETTLEMENT_DEFS } from "./settlement";
 import { CLIENT_DEFS } from "./client";
 import { EXCHANGE_DEFS } from "./exchange";
 import { WALLET_DEFS } from "./client-wallet";
+import { FUNDING_DEFS } from "./funding";
 
 // W6 retired (Decision Log #28f): summary line moved into the W5 drawer header.
 const RETIRED = new Set(["W6"]);
@@ -25,8 +26,8 @@ const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
   // W32–W35 are the offer-over-time set (saved details → series → places →
   // Story). They stay inside the one client panel: the Screens tab keys its
   // tabpanel by surface, so a second client group would collide on that id.
-  { name: "Client PWA", surface: "client", ids: ["W1", "W2", "W2a", "W2b", "W3", "W4", "W5", "W23", "W25", "WFLOW", "W28", "W29", "W30", "W31", "W32", "W33", "W34", "W35"] },
-  { name: "Admin console", surface: "admin", ids: ["W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W21", "W22", "W24", "W26", "HUBWORK"] },
+  { name: "Client PWA", surface: "client", ids: ["W1", "W2", "W2a", "W2b", "W3", "W4", "W36", "W5", "W23", "W25", "WFLOW", "W28", "W29", "W30", "W31", "W32", "W34", "W35"] },
+  { name: "Admin console", surface: "admin", ids: ["W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W37", "W21", "W22", "W24", "W26", "HUBWORK"] },
   { name: "Editorial website", surface: "editorial", ids: ["W15", "W16"] },
   { name: "Community PWA — September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },
 ];
@@ -36,16 +37,16 @@ const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
 // surface's chapters exactly cover its GROUP_DEFS ids, never names or counts.
 const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
   client: [
-    { label: "The pool & its promises", ids: ["W1", "W2", "W4", "W25"] },
+    { label: "The pool & its promises", ids: ["W1", "W2", "W4", "W25", "W36"] },
     { label: "Create & prove", ids: ["W3", "W2a", "W2b", "WFLOW"] },
-    { label: "Ongoing Offers", ids: ["W32", "W33", "W34", "W35"] },
+    { label: "Ongoing Offers", ids: ["W32", "W34", "W35"] },
     { label: "Exchange & templates", ids: ["W28", "W29", "W30", "W31"] },
     { label: "Wallet", ids: ["W5", "W23"] },
   ],
   admin: [
     { label: "Pool & seasons", ids: ["W7", "W11", "W26"] },
     { label: "Seed & capture", ids: ["W8", "W9"] },
-    { label: "Review & decisions", ids: ["W10", "W13", "W14", "HUBWORK"] },
+    { label: "Review & decisions", ids: ["W10", "W13", "W14", "W37", "HUBWORK"] },
     { label: "Community & operations", ids: ["W12", "W24"] },
     { label: "Settlement", ids: ["W21", "W22"] },
   ],
@@ -115,6 +116,7 @@ const REG: HifiDef[] = [
   ...CLIENT_DEFS,
   ...EXCHANGE_DEFS,
   ...WALLET_DEFS,
+  ...FUNDING_DEFS,
   ...ADMIN_DEFS,
   ...SETTLEMENT_DEFS,
   ...PUBLIC_DEFS,

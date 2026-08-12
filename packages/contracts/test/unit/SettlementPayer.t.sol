@@ -65,6 +65,32 @@ contract SettlementPayerMockRouter {
             })
         );
     }
+
+    function tryDeliverWithReceiverGas(
+        address receiver,
+        bytes32 messageId,
+        uint64 sourceSelector,
+        address sender,
+        bytes calldata data,
+        uint256 receiverGasLimit
+    )
+        external
+        returns (bool success, uint256 gasUsed, bytes memory returnData)
+    {
+        Client.EVMTokenAmount[] memory noTokens = new Client.EVMTokenAmount[](0);
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: messageId,
+            sourceChainSelector: sourceSelector,
+            sender: abi.encode(sender),
+            data: data,
+            destTokenAmounts: noTokens
+        });
+        uint256 gasBefore = gasleft();
+        (success, returnData) = receiver.call{ gas: receiverGasLimit }(
+            abi.encodeWithSelector(ISettlementCcipReceiver.ccipReceive.selector, message)
+        );
+        gasUsed = gasBefore - gasleft();
+    }
 }
 
 contract SettlementPayerMockHats {
@@ -105,19 +131,42 @@ contract SettlementPayerMockHats {
 }
 
 contract SettlementPayerMockPooling {
+    error PoolingReadDisabled();
+
     mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment) private _commitments;
     mapping(uint256 poolId => ICommitmentPoolingModule.Pool) private _pools;
+    mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)) private
+        _pendingClaims;
     bytes32 public canonicalRecognitionHash;
+    bool public commitmentReadsDisabled;
+
+    function setCommitmentReadsDisabled(bool disabled) external {
+        commitmentReadsDisabled = disabled;
+    }
 
     function setCommitment(uint256 commitmentId, ICommitmentPoolingModule.Commitment memory commitment) external {
         ICommitmentPoolingModule.Commitment storage stored = _commitments[commitmentId];
+        stored.poolId = commitment.poolId;
+        stored.creator = commitment.creator;
+        stored.counterparty = commitment.counterparty;
         stored.state = commitment.state;
         stored.direction = commitment.direction;
         stored.claimType = commitment.claimType;
+        stored.claimMode = commitment.claimMode;
         stored.counterpartyKind = commitment.counterpartyKind;
         stored.providerGarden = commitment.providerGarden;
         stored.payerGarden = commitment.payerGarden;
         stored.consideration = commitment.consideration;
+    }
+
+    function setPendingClaim(
+        uint256 commitmentId,
+        address claimant,
+        ICommitmentPoolingModule.PendingClaim memory claim
+    )
+        external
+    {
+        _pendingClaims[commitmentId][claimant] = claim;
     }
 
     function setPool(uint256 poolId, ICommitmentPoolingModule.Pool memory pool) external {
@@ -129,11 +178,23 @@ contract SettlementPayerMockPooling {
     }
 
     function getCommitment(uint256 commitmentId) external view returns (ICommitmentPoolingModule.Commitment memory) {
+        if (commitmentReadsDisabled) revert PoolingReadDisabled();
         return _commitments[commitmentId];
     }
 
     function getPool(uint256 poolId) external view returns (ICommitmentPoolingModule.Pool memory) {
         return _pools[poolId];
+    }
+
+    function getPendingClaim(
+        uint256 commitmentId,
+        address claimant
+    )
+        external
+        view
+        returns (ICommitmentPoolingModule.PendingClaim memory)
+    {
+        return _pendingClaims[commitmentId][claimant];
     }
 
     function validateRecognitionSnapshot(
@@ -163,6 +224,7 @@ contract SettlementPayerTest is Test {
     SettlementPayerMockRouter internal router;
     SettlementPayerMockHats internal hats;
     SettlementPayerMockPooling internal pooling;
+    SettlementModule internal settlementImplementation;
     ISettlementModule internal settlement;
 
     function setUp() public virtual {
@@ -170,11 +232,11 @@ contract SettlementPayerTest is Test {
         hats = new SettlementPayerMockHats();
         pooling = new SettlementPayerMockPooling();
 
-        SettlementModule implementation = new SettlementModule(address(router), ARBITRUM_SELECTOR, CELO_CHAIN_ID);
+        settlementImplementation = new SettlementModule(address(router), ARBITRUM_SELECTOR, CELO_CHAIN_ID);
         settlement = ISettlementModule(
             address(
                 new ERC1967Proxy(
-                    address(implementation),
+                    address(settlementImplementation),
                     abi.encodeWithSelector(
                         ISettlementModule.initialize.selector,
                         OWNER,

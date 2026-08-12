@@ -29,6 +29,7 @@ abstract contract CeloSettlementStorage is
     uint8 internal constant _FUNDING = 1;
     uint8 internal constant _LOAN_PRINCIPAL = 2;
     uint8 internal constant _GARDEN_BENEFICIARY = 3;
+    uint8 internal constant _REFUND = 4;
 
     address public immutable override CCIP_ROUTER;
     address public immutable override G_DOLLAR_TOKEN;

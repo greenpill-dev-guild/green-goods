@@ -5,12 +5,26 @@
 - Machine lane: contracts
 - Execution sub-lane: contracts
 - Owner: Codex
-- Branch signal: codex/contracts/commitment-pooling
-- Current state: specification-ready, dispatch-blocked; this handoff does not self-dispatch
+- Implementation branch: `feature/build-commitment-pooling-contracts`
+- Merge: PR #694 at `c60b38dea`, verified as an ancestor of Phase A base `7a9c7ee`
+- Current state: passed and merged; deployment/release engineering is a separate Phase A lane
 - Linear context: PRD-721 (contracts lane) under parent PRD-650; PRD-671/672 are historical labels
 
 Concurrent agents share this repository. Stay inside this lane's named paths, preserve unrelated
 working-tree changes, and do not switch branches from another session's primary tree.
+
+## Validation receipt
+
+- Tested implementation/settlement integration tree: PR #694 merge `c60b38dea` plus the accepted
+  post-merge Credit integration in PR #695 `bff3b274d`.
+- Receipt refreshed: 2026-08-11 on Phase A base `7a9c7ee`.
+- Merge proof: `git merge-base --is-ancestor c60b38dea origin/develop` returned success after a
+  fresh fetch; live PRD-721 was re-read as Done.
+- Accepted behavior proof from the merged range: the full contracts target passed 1,975 Solidity
+  tests and 104 script tests; build, size, storage-layout, lint, audit, source-structure, ontology,
+  format, and read-only settlement-lane gates passed as recorded in the merged handoffs.
+- Proof limit: this receipt closes the implementation lane. It is not fresh Phase A deployment,
+  dry-run, artifact-recovery, or broadcast evidence.
 
 ## Inputs
 
@@ -102,7 +116,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   check that GardenToken and WorkApprovalResolver report the same live owner before one plan
   persists.
 - Mainnet transaction planning fails closed unless the verified target owner is the protocol
-  3-of-5 Safe. A human-authorized ownership-transfer plan may start from the observed deployer EOA,
+  exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3. A human-authorized ownership-transfer plan may start from the observed deployer EOA,
   but it must be isolated, name every touched proxy, and verify Safe ownership before any upgrade,
   schema/module activation, or unpause plan can persist. Release evidence additionally binds the
   repository's external-audit, 48-hour timelock, two-week testnet-operation, and tested-rollback
@@ -166,7 +180,7 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   permits the initial zero → non-zero wiring only; later replacement requires the current module
   paused and emits exact old/new without touching accounting state. The frozen
   mainnet release plan additionally proves the external audit has no unresolved critical/high
-  finding, every touched UUPS/admin owner is the protocol 3-of-5 Safe, the 48-hour timelock and
+  finding, every touched UUPS/admin owner is the exact approved protocol Safe, the recorded timelock and
   two-week testnet-operation requirements passed, and rollback was tested before any broadcast or
   activation step is authorized.
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
@@ -371,7 +385,7 @@ reasons:
 1. `contract-spec.md` §6.1's ownership gate. The live proxies currently report deployer EOA
    `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`, but that address is valid **only** for
    the isolated, human-authorized ownership-transfer plan. Every other mainnet plan resolves its
-   sender from the verified protocol 3-of-5 Safe.
+   sender from the verified exact approved protocol Safe.
 2. `upgrade.ts` cannot yet enforce that. Today it accepts `--sender` optionally, silently falls back
    to `process.env.SENDER_ADDRESS`, persists `sender: … ?? null` (`script/upgrade.ts:424`), and
    never reads `owner()`. An unsubstituted placeholder therefore does not fail closed — it persists

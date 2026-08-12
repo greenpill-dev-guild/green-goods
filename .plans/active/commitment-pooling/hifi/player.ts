@@ -220,6 +220,10 @@ export const PLAYER_JS = `(function(){
 
   // ---------- journey player ----------
   var curSb = null, curI = 0;
+  // Catalog scroll restoration (2026-08-11 D8b): opening a flow or screen
+  // still jumps to the top, but returning to a catalog lands you back on the
+  // card you just left — ready to open the next one.
+  var catalogScroll = { play: 0, screens: 0 };
   function findSb(id){ for (var k = 0; k < DATA.sbs.length; k++) if (DATA.sbs[k].id === id) return DATA.sbs[k]; return null; }
   // A flow's home surface is its group — no prose sniffing. Scenes that land
   // elsewhere carry their own surface token and are marked as echoes.
@@ -229,11 +233,13 @@ export const PLAYER_JS = `(function(){
     $("stage").classList.remove("on");
     $("home").style.display = "";
     if (history.replaceState) history.replaceState(null, "", "#play");
+    window.scrollTo({ top: catalogScroll.play, left: 0, behavior: "instant" });
   }
   function start(id, ix){
     var sb = findSb(id); if (!sb) return;
     if (sb.reviewVisible) setFlowGroup(sb.reviewGroup);
     curSb = sb; curI = Math.min(Math.max(ix || 0, 0), sb.steps.length - 1);
+    if ($("home").style.display !== "none") catalogScroll.play = window.scrollY || 0;
     $("home").style.display = "none";
     $("stage").classList.add("on");
     // A card tapped at the bottom of a long catalog must open the flow at its
@@ -374,6 +380,7 @@ export const PLAYER_JS = `(function(){
     if (push && expCur) expStack.push(expCur + (expState ? "@" + expState : ""));
     expCur = r.id;
     expState = r.state || scr.states[0].id;
+    if ($("exphome").style.display !== "none") catalogScroll.screens = window.scrollY || 0;
     $("exphome").style.display = "none";
     $("expstage").classList.add("on");
     // Same top-of-page contract as the flow stage: a card tapped low in the
@@ -440,6 +447,7 @@ export const PLAYER_JS = `(function(){
     $("expstage").classList.remove("on");
     $("exphome").style.display = "";
     if (history.replaceState) history.replaceState(null, "", "#screens");
+    window.scrollTo({ top: catalogScroll.screens, left: 0, behavior: "instant" });
   }
   $("expall").addEventListener("click", expHome);
   $("expback").addEventListener("click", function(){
@@ -503,8 +511,22 @@ export const PLAYER_JS = `(function(){
   function applyHash(){
     var h = location.hash.replace("#", "");
     if (!h || h === "play") { setTab("play"); if (curSb) showHome(); return; }
+    // A journey hash is answered by the play tab either way. Splits move scenes
+    // between flows, so redirect through the retired-route map FIRST; without
+    // it start() would clamp an out-of-range index onto the shortened flow's
+    // last frame and quietly show the wrong scene. render() then rewrites the
+    // hash, so a stale shared link heals itself on open. A flow id that retired
+    // outright has no honest per-scene answer — land on the catalog, never the
+    // doc tab, which is where an unmatched hash used to fall through to.
     var mPlay = h.match(/^(sb[\\w-]+)\\/(\\d+)$/);
-    if (mPlay && findSb(mPlay[1])) { setTab("play"); start(mPlay[1], +mPlay[2]); return; }
+    if (mPlay) {
+      var moved = DATA.sbRoutes[h];
+      if (moved) { h = moved; mPlay = h.match(/^(sb[\\w-]+)\\/(\\d+)$/); }
+      setTab("play");
+      if (mPlay && findSb(mPlay[1])) start(mPlay[1], +mPlay[2]);
+      else showHome();
+      return;
+    }
     var mScr = h.match(/^screens\\/([\\w.@-]+)$/);
     if (mScr) {
       setTab("screens");

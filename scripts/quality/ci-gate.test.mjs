@@ -79,6 +79,10 @@ test("ontology-scoped changes require the ontology workflow", () => {
     "Ontology",
     "Supply Chain Guardrails",
   ]);
+  assert.deepEqual(expectedWorkflowNames([".plans/active/commitment-credit-follow-on/spec.md"]), [
+    "Ontology",
+    "Supply Chain Guardrails",
+  ]);
   assert.deepEqual(expectedWorkflowNames(["packages/contracts/script/DeployBadgeSchema.s.sol"]), [
     "Contracts",
     "Ontology",

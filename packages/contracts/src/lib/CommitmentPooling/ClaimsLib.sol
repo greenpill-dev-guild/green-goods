@@ -29,6 +29,9 @@ library CommitmentPoolingClaimsLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         CommitmentPoolingGuardLib.requirePreAcceptanceState(commitmentId, commitment);
         if (kind != commitment.claimType) {
             revert ICommitmentPoolingModule.ClaimTypeMismatch(commitmentId, commitment.claimType, kind);
@@ -84,6 +87,9 @@ library CommitmentPoolingClaimsLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         CommitmentPoolingGuardLib.requirePreAcceptanceState(commitmentId, commitment);
         if (commitment.claimMode != ICommitmentPoolingModule.ClaimMode.ApprovalGated) {
             revert ICommitmentPoolingModule.ClaimModeMismatch(commitmentId);
@@ -125,6 +131,9 @@ library CommitmentPoolingClaimsLib {
     {
         ICommitmentPoolingModule.Commitment storage commitment =
             CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingGuardLib.requirePoolState(
+            commitment.poolId, pools[commitment.poolId], ICommitmentPoolingModule.PoolState.Open
+        );
         CommitmentPoolingGuardLib.requirePoolSteward(env, commitment.poolId, pools[commitment.poolId]);
         if (bytes(reasonCID).length == 0) revert ICommitmentPoolingModule.ReasonRequired();
         if (!pendingClaim[commitmentId][claimant].active) {

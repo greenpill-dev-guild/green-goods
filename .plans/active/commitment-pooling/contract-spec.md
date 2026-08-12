@@ -43,7 +43,7 @@
 >
 > **Review hardening 2026-08-03 (consent, transaction ordering, root identity, and index namespace).** A direct Individual Offer B may name A for bilateral acceptance only when B is created by its own creator: `StewardCaptured` / non-zero `onBehalfOf` creation is rejected for this path, and `acceptExchange` repeats the B-kind guard before mutation. In the same `createCommitment` transaction, before allocating/storing B or registering its class, the module revalidates A as a same-pool, Offered, Individual Offer owned by someone other than B's creator with its exact full class still Committed to A's creator; the app's preflight remains early feedback, not the safety boundary. Protocol registration is bound to the non-zero canonical `rootGarden` supplied at initialization and rejects any other garden before writing `protocolPoolId`. Each emitted `CommitmentAccepted` independently sweeps its bounded request index, so exchange acceptance cannot leave an unrelated claim request Pending. The initial indexer supports exactly one canonical UUPS `CommitmentPoolingModule` proxy per chain; its chain-scoped entity IDs rely on that stable proxy identity, and config rejects a second/replacement proxy unless a future migration defines a new namespace and full-replay plan. Saved Offer `moduleAddress` keeps client links fail-closed against the configured proxy and does not authorize concurrent multi-module indexing.
 >
-> **Review hardening 2026-08-03 (creation-order replay and root backfill).** A commitment lifecycle event that arrives at the indexer before `CommitmentCreated` is stored as a typed, event-keyed pending projection and consumes neither the placeholder lifecycle cursor nor any state-derived delta. Creation supplies the immutable pool/cycle/series/lead/Need facts and atomically drains that commitment's explicit pending index in block/log order through the same lifecycle helper, so reverse delivery converges for live count, series outcome, PoolMemberHistory, attribution confirmation, and Need lineage. Operationally, the root GardenAccount receives exactly one Protocol pool; the 13-garden enumeration records that normalized root as `SKIPPED_PROTOCOL_ROOT` and submits Garden-type registrations only for the 12 non-root gardens.
+> **Review hardening 2026-08-03 (creation-order replay and root backfill).** A commitment lifecycle event that arrives at the indexer before `CommitmentCreated` is stored as a typed, event-keyed pending projection and consumes neither the placeholder lifecycle cursor nor any state-derived delta. Creation supplies the immutable pool/cycle/series/lead/Need facts and atomically drains that commitment's explicit pending index in block/log order through the same lifecycle helper, so reverse delivery converges for live count, series outcome, PoolMemberHistory, attribution confirmation, and Need lineage. Operationally, the root GardenAccount receives exactly one Protocol pool; the 13-garden enumeration records that normalized root as `SKIPPED_PROTOCOL_ROOT` and submits Garden-type registrations only for the 12 non-root gardens. *(Count language superseded 2026-08-11: the backfill enumerates live GardenToken accounts at execution — the 2026-08-08 finalized census found 18 with root token 0 — and no count is frozen into the runbook.)*
 >
 > **Review hardening 2026-08-03 (terminal capacity and late member-history facts).** Cancelling or expiring an unaccepted Offer releases the class and provider slot reserved at creation exactly once; an unaccepted Request still has no registry effect. Indexer terminal state projection no longer assumes acceptance and frozen-roster facts have already arrived: `CommitmentAccepted`, contributor mutations, and `ContributorRosterFrozen` all invoke an idempotent terminal-member-history reconciler. It applies the lead's current terminal outcome only after acceptance facts exist and applies Fulfilled contributor/receiver history only after the frozen active roster is fully materialized, so a reverse-delivered Fulfilled event cannot permanently omit history counters.
 >
@@ -134,7 +134,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 4. **Two-contract shape** (register #15, register #16; compatibility-amended by register #86). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegistry` is voucher-shaped, non-transferable, ERC-1155-style promise accounting. A later adapter may consume eligible fulfillment facts on the same `poolId` while issuing a separate `voucherClassId`; it never wraps the registry class as the same identity. Supersedes PRD-649's single-artifact V1 stance (user-approved). `poolId` semantics are unchanged.
 5. **EAS bridge** (register #5). `WorkApprovalResolver.onAttest` calls `module.onWorkDecision(...)` for both approved and rejected decisions in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Steward-callable `syncWorkDecisions` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `reports/corrections-log.md` H2), so linkage is module-side: an active contributor, accountable lead, or resolved pool steward links workUID to commitmentId before a roster freeze. The module applies the deterministic latest valid decision and freezes that effective credit at ReadyForConfirmation.
 6. **v3 authorship split** (register #7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
-7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). Neither identity may equal the commitment creator; ApprovalGated acceptance rechecks the stored requester. The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
+7. **Protocol pool = root garden pool** (register #8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 0) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming uses one canonical identity formula: Individual claim → `claimant = requestedBy = msg.sender`; Garden claim → `claimant = gardenContext` (the GardenAccount) and `requestedBy = msg.sender` (its authenticated operator/owner). Neither identity may equal the commitment creator; ApprovalGated acceptance rechecks the stored requester. The creation-time `claimType` is immutable eligibility and must equal the runtime claim `kind`. Protocol-pool stewardship reuses root-garden Hats.
 8. **Considerations are references; contributor payment is a garden-accounted plan** (register #18, superseded for group settlement by registers #63–#67). A commitment carries an explicit consideration rail and amount. `ArbitrumExternal` also stores its exact source and token for the existing operator-recorded jar/treasury reference path. `CeloSettlement` stores zero source/token sentinels because pooling has no canonical-G$ configuration; the SettlementModule derives and stores both its write-once `gDollarToken` and the commitment's `payerGarden` Safe as payer (register #90) — known at creation for a Request, at acceptance for an Offer. That rail is ineligible for `recordConsiderationPaid`; the payer garden's Safe funds a conserved parent plan whose shape follows who claimed (register #91) — one `GardenBeneficiary` row for a Garden-claimed Request, otherwise contributor child payouts with an explicit retained amount, and retention forced to zero whenever payer and provider differ. Zero CookieJar changes; jars remain pull-based (`packages/contracts/src/modules/CookieJar.sol:243-296`).
 9. **Claim mode per commitment** (register #19). Open claim vs approval gated, set at seeding. App-level defaults: protocol pool prefills ApprovalGated, garden campaign commitments prefill Open. The module stores what is passed.
 10. **Lightweight evidence** (register #20). `EvidenceAttached(commitmentId, cid, attacher)` module event, offline-queueable. For SupportService and StewardCaptured commitments, counterparty confirmation IS the review; no separate approval step. DomainImpact keeps the full Work to WorkApproval path.
@@ -222,11 +222,22 @@ until it is composted. Replays and invalid transitions never change either count
 
 On-chain enum: `CommitmentState { None, Offered, Requested, Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired, Disputed }`. `Draft`, `Active`, `EvidenceSubmitted`, `PartiallyApproved`, and `Reconciled` are derived.
 
+**Register #103 acceptance and pause rule.** A member may file an ApprovalGated claim request on a
+priced Offer; the price does not create custody or acceptance. The existing
+`PricedOfferClaimRequiresSteward` gate moves to `acceptClaim`, so only a steward can start the
+priced promise. A priced Open-mode Offer still reverts at claim time because it has no steward
+decision step. `claimCommitment`, `acceptClaim`, `declineClaim`, `acceptExchange`, both
+ReadyForConfirmation entry points, and both confirmation functions all require the parent pool to
+be `Open`; `PoolState.Paused` therefore freezes those transitions as well as creation. Evidence,
+Work linkage/sync, roster wind-down, cancel, expire, dispute, resolution, and the non-blocking
+Work-decision hook keep their separately stated gates and remain available where their commitment
+state permits.
+
 | Transition | Layer | Mechanism |
 |---|---|---|
 | Draft (exists) | off-chain | Client/admin IndexedDB draft (offline-first). |
 | Draft -> Offered or Requested | on-chain | `createCommitment(params)`. Event `CommitmentCreated` (direction Offer or Request sets the initial state). A non-zero `commitmentSeriesId` must resolve to an Active same-pool direct-holder Individual Offer. For Offer B with non-zero `counterCommitmentId`, the same transaction rejects `StewardCaptured` / non-zero `onBehalfOf` and revalidates A as a same-pool Offered Individual Offer with a distinct creator and exact full reservation before B ID allocation, storage, class registration, or event emission. Offer creation then commits B's full class quota and reserves the creator's provider slot; Request creation only registers its class. |
-| Offered/Requested -> Accepted | on-chain | `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`; either identity matching the creator reverts. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), then operator `acceptClaim(commitmentId, claimant)` rechecks the stored requester against the creator, consumes the canonical claimant-keyed terms, and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Request acceptance records committed units and reserves its resolved provider slot; Offer acceptance validates the already-Committed class and does not mutate registry accounting again. |
+| Offered/Requested -> Accepted | on-chain | Parent pool must be Open. `claimCommitment` requires runtime `kind == commitment.claimType`. Individual claims use caller as claimant/requester; Garden claims use `gardenContext` as canonical claimant and caller as `requestedBy`; either identity matching the creator reverts. Open mode transitions immediately and uses that authenticated caller as a Garden Request's human lead, but a priced Offer may not use Open mode. ApprovalGated mode emits `ClaimRequested` (state unchanged; "claim pending" is derived), including a member-filed request on a priced Offer; steward `acceptClaim(commitmentId, claimant)` owns the priced-Offer gate, rechecks the stored requester against the creator, consumes the canonical claimant-keyed terms, and uses its stored `requestedBy` as the Garden Request lead. Event `CommitmentAccepted`. Request acceptance records committed units and reserves its resolved provider slot; Offer acceptance validates the already-Committed class and does not mutate registry accounting again. |
 | Offered + Offered -> Accepted + Accepted | on-chain | `acceptExchange(exchangeCommitmentId)` takes direct-created B, resolves A from B's immutable same-pool `counterCommitmentId`, and requires A's creator as caller. Offer×Offer, Offered×Offered, distinct-creator, Individual×Individual, B-not-`StewardCaptured`, cycle, and identity checks pass before mutation, and both full immutable-quota classes must still be Committed to their creators. B's creator accepts A; A's creator accepts B. Two `CommitmentAccepted` events, `ContributorAdded(A, A.creator)` and `ContributorAdded(B, B.creator)`, and one `ExchangeAccepted` marker commit atomically; each ordinary acceptance event independently supersedes every other still-Pending request in its bounded request index, even when the accepted counterpart had no request row. No second registry commit, slot consumption, or provider-cap headroom check occurs. Provider caps apply only when reserving a new slot. Any failure reverts both sides. Later lifecycle remains independent. |
 | Accepted -> Active | derived | First `WorkLinked` or `EvidenceAttached` after acceptance. |
 | Active -> EvidenceSubmitted | derived | Any `EvidenceAttached` or `WorkLinked` event. |
@@ -263,6 +274,10 @@ One UUPS module that owns the whole commitment-pooling control plane: durable po
   match its exact configured UID.
 - Import and type the existing concrete `ActionRegistry` from `packages/contracts/src/registries/Action.sol` (the repo has no `IActionRegistry`). Validate every requirement action with its deployed ABI: `actionToOwner(actionUID) != address(0)` proves registration and `getAction(actionUID).domain` supplies the derived domain tag. Actions may share a domain. UID `0` remains valid because `ActionRegistry.registerAction` allocates from `_nextActionUID++` (`packages/contracts/src/registries/Action.sol:185-188`).
 - Call the `CommitmentRegistry` for every unit-count change (commit, release, fulfill).
+- Keep the member-funding dependency one-way: pooling exposes claim, commitment, pool, and
+  consideration facts, while SettlementModule reads them and owns every `CommitmentFunding`
+  record and refund. Pooling never reads settlement state and never treats a deposit as custody or
+  an acceptance prerequisite.
 
 #### Scaffold conventions (copied, not invented)
 
@@ -1358,19 +1373,23 @@ hats (`IHatsModule.GardenRole`) in the relevant garden; the acting persona noun 
 `paused = true`. Module pause blocks operational mutations but never `setPaused`,
 `cancelCommitment`, `expireCommitment`, or `resolveDispute`; owner dependency/schema setters are
 callable **only while paused**. `setPaused(false)` fails closed until all six dependency addresses
-and all four non-zero, pairwise-distinct schema UIDs are configured. Pool-level Paused additionally
-blocks new commitments, claims, Ready submissions, and confirmations on that pool only.
+and all four non-zero, pairwise-distinct schema UIDs are configured. Pool-level Paused is the full
+per-pool freeze (register #103): in addition to creation, series creation, and cycle seed/open, it
+blocks claim, decline, acceptance, exchange, Ready submission/override, and both confirmation
+paths. Evidence/linkage, roster-safe wind-down, cancellation, expiry, dispute, resolution, and the
+non-blocking Work-decision hook retain their separately stated gates.
 `onGardenMinted` is an operational mutation and therefore reverts `ModulePaused` while the module
 is paused; GardenToken's existing try/catch around that callback (6.3) swallows the revert, so
 garden minting is never blocked by pooling state. Any garden minted during the paused window
-simply has no pool row yet and is covered by the `registerPool` backfill that PR chain 3 already
-runs after the verified unpause — there is no separate catch-up path and no queued-callback
-retry.
+simply has no pool row yet and is covered by `registerPool`, whose authority and identity gates are
+unchanged but whose module-pause guard is deliberately absent. The release backfill runs and is
+verified while the module remains paused, before a separately authorized unpause; there is no
+queued-callback retry.
 
 | Group | Function | Authorized caller | State / other gates |
 |---|---|---|---|
-| Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the post-unpause `registerPool` backfill |
-| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. |
+| Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady; reverts `ModulePaused` while the module is paused, which GardenToken's try/catch swallows so minting never blocks, and the missed garden is picked up by the paused `registerPool` backfill |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | callable while module paused; one pool per garden (`PoolExists`); Protocol requires `garden == rootGarden` or reverts `ProtocolGardenMismatch` before any pool/protocol ID write; first exact-root Protocol registration sets write-once `protocolPoolId`, and a second Protocol registration reuses `PoolExists(existingProtocolGarden)`. The one-shot Garden backfill compares normalized addresses and skips `rootGarden`, whose existing Protocol pool satisfies the one-pool-per-garden invariant. Register #104 accepts the unchanged-authority residual: a current root-garden steward can register the root as Garden before the owner registers Protocol, consuming the one-pool slot and blocking later Protocol registration. The reviewed backfill rejects that shape and executes owner-first root Protocol registration, but this increment adds no authority guard. No other operational mutation is un-gated by this exception. |
 | Pool | `setPoolCharter` | steward | — |
 | Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty; non-zero provider open-commitment cap already set in the register. The app additionally requires one current non-revoked Baseline assessment (v2 or v3, recipient = pool garden, resolver-validated Baseline kind) before enabling this write. |
 | Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table; pause reason CID mandatory and indexed until resume. `closePool` additionally requires `liveCommitmentCount == 0` and `nonTerminalCycleCount == 0`; paused state does not remove the cancel/expire/resolve and cancel/compost wind-down path. |
@@ -1383,10 +1402,10 @@ retry.
 | Commitment series | `restCommitmentSeries` / `resumeCommitmentSeries` / `retireCommitmentSeries` | current holder | Active → Resting, Resting → Active, Active/Resting → Retired; Retired terminal; no instance transition |
 | Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + StewardCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; non-zero creator-scoped `creationRequestKey` persisted before send; non-empty exact `unitLabel`; non-zero `targetUnits`; `cycleId == 0` is always permitted, for gardeners as well as stewards, and carries no cycle-state requirement; a non-zero `cycleId` must exist in the same pool and must additionally be Open for gardener-created commitments, while steward-seeded SeasonCampaign/StewardCaptured commitments permit Seeded or Open; StewardCaptured must set `onBehalfOf`; DomainImpact requires 1–`MAX_REQUIREMENTS` repeatable action requirements with non-zero counts, total required count no greater than `MAX_LINKED_WORKS_PER_COMMITMENT`, and ActionRegistry-derived domain tags; non-DomainImpact kinds may use optional domain tags and no requirements; a non-zero `commitmentSeriesId` must resolve to an Active same-pool series held by the direct creator and requires Offer + Individual + zero `onBehalfOf`; every non-zero `counterCommitmentId` must reference an existing same-pool commitment (`UnknownCounterCommitment` / `CounterCommitmentPoolMismatch` / `SelfCounterCommitment`), and when B is an Offer the same transaction, before B allocation/storage/class registration, additionally requires direct Individual B plus Offered Individual A, distinct creators, and A's exact full class still Committed to A's creator; `declaredUnitValue`/`declaredValueBasis` obey the pair rule (`InvalidValueDeclaration`); `protocolFallbackEnabled` requires non-zero `protocolPoolId` or reverts `ModuleNotReady` before mutation. First use stores the exact frozen preimage hash from §6.1 "Creation payload hash (frozen preimage)", emits it in `CommitmentCreated`, and maps creator/key to the commitment; exact replay returns the first ID with no mutation or event, while conflicting reuse reverts `CommitmentCreationRequestConflict`. Offer creation commits its class and reserves one provider slot, while Request creation only registers its class; both increment the pool live count once. |
 | Commitment | `setDeclaredConsideration` / `setDeclaredValue` / `setConfirmerRule` | steward | pre-acceptance only; zero amount requires `ConsiderationRail.None` plus zero source/token; non-zero `ArbitrumExternal` requires non-zero source/token; non-zero `CeloSettlement` requires zero source/token sentinels because SettlementModule derives its write-once canonical G$ token and immutable payer-garden Safe; `setDeclaredValue` enforces the value/basis pair rule (`InvalidValueDeclaration`) and emits `ValueDeclared`; `setConfirmerRule` writes named/default terms plus `protocolFallbackEnabled`, and enabling the flag requires non-zero `protocolPoolId` |
-| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator; Open accepts, ApprovalGated emits `ClaimRequested` |
-| Commitment | `acceptClaim` | steward | ApprovalGated path; consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
-| Commitment | `acceptExchange` | creator of referenced commitment A | B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; B must be direct-created rather than `StewardCaptured`/`onBehalfOf`; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's direct creation plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Each ordinary acceptance independently sweeps every other still-Pending indexed request for its commitment. Cap headroom is checked only when `commitUnits` reserves a new slot. |
-| Commitment | `declineClaim` | steward | ApprovalGated pending request; mandatory reason; claimant may request again later |
+| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | pool Open; runtime kind equals stored claimType; canonical claimant is caller for Individual and `gardenContext` for Garden; `requestedBy` is caller; neither canonical claimant nor Garden `requestedBy` may equal creator. A priced Offer must be ApprovalGated: the member may emit `ClaimRequested`, while an Open-mode priced Offer reverts `PricedOfferClaimRequiresSteward` |
+| Commitment | `acceptClaim` | steward | pool Open; ApprovalGated path; owns the priced-Offer steward gate, consumes the stored kind/gardenContext, re-validates eligibility, and rejects a stored Garden `requestedBy` equal to creator |
+| Commitment | `acceptExchange` | creator of referenced commitment A | pool Open; B names A through immutable `counterCommitmentId`; same pool; Offer×Offer and Offered×Offered only; distinct creators; Individual×Individual only; B must be direct-created rather than `StewardCaptured`/`onBehalfOf`; both cycle/identity checks run before mutation, and both full immutable-quota classes must remain Committed to their creators. B's direct creation plus A creator's call is valid for Open and ApprovalGated claim modes, so no operator approval is consulted. Both classes/slots are already reserved from Offer creation; two `CommitmentAccepted` events, one `ContributorAdded` lead event for each creator on that creator's Offer, and one `ExchangeAccepted` marker are atomic with no second registry commit or provider-cap headroom check. Each ordinary acceptance independently sweeps every other still-Pending indexed request for its commitment. Cap headroom is checked only when `commitUnits` reserves a new slot. |
+| Commitment | `declineClaim` | steward | pool Open; ApprovalGated pending request; mandatory reason; claimant may request again later |
 | Contributors | `joinCommitment` | eligible gardener | Accepted only; contributor policy Open; caller becomes active; roster not frozen; max-contributor guard runs before mutation |
 | Contributors | `leaveCommitment` | active contributor | Accepted and Open-policy only; roster not frozen; caller is not the lead and has zero linked Work plus zero Work/evidence credit; every mutation revalidates confirmer reachability |
 | Contributors | `addContributor` / `removeContributor` | lead provider or steward | Accepted only; contributor policy must be LeadManaged for both functions; Open rosters use self-join/self-leave and cannot be expelled through `removeContributor`; roster not frozen; add requires the target to pass the same resolved `providerGarden` membership predicate as self-join; max-contributor guard runs before add; lead or any contributor with linked Work or credit cannot be removed; every mutation revalidates confirmer reachability |
@@ -1397,10 +1416,10 @@ retry.
 | Linkage | `syncWorkDecisions` | steward | bounded preflight verifies decision history on EAS and requires the greatest supplied sequence for every included Work to equal the resolver's current `latestDecisionSequence(workUID)` before mutation; applies only each Work's current decision, then enumerates the complete active-link set and requires every local sequence to equal the resolver before evaluating Ready; omission of any stale linked Work reverts the batch |
 | Evidence | `attachEvidence` | active contributor, lead provider, or steward | offline-queueable; CID is non-empty and exact-CID-de-duplicated per commitment; credited list is non-empty, unique, at most `MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT`, and every credited address is active; each contributor receives at most one evidence-derived recognition credit per commitment |
 | Evidence | `attachAssessment` | steward or evaluator of providerGarden | Accepted and roster/credit accounting unfrozen; existing `assessmentUID` must be zero (`AssessmentAlreadyAttached` otherwise); verifies assessment attestation (v2 or v3 UID; recipient == providerGarden); if the non-zero Work threshold was already met, re-runs the automatic Ready predicate. No post-readiness replacement path exists |
-| Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
-| Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
-| Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
-| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | current ordinary named/default path is unreachable after contributor exclusion (`OrdinaryConfirmationStillReachable` otherwise); mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
+| Confirmation | `submitForConfirmation` | counterparty, creator, accountable lead provider, or steward | pool Open; SupportService/StewardCaptured/SeasonCampaign only; `requirements.length == 0`; at least 1 pre-freeze evidence record; declared assessment attached; DomainImpact rejected. The lead is explicitly included: for an Offer and an Individual Request the lead already is creator or counterparty, and for a Garden-claimed Request the counterparty is an uncallable GardenAccount, so omitting the lead would leave the human lead provider unable to submit their own finished work. Submitting is not confirming; the lead remains blocked from every confirmation path |
+| Confirmation | `markReadyForConfirmation` | steward | pool Open; override path; reason emitted and visible |
+| Confirmation | `confirmFulfillment` | named confirmer, Offer counterparty, or Request creator; when that party is a GardenAccount, the operator/owner Hat wearers of that garden, resolved through hatsModule and accepted as direct callers | pool Open; state ReadyForConfirmation; every frozen contributor is blocked (`SelfConfirmation`), including a garden steward who is also a contributor; once per confirmer (`AlreadyConfirmed`); confirmation is never mediated by ERC-6551 `execute`, and the GardenAccount address itself is not an accepted caller |
+| Confirmation | `confirmFulfillmentAsFallback` | current commitment-pool steward/owner Hat wearer, or current registered protocol-pool steward/owner Hat wearer when `protocolFallbackEnabled` | pool Open; current ordinary named/default path is unreachable after contributor exclusion (`OrdinaryConfirmationStillReachable` otherwise); mandatory reason; contributors are blocked (`SelfConfirmation`) on both paths; module ownership alone grants no confirmer authority; local authority is checked first and emits `PoolFallback`, otherwise the opted-in protocol path emits `ProtocolFallback` |
 | Exit | `cancelCommitment` | creator or steward (from Offered/Requested) · steward only (from Accepted) | reason CID; never from ReadyForConfirmation except via dispute resolution; allowed while module paused |
 | Exit | `expireCommitment` | anyone (permissionless) | past dueDate, or cycle endTime when dueDate == 0 |
 | Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
@@ -1411,20 +1430,22 @@ retry.
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); only the accountable lead provider is the exposure/count subject (§6.2) |
-| Register admin | `setModule` | register owner: protocol 3-of-5 Safe before any mainnet activation | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
-| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner: protocol 3-of-5 Safe before this lane's mainnet upgrade | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
-| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: protocol 3-of-5 Safe before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
-| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | protocol 3-of-5 Safe | UUPS convention repo-wide; existing Assessment initializer is never re-run |
+| Register admin | `setModule` | register owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before any mainnet activation | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before this lane's mainnet upgrade | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
+| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
-**Ownership and release gate (2026-08-02 correction; supersedes the waiver clause in the
-2026-07-30 owner decision).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
+**Ownership and release gate (amended 2026-08-10; supersedes the 2026-08-02 external-audit,
+timelock, and soak requirements for this wave).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
 proxies currently report deployer EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`.
 That is observed state, not acceptable final authority for this lane. The
-`packages/contracts/AGENTS.md § Mainnet Additional Requirements` gate applies to the pooling tier
-without exception: before any mainnet upgrade, deployment, schema/module activation, or unpause,
-the external audit has no unresolved critical/high finding, protocol UUPS/admin authority is
-verified on the 3-of-5 Gnosis Safe, the 48-hour mainnet timelock is configured, at least two weeks
-of testnet operation are evidenced, and rollback is documented and tested. Deployment tooling may
+August 10 owner decision applies to this release wave: before any mainnet upgrade, deployment,
+schema/module activation, or unpause, the internal committed-range review has no unresolved
+Critical/High finding, protocol UUPS/admin authority is verified on protocol Safe
+`0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`, Safe multisig approval is present, the current
+local/fork/optional Ethereum Sepolia endpoint/Arbitrum One/Celo evidence ladder is satisfied for
+the authorized stage, and rollback is documented and tested. The 48-hour timelock and former
+two-week testnet soak are waived for this wave. Deployment tooling may
 use the verified live owner only for a human-authorized, fail-closed ownership-transfer transaction
 plan whose post-check proves the Safe owns every touched proxy; no later plan step may rely on the
 EOA as upgrade or administrative authority. The same gate covers CommitmentPoolingModule,
@@ -1778,10 +1799,12 @@ against the recomputed one. The read-through recovery path is unchanged: clients
   fail-closed state. Exact repeats are no-ops. `setPaused(false)` revalidates the complete non-zero/distinct
   dependency/schema set and otherwise reverts `ModuleNotReady`; every real pause transition emits
   `ModulePauseStatusChanged`. While paused, operational entry points stay blocked, but cancel,
-  expire, and dispute resolution remain available for safe wind-down. Pool-level Paused blocks
-  new commitments, claims, Ready submissions, and confirmations only; browse, evidence/linkage,
-  cancellation/expiry, and dispute recovery remain available. `PoolPaused` carries the mandatory
-  reason CID and `PoolResumed` clears the indexed reason.
+  expire, and dispute resolution remain available for safe wind-down. Pool-level Paused is the
+  full per-pool freeze from register #103: it blocks new commitments/series, cycle seed/open,
+  claim/decline, acceptance, exchange, Ready submission/override, and confirmation on existing
+  commitments. Browse, evidence/linkage, roster-safe wind-down, cancellation/expiry, dispute
+  recovery, and the non-blocking Work-decision hook remain available under their ordinary state
+  gates. `PoolPaused` carries the mandatory reason CID and `PoolResumed` clears the indexed reason.
 - **Cycle binding**: `cycleId == 0` is the only cycle-less sentinel, and any caller class may use
   it — gardeners create cycle-less commitments exactly as stewards do. The cycle-state requirement
   is conditional on `cycleId != 0` and never applies to `cycleId == 0`. Any non-zero cycle must
@@ -1924,7 +1947,7 @@ Comment style follows `packages/contracts/src/modules/CookieJar.sol:55-59`.
 
 Gap: `uint256[44] private __gap;` (6 named + 44 reserved = 50 total).
 
-Ownership note: the decision language "owned by the module" is implemented as an `onlyModule` mutation gate (same shape as `onlyGardenToken`, `packages/contracts/src/modules/CookieJar.sol:65-68`). The `OwnableUpgradeable` owner stays the protocol upgrade owner, like every other upgradeable contract in the repo (`_authorizeUpgrade onlyOwner`, `packages/contracts/src/modules/CookieJar.sol:302-304`) — the protocol 3-of-5 Safe required by §6.1 before this lane's mainnet activation. If the owner were the module, nobody could upgrade the register.
+Ownership note: the decision language "owned by the module" is implemented as an `onlyModule` mutation gate (same shape as `onlyGardenToken`, `packages/contracts/src/modules/CookieJar.sol:65-68`). The `OwnableUpgradeable` owner stays the protocol upgrade owner, like every other upgradeable contract in the repo (`_authorizeUpgrade onlyOwner`, `packages/contracts/src/modules/CookieJar.sol:302-304`) — the exact approved protocol Safe satisfying the §6.1 minimum before this lane's mainnet activation. If the owner were the module, nobody could upgrade the register.
 
 #### Interface (canonical)
 
@@ -2083,7 +2106,7 @@ requires `ICommitmentPoolingModule(currentModule).paused() == true` and emits
 
 #### Live-chain implication
 
-GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d02276593` (`packages/contracts/deployments/42161-latest.json:14`) holding real garden state for 13 live gardens. The upgrade appends one packed variable after all existing fields without consuming a gap slot. Required proof chain before broadcast:
+GardenToken on 42161 is a live UUPS proxy at `0xe1Da335110b1ed48e7df63209f5D424d02276593` (`packages/contracts/deployments/42161-latest.json:14`) holding real garden state for the live gardens (18 at the 2026-08-08 finalized census; the backfill enumerates at execution rather than freezing a count). The upgrade appends one packed variable after all existing fields without consuming a gap slot. Required proof chain before broadcast:
 
 - `bun run --filter @green-goods/contracts check:storage-layout` passes against the reviewed
   pre-change GardenToken baseline; only an explicit `--update` action may refresh it.
@@ -2097,10 +2120,12 @@ Post-upgrade ops sequence (one-shot, lives in `.plans/`, not `scripts/`): after 
 `gardenToken.setCommitmentPoolingModule(module)` and
 `workApprovalResolver.setCommitmentModule(module)`; verify both reverse links, updater
 preservation, storage, ownership, and every chain-2/chain-3 readiness fact while the pooling
-module remains paused; then call `module.setPaused(false)`, register the protocol pool on the
-root garden, enumerate the 13 live GardenToken gardens, skip the normalized root GardenAccount
-because it already owns the Protocol pool, submit `registerPool(garden, Garden)` for the remaining
-12 non-root gardens, and run the operational smoke. The backfill records the root as
+module remains paused; register the protocol pool on the root garden first, enumerate the live
+GardenToken gardens at execution (18 at the 2026-08-08 census),
+skip the normalized root GardenAccount
+because it already owns the Protocol pool, submit `registerPool(garden, Garden)` for every
+non-root garden, verify that complete paused backfill, then separately authorize and call
+`module.setPaused(false)` before the operational smoke. The backfill records the root as
 `SKIPPED_PROTOCOL_ROOT`; it never attempts a second pool registration for that garden.
 
 ### 6.4 EAS schema work: exactly two registrations (register #14)
@@ -2381,9 +2406,9 @@ Never use `--update-schemas`: that mode reloads the three legacy resolvers and r
   module-before-UID rejection, registered-exact-schema inactivity while module is zero, verified
   non-zero activation/recovery replacement, initializer lock, and owner-only
   upgrade/configuration.
-- Arbitrum Sepolia registration/rehearsal precedes Arbitrum One (release-age gate posture of
-  `assertSepoliaGate`, `packages/contracts/script/deploy/badge-schemas.ts:77-81`, extended for
-  the distinct `421614` target rather than reusing `11155111`).
+- The Arbitrum One fork rehearsal precedes Arbitrum One execution. Ethereum Sepolia may be used
+  only for endpoint evidence where useful; configured `421614` release records and testnet
+  deployment artifacts are withdrawn and must not be re-added.
 - Registered before cycle 1 opens so baselines exist for seeding (register #26).
 
 ### 6.5 WorkApprovalResolver bridge (upgrade)
@@ -2441,6 +2466,24 @@ frozen/reverting-module cases, plus
 `bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol` for the
 48-to-45 gap change.
 
+### Commitment metadata JSON schema v1 (2026-08-11 addendum — app-layer payload contract, correction pass D4)
+
+`Commitment.metadataCID` / `CreateCommitmentParams.metadataCID` pin one UTF-8 JSON document with this shape (`version` required; every other field optional; unknown fields are preserved-but-ignored by readers):
+
+```json
+{
+  "version": 1,
+  "title": "display title — mirrors the composer title",
+  "note": "free-text description from the composer",
+  "links": [{ "url": "https://…", "label": "optional" }],
+  "media": [{ "cid": "bafy…", "mime": "image/jpeg | video/mp4 | …", "kind": "photo | video" }],
+  "audio": [{ "cid": "bafy…", "mime": "audio/webm | …", "durationSeconds": 42 }],
+  "location": { "lat": 0, "lng": 0, "label": "optional" }
+}
+```
+
+Contract semantics are unchanged — this is an **app-layer contract only**, with no ABI, storage, or event change: the module stores and emits the CID opaquely. `creationPayloadHash` makes commitment metadata **write-once** (there is no `updateCommitmentMetadata`), so anything added after creation rides `attachEvidence`, whose CIDs and credited-contributor vectors already carry post-creation media. `CommitmentSeries.metadataCID` remains updatable via `updateCommitmentSeriesMetadata` and uses this same document shape. Media and audio referenced here upload through the existing offline IPFS job pipeline before the `commitment` job serializes its CID (uiux-spec §5.4 addendum 2026-08-11 / §5.11). The same schema backs the composer's optional "Add details" step; an empty document (`{"version":1}`) is legal and expected for lean creations.
+
 ## 7. Deployment
 
 ### 7.1 Deploy helpers
@@ -2462,6 +2505,13 @@ frozen/reverting-module cases, plus
 ### 7.3 Order of operations for 42161 (August)
 
 Deployment artifacts are the source of truth for addresses; pre-broadcast zero/missing addresses mean pending broadcast, post-broadcast they are blockers (root CLAUDE.md contract deployment rules).
+
+> **Amendment 2026-08-10 (current release ladder).** The Phase A release branch must not re-add
+> configured Arbitrum Sepolia or Celo Sepolia network records or testnet deployment artifacts.
+> Pooling rehearsal remains the Arbitrum One fork. Ethereum Sepolia may be used only as a labeled
+> endpoint rehearsal where useful. Production proceeds, under separate authorization for each
+> stage, to Arbitrum One and then Celo. The former two-week soak is withdrawn. Older `421614`
+> commands below are historical design context and are not operator commands for this release.
 
 > **Amendment 2026-08-06 (approved rehearsal-target change; supersedes the Arbitrum Sepolia
 > rehearsal below).** The pooling rehearsal runs on an **Arbitrum One fork**, not on `421614`.
@@ -2538,10 +2588,11 @@ as named deliverables.
 3. PR chain 3 (upgrades): upgrade GardenToken implementation (6.3) and
    WorkApprovalResolver implementation (6.5); `setCommitmentPoolingModule` /
    `setCommitmentModule`; verify updater preservation, post-upgrade storage/ownership, and
-   both-direction wiring; unpause the pooling module only after those reverse links and every
-   chain-2 readiness fact pass; then register the protocol pool on the root garden
-   (`deployments/42161-latest.json:40-43`), enumerate all 13 live gardens, skip that normalized
-   root address, and backfill `registerPool(garden, Garden)` for the 12 non-root gardens.
+   both-direction wiring; keep the pooling module paused while registering the protocol pool on the root garden
+   (`deployments/42161-latest.json:40-43`), enumerate all live gardens at execution (18 at the
+   2026-08-08 census), skip that normalized
+   root address, and backfill `registerPool(garden, Garden)` for every non-root garden. Verify the
+   complete inventory, then perform the separately authorized unpause.
 4. Update `packages/indexer/config.yaml` addresses from zero-address placeholders and bump
    `start_block` (8.1).
 
@@ -2670,7 +2721,11 @@ Boundary restated: Envio indexes Green Goods core state only; EAS attestations a
 
 ### 8.1 `config.yaml` additions
 
-Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surface as `uint8`):
+Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surface as `uint8`).
+The `SettlementModule` stanza below is the register #103 event delta, as amended by register #104,
+for the already-existing indexer contract block; the later indexer dispatch merges those four
+events into that block and
+must not configure a second copy of the proxy:
 
 ```yaml
   - name: CommitmentPoolingModule
@@ -2733,9 +2788,18 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: UnitsCommitted(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
       - event: UnitsReleased(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
       - event: UnitsFulfilled(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalFulfilled)
+  # Register #103 additions to the existing SettlementModule config block.
+  - name: SettlementModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: FundingPledged(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address garden, address refundAccount, uint256 expectedAmount, address recordedBy)
+      - event: FundingDepositRecorded(uint256 indexed fundingId, bytes32 indexed depositReference, uint256 amount, address indexed recordedBy)
+      - event: FundingConsumed(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, uint256 depositedAmount, address consumedBy)
+      - event: FundingWithdrawn(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address withdrawnBy)
 ```
 
-Pooling network entries are `42161` and `421614`; both start with zero-address placeholders until
+Pooling network entries are `42161` only — the `421614` entry was withdrawn 2026-08-06 with the
+fork-rehearsal decision (§7.3 amendments); addresses start as zero-address placeholders until
 broadcast and then swap to verified artifact addresses. Existing `11155111` blocks remain
 untouched as a legacy regression lane and receive no pooling block unless Green Goods separately
 decides to deploy the pooling contracts there.
@@ -3917,8 +3981,11 @@ an in-place `src/resolvers/Assessment.sol` UUPS upgrade plus NET-NEW
 `script/deploy/commitment-schemas.ts` registration/deploy wiring; validate-script extensions;
 dual-schema Assessment upgrade tests, Community Testimony tests, and storage-layout baselines.
 
-Additional NET-NEW deliverables this chain must build before any `--network arbitrum-sepolia`
-command in §7.3/§7.4 can run at all. None of these exist today:
+**Superseded 2026-08-06 (fork-rehearsal decision; §7.3 amendments)**: the four `421614` bullets
+below were withdrawn with the Arbitrum Sepolia target — the pooling rehearsal is an Arbitrum One
+fork, and they are retained only as historical design context. The §7.4 sender-contract bullet
+remains live. Originally: additional NET-NEW deliverables this chain must build before any
+`--network arbitrum-sepolia` command in §7.3/§7.4 can run at all:
 
 - An `arbitrum-sepolia` / `421614` entry in `packages/contracts/deployments/networks.json` with
   chain id, name, `${ARBITRUM_SEPOLIA_RPC_URL}`, explorer/verify config, deploy config, and the
@@ -3939,8 +4006,8 @@ command in §7.3/§7.4 can run at all. None of these exist today:
   `commitment-pooling` upgrade target with its own check that GardenToken and
   WorkApprovalResolver report the same live owner before one plan persists.
 
-Acceptance: 6.4 acceptance criteria pass; Arbitrum Sepolia upgrade/registration rehearsal,
-including AssessmentV3 registration and Community resolver deployment; Community Testimony
+Acceptance: 6.4 acceptance criteria pass; the Arbitrum One fork upgrade/registration rehearsal
+(`421614` withdrawn 2026-08-06), including AssessmentV3 registration and Community resolver deployment; Community Testimony
 UID is pinned while its module remains zero, an empty or already-exact permissionless registry
 record is proven, and activation remains pending until PR chain 2 supplies and verifies the
 module. The existing
@@ -3951,7 +4018,7 @@ Assessment proxy address, owner, v2 UID, and v2 artifact keys remain byte-identi
 
 Deliverables: `src/modules/CommitmentPooling.sol`, `src/registries/Commitment.sol`, both interfaces, unit + fork tests, `DeploymentBase.sol` deploy helpers + wiring, `DeployHelper.sol` result fields + serialization, storage-layout entries + baselines + `StorageLayout.t.sol` additions.
 
-Acceptance: 6.1 and 6.2 acceptance criteria pass; Arbitrum Sepolia full-stack dry-run deploys
+Acceptance: 6.1 and 6.2 acceptance criteria pass; the Arbitrum One fork full-stack dry-run deploys
 the module/register, verifies the Community resolver's one-way pinned UID, reconciles the exact
 Community Testimony record while the resolver is inactive, activates the verified non-zero module
 last, sets final module schema UIDs, verifies module-side configuration, and leaves the pooling
@@ -3961,13 +4028,14 @@ authorization.
 
 ### `packages/contracts` PR chain 3: live upgrades + backfill
 
-Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, and a verified 13-garden enumeration that records the root skip and submits 12 non-root Garden registrations.
+Deliverables: GardenToken change set (6.3), WorkApprovalResolver bridge (6.5), 42161 broadcast runbook (one-shot ops doc in `.plans/active/commitment-pooling/`, not `scripts/`), protocol pool registration, and a verified live-garden enumeration that records the root skip and submits every non-root Garden registration (18 gardens / 17 non-root at the 2026-08-08 census; no count frozen).
 
 Acceptance: storage-layout gates green pre-broadcast; GardenToken and WorkApprovalResolver are
-upgraded and both reverse links are verified while pooling remains paused; unpause succeeds only
-after every chain-2 and chain-3 readiness fact passes; the root receives exactly one Protocol pool,
-the backfill proves `SKIPPED_PROTOCOL_ROOT` for that address, and the 12 remaining live gardens
-receive Garden pools without a `PoolExists` abort; a scripted offer -> fulfilled smoke passes; the
+upgraded and both reverse links are verified while pooling remains paused; the root receives
+exactly one owner-registered Protocol pool first, the backfill proves `SKIPPED_PROTOCOL_ROOT` for
+that address, and every enumerated non-root garden receives a Garden pool without a `PoolExists`
+abort while the module remains paused. Unpause is a separate authorization only after every
+chain-2/chain-3 and backfill-readiness fact passes; a scripted offer -> fulfilled smoke passes; the
 post-broadcast artifact shows both new addresses and non-zero pool count; and a live approval on an
 existing garden emits `ApprovedWorkCounted` for a linked work.
 
@@ -4020,7 +4088,7 @@ Exit criteria, in dependency order:
 2. Module + register deployed with module-side wiring verified, storage baselines committed, and
    pooling still paused (PR chain 2).
 3. GardenToken + WorkApprovalResolver upgraded on 42161; reverse links verified; pooling unpaused;
-   protocol pool + 13 garden pools registered; operational smoke passed (PR chain 3).
+   protocol pool + every non-root Garden pool registered (census-derived count; 17 at the 2026-08-08 read); operational smoke passed (PR chain 3).
 4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
 5. Shared substrate (types, signed saved-Offer persistence, hooks, six offline queue job kinds including `commitmentSeries` plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
 6. First cycle is ready to seed and open with an allocation preset; the non-value deployments have persisted post-deploy and rollback proof; and the commitment, confirmation, consideration, and settlement paths have deployment-grade proof without treating the July broadcast as a user-facing release or value-tier authorization.
@@ -4068,7 +4136,7 @@ repeats the schema-key pattern; nothing may ever rewrite an existing key (the
     `Fulfilled`; its units argument does not imply partial-fulfillment readiness. A module v1.1
     must separately specify remaining-slot semantics, register transitions, events, and indexer
     deltas before permitting partial conversion.
-12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the protocol 3-of-5 Safe required by §6.1 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
+12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the exact approved Safe satisfying §6.1's threshold >= 2 and owner count >= 3 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
 
 ---
 

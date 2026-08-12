@@ -5,6 +5,7 @@ import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol
 
 import { ISettlementModule } from "../../interfaces/ISettlementModule.sol";
 import { SettlementMessageCodec } from "../../libraries/SettlementMessageCodec.sol";
+import { SettlementFundingLib } from "./FundingLib.sol";
 import { SettlementLifecycleLib } from "./LifecycleLib.sol";
 import { SettlementPlanLib } from "./PlanLib.sol";
 
@@ -111,6 +112,10 @@ library SettlementAcknowledgmentLib {
         disbursement.failureCode = acknowledgment.failureCode;
         if (acknowledgment.success) disbursement.confirmedAt = uint64(block.timestamp);
         _recordPlanOutcome(planState, disbursement.payoutPlanId, acknowledgment.success);
+        SettlementFundingLib.recordRefundOutcome(disbursementId, acknowledgment.success);
+        if (acknowledgment.success) {
+            SettlementFundingLib.closeIfPlanComplete(planState, disbursement.payoutPlanId);
+        }
     }
 
     function _acknowledgeBatch(
@@ -137,6 +142,10 @@ library SettlementAcknowledgmentLib {
             entry.failureCode = acknowledgment.failureCode;
             if (acknowledgment.success) entry.confirmedAt = batch.confirmedAt;
             _recordPlanOutcome(planState, entry.payoutPlanId, acknowledgment.success);
+            SettlementFundingLib.recordRefundOutcome(batch.disbursementIds[index], acknowledgment.success);
+            if (acknowledgment.success) {
+                SettlementFundingLib.closeIfPlanComplete(planState, entry.payoutPlanId);
+            }
         }
     }
 

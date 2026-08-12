@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { SettlementCommandLib } from "../../lib/Settlement/CommandLib.sol";
+import { SettlementFundingLib } from "../../lib/Settlement/FundingLib.sol";
 import { SettlementLoanLib } from "../../lib/Settlement/LoanLib.sol";
 import { SettlementPlanLib } from "../../lib/Settlement/PlanLib.sol";
 import { SettlementLifecycle } from "./Lifecycle.sol";
@@ -53,6 +54,42 @@ abstract contract SettlementViews is SettlementLifecycle {
 
     function payoutPlanOfCommitment(uint256 commitmentId) external view override returns (uint256) {
         return _planState.payoutPlanOfCommitment[commitmentId];
+    }
+
+    function getCommitmentFunding(uint256 fundingId) external view override returns (CommitmentFunding memory) {
+        // The all-static tuple is returned directly from its frozen ERC-7201 mapping layout. This
+        // avoids pulling the large Solidity tuple encoder into the EIP-170-constrained module and
+        // adds no helper selector outside ISettlementModule. The four uint64 timestamps share the
+        // final storage word, so each is expanded into its ABI word explicitly.
+        // solhint-disable-next-line no-inline-assembly
+        assembly ("memory-safe") {
+            mstore(0, fundingId)
+            mstore(0x20, 0x14790e171eb52cfebe9fb0c814ca455ea33a3bcc183d5784757d5df85dd1e401)
+            let fundingSlot := keccak256(0, 0x40)
+            if iszero(sload(add(fundingSlot, 7))) {
+                mstore(0, shl(224, 0x5f8d9b40))
+                mstore(4, fundingId)
+                revert(0, 0x24)
+            }
+            for { let index := 0 } lt(index, 9) { index := add(index, 1) } {
+                mstore(shl(5, index), sload(add(fundingSlot, index)))
+            }
+            let timestamps := sload(add(fundingSlot, 9))
+            let uint64Mask := 0xffffffffffffffff
+            mstore(0x120, and(timestamps, uint64Mask))
+            mstore(0x140, and(shr(64, timestamps), uint64Mask))
+            mstore(0x160, and(shr(128, timestamps), uint64Mask))
+            mstore(0x180, shr(192, timestamps))
+            return(0, 0x1a0)
+        }
+    }
+
+    function fundingOfCommitmentFunder(uint256 commitmentId, address funder) external view override returns (uint256) {
+        return SettlementFundingLib.fundingOfCommitmentFunder(commitmentId, funder);
+    }
+
+    function fundingRefundDisbursementOf(uint256 fundingId) external view override returns (uint256) {
+        return SettlementFundingLib.fundingRefundDisbursementOf(fundingId);
     }
 
     function loanPrincipalDisbursementOf(address registry, uint256 loanId) external view override returns (uint256) {

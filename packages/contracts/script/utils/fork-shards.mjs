@@ -42,8 +42,8 @@ const SHARDS = {
   "pooling-arbitrum": {
     chain: "ARBITRUM",
     description:
-      "Commitment Pooling release rehearsal against live Arbitrum Hats, EAS, and WorkApprovalResolver",
-    glob: "test/fork/ArbitrumCommitmentPooling.t.sol",
+      "Commitment Pooling and ordered Assessment release rehearsals against live Arbitrum Hats, EAS, and WorkApprovalResolver",
+    glob: "test/fork/{ArbitrumCommitmentPooling,ArbitrumAssessmentReleaseSequence}.t.sol",
   },
   "settlement-lane": {
     chain: "ARBITRUM",
