@@ -454,6 +454,7 @@ interface ISettlementModule {
     error FeeReserveFloorViolated(uint256 requiredMinimum, uint256 remainingBalance);
     error DispatchedSettlementCannotBeCancelled();
     error BatchedDisbursementCannotBeCancelled(uint256 disbursementId, uint256 batchId);
+    error RefundDisbursementCannotBeCancelled(uint256 disbursementId);
     error GardenerDeliveryDisabled();
     error SourceMustBePaused();
     error SourceNotReady();
@@ -529,21 +530,10 @@ interface ISettlementModule {
     )
         external;
     function finalizeCommitmentPayoutPlan(uint256 payoutPlanId) external;
-    function prepareContributorPayout(
-        uint256 payoutPlanId,
-        address contributor
-    )
-        external
-        returns (uint256 disbursementId);
+    function prepareContributorPayout(uint256 payoutPlanId, address contributor) external returns (uint256 disbursementId);
     function prepareGardenBeneficiaryPayout(uint256 payoutPlanId) external returns (uint256 disbursementId);
     function queueFunding(address garden, uint256 amount) external returns (uint256 disbursementId);
-    function recordFunding(
-        uint256 commitmentId,
-        address funder,
-        address refundAccount
-    )
-        external
-        returns (uint256 fundingId);
+    function recordFunding(uint256 commitmentId, address funder, address refundAccount) external returns (uint256 fundingId);
     function recordFundingDeposit(uint256 fundingId, uint256 amount, bytes32 depositReference) external;
     function consumeFunding(uint256 fundingId) external;
     function queueFundingRefund(uint256 fundingId) external returns (uint256 disbursementId);
@@ -565,13 +555,7 @@ interface ISettlementModule {
     function settlementAccountOf(address garden) external view returns (SettlementAccount memory);
     function settlementGardenOf(address account) external view returns (address garden);
     function getPayoutPlan(uint256 payoutPlanId) external view returns (CommitmentPayoutPlan memory);
-    function contributorPayoutOf(
-        uint256 payoutPlanId,
-        address contributor
-    )
-        external
-        view
-        returns (ContributorPayout memory);
+    function contributorPayoutOf(uint256 payoutPlanId, address contributor) external view returns (ContributorPayout memory);
     function payoutContributors(uint256 payoutPlanId) external view returns (address[] memory);
     function payoutPlanOfCommitment(uint256 commitmentId) external view returns (uint256);
     function getCommitmentFunding(uint256 fundingId) external view returns (CommitmentFunding memory);
