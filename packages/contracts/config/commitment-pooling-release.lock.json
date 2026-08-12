@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "commitment-pooling-settlement-credit-v1",
-  "sourceCommit": "49fc62cc0e665de929baca02c1228a43d681ad68",
-  "manifestHash": "0x6383e1ad076a51153323004ab03ea80a9cde8f43c660fbd2e22b020e579a2246",
+  "sourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
+  "manifestHash": "0x31c05bd61e7d8bcf187d6148e64f6f0415f34fb1fbe633b97e4cde1eef46c634",
   "build": {
     "profile": "production",
     "solc": "0.8.28",
@@ -233,9 +233,9 @@
       "stage": "settlement-module",
       "artifact": "LifecycleLib.sol/SettlementLifecycleLib.json",
       "salt": "0x1c839fba0f6a671fb508304c9bb0df7dd0b33f65e39c60ad3da559d591a7ab1b",
-      "address": "0xc297c5Df0b9ED71c6Eb7a0F546029a49A0751779",
-      "creationCodeHash": "0xf478e991a13a446c7ffd8ad7756c619f0329bf4fb702099688b5bf2454137fee",
-      "runtimeTemplateHash": "0x08e093b35e524ae78f5a67161c4361cb3fc9c23e9cf536403a1b3cd6cdc25f16",
+      "address": "0xA9901d5AbA09aFdC180900AAC423d0bF14633501",
+      "creationCodeHash": "0x5cd51605e0e58580abc1c9763dfc711734c19baf97ed51562ee0485328766df9",
+      "runtimeTemplateHash": "0xaa9933f2cb9cff9d9e6e15367e75c4fa092b9292a89fc6ab84da5ae8645b0f00",
       "immutableRuntime": false,
       "libraries": {
         "src/lib/Settlement/CommandLib.sol:SettlementCommandLib": "0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8"
@@ -371,16 +371,16 @@
       "stage": "settlement-module",
       "artifact": "SettlementModule.sol/SettlementModule.json",
       "salt": "0xc6e709773a8a3be6dd1d74d56aa4a4119523fb70bfb2139351c9af10c8286b86",
-      "address": "0x85fDeA6Ee68f6323a590a6fAa81C671d14f1e1dB",
-      "creationCodeHash": "0x4460e278c182458bdaa7111bca4bcec863915e999d6b37f1325c4244592a1872",
-      "runtimeTemplateHash": "0xe0a93d842390dd427cf531be896a043827064246a2448423890728bd5d3bbacb",
+      "address": "0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281",
+      "creationCodeHash": "0x6dd42ad5004df51579662675824496799d3a5880d65fe3ff8beac80832ee6d0c",
+      "runtimeTemplateHash": "0xb420c881409bb0f5fd1e54d96a76b0e3c27851ea148bb0df668254ba7d489720",
       "immutableRuntime": true,
       "libraries": {
         "src/lib/Settlement/AcknowledgmentLib.sol:SettlementAcknowledgmentLib": "0xE81212903382ed03c4D4E8d72d23a098d56DE645",
         "src/lib/Settlement/CommandLib.sol:SettlementCommandLib": "0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8",
         "src/lib/Settlement/ConfigurationLib.sol:SettlementConfigurationLib": "0xa7042e327369beF53E01CCdC46E713Af7Ea9a687",
         "src/lib/Settlement/FundingLib.sol:SettlementFundingLib": "0x8cC05D2443AE960c4CB98F462D87D619774B2bfA",
-        "src/lib/Settlement/LifecycleLib.sol:SettlementLifecycleLib": "0xc297c5Df0b9ED71c6Eb7a0F546029a49A0751779",
+        "src/lib/Settlement/LifecycleLib.sol:SettlementLifecycleLib": "0xA9901d5AbA09aFdC180900AAC423d0bF14633501",
         "src/lib/Settlement/LoanLib.sol:SettlementLoanLib": "0x44e0ADB51338dA96F2Aaa942924E47008e534122",
         "src/lib/Settlement/PlanLib.sol:SettlementPlanLib": "0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622"
       }
@@ -392,8 +392,8 @@
       "stage": "settlement-module",
       "artifact": "ERC1967Proxy.sol/ERC1967Proxy.json",
       "salt": "0x71065f5465b0b12c53d1fdb0dae0e40de84f6f2a0fbe128e7570631fe547f4b2",
-      "address": "0x19465De2C8acBF477A525FCe180f95445c015917",
-      "creationCodeHash": "0x14ecce5a214d445fa2831a014ca963b30d59104e114fc5316d70b1657b48c434",
+      "address": "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D",
+      "creationCodeHash": "0xd9d4414590d1320dcd67eabbdbd9f512de5635b5863fb2f101d61381540fbbca",
       "runtimeTemplateHash": "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
       "immutableRuntime": false,
       "libraries": {}
@@ -418,8 +418,8 @@
       "stage": "credit-registry",
       "artifact": "ERC1967Proxy.sol/ERC1967Proxy.json",
       "salt": "0x744ac8c3d8d0f249ecde662ae8ae46877ba8b622cb01d0e78f1b6309a2ec8eac",
-      "address": "0x94063C4Aa82916a901D973673C2cd0D01BbB6E0c",
-      "creationCodeHash": "0xaac9788b9242c22e089cad045bd1868891b9fa0cf717b4a8d7ccb4f8929cc705",
+      "address": "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
+      "creationCodeHash": "0xae8d77c8793119682a3c15dac0195a7e49cf05c8e49c2037976fece4a95793c1",
       "runtimeTemplateHash": "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
       "immutableRuntime": false,
       "libraries": {}
@@ -444,8 +444,8 @@
       "stage": "settlement-executor",
       "artifact": "ERC1967Proxy.sol/ERC1967Proxy.json",
       "salt": "0x962c7c3cfadd72a7d70d9eed154f0c9c62c88516c2bce27827aaf92dfe747e50",
-      "address": "0x276E64f72e8F5F0C346EE1dfde09356b96ca2A67",
-      "creationCodeHash": "0xc6d33d5199a7736927748d1abc78a17c1b34cc7bf4d0b2768dde37a35cd7eac4",
+      "address": "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F",
+      "creationCodeHash": "0xcd49de42d13b6b006dc034dc568fb2e89361788bec3b0ddadf58fe4555aaa1c6",
       "runtimeTemplateHash": "0x60fd6321ecf59eb9beedf71da3689269f96cf3565fa30dc5dc84d89842516fe7",
       "immutableRuntime": false,
       "libraries": {}
@@ -468,7 +468,7 @@
     "src/lib/CommitmentPooling/ViewsLib.sol:CommitmentPoolingViewsLib": "0xEeb5fc5f3BDba63E3CDD235808a91d8997c95aB9",
     "src/lib/Settlement/CommandLib.sol:SettlementCommandLib": "0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8",
     "src/lib/Settlement/ConfigurationLib.sol:SettlementConfigurationLib": "0xa7042e327369beF53E01CCdC46E713Af7Ea9a687",
-    "src/lib/Settlement/LifecycleLib.sol:SettlementLifecycleLib": "0xc297c5Df0b9ED71c6Eb7a0F546029a49A0751779",
+    "src/lib/Settlement/LifecycleLib.sol:SettlementLifecycleLib": "0xA9901d5AbA09aFdC180900AAC423d0bF14633501",
     "src/lib/Settlement/LoanLib.sol:SettlementLoanLib": "0x44e0ADB51338dA96F2Aaa942924E47008e534122",
     "src/lib/Settlement/PlanLib.sol:SettlementPlanLib": "0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622",
     "src/lib/Settlement/FundingLib.sol:SettlementFundingLib": "0x8cC05D2443AE960c4CB98F462D87D619774B2bfA",

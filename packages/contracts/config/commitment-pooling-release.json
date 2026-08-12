@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "commitment-pooling-settlement-credit-v1",
-  "sourceCommit": "49fc62cc0e665de929baca02c1228a43d681ad68",
+  "sourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
   "build": {
     "profile": "production",
     "solc": "0.8.28",
@@ -53,9 +53,9 @@
     "activationIncluded": false,
     "sourceAcknowledgmentGasLimit": "300000",
     "sourceAcknowledgmentMeasurement": {
-      "acceptedFixture": "SettlementFundingTest.testProposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget",
-      "firstRejectedFixture": "SettlementFundingTest.testNextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget",
-      "hardMaxFixture": "SettlementFundingTest.testHardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget",
+      "acceptedFixture": "SettlementFundingTest.testSettlementFunding_proposedFundedBatchAcknowledgmentFitsTheFixedSourceGasBudget",
+      "firstRejectedFixture": "SettlementFundingTest.testSettlementFunding_nextFundedBatchSizeDoesNotFitTheFixedSourceGasBudget",
+      "hardMaxFixture": "SettlementFundingTest.testSettlementFunding_hardMaxFundedBatchAcknowledgmentDoesNotFitTheFixedSourceGasBudget",
       "acceptedBatchSize": "2",
       "acceptedGasUsed": "240108",
       "firstRejectedBatchSize": "3",
