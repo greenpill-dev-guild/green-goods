@@ -1589,6 +1589,19 @@ section,h4[id],.anchor-alias{scroll-margin-top:calc(var(--header-h) + 1rem);}
     });
   }
 
+  // The plane a reader actually has: viewport minus the sticky masthead, minus room
+  // for the diagram's own colour key and some breathing space beneath it. Reads
+  // --header-h so it stays in step with syncHeaderHeight() when the masthead wraps.
+  var PLANE_ALLOWANCE = 72;
+  function readingPlaneHeight(){
+    var headerHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h'));
+    if (!(headerHeight > 0)) {
+      var header = document.querySelector('header.top');
+      headerHeight = header ? header.getBoundingClientRect().height : 0;
+    }
+    return Math.max(1, window.innerHeight - headerHeight - PLANE_ALLOWANCE);
+  }
+
   function sizeMermaidOverview(svg){
     var rendered = svg.closest('.mermaid-rendered,.mermaid,.mermaid-host') || svg.parentElement;
     var viewBox = svg && svg.viewBox && svg.viewBox.baseVal;
@@ -1596,14 +1609,27 @@ section,h4[id],.anchor-alias{scroll-margin-top:calc(var(--header-h) + 1rem);}
     var availableWidth = rendered ? rendered.clientWidth : (diagram ? diagram.clientWidth : 0);
     if (!availableWidth && diagram) availableWidth = diagram.clientWidth;
     if (!svg || !viewBox || !viewBox.width || !viewBox.height || !availableWidth) return;
-    // Fit to width, not to the viewport's height. Binding the inline view to a
-    // laptop-height reading plane drove the big ERDs down to ~0.15 scale — roughly
-    // two-pixel type, which reads as texture rather than as a diagram. Width-fitting
-    // against an absolute height ceiling roughly doubles the worst cases and lets a
-    // tall diagram simply be tall; the page scrolls past it, and Expand is still the
-    // path for detailed reading.
-    var MAX_INLINE_HEIGHT = 1500;
-    var scale = Math.min(availableWidth / viewBox.width, MAX_INLINE_HEIGHT / viewBox.height, 1.2);
+    // A diagram is either fully visible in the reading plane, or it is legible and
+    // Expand carries the detail. What it must never be is both small and overflowing,
+    // which is exactly what an absolute height ceiling produced: the ceiling was ~2.5
+    // reading planes tall, so half the set ran past the fold, while the worst ERDs
+    // stayed at ~0.15 scale anyway because *width* — not height — binds them.
+    //
+    // So: fit the plane, but refuse to shrink past MIN_LEGIBLE_SCALE to do it.
+    // Mermaid labels are 16px natively, so 0.5 is 8px type — the floor where a label
+    // still reads as text rather than as texture. A diagram that cannot fit without
+    // going under that floor stays legible and overflows on purpose.
+    //
+    // Deriving the plane from the viewport is also what stops MAX_UPSCALE pushing a
+    // short diagram past the fold: whenever the plane binds below it, the plane wins,
+    // so magnification can never cost visibility.
+    var MIN_LEGIBLE_SCALE = 0.5;
+    var MAX_UPSCALE = 1.2;
+    var scale = Math.min(
+      availableWidth / viewBox.width,
+      MAX_UPSCALE,
+      Math.max(readingPlaneHeight() / viewBox.height, MIN_LEGIBLE_SCALE)
+    );
     var width = Math.max(1, viewBox.width * scale);
     var height = Math.max(1, viewBox.height * scale);
     svg.style.width = width + 'px';

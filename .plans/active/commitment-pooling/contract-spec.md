@@ -2466,6 +2466,24 @@ frozen/reverting-module cases, plus
 `bun run --filter @green-goods/contracts test:match -- test/StorageLayout.t.sol` for the
 48-to-45 gap change.
 
+### Commitment metadata JSON schema v1 (2026-08-11 addendum — app-layer payload contract, correction pass D4)
+
+`Commitment.metadataCID` / `CreateCommitmentParams.metadataCID` pin one UTF-8 JSON document with this shape (`version` required; every other field optional; unknown fields are preserved-but-ignored by readers):
+
+```json
+{
+  "version": 1,
+  "title": "display title — mirrors the composer title",
+  "note": "free-text description from the composer",
+  "links": [{ "url": "https://…", "label": "optional" }],
+  "media": [{ "cid": "bafy…", "mime": "image/jpeg | video/mp4 | …", "kind": "photo | video" }],
+  "audio": [{ "cid": "bafy…", "mime": "audio/webm | …", "durationSeconds": 42 }],
+  "location": { "lat": 0, "lng": 0, "label": "optional" }
+}
+```
+
+Contract semantics are unchanged — this is an **app-layer contract only**, with no ABI, storage, or event change: the module stores and emits the CID opaquely. `creationPayloadHash` makes commitment metadata **write-once** (there is no `updateCommitmentMetadata`), so anything added after creation rides `attachEvidence`, whose CIDs and credited-contributor vectors already carry post-creation media. `CommitmentSeries.metadataCID` remains updatable via `updateCommitmentSeriesMetadata` and uses this same document shape. Media and audio referenced here upload through the existing offline IPFS job pipeline before the `commitment` job serializes its CID (uiux-spec §5.4 addendum 2026-08-11 / §5.11). The same schema backs the composer's optional "Add details" step; an empty document (`{"version":1}`) is legal and expected for lean creations.
+
 ## 7. Deployment
 
 ### 7.1 Deploy helpers

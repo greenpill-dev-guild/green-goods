@@ -1555,3 +1555,52 @@ The garden pool console may group instances under their ongoing Offer and show h
 lifecycle state, exact outcome counts, available places, and pool participation history. Stewards
 get no control to edit holder metadata, rest/resume/retire another person's ongoing Offer,
 or create one on someone's behalf; those are absent from the initial ABI, so no control is drawn.
+
+## 10. Correction-pass deltas (2026-08-11, uiux-spec Appendix B addenda D1–D10)
+
+Appended per the append-only citation rule (nothing may shift `WF:NNN` lines above). The hi-fi
+registry is authoritative for the corrected drawings; the earlier ASCII sections above predate
+this pass wherever they conflict.
+
+### W3 delta — entry-fixed composer
+
+Direction comes from the entry CTA and draws **no in-form Direction control** (supersedes the §W3
+ASCII's direction row and the §8 delta's "editable in step 1"). Step 1 adds the kind words
+(garden work vs a service or support), the **Start from a template** entry, and an optional
+**Add details** capture (photo / audio note / written note / links — the Submit Work media
+interaction; payload = contract-spec commitment-metadata JSON v1 → `metadataCID`). Step 2 adds
+**How often — Just once / Ongoing** on offer casts (folds W33) and the "Offer this in exchange
+for…" detour (W28). Review renders sectioned Submit Work anatomy (What · How much · Proof · Who
+confirms & team, per-section edit links) instead of one label/value card. Bars are one row:
+icon/short secondary + full-width primary; the Advanced detour is a content affordance inside the
+Who-confirms section, not a second bar button. Advanced adds **Invite contributors**
+(LeadManaged, `addContributor` semantics).
+
+### W31 delta — template picker retitle + placement
+
+Header "Start from a template" (never "Create a promise"); reached from composer step 1, no
+longer a gate between the entry CTA and the form. "Exchange circle" routes into the step-2
+exchange detour.
+
+### W32/W33/W34 delta — ongoing offers get a home
+
+W32 renders as the WalletDrawer Commitments-tab section "Things I can offer" with a drawn entry
+(uiux §5.8 addendum); W33 as a separate wizard retires into the composer's How-often choice; the
+pool tab (W1) additionally shows ongoing-Offer places as cards with an "Ongoing" chip and
+places-left count. W34 remains the series detail; its claimant and story states are unchanged.
+
+### WFLOW delta — the work↔promise bridge, both directions
+
+WFLOW expands from the single review state to the real four-step Submit Work flow (intro → media
+→ details → review). The details step carries the **"Fulfills a promise"** picker (prefilled and
+locked when deep-linked from W2; pickable when entered from the Garden tab). Review keeps the
+locked read-only fulfills row. "Link existing work" on W2 targets a **client work-picker**
+(gardener's approved/pending works + exact requirement row), never the admin console.
+
+### W1 delta — card contract + steward-authority copy
+
+Cards follow the uiux §5.2 addendum: creator by-line (avatar + name; "for {garden}" when
+garden-claimed), real progress only (places left / approved n·m), state chip only when not
+plainly open, exactly one context action or one plain reason line, roster indicator when a team
+exists; notes and declared value stay in detail. The no-Season empty slot names authority:
+Seasons and Campaigns are opened by stewards.
