@@ -160,6 +160,7 @@ classified exactly once. “No hi-fi surface” is an explicit product boundary,
 | RI-19 | Settlement requeue/new logical attempt | online authority-gated | new attempt ID allowed only after authenticated failure | read prior terminal failure and preserve lineage | no hidden retry; explicit new attempt |
 | RI-20 | Payout plan parent/child recovery | online authority-gated | stable plan ID; immutable contributor-or-beneficiary shape and stable child pointer | retry only the failed child; never recreate the parent or convert its shape | explicit targeted retry |
 | RI-21 | Pre-acceptance term edits and Work correction | online steward mutation | target commitment/Work plus exact new term or current resolver decision | re-read the cursor-winning value/consideration/rule/link/decision; exact target is success and a newer conflicting target returns to review | no automatic retry |
+| RI-22 | Member funding record, deposit, consumption, and refund | online steward mutation | stable funding ID; immutable commitment, funder, refund account, expected amount, and one funding-to-disbursement pointer | re-read the funding state and immutable fields; an exact pledge/deposit/consumption result is success, while a refund retry returns the existing child and never creates a second refund | no automatic retry; exact retry is idempotent |
 
 ### B3. Executable-call coverage
 
@@ -183,6 +184,7 @@ that row's recovery rule; this table prevents a new visible mutation from bypass
 | RI-15 | `confirmFulfillmentAsFallback`, `recordConsiderationPaid` |
 | RI-17–RI-19 | `registerSettlementAccount`, `requeue`, `queueFunding`, `createBatch`, `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand`, `retryAcknowledgment`, `cancelBatch`, `cancelDisbursement` |
 | RI-20 | `createCommitmentPayoutPlan`, `setContributorPayouts`, `finalizeCommitmentPayoutPlan`, `prepareContributorPayout`, `prepareGardenBeneficiaryPayout` |
+| RI-22 | `recordFunding`, `recordFundingDeposit`, `consumeFunding`, `queueFundingRefund` |
 
 ---
 
