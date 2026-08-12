@@ -246,9 +246,10 @@ export function useWorkApproval() {
         queryKeys.works.online(work.gardenAddress, chainId)
       );
 
-      // Wallet mode leaves indexed work untouched until the direct submission
-      // reports receipt confirmation. Queued flows retain their optimistic outcome
-      // while they wait to sync.
+      // Wallet mode leaves indexed work untouched while the signature is pending.
+      // Once the wallet returns a transaction hash, onSuccess records the decision
+      // even when receipt waiting times out so stale cached pending status cannot
+      // override the indexer's later result.
 
       if (authMode !== "wallet") {
         const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
@@ -350,7 +351,6 @@ export function useWorkApproval() {
       const isApproval = variables?.draft.approved ?? false;
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
 
-      const shouldApplyStatus = authMode !== "wallet" || result.confirmed === true;
       // Provide haptic feedback for successful approval
       hapticSuccess();
 
@@ -371,9 +371,11 @@ export function useWorkApproval() {
         });
       }
 
-      // Clear _isPending flag and confirm status after transaction is confirmed
-      // For offline hashes, keep _isPending until job is processed
-      if (variables && shouldApplyStatus) {
+      // A returned transaction hash means the decision has been submitted. Record
+      // its status even if the receipt wait timed out; useWorks otherwise retains
+      // the cached pending value over the indexer's eventual result. Offline hashes
+      // remain pending until their queued job is processed.
+      if (variables) {
         const { draft, work } = variables;
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
@@ -426,9 +428,10 @@ export function useWorkApproval() {
         toastService.success({
           id: "approval-submit",
           title: isApproval ? "Approval submitted" : "Decision submitted",
-          message: shouldApplyStatus
-            ? "Transaction confirmed."
-            : "Waiting for wallet confirmation...",
+          message:
+            result.confirmed === false
+              ? "Waiting for wallet confirmation..."
+              : "Transaction confirmed.",
           context: "wallet confirmation",
           suppressLogging: true,
         });

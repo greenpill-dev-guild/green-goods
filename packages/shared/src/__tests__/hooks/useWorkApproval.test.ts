@@ -203,7 +203,7 @@ describe("hooks/work/useWorkApproval", () => {
       );
     });
 
-    it("keeps indexed wallet status unchanged when receipt confirmation times out", async () => {
+    it("records wallet decisions when receipt confirmation times out", async () => {
       (submitApprovalDirectly as any).mockResolvedValue({
         hash: MOCK_TX_HASH,
         confirmed: false,
@@ -229,10 +229,26 @@ describe("hooks/work/useWorkApproval", () => {
       });
 
       expect(queryClient.getQueryData<Array<{ status: string }>>(mergedKey)?.[0]?.status).toBe(
-        "pending"
+        "approved"
       );
       expect(queryClient.getQueryData<Array<{ status: string }>>(onlineKey)?.[0]?.status).toBe(
-        "pending"
+        "approved"
+      );
+
+      const rejectionDraft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: false,
+      });
+      await act(async () => {
+        await result.current.mutateAsync({ draft: rejectionDraft, work });
+      });
+
+      expect(queryClient.getQueryData<Array<{ status: string }>>(mergedKey)?.[0]?.status).toBe(
+        "rejected"
+      );
+      expect(queryClient.getQueryData<Array<{ status: string }>>(onlineKey)?.[0]?.status).toBe(
+        "rejected"
       );
     });
 
