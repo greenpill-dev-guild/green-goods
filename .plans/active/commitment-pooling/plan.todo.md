@@ -1055,6 +1055,11 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Settlement (`codex/settlement/commitment-pooling`): PRD-686
 
+- [x] Track the current-release member-funded increment in
+  [PRD-814](https://linear.app/greenpill-dev-guild/issue/PRD-814), parented to the live
+  [PRD-650](https://linear.app/greenpill-dev-guild/issue/PRD-650) roadmap and related to the
+  in-progress pool-freeze issue
+  [PRD-813](https://linear.app/greenpill-dev-guild/issue/PRD-813)
 - [ ] Implement register #103's member-funded claim records, steward-confirmed deposits,
   acceptance consumption, one persistent refund child, failed-refund requeue, and ordinal-safe
   `DisbursementKind.Refund` through the existing command/acknowledgment rail
